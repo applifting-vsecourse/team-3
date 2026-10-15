@@ -10,7 +10,7 @@ Na konci sprintu 2 ukážeme živě na stagingu happy path pro akce i skupiny: o
 
 Happy path je průchod, který si v aplikaci ověří základní věci: „objevil jsem aplikaci, přihlásil se, viděl něčí akci, přečetl si, o čem je, a dal najevo, že přijdu.“ Skupina funguje podobně, liší se schvalovacím procesem.
 
-**Potvrzeno PO 14. 10.:** *„Najdeš appku, zaregistruješ se a přihlásíš, vyhledáš si event nebo skupinu, co se ti líbí, podle různých kritérií, a přihlásíš se na event / požádáš o schválení do skupiny.“*
+**Potvrzeno PO 14. 10.:** _„Najdeš appku, zaregistruješ se a přihlásíš, vyhledáš si event nebo skupinu, co se ti líbí, podle různých kritérií, a přihlásíš se na event / požádáš o schválení do skupiny.“_
 
 1. **Úvodní stránka:** návštěvník pochopí, k čemu HobbyHub je.
 2. **Registrace a přihlášení:** stane se uživatelem.
@@ -26,7 +26,7 @@ Happy path je průchod, který si v aplikaci ověří základní věci: „objev
 User stories z [HobbyHub_User_Stories_MVP.md](HobbyHub_User_Stories_MVP.md), které happy path pokrývají, osekané na to, co sprint potřebuje. Schvalování je ve scope. Mapa je nástřel: stačí zobrazit body; pokud narazí na velké problémy, přesune se do sprintu 3.
 
 | Story                      | Původní | Bereme ve sprintu 2                                                                                               | Vynecháváme                                                                                                               |
-|----------------------------|---------|-------------------------------------------------------------------------------------------------------------------|---------------------------------------------------------------------------------------------------------------------------|
+| -------------------------- | ------- | ----------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------- |
 | Úvodní stránka             | US-01   | Landing page: věta, co HobbyHub dělá, náhled nadcházejících akcí, vstup do registrace                             | Lokalita z IP (výchozí Praha)                                                                                             |
 | Registrace a přihlášení    | US-04   | E-mail + heslo, 18+ a souhlasy, návrat na akci po přihlášení                                                      | Ověření e-mailu, zapomenuté heslo                                                                                         |
 | Seznam a mapa akcí         | US-02   | Seznam nadcházejících akcí, přepnutí na mapu se špendlíky, filtr aktivita + lokalita (minimum, viz otázky pro PO) | Rozkliknutí špendlíku (pokud nezbude čas), řazení podle vzdálenosti; filtr termínu a hledání podle názvu k potvrzení s PO |
@@ -45,7 +45,7 @@ User stories z [HobbyHub_User_Stories_MVP.md](HobbyHub_User_Stories_MVP.md), kte
 PO teď nechce řešit hodnocení a funkce kolem, rozšiřovaly by scope bez vlivu na happy path.
 
 | Oblast                    | Stories             | Proč ne teď                                                       |
-|---------------------------|---------------------|-------------------------------------------------------------------|
+| ------------------------- | ------------------- | ----------------------------------------------------------------- |
 | E-maily a ověření e-mailu | US-04 (část), US-08 | Napojení e-mailové služby a plánovač                              |
 | Profil a GDPR             | US-05               | Viditelnost údajů, export a smazání účtu                          |
 | Hodnocení                 | US-09               | PO: zatím nechceme                                                |
@@ -88,7 +88,7 @@ PO teď nechce řešit hodnocení a funkce kolem, rozšiřovaly by scope bez vli
 ## Úkoly
 
 | Úkol                                                           | Kdo                                    |
-|----------------------------------------------------------------|----------------------------------------|
+| -------------------------------------------------------------- | -------------------------------------- |
 | Poslat do Teams průlet happy path jako záznam scopingu         | Jan Černý (hotovo 14. 10.)             |
 | Založit úkoly sprintu jako issues na GitHubu a rozdělit je     | Tým (založeno 14. 10., zbývá rozdělit) |
 | Navrhnout design první obrazovky a poslat PO do Teams k review | Tým                                    |

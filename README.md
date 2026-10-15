@@ -1,4 +1,5 @@
-# HobbyHub 
+# HobbyHub
+
 **Projektová dokumentace – rozcesetník (user stories, zápis z planningu, design atd.): [docs/](docs/README.md)**
 
 #full-stack starter template

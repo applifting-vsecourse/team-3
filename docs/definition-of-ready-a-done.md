@@ -27,12 +27,12 @@ Story jde do sloupce **Done**, když:
 
 ## Stavy na boardu
 
-| Stav | Kdy tam karta je | Kdo ji tam posune |
-| --- | --- | --- |
-| Product Backlog | Odsouhlasená story, ještě nenaplánovaná | PO |
-| Sprint Backlog | Vybraná na sprint planningu, splňuje DoR | Tým |
-| In Progress | Někdo na ní pracuje (s agentem) | Vývojář |
-| Ready for Code Review | Otevřený pull request | Vývojář |
-| Ready for Testing | PR mergnutý, nasazeno na dev | Reviewer |
-| Done | QA ověřilo akceptační kritéria | QA |
-| Accepted by PO | PO akceptoval a zavřel issue | PO |
+| Stav                  | Kdy tam karta je                         | Kdo ji tam posune |
+| --------------------- | ---------------------------------------- | ----------------- |
+| Product Backlog       | Odsouhlasená story, ještě nenaplánovaná  | PO                |
+| Sprint Backlog        | Vybraná na sprint planningu, splňuje DoR | Tým               |
+| In Progress           | Někdo na ní pracuje (s agentem)          | Vývojář           |
+| Ready for Code Review | Otevřený pull request                    | Vývojář           |
+| Ready for Testing     | PR mergnutý, nasazeno na dev             | Reviewer          |
+| Done                  | QA ověřilo akceptační kritéria           | QA                |
+| Accepted by PO        | PO akceptoval a zavřel issue             | PO                |

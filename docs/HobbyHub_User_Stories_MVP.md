@@ -4,13 +4,13 @@ Zdroj: Feature breakdown v3.4 po FB1 (9. 10. 2026) zkonzultovaný s PO, Lean Can
 
 ## Role
 
-| Role | Kdo to je | Label |
-|---|---|---|
-| Návštěvník | Kdokoli nepřihlášený. Akce jen prohlíží. | `role: návštěvník` |
-| Přihlášený uživatel | Hlásí se na akce, přidává se do skupin, hodnotí akce i organizátory, nahlašuje lidi a akce | `role: uživatel` |
-| Organizátor akce | Přihlášený uživatel, který založí akci sám za sebe. Není to zvláštní typ účtu. Předplatným organizátora si odemkne evidenci docházky. | `role: organizátor` |
-| Správce skupiny | Kdo skupinu založil, nebo koho správce jmenoval. Všichni správci mají stejná práva (správce = admin skupiny). | `role: správce skupiny` |
-| Superadmin | Provozovatel / technická podpora: schvaluje nahlášení, blokuje, maže akce, potvrzuje platby | `role: superadmin` |
+| Role                | Kdo to je                                                                                                                             | Label                   |
+| ------------------- | ------------------------------------------------------------------------------------------------------------------------------------- | ----------------------- |
+| Návštěvník          | Kdokoli nepřihlášený. Akce jen prohlíží.                                                                                              | `role: návštěvník`      |
+| Přihlášený uživatel | Hlásí se na akce, přidává se do skupin, hodnotí akce i organizátory, nahlašuje lidi a akce                                            | `role: uživatel`        |
+| Organizátor akce    | Přihlášený uživatel, který založí akci sám za sebe. Není to zvláštní typ účtu. Předplatným organizátora si odemkne evidenci docházky. | `role: organizátor`     |
+| Správce skupiny     | Kdo skupinu založil, nebo koho správce jmenoval. Všichni správci mají stejná práva (správce = admin skupiny).                         | `role: správce skupiny` |
+| Superadmin          | Provozovatel / technická podpora: schvaluje nahlášení, blokuje, maže akce, potvrzuje platby                                           | `role: superadmin`      |
 
 Každá role umí i všechno, co přihlášený uživatel. Správce skupiny řídí akce skupiny stejně jako organizátor svou akci (US-11 až US-14).
 
@@ -18,33 +18,34 @@ Každá role umí i všechno, co přihlášený uživatel. Správce skupiny ří
 
 ## Přehled
 
-| ID | Role | Story | Feature |
-|---|---|---|---|
-| US-01 | Návštěvník | Úvodní stránka s náhledem akcí | F-68 |
-| US-02 | Návštěvník | Procházení a hledání akcí | F-01, F-02, F-03, F-04 |
-| US-03 | Návštěvník | Detail akce a sdílený odkaz | F-05, F-06 |
-| US-04 | Návštěvník | Registrace a přihlášení | F-10, F-12 |
-| US-05 | Uživatel | Profil a správa účtu | F-11, F-14 |
-| US-06 | Uživatel | Přihlášení na akci a odhlášení | F-22, F-19, F-24 |
-| US-07 | Uživatel | Moje akce | F-25 |
-| US-08 | Uživatel | E-mailová upozornění | F-36, F-37 |
-| US-09 | Uživatel | Hodnocení akce a organizátora | F-42, F-41 |
-| US-10 | Uživatel | Nahlášení uživatele nebo akce | F-43 |
-| US-11 | Organizátor | Založení akce s kapacitou | F-15, F-16, F-19, F-06 |
-| US-12 | Organizátor | Schvalování a správa účastníků | F-22, F-23, F-38 |
-| US-13 | Organizátor | Úprava a zrušení akce | F-17 |
-| US-14 | Organizátor | Předplatné organizátora a evidence docházky | F-69, F-56, F-55 |
-| US-15 | Organizátor | Topování akce se simulovanou platbou | F-54, F-55 |
-| US-16 | Správce skupiny | Založení skupiny a jmenování správců | F-28 |
-| US-17 | Uživatel / Správce skupiny | Členství ve veřejné a neveřejné skupině | F-30, F-31 |
-| US-18 | Správce skupiny | Akce skupiny | F-28, F-15 |
-| US-19 | Superadmin | Vyřízení nahlášení a zásah | F-43, F-44 |
+| ID    | Role                       | Story                                       | Feature                |
+| ----- | -------------------------- | ------------------------------------------- | ---------------------- |
+| US-01 | Návštěvník                 | Úvodní stránka s náhledem akcí              | F-68                   |
+| US-02 | Návštěvník                 | Procházení a hledání akcí                   | F-01, F-02, F-03, F-04 |
+| US-03 | Návštěvník                 | Detail akce a sdílený odkaz                 | F-05, F-06             |
+| US-04 | Návštěvník                 | Registrace a přihlášení                     | F-10, F-12             |
+| US-05 | Uživatel                   | Profil a správa účtu                        | F-11, F-14             |
+| US-06 | Uživatel                   | Přihlášení na akci a odhlášení              | F-22, F-19, F-24       |
+| US-07 | Uživatel                   | Moje akce                                   | F-25                   |
+| US-08 | Uživatel                   | E-mailová upozornění                        | F-36, F-37             |
+| US-09 | Uživatel                   | Hodnocení akce a organizátora               | F-42, F-41             |
+| US-10 | Uživatel                   | Nahlášení uživatele nebo akce               | F-43                   |
+| US-11 | Organizátor                | Založení akce s kapacitou                   | F-15, F-16, F-19, F-06 |
+| US-12 | Organizátor                | Schvalování a správa účastníků              | F-22, F-23, F-38       |
+| US-13 | Organizátor                | Úprava a zrušení akce                       | F-17                   |
+| US-14 | Organizátor                | Předplatné organizátora a evidence docházky | F-69, F-56, F-55       |
+| US-15 | Organizátor                | Topování akce se simulovanou platbou        | F-54, F-55             |
+| US-16 | Správce skupiny            | Založení skupiny a jmenování správců        | F-28                   |
+| US-17 | Uživatel / Správce skupiny | Členství ve veřejné a neveřejné skupině     | F-30, F-31             |
+| US-18 | Správce skupiny            | Akce skupiny                                | F-28, F-15             |
+| US-19 | Superadmin                 | Vyřízení nahlášení a zásah                  | F-43, F-44             |
 
 ---
 
 # Návštěvník
 
 ### US-01 Úvodní stránka s náhledem akcí
+
 `epic: objevování` `priorita: MVP` `role: návštěvník` · F-68
 
 **Jako** návštěvník, který přišel poprvé, **chci** hned pochopit, k čemu HobbyHub je, a vidět akce ve svém okolí, **abych** se rozhodl, jestli pokračovat.
@@ -57,6 +58,7 @@ Každá role umí i všechno, co přihlášený uživatel. Správce skupiny ří
 ---
 
 ### US-02 Procházení a hledání akcí
+
 `epic: objevování` `priorita: MVP` `role: návštěvník` · F-01, F-02, F-03, F-04
 
 **Jako** návštěvník **chci** bez registrace procházet a filtrovat nadcházející akce v seznamu i na mapě, **abych** našel, co mi sedí časem i místem.
@@ -71,6 +73,7 @@ Každá role umí i všechno, co přihlášený uživatel. Správce skupiny ří
 ---
 
 ### US-03 Detail akce a sdílený odkaz
+
 `epic: objevování` `priorita: MVP` `role: návštěvník` · F-05, F-06
 
 **Jako** návštěvník (i ten, komu přišel odkaz do WhatsAppu) **chci** na detailu akce vidět vše potřebné bez registrace, **abych** se rozhodl, jestli se přihlásím.
@@ -83,6 +86,7 @@ Každá role umí i všechno, co přihlášený uživatel. Správce skupiny ří
 ---
 
 ### US-04 Registrace a přihlášení
+
 `epic: účet` `priorita: MVP` `role: návštěvník` · F-10, F-12
 
 **Jako** návštěvník, který se chce přihlásit na akci, **chci** rychle založit účet nebo se přihlásit a vrátit se na tu samou akci, **abych** ji nemusel hledat znovu.
@@ -98,6 +102,7 @@ Každá role umí i všechno, co přihlášený uživatel. Správce skupiny ří
 # Přihlášený uživatel
 
 ### US-05 Profil a správa účtu
+
 `epic: účet` `priorita: MVP` `role: uživatel` · F-11, F-14
 
 **Jako** uživatel **chci** vyplnit profil, rozhodnout, co z něj sdílím, a mít kontrolu nad svým účtem, **aby** mě organizátor poznal a moje údaje byly pod mou kontrolou.
@@ -110,6 +115,7 @@ Každá role umí i všechno, co přihlášený uživatel. Správce skupiny ří
 ---
 
 ### US-06 Přihlášení na akci a odhlášení
+
 `epic: účast` `priorita: MVP` `role: uživatel` · F-22, F-19, F-24
 
 **Jako** uživatel **chci** se přihlásit na akci a v případě potřeby se odhlásit, **abych** si zajistil místo a organizátor věděl, s kým počítat.
@@ -123,6 +129,7 @@ Každá role umí i všechno, co přihlášený uživatel. Správce skupiny ří
 ---
 
 ### US-07 Moje akce
+
 `epic: účast` `priorita: MVP` `role: uživatel` · F-25
 
 **Jako** uživatel **chci** mít na jednom místě akce, na které jdu, které pořádám, a ty proběhlé, **abych** měl přehled.
@@ -134,6 +141,7 @@ Každá role umí i všechno, co přihlášený uživatel. Správce skupiny ří
 ---
 
 ### US-08 E-mailová upozornění
+
 `epic: komunikace` `priorita: MVP` `role: uživatel` `role: organizátor` · F-36, F-37
 
 **Jako** účastník i organizátor **chci** dostávat e-maily o tom, co se s akcí děje, **abych** nic nepropásl a včas se rozhodl.
@@ -146,6 +154,7 @@ Každá role umí i všechno, co přihlášený uživatel. Správce skupiny ří
 ---
 
 ### US-09 Hodnocení akce a organizátora
+
 `epic: důvěra` `priorita: MVP` `role: uživatel` · F-42, F-41
 
 **Jako** účastník proběhlé akce **chci** ohodnotit akci a organizátora, **aby** ostatní věděli, komu a čemu věřit.
@@ -159,6 +168,7 @@ Každá role umí i všechno, co přihlášený uživatel. Správce skupiny ří
 ---
 
 ### US-10 Nahlášení uživatele nebo akce
+
 `epic: důvěra` `priorita: MVP` `role: uživatel` · F-43
 
 **Jako** uživatel, který narazí na spam nebo nevhodné chování, **chci** uživatele nebo akci nahlásit, **aby** to superadmin prověřil.
@@ -173,6 +183,7 @@ Každá role umí i všechno, co přihlášený uživatel. Správce skupiny ří
 # Organizátor akce
 
 ### US-11 Založení akce s kapacitou
+
 `epic: správa akce` `priorita: MVP` `role: organizátor` · F-15, F-16, F-19, F-06
 
 **Jako** uživatel **chci** založit akci s minimálním a maximálním počtem lidí, **abych** sehnal lidi na svou aktivitu a hledající viděli, kolik jich chybí.
@@ -187,6 +198,7 @@ Každá role umí i všechno, co přihlášený uživatel. Správce skupiny ří
 ---
 
 ### US-12 Schvalování a správa účastníků
+
 `epic: účast` `priorita: MVP` `role: organizátor` `role: správce skupiny` · F-22, F-23, F-38
 
 **Jako** organizátor **chci** vyřizovat žádosti, mít přehled účastníků a napsat jim, **abych** věděl, kdo přijde, a akci uřídil.
@@ -199,6 +211,7 @@ Každá role umí i všechno, co přihlášený uživatel. Správce skupiny ří
 ---
 
 ### US-13 Úprava a zrušení akce
+
 `epic: správa akce` `priorita: MVP` `role: organizátor` `role: správce skupiny` · F-17
 
 **Jako** organizátor **chci** akci upravit nebo zrušit, **aby** přihlášení měli aktuální informace.
@@ -211,6 +224,7 @@ Každá role umí i všechno, co přihlášený uživatel. Správce skupiny ří
 ---
 
 ### US-14 Předplatné organizátora a evidence docházky
+
 `epic: monetizace` `epic: účast` `priorita: MVP` `role: organizátor` `role: správce skupiny` `role: superadmin` · F-69, F-56, F-55
 
 **Jako** organizátor **chci** si zaplatit předplatné a po akci označit, kdo skutečně přišel, **abych** věděl, s kým příště počítat.
@@ -226,6 +240,7 @@ Každá role umí i všechno, co přihlášený uživatel. Správce skupiny ří
 ---
 
 ### US-15 Topování akce se simulovanou platbou
+
 `epic: monetizace` `priorita: MVP` `role: organizátor` `role: superadmin` · F-54, F-55
 
 **Jako** organizátor akce, které chybí lidé, **chci** akci topovat, **aby** ji vidělo víc lidí.
@@ -240,6 +255,7 @@ Každá role umí i všechno, co přihlášený uživatel. Správce skupiny ří
 # Správce skupiny
 
 ### US-16 Založení skupiny a jmenování správců
+
 `epic: skupiny` `priorita: MVP` `role: správce skupiny` · F-28
 
 **Jako** organizátor pravidelné party **chci** založit úzce zaměřenou skupinu (např. „Fotbal Pardubice“) a přizvat další správce, **aby** nás hledající našli jako stálou partu a skupinu jsme mohli řídit společně.
@@ -253,6 +269,7 @@ Každá role umí i všechno, co přihlášený uživatel. Správce skupiny ří
 ---
 
 ### US-17 Členství ve veřejné a neveřejné skupině
+
 `epic: skupiny` `priorita: MVP` `role: uživatel` `role: správce skupiny` · F-30, F-31
 
 **Jako** uživatel **chci** se přidat do skupiny, **abych** viděl její akce a hlásil se na ně; **jako** správce **chci** u neveřejné skupiny rozhodnout, koho přijmu.
@@ -266,6 +283,7 @@ Každá role umí i všechno, co přihlášený uživatel. Správce skupiny ří
 ---
 
 ### US-18 Akce skupiny
+
 `epic: skupiny` `priorita: MVP` `role: správce skupiny` · F-28, F-15
 
 **Jako** správce skupiny **chci** zakládat akce jménem skupiny, **aby** je členové viděli a hlásili se na ně.
@@ -280,6 +298,7 @@ Každá role umí i všechno, co přihlášený uživatel. Správce skupiny ří
 # Superadmin
 
 ### US-19 Vyřízení nahlášení a zásah
+
 `epic: důvěra` `priorita: MVP` `role: superadmin` · F-43, F-44
 
 **Jako** superadmin **chci** vidět nahlášení na jednom místě a rozhodnout o zásahu, **abych** rychle řešil spam a porušení pravidel.
