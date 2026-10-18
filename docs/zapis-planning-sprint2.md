@@ -6,7 +6,7 @@ Na konci sprintu 2 ukážeme živě na stagingu happy path pro akce i skupiny: o
 
 ## Happy path
 
-![Happy path sprintu 2 – akce i skupiny, se schválením](img/happy-path-sprint2.png)
+![Happy path sprintu 2 – akce i skupiny, schvalování jen u skupin](img/happy-path-sprint2.png)
 
 Happy path je průchod, který si v aplikaci ověří základní věci: „objevil jsem aplikaci, přihlásil se, viděl něčí akci, přečetl si, o čem je, a dal najevo, že přijdu.“ Skupina funguje podobně, liší se schvalovacím procesem.
 
@@ -97,7 +97,7 @@ PO teď nechce řešit hodnocení a funkce kolem, rozšiřovaly by scope bez vli
 | -------------------------------------------------------------- | -------------------------------------- |
 | Poslat do Teams průlet happy path jako záznam scopingu         | Jan Černý (hotovo 14. 10.)             |
 | Založit úkoly sprintu jako issues na GitHubu a rozdělit je     | Tým (založeno 14. 10., zbývá rozdělit) |
-| Navrhnout design první obrazovky a poslat PO do Teams k review | Tým                                    |
+| Navrhnout design první obrazovky a poslat PO do Teams k review | Tým (hotovo 14. 10.)                   |
 | Vygenerovat a zkontrolovat testovací data                      | Tým (QA)                               |
 | Potvrdit schůzku 19. 10. ve stejném mailovém vlákně            | Tým                                    |
 
