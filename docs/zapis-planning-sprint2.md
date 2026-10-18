@@ -35,10 +35,12 @@ User stories z [HobbyHub_User_Stories_MVP.md](HobbyHub_User_Stories_MVP.md), kte
 | Úprava a smazání akce      | US-13   | Úprava do začátku akce, zrušení nebo smazání (k potvrzení s PO)                                                   | E-maily přihlášeným                                                                                                       |
 | Přihlášení na akci         | US-06   | „Přijdu“ nebo žádost, stažení žádosti, odhlášení, „Plno“                                                          | Zpráva k žádosti                                                                                                          |
 | Schvalování účastníků      | US-12   | Seznam žádostí, schválit / zamítnout, seznam účastníků (schvalování u akcí k potvrzení s PO)                      | Hromadné schválení, zpráva účastníkům, e-maily                                                                            |
-| Moje akce                  | US-07   | Záložky Přihlášen (vč. čekajících) a Pořádám (není v happy path od PO, k potvrzení)                               | Záložka Proběhlé                                                                                                          |
+| Moje akce                  | US-07   | Záložky Přihlášen (vč. čekajících) a Pořádám, odkaz v navigaci (přidáno 18. 10., schválil PO, viz níže)           | Záložka Proběhlé                                                                                                          |
 | Skupiny: založení a správa | US-16   | Založení, úprava, smazání; seznam skupin s filtrem aktivita + lokalita, detail skupiny                            | Jmenování dalších správců, obrázek                                                                                        |
 | Členství ve skupině        | US-17   | Veřejná: „Přidat se“; neveřejná: žádost → schválení / zamítnutí; odchod                                           | Blokace člena, upozornění                                                                                                 |
 | Testovací data             | F-64    | Seed akcí a skupin podle oblastí zájmu z briefu, ručně zkontrolovaný                                              | –                                                                                                                         |
+
+**Změna scope 18. 10.:** Tým zařadil do sprintu 2 i Moje akce (US-07). Bez nich přihlášený uživatel nemá kde najít akce, na které se přihlásil, ani ty, které pořádá, a navigace by vedla do prázdna. V původní happy path od PO nebyly; rozšíření scope PO schválil 18. 10.
 
 ## Mimo scope
 
@@ -97,7 +99,7 @@ PO teď nechce řešit hodnocení a funkce kolem, rozšiřovaly by scope bez vli
 
 ## K prokonzultování s PO 19. 10.
 
-1. **Moje akce (US-07):** patří do happy path sprintu 2? V přehledu od PO nejsou; potřebujeme je pro navigaci (kam jsem přihlášená, co pořádám). Pokud ne, přesuneme do sprintu 3.
+1. **Moje akce (US-07):** vyřešeno, PO 18. 10. schválil zařazení do sprintu 2 (viz Změna scope).
 2. **Kritéria vyhledávání:** stačí u akcí i skupin filtr aktivita + lokalita, nebo chce PO už teď i termín a hledání podle názvu?
 3. **Smazání, nebo zrušení:** má „D“ v CRUD u akcí a skupin záznam smazat, nebo zrušit se štítkem „Zrušeno“ (přihlášení pak vidí, co se stalo)?
 4. **Schvalování u akcí:** má mít organizátor akce volbu „schvaluji přihlášky“, nebo stačí „Přijdu“ a schvalování jen u skupin?
