@@ -99,7 +99,7 @@ Staging a CI/CD (F-59, F-60) už v repu jsou (`.github/workflows/ci.yml`, `deplo
 
 - V hlavičce, `<title>`, `Seo` a logu nahraď „Quacker“ za „HobbyHub“.
 - Navigace v hlavičce: **Akce**, **Skupiny**, **Moje akce** (jen přihlášený), **Administrace** (jen role `admin`). Zatím neexistující cesty vrací stránku „Připravujeme“, ne 404.
-- Na mobilu se navigace vejde (menu v dropdownu).
+- Na mobilu spodní navigace podle designu: návštěvník **Akce**, **Skupiny**, **Přihlásit**; přihlášený **Akce**, **Skupiny**, **Moje akce**, **Profil**. Mapa není samostatná položka, je součástí `/akce` (B-025).
 
 **Hotovo, když:**
 
@@ -114,13 +114,25 @@ Staging a CI/CD (F-59, F-60) už v repu jsou (`.github/workflows/ci.yml`, `deplo
 
 **Cíl:** Aktivity a lokality jsou jednotné pro akce, skupiny, profil i filtry.
 
-- Prisma model `Activity` (`id`, `slug`, `name`, `category` – sport / hry / outdoor / zájmy) a seed cca 20 aktivit (fotbal, florbal, volejbal, tenis, badminton, běh, deskové hry, LAN party, turistika, lezení…).
+- Aktivity mají **dvě úrovně: kategorie › aktivita** (víc úrovní ne, na mobilu se špatně prochází). Prisma model `ActivityCategory` (`id`, `slug`, `name`, `icon`, `sortOrder`) a `Activity` (`id`, `slug`, `name`, `categoryId`, `sortOrder`). Akce, skupina i zájem v profilu se vždy váže na aktivitu, ne na kategorii.
+- Jen aktivity, kde se skládá parta (HobbyHub není katalog koncertů, trhů ani kulturních akcí). Seed:
+  - **Týmové sporty:** fotbal a malá kopaná, florbal, volejbal, basketbal, nohejbal, hokejbal, ultimate frisbee
+  - **Raketové sporty:** tenis, badminton, squash, stolní tenis, padel
+  - **Běh a pohyb:** běh, cyklistika, in-line, plavání, jóga, workout
+  - **Outdoor:** turistika, lezení a bouldering, vodáctví, geocaching
+  - **Deskové hry:** deskové hry, karetní hry, šachy, RPG (D&D apod.)
+  - **Videohry:** LAN party, turnaj, retro hraní
+  - **Kvízy a jazyky:** pub kvíz, jazykový tandem, čtenářský klub, debatní klub
+  - **Tvoření a hudba:** jam session, sborový zpěv, kreslení, rukodělná dílna
+  - **Komunita:** úklid přírody, komunitní zahrada, dobrovolnictví, swap (výměna věcí)
+- Ikona kategorie odpovídá variantě komponenty `Activity tile` ve Figmě (karta akce ukazuje ikonu kategorie).
 - Prisma model `Locality` (`id`, `name`, `parent` – město / městská část, `lat`, `lng`) a seed: Praha + městské části Praha 1–22, Brno, Ostrava, Plzeň, Olomouc, Pardubice, Hradec Králové, Liberec, České Budějovice, Ústí n. L.
-- `GET /api/activities` a `GET /api/localities?query=` (našeptávač) – veřejné.
+- `GET /api/activities` (strom kategorie › aktivity) a `GET /api/localities?query=` (našeptávač) – veřejné.
 
 **Hotovo, když:**
 
 - [ ] Endpointy vrací seedovaná data bez přihlášení.
+- [ ] `GET /api/activities` vrací kategorie seřazené podle `sortOrder` a v každé její aktivity.
 - [ ] `GET /api/localities?query=pra` vrátí Prahu a její části.
 
 **Mimo rozsah:** Google Places našeptávač (viz otevřené otázky).
@@ -318,7 +330,8 @@ Doménová logika (čistá funkce + testy): `approvedCount`, `missingToMin = max
 
 `US-02` · BE · M · závisí na: B-020
 
-- `GET /api/events` bez přihlášení. Parametry: `q` (název), `localityId` nebo `lat,lng,radiusKm`, `dateFrom`, `dateTo`, `activityId[]`, `sort` (`date` výchozí / `distance`), stránkování.
+- `GET /api/events` bez přihlášení. Parametry: `q` (název), `localityId` nebo `lat,lng,radiusKm` nebo `bbox` (výřez mapy – „Hledat v této oblasti“), `dateFrom`, `dateTo` (rozsah, oba včetně), `activityId[]`, `categoryId[]` (celá kategorie = všechny její aktivity, i nově přidané), `missingOnly` (jen akce s `missingToMin > 0`, čeká na potvrzení PO), `sort` (`date` výchozí / `distance`), stránkování. `activityId[]` a `categoryId[]` se sčítají (OR).
+- `GET /api/events/facets` – stejné filtry kromě typu aktivity, vrací počty akcí po kategoriích a aktivitách pro výběr typu aktivity. Pokud se nevejde do sprintu, FE počty skryje.
 - Vrací jen `status = published`, `visibility = public`, `startsAt > now`. Nevrací soukromé a „jen pro členy“.
 - Každá položka: aktivita, název, termín, místo (lat/lng + adresa), `missingToMin`, `freeSpots`, `isFull`, organizátor (osoba nebo skupina), `isPromoted`.
 - `GET /api/events/map` – stejné filtry, odlehčené body pro mapu (bez stránkování, limit 500).
@@ -327,6 +340,7 @@ Doménová logika (čistá funkce + testy): `approvedCount`, `missingToMin = max
 
 - [ ] Testy, že proběhlé, zrušené, soukromé a members-only akce se ve výpisu neobjeví.
 - [ ] Řazení podle vzdálenosti funguje vůči zadanému bodu.
+- [ ] Test, že `categoryId` vrátí akce všech aktivit kategorie a `missingOnly` jen akce, kterým chybí lidé.
 
 ---
 
@@ -334,14 +348,23 @@ Doménová logika (čistá funkce + testy): `approvedCount`, `missingToMin = max
 
 `US-02` · FE · M · závisí na: B-023
 
-- Stránka `/akce`: seznam (karty jsou tu správně – položky seznamu), hledání podle názvu, filtry lokalita / datum / typ aktivity, řazení.
-- Stav filtrů v URL (`?q=&lokalita=&od=…`), aby šel sdílet a přežil přepnutí na mapu.
-- Přihlášenému se předvyplní domovská lokalita a zájmy z profilu; filtr jde změnit.
+- Stránka `/akce`: seznam (karty jsou tu správně – položky seznamu), filtry, řazení. Design: Figma, stránka „Seznam akcí“, obrazovky A-02, A-02a (filtry) a A-02d.
+- Filtry jako čipy, čip ukazuje hodnotu (např. „Praha 4“, „20.–26. 10.“). Desktop: lišta přes celou šířku nad seznamem a mapou, klik otevře popover. Mobil: čipy plovou nahoře přes mapu, klepnutí otevře spodní panel.
+  - **Lokalita** – výběr z číselníku (B-002).
+  - **Termín** – rozsah od–do s kalendářem a rychlými volbami Dnes / Zítra / Tento víkend / Příštích 7 dní. Minulost nejde vybrat.
+  - **Typ aktivity** – dvě úrovně (kategorie › aktivita), zaškrtnutí kategorie vybere celou, pole „Hledat aktivitu“ hledá v aktivitách. U položek počty akcí (`/api/events/facets`).
+  - **Chybí lidé** – přepínač, jen akce, kterým chybí do minima. Ve wireframu nebyl, **čeká na potvrzení PO**; do té doby se čip nezobrazuje.
+  - **Hledání podle názvu** (`q`) není hlavní prvek: desktop vpravo v liště, mobil lupa v hlavičce.
+  - **Zrušit vše** – jen když je aktivní filtr.
+  - Čip **Další** (cena, úroveň) je Nice to have – dokud není hotový, nezobrazuje se.
+- Stav filtrů v URL (`?q=&lokalita=&od=&do=&kategorie=&aktivita=&chybi=1`), aby šel sdílet.
+- Přihlášenému se předvyplní domovská lokalita a v typu aktivity „Moje zájmy“ z profilu; obojí jde změnit.
 - Tři stavy seznamu: načítání (skeleton), prázdno (jedna věta), chyba s možností zkusit znovu.
 
 **Hotovo, když:**
 
 - [ ] Test komponenty pro všechny tři stavy (vzor `QuackList.test.tsx`).
+- [ ] Výběr celé kategorie a jednotlivých aktivit se propíše do URL a po obnovení stránky drží.
 
 ---
 
@@ -349,13 +372,18 @@ Doménová logika (čistá funkce + testy): `approvedCount`, `missingToMin = max
 
 `US-02` · FE · M · závisí na: B-024, B-004
 
-- Na `/akce` přepínač **Seznam / Mapa** (výchozí seznam). Filtry z B-024 platí pro obojí.
-- Akce jako špendlíky; klepnutí otevře náhled (název, termín, kolik chybí) s proklikem na detail.
+- Mapa je součást `/akce`, žádná samostatná cesta ani položka navigace. Filtry z B-024 platí pro seznam i mapu.
+- **Desktop:** seznam vlevo, mapa vpravo (A-02d). Najetí na kartu zvýrazní špendlík.
+- **Mobil:** jedna obrazovka (A-02). Mapa přes celou výšku, dole vysouvací panel se seznamem: výchozí stav ukazuje počet akcí a první kartu, vytažený panel je seznam, tlačítko „Mapa“ ho stáhne.
+- Akce jako špendlíky, zvýrazněné = chybí lidé; blízké akce se shlukují do bubliny s počtem (klepnutí přiblíží).
+- Po posunu mapy tlačítko „Hledat v této oblasti“ (parametr `bbox`).
+- Klepnutí na špendlík otevře náhled (název, termín, kolik chybí) s proklikem na detail (A-03a).
 - Topované akce (až bude B-073) mají odlišený špendlík.
 
 **Hotovo, když:**
 
-- [ ] Přepnutí na mapu a zpět zachová filtry.
+- [ ] Vytažení a stažení panelu na mobilu zachová filtry i pozici mapy.
+- [ ] Při 500 bodech je mapa čitelná díky shlukům.
 
 ---
 

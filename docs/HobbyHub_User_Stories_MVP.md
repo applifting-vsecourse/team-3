@@ -63,10 +63,10 @@ Každá role umí i všechno, co přihlášený uživatel. Správce skupiny ří
 
 **Jako** návštěvník **chci** bez registrace procházet a filtrovat nadcházející akce v seznamu i na mapě, **abych** našel, co mi sedí časem i místem.
 
-- [ ] Seznam i mapa jsou přístupné bez účtu; výchozí pohled je seznam, na mapu se přepíná jedním klepnutím.
+- [ ] Seznam i mapa jsou přístupné bez účtu. Na desktopu jsou vedle sebe, na mobilu je mapa přes celou obrazovku a seznam ve vysouvacím panelu.
 - [ ] Položka ukazuje aktivitu, název, termín, místo a kolik lidí chybí; seznam jde řadit podle termínu a vzdálenosti.
 - [ ] Na mapě jsou akce jako špendlíky; klepnutí ukáže náhled s proklikem na detail. GPS se nepoužívá.
-- [ ] Hledání podle názvu a filtry: lokalita, datum, typ aktivity; filtry platí pro seznam i mapu.
+- [ ] Filtry: lokalita, termín (rozsah od–do s rychlými volbami), typ aktivity (kategorie › aktivita), jen akce, kterým chybí lidé (čeká na potvrzení PO); doplňkově hledání podle názvu. Filtry platí pro seznam i mapu.
 - [ ] Nezobrazují se proběhlé, zrušené, soukromé akce a akce skupin „jen pro členy“.
 - [ ] Vše funguje na mobilu.
 
