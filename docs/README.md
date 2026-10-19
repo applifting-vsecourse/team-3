@@ -17,6 +17,7 @@ Rozcestník podkladů k projektu. Agent i lidé začínají tady.
 - **Board sprintu:** https://github.com/orgs/applifting-vsecourse/projects/16
 - **Design a design systém (Figma):** https://www.figma.com/design/dGYGqD8BjC1rYlbfjCpxWD/HobbyHub-design
 - **Schválené lo-fi wireframy (Figma):** https://www.figma.com/design/A6v5ZPmNULBOXfz1uBAcVd/HobbyHub-wireframy
+- **Feature breakdown v3.4:** https://vse-my.sharepoint.com/:x:/r/personal/mita05_vse_cz/_layouts/15/Doc.aspx?sourcedoc=%7B0BD89393-AE98-496B-8A9A-9AAD68E51119%7D&file=HobbyHub_Feature_Breakdown_FINAL_sablona.xlsx&action=default&mobileredirect=true&share=cQqTk9gLmK5rSYqamq1o5REZEgUClNZoRR7RsjYRRJYgXF5iKg
 - **UI pravidla pro kód:** [../DESIGN.md](../DESIGN.md), konvence repa: [../CLAUDE.md](../CLAUDE.md)
 
 ## Jak s tím pracujeme
