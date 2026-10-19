@@ -63,10 +63,10 @@ Každá role umí i všechno, co přihlášený uživatel. Správce skupiny ří
 
 **Jako** návštěvník **chci** bez registrace procházet a filtrovat nadcházející akce v seznamu i na mapě, **abych** našel, co mi sedí časem i místem.
 
-- [ ] Seznam i mapa jsou přístupné bez účtu. Na desktopu jsou vedle sebe, na mobilu je mapa přes celou obrazovku a seznam ve vysouvacím panelu.
+- [ ] Seznam i mapa jsou přístupné bez účtu. Na desktopu jsou vedle sebe, na mobilu je mapa přes celou obrazovku a seznam ve vysouvacím panelu (návrh týmu, potvrdit s PO).
 - [ ] Položka ukazuje aktivitu, název, termín, místo a kolik lidí chybí; seznam jde řadit podle termínu a vzdálenosti.
 - [ ] Na mapě jsou akce jako špendlíky; klepnutí ukáže náhled s proklikem na detail. GPS se nepoužívá.
-- [ ] Filtry: lokalita, termín (rozsah od–do s rychlými volbami), typ aktivity (kategorie › aktivita), jen akce, kterým chybí lidé (čeká na potvrzení PO); doplňkově hledání podle názvu. Filtry platí pro seznam i mapu.
+- [ ] Filtry: lokalita, termín (rozsah od–do s rychlými volbami), typ aktivity (kategorie › aktivita), jen akce, kterým chybí lidé (návrh týmu, potvrdit s PO); doplňkově hledání podle názvu. Filtry platí pro seznam i mapu.
 - [ ] Nezobrazují se proběhlé, zrušené, soukromé akce a akce skupin „jen pro členy“.
 - [ ] Vše funguje na mobilu.
 
@@ -124,7 +124,7 @@ Každá role umí i všechno, co přihlášený uživatel. Správce skupiny ří
 - [ ] U akce bez schvalování klepnu na „Přijdu“ a jsem rovnou účastník.
 - [ ] Při naplněném maximu je přihlášení zavřené („Plno“).
 - [ ] Odhlásit se mohu kdykoli před začátkem akce; místo se uvolní a „chybí X“ se přepočítá.
-- [ ] Na vlastní akci ani dvakrát se přihlásit nejde.
+- [ ] Organizátor není účastníkem své akce automaticky, ale může se na ni přihlásit jako kdokoli jiný (bez schvalování); pak se počítá do obsazenosti. Dvakrát na tutéž akci se přihlásit nejde.
 
 ---
 
@@ -189,7 +189,7 @@ Každá role umí i všechno, co přihlášený uživatel. Správce skupiny ří
 **Jako** uživatel **chci** založit akci s minimálním a maximálním počtem lidí, **abych** sehnal lidi na svou aktivitu a hledající viděli, kolik jich chybí.
 
 - [ ] Povinné: název, aktivita, místo na mapě, datum a čas, min. a max. počet, způsob přihlašování. Nepovinné: popis, cena, úroveň, vybavení.
-- [ ] Způsob přihlašování: „Schvaluji přihlášky“ (výchozí), nebo „Bez schválení“. Viditelnost: veřejná / soukromá (jen přes odkaz).
+- [ ] Způsob přihlašování: „Bez schválení“ (výchozí), nebo „Schvaluji přihlášky“. Viditelnost: veřejná / soukromá (jen přes odkaz).
 - [ ] Minimum ≥ 1, maximum ≥ minimum; datum v minulosti nejde zadat.
 - [ ] Akce ukazuje „Chybí ještě X“ do minima, pak „Volná místa: Y“; počítají se schválení účastníci. Po naplnění maxima se přihlašování zavře.
 - [ ] Po zveřejnění je veřejná akce v seznamu, na mapě a ve vyhledávání a aplikace nabídne „Sdílet odkaz“.
@@ -218,7 +218,7 @@ Každá role umí i všechno, co přihlášený uživatel. Správce skupiny ří
 
 - [ ] Údaje jde upravit do začátku akce; maximum nejde snížit pod počet schválených.
 - [ ] Změna termínu nebo místa a zrušení (s povinným důvodem) pošlou přihlášeným e-mail.
-- [ ] Zrušená akce zmizí z přehledu, přes odkaz je vidět se štítkem „Zrušeno“.
+- [ ] Zrušená akce zmizí z přehledu, přes odkaz je vidět se štítkem „Zrušeno“. Akce se nemaže, jen ruší.
 - [ ] Aplikace akci sama neruší ani při nenaplnění minima.
 
 ---
@@ -264,7 +264,7 @@ Každá role umí i všechno, co přihlášený uživatel. Správce skupiny ří
 - [ ] Povinné: název, právě jedna aktivita, právě jedna lokalita, typ veřejná / neveřejná. Nepovinné: popis, obrázek.
 - [ ] Stránka skupiny ukazuje aktivitu, lokalitu, správce, počet členů a nadcházející akce; skupiny jdou najít ve vyhledávání.
 - [ ] Správce může jmenovat dalšího člena správcem; všichni správci mají stejná práva. Poslední správce se role vzdát nemůže.
-- [ ] Správce může skupinu upravit nebo zrušit (členové dostanou upozornění, nadcházející akce se zruší).
+- [ ] Správce může skupinu upravit nebo zrušit. Zrušení = deaktivace, skupina se nemaže: zmizí z hledání, nejde se do ní přidat, členové dostanou upozornění, nadcházející akce skupiny se zruší a proběhlé zůstanou v historii.
 
 ---
 

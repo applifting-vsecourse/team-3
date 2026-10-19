@@ -26,19 +26,20 @@ Zdroj: `HobbyHub_User_Stories_MVP.md` (US-01 až US-19, odvozené z Feature brea
 
 | ID                             | Úkol                                                          | US / F              | Vrstva | Vel. | Závisí na           |
 | ------------------------------ | ------------------------------------------------------------- | ------------------- | ------ | ---- | ------------------- |
-| **Fáze 0 – Základ**            |                                                               |                     |        |      |
+| **Fáze 0 – Základ**            |                                                               |                     |        |      |                     |
 | B-001                          | Přejmenování na HobbyHub a navigace                           | F-67                | FE     | S    | –                   |
 | B-002                          | Číselník aktivit a lokalit                                    | US-02, US-05        | BE     | S    | –                   |
 | B-003                          | Rozšíření modelu uživatele                                    | US-04, US-05        | BE     | S    | –                   |
 | B-004                          | Mapová komponenta                                             | US-02, US-11        | FE     | M    | –                   |
-| **Fáze 1 – Účet**              |                                                               |                     |        |      |
-| B-010                          | Registrace s věkem 18+ a souhlasy                             | US-04               | FS     | M    | B-003               |
+| **Fáze 1 – Účet**              |                                                               |                     |        |      |                     |
+| B-010                          | Registrace e-mailem a heslem                                  | US-04               | FS     | S    | B-003               |
 | B-011                          | Ověření e-mailu a guard ověřeného uživatele                   | US-04               | BE     | S    | B-010               |
 | B-012                          | Přihlášení, zapomenuté heslo, návrat na akci                  | US-04               | FE     | S    | B-010               |
 | B-013                          | Profil uživatele (data + stránka)                             | US-05               | FS     | M    | B-002, B-003        |
 | B-014                          | Viditelnost údajů v profilu                                   | US-05               | FS     | S    | B-013               |
 | B-015                          | Změna hesla a e-mailu                                         | US-05               | FE     | S    | B-012               |
-| **Fáze 2 – Akce a objevování** |                                                               |                     |        |      |
+| B-016                          | Potvrzení věku 18+ a souhlasy při registraci                  | US-04, F-65         | FS     | S    | B-010, B-081        |
+| **Fáze 2 – Akce a objevování** |                                                               |                     |        |      |                     |
 | B-020                          | Model akce                                                    | US-11               | BE     | M    | B-002, B-003        |
 | B-021                          | Založení akce – API                                           | US-11               | BE     | M    | B-020, B-011        |
 | B-022                          | Založení akce – formulář                                      | US-11               | FE     | M    | B-021, B-004        |
@@ -48,36 +49,37 @@ Zdroj: `HobbyHub_User_Stories_MVP.md` (US-01 až US-19, odvozené z Feature brea
 | B-026                          | Detail akce a sdílený odkaz                                   | US-03               | FS     | M    | B-023               |
 | B-027                          | Úvodní stránka s lokalitou podle IP                           | US-01               | FS     | M    | B-023, B-026        |
 | B-028                          | Úprava a zrušení akce                                         | US-13               | FS     | M    | B-022, B-026        |
-| **Fáze 3 – Účast**             |                                                               |                     |        |      |
+| B-029                          | Interaktivní mapa a hledání podle názvu                       | US-02               | FE     | M    | B-025               |
+| **Fáze 3 – Účast**             |                                                               |                     |        |      |                     |
 | B-030                          | Model účasti                                                  | US-06               | BE     | S    | B-020               |
 | B-031                          | Přihlášení, žádost a odhlášení – API                          | US-06               | BE     | M    | B-030, B-011        |
 | B-032                          | Přihlášení na akci – UI v detailu                             | US-06, US-04        | FE     | M    | B-031, B-026, B-012 |
 | B-033                          | Správa účastníků – API                                        | US-12               | BE     | M    | B-031               |
 | B-034                          | Stránka správy akce                                           | US-12, US-13        | FE     | M    | B-033, B-028        |
 | B-035                          | Moje akce                                                     | US-07               | FS     | M    | B-031               |
-| **Fáze 4 – E-maily**           |                                                               |                     |        |      |
+| **Fáze 4 – E-maily**           |                                                               |                     |        |      |                     |
 | B-040                          | Jednotná e-mailová šablona a notifikační služba               | US-08               | BE     | M    | –                   |
 | B-041                          | E-maily při změnách účasti a akce                             | US-08, US-12, US-13 | BE     | M    | B-040, B-033, B-028 |
 | B-042                          | Zpráva všem schváleným účastníkům                             | US-12               | FS     | S    | B-040, B-034        |
 | B-043                          | Plánované e-maily (připomínka, chybí lidé, výzva k hodnocení) | US-08, US-09        | BE     | M    | B-041               |
-| **Fáze 5 – Skupiny**           |                                                               |                     |        |      |
+| **Fáze 5 – Skupiny**           |                                                               |                     |        |      |                     |
 | B-050                          | Model skupiny a členství                                      | US-16, US-17        | BE     | S    | B-002, B-003        |
-| B-051                          | Založení, úprava a zrušení skupiny                            | US-16               | FS     | M    | B-050, B-011        |
+| B-051                          | Založení, úprava a zrušení (deaktivace) skupiny               | US-16               | FS     | M    | B-050, B-011        |
 | B-052                          | Stránka skupiny a hledání skupin                              | US-16               | FS     | M    | B-051               |
 | B-053                          | Členství ve veřejné a neveřejné skupině                       | US-17               | FS     | M    | B-052               |
 | B-054                          | Jmenování správců                                             | US-16               | FS     | S    | B-053               |
 | B-055                          | Akce skupiny                                                  | US-18               | FS     | M    | B-053, B-022, B-034 |
-| **Fáze 6 – Důvěra**            |                                                               |                     |        |      |
+| **Fáze 6 – Důvěra**            |                                                               |                     |        |      |                     |
 | B-060                          | Hodnocení akce a organizátora                                 | US-09               | FS     | M    | B-031, B-043        |
 | B-061                          | Nahlášení uživatele, akce, skupiny, hodnocení                 | US-10               | FS     | S    | B-060, B-052        |
 | B-062                          | Administrace – přístup a fronta nahlášení                     | US-19               | FS     | M    | B-061               |
 | B-063                          | Zásahy superadmina a jejich historie                          | US-19               | FS     | M    | B-062               |
-| **Fáze 7 – Monetizace**        |                                                               |                     |        |      |
+| **Fáze 7 – Monetizace**        |                                                               |                     |        |      |                     |
 | B-070                          | Simulovaná platba a potvrzení adminem                         | US-14, US-15        | FS     | M    | B-062               |
 | B-071                          | Předplatné organizátora                                       | US-14               | FS     | M    | B-070               |
 | B-072                          | Evidence docházky                                             | US-14               | FS     | M    | B-071, B-034        |
 | B-073                          | Topování akce                                                 | US-15               | FS     | M    | B-070, B-025        |
-| **Fáze 8 – Dokončení**         |                                                               |                     |        |      |
+| **Fáze 8 – Dokončení**         |                                                               |                     |        |      |                     |
 | B-080                          | Export dat a smazání účtu                                     | US-05               | FS     | M    | B-060, B-055        |
 | B-081                          | Právní stránky a souhlasy                                     | F-65                | FE     | S    | B-010               |
 | B-082                          | Ukázková data pro demo                                        | F-64                | BE     | M    | B-073, B-063        |
@@ -176,22 +178,20 @@ Staging a CI/CD (F-59, F-60) už v repu jsou (`.github/workflows/ci.yml`, `deplo
 
 # Fáze 1 – Účet
 
-### B-010 Registrace s věkem 18+ a souhlasy
+### B-010 Registrace e-mailem a heslem
 
-`US-04` · FS · M · závisí na: B-003
+`US-04` · FS · S · závisí na: B-003
 
-**Cíl:** Registrace odpovídá US-04.
+**Cíl:** Registrace odpovídá US-04 v rozsahu sprintu 2.
 
-- Formulář: jméno, e-mail, heslo, potvrzení věku 18+, souhlas s podmínkami a zpracováním údajů (odkazy na stránky z B-081, zatím placeholder).
+- Formulář: jméno, e-mail, heslo.
 - Silné heslo: min. 10 znaků, písmeno a číslice. Validace v zod schématu na FE **i** na BE (BetterAuth hook / validace před vytvořením účtu).
-- Bez zaškrtnutí 18+ a souhlasu registrace neprojde; uloží se `ageConfirmedAt` a `termsAcceptedAt`.
 
 **Hotovo, když:**
 
 - [ ] Slabé heslo odmítne FE i přímé volání API.
-- [ ] Test: registrace bez souhlasu selže.
 
-**Mimo rozsah:** přihlášení přes Google.
+**Mimo rozsah:** potvrzení věku 18+ a souhlasy (B-016, změna 19. 10.), přihlášení přes Google.
 
 ---
 
@@ -259,6 +259,22 @@ Staging a CI/CD (F-59, F-60) už v repu jsou (`.github/workflows/ci.yml`, `deplo
 
 ---
 
+### B-016 Potvrzení věku 18+ a souhlasy při registraci
+
+`US-04, F-65` · FS · S · závisí na: B-010, B-081
+
+**Cíl:** Registrace má potvrzení věku a souhlasy podle US-04. Ve sprintu 2 není (PO 19. 10.).
+
+- Do registrace přidej zaškrtnutí „Je mi 18 let“ a souhlas s podmínkami a zpracováním údajů (odkazy na stránky z B-081).
+- Bez zaškrtnutí registrace neprojde (FE i BE); uloží se `ageConfirmedAt` a `termsAcceptedAt` (pole z B-003).
+- Účty založené před touto změnou dostanou při dalším přihlášení výzvu k potvrzení.
+
+**Hotovo, když:**
+
+- [ ] Test: registrace bez souhlasu selže i přímým voláním API.
+
+---
+
 ### B-015 Změna hesla a e-mailu
 
 `US-05` · FE · S · závisí na: B-012
@@ -283,7 +299,7 @@ Prisma model `Event`:
 
 - `title`, `description?`, `activityId`, `startsAt`, `endsAt?`, `lat`, `lng`, `address`, `localityId`
 - `minParticipants`, `maxParticipants`, `price?` (Kč, celé číslo), `level?` (začátečník / pokročilý / všichni), `equipment?`
-- `approvalMode` (`approval` výchozí / `open`), `visibility` (`public` / `private` / `members`)
+- `approvalMode` (`open` výchozí / `approval`), `visibility` (`public` / `private` / `members`)
 - `organizerUserId` (zakladatel), `groupId?` (akce skupiny – doplní B-055)
 - `status` (`published` / `cancelled` / `hidden` / `deleted`), `cancelReason?`, `cancelledAt?`
 - `promotedUntil?` (topování, B-073)
@@ -315,7 +331,7 @@ Doménová logika (čistá funkce + testy): `approvedCount`, `missingToMin = max
 
 `US-11` · FE · M · závisí na: B-021, B-004
 
-- Stránka `/akce/nova`: povinná a nepovinná pole podle US-11, výběr místa mapou (B-004, režim výběru) + textová adresa, volba způsobu přihlašování a viditelnosti s krátkým vysvětlením.
+- Stránka `/akce/nova`: povinná a nepovinná pole podle US-11, výběr místa mapou (B-004, režim výběru) + textová adresa, volba způsobu přihlašování (výchozí „Bez schválení“) a viditelnosti s krátkým vysvětlením.
 - Klientská validace stejná jako na BE, chyby pod polem, tlačítko s pending stavem (DESIGN.md › Forms).
 - Po zveřejnění přesměruj na detail a nabídni „Sdílet odkaz“ (kopírování do schránky + Web Share API na mobilu).
 - Neověřený uživatel vidí místo formuláře výzvu k ověření e-mailu.
@@ -330,7 +346,7 @@ Doménová logika (čistá funkce + testy): `approvedCount`, `missingToMin = max
 
 `US-02` · BE · M · závisí na: B-020
 
-- `GET /api/events` bez přihlášení. Parametry: `q` (název), `localityId` nebo `lat,lng,radiusKm` nebo `bbox` (výřez mapy – „Hledat v této oblasti“), `dateFrom`, `dateTo` (rozsah, oba včetně), `activityId[]`, `categoryId[]` (celá kategorie = všechny její aktivity, i nově přidané), `missingOnly` (jen akce s `missingToMin > 0`, čeká na potvrzení PO), `sort` (`date` výchozí / `distance`), stránkování. `activityId[]` a `categoryId[]` se sčítají (OR).
+- `GET /api/events` bez přihlášení. Parametry: `q` (název), `localityId` nebo `lat,lng,radiusKm` nebo `bbox` (výřez mapy – „Hledat v této oblasti“), `dateFrom`, `dateTo` (rozsah, oba včetně), `activityId[]`, `categoryId[]` (celá kategorie = všechny její aktivity, i nově přidané), `missingOnly` (jen akce s `missingToMin > 0`), `sort` (`date` výchozí / `distance`), stránkování. `activityId[]` a `categoryId[]` se sčítají (OR).
 - `GET /api/events/facets` – stejné filtry kromě typu aktivity, vrací počty akcí po kategoriích a aktivitách pro výběr typu aktivity. Pokud se nevejde do sprintu, FE počty skryje.
 - Vrací jen `status = published`, `visibility = public`, `startsAt > now`. Nevrací soukromé a „jen pro členy“.
 - Každá položka: aktivita, název, termín, místo (lat/lng + adresa), `missingToMin`, `freeSpots`, `isFull`, organizátor (osoba nebo skupina), `isPromoted`.
@@ -348,13 +364,12 @@ Doménová logika (čistá funkce + testy): `approvedCount`, `missingToMin = max
 
 `US-02` · FE · M · závisí na: B-023
 
-- Stránka `/akce`: seznam (karty jsou tu správně – položky seznamu), filtry, řazení. Design: Figma, stránka „Seznam akcí“, obrazovky A-02, A-02a (filtry) a A-02d.
+- Stránka `/akce`: seznam (karty jsou tu správně – položky seznamu), filtry, řazení. Design: Figma, stránka „Seznam akcí“, obrazovky A-02, A-02a–c (filtry) a A-02d; wireframy se stejnými čísly.
 - Filtry jako čipy, čip ukazuje hodnotu (např. „Praha 4“, „20.–26. 10.“). Desktop: lišta přes celou šířku nad seznamem a mapou, klik otevře popover. Mobil: čipy plovou nahoře přes mapu, klepnutí otevře spodní panel.
   - **Lokalita** – výběr z číselníku (B-002).
   - **Termín** – rozsah od–do s kalendářem a rychlými volbami Dnes / Zítra / Tento víkend / Příštích 7 dní. Minulost nejde vybrat.
   - **Typ aktivity** – dvě úrovně (kategorie › aktivita), zaškrtnutí kategorie vybere celou, pole „Hledat aktivitu“ hledá v aktivitách. U položek počty akcí (`/api/events/facets`).
-  - **Chybí lidé** – přepínač, jen akce, kterým chybí do minima. Ve wireframu nebyl, **čeká na potvrzení PO**; do té doby se čip nezobrazuje.
-  - **Hledání podle názvu** (`q`) není hlavní prvek: desktop vpravo v liště, mobil lupa v hlavičce.
+  - **Chybí lidé** – přepínač, jen akce, kterým chybí do minima. Návrh týmu, potvrdí PO (Q9).
   - **Zrušit vše** – jen když je aktivní filtr.
   - Čip **Další** (cena, úroveň) je Nice to have – dokud není hotový, nezobrazuje se.
 - Stav filtrů v URL (`?q=&lokalita=&od=&do=&kategorie=&aktivita=&chybi=1`), aby šel sdílet.
@@ -375,15 +390,33 @@ Doménová logika (čistá funkce + testy): `approvedCount`, `missingToMin = max
 - Mapa je součást `/akce`, žádná samostatná cesta ani položka navigace. Filtry z B-024 platí pro seznam i mapu.
 - **Desktop:** seznam vlevo, mapa vpravo (A-02d). Najetí na kartu zvýrazní špendlík.
 - **Mobil:** jedna obrazovka (A-02). Mapa přes celou výšku, dole vysouvací panel se seznamem: výchozí stav ukazuje počet akcí a první kartu, vytažený panel je seznam, tlačítko „Mapa“ ho stáhne.
-- Akce jako špendlíky, zvýrazněné = chybí lidé; blízké akce se shlukují do bubliny s počtem (klepnutí přiblíží).
-- Po posunu mapy tlačítko „Hledat v této oblasti“ (parametr `bbox`).
-- Klepnutí na špendlík otevře náhled (název, termín, kolik chybí) s proklikem na detail (A-03a).
+- Akce jako špendlíky, zvýrazněné = chybí lidé.
 - Topované akce (až bude B-073) mají odlišený špendlík.
 
 **Hotovo, když:**
 
 - [ ] Vytažení a stažení panelu na mobilu zachová filtry i pozici mapy.
+
+**Mimo rozsah:** náhled po klepnutí na špendlík, shluky a „Hledat v této oblasti“ (B-029).
+
+---
+
+### B-029 Interaktivní mapa a hledání podle názvu
+
+`US-02` · FE · M · závisí na: B-025
+
+**Cíl:** Doplňky stránky `/akce`, které nejsou ve sprintu 2 (sprint 3).
+
+- Klepnutí na špendlík otevře náhled (název, termín, kolik chybí) s proklikem na detail (A-03a).
+- Blízké akce se shlukují do bubliny s počtem (klepnutí přiblíží), např. Leaflet.markercluster.
+- Po posunu mapy tlačítko „Hledat v této oblasti“ (parametr `bbox`).
+- Hledání podle názvu (`q`) není hlavní prvek: desktop vpravo v liště filtrů, mobil lupa v hlavičce.
+- Řazení podle vzdálenosti od středu zvolené lokality.
+
+**Hotovo, když:**
+
 - [ ] Při 500 bodech je mapa čitelná díky shlukům.
+- [ ] Hledání najde akci bez ohledu na velikost písmen a diakritiku.
 
 ---
 
@@ -456,7 +489,8 @@ Doménová logika (čistá funkce + testy): `approvedCount`, `missingToMin = max
   - `approvalMode = approval` → `pending`
   - `approvalMode = open` → rovnou `approved`
 - `DELETE /api/events/:id/participation` – stažení žádosti nebo odhlášení, jen před začátkem akce. Místo se uvolní.
-- Pravidla: na vlastní akci ne (u akce skupiny ne pro jejího správce), dvakrát ne, na plnou akci ne (`EVENT_FULL`), na zrušenou/proběhlou ne. Members-only jen pro členy.
+- Pravidla: dvakrát ne, na plnou akci ne (`EVENT_FULL`), na zrušenou/proběhlou ne. Members-only jen pro členy.
+- Organizátor (u akce skupiny i její správce) není účastníkem automaticky, ale na vlastní akci se přihlásit smí; jeho přihláška je rovnou `approved` i u akce se schvalováním a počítá se do kapacity (Q12).
 - Kontrolu kapacity a zápis dělej v jedné transakci (dva lidé o poslední místo).
 
 **Hotovo, když:**
@@ -474,7 +508,8 @@ Doménová logika (čistá funkce + testy): `approvedCount`, `missingToMin = max
   - neověřený: výzva k ověření e-mailu
   - akce se schvalováním: „Poslat žádost“ (dialog s nepovinnou zprávou) → „Čeká na schválení“ + „Stáhnout žádost“
   - akce bez schvalování: „Přijdu“ → „Jdu“ + „Odhlásit se“
-  - plno: „Plno“ (disabled), vlastní akce: „Spravovat akci“
+  - plno: „Plno“ (disabled)
+  - vlastní akce: „Spravovat akci“ a vedle něj „Přijdu“ / „Odhlásit se“ (organizátor se může přihlásit, nemusí)
 - Po akci invaliduj query detailu a „Mých akcí“.
 
 **Hotovo, když:**
@@ -516,7 +551,7 @@ Doménová logika (čistá funkce + testy): `approvedCount`, `missingToMin = max
 `US-07` · FS · M · závisí na: B-031
 
 - `GET /api/me/events?tab=attending|organizing|past`
-  - **Přihlášen:** `approved` + `pending`
+  - **Přihlášen:** `approved` + `pending` (i vlastní akce, pokud se na ni organizátor přihlásil)
   - **Pořádám:** moje akce + akce mých skupin (po B-055)
   - **Proběhlé:** kde jsem byl přihlášen nebo jsem pořádal
 - FE `/moje-akce`: záložky, u akce stav mé účasti a termín, řazeno od nejbližší (proběhlé od nejnovější). Z pořádané akce odkaz na správu.
@@ -590,22 +625,23 @@ Doménová logika (čistá funkce + testy): `approvedCount`, `missingToMin = max
 
 `US-16, US-17` · BE · S · závisí na: B-002, B-003
 
-- `Group`: `name`, `description?`, `imageUrl?`, `activityId` (právě jedna), `localityId` (právě jedna), `type` (`public` / `closed`), `status` (`active` / `cancelled`).
+- `Group`: `name`, `description?`, `imageUrl?`, `activityId` (právě jedna), `localityId` (právě jedna), `type` (`public` / `closed`), `status` (`active` / `inactive`), `deactivatedAt?`.
 - `GroupMember`: `groupId`, `userId`, `role` (`admin` / `member`), `status` (`pending` / `active` / `blocked`), `message?`. Unikátní dvojice.
 
 ---
 
-### B-051 Založení, úprava a zrušení skupiny
+### B-051 Založení, úprava a zrušení (deaktivace) skupiny
 
 `US-16` · FS · M · závisí na: B-050, B-011
 
 - `POST /api/groups` (`VerifiedUserGuard`), zakladatel se stane správcem. `PATCH` a `POST /:id/cancel` jen správce.
-- Zrušení: členové dostanou e-mail, nadcházející akce skupiny se zruší (důvod „Skupina byla zrušena“) se standardními e-maily.
-- FE: formulář `/skupiny/nova` a úprava.
+- Zrušení = deaktivace, ne smazání (PO 19. 10.): `status = inactive`, skupina zmizí z hledání, nejde se do ní přidat, stránka skupiny ukazuje „Skupina už není aktivní“. Členové dostanou e-mail (po B-040).
+- Nadcházející akce skupiny se zruší s důvodem „Skupina byla zrušena“, proběhlé zůstanou v historii. Akce skupin přibudou až s B-055, zrušení akcí doplní B-055.
+- FE: formulář `/skupiny/nova`, úprava a zrušení v dialogu s potvrzením (tlačítko `destructive`).
 
 **Hotovo, když:**
 
-- [ ] Test zrušení: akce skupiny jsou `cancelled`, notifikace vyvolány.
+- [ ] Test zrušení: skupina je `inactive`, nejde se do ní přidat a nevrací se ve výpisu.
 
 ---
 
@@ -658,6 +694,7 @@ Doménová logika (čistá funkce + testy): `approvedCount`, `missingToMin = max
 - Oprávnění správy akce (úprava, zrušení, účastníci, zprávy, docházka, topování) rozšiř na **všechny správce skupiny** – jedna sdílená funkce `canManageEvent(user, event)` použitá všude.
 - Členové dostanou e-mail o nové akci a hlásí se sami.
 - „Pořádám“ v Mých akcích obsahuje akce mých skupin.
+- Při zrušení skupiny (B-051) se nadcházející akce skupiny zruší s důvodem „Skupina byla zrušena“ a standardními e-maily; proběhlé zůstanou beze změny.
 
 **Hotovo, když:**
 
@@ -849,16 +886,20 @@ Doménová logika (čistá funkce + testy): `approvedCount`, `missingToMin = max
 
 Dokud tým nebo PO nerozhodne jinak, agent použije výchozí volbu.
 
-| #   | Otázka                                                     | Výchozí volba                                                                        | Kdo rozhodne |
-| --- | ---------------------------------------------------------- | ------------------------------------------------------------------------------------ | ------------ |
-| Q1  | Mapa a našeptávač míst (poznámky zmiňují Google Maps)      | Leaflet + OSM, místo klikem do mapy + textová adresa, lokality z vlastního číselníku | Tým          |
-| Q2  | Služba pro odhad lokality z IP                             | Jednoduchá offline databáze (např. GeoLite2 City), při chybě Praha                   | Tým          |
-| Q3  | Nahrávání fotek (profil, skupina)                          | V MVP jen URL obrázku                                                                | Tým          |
-| Q4  | Podle čeho vybírat akce na úvodní stránce (F-68)           | Nejbližší termín v lokalitě, topované první                                          | PO           |
-| Q5  | Text obchodních podmínek a zásad ochrany údajů (F-65)      | Placeholder                                                                          | PO           |
-| Q6  | Ukázková data – dodá PO reálné skupiny ze sondy? (F-64)    | Tým vymyslí realistická data                                                         | PO           |
-| Q7  | Zálohy – jak dlouho držet a kdo odpovídá po předání (F-63) | 7 denních záloh                                                                      | PO           |
-| Q8  | Brand – logo, barvy, referenční aplikace (F-67)            | Podle design systému z nástřelu designu                                              | PO / tým     |
+| #   | Otázka                                                     | Výchozí volba                                                                              | Kdo rozhodne |
+| --- | ---------------------------------------------------------- | ------------------------------------------------------------------------------------------ | ------------ |
+| Q1  | Mapa a našeptávač míst (poznámky zmiňují Google Maps)      | Leaflet + OSM, místo klikem do mapy + textová adresa, lokality z vlastního číselníku       | Tým          |
+| Q2  | Služba pro odhad lokality z IP                             | Jednoduchá offline databáze (např. GeoLite2 City), při chybě Praha                         | Tým          |
+| Q3  | Nahrávání fotek (profil, skupina)                          | V MVP jen URL obrázku                                                                      | Tým          |
+| Q4  | Podle čeho vybírat akce na úvodní stránce (F-68)           | Nejbližší termín v lokalitě, topované první                                                | PO           |
+| Q5  | Text obchodních podmínek a zásad ochrany údajů (F-65)      | Placeholder                                                                                | PO           |
+| Q6  | Ukázková data – dodá PO reálné skupiny ze sondy? (F-64)    | Tým vymyslí realistická data                                                               | PO           |
+| Q7  | Zálohy – jak dlouho držet a kdo odpovídá po předání (F-63) | 7 denních záloh                                                                            | PO           |
+| Q8  | Brand – logo, barvy, referenční aplikace (F-67)            | Podle design systému z nástřelu designu                                                    | PO / tým     |
+| Q9  | Filtr „Chybí lidé“ (návrh týmu 20. 10.)                    | Je v aplikaci                                                                              | PO           |
+| Q10 | Výchozí pohled /akce na mobilu                             | Mapa přes celou obrazovku, seznam ve vysouvacím panelu                                     | PO           |
+| Q11 | Zrušení, nebo smazání akce                                 | Jen zrušení se štítkem „Zrušeno“, akce se nemaže                                           | PO           |
+| Q12 | Organizátor jako účastník vlastní akce                     | Není automaticky, může se přihlásit; jeho přihláška se neschvaluje a počítá se do kapacity | PO           |
 
 ## Mimo MVP (agent nedělá)
 
