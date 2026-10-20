@@ -264,7 +264,7 @@ Každá role umí i všechno, co přihlášený uživatel. Správce skupiny ří
 - [ ] Povinné: název, právě jedna aktivita, právě jedna lokalita, typ veřejná / neveřejná. Nepovinné: popis, obrázek.
 - [ ] Stránka skupiny ukazuje aktivitu, lokalitu, správce, počet členů a nadcházející akce; skupiny jdou najít ve vyhledávání.
 - [ ] Správce může jmenovat dalšího člena správcem; všichni správci mají stejná práva. Poslední správce se role vzdát nemůže.
-- [ ] Správce může skupinu upravit nebo zrušit. Zrušení = deaktivace, skupina se nemaže: zmizí z hledání, nejde se do ní přidat, členové dostanou upozornění, nadcházející akce skupiny se zruší a proběhlé zůstanou v historii.
+- [ ] Správce může skupinu upravit nebo deaktivovat. Skupina se nemaže ani neruší: zmizí z hledání, nejde se do ní přidat, členové dostanou upozornění, nadcházející akce skupiny se zruší a proběhlé zůstanou v historii.
 
 ---
 
