@@ -20,7 +20,7 @@ Design první obrazovky (seznam a mapa akcí) je ve [Figmě](https://www.figma.c
 | Hlavní vyhledávací pole v hlavičce desktopu | „Hledat akci…“ v hlavičce                                               | Není, hledání je v liště filtrů na /akce                                             | Jedno místo pro hledání; mapa v hlavičce také odpadá                                                         |
 | Náhled akce na mapě (A-03a)                 | Modal s organizátorem, způsobem přihlášení a tlačítkem Detail akce      | Karta akce nad mapou (stejná jako v seznamu), klepnutí otevře detail                 | Stejná komponenta jako v seznamu; organizátor a přihlášení jsou na detailu (B-025)                           |
 
-Změny filtrů, mobilní mapy a typů aktivit (20. 10.) navrhl tým na základě požadavku PO z 19. 10. (nástřel mapy s filtry). **Filtr „Chybí lidé“, výchozí pohled na mobilu a kategorie aktivit potvrdí PO na příštím standupu** (zápis › K prokonzultování). Ve sprintu 2 se implementuje jen část designu, viz zápis › Scope sprintu 2.
+Změny filtrů, mobilní mapy a typů aktivit (20. 10.) navrhl tým na základě požadavku PO z 19. 10. (nástřel mapy s filtry). **Filtr „Chybí lidé“ a výchozí pohled na mobilu potvrdí PO na příštím standupu; seznam kategorií aktivit navrhl tým 20. 10. a s PO ho prokonzultujeme** (zápis › K prokonzultování). Ve sprintu 2 se implementuje jen část designu, viz zápis › Scope sprintu 2.
 
 ## Brand
 

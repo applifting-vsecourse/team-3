@@ -4,7 +4,7 @@
 
 Na konci sprintu 2 ukážeme živě na stagingu happy path pro akce i skupiny: objevení v seznamu a na mapě, vyhledání podle základních kritérií, detail, správu (vytvořit / upravit / zrušit), přihlášení na akci (i se schválením organizátora) a žádost o členství ve skupině se schválením. Hodnocení a další funkce kolem zatím neřešíme.
 
-**Aktualizováno 20. 10.** podle standupu s PO 19. 10. (viz [Změny scope 19. 10.](#změny-scope-19-10)) a nového designu seznamu a mapy.
+**Aktualizováno 20. 10.** podle standupu s PO 19. 10. (viz [Změny scope 19. 10.](#změny-scope-19-10)), nového designu seznamu a mapy a změn z 20. 10. (viz [Změny scope 20. 10.](#změny-scope-20-10)).
 
 ## Happy path
 
@@ -20,7 +20,7 @@ Happy path je průchod, který si v aplikaci ověří základní věci: „objev
 4. **Detail akce:** vidí, o čem akce je, kdo ji pořádá a kolik lidí chybí.
 5. **Přihlášení na akci:** dá najevo, že přijde. U akce bez schválení klepne „Přijdu“, u akce se schvalováním pošle žádost a organizátor ji schválí (změna 19. 10., viz níže).
 6. **Správa akce:** organizátor akci vytvoří, upraví nebo zruší, vidí přihlášené a vyřizuje žádosti.
-7. **Seznam skupin s filtrem, detail a správa skupiny:** stejné vzory jako u akcí, UX jen jasně ukáže, že jsem v jiné části. Skupinu jde založit, upravit a zrušit (deaktivovat).
+7. **Seznam skupin s filtrem, detail a správa skupiny:** stejné vzory jako u akcí, UX jen jasně ukáže, že jsem v jiné části. Skupinu jde založit, upravit a deaktivovat.
 8. **Žádost o členství ve skupině:** uživatel požádá, správce žádost přijme, uživatel je ve skupině. Co člen ve skupině dál dělá, zatím neřešíme.
 
 ## Scope sprintu 2
@@ -30,7 +30,7 @@ User stories z [HobbyHub_User_Stories_MVP.md](HobbyHub_User_Stories_MVP.md), kte
 | Story                      | Původní | Bereme ve sprintu 2                                                                                                                                                        | Vynecháváme                                                                                                               |
 | -------------------------- | ------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------- |
 | Úvodní stránka             | US-01   | Landing page: věta, co HobbyHub dělá, náhled nadcházejících akcí, vstup do registrace                                                                                      | Lokalita z IP (výchozí Praha)                                                                                             |
-| Registrace a přihlášení    | US-04   | E-mail + heslo, návrat na akci po přihlášení                                                                                                                               | Potvrzení 18+ a souhlasy (změna 19. 10.), ověření e-mailu, zapomenuté heslo                                               |
+| Registrace a přihlášení    | US-04   | E-mail + heslo, návrat na akci po přihlášení, ověření e-mailu odkazem (simulované přes bezplatnou e-mailovou službu) a zapomenuté heslo (PO 20. 10.)                       | Potvrzení 18+ a souhlasy (změna 19. 10.)                                                                                  |
 | Seznam a mapa akcí         | US-02   | Seznam a mapa na jedné stránce (mobil: mapa + vysouvací panel se seznamem, desktop vedle sebe), filtry lokalita, termín, typ aktivity (kategorie › aktivita), „Chybí lidé“ | Náhled po klepnutí na špendlík, shluky, „Hledat v této oblasti“, hledání podle názvu, řazení podle vzdálenosti (sprint 3) |
 | Detail akce                | US-03   | Detail na vlastní URL bez přihlášení, „chybí ještě X“, organizátor, způsob přihlášení                                                                                      | Sdílení a náhled odkazu ve WhatsAppu                                                                                      |
 | Založení akce              | US-11   | Formulář s min./max., místo na mapě + adresa, volba schvalování přihlášek (výchozí „Bez schválení“)                                                                        | Cena, úroveň, vybavení (nepovinné, pokud zbude čas), soukromá akce                                                        |
@@ -38,9 +38,9 @@ User stories z [HobbyHub_User_Stories_MVP.md](HobbyHub_User_Stories_MVP.md), kte
 | Přihlášení na akci         | US-06   | „Přijdu“, žádost o účast u akce se schvalováním a její stažení, odhlášení, „Plno“                                                                                          | Zpráva k žádosti                                                                                                          |
 | Účastníci akce             | US-12   | Seznam přihlášených a čekajících žádostí, schválení / zamítnutí jednotlivě                                                                                                 | Hromadné schválení, odebrání účastníka, zpráva účastníkům, e-maily                                                        |
 | Moje akce                  | US-07   | Záložky Přihlášen (i čekající žádosti) a Pořádám, odkaz v navigaci (přidáno 18. 10., schválil PO)                                                                          | Záložka Proběhlé                                                                                                          |
-| Skupiny: založení a správa | US-16   | Založení, úprava, zrušení (deaktivace, změna 19. 10.); seznam skupin s filtrem aktivita + lokalita, detail skupiny                                                         | Jmenování dalších správců, obrázek                                                                                        |
+| Skupiny: založení a správa | US-16   | Založení, úprava, deaktivace (změna 19. 10.); seznam skupin s filtrem aktivita + lokalita, detail skupiny                                                                  | Jmenování dalších správců, obrázek                                                                                        |
 | Členství ve skupině        | US-17   | Veřejná: „Přidat se“; neveřejná: žádost → schválení / zamítnutí; odchod                                                                                                    | Blokace člena, upozornění                                                                                                 |
-| Testovací data             | F-64    | Seed akcí a skupin podle kategorií aktivit (B-002), ručně zkontrolovaný                                                                                                    | –                                                                                                                         |
+| Testovací data             | F-64    | Seed akcí, skupin a účastí podle kategorií aktivit (B-002) s demo účty a případy pro happy path, ručně zkontrolovaný                                                       | –                                                                                                                         |
 
 **Změny scope 18. 10.:**
 
@@ -53,11 +53,20 @@ Ze standupu s PO 19. 10. a z rozhodnutí týmu 20. 10.:
 
 - **Schvalování přihlášek u akcí je zpátky ve sprintu 2** (PO). Organizátor při založení volí „Bez schválení“ (výchozí) nebo „Schvaluji přihlášky“; u akce se schvalováním uživatel pošle žádost a organizátor ji schválí nebo zamítne (#53). Ruší změnu z 18. 10.
 - **Potvrzení věku 18+ a souhlasy při registraci nejsou ve sprintu 2** (PO). V MVP zůstávají, udělají se spolu s právními stránkami (B-016, B-081).
-- **Zrušení skupiny = deaktivace, ne smazání** (PO). Skupina zmizí z hledání a nejde se do ní přidat, nadcházející akce skupiny se zruší, proběhlé zůstanou v historii. Odpovídá na otázku 3 u skupin.
+- **Skupina se deaktivuje, nemaže ani neruší** (PO). Skupina zmizí z hledání a nejde se do ní přidat, nadcházející akce skupiny se zruší, proběhlé zůstanou v historii. Odpovídá na otázku 3 u skupin.
 - **Akce se také jen ruší, nemažou** (tým, stejný princip jako u skupin; potvrdit s PO). Zrušená akce má štítek „Zrušeno“ s důvodem.
 - **Mapa: nástřel s filtry** (PO). Tým navrhl filtry a rozložení podle nového designu (lokalita, termín, typ aktivity ve dvou úrovních, „Chybí lidé“; mapa na mobilu přes celou obrazovku se seznamem ve vysouvacím panelu). Co z designu je až sprint 3, je v tabulce výše.
 - **Organizátor není automaticky účastníkem své akce, ale může se na ni přihlásit** (tým 20. 10., dodatek k US-06). Jeho přihláška se neschvaluje a počítá se do obsazenosti. Potvrdit s PO.
 - **Typy aktivit ve dvou úrovních** (tým): kategorie › aktivita, jen aktivity, kde se skládá parta (ne koncerty, trhy, kulturní akce). Seznam je v BACKLOG.md › B-002.
+
+### Změny scope 20. 10.
+
+Změna odsouhlasená s PO a rozhodnutí týmu 20. 10.:
+
+- **Ověření e-mailu a zapomenuté heslo jsou ve sprintu 2** (PO, #58). E-maily jdou přes bezplatnou e-mailovou službu (simulace, repo má adaptéry pro Resend a SMTP). Bez ověřeného e-mailu se nejde hlásit na akce ani zakládat akce a skupiny (B-011, B-012).
+- **Kategorie aktivit navrhl tým** (tým; PO je neschvaloval): 8 vyvážených kategorií po 5–6 aktivitách, v každé navíc „Jiné“ pro aktivity, které v seznamu chybí, a u aktivit klíčová slova pro hledání. Seznam je v BACKLOG.md › B-002, s PO ho prokonzultujeme na standupu.
+- **Skupina se deaktivuje** (tým, upřesnění změny 19. 10.) – v UI i v backlogu „Deaktivovat skupinu“ místo „Zrušit“, aby se to nepletlo se zrušením akce (#54, B-051).
+- **Testovací data** (#47, tým) obsahují demo účty (hledající, organizátorka, správce skupin, neověřený účet) a připravené případy pro průchod happy path na demu.
 
 ## Mimo scope
 
@@ -65,7 +74,7 @@ PO teď nechce řešit hodnocení a funkce kolem, rozšiřovaly by scope bez vli
 
 | Oblast                    | Stories             | Proč ne teď                                                                                                                |
 | ------------------------- | ------------------- | -------------------------------------------------------------------------------------------------------------------------- |
-| E-maily a ověření e-mailu | US-04 (část), US-08 | Napojení e-mailové služby a plánovač                                                                                       |
+| E-mailová upozornění      | US-08               | Plánovač a e-maily ke změnám akcí (ověření e-mailu je ve sprintu 2, změna 20. 10.)                                         |
 | Profil a GDPR             | US-05               | Viditelnost údajů, export a smazání účtu                                                                                   |
 | Hodnocení                 | US-09               | PO: zatím nechceme                                                                                                         |
 | Akce skupin a správci     | US-18, US-16 (část) | Skupina zatím jen ověřuje členství a schvalování                                                                           |
@@ -121,7 +130,7 @@ PO teď nechce řešit hodnocení a funkce kolem, rozšiřovaly by scope bez vli
 
 1. **Moje akce (US-07):** vyřešeno, PO 18. 10. schválil zařazení do sprintu 2.
 2. **Kritéria vyhledávání:** vyřešeno 19. 10.: PO chce nástřel mapy s filtry. Konkrétní filtry navrhl tým v designu (viz Změny scope 19. 10.); u skupin zůstává filtr aktivita + lokalita.
-3. **Smazání, nebo zrušení:** u skupin vyřešeno 19. 10. (deaktivace). U akcí tým navrhuje taky jen zrušení – potvrdit na příštím standupu.
+3. **Smazání, nebo zrušení:** u skupin vyřešeno 19. 10. (deaktivace, ne zrušení). U akcí tým navrhuje taky jen zrušení – potvrdit na příštím standupu.
 4. **Schvalování u akcí:** vyřešeno 19. 10.: ve sprintu 2 je (ruší změnu z 18. 10.).
 5. **Odchylky designu od wireframů:** přesunuto na příští standup, seznam se rozšířil (viz níže).
 
@@ -130,9 +139,10 @@ PO teď nechce řešit hodnocení a funkce kolem, rozšiřovaly by scope bez vli
 1. **Filtr „Chybí lidé“:** tým ho přidal do designu i do sprintu 2 (hlavní hodnota produktu, ve wireframech nebyl). Odsouhlasit.
 2. **Mobil – výchozí pohled /akce (US-02):** mapa přes celou obrazovku a seznam ve vysouvacím panelu místo „výchozí je seznam, na mapu se přepíná“. Odpovídá na otázku z wireframu A-03. Odsouhlasit.
 3. **Zrušení akce místo smazání:** stejně jako u skupin (bod 3 výše).
-4. **Kategorie aktivit:** dvě úrovně a seznam v BACKLOG.md › B-002. Doplnit nebo škrtnout.
+4. **Kategorie aktivit:** nový seznam týmu z 20. 10. (8 kategorií + „Jiné“, BACKLOG.md › B-002). Ukázat PO a vyslechnout připomínky.
 5. **Organizátor a vlastní akce:** organizátor není automaticky účastníkem, ale může se na svou akci přihlásit; jeho přihláška se neschvaluje a počítá se do obsazenosti (minima i maxima). Odsouhlasit.
 6. **Odchylky designu od wireframů:** [design-rozhodnuti.md](design-rozhodnuti.md). Wireframy jsou od 20. 10. aktualizované podle designu, původní verze je ve Figmě na stránce „Archiv“.
+7. **Akce skupin (US-18, #70):** ve sprintu 2 skupiny akce nemají, takže po přijetí do skupiny člen nemá co dělat (na demu slepá ulička). Probrat s PO, jestli zakládání akcí za skupinu vzít jako první věc sprintu 3, případně v jakém rozsahu (správce založí akci za skupinu, akce jen pro členy / veřejná).
 
 ## Další schůzka
 
