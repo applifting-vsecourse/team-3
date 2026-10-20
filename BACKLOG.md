@@ -64,7 +64,7 @@ Zdroj: `HobbyHub_User_Stories_MVP.md` (US-01 až US-19, odvozené z Feature brea
 | B-043                          | Plánované e-maily (připomínka, chybí lidé, výzva k hodnocení) | US-08, US-09        | BE     | M    | B-041               |
 | **Fáze 5 – Skupiny**           |                                                               |                     |        |      |                     |
 | B-050                          | Model skupiny a členství                                      | US-16, US-17        | BE     | S    | B-002, B-003        |
-| B-051                          | Založení, úprava a zrušení (deaktivace) skupiny               | US-16               | FS     | M    | B-050, B-011        |
+| B-051                          | Založení, úprava a deaktivace skupiny                         | US-16               | FS     | M    | B-050, B-011        |
 | B-052                          | Stránka skupiny a hledání skupin                              | US-16               | FS     | M    | B-051               |
 | B-053                          | Členství ve veřejné a neveřejné skupině                       | US-17               | FS     | M    | B-052               |
 | B-054                          | Jmenování správců                                             | US-16               | FS     | S    | B-053               |
@@ -116,17 +116,18 @@ Staging a CI/CD (F-59, F-60) už v repu jsou (`.github/workflows/ci.yml`, `deplo
 
 **Cíl:** Aktivity a lokality jsou jednotné pro akce, skupiny, profil i filtry.
 
-- Aktivity mají **dvě úrovně: kategorie › aktivita** (víc úrovní ne, na mobilu se špatně prochází). Prisma model `ActivityCategory` (`id`, `slug`, `name`, `icon`, `sortOrder`) a `Activity` (`id`, `slug`, `name`, `categoryId`, `sortOrder`). Akce, skupina i zájem v profilu se vždy váže na aktivitu, ne na kategorii.
-- Jen aktivity, kde se skládá parta (HobbyHub není katalog koncertů, trhů ani kulturních akcí). Seed:
-  - **Týmové sporty:** fotbal a malá kopaná, florbal, volejbal, basketbal, nohejbal, hokejbal, ultimate frisbee
+- Aktivity mají **dvě úrovně: kategorie › aktivita** (víc úrovní ne, na mobilu se špatně prochází). Prisma model `ActivityCategory` (`id`, `slug`, `name`, `icon`, `sortOrder`) a `Activity` (`id`, `slug`, `name`, `categoryId`, `sortOrder`, `keywords` – pole synonym pro hledání). Akce, skupina i zájem v profilu se vždy váže na aktivitu, ne na kategorii.
+- Jen aktivity, kde se skládá parta (HobbyHub není katalog koncertů, trhů ani kulturních akcí). Kategorie jsou vyvážené (8 kategorií po 5–6 aktivitách), aby se daly projít na mobilu. Seznam navrhl tým 20. 10., s PO ho konzultujeme na standupu 23. 10. Seed:
+  - **Týmové sporty:** fotbal a malá kopaná, florbal, volejbal, basketbal, nohejbal, ultimate frisbee
   - **Raketové sporty:** tenis, badminton, squash, stolní tenis, padel
-  - **Běh a pohyb:** běh, cyklistika, in-line, plavání, jóga, workout
-  - **Outdoor:** turistika, lezení a bouldering, vodáctví, geocaching
-  - **Deskové hry:** deskové hry, karetní hry, šachy, RPG (D&D apod.)
-  - **Videohry:** LAN party, turnaj, retro hraní
-  - **Kvízy a jazyky:** pub kvíz, jazykový tandem, čtenářský klub, debatní klub
-  - **Tvoření a hudba:** jam session, sborový zpěv, kreslení, rukodělná dílna
-  - **Komunita:** úklid přírody, komunitní zahrada, dobrovolnictví, swap (výměna věcí)
+  - **Pohyb a tanec:** běh, jóga, workout, tanec, plavání, bruslení (in-line i led)
+  - **Outdoor:** turistika, cyklistika, lezení a bouldering, vodáctví, zimní sporty, geocaching
+  - **Hry:** deskové hry, karetní hry, šachy, RPG (D&D apod.), videohry a LAN, únikové hry
+  - **Kvízy a jazyky:** pub kvíz, jazykový tandem, čtenářský klub, debatní klub, coding a hackathony
+  - **Tvoření a hudba:** jam session, sborový zpěv, kreslení a malování, fotografie, rukodělná dílna, improvizace a divadlo
+  - **Komunita:** úklid přírody, komunitní zahrada, pomoc v útulku, společné vaření, sousedská pomoc
+- Poslední aktivita v každé kategorii je **„Jiné“** (např. „Jiný týmový sport“), aby organizátor akci zařadil i tehdy, když svou aktivitu v seznamu nenajde. Filtr podle kategorie takové akce najde.
+- `keywords` obsahují synonyma a hovorové názvy („pinčes“, „fotbálek“, „D&D“, „boulder“). Seed je plní už teď, hledání v aktivitách i akcích je využije ve sprintu 3 (#57).
 - Ikona kategorie odpovídá variantě komponenty `Activity tile` ve Figmě (karta akce ukazuje ikonu kategorie).
 - Prisma model `Locality` (`id`, `name`, `parent` – město / městská část, `lat`, `lng`) a seed: Praha + městské části Praha 1–22, Brno, Ostrava, Plzeň, Olomouc, Pardubice, Hradec Králové, Liberec, České Budějovice, Ústí n. L.
 - `GET /api/activities` (strom kategorie › aktivity) a `GET /api/localities?query=` (našeptávač) – veřejné.
@@ -630,18 +631,18 @@ Doménová logika (čistá funkce + testy): `approvedCount`, `missingToMin = max
 
 ---
 
-### B-051 Založení, úprava a zrušení (deaktivace) skupiny
+### B-051 Založení, úprava a deaktivace skupiny
 
 `US-16` · FS · M · závisí na: B-050, B-011
 
-- `POST /api/groups` (`VerifiedUserGuard`), zakladatel se stane správcem. `PATCH` a `POST /:id/cancel` jen správce.
-- Zrušení = deaktivace, ne smazání (PO 19. 10.): `status = inactive`, skupina zmizí z hledání, nejde se do ní přidat, stránka skupiny ukazuje „Skupina už není aktivní“. Členové dostanou e-mail (po B-040).
-- Nadcházející akce skupiny se zruší s důvodem „Skupina byla zrušena“, proběhlé zůstanou v historii. Akce skupin přibudou až s B-055, zrušení akcí doplní B-055.
-- FE: formulář `/skupiny/nova`, úprava a zrušení v dialogu s potvrzením (tlačítko `destructive`).
+- `POST /api/groups` (`VerifiedUserGuard`), zakladatel se stane správcem. `PATCH` a `POST /:id/deactivate` jen správce.
+- Skupina se nemaže ani neruší, jen **deaktivuje** (PO 19. 10.; v UI „Deaktivovat skupinu“, ne „Zrušit“, aby se to nepletlo se zrušením akce): `status = inactive`, `deactivatedAt`, skupina zmizí z hledání, nejde se do ní přidat, stránka skupiny ukazuje „Skupina už není aktivní“. Členové dostanou e-mail (po B-040).
+- Nadcházející akce skupiny se zruší s důvodem „Skupina byla deaktivována“, proběhlé zůstanou v historii. Akce skupin přibudou až s B-055, zrušení akcí doplní B-055.
+- FE: formulář `/skupiny/nova`, úprava a deaktivace v dialogu s potvrzením (tlačítko `destructive`).
 
 **Hotovo, když:**
 
-- [ ] Test zrušení: skupina je `inactive`, nejde se do ní přidat a nevrací se ve výpisu.
+- [ ] Test deaktivace: skupina je `inactive`, nejde se do ní přidat a nevrací se ve výpisu.
 
 ---
 
@@ -694,7 +695,7 @@ Doménová logika (čistá funkce + testy): `approvedCount`, `missingToMin = max
 - Oprávnění správy akce (úprava, zrušení, účastníci, zprávy, docházka, topování) rozšiř na **všechny správce skupiny** – jedna sdílená funkce `canManageEvent(user, event)` použitá všude.
 - Členové dostanou e-mail o nové akci a hlásí se sami.
 - „Pořádám“ v Mých akcích obsahuje akce mých skupin.
-- Při zrušení skupiny (B-051) se nadcházející akce skupiny zruší s důvodem „Skupina byla zrušena“ a standardními e-maily; proběhlé zůstanou beze změny.
+- Při deaktivaci skupiny (B-051) se nadcházející akce skupiny zruší s důvodem „Skupina byla deaktivována“ a standardními e-maily; proběhlé zůstanou beze změny.
 
 **Hotovo, když:**
 
@@ -826,7 +827,7 @@ Doménová logika (čistá funkce + testy): `approvedCount`, `missingToMin = max
 `US-05` · FS · M · závisí na: B-060, B-055
 
 - `GET /api/me/export` – JSON s profilem, účastmi, pořádanými akcemi, členstvími a hodnoceními.
-- `DELETE /api/me` (s potvrzením heslem): nadcházející pořádané akce se zruší, jméno u proběhlých akcí a hodnocení se anonymizuje („Smazaný uživatel“), přihlášení se znemožní. Poslední správce skupiny musí předat správu, jinak se skupina zruší.
+- `DELETE /api/me` (s potvrzením heslem): nadcházející pořádané akce se zruší, jméno u proběhlých akcí a hodnocení se anonymizuje („Smazaný uživatel“), přihlášení se znemožní. Poslední správce skupiny musí předat správu, jinak se skupina deaktivuje.
 
 **Hotovo, když:**
 
@@ -846,6 +847,7 @@ Doménová logika (čistá funkce + testy): `approvedCount`, `missingToMin = max
 
 `F-64` · BE · M · závisí na: B-073, B-063
 
+- Navazuje na testovací data ze sprintu 2 (#47: akce, skupiny a účasti v Praze podle kategorií B-002, termíny relativní k okamžiku seedu). Doplní:
 - Seed „demo“ režim: cca 30 uživatelů, 8 skupin (Praha + 2 menší města), 60 akcí v příštích 4 týdnech v různých stavech (plno, chybí lidé, se schvalováním, zrušená, topovaná), proběhlé akce s hodnoceními, jeden uživatel s předplatným, otevřená nahlášení a čekající platba pro admina.
 - Demo účty (návštěvník-uživatel, organizátor, správce skupiny, admin) do README.
 
@@ -900,6 +902,7 @@ Dokud tým nebo PO nerozhodne jinak, agent použije výchozí volbu.
 | Q10 | Výchozí pohled /akce na mobilu                             | Mapa přes celou obrazovku, seznam ve vysouvacím panelu                                     | PO           |
 | Q11 | Zrušení, nebo smazání akce                                 | Jen zrušení se štítkem „Zrušeno“, akce se nemaže                                           | PO           |
 | Q12 | Organizátor jako účastník vlastní akce                     | Není automaticky, může se přihlásit; jeho přihláška se neschvaluje a počítá se do kapacity | PO           |
+| Q13 | Seznam kategorií a aktivit (B-002)                         | Seznam týmu z 20. 10. (8 kategorií + „Jiné“), konzultace s PO na standupu 23. 10.          | Tým          |
 
 ## Mimo MVP (agent nedělá)
 
