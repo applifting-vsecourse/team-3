@@ -5,14 +5,15 @@
  * - akce a skupiny v Praze, jen nadcházející akce (záložka Proběhlé je mimo sprint 2),
  * - obsazenost chybí lidé / volná místa / plno a oba způsoby přihlašování (bez schválení, se schválením),
  * - organizátor se do kapacity nepočítá; když chce hrát, je přihlášený jako účastník (Q12),
- * - skupina se nemaže ani neruší, jen deaktivuje (`inactive`).
+ * - skupina se nemaže ani neruší, jen deaktivuje (`inactive`),
+ * - všechny akce jsou veřejné (soukromé akce a akce jen pro členy nejsou ve sprintu 2).
  *
  * Kategorie aktivit (8 × 5–6 + „Jiné“) navrhl tým 20. 10., s PO se konzultují v pátek.
  * Klíčová slova u aktivit využije hledání ve sprintu 3, data je mají už teď.
  *
- * Termíny jsou relativní k okamžiku seedu (resolveStartsAt). Každý den v následujících
- * 14 dnech má aspoň dvě akce a nejbližší víkend je plný, takže jeden seed (ideálně ve čtvrtek
- * večer) pokryje páteční standup i pondělní sprint review: rychlé volby Dnes, Zítra,
+ * Termíny jsou relativní k okamžiku seedu (resolveStartsAt). Každý z 13 dnů po dni seedu má
+ * aspoň dvě akce (den seedu sám může být prázdný) a nejbližší víkend je plný, takže jeden seed
+ * (ideálně ve čtvrtek večer) pokryje páteční standup i pondělní sprint review: rychlé volby Dnes, Zítra,
  * Tento víkend i Příštích 7 dní vždy něco ukážou. Žádný termín nevyjde do minulosti.
  *
  * Demo případy pro happy path (pole demoCase u akcí, dvojice pro pátek a pondělí):
@@ -48,7 +49,12 @@ export type DemoSchedule =
   | { nextWeekday: Weekday; time: string }
   | { weekOffset: number; weekday: Weekday; time: string };
 
-export type DemoParticipationStatus = 'pending' | 'approved' | 'rejected' | 'withdrawn' | 'removed';
+export type DemoParticipationStatus =
+  | 'pending'
+  | 'approved'
+  | 'rejected'
+  | 'withdrawn'
+  | 'removed';
 
 export interface DemoUser {
   key: string;
@@ -105,17 +111,36 @@ export interface DemoEvent {
   organizerKey: string;
   status: 'published' | 'cancelled';
   cancelReason?: string;
-  participations: { userKey: string; status: DemoParticipationStatus; message?: string }[];
+  participations: {
+    userKey: string;
+    status: DemoParticipationStatus;
+    message?: string;
+  }[];
 }
 
 export const demoActivityCategories = [
   { slug: 'tymove-sporty', name: 'Týmové sporty', icon: 'ball', sortOrder: 1 },
-  { slug: 'raketove-sporty', name: 'Raketové sporty', icon: 'racket', sortOrder: 2 },
+  {
+    slug: 'raketove-sporty',
+    name: 'Raketové sporty',
+    icon: 'racket',
+    sortOrder: 2,
+  },
   { slug: 'pohyb-a-tanec', name: 'Pohyb a tanec', icon: 'route', sortOrder: 3 },
   { slug: 'outdoor', name: 'Outdoor', icon: 'mountain', sortOrder: 4 },
   { slug: 'hry', name: 'Hry', icon: 'dice', sortOrder: 5 },
-  { slug: 'kvizy-a-jazyky', name: 'Kvízy a jazyky', icon: 'message', sortOrder: 6 },
-  { slug: 'tvoreni-a-hudba', name: 'Tvoření a hudba', icon: 'music', sortOrder: 7 },
+  {
+    slug: 'kvizy-a-jazyky',
+    name: 'Kvízy a jazyky',
+    icon: 'message',
+    sortOrder: 6,
+  },
+  {
+    slug: 'tvoreni-a-hudba',
+    name: 'Tvoření a hudba',
+    icon: 'music',
+    sortOrder: 7,
+  },
   { slug: 'komunita', name: 'Komunita', icon: 'users', sortOrder: 8 },
 ] as const;
 
@@ -126,7 +151,14 @@ export const demoActivities = [
     name: 'Fotbal a malá kopaná',
     categorySlug: 'tymove-sporty',
     sortOrder: 1,
-    keywords: ['fotbálek', 'kopaná', 'malá kopaná', 'futsal', 'football', 'soccer'],
+    keywords: [
+      'fotbálek',
+      'kopaná',
+      'malá kopaná',
+      'futsal',
+      'football',
+      'soccer',
+    ],
   },
   {
     slug: 'florbal',
@@ -140,7 +172,13 @@ export const demoActivities = [
     name: 'Volejbal',
     categorySlug: 'tymove-sporty',
     sortOrder: 3,
-    keywords: ['volley', 'volleyball', 'beach', 'beachvolejbal', 'plážový volejbal'],
+    keywords: [
+      'volley',
+      'volleyball',
+      'beach',
+      'beachvolejbal',
+      'plážový volejbal',
+    ],
   },
   {
     slug: 'basketbal',
@@ -231,7 +269,13 @@ export const demoActivities = [
     name: 'Workout',
     categorySlug: 'pohyb-a-tanec',
     sortOrder: 3,
-    keywords: ['kalistenika', 'street workout', 'kruhový trénink', 'posilování', 'crossfit'],
+    keywords: [
+      'kalistenika',
+      'street workout',
+      'kruhový trénink',
+      'posilování',
+      'crossfit',
+    ],
   },
   {
     slug: 'tanec',
@@ -336,7 +380,13 @@ export const demoActivities = [
     name: 'RPG (D&D apod.)',
     categorySlug: 'hry',
     sortOrder: 4,
-    keywords: ['D&D', 'DnD', 'Dračí doupě', 'stolní RPG', 'dungeons and dragons'],
+    keywords: [
+      'D&D',
+      'DnD',
+      'Dračí doupě',
+      'stolní RPG',
+      'dungeons and dragons',
+    ],
   },
   {
     slug: 'videohry',
@@ -371,7 +421,13 @@ export const demoActivities = [
     name: 'Jazykový tandem',
     categorySlug: 'kvizy-a-jazyky',
     sortOrder: 2,
-    keywords: ['language exchange', 'konverzace', 'angličtina', 'španělština', 'tandem'],
+    keywords: [
+      'language exchange',
+      'konverzace',
+      'angličtina',
+      'španělština',
+      'tandem',
+    ],
   },
   {
     slug: 'ctenarsky-klub',
@@ -563,7 +619,13 @@ export const demoUsers: DemoUser[] = [
     emailVerified: true,
     bio: 'Demo účet: hledající. Před měsícem jsem se přestěhoval z Pardubic a nikoho tu neznám.',
     homeLocalityName: 'Praha 3',
-    interestSlugs: ['florbal', 'volejbal', 'badminton', 'deskove-hry', 'turistika'],
+    interestSlugs: [
+      'florbal',
+      'volejbal',
+      'badminton',
+      'deskove-hry',
+      'turistika',
+    ],
   },
   {
     key: 'neovereny',
@@ -583,7 +645,13 @@ export const demoUsers: DemoUser[] = [
     emailVerified: true,
     bio: 'Deskovky každý týden, nejradši těžší euro hry.',
     homeLocalityName: 'Praha 2',
-    interestSlugs: ['deskove-hry', 'karetni-hry', 'rpg', 'jazykovy-tandem', 'unikove-hry'],
+    interestSlugs: [
+      'deskove-hry',
+      'karetni-hry',
+      'rpg',
+      'jazykovy-tandem',
+      'unikove-hry',
+    ],
   },
   {
     key: 'u05',
@@ -603,7 +671,13 @@ export const demoUsers: DemoUser[] = [
     emailVerified: true,
     bio: 'O víkendech chodím ven, klidně celý den.',
     homeLocalityName: 'Praha 5',
-    interestSlugs: ['turistika', 'cyklistika', 'fotografie', 'geocaching', 'vodactvi'],
+    interestSlugs: [
+      'turistika',
+      'cyklistika',
+      'fotografie',
+      'geocaching',
+      'vodactvi',
+    ],
   },
   {
     key: 'u07',
@@ -613,7 +687,13 @@ export const demoUsers: DemoUser[] = [
     emailVerified: true,
     bio: 'Florbal v útoku, basket pro radost.',
     homeLocalityName: 'Praha 11',
-    interestSlugs: ['florbal', 'basketbal', 'stolni-tenis', 'nohejbal', 'fotbal'],
+    interestSlugs: [
+      'florbal',
+      'basketbal',
+      'stolni-tenis',
+      'nohejbal',
+      'fotbal',
+    ],
   },
   {
     key: 'u08',
@@ -653,7 +733,14 @@ export const demoUsers: DemoUser[] = [
     emailVerified: true,
     bio: 'Erasmus student from Munich, living at Strahov.',
     homeLocalityName: 'Praha 6',
-    interestSlugs: ['volejbal', 'jazykovy-tandem', 'videohry', 'ultimate', 'pub-kviz', 'lezeni'],
+    interestSlugs: [
+      'volejbal',
+      'jazykovy-tandem',
+      'videohry',
+      'ultimate',
+      'pub-kviz',
+      'lezeni',
+    ],
   },
   {
     key: 'u12',
@@ -663,7 +750,13 @@ export const demoUsers: DemoUser[] = [
     emailVerified: true,
     bio: 'Erasmus z Valencie, učím se česky a učím salsu.',
     homeLocalityName: 'Praha 2',
-    interestSlugs: ['jazykovy-tandem', 'kresleni', 'fotografie', 'tanec', 'spolecne-vareni'],
+    interestSlugs: [
+      'jazykovy-tandem',
+      'kresleni',
+      'fotografie',
+      'tanec',
+      'spolecne-vareni',
+    ],
   },
   {
     key: 'u13',
@@ -683,7 +776,14 @@ export const demoUsers: DemoUser[] = [
     emailVerified: true,
     bio: 'Ranní běhání ve Stromovce.',
     homeLocalityName: 'Praha 7',
-    interestSlugs: ['beh', 'brusleni', 'kresleni', 'joga', 'uklid-prirody', 'geocaching'],
+    interestSlugs: [
+      'beh',
+      'brusleni',
+      'kresleni',
+      'joga',
+      'uklid-prirody',
+      'geocaching',
+    ],
   },
   {
     key: 'u15',
@@ -693,7 +793,13 @@ export const demoUsers: DemoUser[] = [
     emailVerified: true,
     bio: 'Pinec a šachy, obojí rád proti silnějším.',
     homeLocalityName: 'Praha 3',
-    interestSlugs: ['stolni-tenis', 'sachy', 'deskove-hry', 'karetni-hry', 'pub-kviz'],
+    interestSlugs: [
+      'stolni-tenis',
+      'sachy',
+      'deskove-hry',
+      'karetni-hry',
+      'pub-kviz',
+    ],
   },
   {
     key: 'u16',
@@ -703,7 +809,13 @@ export const demoUsers: DemoUser[] = [
     emailVerified: true,
     bio: 'Fotím na film, ráda ukážu zákoutí Prahy.',
     homeLocalityName: 'Praha 1',
-    interestSlugs: ['fotografie', 'kresleni', 'turistika', 'ctenarsky-klub', 'rukodelna-dilna'],
+    interestSlugs: [
+      'fotografie',
+      'kresleni',
+      'turistika',
+      'ctenarsky-klub',
+      'rukodelna-dilna',
+    ],
   },
   {
     key: 'u17',
@@ -723,7 +835,13 @@ export const demoUsers: DemoUser[] = [
     emailVerified: true,
     bio: 'Volejbal po práci, o víkendu ven.',
     homeLocalityName: 'Praha 4',
-    interestSlugs: ['volejbal', 'badminton', 'turistika', 'pub-kviz', 'plavani'],
+    interestSlugs: [
+      'volejbal',
+      'badminton',
+      'turistika',
+      'pub-kviz',
+      'plavani',
+    ],
   },
   {
     key: 'u19',
@@ -743,7 +861,13 @@ export const demoUsers: DemoUser[] = [
     emailVerified: true,
     bio: 'Vedu kampaně v Dračím doupěti a language exchange v Karlíně.',
     homeLocalityName: 'Praha 8',
-    interestSlugs: ['deskove-hry', 'jazykovy-tandem', 'rpg', 'ctenarsky-klub', 'debatni-klub'],
+    interestSlugs: [
+      'deskove-hry',
+      'jazykovy-tandem',
+      'rpg',
+      'ctenarsky-klub',
+      'debatni-klub',
+    ],
   },
   {
     key: 'u21',
@@ -753,7 +877,13 @@ export const demoUsers: DemoUser[] = [
     emailVerified: true,
     bio: 'Lezu na stěně i venku, jistím.',
     homeLocalityName: 'Praha 5',
-    interestSlugs: ['lezeni', 'turistika', 'cyklistika', 'vodactvi', 'zimni-sporty'],
+    interestSlugs: [
+      'lezeni',
+      'turistika',
+      'cyklistika',
+      'vodactvi',
+      'zimni-sporty',
+    ],
   },
   {
     key: 'u22',
@@ -773,7 +903,13 @@ export const demoUsers: DemoUser[] = [
     emailVerified: true,
     bio: 'Fotbal každý týden, jinak hry.',
     homeLocalityName: 'Praha 13',
-    interestSlugs: ['fotbal', 'florbal', 'videohry', 'basketbal', 'unikove-hry'],
+    interestSlugs: [
+      'fotbal',
+      'florbal',
+      'videohry',
+      'basketbal',
+      'unikove-hry',
+    ],
   },
   {
     key: 'u24',
@@ -793,7 +929,13 @@ export const demoUsers: DemoUser[] = [
     emailVerified: true,
     bio: 'Expat from Dublin, looking for a regular ultimate crew.',
     homeLocalityName: 'Praha 2',
-    interestSlugs: ['ultimate', 'jazykovy-tandem', 'beh', 'pub-kviz', 'jam-session'],
+    interestSlugs: [
+      'ultimate',
+      'jazykovy-tandem',
+      'beh',
+      'pub-kviz',
+      'jam-session',
+    ],
   },
   {
     key: 'u26',
@@ -823,7 +965,13 @@ export const demoUsers: DemoUser[] = [
     emailVerified: true,
     bio: 'Hraju a kreslím, ideálně obojí naráz.',
     homeLocalityName: 'Praha 3',
-    interestSlugs: ['deskove-hry', 'rpg', 'kresleni', 'improvizace', 'unikove-hry'],
+    interestSlugs: [
+      'deskove-hry',
+      'rpg',
+      'kresleni',
+      'improvizace',
+      'unikove-hry',
+    ],
   },
   {
     key: 'u29',
@@ -843,7 +991,13 @@ export const demoUsers: DemoUser[] = [
     emailVerified: true,
     bio: 'Turistika s foťákem, o víkendu venčím psy z útulku.',
     homeLocalityName: 'Praha 4',
-    interestSlugs: ['turistika', 'fotografie', 'beh', 'geocaching', 'pomoc-v-utulku'],
+    interestSlugs: [
+      'turistika',
+      'fotografie',
+      'beh',
+      'geocaching',
+      'pomoc-v-utulku',
+    ],
   },
   {
     key: 'u31',
@@ -863,7 +1017,13 @@ export const demoUsers: DemoUser[] = [
     emailVerified: true,
     bio: 'Lektorka jógy, zpívám ve sboru.',
     homeLocalityName: 'Praha 4',
-    interestSlugs: ['joga', 'tanec', 'sborovy-zpev', 'plavani', 'komunitni-zahrada'],
+    interestSlugs: [
+      'joga',
+      'tanec',
+      'sborovy-zpev',
+      'plavani',
+      'komunitni-zahrada',
+    ],
   },
   {
     key: 'u33',
@@ -899,7 +1059,13 @@ export const demoUsers: DemoUser[] = [
     emailVerified: true,
     bio: 'Kytara, kód a šachy.',
     homeLocalityName: 'Praha 3',
-    interestSlugs: ['jam-session', 'coding', 'debatni-klub', 'sachy', 'videohry'],
+    interestSlugs: [
+      'jam-session',
+      'coding',
+      'debatni-klub',
+      'sachy',
+      'videohry',
+    ],
   },
   {
     key: 'u36',
@@ -925,7 +1091,13 @@ export const demoUsers: DemoUser[] = [
     emailVerified: true,
     bio: 'Programátor z Bulharska, v Praze třetím rokem.',
     homeLocalityName: 'Praha 8',
-    interestSlugs: ['coding', 'jazykovy-tandem', 'sachy', 'volejbal', 'pub-kviz'],
+    interestSlugs: [
+      'coding',
+      'jazykovy-tandem',
+      'sachy',
+      'volejbal',
+      'pub-kviz',
+    ],
   },
   {
     key: 'u38',
@@ -935,7 +1107,13 @@ export const demoUsers: DemoUser[] = [
     emailVerified: true,
     bio: 'Badminton v Nuslích, deskovky v Michli.',
     homeLocalityName: 'Praha 4',
-    interestSlugs: ['badminton', 'beh', 'deskove-hry', 'unikove-hry', 'plavani'],
+    interestSlugs: [
+      'badminton',
+      'beh',
+      'deskove-hry',
+      'unikove-hry',
+      'plavani',
+    ],
   },
   {
     key: 'u39',
@@ -945,7 +1123,13 @@ export const demoUsers: DemoUser[] = [
     emailVerified: true,
     bio: 'Hokejbal hraju od školy, jinak fotbal a kolo.',
     homeLocalityName: 'Praha 9',
-    interestSlugs: ['fotbal', 'florbal', 'cyklistika', 'vodactvi', 'jiny-tymovy-sport'],
+    interestSlugs: [
+      'fotbal',
+      'florbal',
+      'cyklistika',
+      'vodactvi',
+      'jiny-tymovy-sport',
+    ],
   },
   {
     key: 'u40',
@@ -969,7 +1153,8 @@ export const demoGroups: DemoGroup[] = [
   {
     key: 'g-florbal',
     name: 'Florbal Podvinný mlýn',
-    description: 'Pravidelný florbal pro rekreační hráče. Hrajeme na dvě branky, brankář vítán.',
+    description:
+      'Pravidelný florbal pro rekreační hráče. Hrajeme na dvě branky, brankář vítán.',
     activitySlug: 'florbal',
     localityName: 'Praha 9',
     type: 'public',
@@ -1004,7 +1189,8 @@ export const demoGroups: DemoGroup[] = [
         userKey: 'uzivatel',
         role: 'member',
         status: 'pending',
-        message: 'Ahoj, v Pardubicích jsem hrál krajskou ligu v obraně. Rád bych se přidal.',
+        message:
+          'Ahoj, v Pardubicích jsem hrál krajskou ligu v obraně. Rád bych se přidal.',
       },
       { userKey: 'u31', role: 'member', status: 'pending' },
     ],
@@ -1035,7 +1221,8 @@ export const demoGroups: DemoGroup[] = [
   {
     key: 'g-volejbal',
     name: 'Volejbal Praha 7 – po práci',
-    description: 'Smíšený volejbal na úrovni mírně pokročilých, hrajeme v Holešovicích.',
+    description:
+      'Smíšený volejbal na úrovni mírně pokročilých, hrajeme v Holešovicích.',
     activitySlug: 'volejbal',
     localityName: 'Praha 7',
     type: 'public',
@@ -1068,14 +1255,16 @@ export const demoGroups: DemoGroup[] = [
         userKey: 'organizator',
         role: 'member',
         status: 'pending',
-        message: 'Pořádám deskovky v Holešovicích, ráda bych hrála i těžší hry.',
+        message:
+          'Pořádám deskovky v Holešovicích, ráda bych hrála i těžší hry.',
       },
     ],
   },
   {
     key: 'g-beh',
     name: 'Běžci ze Stromovky',
-    description: 'Společné běhání ve Stromovce a na Letné, tempo se přizpůsobí nejpomalejšímu.',
+    description:
+      'Společné běhání ve Stromovce a na Letné, tempo se přizpůsobí nejpomalejšímu.',
     activitySlug: 'beh',
     localityName: 'Praha 7',
     type: 'public',
@@ -1092,7 +1281,8 @@ export const demoGroups: DemoGroup[] = [
   {
     key: 'g-turistika',
     name: 'Víkendová turistika z Prahy',
-    description: 'Celodenní výlety po Praze a okolí, vyrážíme z míst dostupných MHD.',
+    description:
+      'Celodenní výlety po Praze a okolí, vyrážíme z míst dostupných MHD.',
     activitySlug: 'turistika',
     localityName: 'Praha 5',
     type: 'public',
@@ -1163,7 +1353,8 @@ export const demoEvents: DemoEvent[] = [
     key: 'e01',
     scenario: 'volno',
     title: 'Běh kolem Hostivařské přehrady',
-    description: 'Okruh kolem přehrady asi 7 km po zpevněné cestě, tempo kolem 6 min/km.',
+    description:
+      'Okruh kolem přehrady asi 7 km po zpevněné cestě, tempo kolem 6 min/km.',
     activitySlug: 'beh',
     schedule: { daysFromNow: 0, time: '19:00' },
     durationMinutes: 60,
@@ -1189,7 +1380,8 @@ export const demoEvents: DemoEvent[] = [
     key: 'e02',
     scenario: 'chybi',
     title: 'Deskovky po práci v Karlíně',
-    description: 'Kratší hry na jeden večer: Azul, Kingdomino, Codenames. Hry přinesu.',
+    description:
+      'Kratší hry na jeden večer: Azul, Kingdomino, Codenames. Hry přinesu.',
     activitySlug: 'deskove-hry',
     schedule: { daysFromNow: 0, time: '19:30' },
     durationMinutes: 180,
@@ -1265,7 +1457,8 @@ export const demoEvents: DemoEvent[] = [
     key: 'e05',
     scenario: 'chybi',
     title: 'Ranní squash – hledám soupeře',
-    description: 'Hraju na úrovni mírně pokročilý, kurt zamluvený. Stačí jeden soupeř.',
+    description:
+      'Hraju na úrovni mírně pokročilý, kurt zamluvený. Stačí jeden soupeř.',
     activitySlug: 'squash',
     schedule: { daysFromNow: 1, time: '07:30' },
     durationMinutes: 60,
@@ -1288,7 +1481,8 @@ export const demoEvents: DemoEvent[] = [
     key: 'e06',
     scenario: 'volno',
     title: 'Florbal Podvinný mlýn – volná hra',
-    description: 'Rekreační florbal na dvě branky, hrajeme na čas. Cena je podíl za halu na osobu.',
+    description:
+      'Rekreační florbal na dvě branky, hrajeme na čas. Cena je podíl za halu na osobu.',
     activitySlug: 'florbal',
     schedule: { daysFromNow: 2, time: '19:00' },
     durationMinutes: 90,
@@ -1321,7 +1515,8 @@ export const demoEvents: DemoEvent[] = [
     key: 'e07',
     scenario: 'volno',
     title: 'Ranní jóga na Kavčích horách',
-    description: 'Hodina vinyasa jógy venku, za deště ve vestibulu. Vhodné i pro začátečníky.',
+    description:
+      'Hodina vinyasa jógy venku, za deště ve vestibulu. Vhodné i pro začátečníky.',
     activitySlug: 'joga',
     schedule: { daysFromNow: 2, time: '08:00' },
     durationMinutes: 60,
@@ -1406,7 +1601,8 @@ export const demoEvents: DemoEvent[] = [
     key: 'e10',
     scenario: 'volno',
     title: 'Pub kvíz v Nuslích – doplňujeme tým',
-    description: 'Hrajeme v týmu po šesti, chybí nám pár lidí. Témata od sportu po popkulturu.',
+    description:
+      'Hrajeme v týmu po šesti, chybí nám pár lidí. Témata od sportu po popkulturu.',
     activitySlug: 'pub-kviz',
     schedule: { daysFromNow: 3, time: '20:00' },
     durationMinutes: 150,
@@ -1465,7 +1661,8 @@ export const demoEvents: DemoEvent[] = [
     key: 'e12',
     scenario: 'volno',
     title: 'Bleskové šachy v kavárně',
-    description: 'Bleskovky 5+3 švýcarským systémem, hodiny a šachovnice na místě.',
+    description:
+      'Bleskovky 5+3 švýcarským systémem, hodiny a šachovnice na místě.',
     activitySlug: 'sachy',
     schedule: { daysFromNow: 4, time: '18:00' },
     durationMinutes: 180,
@@ -1489,7 +1686,8 @@ export const demoEvents: DemoEvent[] = [
     key: 'e13',
     scenario: 'volno',
     title: 'Pinec na Žižkově',
-    description: 'Dva stoly zamluvené, hrajeme dvouhry na dva vítězné sety. Pálky lze půjčit.',
+    description:
+      'Dva stoly zamluvené, hrajeme dvouhry na dva vítězné sety. Pálky lze půjčit.',
     activitySlug: 'stolni-tenis',
     schedule: { daysFromNow: 4, time: '18:30' },
     durationMinutes: 90,
@@ -1543,7 +1741,8 @@ export const demoEvents: DemoEvent[] = [
     key: 'e15',
     scenario: 'volno',
     title: 'Lezení na stěně, umím jistit',
-    description: 'Vstup si platí každý na místě. Jistím a začátečníkům rád poradím.',
+    description:
+      'Vstup si platí každý na místě. Jistím a začátečníkům rád poradím.',
     activitySlug: 'lezeni',
     schedule: { daysFromNow: 5, time: '18:00' },
     durationMinutes: 120,
@@ -1568,7 +1767,8 @@ export const demoEvents: DemoEvent[] = [
     key: 'e16',
     scenario: 'chybi',
     title: 'Salsa pro začátečníky – volná tančírna',
-    description: 'Základní kroky ukážu, pak tančíme. Nemusíš mít partnera, střídáme se.',
+    description:
+      'Základní kroky ukážu, pak tančíme. Nemusíš mít partnera, střídáme se.',
     activitySlug: 'tanec',
     schedule: { daysFromNow: 5, time: '19:00' },
     durationMinutes: 120,
@@ -1712,7 +1912,8 @@ export const demoEvents: DemoEvent[] = [
     key: 'e21',
     scenario: 'chybi',
     title: 'Úniková hra na Žižkově – doplňujeme partu',
-    description: 'Místnost pro 4–6 hráčů, obtížnost střední. Platí se na místě, rozpočítáme.',
+    description:
+      'Místnost pro 4–6 hráčů, obtížnost střední. Platí se na místě, rozpočítáme.',
     activitySlug: 'unikove-hry',
     schedule: { daysFromNow: 7, time: '19:00' },
     durationMinutes: 75,
@@ -1736,7 +1937,8 @@ export const demoEvents: DemoEvent[] = [
     key: 'e22',
     scenario: 'chybi',
     title: 'Coding večer – side projekty',
-    description: 'Každý dělá na svém, kdo se zasekne, ostatní pomůžou. Wi-fi a zásuvky jsou.',
+    description:
+      'Každý dělá na svém, kdo se zasekne, ostatní pomůžou. Wi-fi a zásuvky jsou.',
     activitySlug: 'coding',
     schedule: { daysFromNow: 7, time: '18:00' },
     durationMinutes: 180,
@@ -1780,7 +1982,8 @@ export const demoEvents: DemoEvent[] = [
     key: 'e24',
     scenario: 'chybi',
     title: 'Debatní klub: čtyřdenní pracovní týden?',
-    description: 'Rozdělíme se na dvě strany, každý má tři minuty. Na konci volné povídání.',
+    description:
+      'Rozdělíme se na dvě strany, každý má tři minuty. Na konci volné povídání.',
     activitySlug: 'debatni-klub',
     schedule: { daysFromNow: 8, time: '18:30' },
     durationMinutes: 120,
@@ -1803,7 +2006,8 @@ export const demoEvents: DemoEvent[] = [
     key: 'e25',
     scenario: 'volno',
     title: 'Ranní plavání v Podolí',
-    description: 'Plaveme každý svým tempem, potom společná snídaně v kavárně u bazénu.',
+    description:
+      'Plaveme každý svým tempem, potom společná snídaně v kavárně u bazénu.',
     activitySlug: 'plavani',
     schedule: { daysFromNow: 8, time: '07:00' },
     durationMinutes: 60,
@@ -1849,7 +2053,11 @@ export const demoEvents: DemoEvent[] = [
       { userKey: 'u15', status: 'approved' },
       { userKey: 'u20', status: 'approved' },
       { userKey: 'u24', status: 'approved' },
-      { userKey: 'u28', status: 'pending', message: 'Spirit Island mám ráda, ráda se přidám.' },
+      {
+        userKey: 'u28',
+        status: 'pending',
+        message: 'Spirit Island mám ráda, ráda se přidám.',
+      },
       { userKey: 'u38', status: 'pending' },
     ],
   },
@@ -1857,7 +2065,8 @@ export const demoEvents: DemoEvent[] = [
     key: 'e27',
     scenario: 'chybi',
     title: 'Ultimate pickup na Letné',
-    description: 'Pickup hra, frisbee mám. Nováčky všechno naučíme během první hry.',
+    description:
+      'Pickup hra, frisbee mám. Nováčky všechno naučíme během první hry.',
     activitySlug: 'ultimate',
     schedule: { daysFromNow: 9, time: '14:00' },
     durationMinutes: 120,
@@ -1884,7 +2093,8 @@ export const demoEvents: DemoEvent[] = [
     key: 'e28',
     scenario: 'volno',
     title: 'Gravel kolem Hostivaře',
-    description: 'Kolem 50 km pohodovým tempem po lesních cestách. Přilba povinná.',
+    description:
+      'Kolem 50 km pohodovým tempem po lesních cestách. Přilba povinná.',
     activitySlug: 'cyklistika',
     schedule: { daysFromNow: 9, time: '10:00' },
     durationMinutes: 240,
@@ -1909,8 +2119,9 @@ export const demoEvents: DemoEvent[] = [
   {
     key: 'e29',
     scenario: 'volno',
-    title: 'Deskovky pro kamarády',
-    description: 'Soukromá akce jen přes odkaz, zvu partu z volejbalu.',
+    title: 'Nedělní deskovky v Holešovicích',
+    description:
+      'Lehčí a středně těžké hry, přijď klidně bez zkušeností. Hry máme.',
     activitySlug: 'deskove-hry',
     schedule: { daysFromNow: 10, time: '18:00' },
     durationMinutes: 240,
@@ -1921,7 +2132,7 @@ export const demoEvents: DemoEvent[] = [
     minParticipants: 3,
     maxParticipants: 6,
     approvalMode: 'open',
-    visibility: 'private',
+    visibility: 'public',
     organizerKey: 'organizator',
     status: 'published',
     participations: [
@@ -1934,7 +2145,8 @@ export const demoEvents: DemoEvent[] = [
     key: 'e30',
     scenario: 'volno',
     title: 'Šárkou za podzimními barvami',
-    description: 'Kolem 12 km Divokou Šárkou a Džbánem, sraz na konečné tramvaje Divoká Šárka.',
+    description:
+      'Kolem 12 km Divokou Šárkou a Džbánem, sraz na konečné tramvaje Divoká Šárka.',
     activitySlug: 'turistika',
     schedule: { daysFromNow: 10, time: '09:30' },
     durationMinutes: 240,
@@ -1960,7 +2172,8 @@ export const demoEvents: DemoEvent[] = [
     key: 'e31',
     scenario: 'chybi',
     title: 'Úklid Divoké Šárky',
-    description: 'Pytle a rukavice zajistím, uklízíme kolem potoka. Na konci opékáme buřty.',
+    description:
+      'Pytle a rukavice zajistím, uklízíme kolem potoka. Na konci opékáme buřty.',
     activitySlug: 'uklid-prirody',
     schedule: { daysFromNow: 10, time: '10:00' },
     durationMinutes: 180,
@@ -1983,7 +2196,8 @@ export const demoEvents: DemoEvent[] = [
     key: 'e32',
     scenario: 'chybi',
     title: 'Malá kopaná na Strahově',
-    description: 'Malá kopaná na umělce, rozdělíme se na místě. Přineste světlé i tmavé tričko.',
+    description:
+      'Malá kopaná na umělce, rozdělíme se na místě. Přineste světlé i tmavé tričko.',
     activitySlug: 'fotbal',
     schedule: { daysFromNow: 11, time: '18:00' },
     durationMinutes: 90,
@@ -2012,7 +2226,8 @@ export const demoEvents: DemoEvent[] = [
     key: 'e33',
     scenario: 'volno',
     title: 'Dračí doupě – nová kampaň',
-    description: 'Postavy připravím, stačí přijít. Hrajeme česky, pravidla vysvětlím.',
+    description:
+      'Postavy připravím, stačí přijít. Hrajeme česky, pravidla vysvětlím.',
     activitySlug: 'rpg',
     schedule: { daysFromNow: 11, time: '17:30' },
     durationMinutes: 240,
@@ -2036,7 +2251,8 @@ export const demoEvents: DemoEvent[] = [
     key: 'e34',
     scenario: 'plno',
     title: 'Ranní tenis před prací',
-    description: 'Dvouhra, kurt je zarezervovaný, míče mám. Cena je půlka kurtu.',
+    description:
+      'Dvouhra, kurt je zarezervovaný, míče mám. Cena je půlka kurtu.',
     activitySlug: 'tenis',
     schedule: { daysFromNow: 11, time: '07:00' },
     durationMinutes: 60,
@@ -2080,7 +2296,8 @@ export const demoEvents: DemoEvent[] = [
       {
         userKey: 'uzivatel',
         status: 'pending',
-        message: 'Chodím běžně 20–25 km, v Pardubicích jsem chodil s turisťákem.',
+        message:
+          'Chodím běžně 20–25 km, v Pardubicích jsem chodil s turisťákem.',
       },
       { userKey: 'u30', status: 'approved' },
       { userKey: 'u36', status: 'approved' },
@@ -2091,7 +2308,8 @@ export const demoEvents: DemoEvent[] = [
     key: 'e36',
     scenario: 'volno',
     title: 'Jam session v klubovně',
-    description: 'Kytara, basa a klávesy jsou na místě, bicí taky. Hrajeme od blues po pop.',
+    description:
+      'Kytara, basa a klávesy jsou na místě, bicí taky. Hrajeme od blues po pop.',
     activitySlug: 'jam-session',
     schedule: { daysFromNow: 12, time: '19:00' },
     durationMinutes: 180,
@@ -2139,7 +2357,8 @@ export const demoEvents: DemoEvent[] = [
     key: 'e38',
     scenario: 'plno',
     title: 'Florbal Podvinný mlýn – plná sestava',
-    description: 'Rekreační florbal, tentokrát nás je plný počet. Kdo se odhlásí, uvolní místo.',
+    description:
+      'Rekreační florbal, tentokrát nás je plný počet. Kdo se odhlásí, uvolní místo.',
     activitySlug: 'florbal',
     schedule: { daysFromNow: 13, time: '19:00' },
     durationMinutes: 90,
@@ -2196,7 +2415,8 @@ export const demoEvents: DemoEvent[] = [
     key: 'e40',
     scenario: 'chybi',
     title: 'Urban sketching na Náplavce',
-    description: 'Skicák a tužka stačí, sedíme venku nebo v kavárně podle počasí.',
+    description:
+      'Skicák a tužka stačí, sedíme venku nebo v kavárně podle počasí.',
     activitySlug: 'kresleni',
     schedule: { daysFromNow: 13, time: '10:00' },
     durationMinutes: 150,
@@ -2251,7 +2471,8 @@ export const demoEvents: DemoEvent[] = [
     visibility: 'public',
     organizerKey: 'organizator',
     status: 'cancelled',
-    cancelReason: 'Předpověď hlásí celý den déšť, nový termín založím příští týden.',
+    cancelReason:
+      'Předpověď hlásí celý den déšť, nový termín založím příští týden.',
     participations: [
       { userKey: 'u40', status: 'approved' },
       { userKey: 'u30', status: 'approved' },
@@ -2261,7 +2482,8 @@ export const demoEvents: DemoEvent[] = [
     key: 'e43',
     scenario: 'volno',
     title: 'Víkendová LAN – CS2 a AoE',
-    description: 'Vlastní počítač a sluchátka nutné, síť a prodlužovačky zajistíme.',
+    description:
+      'Vlastní počítač a sluchátka nutné, síť a prodlužovačky zajistíme.',
     activitySlug: 'videohry',
     schedule: { nextWeekday: 5, time: '12:00' },
     durationMinutes: 330,
@@ -2376,7 +2598,8 @@ export const demoEvents: DemoEvent[] = [
     key: 'e47',
     scenario: 'volno',
     title: 'International volleyball night',
-    description: 'Mixed volleyball in English and Czech, 6 v 6. Úroveň: umíš odbít a podat.',
+    description:
+      'Mixed volleyball in English and Czech, 6 v 6. Úroveň: umíš odbít a podat.',
     activitySlug: 'volejbal',
     schedule: { weekOffset: 3, weekday: 3, time: '18:00' },
     durationMinutes: 120,
@@ -2455,7 +2678,8 @@ export const demoEvents: DemoEvent[] = [
     key: 'e50',
     scenario: 'volno',
     title: 'Okruh Klánovickým lesem',
-    description: 'Kolem 16 km po rovině, vhodné i pro začátečníky. Sraz na nádraží Klánovice.',
+    description:
+      'Kolem 16 km po rovině, vhodné i pro začátečníky. Sraz na nádraží Klánovice.',
     activitySlug: 'turistika',
     schedule: { weekOffset: 4, weekday: 5, time: '09:00' },
     durationMinutes: 300,
@@ -2508,7 +2732,8 @@ export const demoEvents: DemoEvent[] = [
     key: 'e52',
     scenario: 'chybi',
     title: 'Zpívání pro radost – otevřená zkouška',
-    description: 'Otevřená zkouška sboru, noty nejsou potřeba. Zpíváme lidovky i pop.',
+    description:
+      'Otevřená zkouška sboru, noty nejsou potřeba. Zpíváme lidovky i pop.',
     activitySlug: 'sborovy-zpev',
     schedule: { weekOffset: 4, weekday: 1, time: '18:30' },
     durationMinutes: 120,
@@ -2528,7 +2753,8 @@ export const demoEvents: DemoEvent[] = [
     key: 'e53',
     scenario: 'plno',
     title: 'Těžké euro hry: Brass a Terraforming Mars',
-    description: 'Pro hráče, kteří těžší hry znají. Přihlášky schvaluji podle toho, co kdo hrál.',
+    description:
+      'Pro hráče, kteří těžší hry znají. Přihlášky schvaluji podle toho, co kdo hrál.',
     activitySlug: 'deskove-hry',
     schedule: { weekOffset: 3, weekday: 1, time: '19:00' },
     durationMinutes: 240,
@@ -2560,7 +2786,8 @@ export const demoEvents: DemoEvent[] = [
     key: 'e54',
     scenario: 'chybi',
     title: 'Společné vaření: španělské tapas',
-    description: 'Uvaříme pět druhů tapas a společně je sníme. Suroviny rozpočítáme.',
+    description:
+      'Uvaříme pět druhů tapas a společně je sníme. Suroviny rozpočítáme.',
     activitySlug: 'spolecne-vareni',
     schedule: { weekOffset: 4, weekday: 6, time: '15:00' },
     durationMinutes: 180,
@@ -2584,7 +2811,8 @@ export const demoEvents: DemoEvent[] = [
     key: 'e55',
     scenario: 'chybi',
     title: 'Padel na Chodově – čtyřhra',
-    description: 'Padel se hraje jen ve čtyřech, kurt je zamluvený. Rakety lze půjčit.',
+    description:
+      'Padel se hraje jen ve čtyřech, kurt je zamluvený. Rakety lze půjčit.',
     activitySlug: 'padel',
     schedule: { weekOffset: 3, weekday: 0, time: '18:00' },
     durationMinutes: 90,
@@ -2610,7 +2838,8 @@ export const demoEvents: DemoEvent[] = [
     key: 'e56',
     scenario: 'chybi',
     title: 'Improvizace – workshop pro nováčky',
-    description: 'Hry a cvičení z divadelní improvizace, žádné zkušenosti nejsou potřeba.',
+    description:
+      'Hry a cvičení z divadelní improvizace, žádné zkušenosti nejsou potřeba.',
     activitySlug: 'improvizace',
     schedule: { weekOffset: 4, weekday: 4, time: '18:00' },
     durationMinutes: 150,
@@ -2630,7 +2859,8 @@ export const demoEvents: DemoEvent[] = [
     key: 'e57',
     scenario: 'chybi',
     title: 'Čtenářský klub: podzimní kniha',
-    description: 'Bavíme se o knize, kterou jsme si vybrali minule. Kdo nedočetl, přijď taky.',
+    description:
+      'Bavíme se o knize, kterou jsme si vybrali minule. Kdo nedočetl, přijď taky.',
     activitySlug: 'ctenarsky-klub',
     schedule: { weekOffset: 4, weekday: 0, time: '19:00' },
     durationMinutes: 120,
@@ -2678,7 +2908,8 @@ export const demoEvents: DemoEvent[] = [
     key: 'e59',
     scenario: 'chybi',
     title: 'Venčení psů z útulku v Troji',
-    description: 'Útulek potřebuje lidi na venčení, každý dostane psa podle zkušeností.',
+    description:
+      'Útulek potřebuje lidi na venčení, každý dostane psa podle zkušeností.',
     activitySlug: 'pomoc-v-utulku',
     schedule: { weekOffset: 4, weekday: 6, time: '10:00' },
     durationMinutes: 120,
@@ -2704,20 +2935,31 @@ const MIN_LEAD_MS = 60 * 60000;
 const pragueOffsetMinutes = (date: Date): number => {
   const parts = new Intl.DateTimeFormat('en-US', {
     timeZone: PRAGUE_TZ,
-    hourCycle: 'h23',
+    // hour12 místo hourCycle: backend kompiluje s lib ES2017, kde hourCycle v typech chybí
+    hour12: false,
     year: 'numeric',
     month: '2-digit',
     day: '2-digit',
     hour: '2-digit',
     minute: '2-digit',
   }).formatToParts(date);
-  const get = (type: string) => Number(parts.find((p) => p.type === type)?.value);
-  const asUtc = Date.UTC(get('year'), get('month') - 1, get('day'), get('hour'), get('minute'));
+  const get = (type: string): number =>
+    Number(parts.find((p) => p.type === type)?.value);
+  // některé prostředí vrací při hour12: false o půlnoci „24“
+  const asUtc = Date.UTC(
+    get('year'),
+    get('month') - 1,
+    get('day'),
+    get('hour') % 24,
+    get('minute'),
+  );
   return Math.round((asUtc - date.getTime()) / 60000);
 };
 
 /** Pražské datum (kalendářní den) okamžiku `now`. */
-const pragueDate = (now: Date): { y: number; m: number; d: number; weekday: number } => {
+const pragueDate = (
+  now: Date,
+): { y: number; m: number; d: number; weekday: number } => {
   const local = new Date(now.getTime() + pragueOffsetMinutes(now) * 60000);
   return {
     y: local.getUTCFullYear(),
@@ -2728,17 +2970,28 @@ const pragueDate = (now: Date): { y: number; m: number; d: number; weekday: numb
 };
 
 /** Převede pražský místní čas na Date (UTC okamžik). */
-const fromPragueLocal = (y: number, m: number, d: number, hh: number, mm: number): Date => {
+const fromPragueLocal = (
+  y: number,
+  m: number,
+  d: number,
+  hh: number,
+  mm: number,
+): Date => {
   const guess = new Date(Date.UTC(y, m, d, hh, mm));
   const offset = pragueOffsetMinutes(guess);
   const result = new Date(guess.getTime() - offset * 60000);
   // korekce v okolí přechodu času
   const offset2 = pragueOffsetMinutes(result);
-  return offset2 === offset ? result : new Date(guess.getTime() - offset2 * 60000);
+  return offset2 === offset
+    ? result
+    : new Date(guess.getTime() - offset2 * 60000);
 };
 
 /** Začátek akce vůči okamžiku seedu. Výsledek je vždy aspoň hodinu v budoucnosti. */
-export const resolveStartsAt = (schedule: DemoSchedule, now: Date = new Date()): Date => {
+export const resolveStartsAt = (
+  schedule: DemoSchedule,
+  now: Date = new Date(),
+): Date => {
   const [hh, mm] = schedule.time.split(':').map(Number);
   const today = pragueDate(now);
   let shift: number;
@@ -2762,4 +3015,7 @@ export const resolveStartsAt = (schedule: DemoSchedule, now: Date = new Date()):
 };
 
 export const resolveEndsAt = (event: DemoEvent, now: Date = new Date()): Date =>
-  new Date(resolveStartsAt(event.schedule, now).getTime() + event.durationMinutes * 60000);
+  new Date(
+    resolveStartsAt(event.schedule, now).getTime() +
+      event.durationMinutes * 60000,
+  );
