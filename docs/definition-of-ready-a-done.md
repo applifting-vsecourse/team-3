@@ -13,6 +13,21 @@ Story, která splňuje všechny body, dostane label `ready` a může do Sprint B
 
 **Test:** Dali byste ji agentovi a odešli na oběd? Pokud se po návratu bojíte, co najdete, story připravená není.
 
+## Před otevřením pull requestu
+
+Vývojář projde checklist dřív, než otevře PR. Do PR jde jen to, co je otestované. Checklist je i v šabloně PR (`.github/pull_request_template.md`), takže se u každého PR zobrazí sám.
+
+- [ ] Prošel/a jsem v issue všechna akceptační kritéria a ověřil/a je v běžící aplikaci.
+- [ ] Splněné jsou i body „Hotovo, když“ u příslušných B-xxx v BACKLOG.md, včetně požadovaných testů.
+- [ ] Nic jsem nepřidal/a nad rámec issue a zápisu › Scope sprintu 2.
+- [ ] `pnpm check-all` prošel lokálně bez chyb.
+- [ ] Ručně jsem prošel/a hlavní scénář (u UI na desktopu i mobilu) a odpovídá Figmě a DESIGN.md.
+- [ ] Kód zkontroloval nezávislý AI agent proti akceptačním kritériím a jeho připomínky jsou opravené.
+- [ ] PR řeší jen tuto issue a v popisu je `Refs #číslo`.
+- [ ] Issue jsem na boardu sprintu posunul/a z **In Progress** do **Ready for Code Review**.
+
+PR odkazuje na issue přes `Refs #číslo`, ne `Closes`. Issue se mergem nezavírá, zavírá ji PO po akceptaci na stagingu.
+
 ## Definition of Done
 
 Story jde do sloupce **Done**, když:
