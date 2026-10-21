@@ -49,8 +49,8 @@ export type DemoSchedule =
   | { nextWeekday: Weekday; time: string }
   | { weekOffset: number; weekday: Weekday; time: string };
 
- export type DemoParticipationStatus =
-   'pending' | 'approved' | 'rejected' | 'withdrawn' | 'removed';
+export type DemoParticipationStatus =
+  'pending' | 'approved' | 'rejected' | 'withdrawn' | 'removed';
 
 export interface DemoUser {
   key: string;
