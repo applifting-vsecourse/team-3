@@ -22,16 +22,24 @@ type EventsMapProps = {
   events: PublicEvent[]
   highlightedId?: string
   center: { lat: number; lng: number }
+  hasZoomControl?: boolean
   className?: string
 }
 
 /** The same events as the list, as pins; filters apply to both. */
-export function EventsMap({ events, highlightedId, center, className }: EventsMapProps) {
+export function EventsMap({
+  events,
+  highlightedId,
+  center,
+  hasZoomControl,
+  className,
+}: EventsMapProps) {
   return (
     <MapView
       pins={events.map(toPin)}
       highlightedId={highlightedId}
       center={center}
+      hasZoomControl={hasZoomControl}
       className={className}
     />
   )

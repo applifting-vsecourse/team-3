@@ -1,13 +1,18 @@
 import { useState } from "react"
 import { createFileRoute } from "@tanstack/react-router"
+import { Map as MapIcon } from "lucide-react"
 
 import { Header } from "@/components/Header/Header"
 import { Seo } from "@/components/Seo"
+import { Button } from "@/components/ui/button"
+import { DESKTOP_QUERY, useMediaQuery } from "@/hooks/useMediaQuery"
+import { cn } from "@/lib/utils"
 
 import { HeaderMenu } from "@/features/auth/components/HeaderMenu"
 import { EventFilters } from "@/features/events/components/EventFilters"
 import { EventList } from "@/features/events/components/EventList"
 import { EventsMap } from "@/features/events/components/EventsMap"
+import { ListPanel } from "@/features/events/components/ListPanel"
 import { useEvents } from "@/features/events/hooks/useEvents"
 import {
   DEFAULT_LOCALITY_SLUG,
@@ -23,14 +28,22 @@ export const Route = createFileRoute("/akce")({
   validateSearch: eventsSearchSchema,
 })
 
+/**
+ * Figma A-02 (mobile) and A-02d (desktop). The map is mounted once and never
+ * unmounted, so pulling the mobile list up and down keeps its position; the
+ * filters live in the URL, so they survive it too.
+ */
 function EventsPage() {
   const search = Route.useSearch()
   const navigate = Route.useNavigate()
   const { events, catalog, isPending, error, retry } = useEvents(search)
+  const isDesktop = useMediaQuery(DESKTOP_QUERY)
+  const [isListExpanded, setIsListExpanded] = useState(false)
   const [highlightedId, setHighlightedId] = useState<string>()
   const locality = catalog?.localities.find(
     (l) => l.slug === (search.lokalita ?? DEFAULT_LOCALITY_SLUG),
   )
+  const isMapVisible = isDesktop || !isListExpanded
 
   // replace: changing a filter shouldn't fill the back button with filter states
   const setSearch = (patch: Partial<EventsSearch>) =>
@@ -40,35 +53,73 @@ function EventsPage() {
     <>
       <Seo title="Akce" />
       <Header userMenu={<HeaderMenu />} />
-      <main className="flex-1">
+      <main className="relative flex flex-1 flex-col md:block">
         <h1 className="sr-only">Akce</h1>
-        <div className="border-b border-border">
+
+        <div
+          className={cn(
+            // mobile: chips over the map, or a bar above the pulled-up list
+            "absolute inset-x-0 top-0 z-20",
+            isListExpanded && "border-b border-border bg-background",
+            "md:static md:border-b md:border-border md:bg-background",
+          )}
+        >
           <EventFilters
             search={search}
             catalog={catalog}
             onChange={setSearch}
             onClearAll={() => void navigate({ search: {}, replace: true })}
+            isFloating={!isDesktop && !isListExpanded}
             className="overflow-x-auto px-4 py-3 md:px-10"
           />
         </div>
-        <section className="mx-auto w-full max-w-2xl px-4 py-6">
-          <EventList
-            events={events ?? []}
-            isLoading={isPending}
-            error={error}
-            // Only the error state offers a retry; refocusing the tab refetches.
-            onRetry={retry}
-            highlightedId={highlightedId}
-            onHighlight={setHighlightedId}
-          />
-        </section>
-        <div className="h-96">
-          <EventsMap
-            events={events ?? []}
-            highlightedId={highlightedId}
-            center={locality ?? FALLBACK_CENTER}
-          />
+
+        <div className="flex flex-1 md:gap-8 md:px-10">
+          <ListPanel
+            isExpanded={isListExpanded}
+            onExpandedChange={setIsListExpanded}
+          >
+            <div className="md:py-8">
+              <EventList
+                events={events ?? []}
+                isLoading={isPending}
+                error={error}
+                // Only the error state offers a retry; refocusing the tab refetches.
+                onRetry={retry}
+                highlightedId={highlightedId}
+                onHighlight={setHighlightedId}
+                limit={isDesktop || isListExpanded ? undefined : 1}
+              />
+            </div>
+          </ListPanel>
+
+          <div
+            // hidden, not unmounted, under the pulled-up list
+            aria-hidden={!isMapVisible}
+            className="absolute inset-0 md:sticky md:inset-auto md:top-0 md:h-svh md:min-w-0 md:flex-1 md:py-8"
+          >
+            <div className="size-full overflow-hidden md:rounded-lg md:border md:border-border">
+              <EventsMap
+                events={events ?? []}
+                highlightedId={highlightedId}
+                center={locality ?? FALLBACK_CENTER}
+                hasZoomControl={isDesktop}
+              />
+            </div>
+          </div>
         </div>
+
+        {isListExpanded ? (
+          // Figma: Map action „Mapa“ over the pulled-up list
+          <Button
+            variant="outline"
+            onClick={() => setIsListExpanded(false)}
+            className="absolute bottom-4 left-4 z-20 h-11 rounded-full bg-background shadow-md md:hidden"
+          >
+            <MapIcon />
+            Mapa
+          </Button>
+        ) : null}
       </main>
     </>
   )

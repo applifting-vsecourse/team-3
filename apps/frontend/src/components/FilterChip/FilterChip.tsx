@@ -6,8 +6,7 @@ import { Toggle } from "@/components/ui/toggle"
 import { cn } from "@/lib/utils"
 
 // Figma: Filter chip. Selected (has a value / is on) = dark fill; default = hairline outline.
-const chip =
-  "h-9 shrink-0 rounded-full border px-4 text-sm whitespace-nowrap shadow-none hover:text-foreground"
+const chip = "h-9 shrink-0 rounded-full border px-4 text-sm whitespace-nowrap hover:text-foreground"
 const chipDefault = "border-border bg-background font-medium text-foreground hover:bg-accent"
 const chipSelected =
   "border-foreground bg-foreground font-semibold text-background hover:bg-foreground/90 hover:text-background"

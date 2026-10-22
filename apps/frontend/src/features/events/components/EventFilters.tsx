@@ -13,6 +13,8 @@ type EventFiltersProps = {
   catalog: { localities: Locality[]; categories: ActivityCategory[] } | undefined
   onChange: (patch: Partial<EventsSearch>) => void
   onClearAll: () => void
+  /** Mobile: the chips float over the map (Figma A-02) and need their own shadow. */
+  isFloating?: boolean
   className?: string
 }
 
@@ -22,13 +24,14 @@ export function EventFilters({
   catalog,
   onChange,
   onClearAll,
+  isFloating,
   className,
 }: EventFiltersProps) {
   return (
     <div
       role="group"
       aria-label="Filtry"
-      className={cn("flex items-center gap-2", className)}
+      className={cn("flex items-center gap-2", isFloating && "*:shadow-md", className)}
     >
       {catalog ? (
         <LocalityFilter
@@ -57,7 +60,7 @@ export function EventFilters({
       {hasActiveFilters(search) ? (
         <Button
           variant="ghost"
-          className="h-11 shrink-0"
+          className={cn("h-11 shrink-0", isFloating && "rounded-full bg-background")}
           onClick={onClearAll}
         >
           Zrušit vše

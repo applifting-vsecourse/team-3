@@ -16,6 +16,8 @@ type EventListProps = {
   /** The card under the mouse, so the map can highlight its pin. */
   highlightedId?: string
   onHighlight?: (eventId: string | undefined) => void
+  /** Show only the first N cards (the closed mobile panel); the count stays the total. */
+  limit?: number
 }
 
 export function EventList({
@@ -25,6 +27,7 @@ export function EventList({
   onRetry,
   highlightedId,
   onHighlight,
+  limit,
 }: EventListProps) {
   if (error) {
     return (
@@ -75,7 +78,7 @@ export function EventList({
         </p>
       ) : (
         <ul className="flex flex-col gap-3">
-          {events.map((event) => (
+          {events.slice(0, limit).map((event) => (
             <li key={event.id}>
               <EventCard
                 event={event}

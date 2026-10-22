@@ -1,6 +1,6 @@
 import { useEffect, useMemo } from "react"
 import { divIcon, latLngBounds } from "leaflet"
-import { MapContainer, Marker, TileLayer, useMap } from "react-leaflet"
+import { MapContainer, Marker, TileLayer, useMap, ZoomControl } from "react-leaflet"
 
 import "leaflet/dist/leaflet.css"
 
@@ -23,6 +23,8 @@ type MapViewProps = {
   highlightedId?: string
   /** Where the map looks when there are no pins (e.g. the chosen locality). */
   center: { lat: number; lng: number }
+  /** Zoom buttons bottom right; on touch screens pinch zoom is enough. */
+  hasZoomControl?: boolean
   className?: string
 }
 
@@ -33,7 +35,13 @@ const DEFAULT_ZOOM = 12
  * the API. No device location (GPS is out of scope, F-08).
  * Pin previews, clusters and „Hledat v této oblasti“ are sprint 3 (B-029).
  */
-export function MapView({ pins, highlightedId, center, className }: MapViewProps) {
+export function MapView({
+  pins,
+  highlightedId,
+  center,
+  hasZoomControl = true,
+  className,
+}: MapViewProps) {
   return (
     // MapContainer doesn't pass aria attributes on, hence the wrapper
     <div
@@ -44,8 +52,10 @@ export function MapView({ pins, highlightedId, center, className }: MapViewProps
       <MapContainer
         center={[center.lat, center.lng]}
         zoom={DEFAULT_ZOOM}
+        zoomControl={false}
         className="size-full bg-muted"
       >
+        {hasZoomControl ? <ZoomControl position="bottomright" /> : null}
         <TileLayer
           attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
           url="https://tile.openstreetmap.org/{z}/{x}/{y}.png"
