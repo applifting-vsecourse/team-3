@@ -55,8 +55,18 @@ export function LocalityFilter({ search, localities, onChange }: LocalityFilterP
       onApply={() => apply(draft)}
       popoverClassName="w-80"
     >
+      {/* Visible label per DESIGN.md › Forms; cmdk names the input itself via
+          its own hidden label (`label` below), so this copy is aria-hidden. */}
+      <p
+        aria-hidden
+        className="mb-2 text-sm font-medium"
+      >
+        Hledat lokalitu
+      </p>
       <Command
         label="Hledat lokalitu"
+        // Figma: Input/Search – a bordered field rather than cmdk's underline
+        className="gap-2 **:data-[slot=command-input-wrapper]:h-10 **:data-[slot=command-input-wrapper]:rounded-md **:data-[slot=command-input-wrapper]:border **:data-[slot=command-input-wrapper]:border-input"
         // Slug or name, so "plzen" finds Plzeň.
         filter={(value, query, keywords) => {
           const needle = query.toLocaleLowerCase("cs")
@@ -67,7 +77,7 @@ export function LocalityFilter({ search, localities, onChange }: LocalityFilterP
             : 0
         }}
       >
-        <CommandInput placeholder="Hledat lokalitu" />
+        <CommandInput placeholder="Např. Praha 8 nebo Brno" />
         <CommandList className="max-h-72">
           <CommandEmpty>Takovou lokalitu neznáme.</CommandEmpty>
           {localityOptions(localities).map((locality) => (
@@ -77,7 +87,12 @@ export function LocalityFilter({ search, localities, onChange }: LocalityFilterP
               value={locality.slug}
               keywords={[locality.name]}
               onSelect={() => setDraft(locality.slug)}
-              className={cn("py-2", locality.isDistrict && "pl-6")}
+              // Figma: Picker row/Locality – districts indented under their city
+              className={cn(
+                "rounded-lg px-4 py-3 text-base",
+                locality.isDistrict && "pl-8",
+                locality.slug === draft && "font-semibold",
+              )}
             >
               <span className="flex-1">{locality.name}</span>
               {locality.slug === draft ? (
