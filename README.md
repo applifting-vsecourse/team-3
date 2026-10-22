@@ -37,14 +37,19 @@ The ports are deliberately odd — 3050, 4050, and Postgres on 5433 rather than 
 
 ### Seeded users
 
-| Email                          | Password        |
-| ------------------------------ | --------------- |
-| `caffeinatedduck@example.com`  | `password1`     |
-| `deepduckthoughts@example.com` | `password2`     |
-| `breadcritic@example.com`      | `password3`     |
-| `migrationseason@example.com`  | `password4`     |
-| `pondadmin@example.com`        | `password5`     |
-| `admin@example.com`            | `adminpassword` |
+The seed loads the HobbyHub test data from issue #47 ([`demo-data.ts`](apps/backend/src/scripts/seed/data/demo-data.ts)): the activity and locality catalog, 41 users, 10 groups and 59 upcoming events in Prague. Event dates are relative to the moment of seeding. The same data is seeded on staging.
+
+Demo accounts for walking through the app (all demo accounts share one password):
+
+| Role                        | Name           | Email                        | Password                       |
+| --------------------------- | -------------- | ---------------------------- | ------------------------------ |
+| Seeker (looking for events) | Jakub Král     | `jakub.kral@example.com`     | `hobbyhub-demo-2026`           |
+| Organizer                   | Petra Nováková | `petra.novakova@example.com` | `hobbyhub-demo-2026`           |
+| Group admin                 | Tomáš Dvořák   | `tomas.dvorak@example.com`   | `hobbyhub-demo-2026`           |
+| Unverified email            | Eva Malá       | `eva.mala@example.com`       | `hobbyhub-demo-2026`           |
+| Superadmin (`role = admin`) | –              | `SUPERADMIN_EMAIL` from env  | `SUPERADMIN_PASSWORD` from env |
+
+Locally the superadmin is `admin@example.com` / `adminpassword` (from `apps/backend/.env.example`). On staging it uses the values set in the deployment environment. The prepared demo cases (an approval event with one free spot, events missing one person, pending group requests) are described in the header of `demo-data.ts`.
 
 Verification/reset emails are printed to the backend terminal (console mailer) unless you configure Resend or SMTP in `apps/backend/.env`.
 
@@ -75,20 +80,20 @@ Two things worth knowing:
 
 - **You set exactly two URLs**, `BACKEND_URL` and `FRONTEND_URL`. The backend uses them for CORS, BetterAuth trusted origins and password-reset links; the frontend's API URL is derived from `BACKEND_URL`. Point them at the real domains or the backend rejects the browser.
 - **The frontend bakes its API URL in at build time** (`VITE_*` are build args, not runtime env), so changing `BACKEND_URL` needs a rebuild, not just a restart.
-- **Production migrates but does not seed** — the container runs `prisma migrate deploy` then starts. A fresh deployment has an empty database, so the first account is created through the sign-up form.
+- **The container migrates and seeds on every start** — it runs `prisma migrate deploy`, then the seed, then the app. The seed is repeatable: it syncs the activity/locality catalog, creates the superadmin and demo accounts only if they are missing, and inserts the demo groups and events only into a database with no events and no groups, so a redeploy never duplicates or moves them. Set `SEED_DEMO_DATA=false` to skip the demo data (the catalog and superadmin are always seeded). A failed seed is logged and the app starts anyway.
 
 ## When something goes wrong
 
-| Symptom                                                  | Cause / fix                                                                                                                                                                          |
-| -------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| `pnpm dev` fails immediately, Docker errors              | Docker Desktop isn't running. Start it and retry.                                                                                                                                    |
-| `Port 3050 is already in use`                            | Another app has it. Stop it — the port is pinned on purpose, because the API only accepts requests from `http://localhost:3050`.                                                     |
-| Page loads but login fails, console shows a CORS error   | The frontend is on a different port than the API expects. See above.                                                                                                                 |
-| `EADDRINUSE :::4050`                                     | An old backend is still running: `lsof -i :4050` then kill the process.                                                                                                              |
-| Prisma: "column does not exist" after editing the schema | You changed `schema.prisma` without migrating: `pnpm backend prisma:migrations:run`.                                                                                                 |
-| Want the demo data back / a clean database               | `pnpm backend db:reset` — it replays the migrations and re-runs the seed. (Plain `pnpm backend seed` does **not** wipe an existing database; it skips when users are already there.) |
-| A commit is blocked by lint or formatting                | The pre-commit hook auto-fixes what it can; fix the rest, or `git commit --no-verify` to bypass it once.                                                                             |
-| Browser shows a red error overlay while typing           | That's the type/lint checker, not a crash. Read the message — the app is still running.                                                                                              |
+| Symptom                                                  | Cause / fix                                                                                                                                                                      |
+| -------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `pnpm dev` fails immediately, Docker errors              | Docker Desktop isn't running. Start it and retry.                                                                                                                                |
+| `Port 3050 is already in use`                            | Another app has it. Stop it — the port is pinned on purpose, because the API only accepts requests from `http://localhost:3050`.                                                 |
+| Page loads but login fails, console shows a CORS error   | The frontend is on a different port than the API expects. See above.                                                                                                             |
+| `EADDRINUSE :::4050`                                     | An old backend is still running: `lsof -i :4050` then kill the process.                                                                                                          |
+| Prisma: "column does not exist" after editing the schema | You changed `schema.prisma` without migrating: `pnpm backend prisma:migrations:run`.                                                                                             |
+| Want the demo data back / a clean database               | `pnpm backend db:reset` — it replays the migrations and re-runs the seed with fresh dates. (Plain `pnpm backend seed` does **not** wipe anything; it only adds what is missing.) |
+| A commit is blocked by lint or formatting                | The pre-commit hook auto-fixes what it can; fix the rest, or `git commit --no-verify` to bypass it once.                                                                         |
+| Browser shows a red error overlay while typing           | That's the type/lint checker, not a crash. Read the message — the app is still running.                                                                                          |
 
 ## Layout
 

@@ -1,5 +1,9 @@
 // This is your Prisma schema file,
 // learn more about it in the docs: https://pris.ly/d/prisma-schema
+//
+// Datový model HobbyHub pro celé MVP (US-01 až US-19, BACKLOG.md). Přehled a ER
+// diagram jsou v docs/datovy-model.md – při změně schématu aktualizuj i ten.
+// Komentář `B-0XX` u modelu říká, který úkol backlogu model nebo pole zavádí.
 
 generator client {
   // Prisma 7's modern generator. The client is written into src/ as ordinary
@@ -15,6 +19,11 @@ datasource db {
   provider = "postgresql"
 }
 
+// ---------------------------------------------------------------------------
+// Enumy
+// ---------------------------------------------------------------------------
+
+/// `admin` = superadmin aplikace (B-003: nový enum nevytvářet).
 enum UserRole {
   user
   admin
@@ -22,17 +31,154 @@ enum UserRole {
   @@map("user_role")
 }
 
-model Quack {
-  id        String   @id @default(cuid())
-  text      String   @db.Text
-  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  userId    String
-  createdAt DateTime @default(now())
-  updatedAt DateTime @default(now()) @updatedAt
+/// B-014: kdo vidí fotku, bio a navštívené akce v profilu.
+enum ProfileVisibility {
+  everyone
+  organizers
+  nobody
 
-  @@index([userId])
-  @@map("quack")
+  @@map("profile_visibility")
 }
+
+/// B-020: úroveň akce (začátečník / pokročilý / všichni).
+enum EventLevel {
+  beginner
+  advanced
+  all
+
+  @@map("event_level")
+}
+
+/// B-020: způsob přihlašování, výchozí bez schválení.
+enum ApprovalMode {
+  open
+  approval
+
+  @@map("approval_mode")
+}
+
+/// B-020: soukromá akce = dostupná jen přes odkaz, `members` = jen pro členy skupiny (B-055).
+enum EventVisibility {
+  public
+  private
+  members
+
+  @@map("event_visibility")
+}
+
+/// B-020: `hidden` a `deleted` nastavuje jen superadmin (B-063), akce se fyzicky nemaže (Q11).
+enum EventStatus {
+  published
+  cancelled
+  hidden
+  deleted
+
+  @@map("event_status")
+}
+
+/// B-030
+enum ParticipationStatus {
+  pending
+  approved
+  rejected
+  withdrawn
+  removed
+
+  @@map("participation_status")
+}
+
+/// B-050: `closed` = neveřejná skupina, do které se žádá.
+enum GroupType {
+  public
+  closed
+
+  @@map("group_type")
+}
+
+/// B-050, B-051: skupina se nemaže ani neruší, jen deaktivuje.
+enum GroupStatus {
+  active
+  inactive
+
+  @@map("group_status")
+}
+
+/// B-050, B-054: všichni správci mají stejná práva.
+enum GroupMemberRole {
+  admin
+  member
+
+  @@map("group_member_role")
+}
+
+/// B-050, B-053
+enum GroupMemberStatus {
+  pending
+  active
+  blocked
+
+  @@map("group_member_status")
+}
+
+/// B-061
+enum ReportTargetType {
+  user
+  event
+  group
+  rating
+
+  @@map("report_target_type")
+}
+
+/// B-061
+enum ReportReason {
+  spam
+  fraud
+  inappropriate
+  other
+
+  @@map("report_reason")
+}
+
+/// B-061, B-063
+enum ReportStatus {
+  open
+  rejected
+  resolved
+
+  @@map("report_status")
+}
+
+/// B-063: zásahy superadmina, každý jde vrátit.
+enum ModerationActionType {
+  block_user
+  hide_event
+  delete_event
+  delete_rating
+
+  @@map("moderation_action_type")
+}
+
+/// B-070
+enum PaymentType {
+  subscription
+  promotion
+
+  @@map("payment_type")
+}
+
+/// B-070: platbu potvrzuje jen superadmin.
+enum PaymentStatus {
+  pending
+  confirmed
+  rejected
+
+  @@map("payment_status")
+}
+
+// ---------------------------------------------------------------------------
+// Účty (BetterAuth) – tabulky session, account a verification spravuje BetterAuth
+// ---------------------------------------------------------------------------
 
 model Session {
   id        String   @id
@@ -82,23 +228,396 @@ model Verification {
   @@map("verification")
 }
 
+/// Uživatel. Pole do `displayUsername` spravuje BetterAuth, zbytek je profil HobbyHubu (B-003, B-013, B-014).
+/// Fotka profilu = pole `image` (v MVP jen URL, Q3).
 model User {
-  id              String    @id
-  name            String
-  email           String
-  emailVerified   Boolean
-  image           String?   @db.Text
-  createdAt       DateTime
-  updatedAt       DateTime
-  sessions        Session[]
-  accounts        Account[]
-  quacks          Quack[]
-  role            UserRole  @default(user)
+  id            String    @id
+  name          String
+  email         String
+  emailVerified Boolean
+  image         String?   @db.Text
+  createdAt     DateTime
+  updatedAt     DateTime
+  sessions      Session[]
+  accounts      Account[]
+  quacks        Quack[]
+  role          UserRole  @default(user)
 
   username        String? @db.VarChar(50)
   displayUsername String? @db.VarChar(50)
 
+  // Profil (B-003, B-013)
+  bio            String?   @db.VarChar(500)
+  homeLocalityId String?
+  homeLocality   Locality? @relation(fields: [homeLocalityId], references: [id], onDelete: SetNull)
+  interests      UserInterest[]
+
+  // Viditelnost údajů v profilu (B-014)
+  photoVisibility      ProfileVisibility @default(everyone)
+  bioVisibility        ProfileVisibility @default(everyone)
+  pastEventsVisibility ProfileVisibility @default(everyone)
+
+  // Souhlasy (B-016), blokace superadminem (B-063), smazání účtu (B-080)
+  ageConfirmedAt  DateTime?
+  termsAcceptedAt DateTime?
+  blockedAt       DateTime?
+  blockedReason   String?   @db.Text
+  deletedAt       DateTime?
+
+  organizedEvents         Event[]            @relation("EventOrganizer")
+  participations          Participation[]
+  groupMemberships        GroupMember[]
+  ratings                 Rating[]
+  reports                 Report[]           @relation("ReportReporter")
+  resolvedReports         Report[]           @relation("ReportResolver")
+  moderationActions       ModerationAction[] @relation("ModerationAdmin")
+  revertedModerations     ModerationAction[] @relation("ModerationReverter")
+  payments                Payment[]          @relation("PaymentPayer")
+  confirmedPayments       Payment[]          @relation("PaymentConfirmer")
+  subscription            Subscription?
+  sentEventMessages       EventMessage[]
+  notificationLogs        NotificationLog[]
+
   @@unique([email])
   @@unique([username])
   @@map("user")
+}
+
+// ---------------------------------------------------------------------------
+// Číselníky (B-002)
+// ---------------------------------------------------------------------------
+
+/// Kategorie aktivit (první úroveň). Ikona odpovídá variantě komponenty `Activity tile` ve Figmě.
+model ActivityCategory {
+  id         String     @id @default(cuid())
+  slug       String     @unique
+  name       String
+  icon       String
+  sortOrder  Int
+  activities Activity[]
+
+  @@map("activity_category")
+}
+
+/// Aktivita (druhá úroveň). Akce, skupina i zájem v profilu se váže vždy na aktivitu, ne na kategorii.
+/// `keywords` = synonyma pro hledání (využije #57 ve sprintu 3).
+model Activity {
+  id         String           @id @default(cuid())
+  slug       String           @unique
+  name       String
+  categoryId String
+  category   ActivityCategory @relation(fields: [categoryId], references: [id], onDelete: Restrict)
+  sortOrder  Int
+  keywords   String[]         @default([])
+
+  events          Event[]
+  groups          Group[]
+  interestedUsers UserInterest[]
+
+  @@index([categoryId])
+  @@map("activity")
+}
+
+/// Lokalita: město, nebo městská část (`parentId` ukazuje na město). Souřadnice = přibližný střed.
+model Locality {
+  id       String     @id @default(cuid())
+  name     String
+  parentId String?
+  parent   Locality?  @relation("LocalityParent", fields: [parentId], references: [id], onDelete: Restrict)
+  children Locality[] @relation("LocalityParent")
+  lat      Float
+  lng      Float
+
+  users  User[]
+  events Event[]
+  groups Group[]
+
+  @@index([parentId])
+  @@map("locality")
+}
+
+/// Zájmy v profilu: vazba M:N uživatel × aktivita (B-003).
+model UserInterest {
+  userId     String
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  activityId String
+  activity   Activity @relation(fields: [activityId], references: [id], onDelete: Cascade)
+  createdAt  DateTime @default(now())
+
+  @@id([userId, activityId])
+  @@index([activityId])
+  @@map("user_interest")
+}
+
+// ---------------------------------------------------------------------------
+// Akce a účast (B-020, B-030)
+// ---------------------------------------------------------------------------
+
+/// Jeden model pro akce jednotlivců i skupin (`groupId`, B-055). Kapacitu (`approvedCount`,
+/// `missingToMin`, `freeSpots`, `isFull`) počítá doménová logika jen ze schválených účastí.
+model Event {
+  id              String          @id @default(cuid())
+  title           String
+  description     String?         @db.Text
+  activityId      String
+  activity        Activity        @relation(fields: [activityId], references: [id], onDelete: Restrict)
+  startsAt        DateTime
+  endsAt          DateTime?
+  lat             Float
+  lng             Float
+  address         String
+  localityId      String
+  locality        Locality        @relation(fields: [localityId], references: [id], onDelete: Restrict)
+  minParticipants Int
+  maxParticipants Int
+  /// Kč, celé číslo
+  price           Int?
+  level           EventLevel?
+  equipment       String?
+  approvalMode    ApprovalMode    @default(open)
+  visibility      EventVisibility @default(public)
+  organizerUserId String
+  organizer       User            @relation("EventOrganizer", fields: [organizerUserId], references: [id], onDelete: Restrict)
+  groupId         String?
+  group           Group?          @relation(fields: [groupId], references: [id], onDelete: Restrict)
+  status          EventStatus     @default(published)
+  cancelReason    String?         @db.Text
+  cancelledAt     DateTime?
+  /// Topování (B-073): po potvrzení platby = startsAt
+  promotedUntil   DateTime?
+  createdAt       DateTime        @default(now())
+  updatedAt       DateTime        @default(now()) @updatedAt
+
+  participations Participation[]
+  ratings        Rating[]
+  payments       Payment[]
+  messages       EventMessage[]
+  notifications  NotificationLog[]
+
+  @@index([status, visibility, startsAt])
+  @@index([activityId])
+  @@index([localityId])
+  @@index([organizerUserId])
+  @@index([groupId])
+  @@map("event")
+}
+
+/// Přihláška na akci. Organizátor se může přihlásit na vlastní akci (Q12).
+/// `approvedAt` = kdy byla účast schválena (řazení účastníků ve správě akce, D-03),
+/// `attendedAt` = evidence docházky (B-072).
+model Participation {
+  id         String              @id @default(cuid())
+  eventId    String
+  event      Event               @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  userId     String
+  user       User                @relation(fields: [userId], references: [id], onDelete: Cascade)
+  status     ParticipationStatus
+  message    String?             @db.Text
+  approvedAt DateTime?
+  attendedAt DateTime?
+  createdAt  DateTime            @default(now())
+  updatedAt  DateTime            @default(now()) @updatedAt
+
+  @@unique([eventId, userId])
+  @@index([userId])
+  @@map("participation")
+}
+
+/// Zpráva organizátora všem schváleným účastníkům (B-042). Záznam slouží pro limit 10 zpráv na akci za den.
+model EventMessage {
+  id        String   @id @default(cuid())
+  eventId   String
+  event     Event    @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  senderId  String
+  sender    User     @relation(fields: [senderId], references: [id], onDelete: Cascade)
+  subject   String
+  body      String   @db.Text
+  createdAt DateTime @default(now())
+
+  @@index([eventId, createdAt])
+  @@map("event_message")
+}
+
+/// Záznam o odeslaném plánovaném e-mailu (B-043), aby po restartu nepřišel dvakrát.
+/// `key` je deterministický, např. `event-reminder:<eventId>:<userId>`.
+model NotificationLog {
+  id      String   @id @default(cuid())
+  key     String   @unique
+  type    String
+  eventId String?
+  event   Event?   @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  userId  String?
+  user    User?    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  sentAt  DateTime @default(now())
+
+  @@index([eventId])
+  @@map("notification_log")
+}
+
+// ---------------------------------------------------------------------------
+// Skupiny (B-050)
+// ---------------------------------------------------------------------------
+
+/// Skupina má právě jednu aktivitu a jednu lokalitu. Obrázek jen jako URL (Q3).
+model Group {
+  id            String      @id @default(cuid())
+  name          String
+  description   String?     @db.Text
+  imageUrl      String?     @db.Text
+  activityId    String
+  activity      Activity    @relation(fields: [activityId], references: [id], onDelete: Restrict)
+  localityId    String
+  locality      Locality    @relation(fields: [localityId], references: [id], onDelete: Restrict)
+  type          GroupType
+  status        GroupStatus @default(active)
+  deactivatedAt DateTime?
+  createdAt     DateTime    @default(now())
+  updatedAt     DateTime    @default(now()) @updatedAt
+
+  members GroupMember[]
+  events  Event[]
+
+  @@index([status])
+  @@index([activityId])
+  @@index([localityId])
+  @@map("group")
+}
+
+/// Členství ve skupině. Zakladatel je první správce (`admin`).
+model GroupMember {
+  id        String            @id @default(cuid())
+  groupId   String
+  group     Group             @relation(fields: [groupId], references: [id], onDelete: Cascade)
+  userId    String
+  user      User              @relation(fields: [userId], references: [id], onDelete: Cascade)
+  role      GroupMemberRole   @default(member)
+  status    GroupMemberStatus
+  message   String?           @db.Text
+  createdAt DateTime          @default(now())
+  updatedAt DateTime          @default(now()) @updatedAt
+
+  @@unique([groupId, userId])
+  @@index([userId])
+  @@map("group_member")
+}
+
+// ---------------------------------------------------------------------------
+// Důvěra a administrace (B-060 až B-063)
+// ---------------------------------------------------------------------------
+
+/// Hodnocení akce a organizátora, hvězdičky 1–5 (validace v aplikaci). U akce skupiny se
+/// hodnocení organizátora počítá ke skupině. `deletedAt` = smazáno superadminem (jde vrátit, B-063).
+model Rating {
+  id             String    @id @default(cuid())
+  eventId        String
+  event          Event     @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  userId         String
+  user           User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  eventStars     Int
+  organizerStars Int
+  comment        String?   @db.Text
+  deletedAt      DateTime?
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @default(now()) @updatedAt
+
+  @@unique([eventId, userId])
+  @@index([userId])
+  @@map("rating")
+}
+
+/// Nahlášení. Cíl je polymorfní (`targetType` + `targetId`), proto bez cizího klíče.
+/// `reporterId` nikdy nejde ven mimo admin API (B-061).
+model Report {
+  id           String           @id @default(cuid())
+  targetType   ReportTargetType
+  targetId     String
+  reason       ReportReason
+  comment      String?          @db.Text
+  reporterId   String
+  reporter     User             @relation("ReportReporter", fields: [reporterId], references: [id], onDelete: Cascade)
+  status       ReportStatus     @default(open)
+  resolvedById String?
+  resolvedBy   User?            @relation("ReportResolver", fields: [resolvedById], references: [id], onDelete: SetNull)
+  resolvedAt   DateTime?
+  createdAt    DateTime         @default(now())
+  updatedAt    DateTime         @default(now()) @updatedAt
+
+  @@index([targetType, targetId])
+  @@index([status])
+  @@index([reporterId])
+  @@map("report")
+}
+
+/// Zásah superadmina a jeho historie (B-063): kdo, co, kdy, důvod, vráceno.
+model ModerationAction {
+  id           String               @id @default(cuid())
+  type         ModerationActionType
+  targetType   ReportTargetType
+  targetId     String
+  reason       String               @db.Text
+  adminId      String
+  admin        User                 @relation("ModerationAdmin", fields: [adminId], references: [id], onDelete: Restrict)
+  revertedAt   DateTime?
+  revertedById String?
+  revertedBy   User?                @relation("ModerationReverter", fields: [revertedById], references: [id], onDelete: SetNull)
+  createdAt    DateTime             @default(now())
+
+  @@index([targetType, targetId])
+  @@index([createdAt])
+  @@map("moderation_action")
+}
+
+// ---------------------------------------------------------------------------
+// Monetizace (B-070 až B-073)
+// ---------------------------------------------------------------------------
+
+/// Simulovaná platba bez brány, potvrzuje ji superadmin. `eventId` jen u topování.
+model Payment {
+  id            String        @id @default(cuid())
+  userId        String
+  user          User          @relation("PaymentPayer", fields: [userId], references: [id], onDelete: Restrict)
+  type          PaymentType
+  eventId       String?
+  event         Event?        @relation(fields: [eventId], references: [id], onDelete: SetNull)
+  /// Kč
+  amount        Int
+  status        PaymentStatus @default(pending)
+  confirmedById String?
+  confirmedBy   User?         @relation("PaymentConfirmer", fields: [confirmedById], references: [id], onDelete: SetNull)
+  confirmedAt   DateTime?
+  createdAt     DateTime      @default(now())
+  updatedAt     DateTime      @default(now()) @updatedAt
+
+  @@index([userId])
+  @@index([status])
+  @@index([eventId])
+  @@map("payment")
+}
+
+/// Předplatné organizátora (B-071): potvrzená platba `subscription` prodlouží `validUntil` o měsíc.
+model Subscription {
+  id         String   @id @default(cuid())
+  userId     String   @unique
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  validUntil DateTime
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @default(now()) @updatedAt
+
+  @@map("subscription")
+}
+
+// ---------------------------------------------------------------------------
+// Vzorová feature šablony – odstraní B-085
+// ---------------------------------------------------------------------------
+
+model Quack {
+  id        String   @id @default(cuid())
+  text      String   @db.Text
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId    String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @default(now()) @updatedAt
+
+  @@index([userId])
+  @@map("quack")
 }
