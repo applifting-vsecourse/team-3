@@ -77,7 +77,22 @@ describe('CatalogService', () => {
     });
   });
 
-  it('returns all localities for an empty query', async () => {
+  it('does not search by slug when the query has no letters or digits', async () => {
+    const repository = mock<CatalogRepository>();
+    repository.findLocalities.mockResolvedValue([]);
+
+    const service = new CatalogService(repository);
+    await service.searchLocalities('-');
+
+    // an empty slug would match every locality
+    expect(repository.findLocalities).toHaveBeenCalledWith({
+      name: '-',
+      slug: undefined,
+      limit: 50,
+    });
+  });
+
+  it('passes an empty query through without a slug', async () => {
     const repository = mock<CatalogRepository>();
     repository.findLocalities.mockResolvedValue([aLocality()]);
 
@@ -86,7 +101,7 @@ describe('CatalogService', () => {
 
     expect(repository.findLocalities).toHaveBeenCalledWith({
       name: '',
-      slug: '',
+      slug: undefined,
       limit: 50,
     });
   });
@@ -97,5 +112,6 @@ describe('toSlug', () => {
     expect(toSlug('Praha 1')).toBe('praha-1');
     expect(toSlug('Ústí nad Labem')).toBe('usti-nad-labem');
     expect(toSlug('České Budějovice')).toBe('ceske-budejovice');
+    expect(toSlug('Ľubovňa')).toBe('lubovna');
   });
 });

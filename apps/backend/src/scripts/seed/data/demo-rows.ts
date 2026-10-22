@@ -19,7 +19,7 @@ export type DemoGroupRow = {
   name: string;
   description: string;
   activitySlug: string;
-  localityName: string;
+  localitySlug: string;
   type: DemoGroup['type'];
   status: DemoGroup['status'];
   deactivatedAt: Date | null;
@@ -41,7 +41,7 @@ export type DemoEventRow = {
   lat: number;
   lng: number;
   address: string;
-  localityName: string;
+  localitySlug: string;
   minParticipants: number;
   maxParticipants: number;
   price: number | null;
@@ -66,7 +66,7 @@ export const toGroupRow = (group: DemoGroup, now: Date): DemoGroupRow => ({
   name: group.name,
   description: group.description,
   activitySlug: group.activitySlug,
-  localityName: group.localityName,
+  localitySlug: group.localitySlug,
   type: group.type,
   status: group.status,
   deactivatedAt:
@@ -93,7 +93,7 @@ export const toEventRow = (event: DemoEvent, now: Date): DemoEventRow => {
     lat: event.lat,
     lng: event.lng,
     address: event.address,
-    localityName: event.localityName,
+    localitySlug: event.localitySlug,
     minParticipants: event.minParticipants,
     maxParticipants: event.maxParticipants,
     price: event.price ?? null,

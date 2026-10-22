@@ -60,7 +60,7 @@ export interface DemoUser {
   /** Ověřený e-mail (B-011). Neověřený účet ukazuje lištu „Ověřte e-mail“ a nesmí se hlásit na akce. */
   emailVerified: boolean;
   bio: string;
-  homeLocalityName: DemoLocalityName;
+  homeLocalitySlug: DemoLocalitySlug;
   interestSlugs: DemoActivitySlug[];
 }
 
@@ -69,7 +69,7 @@ export interface DemoGroup {
   name: string;
   description: string;
   activitySlug: DemoActivitySlug;
-  localityName: DemoLocalityName;
+  localitySlug: DemoLocalitySlug;
   type: 'public' | 'closed';
   status: 'active' | 'inactive';
   /** Jen u neaktivní skupiny: deactivatedAt = seed − n dní. */
@@ -94,7 +94,7 @@ export interface DemoEvent {
   schedule: DemoSchedule;
   durationMinutes: number;
   address: string;
-  localityName: DemoLocalityName;
+  localitySlug: DemoLocalitySlug;
   lat: number;
   lng: number;
   minParticipants: number;
@@ -773,7 +773,7 @@ export const demoLocalities = [
 ] as const;
 
 export type DemoActivitySlug = (typeof demoActivities)[number]['slug'];
-export type DemoLocalityName = (typeof demoLocalities)[number]['name'];
+export type DemoLocalitySlug = (typeof demoLocalities)[number]['slug'];
 
 /** Demo účty: organizator, spravce, uzivatel (hledající) a neovereny (bez ověřeného e-mailu). Superadmina zakládá seed z configu. */
 export const demoUsers: DemoUser[] = [
@@ -784,7 +784,7 @@ export const demoUsers: DemoUser[] = [
     email: 'petra.novakova@example.com',
     emailVerified: true,
     bio: 'Demo účet: organizátorka. Pořádám volejbal, deskovky a běhání a hledám lidi, kteří opravdu dorazí.',
-    homeLocalityName: 'Praha 7',
+    homeLocalitySlug: 'praha-7',
     interestSlugs: ['volejbal', 'beh', 'deskove-hry', 'fotografie', 'pub-kviz'],
   },
   {
@@ -794,7 +794,7 @@ export const demoUsers: DemoUser[] = [
     email: 'tomas.dvorak@example.com',
     emailVerified: true,
     bio: 'Demo účet: správce skupin. Florbal hraju 15 let, na Podvinném mlýně dávám dohromady partu.',
-    homeLocalityName: 'Praha 9',
+    homeLocalitySlug: 'praha-9',
     interestSlugs: ['florbal', 'fotbal', 'badminton', 'nohejbal'],
   },
   {
@@ -804,7 +804,7 @@ export const demoUsers: DemoUser[] = [
     email: 'jakub.kral@example.com',
     emailVerified: true,
     bio: 'Demo účet: hledající. Před měsícem jsem se přestěhoval z Pardubic a nikoho tu neznám.',
-    homeLocalityName: 'Praha 3',
+    homeLocalitySlug: 'praha-3',
     interestSlugs: [
       'florbal',
       'volejbal',
@@ -820,7 +820,7 @@ export const demoUsers: DemoUser[] = [
     email: 'eva.mala@example.com',
     emailVerified: false,
     bio: 'Demo účet: zaregistrovaná, ale e-mail zatím neověřila.',
-    homeLocalityName: 'Praha 10',
+    homeLocalitySlug: 'praha-10',
     interestSlugs: ['joga', 'tanec', 'kresleni'],
   },
   {
@@ -830,7 +830,7 @@ export const demoUsers: DemoUser[] = [
     email: 'lucie.svobodova@example.com',
     emailVerified: true,
     bio: 'Deskovky každý týden, nejradši těžší euro hry.',
-    homeLocalityName: 'Praha 2',
+    homeLocalitySlug: 'praha-2',
     interestSlugs: [
       'deskove-hry',
       'karetni-hry',
@@ -846,7 +846,7 @@ export const demoUsers: DemoUser[] = [
     email: 'martin.cerny@example.com',
     emailVerified: true,
     bio: 'Pořádám LAN na Strahově od prváku.',
-    homeLocalityName: 'Praha 6',
+    homeLocalitySlug: 'praha-6',
     interestSlugs: ['videohry', 'rpg', 'sachy', 'coding', 'unikove-hry'],
   },
   {
@@ -856,7 +856,7 @@ export const demoUsers: DemoUser[] = [
     email: 'katerina.horakova@example.com',
     emailVerified: true,
     bio: 'O víkendech chodím ven, klidně celý den.',
-    homeLocalityName: 'Praha 5',
+    homeLocalitySlug: 'praha-5',
     interestSlugs: [
       'turistika',
       'cyklistika',
@@ -872,7 +872,7 @@ export const demoUsers: DemoUser[] = [
     email: 'ondrej.prochazka@example.com',
     emailVerified: true,
     bio: 'Florbal v útoku, basket pro radost.',
-    homeLocalityName: 'Praha 11',
+    homeLocalitySlug: 'praha-11',
     interestSlugs: [
       'florbal',
       'basketbal',
@@ -888,7 +888,7 @@ export const demoUsers: DemoUser[] = [
     email: 'tereza.kucerova@example.com',
     emailVerified: true,
     bio: 'Raketové sporty a ranní běh, úroveň mírně pokročilá.',
-    homeLocalityName: 'Praha 4',
+    homeLocalitySlug: 'praha-4',
     interestSlugs: ['tenis', 'badminton', 'beh', 'padel', 'joga'],
   },
   {
@@ -898,7 +898,7 @@ export const demoUsers: DemoUser[] = [
     email: 'jan.vesely@example.com',
     emailVerified: true,
     bio: 'Malá kopaná i ultimate, hlavně ať se hraje.',
-    homeLocalityName: 'Praha 8',
+    homeLocalitySlug: 'praha-8',
     interestSlugs: ['fotbal', 'florbal', 'ultimate', 'nohejbal', 'videohry'],
   },
   {
@@ -908,7 +908,7 @@ export const demoUsers: DemoUser[] = [
     email: 'barbora.markova@example.com',
     emailVerified: true,
     bio: 'Volejbal na smeči, v létě beach, jinak brusle.',
-    homeLocalityName: 'Praha 10',
+    homeLocalitySlug: 'praha-10',
     interestSlugs: ['volejbal', 'beh', 'brusleni', 'tanec', 'pub-kviz'],
   },
   {
@@ -918,7 +918,7 @@ export const demoUsers: DemoUser[] = [
     email: 'lukas.becker@example.com',
     emailVerified: true,
     bio: 'Erasmus student from Munich, living at Strahov.',
-    homeLocalityName: 'Praha 6',
+    homeLocalitySlug: 'praha-6',
     interestSlugs: [
       'volejbal',
       'jazykovy-tandem',
@@ -935,7 +935,7 @@ export const demoUsers: DemoUser[] = [
     email: 'marta.garcia@example.com',
     emailVerified: true,
     bio: 'Erasmus z Valencie, učím se česky a učím salsu.',
-    homeLocalityName: 'Praha 2',
+    homeLocalitySlug: 'praha-2',
     interestSlugs: [
       'jazykovy-tandem',
       'kresleni',
@@ -951,7 +951,7 @@ export const demoUsers: DemoUser[] = [
     email: 'filip.pokorny@example.com',
     emailVerified: true,
     bio: 'Brankář, kdyby někomu chyběl.',
-    homeLocalityName: 'Praha 9',
+    homeLocalitySlug: 'praha-9',
     interestSlugs: ['florbal', 'fotbal', 'videohry', 'nohejbal', 'badminton'],
   },
   {
@@ -961,7 +961,7 @@ export const demoUsers: DemoUser[] = [
     email: 'eliska.nemcova@example.com',
     emailVerified: true,
     bio: 'Ranní běhání ve Stromovce.',
-    homeLocalityName: 'Praha 7',
+    homeLocalitySlug: 'praha-7',
     interestSlugs: [
       'beh',
       'brusleni',
@@ -978,7 +978,7 @@ export const demoUsers: DemoUser[] = [
     email: 'david.pospisil@example.com',
     emailVerified: true,
     bio: 'Pinec a šachy, obojí rád proti silnějším.',
-    homeLocalityName: 'Praha 3',
+    homeLocalitySlug: 'praha-3',
     interestSlugs: [
       'stolni-tenis',
       'sachy',
@@ -994,7 +994,7 @@ export const demoUsers: DemoUser[] = [
     email: 'anna.hajkova@example.com',
     emailVerified: true,
     bio: 'Fotím na film, ráda ukážu zákoutí Prahy.',
-    homeLocalityName: 'Praha 1',
+    homeLocalitySlug: 'praha-1',
     interestSlugs: [
       'fotografie',
       'kresleni',
@@ -1010,7 +1010,7 @@ export const demoUsers: DemoUser[] = [
     email: 'michal.jelinek@example.com',
     emailVerified: true,
     bio: 'Silnička i gravel, okolí Hostivaře.',
-    homeLocalityName: 'Praha 15',
+    homeLocalitySlug: 'praha-15',
     interestSlugs: ['cyklistika', 'brusleni', 'beh', 'workout', 'zimni-sporty'],
   },
   {
@@ -1020,7 +1020,7 @@ export const demoUsers: DemoUser[] = [
     email: 'veronika.ruzickova@example.com',
     emailVerified: true,
     bio: 'Volejbal po práci, o víkendu ven.',
-    homeLocalityName: 'Praha 4',
+    homeLocalitySlug: 'praha-4',
     interestSlugs: [
       'volejbal',
       'badminton',
@@ -1036,7 +1036,7 @@ export const demoUsers: DemoUser[] = [
     email: 'jiri.benes@example.com',
     emailVerified: true,
     bio: 'Po přestěhování hledám pravidelnou partu.',
-    homeLocalityName: 'Praha 9',
+    homeLocalitySlug: 'praha-9',
     interestSlugs: ['florbal', 'basketbal', 'fotbal', 'workout', 'nohejbal'],
   },
   {
@@ -1046,7 +1046,7 @@ export const demoUsers: DemoUser[] = [
     email: 'klara.fialova@example.com',
     emailVerified: true,
     bio: 'Vedu kampaně v Dračím doupěti a language exchange v Karlíně.',
-    homeLocalityName: 'Praha 8',
+    homeLocalitySlug: 'praha-8',
     interestSlugs: [
       'deskove-hry',
       'jazykovy-tandem',
@@ -1062,7 +1062,7 @@ export const demoUsers: DemoUser[] = [
     email: 'pavel.simek@example.com',
     emailVerified: true,
     bio: 'Lezu na stěně i venku, jistím.',
-    homeLocalityName: 'Praha 5',
+    homeLocalitySlug: 'praha-5',
     interestSlugs: [
       'lezeni',
       'turistika',
@@ -1078,7 +1078,7 @@ export const demoUsers: DemoUser[] = [
     email: 'nikola.dolezalova@example.com',
     emailVerified: true,
     bio: 'Bouldery, ultimate a workout na Ladronce.',
-    homeLocalityName: 'Praha 6',
+    homeLocalitySlug: 'praha-6',
     interestSlugs: ['lezeni', 'beh', 'ultimate', 'joga', 'workout'],
   },
   {
@@ -1088,7 +1088,7 @@ export const demoUsers: DemoUser[] = [
     email: 'adam.zeman@example.com',
     emailVerified: true,
     bio: 'Fotbal každý týden, jinak hry.',
-    homeLocalityName: 'Praha 13',
+    homeLocalitySlug: 'praha-13',
     interestSlugs: [
       'fotbal',
       'florbal',
@@ -1104,7 +1104,7 @@ export const demoUsers: DemoUser[] = [
     email: 'kristyna.kolarova@example.com',
     emailVerified: true,
     bio: 'Volejbal a deskovky, nic víc nepotřebuju.',
-    homeLocalityName: 'Praha 10',
+    homeLocalitySlug: 'praha-10',
     interestSlugs: ['volejbal', 'deskove-hry', 'beh', 'karetni-hry', 'tanec'],
   },
   {
@@ -1114,7 +1114,7 @@ export const demoUsers: DemoUser[] = [
     email: 'sam.oconnor@example.com',
     emailVerified: true,
     bio: 'Expat from Dublin, looking for a regular ultimate crew.',
-    homeLocalityName: 'Praha 2',
+    homeLocalitySlug: 'praha-2',
     interestSlugs: [
       'ultimate',
       'jazykovy-tandem',
@@ -1130,7 +1130,7 @@ export const demoUsers: DemoUser[] = [
     email: 'lenka.navratilova@example.com',
     emailVerified: true,
     bio: 'Raketové sporty všeho druhu.',
-    homeLocalityName: 'Praha 11',
+    homeLocalitySlug: 'praha-11',
     interestSlugs: ['badminton', 'stolni-tenis', 'tenis', 'squash', 'padel'],
   },
   {
@@ -1140,7 +1140,7 @@ export const demoUsers: DemoUser[] = [
     email: 'roman.cermak@example.com',
     emailVerified: true,
     bio: 'Tenis ráno před prací, šachy večer.',
-    homeLocalityName: 'Praha 7',
+    homeLocalitySlug: 'praha-7',
     interestSlugs: ['tenis', 'sachy', 'cyklistika', 'squash', 'debatni-klub'],
   },
   {
@@ -1150,7 +1150,7 @@ export const demoUsers: DemoUser[] = [
     email: 'simona.urbanova@example.com',
     emailVerified: true,
     bio: 'Hraju a kreslím, ideálně obojí naráz.',
-    homeLocalityName: 'Praha 3',
+    homeLocalitySlug: 'praha-3',
     interestSlugs: [
       'deskove-hry',
       'rpg',
@@ -1166,7 +1166,7 @@ export const demoUsers: DemoUser[] = [
     email: 'vojtech.kriz@example.com',
     emailVerified: true,
     bio: 'LAN a basket, jinak student na ČVUT.',
-    homeLocalityName: 'Praha 6',
+    homeLocalitySlug: 'praha-6',
     interestSlugs: ['videohry', 'basketbal', 'florbal', 'coding', 'ultimate'],
   },
   {
@@ -1176,7 +1176,7 @@ export const demoUsers: DemoUser[] = [
     email: 'hana.moravcova@example.com',
     emailVerified: true,
     bio: 'Turistika s foťákem, o víkendu venčím psy z útulku.',
-    homeLocalityName: 'Praha 4',
+    homeLocalitySlug: 'praha-4',
     interestSlugs: [
       'turistika',
       'fotografie',
@@ -1192,7 +1192,7 @@ export const demoUsers: DemoUser[] = [
     email: 'petr.holub@example.com',
     emailVerified: true,
     bio: 'Pankrác a Braník, volejbal i nohejbal.',
-    homeLocalityName: 'Praha 4',
+    homeLocalitySlug: 'praha-4',
     interestSlugs: ['volejbal', 'nohejbal', 'fotbal', 'pub-kviz', 'florbal'],
   },
   {
@@ -1202,7 +1202,7 @@ export const demoUsers: DemoUser[] = [
     email: 'zuzana.kopecka@example.com',
     emailVerified: true,
     bio: 'Lektorka jógy, zpívám ve sboru.',
-    homeLocalityName: 'Praha 4',
+    homeLocalitySlug: 'praha-4',
     interestSlugs: [
       'joga',
       'tanec',
@@ -1218,7 +1218,7 @@ export const demoUsers: DemoUser[] = [
     email: 'matej.stastny@example.com',
     emailVerified: true,
     bio: 'Squash a padel, ráno bazén.',
-    homeLocalityName: 'Praha 12',
+    homeLocalitySlug: 'praha-12',
     interestSlugs: ['squash', 'padel', 'tenis', 'workout', 'plavani'],
   },
   {
@@ -1228,7 +1228,7 @@ export const demoUsers: DemoUser[] = [
     email: 'alzbeta.vlckova@example.com',
     emailVerified: true,
     bio: 'Zpívám, hraju impro a ráda vařím pro víc lidí.',
-    homeLocalityName: 'Praha 8',
+    homeLocalitySlug: 'praha-8',
     interestSlugs: [
       'sborovy-zpev',
       'jam-session',
@@ -1244,7 +1244,7 @@ export const demoUsers: DemoUser[] = [
     email: 'daniel.kovar@example.com',
     emailVerified: true,
     bio: 'Kytara, kód a šachy.',
-    homeLocalityName: 'Praha 3',
+    homeLocalitySlug: 'praha-3',
     interestSlugs: [
       'jam-session',
       'coding',
@@ -1260,7 +1260,7 @@ export const demoUsers: DemoUser[] = [
     email: 'tamara.blahova@example.com',
     emailVerified: true,
     bio: 'Starám se o komunitní zahradu v Dejvicích.',
-    homeLocalityName: 'Praha 6',
+    homeLocalitySlug: 'praha-6',
     interestSlugs: [
       'uklid-prirody',
       'komunitni-zahrada',
@@ -1276,7 +1276,7 @@ export const demoUsers: DemoUser[] = [
     email: 'ivan.petrov@example.com',
     emailVerified: true,
     bio: 'Programátor z Bulharska, v Praze třetím rokem.',
-    homeLocalityName: 'Praha 8',
+    homeLocalitySlug: 'praha-8',
     interestSlugs: [
       'coding',
       'jazykovy-tandem',
@@ -1292,7 +1292,7 @@ export const demoUsers: DemoUser[] = [
     email: 'monika.duskova@example.com',
     emailVerified: true,
     bio: 'Badminton v Nuslích, deskovky v Michli.',
-    homeLocalityName: 'Praha 4',
+    homeLocalitySlug: 'praha-4',
     interestSlugs: [
       'badminton',
       'beh',
@@ -1308,7 +1308,7 @@ export const demoUsers: DemoUser[] = [
     email: 'ladislav.novotny@example.com',
     emailVerified: true,
     bio: 'Hokejbal hraju od školy, jinak fotbal a kolo.',
-    homeLocalityName: 'Praha 9',
+    homeLocalitySlug: 'praha-9',
     interestSlugs: [
       'fotbal',
       'florbal',
@@ -1324,7 +1324,7 @@ export const demoUsers: DemoUser[] = [
     email: 'kamila.rihova@example.com',
     emailVerified: true,
     bio: 'Pletu, kreslím a ráda pomůžu sousedům.',
-    homeLocalityName: 'Praha 5',
+    homeLocalitySlug: 'praha-5',
     interestSlugs: [
       'rukodelna-dilna',
       'kresleni',
@@ -1342,7 +1342,7 @@ export const demoGroups: DemoGroup[] = [
     description:
       'Pravidelný florbal pro rekreační hráče. Hrajeme na dvě branky, brankář vítán.',
     activitySlug: 'florbal',
-    localityName: 'Praha 9',
+    localitySlug: 'praha-9',
     type: 'public',
     status: 'active',
     members: [
@@ -1362,7 +1362,7 @@ export const demoGroups: DemoGroup[] = [
     description:
       'Uzavřená parta pro hráče, kteří hráli soutěž. Před přijetím se domluvíme, na jakém postu hraješ.',
     activitySlug: 'florbal',
-    localityName: 'Praha 9',
+    localitySlug: 'praha-9',
     type: 'closed',
     status: 'active',
     members: [
@@ -1387,7 +1387,7 @@ export const demoGroups: DemoGroup[] = [
     description:
       'Čtyřhry na Podvinném mlýně, kurt platíme napůl. Hledáme hráče, kteří umí podání a nevynechávají.',
     activitySlug: 'badminton',
-    localityName: 'Praha 9',
+    localitySlug: 'praha-9',
     type: 'closed',
     status: 'active',
     members: [
@@ -1410,7 +1410,7 @@ export const demoGroups: DemoGroup[] = [
     description:
       'Smíšený volejbal na úrovni mírně pokročilých, hrajeme v Holešovicích.',
     activitySlug: 'volejbal',
-    localityName: 'Praha 7',
+    localitySlug: 'praha-7',
     type: 'public',
     status: 'active',
     members: [
@@ -1428,7 +1428,7 @@ export const demoGroups: DemoGroup[] = [
     description:
       'Uzavřená parta na středně těžké a těžké euro hry. Před přijetím se domluvíme, co hraješ.',
     activitySlug: 'deskove-hry',
-    localityName: 'Praha 2',
+    localitySlug: 'praha-2',
     type: 'closed',
     status: 'active',
     members: [
@@ -1452,7 +1452,7 @@ export const demoGroups: DemoGroup[] = [
     description:
       'Společné běhání ve Stromovce a na Letné, tempo se přizpůsobí nejpomalejšímu.',
     activitySlug: 'beh',
-    localityName: 'Praha 7',
+    localitySlug: 'praha-7',
     type: 'public',
     status: 'active',
     members: [
@@ -1470,7 +1470,7 @@ export const demoGroups: DemoGroup[] = [
     description:
       'Celodenní výlety po Praze a okolí, vyrážíme z míst dostupných MHD.',
     activitySlug: 'turistika',
-    localityName: 'Praha 5',
+    localitySlug: 'praha-5',
     type: 'public',
     status: 'active',
     members: [
@@ -1488,7 +1488,7 @@ export const demoGroups: DemoGroup[] = [
     description:
       'Jazykový tandem česky, anglicky a španělsky. Ideální pro Erasmus studenty a nově příchozí.',
     activitySlug: 'jazykovy-tandem',
-    localityName: 'Praha 8',
+    localitySlug: 'praha-8',
     type: 'public',
     status: 'active',
     members: [
@@ -1506,7 +1506,7 @@ export const demoGroups: DemoGroup[] = [
     description:
       'Parta, která jednou za měsíc uklízí Divokou Šárku a okolí. Pytle a rukavice zajistíme.',
     activitySlug: 'uklid-prirody',
-    localityName: 'Praha 6',
+    localitySlug: 'praha-6',
     type: 'public',
     status: 'active',
     members: [
@@ -1520,7 +1520,7 @@ export const demoGroups: DemoGroup[] = [
     name: 'Urban sketching Praha',
     description: 'Skupina se kvůli nedostatku času správkyně už neschází.',
     activitySlug: 'kresleni',
-    localityName: 'Praha 2',
+    localitySlug: 'praha-2',
     type: 'public',
     status: 'inactive',
     deactivatedDaysAgo: 5,
@@ -1545,7 +1545,7 @@ export const demoEvents: DemoEvent[] = [
     schedule: { daysFromNow: 0, time: '19:00' },
     durationMinutes: 60,
     address: 'Hostivařská přehrada, hráz, Praha 15',
-    localityName: 'Praha 15',
+    localitySlug: 'praha-15',
     lat: 50.0495,
     lng: 14.542,
     minParticipants: 2,
@@ -1572,7 +1572,7 @@ export const demoEvents: DemoEvent[] = [
     schedule: { daysFromNow: 0, time: '19:30' },
     durationMinutes: 180,
     address: 'Herna Karlín, Křižíkova 52, Praha 8',
-    localityName: 'Praha 8',
+    localitySlug: 'praha-8',
     lat: 50.0928,
     lng: 14.4508,
     minParticipants: 3,
@@ -1596,7 +1596,7 @@ export const demoEvents: DemoEvent[] = [
     schedule: { daysFromNow: 1, time: '18:30' },
     durationMinutes: 60,
     address: 'Letenská pláň, u metronomu, Praha 7',
-    localityName: 'Praha 7',
+    localitySlug: 'praha-7',
     lat: 50.0951,
     lng: 14.4155,
     minParticipants: 4,
@@ -1623,7 +1623,7 @@ export const demoEvents: DemoEvent[] = [
     schedule: { daysFromNow: 1, time: '17:30' },
     durationMinutes: 120,
     address: 'Kavárna Pražírna, Sokolovská 98, Praha 8',
-    localityName: 'Praha 8',
+    localitySlug: 'praha-8',
     lat: 50.0935,
     lng: 14.4555,
     minParticipants: 4,
@@ -1649,7 +1649,7 @@ export const demoEvents: DemoEvent[] = [
     schedule: { daysFromNow: 1, time: '07:30' },
     durationMinutes: 60,
     address: 'Squash centrum Smíchov, Plzeňská 10, Praha 5',
-    localityName: 'Praha 5',
+    localitySlug: 'praha-5',
     lat: 50.0705,
     lng: 14.4025,
     minParticipants: 1,
@@ -1673,7 +1673,7 @@ export const demoEvents: DemoEvent[] = [
     schedule: { daysFromNow: 2, time: '19:00' },
     durationMinutes: 90,
     address: 'Sportovní hala Podvinný mlýn, Kovanecká 30, Praha 9',
-    localityName: 'Praha 9',
+    localitySlug: 'praha-9',
     lat: 50.1063,
     lng: 14.4985,
     minParticipants: 8,
@@ -1707,7 +1707,7 @@ export const demoEvents: DemoEvent[] = [
     schedule: { daysFromNow: 2, time: '08:00' },
     durationMinutes: 60,
     address: 'Park Kavčí hory, Na Pankráci, Praha 4',
-    localityName: 'Praha 4',
+    localitySlug: 'praha-4',
     lat: 50.0515,
     lng: 14.4335,
     minParticipants: 3,
@@ -1735,7 +1735,7 @@ export const demoEvents: DemoEvent[] = [
     schedule: { daysFromNow: 3, time: '18:00' },
     durationMinutes: 120,
     address: 'Tělocvična ZŠ Na Pankráci, Na Pankráci 95, Praha 4',
-    localityName: 'Praha 4',
+    localitySlug: 'praha-4',
     lat: 50.0505,
     lng: 14.4385,
     minParticipants: 6,
@@ -1765,7 +1765,7 @@ export const demoEvents: DemoEvent[] = [
     schedule: { daysFromNow: 3, time: '09:30' },
     durationMinutes: 300,
     address: 'Zastávka Hlubočepy, Hlubočepská, Praha 5',
-    localityName: 'Praha 5',
+    localitySlug: 'praha-5',
     lat: 50.0418,
     lng: 14.3925,
     minParticipants: 3,
@@ -1793,7 +1793,7 @@ export const demoEvents: DemoEvent[] = [
     schedule: { daysFromNow: 3, time: '20:00' },
     durationMinutes: 150,
     address: 'Hospoda U Nuselského pivovaru, Táborská 41, Praha 4',
-    localityName: 'Praha 4',
+    localitySlug: 'praha-4',
     lat: 50.0628,
     lng: 14.4405,
     minParticipants: 4,
@@ -1820,7 +1820,7 @@ export const demoEvents: DemoEvent[] = [
     schedule: { daysFromNow: 4, time: '19:00' },
     durationMinutes: 120,
     address: 'Tělocvična ZŠ Strossmayerovo náměstí, Praha 7',
-    localityName: 'Praha 7',
+    localitySlug: 'praha-7',
     lat: 50.1005,
     lng: 14.4335,
     minParticipants: 6,
@@ -1853,7 +1853,7 @@ export const demoEvents: DemoEvent[] = [
     schedule: { daysFromNow: 4, time: '18:00' },
     durationMinutes: 180,
     address: 'Deskoherní kavárna Vinohrady, Korunní 32, Praha 2',
-    localityName: 'Praha 2',
+    localitySlug: 'praha-2',
     lat: 50.0752,
     lng: 14.4415,
     minParticipants: 2,
@@ -1878,7 +1878,7 @@ export const demoEvents: DemoEvent[] = [
     schedule: { daysFromNow: 4, time: '18:30' },
     durationMinutes: 90,
     address: 'Herna stolního tenisu, Seifertova 60, Praha 3',
-    localityName: 'Praha 3',
+    localitySlug: 'praha-3',
     lat: 50.0855,
     lng: 14.4555,
     minParticipants: 2,
@@ -1904,7 +1904,7 @@ export const demoEvents: DemoEvent[] = [
     schedule: { daysFromNow: 5, time: '18:00' },
     durationMinutes: 120,
     address: 'Nohejbalové kurty Braník, Údolní, Praha 4',
-    localityName: 'Praha 4',
+    localitySlug: 'praha-4',
     lat: 50.0345,
     lng: 14.4135,
     minParticipants: 5,
@@ -1933,7 +1933,7 @@ export const demoEvents: DemoEvent[] = [
     schedule: { daysFromNow: 5, time: '18:00' },
     durationMinutes: 120,
     address: 'Lezecká stěna Smíchov, Radlická 14, Praha 5',
-    localityName: 'Praha 5',
+    localitySlug: 'praha-5',
     lat: 50.0645,
     lng: 14.4005,
     minParticipants: 2,
@@ -1959,7 +1959,7 @@ export const demoEvents: DemoEvent[] = [
     schedule: { daysFromNow: 5, time: '19:00' },
     durationMinutes: 120,
     address: 'Taneční sál Vinohrady, Slezská 22, Praha 2',
-    localityName: 'Praha 2',
+    localitySlug: 'praha-2',
     lat: 50.0755,
     lng: 14.4405,
     minParticipants: 4,
@@ -1985,7 +1985,7 @@ export const demoEvents: DemoEvent[] = [
     schedule: { daysFromNow: 6, time: '18:00' },
     durationMinutes: 240,
     address: 'Klubovna Holešovice, Dělnická 12, Praha 7',
-    localityName: 'Praha 7',
+    localitySlug: 'praha-7',
     lat: 50.1015,
     lng: 14.4505,
     minParticipants: 3,
@@ -2016,7 +2016,7 @@ export const demoEvents: DemoEvent[] = [
     schedule: { daysFromNow: 6, time: '19:00' },
     durationMinutes: 90,
     address: 'Sportovní hala Chodov, Květnového vítězství 57, Praha 11',
-    localityName: 'Praha 11',
+    localitySlug: 'praha-11',
     lat: 50.0312,
     lng: 14.4928,
     minParticipants: 5,
@@ -2044,7 +2044,7 @@ export const demoEvents: DemoEvent[] = [
     schedule: { daysFromNow: 6, time: '15:30' },
     durationMinutes: 120,
     address: 'Petřínská rozhledna, Petřínské sady, Praha 1',
-    localityName: 'Praha 1',
+    localitySlug: 'praha-1',
     lat: 50.0835,
     lng: 14.3955,
     minParticipants: 3,
@@ -2071,7 +2071,7 @@ export const demoEvents: DemoEvent[] = [
     schedule: { daysFromNow: 7, time: '20:00' },
     durationMinutes: 90,
     address: 'Sportovní hala Chodov, Květnového vítězství 57, Praha 11',
-    localityName: 'Praha 11',
+    localitySlug: 'praha-11',
     lat: 50.0312,
     lng: 14.4928,
     minParticipants: 9,
@@ -2104,7 +2104,7 @@ export const demoEvents: DemoEvent[] = [
     schedule: { daysFromNow: 7, time: '19:00' },
     durationMinutes: 75,
     address: 'Úniková hra Žižkov, Husitská 24, Praha 3',
-    localityName: 'Praha 3',
+    localitySlug: 'praha-3',
     lat: 50.0875,
     lng: 14.4465,
     minParticipants: 3,
@@ -2129,7 +2129,7 @@ export const demoEvents: DemoEvent[] = [
     schedule: { daysFromNow: 7, time: '18:00' },
     durationMinutes: 180,
     address: 'Coworking Holešovice, Komunardů 32, Praha 7',
-    localityName: 'Praha 7',
+    localitySlug: 'praha-7',
     lat: 50.1025,
     lng: 14.4475,
     minParticipants: 2,
@@ -2150,7 +2150,7 @@ export const demoEvents: DemoEvent[] = [
     schedule: { daysFromNow: 8, time: '19:00' },
     durationMinutes: 60,
     address: 'Sportovní hala Nusle, Na Fidlovačce, Praha 4',
-    localityName: 'Praha 4',
+    localitySlug: 'praha-4',
     lat: 50.0655,
     lng: 14.4385,
     minParticipants: 3,
@@ -2174,7 +2174,7 @@ export const demoEvents: DemoEvent[] = [
     schedule: { daysFromNow: 8, time: '18:30' },
     durationMinutes: 120,
     address: 'Knihovna Karlín, Křižíkova 40, Praha 8',
-    localityName: 'Praha 8',
+    localitySlug: 'praha-8',
     lat: 50.0925,
     lng: 14.4485,
     minParticipants: 4,
@@ -2198,7 +2198,7 @@ export const demoEvents: DemoEvent[] = [
     schedule: { daysFromNow: 8, time: '07:00' },
     durationMinutes: 60,
     address: 'Plavecký stadion Podolí, Podolská 74, Praha 4',
-    localityName: 'Praha 4',
+    localitySlug: 'praha-4',
     lat: 50.0545,
     lng: 14.4175,
     minParticipants: 2,
@@ -2225,7 +2225,7 @@ export const demoEvents: DemoEvent[] = [
     schedule: { daysFromNow: 9, time: '18:00' },
     durationMinutes: 240,
     address: 'Klubovna Holešovice, Dělnická 12, Praha 7',
-    localityName: 'Praha 7',
+    localitySlug: 'praha-7',
     lat: 50.1015,
     lng: 14.4505,
     minParticipants: 3,
@@ -2257,7 +2257,7 @@ export const demoEvents: DemoEvent[] = [
     schedule: { daysFromNow: 9, time: '14:00' },
     durationMinutes: 120,
     address: 'Letenská pláň, travnaté hřiště u Sparty, Praha 7',
-    localityName: 'Praha 7',
+    localitySlug: 'praha-7',
     lat: 50.0985,
     lng: 14.4195,
     minParticipants: 7,
@@ -2285,7 +2285,7 @@ export const demoEvents: DemoEvent[] = [
     schedule: { daysFromNow: 9, time: '10:00' },
     durationMinutes: 240,
     address: 'Hostivařská přehrada, parkoviště Hostivař, Praha 15',
-    localityName: 'Praha 15',
+    localitySlug: 'praha-15',
     lat: 50.0485,
     lng: 14.5385,
     minParticipants: 2,
@@ -2312,7 +2312,7 @@ export const demoEvents: DemoEvent[] = [
     schedule: { daysFromNow: 10, time: '18:00' },
     durationMinutes: 240,
     address: 'Klubovna Holešovice, Dělnická 12, Praha 7',
-    localityName: 'Praha 7',
+    localitySlug: 'praha-7',
     lat: 50.1015,
     lng: 14.4505,
     minParticipants: 3,
@@ -2337,7 +2337,7 @@ export const demoEvents: DemoEvent[] = [
     schedule: { daysFromNow: 10, time: '09:30' },
     durationMinutes: 240,
     address: 'Konečná tramvaje Divoká Šárka, Evropská, Praha 6',
-    localityName: 'Praha 6',
+    localitySlug: 'praha-6',
     lat: 50.0945,
     lng: 14.3265,
     minParticipants: 3,
@@ -2364,7 +2364,7 @@ export const demoEvents: DemoEvent[] = [
     schedule: { daysFromNow: 10, time: '10:00' },
     durationMinutes: 180,
     address: 'Divoká Šárka, u koupaliště, Praha 6',
-    localityName: 'Praha 6',
+    localitySlug: 'praha-6',
     lat: 50.0935,
     lng: 14.3325,
     minParticipants: 4,
@@ -2388,7 +2388,7 @@ export const demoEvents: DemoEvent[] = [
     schedule: { daysFromNow: 11, time: '18:00' },
     durationMinutes: 90,
     address: 'Sportovní areál Strahov, Vaníčkova 2, Praha 6',
-    localityName: 'Praha 6',
+    localitySlug: 'praha-6',
     lat: 50.0805,
     lng: 14.3875,
     minParticipants: 7,
@@ -2418,7 +2418,7 @@ export const demoEvents: DemoEvent[] = [
     schedule: { daysFromNow: 11, time: '17:30' },
     durationMinutes: 240,
     address: 'Herna Karlín, Křižíkova 52, Praha 8',
-    localityName: 'Praha 8',
+    localitySlug: 'praha-8',
     lat: 50.0928,
     lng: 14.4508,
     minParticipants: 3,
@@ -2443,7 +2443,7 @@ export const demoEvents: DemoEvent[] = [
     schedule: { daysFromNow: 11, time: '07:00' },
     durationMinutes: 60,
     address: 'Tenisový areál Štvanice, Ostrov Štvanice, Praha 7',
-    localityName: 'Praha 7',
+    localitySlug: 'praha-7',
     lat: 50.0965,
     lng: 14.4335,
     minParticipants: 1,
@@ -2467,7 +2467,7 @@ export const demoEvents: DemoEvent[] = [
     schedule: { daysFromNow: 12, time: '08:30' },
     durationMinutes: 420,
     address: 'Nádraží Radotín, Prvomájová, Praha 16',
-    localityName: 'Praha 16',
+    localitySlug: 'praha-16',
     lat: 49.9845,
     lng: 14.3605,
     minParticipants: 3,
@@ -2500,7 +2500,7 @@ export const demoEvents: DemoEvent[] = [
     schedule: { daysFromNow: 12, time: '19:00' },
     durationMinutes: 180,
     address: 'Klubovna Libeň, Na Žertvách 12, Praha 8',
-    localityName: 'Praha 8',
+    localitySlug: 'praha-8',
     lat: 50.1045,
     lng: 14.4825,
     minParticipants: 2,
@@ -2523,7 +2523,7 @@ export const demoEvents: DemoEvent[] = [
     schedule: { daysFromNow: 12, time: '17:30' },
     durationMinutes: 60,
     address: 'Workoutové hřiště Ladronka, Tomanova, Praha 6',
-    localityName: 'Praha 6',
+    localitySlug: 'praha-6',
     lat: 50.0795,
     lng: 14.3515,
     minParticipants: 2,
@@ -2549,7 +2549,7 @@ export const demoEvents: DemoEvent[] = [
     schedule: { daysFromNow: 13, time: '19:00' },
     durationMinutes: 90,
     address: 'Sportovní hala Podvinný mlýn, Kovanecká 30, Praha 9',
-    localityName: 'Praha 9',
+    localitySlug: 'praha-9',
     lat: 50.1063,
     lng: 14.4985,
     minParticipants: 8,
@@ -2583,7 +2583,7 @@ export const demoEvents: DemoEvent[] = [
     schedule: { daysFromNow: 13, time: '19:00' },
     durationMinutes: 180,
     address: 'Kavárna Pod Lípou, Koněvova 40, Praha 3',
-    localityName: 'Praha 3',
+    localitySlug: 'praha-3',
     lat: 50.0885,
     lng: 14.4605,
     minParticipants: 2,
@@ -2607,7 +2607,7 @@ export const demoEvents: DemoEvent[] = [
     schedule: { daysFromNow: 13, time: '10:00' },
     durationMinutes: 150,
     address: 'Náplavka u Výtoně, Rašínovo nábřeží, Praha 2',
-    localityName: 'Praha 2',
+    localitySlug: 'praha-2',
     lat: 50.0705,
     lng: 14.4155,
     minParticipants: 2,
@@ -2628,7 +2628,7 @@ export const demoEvents: DemoEvent[] = [
     schedule: { nextWeekday: 5, time: '15:00' },
     durationMinutes: 150,
     address: 'Stromovka, u Planetária, Praha 7',
-    localityName: 'Praha 7',
+    localitySlug: 'praha-7',
     lat: 50.1055,
     lng: 14.4235,
     minParticipants: 2,
@@ -2648,7 +2648,7 @@ export const demoEvents: DemoEvent[] = [
     schedule: { nextWeekday: 6, time: '10:00' },
     durationMinutes: 120,
     address: 'Trojský zámek, U Trojského zámku 1, Praha 7',
-    localityName: 'Praha 7',
+    localitySlug: 'praha-7',
     lat: 50.1165,
     lng: 14.4115,
     minParticipants: 3,
@@ -2674,7 +2674,7 @@ export const demoEvents: DemoEvent[] = [
     schedule: { nextWeekday: 5, time: '12:00' },
     durationMinutes: 330,
     address: 'Klubovna koleje Strahov, Chaloupeckého 7, Praha 6',
-    localityName: 'Praha 6',
+    localitySlug: 'praha-6',
     lat: 50.0815,
     lng: 14.3905,
     minParticipants: 4,
@@ -2701,7 +2701,7 @@ export const demoEvents: DemoEvent[] = [
     schedule: { nextWeekday: 6, time: '09:00' },
     durationMinutes: 60,
     address: 'Stromovka, hlavní vstup od Výstaviště, Praha 7',
-    localityName: 'Praha 7',
+    localitySlug: 'praha-7',
     lat: 50.1045,
     lng: 14.4305,
     minParticipants: 2,
@@ -2730,7 +2730,7 @@ export const demoEvents: DemoEvent[] = [
     schedule: { weekOffset: 3, weekday: 2, time: '19:00' },
     durationMinutes: 90,
     address: 'Sportovní hala Podvinný mlýn, Kovanecká 30, Praha 9',
-    localityName: 'Praha 9',
+    localitySlug: 'praha-9',
     lat: 50.1063,
     lng: 14.4985,
     minParticipants: 8,
@@ -2762,7 +2762,7 @@ export const demoEvents: DemoEvent[] = [
     schedule: { weekOffset: 4, weekday: 2, time: '19:00' },
     durationMinutes: 90,
     address: 'Sportovní hala Podvinný mlýn, Kovanecká 30, Praha 9',
-    localityName: 'Praha 9',
+    localitySlug: 'praha-9',
     lat: 50.1063,
     lng: 14.4985,
     minParticipants: 8,
@@ -2790,7 +2790,7 @@ export const demoEvents: DemoEvent[] = [
     schedule: { weekOffset: 3, weekday: 3, time: '18:00' },
     durationMinutes: 120,
     address: 'Sportovní areál Strahov, hala, Vaníčkova 2, Praha 6',
-    localityName: 'Praha 6',
+    localitySlug: 'praha-6',
     lat: 50.0805,
     lng: 14.3875,
     minParticipants: 6,
@@ -2820,7 +2820,7 @@ export const demoEvents: DemoEvent[] = [
     schedule: { weekOffset: 3, weekday: 5, time: '10:00' },
     durationMinutes: 180,
     address: 'Komunitní zahrada Dejvice, Šolínova, Praha 6',
-    localityName: 'Praha 6',
+    localitySlug: 'praha-6',
     lat: 50.1035,
     lng: 14.3915,
     minParticipants: 3,
@@ -2842,7 +2842,7 @@ export const demoEvents: DemoEvent[] = [
     schedule: { weekOffset: 3, weekday: 3, time: '18:00' },
     durationMinutes: 90,
     address: 'Hokejbalové hřiště Spořilov, Roztylské sady, Praha 4',
-    localityName: 'Praha 4',
+    localitySlug: 'praha-4',
     lat: 50.0425,
     lng: 14.4755,
     minParticipants: 5,
@@ -2870,7 +2870,7 @@ export const demoEvents: DemoEvent[] = [
     schedule: { weekOffset: 4, weekday: 5, time: '09:00' },
     durationMinutes: 300,
     address: 'Nádraží Klánovice, Slavětínská, Praha 21',
-    localityName: 'Praha 21',
+    localitySlug: 'praha-21',
     lat: 50.0905,
     lng: 14.6705,
     minParticipants: 3,
@@ -2896,7 +2896,7 @@ export const demoEvents: DemoEvent[] = [
     schedule: { weekOffset: 4, weekday: 3, time: '19:00' },
     durationMinutes: 180,
     address: 'Hospoda Na Verandách, Nádražní 84, Praha 5',
-    localityName: 'Praha 5',
+    localitySlug: 'praha-5',
     lat: 50.0705,
     lng: 14.4045,
     minParticipants: 4,
@@ -2924,7 +2924,7 @@ export const demoEvents: DemoEvent[] = [
     schedule: { weekOffset: 4, weekday: 1, time: '18:30' },
     durationMinutes: 120,
     address: 'Komunitní centrum Karlín, Karlínské náměstí 7, Praha 8',
-    localityName: 'Praha 8',
+    localitySlug: 'praha-8',
     lat: 50.0935,
     lng: 14.4495,
     minParticipants: 3,
@@ -2945,7 +2945,7 @@ export const demoEvents: DemoEvent[] = [
     schedule: { weekOffset: 3, weekday: 1, time: '19:00' },
     durationMinutes: 240,
     address: 'Deskoherní kavárna Vinohrady, Korunní 32, Praha 2',
-    localityName: 'Praha 2',
+    localitySlug: 'praha-2',
     lat: 50.0752,
     lng: 14.4415,
     minParticipants: 3,
@@ -2978,7 +2978,7 @@ export const demoEvents: DemoEvent[] = [
     schedule: { weekOffset: 4, weekday: 6, time: '15:00' },
     durationMinutes: 180,
     address: 'Komunitní kuchyně Vinohrady, Slavíkova 14, Praha 2',
-    localityName: 'Praha 2',
+    localitySlug: 'praha-2',
     lat: 50.0775,
     lng: 14.4455,
     minParticipants: 3,
@@ -3003,7 +3003,7 @@ export const demoEvents: DemoEvent[] = [
     schedule: { weekOffset: 3, weekday: 0, time: '18:00' },
     durationMinutes: 90,
     address: 'Padel klub Chodov, Roztylská 19, Praha 11',
-    localityName: 'Praha 11',
+    localitySlug: 'praha-11',
     lat: 50.0325,
     lng: 14.4865,
     minParticipants: 3,
@@ -3030,7 +3030,7 @@ export const demoEvents: DemoEvent[] = [
     schedule: { weekOffset: 4, weekday: 4, time: '18:00' },
     durationMinutes: 150,
     address: 'Divadelní studio Žižkov, Prokopova 6, Praha 3',
-    localityName: 'Praha 3',
+    localitySlug: 'praha-3',
     lat: 50.0845,
     lng: 14.4495,
     minParticipants: 4,
@@ -3051,7 +3051,7 @@ export const demoEvents: DemoEvent[] = [
     schedule: { weekOffset: 4, weekday: 0, time: '19:00' },
     durationMinutes: 120,
     address: 'Kavárna Místodržitelská, Malostranské náměstí, Praha 1',
-    localityName: 'Praha 1',
+    localitySlug: 'praha-1',
     lat: 50.0875,
     lng: 14.4035,
     minParticipants: 3,
@@ -3074,7 +3074,7 @@ export const demoEvents: DemoEvent[] = [
     schedule: { weekOffset: 3, weekday: 6, time: '10:00' },
     durationMinutes: 120,
     address: 'Ladronka, Tomanova, Praha 6',
-    localityName: 'Praha 6',
+    localitySlug: 'praha-6',
     lat: 50.0792,
     lng: 14.3545,
     minParticipants: 2,
@@ -3100,7 +3100,7 @@ export const demoEvents: DemoEvent[] = [
     schedule: { weekOffset: 4, weekday: 6, time: '10:00' },
     durationMinutes: 120,
     address: 'Útulek pro zvířata Troja, Trojská 1, Praha 7',
-    localityName: 'Praha 7',
+    localitySlug: 'praha-7',
     lat: 50.1175,
     lng: 14.4155,
     minParticipants: 2,

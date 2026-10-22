@@ -3,6 +3,10 @@ import { ActivityCategory } from '@/modules/catalog/domain/activity';
 import { Locality } from '@/modules/catalog/domain/locality';
 import { Injectable } from '@nestjs/common';
 
+// Prisma passes `contains` to LIKE without escaping, so "%" or "_" typed by a
+// user would act as a wildcard and match everything.
+const escapeLike = (value: string): string => value.replace(/[\\%_]/g, '\\$&');
+
 @Injectable()
 export class CatalogRepository {
   constructor(private readonly prisma: PrismaService) {}
@@ -26,19 +30,23 @@ export class CatalogRepository {
     }));
   }
 
-  /** Localities whose name or slug contains `query` (case-insensitive). */
+  /**
+   * Localities whose name (case-insensitive) or slug contains the query.
+   * Ordered before `take`, so the cut-off is stable: cities first, then by name.
+   */
   async findLocalities(query: {
     name: string;
-    slug: string;
+    slug?: string;
     limit: number;
   }): Promise<Locality[]> {
     const localities = await this.prisma.locality.findMany({
       where: {
         OR: [
-          { name: { contains: query.name, mode: 'insensitive' } },
-          { slug: { contains: query.slug } },
+          { name: { contains: escapeLike(query.name), mode: 'insensitive' } },
+          ...(query.slug ? [{ slug: { contains: query.slug } }] : []),
         ],
       },
+      orderBy: [{ parentId: { sort: 'asc', nulls: 'first' } }, { name: 'asc' }],
       take: query.limit,
     });
     return localities.map((locality) => ({

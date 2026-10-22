@@ -5,15 +5,19 @@
 ALTER TABLE "locality" ADD COLUMN "slug" TEXT;
 
 -- Backfill existing rows with the same slugs the seed uses ("Praha 1" -> "praha-1",
--- "Ústí nad Labem" -> "usti-nad-labem"). A duplicate name gets its id appended so
--- the unique index below can be created; the seed then keeps its own row.
+-- "Ústí nad Labem" -> "usti-nad-labem"), so the seed upserts them instead of
+-- creating duplicates. translate() covers Czech and Slovak letters only (no
+-- unaccent extension on every host); toSlug() in catalog.service.ts is the same rule.
+-- If a name is duplicated, the row with the lowest id keeps the plain slug and the
+-- others get their id appended. The previous seed matched by name, so seeded
+-- databases have no duplicates.
 WITH slugged AS (
   SELECT
     "id",
     trim(BOTH '-' FROM regexp_replace(
       lower(translate("name",
-        'áäčďéěëíňóöřšťúůüýžÁÄČĎÉĚËÍŇÓÖŘŠŤÚŮÜÝŽ',
-        'aacdeeeinoorstuuuyzAACDEEEINOORSTUUUYZ')),
+        'áäčďéěëíĺľňóôöŕřšťúůüýžÁÄČĎÉĚËÍĹĽŇÓÔÖŔŘŠŤÚŮÜÝŽ',
+        'aacdeeeillnooorrstuuuyzAACDEEEILLNOOORRSTUUUYZ')),
       '[^a-z0-9]+', '-', 'g')) AS "base"
   FROM "locality"
 ),
