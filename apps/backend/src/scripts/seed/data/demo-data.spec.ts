@@ -30,6 +30,7 @@ describe('demo data', () => {
     expect(unique(demoActivities.map((a) => a.slug))).toBe(true);
     expect(unique(demoActivityCategories.map((c) => c.slug))).toBe(true);
     expect(unique(demoLocalities.map((l) => l.name))).toBe(true);
+    expect(unique(demoLocalities.map((l) => l.slug))).toBe(true);
   });
 
   it('ends every category with an "other" activity (B-002)', () => {
@@ -44,9 +45,9 @@ describe('demo data', () => {
 
   it('lists parent localities before their parts', () => {
     demoLocalities.forEach((locality, index) => {
-      if (!locality.parentName) return;
+      if (!locality.parentSlug) return;
       const parentIndex = demoLocalities.findIndex(
-        (l) => l.name === locality.parentName,
+        (l) => l.slug === locality.parentSlug,
       );
       expect(parentIndex).toBeGreaterThanOrEqual(0);
       expect(parentIndex).toBeLessThan(index);

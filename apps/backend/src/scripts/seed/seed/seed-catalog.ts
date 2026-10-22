@@ -45,13 +45,14 @@ export async function seedCatalog(prisma: PrismaService): Promise<void> {
   }
 
   // Města jsou v seznamu před svými částmi, takže rodič už existuje.
+  // Páruje se podle slugu: jméno lokality unikátní není (víc obcí „Nová Ves“).
   const localityIds = new Map<string, string>();
   for (const locality of demoLocalities) {
-    const parentId = locality.parentName
-      ? localityIds.get(locality.parentName)
+    const parentId = locality.parentSlug
+      ? localityIds.get(locality.parentSlug)
       : null;
-    if (locality.parentName && !parentId) {
-      throw new Error(`Unknown parent locality ${locality.parentName}`);
+    if (locality.parentSlug && !parentId) {
+      throw new Error(`Unknown parent locality ${locality.parentSlug}`);
     }
     const data = {
       name: locality.name,
@@ -59,13 +60,12 @@ export async function seedCatalog(prisma: PrismaService): Promise<void> {
       lat: locality.lat,
       lng: locality.lng,
     };
-    const existing = await prisma.locality.findFirst({
-      where: { name: locality.name },
+    const { id } = await prisma.locality.upsert({
+      where: { slug: locality.slug },
+      create: { slug: locality.slug, ...data },
+      update: data,
     });
-    const { id } = existing
-      ? await prisma.locality.update({ where: { id: existing.id }, data })
-      : await prisma.locality.create({ data });
-    localityIds.set(locality.name, id);
+    localityIds.set(locality.slug, id);
   }
 
   console.log(

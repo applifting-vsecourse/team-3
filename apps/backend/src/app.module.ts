@@ -1,5 +1,6 @@
 import { ConfigModule } from '@applifting-io/nestjs-decorated-config';
 import { Module } from '@nestjs/common';
+import { CatalogModule } from './modules/catalog/catalog.module';
 import { QuackModule } from './modules/quack/quack.module';
 import { WelcomeModule } from './modules/welcome/welcome.module';
 import { AuthModule } from './shared/auth/auth.module';
@@ -9,6 +10,7 @@ const imports = [
   ConfigModule.forRootAsync(Config, { validate: true }),
   AuthModule,
   WelcomeModule,
+  CatalogModule,
   QuackModule,
 ];
 

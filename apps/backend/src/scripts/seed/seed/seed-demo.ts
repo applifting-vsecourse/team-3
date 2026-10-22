@@ -3,6 +3,7 @@ import {
   DEMO_PASSWORD,
   demoEvents,
   demoGroups,
+  demoLocalities,
   demoUsers,
 } from '@/scripts/seed/data/demo-data';
 import { toEventRow, toGroupRow } from '@/scripts/seed/data/demo-rows';
@@ -27,10 +28,17 @@ export async function seedDemo(
     select: { id: true, slug: true },
   });
   const localities = await prisma.locality.findMany({
-    select: { id: true, name: true },
+    select: { id: true, slug: true },
   });
   const activityId = lookup(activities, (a) => a.slug, 'activity');
-  const localityId = lookup(localities, (l) => l.name, 'locality');
+  const localityIdBySlug = lookup(localities, (l) => l.slug, 'locality');
+  // Demo data refer to localities by name for readability; names are unique
+  // within demoLocalities (checked in demo-data.spec.ts), not in the database.
+  const localityId = (name: string): string => {
+    const locality = demoLocalities.find((l) => l.name === name);
+    if (!locality) throw new Error(`Unknown locality ${name}`);
+    return localityIdBySlug(locality.slug);
+  };
 
   const userIds = new Map<string, string>();
   let createdUsers = 0;
