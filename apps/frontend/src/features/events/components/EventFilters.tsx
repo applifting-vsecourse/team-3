@@ -3,6 +3,7 @@ import { Button } from "@/components/ui/button"
 import { cn } from "@/lib/utils"
 
 import type { ActivityCategory, Locality } from "@/features/events/api/catalogSchemas"
+import { ActivityFilter } from "@/features/events/components/ActivityFilter"
 import { DateFilter } from "@/features/events/components/DateFilter"
 import { LocalityFilter } from "@/features/events/components/LocalityFilter"
 import { hasActiveFilters, type EventsSearch } from "@/features/events/lib/eventsSearch"
@@ -40,6 +41,13 @@ export function EventFilters({
         search={search}
         onChange={onChange}
       />
+      {catalog ? (
+        <ActivityFilter
+          search={search}
+          categories={catalog.categories}
+          onChange={onChange}
+        />
+      ) : null}
       <FilterToggleChip
         pressed={search.chybi === 1}
         onPressedChange={(isOn) => onChange({ chybi: isOn ? 1 : undefined })}

@@ -1,5 +1,5 @@
 import type { ReactElement, ReactNode } from "react"
-import { X } from "lucide-react"
+import { ArrowLeft, X } from "lucide-react"
 
 import { Button } from "@/components/ui/button"
 import {
@@ -28,6 +28,9 @@ type FilterPanelProps = {
   onApply: () => void
   /** Width of the desktop popover, e.g. "w-80". */
   popoverClassName?: string
+  /** Mobile second level (Figma A-02b): a back arrow before the title. */
+  onBack?: () => void
+  backLabel?: string
 }
 
 /**
@@ -46,6 +49,8 @@ export function FilterPanel({
   applyLabel,
   onApply,
   popoverClassName,
+  onBack,
+  backLabel = "Zpět",
 }: FilterPanelProps) {
   const isDesktop = useMediaQuery(DESKTOP_QUERY)
 
@@ -90,6 +95,16 @@ export function FilterPanel({
       <DrawerTrigger asChild>{trigger}</DrawerTrigger>
       <DrawerContent aria-describedby={undefined}>
         <DrawerHeader className="flex-row items-center gap-2 px-4 py-2">
+          {onBack ? (
+            <Button
+              variant="ghost"
+              size="icon"
+              aria-label={backLabel}
+              onClick={onBack}
+            >
+              <ArrowLeft className="size-6" />
+            </Button>
+          ) : null}
           <DrawerTitle className="flex-1 text-left text-lg tracking-tight">{title}</DrawerTitle>
           <DrawerClose asChild>
             <Button

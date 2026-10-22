@@ -179,3 +179,79 @@ describe("EventFilters › Termín", () => {
     expect(onChange).toHaveBeenCalledWith({ od: undefined, do: undefined })
   })
 })
+
+describe("EventFilters › Typ aktivity", () => {
+  const teamSports: ActivityCategory = {
+    id: "c-tymove",
+    slug: "tymove-sporty",
+    name: "Týmové sporty",
+    icon: "ball",
+    activities: [
+      { id: "a-florbal", slug: "florbal", name: "Florbal", keywords: [] },
+      { id: "a-volejbal", slug: "volejbal", name: "Volejbal", keywords: [] },
+    ],
+  }
+  const games: ActivityCategory = {
+    id: "c-hry",
+    slug: "hry",
+    name: "Hry",
+    icon: "dice",
+    activities: [{ id: "a-sachy", slug: "sachy", name: "Šachy", keywords: ["šach"] }],
+  }
+  const withCatalog = { catalog: { localities, categories: [teamSports, games] } }
+
+  beforeEach(() => {
+    vi.stubGlobal("matchMedia", (query: string) => ({
+      matches: true,
+      media: query,
+      addEventListener: vi.fn(),
+      removeEventListener: vi.fn(),
+    }))
+  })
+  afterEach(() => vi.unstubAllGlobals())
+
+  it("checks a whole category and shows its activities as checked", async () => {
+    const { onChange } = renderFilters(withCatalog)
+
+    await userEvent.click(screen.getByRole("button", { name: "Typ aktivity" }))
+    const panel = await screen.findByRole("dialog", { name: "Typ aktivity" })
+    await userEvent.click(
+      within(panel).getByRole("checkbox", { name: "Celá kategorie Týmové sporty" }),
+    )
+    expect(within(panel).getByRole("checkbox", { name: "Volejbal" })).toBeChecked()
+
+    await userEvent.click(within(panel).getByRole("button", { name: /^Zobrazit/ }))
+    expect(onChange).toHaveBeenCalledWith({ kategorie: "tymove-sporty", aktivita: undefined })
+  })
+
+  it("half-checks a category with some activities picked", async () => {
+    const { onChange } = renderFilters(withCatalog)
+
+    await userEvent.click(screen.getByRole("button", { name: "Typ aktivity" }))
+    const panel = await screen.findByRole("dialog", { name: "Typ aktivity" })
+    await userEvent.click(within(panel).getByRole("checkbox", { name: "Florbal" }))
+    expect(
+      within(panel).getByRole("checkbox", { name: "Celá kategorie Týmové sporty" }),
+    ).toHaveAttribute("aria-checked", "mixed")
+
+    await userEvent.click(within(panel).getByRole("button", { name: /^Zobrazit/ }))
+    expect(onChange).toHaveBeenCalledWith({ kategorie: undefined, aktivita: "florbal" })
+  })
+
+  it("finds an activity in another category by search", async () => {
+    const { onChange } = renderFilters(withCatalog)
+
+    await userEvent.click(screen.getByRole("button", { name: "Typ aktivity" }))
+    const panel = await screen.findByRole("dialog", { name: "Typ aktivity" })
+    await userEvent.type(within(panel).getByLabelText("Hledat aktivitu"), "sach")
+    await userEvent.click(within(panel).getByRole("checkbox", { name: /Šachy/ }))
+
+    await userEvent.click(within(panel).getByRole("button", { name: /^Zobrazit/ }))
+    expect(onChange).toHaveBeenCalledWith({ kategorie: "hry", aktivita: undefined })
+  })
+
+  it("names the chip after a single selection, counts several", () => {
+    renderFilters({ ...withCatalog, search: { aktivita: "volejbal" } })
+    expect(screen.getByRole("button", { name: "Volejbal" })).toBeInTheDocument()
+  })
+})
