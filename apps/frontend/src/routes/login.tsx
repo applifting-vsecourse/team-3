@@ -21,13 +21,13 @@ export const Route = createFileRoute("/login")({
   loader: async ({ context }) => {
     const session = await context.queryClient.ensureQueryData(authSessionQueryOptions())
     if (!session) return
-    throw redirect({ to: ROUTES.quacks })
+    throw redirect({ to: ROUTES.events })
   },
 })
 
 function LoginPage() {
   const { from } = Route.useSearch()
-  const redirectTo = from ? decodeRedirectUri(from) : ROUTES.quacks
+  const redirectTo = from ? decodeRedirectUri(from) : ROUTES.events
   const navigate = useNavigate()
   const signIn = useSignIn()
   const [errorMessage, setErrorMessage] = useState<string | null>(null)
@@ -47,7 +47,7 @@ function LoginPage() {
       <Seo title="Sign in" />
       <AuthLayout
         title="Sign in"
-        description="Welcome back to Quacker."
+        description="Welcome back to HobbyHub."
         footer={
           <>
             No account?{" "}

@@ -1,3 +1,4 @@
+import { toSlug } from '@/modules/catalog/services/catalog.service';
 import {
   demoActivities,
   demoActivityCategories,
@@ -14,7 +15,7 @@ import { toEventRow, toGroupRow } from './demo-rows';
 
 const userKeys = new Set(demoUsers.map((user) => user.key));
 const activitySlugs = new Set<string>(demoActivities.map((a) => a.slug));
-const localityNames = new Set<string>(demoLocalities.map((l) => l.name));
+const localitySlugs = new Set<string>(demoLocalities.map((l) => l.slug));
 const approvedCount = (event: (typeof demoEvents)[number]): number =>
   event.participations.filter((p) => p.status === 'approved').length;
 
@@ -29,7 +30,7 @@ describe('demo data', () => {
     expect(unique(demoGroups.map((g) => g.key))).toBe(true);
     expect(unique(demoActivities.map((a) => a.slug))).toBe(true);
     expect(unique(demoActivityCategories.map((c) => c.slug))).toBe(true);
-    expect(unique(demoLocalities.map((l) => l.name))).toBe(true);
+    expect(unique(demoLocalities.map((l) => l.slug))).toBe(true);
   });
 
   it('ends every category with an "other" activity (B-002)', () => {
@@ -42,11 +43,25 @@ describe('demo data', () => {
     }
   });
 
+  it('builds locality slugs from names unless a duplicate name needs a suffix', () => {
+    // The slug migration backfills existing rows with the same rule, so a
+    // hand-written slug that drifts from it would make the seed duplicate a row.
+    const nameCounts = new Map<string, number>();
+    demoLocalities.forEach((l) =>
+      nameCounts.set(l.name, (nameCounts.get(l.name) ?? 0) + 1),
+    );
+    for (const locality of demoLocalities) {
+      if (nameCounts.get(locality.name) === 1) {
+        expect(locality.slug).toBe(toSlug(locality.name));
+      }
+    }
+  });
+
   it('lists parent localities before their parts', () => {
     demoLocalities.forEach((locality, index) => {
-      if (!locality.parentName) return;
+      if (!locality.parentSlug) return;
       const parentIndex = demoLocalities.findIndex(
-        (l) => l.name === locality.parentName,
+        (l) => l.slug === locality.parentSlug,
       );
       expect(parentIndex).toBeGreaterThanOrEqual(0);
       expect(parentIndex).toBeLessThan(index);
@@ -55,19 +70,19 @@ describe('demo data', () => {
 
   it('references only existing users, activities and localities', () => {
     for (const user of demoUsers) {
-      expect(localityNames.has(user.homeLocalityName)).toBe(true);
+      expect(localitySlugs.has(user.homeLocalitySlug)).toBe(true);
       user.interestSlugs.forEach((slug) =>
         expect(activitySlugs.has(slug)).toBe(true),
       );
     }
     for (const group of demoGroups) {
       expect(activitySlugs.has(group.activitySlug)).toBe(true);
-      expect(localityNames.has(group.localityName)).toBe(true);
+      expect(localitySlugs.has(group.localitySlug)).toBe(true);
       group.members.forEach((m) => expect(userKeys.has(m.userKey)).toBe(true));
     }
     for (const event of demoEvents) {
       expect(activitySlugs.has(event.activitySlug)).toBe(true);
-      expect(localityNames.has(event.localityName)).toBe(true);
+      expect(localitySlugs.has(event.localitySlug)).toBe(true);
       expect(userKeys.has(event.organizerKey)).toBe(true);
       event.participations.forEach((p) =>
         expect(userKeys.has(p.userKey)).toBe(true),

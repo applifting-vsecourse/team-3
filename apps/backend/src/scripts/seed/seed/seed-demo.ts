@@ -27,10 +27,10 @@ export async function seedDemo(
     select: { id: true, slug: true },
   });
   const localities = await prisma.locality.findMany({
-    select: { id: true, name: true },
+    select: { id: true, slug: true },
   });
   const activityId = lookup(activities, (a) => a.slug, 'activity');
-  const localityId = lookup(localities, (l) => l.name, 'locality');
+  const localityId = lookup(localities, (l) => l.slug, 'locality');
 
   const userIds = new Map<string, string>();
   let createdUsers = 0;
@@ -42,7 +42,7 @@ export async function seedDemo(
       username: demoUser.username,
       emailVerified: demoUser.emailVerified,
       bio: demoUser.bio,
-      homeLocalityId: localityId(demoUser.homeLocalityName),
+      homeLocalityId: localityId(demoUser.homeLocalitySlug),
       interestActivityIds: demoUser.interestSlugs.map(activityId),
     });
     userIds.set(demoUser.key, user.id);
@@ -78,7 +78,7 @@ export async function seedDemo(
             name: group.name,
             description: group.description,
             activityId: activityId(group.activitySlug),
-            localityId: localityId(group.localityName),
+            localityId: localityId(group.localitySlug),
             type: group.type,
             status: group.status,
             deactivatedAt: group.deactivatedAt,
@@ -107,7 +107,7 @@ export async function seedDemo(
             lat: event.lat,
             lng: event.lng,
             address: event.address,
-            localityId: localityId(event.localityName),
+            localityId: localityId(event.localitySlug),
             minParticipants: event.minParticipants,
             maxParticipants: event.maxParticipants,
             price: event.price,

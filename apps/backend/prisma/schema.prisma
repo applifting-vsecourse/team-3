@@ -319,8 +319,10 @@ model Activity {
 }
 
 /// Lokalita: město, nebo městská část (`parentId` ukazuje na město). Souřadnice = přibližný střed.
+/// `slug` je stabilní klíč pro seed a odkazy; jméno unikátní není (víc obcí „Nová Ves“).
 model Locality {
   id       String     @id @default(cuid())
+  slug     String     @unique
   name     String
   parentId String?
   parent   Locality?  @relation("LocalityParent", fields: [parentId], references: [id], onDelete: Restrict)
