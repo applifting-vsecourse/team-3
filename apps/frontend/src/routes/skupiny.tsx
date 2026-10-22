@@ -15,7 +15,7 @@ function GroupsPage() {
     <>
       <Seo title="Skupiny" />
       <Header userMenu={<HeaderMenu />} />
-      <main className="min-h-svh">
+      <main className="flex-1">
         <ComingSoon title="Skupiny" />
       </main>
     </>

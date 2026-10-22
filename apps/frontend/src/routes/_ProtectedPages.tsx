@@ -26,7 +26,7 @@ function Layout() {
     <>
       <Seo />
       <Header userMenu={<HeaderMenu />} />
-      <main className="min-h-svh">
+      <main className="flex-1">
         <Outlet />
       </main>
     </>

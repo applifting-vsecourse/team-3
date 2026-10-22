@@ -15,15 +15,19 @@ export const Route = createRootRouteWithContext<{
 })
 
 function RootComponent() {
-  const { user } = useSession()
+  const { user, isPending } = useSession()
 
   return (
     <>
-      {/* Bottom padding keeps page content clear of the fixed mobile navigation. */}
-      <div className="pb-16 md:pb-0">
+      {/* Pages fill the viewport (main is flex-1); bottom padding keeps content
+          clear of the fixed mobile navigation. */}
+      <div className="flex min-h-svh flex-col pb-16 md:pb-0">
         <Outlet />
       </div>
-      <BottomNav isSignedIn={Boolean(user)} />
+      <BottomNav
+        isSignedIn={Boolean(user)}
+        isSessionPending={isPending}
+      />
       <Toaster
         richColors
         position="top-right"

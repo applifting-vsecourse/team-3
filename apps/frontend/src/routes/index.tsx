@@ -20,7 +20,7 @@ function LandingPage() {
     <>
       <Seo />
       <Header userMenu={<HeaderMenu />} />
-      <main className="min-h-svh">
+      <main className="flex-1">
         <section className="mx-auto w-full max-w-2xl px-4 pt-16 pb-12 text-center">
           <h1 className="text-4xl font-bold tracking-tight text-balance sm:text-5xl">
             Najdi partu na svůj koníček.

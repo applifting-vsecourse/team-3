@@ -19,7 +19,7 @@ export function AuthLayout({ title, description, children, footer }: AuthLayoutP
   return (
     <>
       <Header userMenu={null} />
-      <main className="min-h-svh">
+      <main className="flex-1">
         <section className="mx-auto w-full max-w-sm px-4 py-16">
           <h1 className="text-2xl font-semibold tracking-tight">{title}</h1>
           <p className="mt-2 text-sm text-muted-foreground">{description}</p>

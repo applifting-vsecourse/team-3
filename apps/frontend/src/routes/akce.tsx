@@ -15,7 +15,7 @@ function EventsPage() {
     <>
       <Seo title="Akce" />
       <Header userMenu={<HeaderMenu />} />
-      <main className="min-h-svh">
+      <main className="flex-1">
         <ComingSoon title="Akce" />
       </main>
     </>
