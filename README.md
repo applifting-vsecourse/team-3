@@ -1,6 +1,8 @@
 # HobbyHub
 
-**Projektová dokumentace – rozcesetník (user stories, zápis z planningu, design atd.): [docs/](docs/README.md)**
+**Projektová dokumentace – rozcestník (user stories, zápis z planningu, design atd.): [docs/](docs/README.md)**
+
+**Staging:** https://team-3.vsepractical.applifting.dev (nasazuje se automaticky z `main`, demo účty viz [Seeded users](#seeded-users))
 
 #full-stack starter template
 
