@@ -3,7 +3,13 @@ import { describe, expect, it } from "vitest"
 import type { ActivityCategory, Locality } from "@/features/events/api/catalogSchemas"
 import { toSearchParams } from "@/features/events/api/eventsQueryOptions"
 
-import { eventsSearchSchema, joinSlugs, splitSlugs, toEventFilters } from "./eventsSearch"
+import {
+  eventsSearchSchema,
+  hasActiveFilters,
+  joinSlugs,
+  splitSlugs,
+  toEventFilters,
+} from "./eventsSearch"
 
 const locality = (slug: string, parentId: string | null = null): Locality => ({
   id: `l-${slug}`,
@@ -114,6 +120,22 @@ describe("toEventFilters", () => {
   it("keeps only the start of an inverted range", () => {
     const filters = toEventFilters({ od: "2026-10-30", do: "2026-10-24" }, catalog)
     expect(filters).toMatchObject({ dateFrom: "2026-10-30", dateTo: undefined })
+  })
+})
+
+describe("hasActiveFilters", () => {
+  it("does not count Praha, the default", () => {
+    expect(hasActiveFilters({})).toBe(false)
+    expect(hasActiveFilters({ lokalita: "praha" })).toBe(false)
+  })
+
+  it("counts every other filter", () => {
+    expect(hasActiveFilters({ lokalita: "praha-8" })).toBe(true)
+    expect(hasActiveFilters({ od: "2026-10-24" })).toBe(true)
+    expect(hasActiveFilters({ do: "2026-10-25" })).toBe(true)
+    expect(hasActiveFilters({ kategorie: "hry" })).toBe(true)
+    expect(hasActiveFilters({ aktivita: "volejbal" })).toBe(true)
+    expect(hasActiveFilters({ chybi: 1 })).toBe(true)
   })
 })
 

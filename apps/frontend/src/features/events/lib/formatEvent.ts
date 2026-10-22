@@ -40,6 +40,13 @@ export function capacityStatus(event: PublicEvent): CapacityStatus {
 export const eventFacts = (event: PublicEvent): string =>
   `${event.approvedCount}/${event.maxParticipants} · ${event.locality.name}`
 
+/** Button of a filter panel: "Zobrazit 1 akci", "Zobrazit 3 akce", "Zobrazit 24 akcí" */
+export function showEventsLabel(count: number): string {
+  if (count === 1) return "Zobrazit 1 akci"
+  if (count >= 2 && count <= 4) return `Zobrazit ${count} akce`
+  return `Zobrazit ${count} akcí`
+}
+
 /** "1 akce", "3 akce", "24 akcí" */
 export function eventCountLabel(count: number): string {
   if (count === 1) return "1 akce"

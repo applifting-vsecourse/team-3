@@ -35,6 +35,15 @@ export const splitSlugs = (value: string | undefined): string[] => (value ? valu
 export const joinSlugs = (slugs: string[]): string | undefined =>
   slugs.length > 0 ? slugs.join(",") : undefined
 
+/** Whether „Zrušit vše“ has anything to clear. Praha is the default, not a filter. */
+export const hasActiveFilters = (search: EventsSearch): boolean =>
+  (search.lokalita !== undefined && search.lokalita !== DEFAULT_LOCALITY_SLUG) ||
+  search.od !== undefined ||
+  search.do !== undefined ||
+  search.kategorie !== undefined ||
+  search.aktivita !== undefined ||
+  search.chybi !== undefined
+
 /**
  * Turns the URL's slugs into the API's ids. Slugs the catalog doesn't know
  * (an old link, a typo) are left out instead of matching nothing.
