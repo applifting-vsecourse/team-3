@@ -1,6 +1,7 @@
 import { Link } from "@tanstack/react-router"
 import { LogOut } from "lucide-react"
 
+import { ROUTES } from "@/app/routes"
 import { Avatar, AvatarFallback } from "@/components/ui/avatar"
 import { Button } from "@/components/ui/button"
 import {
@@ -19,19 +20,30 @@ export function HeaderMenu() {
   const { user } = useSession()
   const signOut = useSignOut()
 
+  // On mobile, signing in lives in the bottom navigation.
   if (!user) {
     return (
-      <Button
-        asChild
-        size="sm"
-      >
-        <Link to="/login">Sign in</Link>
-      </Button>
+      <div className="hidden items-center gap-2 md:flex">
+        <Button
+          asChild
+          variant="ghost"
+        >
+          <Link to={ROUTES.login}>Přihlásit se</Link>
+        </Button>
+        <Button
+          asChild
+          variant="outline"
+        >
+          <Link to={ROUTES.signup}>Registrovat</Link>
+        </Button>
+      </div>
     )
   }
 
   const initials = user.name
     .split(" ")
+    // Skip words that don't start with a letter, e.g. "(Delete" in "Admin (Delete in Prod)".
+    .filter((word) => /^\p{L}/u.test(word))
     .map((word) => word[0])
     .join("")
     .slice(0, 2)
@@ -43,7 +55,7 @@ export function HeaderMenu() {
         <Button
           variant="ghost"
           size="icon"
-          aria-label="User menu"
+          aria-label="Uživatelské menu"
           className="rounded-full"
         >
           <Avatar className="size-8">
@@ -67,7 +79,7 @@ export function HeaderMenu() {
           disabled={signOut.isPending}
         >
           <LogOut className="size-4" />
-          Sign out
+          Odhlásit se
         </DropdownMenuItem>
       </DropdownMenuContent>
     </DropdownMenu>

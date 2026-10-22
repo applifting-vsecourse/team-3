@@ -13,7 +13,7 @@ type HeaderProps = {
 export function Header({ userMenu }: HeaderProps) {
   return (
     <header className="sticky top-0 z-40 w-full border-b border-border bg-background/80 backdrop-blur">
-      <div className="mx-auto flex h-14 w-full max-w-4xl items-center gap-4 px-4">
+      <div className="flex h-14 w-full items-center gap-8 px-4 md:h-18 md:px-10">
         <HeaderLogo />
         <HeaderNav />
         <div className="ml-auto flex items-center gap-2">

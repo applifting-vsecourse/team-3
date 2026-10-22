@@ -11,8 +11,11 @@
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as ProtectedPagesRouteImport } from './routes/_ProtectedPages'
+import { Route as AkceRouteImport } from './routes/akce'
 import { Route as LoginRouteImport } from './routes/login'
 import { Route as SignupRouteImport } from './routes/signup'
+import { Route as SkupinyRouteImport } from './routes/skupiny'
+import { Route as ProtectedPagesProfilRouteImport } from './routes/_ProtectedPages/profil'
 import { Route as ProtectedPagesQuacksRouteImport } from './routes/_ProtectedPages/quacks'
 
 const IndexRoute = IndexRouteImport.update({
@@ -22,6 +25,11 @@ const IndexRoute = IndexRouteImport.update({
 } as any)
 const ProtectedPagesRoute = ProtectedPagesRouteImport.update({
   id: '/_ProtectedPages',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AkceRoute = AkceRouteImport.update({
+  id: '/akce',
+  path: '/akce',
   getParentRoute: () => rootRouteImport,
 } as any)
 const LoginRoute = LoginRouteImport.update({
@@ -34,6 +42,16 @@ const SignupRoute = SignupRouteImport.update({
   path: '/signup',
   getParentRoute: () => rootRouteImport,
 } as any)
+const SkupinyRoute = SkupinyRouteImport.update({
+  id: '/skupiny',
+  path: '/skupiny',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ProtectedPagesProfilRoute = ProtectedPagesProfilRouteImport.update({
+  id: '/profil',
+  path: '/profil',
+  getParentRoute: () => ProtectedPagesRoute,
+} as any)
 const ProtectedPagesQuacksRoute = ProtectedPagesQuacksRouteImport.update({
   id: '/quacks',
   path: '/quacks',
@@ -42,43 +60,58 @@ const ProtectedPagesQuacksRoute = ProtectedPagesQuacksRouteImport.update({
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/akce': typeof AkceRoute
   '/login': typeof LoginRoute
   '/signup': typeof SignupRoute
+  '/skupiny': typeof SkupinyRoute
+  '/profil': typeof ProtectedPagesProfilRoute
   '/quacks': typeof ProtectedPagesQuacksRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/akce': typeof AkceRoute
   '/login': typeof LoginRoute
   '/signup': typeof SignupRoute
+  '/skupiny': typeof SkupinyRoute
+  '/profil': typeof ProtectedPagesProfilRoute
   '/quacks': typeof ProtectedPagesQuacksRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/_ProtectedPages': typeof ProtectedPagesRouteWithChildren
+  '/akce': typeof AkceRoute
   '/login': typeof LoginRoute
   '/signup': typeof SignupRoute
+  '/skupiny': typeof SkupinyRoute
+  '/_ProtectedPages/profil': typeof ProtectedPagesProfilRoute
   '/_ProtectedPages/quacks': typeof ProtectedPagesQuacksRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/login' | '/signup' | '/quacks'
+  fullPaths:
+    '/' | '/akce' | '/login' | '/signup' | '/skupiny' | '/profil' | '/quacks'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/login' | '/signup' | '/quacks'
+  to: '/' | '/akce' | '/login' | '/signup' | '/skupiny' | '/profil' | '/quacks'
   id:
     | '__root__'
     | '/'
     | '/_ProtectedPages'
+    | '/akce'
     | '/login'
     | '/signup'
+    | '/skupiny'
+    | '/_ProtectedPages/profil'
     | '/_ProtectedPages/quacks'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   ProtectedPagesRoute: typeof ProtectedPagesRouteWithChildren
+  AkceRoute: typeof AkceRoute
   LoginRoute: typeof LoginRoute
   SignupRoute: typeof SignupRoute
+  SkupinyRoute: typeof SkupinyRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -97,6 +130,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ProtectedPagesRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/akce': {
+      id: '/akce'
+      path: '/akce'
+      fullPath: '/akce'
+      preLoaderRoute: typeof AkceRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/login': {
       id: '/login'
       path: '/login'
@@ -111,6 +151,20 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof SignupRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/skupiny': {
+      id: '/skupiny'
+      path: '/skupiny'
+      fullPath: '/skupiny'
+      preLoaderRoute: typeof SkupinyRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/_ProtectedPages/profil': {
+      id: '/_ProtectedPages/profil'
+      path: '/profil'
+      fullPath: '/profil'
+      preLoaderRoute: typeof ProtectedPagesProfilRouteImport
+      parentRoute: typeof ProtectedPagesRoute
+    }
     '/_ProtectedPages/quacks': {
       id: '/_ProtectedPages/quacks'
       path: '/quacks'
@@ -122,10 +176,12 @@ declare module '@tanstack/react-router' {
 }
 
 interface ProtectedPagesRouteChildren {
+  ProtectedPagesProfilRoute: typeof ProtectedPagesProfilRoute
   ProtectedPagesQuacksRoute: typeof ProtectedPagesQuacksRoute
 }
 
 const ProtectedPagesRouteChildren: ProtectedPagesRouteChildren = {
+  ProtectedPagesProfilRoute: ProtectedPagesProfilRoute,
   ProtectedPagesQuacksRoute: ProtectedPagesQuacksRoute,
 }
 
@@ -136,8 +192,10 @@ const ProtectedPagesRouteWithChildren = ProtectedPagesRoute._addFileChildren(
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   ProtectedPagesRoute: ProtectedPagesRouteWithChildren,
+  AkceRoute: AkceRoute,
   LoginRoute: LoginRoute,
   SignupRoute: SignupRoute,
+  SkupinyRoute: SkupinyRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
