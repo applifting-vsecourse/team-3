@@ -46,7 +46,7 @@ export function HeaderLogo() {
   return (
     <Link
       to={ROUTES.home}
-      className="font-heading flex items-center gap-2 text-xl font-bold tracking-tight"
+      className="flex items-center gap-2 font-heading text-xl font-bold tracking-tight"
     >
       <LogoMark />
       HobbyHub
