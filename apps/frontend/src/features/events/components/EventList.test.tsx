@@ -32,6 +32,22 @@ describe("EventList", () => {
     expect(screen.getByText("2 akce")).toBeInTheDocument()
   })
 
+  it("reports the hovered card, so the map can highlight its pin", async () => {
+    const onHighlight = vi.fn()
+    render(
+      <EventList
+        events={[anEvent()]}
+        onHighlight={onHighlight}
+      />,
+    )
+
+    const card = screen.getByRole("article")
+    await userEvent.hover(card)
+    expect(onHighlight).toHaveBeenLastCalledWith("e1")
+    await userEvent.unhover(card)
+    expect(onHighlight).toHaveBeenLastCalledWith(undefined)
+  })
+
   it("shows a skeleton while loading", () => {
     render(
       <EventList

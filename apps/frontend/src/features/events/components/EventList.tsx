@@ -13,9 +13,19 @@ type EventListProps = {
   isLoading?: boolean
   error?: Error
   onRetry?: () => void
+  /** The card under the mouse, so the map can highlight its pin. */
+  highlightedId?: string
+  onHighlight?: (eventId: string | undefined) => void
 }
 
-export function EventList({ events, isLoading, error, onRetry }: EventListProps) {
+export function EventList({
+  events,
+  isLoading,
+  error,
+  onRetry,
+  highlightedId,
+  onHighlight,
+}: EventListProps) {
   if (error) {
     return (
       <Alert variant="destructive">
@@ -67,7 +77,12 @@ export function EventList({ events, isLoading, error, onRetry }: EventListProps)
         <ul className="flex flex-col gap-3">
           {events.map((event) => (
             <li key={event.id}>
-              <EventCard event={event} />
+              <EventCard
+                event={event}
+                isHighlighted={event.id === highlightedId}
+                onMouseEnter={() => onHighlight?.(event.id)}
+                onMouseLeave={() => onHighlight?.(undefined)}
+              />
             </li>
           ))}
         </ul>

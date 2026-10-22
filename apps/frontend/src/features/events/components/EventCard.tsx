@@ -12,15 +12,28 @@ import {
 
 type EventCardProps = {
   event: PublicEvent
+  /** Its pin is highlighted on the map (Figma: Event card/List – najetí myší). */
+  isHighlighted?: boolean
+  onMouseEnter?: () => void
+  onMouseLeave?: () => void
   className?: string
 }
 
 /** An event in the list (Figma: Event card/List). */
-export function EventCard({ event, className }: EventCardProps) {
+export function EventCard({
+  event,
+  isHighlighted,
+  onMouseEnter,
+  onMouseLeave,
+  className,
+}: EventCardProps) {
   return (
     <article
+      onMouseEnter={onMouseEnter}
+      onMouseLeave={onMouseLeave}
       className={cn(
         "flex items-center gap-3 rounded-lg border border-border bg-card p-3 text-card-foreground transition-colors hover:border-foreground",
+        isHighlighted && "border-foreground",
         className,
       )}
     >
