@@ -120,3 +120,62 @@ describe("EventFilters", () => {
     expect(onChange).toHaveBeenCalledWith({ lokalita: undefined })
   })
 })
+
+describe("EventFilters › Termín", () => {
+  beforeEach(() => {
+    vi.stubGlobal("matchMedia", (query: string) => ({
+      matches: true,
+      media: query,
+      addEventListener: vi.fn(),
+      removeEventListener: vi.fn(),
+    }))
+    // Friday 23. 10. 2026, 10:00 in Prague. Only Date is faked, so user-event timers still run.
+    vi.useFakeTimers({ toFake: ["Date"] })
+    vi.setSystemTime(new Date("2026-10-23T08:00:00Z"))
+  })
+  afterEach(() => {
+    vi.useRealTimers()
+    vi.unstubAllGlobals()
+  })
+
+  it("applies a quick option", async () => {
+    const { onChange } = renderFilters()
+
+    await userEvent.click(screen.getByRole("button", { name: "Termín" }))
+    const panel = await screen.findByRole("dialog", { name: "Termín" })
+    await userEvent.click(within(panel).getByRole("button", { name: "Tento víkend" }))
+    expect(within(panel).getByRole("button", { name: "Tento víkend" })).toHaveAttribute(
+      "aria-pressed",
+      "true",
+    )
+    await userEvent.click(await within(panel).findByRole("button", { name: /^Zobrazit/ }))
+
+    expect(onChange).toHaveBeenCalledWith({ od: "2026-10-24", do: "2026-10-25" })
+  })
+
+  it("does not let past days be picked; one picked day is a one-day range", async () => {
+    const { onChange } = renderFilters()
+
+    await userEvent.click(screen.getByRole("button", { name: "Termín" }))
+    const panel = await screen.findByRole("dialog", { name: "Termín" })
+    const day = (n: number) =>
+      within(panel)
+        .getAllByRole("button")
+        .find((b) => b.textContent === String(n) && b.closest("[role=gridcell], td"))
+    expect(day(22)).toBeDisabled()
+    expect(day(23)).toBeEnabled()
+
+    await userEvent.click(day(27)!)
+    await userEvent.click(await within(panel).findByRole("button", { name: /^Zobrazit/ }))
+    expect(onChange).toHaveBeenCalledWith({ od: "2026-10-27", do: "2026-10-27" })
+  })
+
+  it("shows the range on the chip and clears it", async () => {
+    const { onChange } = renderFilters({ search: { od: "2026-10-23", do: "2026-10-29" } })
+
+    await userEvent.click(screen.getByRole("button", { name: "23.–29. 10." }))
+    const panel = await screen.findByRole("dialog", { name: "Termín" })
+    await userEvent.click(within(panel).getByRole("button", { name: "Zrušit termín" }))
+    expect(onChange).toHaveBeenCalledWith({ od: undefined, do: undefined })
+  })
+})
