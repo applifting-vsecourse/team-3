@@ -24,9 +24,9 @@
  * - Skupiny g-florbal-pokrocili a g-badminton (správce Tomáš) mají čekající žádost Jakuba.
  * - g-volejbal je veřejná a Jakub v ní není (Přidat se), z g-turistika může odejít.
  *
- * Soubor zatím NENÍ napojený na seed: modely ActivityCategory, Activity, Locality, Event,
- * Participation, Group a GroupMember ve schema.prisma ještě nejsou (B-002, B-020, B-030, B-050).
- * Názvy polí odpovídají popisu modelů v BACKLOG.md; po vzniku schématu je případně dorovnat.
+ * Seed soubor načítá (seed/seed-catalog.ts a seed/seed-demo.ts, převod na řádky v demo-rows.ts).
+ * Pole `key`, `scenario` a `demoCase` se do databáze neukládají. Kontroly dat jsou v demo-data.spec.ts.
+ * Datový model a ER diagram: docs/datovy-model.md.
  *
  * Tento soubor je vygenerovaný – účastníci jsou vybraní podle zájmů uživatelů tak, aby nikdo
  * neměl časovou kolizi při seedu v libovolný den a hodinu.
