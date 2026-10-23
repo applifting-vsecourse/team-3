@@ -72,7 +72,10 @@ function EventsPage() {
             onChange={setSearch}
             onClearAll={() => void navigate({ search: {}, replace: true })}
             isFloating={!isDesktop && !isListExpanded}
-            className="overflow-x-auto px-4 py-3 md:px-8"
+            // Chips scroll sideways on narrow screens without a visible scrollbar
+            // (Figma A-02); a desktop scrollbar would also make the bar taller
+            // and cover the top of the pulled-up list.
+            className="[scrollbar-width:none] overflow-x-auto px-4 py-3 md:px-8 [&::-webkit-scrollbar]:hidden"
           />
         </div>
 
