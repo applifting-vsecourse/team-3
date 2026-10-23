@@ -16,8 +16,11 @@ type EventListProps = {
   /** The card under the mouse, so the map can highlight its pin. */
   highlightedId?: string
   onHighlight?: (eventId: string | undefined) => void
-  /** Show only the first N cards (the closed mobile panel); the count stays the total. */
-  limit?: number
+  /**
+   * The closed mobile panel shows only the first N cards; the rest stay
+   * rendered (so the sheet can be dragged up smoothly) but inert.
+   */
+  inertAfter?: number
 }
 
 export function EventList({
@@ -27,11 +30,14 @@ export function EventList({
   onRetry,
   highlightedId,
   onHighlight,
-  limit,
+  inertAfter,
 }: EventListProps) {
   if (error) {
     return (
-      <Alert variant="destructive">
+      <Alert
+        variant="destructive"
+        data-peek-end
+      >
         <AlertTitle>Akce se nepodařilo načíst</AlertTitle>
         <AlertDescription className="flex items-center justify-between gap-3">
           {/* ky's message is a URL and a status code; it stays in the console */}
@@ -58,8 +64,11 @@ export function EventList({
         aria-busy
         aria-label="Načítám akce"
       >
-        {Array.from({ length: limit ?? 4 }, (_, i) => (
-          <EventCardSkeleton key={i} />
+        {[0, 1, 2, 3].map((i) => (
+          <EventCardSkeleton
+            key={i}
+            isPeekEnd={i === 0}
+          />
         ))}
       </div>
     )
@@ -74,13 +83,20 @@ export function EventList({
       </div>
 
       {events.length === 0 ? (
-        <p className="py-8 text-center text-sm text-muted-foreground">
+        <p
+          data-peek-end
+          className="py-8 text-center text-sm text-muted-foreground"
+        >
           Pro zvolené filtry teď nejsou žádné nadcházející akce.
         </p>
       ) : (
         <ul className="flex flex-col gap-3">
-          {events.slice(0, limit).map((event) => (
-            <li key={event.id}>
+          {events.map((event, index) => (
+            <li
+              key={event.id}
+              data-peek-end={index === 0 ? "" : undefined}
+              inert={inertAfter !== undefined && index >= inertAfter}
+            >
               <EventCard
                 event={event}
                 isHighlighted={event.id === highlightedId}
@@ -95,9 +111,12 @@ export function EventList({
   )
 }
 
-function EventCardSkeleton() {
+function EventCardSkeleton({ isPeekEnd }: { isPeekEnd?: boolean }) {
   return (
-    <div className="flex items-center gap-3 rounded-lg border border-border p-3">
+    <div
+      data-peek-end={isPeekEnd ? "" : undefined}
+      className="flex items-center gap-3 rounded-lg border border-border p-3"
+    >
       <Skeleton className="size-16 rounded-lg" />
       <div className="flex flex-1 flex-col gap-2">
         <Skeleton className="h-4 w-3/4" />

@@ -48,16 +48,19 @@ describe("EventList", () => {
     expect(onHighlight).toHaveBeenLastCalledWith(undefined)
   })
 
-  it("shows only the first card in the closed mobile panel, with the full count", () => {
+  it("keeps cards below the closed mobile panel rendered but inert", () => {
     render(
       <EventList
         events={[anEvent({ id: "e1" }), anEvent({ id: "e2", title: "Deskovky po práci" })]}
-        limit={1}
+        inertAfter={1}
       />,
     )
 
     expect(screen.getByText("2 akce")).toBeInTheDocument()
-    expect(screen.getAllByRole("article")).toHaveLength(1)
+    const [first, second] = screen.getAllByRole("listitem")
+    expect(first).not.toHaveAttribute("inert")
+    expect(first).toHaveAttribute("data-peek-end")
+    expect(second).toHaveAttribute("inert")
   })
 
   it("shows a skeleton while loading", () => {

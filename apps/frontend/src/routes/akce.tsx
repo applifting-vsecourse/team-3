@@ -55,14 +55,15 @@ function EventsPage() {
       <Header userMenu={<HeaderMenu />} />
       {/* Desktop: main takes exactly the rest of the viewport (basis-0 + min-h-0),
           the list scrolls on its own and the map fills the height beside it. */}
-      <main className="relative flex flex-1 flex-col md:min-h-0 md:basis-0">
+      <main className="relative flex flex-1 flex-col overflow-hidden md:min-h-0 md:basis-0">
         <h1 className="sr-only">Akce</h1>
 
         <div
           className={cn(
             // mobile: chips over the map, or a bar above the pulled-up list
             "absolute inset-x-0 top-0 z-20",
-            isListExpanded && "border-b border-border bg-background",
+            // pb-1: the bar reaches the sheet below it (top-16), no strip of map between
+            isListExpanded && "border-b border-border bg-background pb-1",
             "md:static md:border-b md:border-border md:bg-background",
           )}
         >
@@ -93,7 +94,7 @@ function EventsPage() {
                 onRetry={retry}
                 highlightedId={highlightedId}
                 onHighlight={setHighlightedId}
-                limit={isDesktop || isListExpanded ? undefined : 1}
+                inertAfter={isDesktop || isListExpanded ? undefined : 1}
               />
             </div>
           </ListPanel>
