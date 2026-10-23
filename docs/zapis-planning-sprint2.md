@@ -137,12 +137,13 @@ PO teď nechce řešit hodnocení a funkce kolem, rozšiřovaly by scope bez vli
 ## K prokonzultování na příštím standupu
 
 1. **Filtr „Chybí lidé“:** tým ho přidal do designu i do sprintu 2 (hlavní hodnota produktu, ve wireframech nebyl). Odsouhlasit.
-2. **Mobil – výchozí pohled /akce (US-02):** mapa přes celou obrazovku a seznam ve vysouvacím panelu místo „výchozí je seznam, na mapu se přepíná“. Odpovídá na otázku z wireframu A-03. Odsouhlasit.
-3. **Zrušení akce místo smazání:** stejně jako u skupin (bod 3 výše).
-4. **Kategorie aktivit:** nový seznam týmu z 20. 10. (8 kategorií + „Jiné“, BACKLOG.md › B-002). Ukázat PO a vyslechnout připomínky.
-5. **Organizátor a vlastní akce:** organizátor není automaticky účastníkem, ale může se na svou akci přihlásit; jeho přihláška se neschvaluje a počítá se do obsazenosti (minima i maxima). Odsouhlasit.
-6. **Odchylky designu od wireframů:** [design-rozhodnuti.md](design-rozhodnuti.md). Wireframy jsou od 20. 10. aktualizované podle designu, původní verze je ve Figmě na stránce „Archiv“.
-7. **Akce skupin (US-18, #70):** ve sprintu 2 skupiny akce nemají, takže po přijetí do skupiny člen nemá co dělat (na demu slepá ulička). Probrat s PO, jestli zakládání akcí za skupinu vzít jako první věc sprintu 3, případně v jakém rozsahu (správce založí akci za skupinu, akce jen pro členy / veřejná).
+2. **Zapomenuté heslo:** má být ve scopu sprintu 2 i zapomenuté heslo? máme to teď jako jednu issue dohromady s ověřením emailu.
+3. **Mobil – výchozí pohled /akce (US-02):** mapa přes celou obrazovku a seznam ve vysouvacím panelu místo „výchozí je seznam, na mapu se přepíná“. Odpovídá na otázku z wireframu A-03. Odsouhlasit.
+4. **Zrušení akce místo smazání:** stejně jako u skupin (bod 3 výše).
+5. **Kategorie aktivit:** nový seznam týmu z 20. 10. (8 kategorií + „Jiné“, BACKLOG.md › B-002). Ukázat PO a vyslechnout připomínky.
+6. **Organizátor a vlastní akce:** organizátor není automaticky účastníkem, ale může se na svou akci přihlásit; jeho přihláška se neschvaluje a počítá se do obsazenosti (minima i maxima). Odsouhlasit.
+7. **Odchylky designu od wireframů:** [design-rozhodnuti.md](design-rozhodnuti.md). Wireframy jsou od 20. 10. aktualizované podle designu, původní verze je ve Figmě na stránce „Archiv“.
+8. **Akce skupin (US-18, #70):** ve sprintu 2 skupiny akce nemají, takže po přijetí do skupiny člen nemá co dělat (na demu slepá ulička). Probrat s PO, jestli zakládání akcí za skupinu vzít jako první věc sprintu 3, případně v jakém rozsahu (správce založí akci za skupinu, akce jen pro členy / veřejná).
 
 ## Další schůzka
 
