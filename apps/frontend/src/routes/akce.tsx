@@ -12,7 +12,7 @@ import { HeaderMenu } from "@/features/auth/components/HeaderMenu"
 import { EventFilters } from "@/features/events/components/EventFilters"
 import { EventList } from "@/features/events/components/EventList"
 import { EventsMap } from "@/features/events/components/EventsMap"
-import { ListPanel } from "@/features/events/components/ListPanel"
+import { ListPanel, type PanelSnap } from "@/features/events/components/ListPanel"
 import { useEvents } from "@/features/events/hooks/useEvents"
 import {
   DEFAULT_LOCALITY_SLUG,
@@ -38,7 +38,8 @@ function EventsPage() {
   const navigate = Route.useNavigate()
   const { events, catalog, isPending, error, retry } = useEvents(search)
   const isDesktop = useMediaQuery(DESKTOP_QUERY)
-  const [isListExpanded, setIsListExpanded] = useState(false)
+  const [panelSnap, setPanelSnap] = useState<PanelSnap>("peek")
+  const isListExpanded = panelSnap === "list"
   const [highlightedId, setHighlightedId] = useState<string>()
   const [panelPeekHeight, setPanelPeekHeight] = useState(0)
   const locality = catalog?.localities.find(
@@ -83,10 +84,10 @@ function EventsPage() {
 
         <div className="flex flex-1 md:min-h-0 md:gap-8 md:px-8">
           <ListPanel
-            isExpanded={isListExpanded}
-            onExpandedChange={setIsListExpanded}
+            snap={panelSnap}
+            onSnapChange={setPanelSnap}
             scrollResetKey={JSON.stringify(search)}
-            onPeekHeightChange={setPanelPeekHeight}
+            onVisibleHeightChange={setPanelPeekHeight}
           >
             <EventList
               events={events ?? []}
@@ -96,7 +97,8 @@ function EventsPage() {
               onRetry={retry}
               highlightedId={highlightedId}
               onHighlight={setHighlightedId}
-              inertAfter={isDesktop || isListExpanded ? undefined : 1}
+              // lowered sheet: what is below its edge is out of the Tab order
+              inertAfter={isDesktop || isListExpanded ? undefined : panelSnap === "map" ? 0 : 1}
             />
           </ListPanel>
 
@@ -131,7 +133,7 @@ function EventsPage() {
           // Figma: Map action „Mapa“ over the pulled-up list
           <Button
             variant="outline"
-            onClick={() => setIsListExpanded(false)}
+            onClick={() => setPanelSnap("peek")}
             // dark: the kit's outline is see-through in dark mode; this floats over cards
             className="absolute bottom-4 left-4 z-20 h-11 rounded-full bg-background shadow-md md:hidden dark:bg-background dark:hover:bg-accent"
           >

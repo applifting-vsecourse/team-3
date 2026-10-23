@@ -77,7 +77,13 @@ export function EventList({
   return (
     <div className="flex flex-col gap-3">
       <div className="flex items-center justify-between gap-3">
-        <p className="text-sm font-semibold">{eventCountLabel(events.length)}</p>
+        {/* the lowest mobile sheet position („map“) shows just this row */}
+        <p
+          data-peek-min
+          className="text-sm font-semibold"
+        >
+          {eventCountLabel(events.length)}
+        </p>
         {/* Other orders come in sprint 3 (#57); until then this is just a label. */}
         <p className="text-xs font-medium text-muted-foreground">Řadit: nejbližší termín</p>
       </div>
