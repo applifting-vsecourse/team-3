@@ -9,10 +9,10 @@ Zdroj: `HobbyHub_User_Stories_MVP.md` (US-01 až US-19, odvozené z Feature brea
 1. **Ber úkoly v pořadí.** Úkol začni, jen když jsou hotové všechny úkoly v řádku _Závisí na_.
 2. **Jeden úkol = jeden PR.** Název PR: `B-0XX: <název úkolu>`. Do popisu dej odkaz na US.
 3. **Před prací přečti** `CLAUDE.md` a `DESIGN.md`. DESIGN.md je závazný (tokeny, žádné vnořené karty, tři stavy seznamu).
-4. **Kopíruj vzor quack feature:** Prisma model → seed → repository → service → controller s DTO → zod schéma na FE → TanStack Query → stránka. Backend v `apps/backend/src/modules/<feature>/`, frontend v `apps/frontend/src/features/<feature>/`.
+4. **Kopíruj vzor feature akcí (`event`, #38):** Prisma model → seed → repository → service → controller s DTO → zod schéma na FE → TanStack Query → stránka. Backend v `apps/backend/src/modules/<feature>/`, frontend v `apps/frontend/src/features/<feature>/`.
 5. **UI ovládací prvky jen z kitu** (`pnpm dlx shadcn@latest add <name>`), bez stínů na kartách a inputech.
 6. **Validace vždy na FE i BE.** Oprávnění kontroluj na backendu (organizátor smí jen svou akci, správce jen svou skupinu, admin jen role `admin`).
-7. **Testy jsou součást úkolu.** Každý BE úkol má unit testy service vrstvy (vzor `quacks.service.spec.ts`), pravidla kapacity, stavů a oprávnění pokrytá testem. Před PR projdi `pnpm check-all`.
+7. **Testy jsou součást úkolu.** Každý BE úkol má unit testy service vrstvy (vzor `events.service.spec.ts`), pravidla kapacity, stavů a oprávnění pokrytá testem. Před PR projdi `pnpm check-all`.
 8. **Po změně schématu** vytvoř migraci `pnpm backend prisma:migrations:run` a rozšiř seed.
 9. **Narazíš na otevřenou otázku** (sekce na konci)? Nevymýšlej řešení, použij výchozí volbu z tabulky a zapiš to do PR.
 10. **Mimo rozsah znamená mimo rozsah.** Co v úkolu není, nedělej (chat, Google přihlášení, QR docházka, GPS, reklamy…).
@@ -880,7 +880,7 @@ Doménová logika (čistá funkce + testy): `approvedCount`, `missingToMin = max
 
 **Hotovo, když:**
 
-- [ ] `pnpm check-all` projde a v kódu není `quack`.
+- [ ] `pnpm check-all` projde a v kódu není `quack` (kromě jména lokální databáze `quacker` v `docker-compose.yml` a `.env.example`: přejmenování by rozbilo už vytvořené lokální databáze; hotovo v #38).
 
 ---
 

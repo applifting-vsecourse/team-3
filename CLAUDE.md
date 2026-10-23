@@ -1,11 +1,11 @@
-# Quacker — starter template
+# HobbyHub
 
 Full-stack teaching template: pnpm monorepo with two apps.
 
 - `apps/backend` — NestJS + Prisma + Postgres. Auth: BetterAuth (mounted at `/api/auth/*`, treat as a black box). API docs: Swagger at `/api/docs`.
 - `apps/frontend` — React + Vite + TanStack Router/Query, Tailwind + shadcn/ui, `ky` + `zod` API client. Feature folders under `src/features/`.
 
-The worked example is the quack feed: `Quack` model → seed → repository → service → `GET`/`POST /api/quacks` (DTO-validated, author taken from the session) → zod schema → TanStack Query → list page + post form. Copy its pattern for new features.
+The worked example is the event list (#38): `Event` model → seed → repository (Prisma `where` built by a pure, tested function) → service → `GET /api/events` (DTO-validated query) → zod schema → TanStack Query → the `/akce` page with filters in the URL. Copy its pattern for new features.
 
 **Before writing or changing any UI, read [`DESIGN.md`](DESIGN.md).** It is a contract, not a suggestion — it exists to stop generated screens drifting into generic nested cards.
 
