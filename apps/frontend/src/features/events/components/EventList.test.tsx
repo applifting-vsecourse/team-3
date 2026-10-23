@@ -63,6 +63,21 @@ describe("EventList", () => {
     expect(second).toHaveAttribute("inert")
   })
 
+  it("offers „Zrušit filtry“ by the count only when a filter is active", async () => {
+    const onClearFilters = vi.fn()
+    const { rerender } = render(<EventList events={[]} />)
+    expect(screen.queryByRole("button", { name: "Zrušit filtry" })).not.toBeInTheDocument()
+
+    rerender(
+      <EventList
+        events={[]}
+        onClearFilters={onClearFilters}
+      />,
+    )
+    await userEvent.click(screen.getByRole("button", { name: "Zrušit filtry" }))
+    expect(onClearFilters).toHaveBeenCalledOnce()
+  })
+
   it("shows a skeleton while loading", () => {
     render(
       <EventList

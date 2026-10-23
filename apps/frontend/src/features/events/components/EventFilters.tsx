@@ -65,7 +65,11 @@ export function EventFilters({
       {hasActiveFilters(search) ? (
         <Button
           variant="ghost"
-          className={cn("h-9 shrink-0", isFloating && "rounded-full bg-background")}
+          // desktop only: on mobile it sits by the event count (EventList), always in view
+          className={cn(
+            "hidden h-9 shrink-0 md:inline-flex",
+            isFloating && "rounded-full bg-background",
+          )}
           onClick={onClearAll}
         >
           Zrušit vše

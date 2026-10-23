@@ -17,6 +17,7 @@ import { useEvents } from "@/features/events/hooks/useEvents"
 import {
   DEFAULT_LOCALITY_SLUG,
   eventsSearchSchema,
+  hasActiveFilters,
   type EventsSearch,
 } from "@/features/events/lib/eventsSearch"
 
@@ -50,6 +51,7 @@ function EventsPage() {
   // replace: changing a filter shouldn't fill the back button with filter states
   const setSearch = (patch: Partial<EventsSearch>) =>
     void navigate({ search: (prev) => ({ ...prev, ...patch }), replace: true })
+  const clearFilters = () => void navigate({ search: {}, replace: true })
 
   return (
     <>
@@ -73,7 +75,7 @@ function EventsPage() {
             search={search}
             catalog={catalog}
             onChange={setSearch}
-            onClearAll={() => void navigate({ search: {}, replace: true })}
+            onClearAll={clearFilters}
             isFloating={!isDesktop && !isListExpanded}
             // Chips scroll sideways on narrow screens without a visible scrollbar
             // (Figma A-02); a desktop scrollbar would also make the bar taller
@@ -97,6 +99,7 @@ function EventsPage() {
               onRetry={retry}
               highlightedId={highlightedId}
               onHighlight={setHighlightedId}
+              onClearFilters={hasActiveFilters(search) ? clearFilters : undefined}
               // lowered sheet: what is below its edge is out of the Tab order
               inertAfter={isDesktop || isListExpanded ? undefined : panelSnap === "map" ? 0 : 1}
             />

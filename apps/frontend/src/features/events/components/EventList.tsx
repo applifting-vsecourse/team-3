@@ -21,6 +21,11 @@ type EventListProps = {
    * rendered (so the sheet can be dragged up smoothly) but inert.
    */
   inertAfter?: number
+  /**
+   * Mobile: „Zrušit filtry“ next to the count, where it shows in every sheet
+   * position (on desktop „Zrušit vše“ is in the filter bar). Pass only with an active filter.
+   */
+  onClearFilters?: () => void
 }
 
 export function EventList({
@@ -31,6 +36,7 @@ export function EventList({
   highlightedId,
   onHighlight,
   inertAfter,
+  onClearFilters,
 }: EventListProps) {
   if (error) {
     return (
@@ -76,13 +82,31 @@ export function EventList({
 
   return (
     <div className="flex flex-col gap-3">
-      <div className="flex items-center justify-between gap-3">
-        {/* the lowest mobile sheet position („map“) shows just this row */}
-        <p
-          data-peek-min
-          className="text-sm font-semibold"
-        >
+      {/* the lowest mobile sheet position („map“) shows just this row */}
+      <div
+        data-peek-min
+        className="flex items-center justify-between gap-3"
+      >
+        <p className="flex items-center gap-1 text-sm font-semibold">
           {eventCountLabel(events.length)}
+          {onClearFilters ? (
+            <>
+              <span
+                aria-hidden
+                className="font-normal text-muted-foreground md:hidden"
+              >
+                ·
+              </span>
+              <Button
+                variant="link"
+                onClick={onClearFilters}
+                // a link-sized label with a full-height tap target
+                className="-my-2 h-auto px-1 py-2 font-medium underline md:hidden"
+              >
+                Zrušit filtry
+              </Button>
+            </>
+          ) : null}
         </p>
         {/* Other orders come in sprint 3 (#57); until then this is just a label. */}
         <p className="text-xs font-medium text-muted-foreground">Řadit: nejbližší termín</p>
