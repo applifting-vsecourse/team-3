@@ -1,4 +1,4 @@
-import { useLayoutEffect, useRef, useState, type ReactNode } from "react"
+import { useEffect, useLayoutEffect, useRef, useState, type ReactNode } from "react"
 
 import { DESKTOP_QUERY, useMediaQuery } from "@/hooks/useMediaQuery"
 import { cn } from "@/lib/utils"
@@ -6,6 +6,8 @@ import { cn } from "@/lib/utils"
 type ListPanelProps = {
   isExpanded: boolean
   onExpandedChange: (isExpanded: boolean) => void
+  /** Changes with the filters; the list then scrolls back to the top. */
+  scrollResetKey?: string
   children: ReactNode
 }
 
@@ -13,8 +15,9 @@ type ListPanelProps = {
 const TAP_PX = 6
 // A flick faster than this (px/ms) decides the direction regardless of position.
 const FLICK_SPEED = 0.5
-// Space kept under the peeking card.
-const PEEK_GAP_PX = 16
+// Space kept under the peeking card; less than the gap between cards,
+// so no sliver of the next card shows.
+const PEEK_GAP_PX = 8
 
 /**
  * The list on /akce. Mobile (Figma A-02): a sheet over the full-height map that
@@ -24,7 +27,12 @@ const PEEK_GAP_PX = 16
  * element marked `data-peek-end` (the first card, or the empty/error state).
  * Desktop (A-02d): a plain column left of the map.
  */
-export function ListPanel({ isExpanded, onExpandedChange, children }: ListPanelProps) {
+export function ListPanel({
+  isExpanded,
+  onExpandedChange,
+  scrollResetKey,
+  children,
+}: ListPanelProps) {
   const isDesktop = useMediaQuery(DESKTOP_QUERY)
   const panelRef = useRef<HTMLElement>(null)
   const contentRef = useRef<HTMLDivElement>(null)
@@ -50,6 +58,11 @@ export function ListPanel({ isExpanded, onExpandedChange, children }: ListPanelP
     observer.observe(content)
     return () => observer.disconnect()
   }, [isDesktop])
+
+  // new filters, new results: start at the top, not halfway down the old list
+  useEffect(() => {
+    contentRef.current?.scrollTo?.({ top: 0 })
+  }, [scrollResetKey])
 
   const restingOffset = isExpanded ? 0 : closedOffset
   const offset = dragOffset ?? restingOffset
@@ -81,7 +94,7 @@ export function ListPanel({ isExpanded, onExpandedChange, children }: ListPanelP
         "absolute inset-x-0 top-16 bottom-0 z-10 flex flex-col rounded-t-lg bg-background shadow-md",
         dragOffset === null &&
           "transition-transform duration-300 ease-out motion-reduce:transition-none",
-        "md:static md:z-auto md:w-96 md:shrink-0 md:rounded-none md:shadow-none lg:w-130",
+        "md:static md:z-auto md:my-8 md:w-96 md:shrink-0 md:rounded-none md:shadow-none lg:w-130",
       )}
     >
       <button
@@ -118,7 +131,7 @@ export function ListPanel({ isExpanded, onExpandedChange, children }: ListPanelP
           "min-h-0 flex-1 px-4 pb-16",
           // only the pulled-up list scrolls; closed, the sheet just peeks
           isExpanded ? "overflow-y-auto" : "overflow-hidden",
-          "md:overflow-y-auto md:p-0",
+          "md:overflow-y-auto md:p-0 md:pr-3",
         )}
       >
         {children}

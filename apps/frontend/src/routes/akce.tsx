@@ -84,19 +84,18 @@ function EventsPage() {
           <ListPanel
             isExpanded={isListExpanded}
             onExpandedChange={setIsListExpanded}
+            scrollResetKey={JSON.stringify(search)}
           >
-            <div className="md:py-8">
-              <EventList
-                events={events ?? []}
-                isLoading={isPending}
-                error={error}
-                // Only the error state offers a retry; refocusing the tab refetches.
-                onRetry={retry}
-                highlightedId={highlightedId}
-                onHighlight={setHighlightedId}
-                inertAfter={isDesktop || isListExpanded ? undefined : 1}
-              />
-            </div>
+            <EventList
+              events={events ?? []}
+              isLoading={isPending}
+              error={error}
+              // Only the error state offers a retry; refocusing the tab refetches.
+              onRetry={retry}
+              highlightedId={highlightedId}
+              onHighlight={setHighlightedId}
+              inertAfter={isDesktop || isListExpanded ? undefined : 1}
+            />
           </ListPanel>
 
           <div
@@ -106,7 +105,8 @@ function EventsPage() {
             className={cn(
               "absolute inset-0 md:static md:min-w-0 md:flex-1 md:py-8",
               // mobile: map controls below the floating chips
-              !isDesktop && "[&_.leaflet-top]:top-16",
+              // (! because leaflet.css isn't in a cascade layer and would win otherwise)
+              !isDesktop && "[&_.leaflet-top]:top-16!",
             )}
           >
             <div className="size-full overflow-hidden md:rounded-lg md:border md:border-border">
