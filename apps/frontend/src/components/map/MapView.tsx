@@ -38,6 +38,9 @@ type MapViewProps = {
 }
 
 const DEFAULT_ZOOM = 12
+// One or two nearby events would otherwise zoom in to single streets and
+// lose where in the city they are; 14 still shows the district around them.
+const FIT_MAX_ZOOM = 14
 
 /**
  * Leaflet + OpenStreetMap (B-004, Q1), the pins mode: a set of points from
@@ -127,7 +130,7 @@ function FitToPins({ pins, center }: { pins: MapPinData[]; center: { lat: number
       return
     }
     const bounds = latLngBounds(pins.map((pin) => [pin.lat, pin.lng]))
-    map.fitBounds(bounds, { padding: [48, 48], maxZoom: 15 })
+    map.fitBounds(bounds, { padding: [48, 48], maxZoom: FIT_MAX_ZOOM })
     // `key` stands for `pins`: refit only when the set of events changes
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [key, map, center.lat, center.lng])
