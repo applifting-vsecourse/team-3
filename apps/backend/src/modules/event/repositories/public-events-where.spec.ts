@@ -33,7 +33,7 @@ describe('buildPublicEventsWhere', () => {
         dateTo: '2026-10-25',
         activityIds: ['a-volejbal'],
         categoryIds: ['c-hry'],
-        missingOnly: true,
+        capacity: 'missing',
       },
     ],
   ])('keeps the visibility rule with a %s filter', (_, filters) => {
@@ -96,7 +96,8 @@ describe('buildPublicEventsWhere', () => {
     ]);
   });
 
-  it('missingOnly is not part of the query (the service applies it)', () => {
-    expect(conditionsOf({ missingOnly: true })).toEqual([VISIBLE_ONLY]);
+  it('capacity is not part of the query (the service applies it)', () => {
+    expect(conditionsOf({ capacity: 'free' })).toEqual([VISIBLE_ONLY]);
+    expect(conditionsOf({ capacity: 'missing' })).toEqual([VISIBLE_ONLY]);
   });
 });

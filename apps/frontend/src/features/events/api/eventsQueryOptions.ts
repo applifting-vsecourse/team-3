@@ -18,7 +18,7 @@ export const toSearchParams = (filters: EventFilters): URLSearchParams => {
   if (filters.dateTo) params.set("dateTo", filters.dateTo)
   for (const id of filters.activityIds) params.append("activityId", id)
   for (const id of filters.categoryIds) params.append("categoryId", id)
-  if (filters.missingOnly) params.set("missingOnly", "true")
+  if (filters.capacity) params.set("capacity", filters.capacity)
   return params
 }
 

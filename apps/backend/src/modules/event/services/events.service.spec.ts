@@ -3,8 +3,8 @@ import { PublicEvent } from '@/modules/event/domain/event';
 import { EventRepository } from '@/modules/event/repositories/event.repository';
 import { mock } from 'jest-mock-extended';
 import {
+  CAPACITY_SCAN_LIMIT,
   EventsService,
-  MISSING_ONLY_SCAN_LIMIT,
   PUBLIC_EVENTS_LIMIT,
 } from './events.service';
 
@@ -55,7 +55,7 @@ describe('EventsService', () => {
     });
   });
 
-  it('missingOnly keeps only events that miss people to reach the minimum', async () => {
+  it('capacity=missing keeps only events that miss people to reach the minimum', async () => {
     const repository = mock<EventRepository>();
     repository.findPublicEvents.mockResolvedValue([
       anEvent('missing-one', 2),
@@ -65,7 +65,7 @@ describe('EventsService', () => {
     ]);
 
     const service = new EventsService(repository);
-    const result = await service.getPublicEvents({ missingOnly: true }, now);
+    const result = await service.getPublicEvents({ capacity: 'missing' }, now);
 
     expect(result.map((event) => event.id)).toEqual([
       'missing-one',
@@ -73,7 +73,26 @@ describe('EventsService', () => {
     ]);
   });
 
-  it('missingOnly filters before the limit, so matches are not cut off', async () => {
+  it('capacity=free hides only full events', async () => {
+    const repository = mock<EventRepository>();
+    repository.findPublicEvents.mockResolvedValue([
+      anEvent('missing-one', 2),
+      anEvent('at-minimum', 3),
+      anEvent('one-place-left', 5),
+      anEvent('full', 6),
+    ]);
+
+    const service = new EventsService(repository);
+    const result = await service.getPublicEvents({ capacity: 'free' }, now);
+
+    expect(result.map((event) => event.id)).toEqual([
+      'missing-one',
+      'at-minimum',
+      'one-place-left',
+    ]);
+  });
+
+  it('the capacity filter applies before the limit, so matches are not cut off', async () => {
     const repository = mock<EventRepository>();
     const complete = Array.from({ length: PUBLIC_EVENTS_LIMIT }, (_, i) =>
       anEvent(`complete-${i}`, 3),
@@ -84,12 +103,12 @@ describe('EventsService', () => {
     repository.findPublicEvents.mockResolvedValue([...complete, ...missing]);
 
     const service = new EventsService(repository);
-    const result = await service.getPublicEvents({ missingOnly: true }, now);
+    const result = await service.getPublicEvents({ capacity: 'missing' }, now);
 
     expect(repository.findPublicEvents).toHaveBeenCalledWith({
-      filters: { missingOnly: true },
+      filters: { capacity: 'missing' },
       now,
-      limit: MISSING_ONLY_SCAN_LIMIT,
+      limit: CAPACITY_SCAN_LIMIT,
     });
     expect(result).toHaveLength(PUBLIC_EVENTS_LIMIT);
     expect(result.every((event) => event.id.startsWith('missing-'))).toBe(true);

@@ -1,4 +1,4 @@
-import { computeCapacity } from './capacity';
+import { Capacity, computeCapacity, matchesCapacity } from './capacity';
 
 const limits = { minParticipants: 4, maxParticipants: 12 };
 
@@ -62,5 +62,26 @@ describe('computeCapacity', () => {
       missingToMin: 0,
       isFull: true,
     });
+  });
+});
+
+describe('matchesCapacity', () => {
+  const at = (approved: number): Capacity => computeCapacity(limits, approved);
+
+  it('free: everything that is not full', () => {
+    expect(
+      [0, 3, 4, 11, 12].map((n) => matchesCapacity(at(n), 'free')),
+    ).toEqual([true, true, true, true, false]);
+  });
+
+  it('missing: only below the minimum — a subset of free', () => {
+    expect(
+      [0, 3, 4, 11, 12].map((n) => matchesCapacity(at(n), 'missing')),
+    ).toEqual([true, true, false, false, false]);
+    for (let n = 0; n <= 13; n++) {
+      if (matchesCapacity(at(n), 'missing')) {
+        expect(matchesCapacity(at(n), 'free')).toBe(true);
+      }
+    }
   });
 });

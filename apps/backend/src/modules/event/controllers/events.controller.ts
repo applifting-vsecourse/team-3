@@ -39,7 +39,7 @@ export class EventsController {
       dateTo: query.dateTo,
       activityIds: query.activityId,
       categoryIds: query.categoryId,
-      missingOnly: query.missingOnly,
+      capacity: query.capacity,
     });
     return events.map(PublicEventResponseDto.fromDomain);
   }

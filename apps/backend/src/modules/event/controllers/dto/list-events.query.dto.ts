@@ -1,10 +1,14 @@
+import {
+  CAPACITY_FILTERS,
+  CapacityFilter,
+} from '@/modules/event/domain/capacity';
 import { ApiPropertyOptional } from '@nestjs/swagger';
 import { Transform, TransformFnParams } from 'class-transformer';
 import {
   ArrayMaxSize,
   IsArray,
-  IsBoolean,
   IsDateString,
+  IsIn,
   IsNotEmpty,
   IsOptional,
   IsString,
@@ -34,13 +38,6 @@ class NotBeforeDateFrom implements ValidatorConstraintInterface {
 // `?activityId=a` arrives as a string, `?activityId=a&activityId=b` as an array.
 const toArray = ({ value }: TransformFnParams): unknown =>
   value === undefined || Array.isArray(value) ? value : [value];
-
-// Anything other than true/false/1/0 is left as is, so IsBoolean rejects it.
-const toBoolean = ({ value }: TransformFnParams): unknown => {
-  if (value === 'true' || value === '1') return true;
-  if (value === 'false' || value === '0') return false;
-  return value;
-};
 
 export class ListEventsQueryDto {
   @ApiPropertyOptional({
@@ -101,11 +98,11 @@ export class ListEventsQueryDto {
   categoryId?: string[];
 
   @ApiPropertyOptional({
-    type: Boolean,
-    description: 'Only events that still miss people to reach the minimum',
+    enum: CAPACITY_FILTERS,
+    description:
+      'free: not full yet; missing: still missing people to reach the minimum (a subset of free)',
   })
   @IsOptional()
-  @Transform(toBoolean)
-  @IsBoolean()
-  missingOnly?: boolean;
+  @IsIn(CAPACITY_FILTERS)
+  capacity?: CapacityFilter;
 }

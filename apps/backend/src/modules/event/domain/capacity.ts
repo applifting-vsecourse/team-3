@@ -22,3 +22,16 @@ export const computeCapacity = (
     isFull: freeSpots === 0,
   };
 };
+
+/**
+ * The „Obsazenost“ filter. `missing` (people still needed to reach the
+ * minimum) is a subset of `free` (not full yet), as min ≤ max.
+ */
+export const CAPACITY_FILTERS = ['free', 'missing'] as const;
+export type CapacityFilter = (typeof CAPACITY_FILTERS)[number];
+
+export const matchesCapacity = (
+  capacity: Capacity,
+  filter: CapacityFilter,
+): boolean =>
+  filter === 'missing' ? capacity.missingToMin > 0 : !capacity.isFull;

@@ -70,20 +70,30 @@ describe("EventFilters", () => {
     expect(screen.queryByRole("button", { name: "Zrušit vše" })).not.toBeInTheDocument()
   })
 
-  it("toggles „Chybí lidé“", async () => {
+  it("picks „Volná místa“ in Obsazenost and asks the API for events that aren't full", async () => {
     const { onChange } = renderFilters()
 
-    await userEvent.click(screen.getByRole("button", { name: "Chybí lidé" }))
-    expect(onChange).toHaveBeenCalledWith({ chybi: 1 })
+    await userEvent.click(screen.getByRole("button", { name: "Obsazenost" }))
+    const panel = await screen.findByRole("dialog", { name: "Obsazenost" })
+    expect(within(panel).getByRole("radio", { name: "Všechny" })).toBeChecked()
+    get.mockClear()
+    await userEvent.click(within(panel).getByRole("radio", { name: "Volná místa" }))
+    await within(panel).findByRole("button", { name: /^Zobrazit \d/ })
+    const eventCalls = get.mock.calls.filter(([path]) => path === "events")
+    expect(eventCalls.at(-1)?.[1]?.searchParams?.get("capacity")).toBe("free")
+
+    await userEvent.click(within(panel).getByRole("button", { name: /^Zobrazit/ }))
+    expect(onChange).toHaveBeenCalledWith({ obsazenost: "volna" })
   })
 
-  it("turns „Chybí lidé“ off again", async () => {
-    const { onChange } = renderFilters({ search: { chybi: 1 } })
+  it("shows the occupancy on the chip and „Všechny“ clears it", async () => {
+    const { onChange } = renderFilters({ search: { obsazenost: "chybi" } })
 
-    const chip = screen.getByRole("button", { name: "Chybí lidé" })
-    expect(chip).toHaveAttribute("aria-pressed", "true")
-    await userEvent.click(chip)
-    expect(onChange).toHaveBeenCalledWith({ chybi: undefined })
+    await userEvent.click(screen.getByRole("button", { name: "Obsazenost: Chybí lidé" }))
+    const panel = await screen.findByRole("dialog", { name: "Obsazenost" })
+    expect(within(panel).getByRole("radio", { name: "Chybí lidé" })).toBeChecked()
+    await userEvent.click(within(panel).getByRole("button", { name: "Všechny" }))
+    expect(onChange).toHaveBeenCalledWith({ obsazenost: undefined })
   })
 
   it("offers „Zrušit vše“ with an active filter", async () => {

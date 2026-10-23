@@ -7,9 +7,9 @@ import {
 
 /**
  * Prisma `where` for the public event list. A pure function so it can be
- * tested without a database (CI has none). `missingOnly` is not here: it
- * compares approved participations with the minimum, which Prisma can't
- * express, so the service applies it.
+ * tested without a database (CI has none). `capacity` is not here: it
+ * compares approved participations with the minimum and maximum, which
+ * Prisma can't express, so the service applies it.
  */
 export const buildPublicEventsWhere = (
   filters: PublicEventFilters,

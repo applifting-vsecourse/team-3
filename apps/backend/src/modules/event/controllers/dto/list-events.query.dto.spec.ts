@@ -24,11 +24,11 @@ describe('ListEventsQueryDto', () => {
     ]);
   });
 
-  it('reads missingOnly from true/false/1/0 and rejects anything else', () => {
-    expect(parse({ missingOnly: 'true' }).dto.missingOnly).toBe(true);
-    expect(parse({ missingOnly: '1' }).dto.missingOnly).toBe(true);
-    expect(parse({ missingOnly: 'false' }).dto.missingOnly).toBe(false);
-    expect(parse({ missingOnly: 'yes' }).invalid).toEqual(['missingOnly']);
+  it('accepts capacity free or missing and rejects anything else', () => {
+    expect(parse({ capacity: 'free' }).dto.capacity).toBe('free');
+    expect(parse({ capacity: 'missing' }).invalid).toEqual([]);
+    expect(parse({ capacity: 'full' }).invalid).toEqual(['capacity']);
+    expect(parse({ capacity: 'true' }).invalid).toEqual(['capacity']);
   });
 
   it('rejects a range that ends before it starts; a one-day range is fine', () => {

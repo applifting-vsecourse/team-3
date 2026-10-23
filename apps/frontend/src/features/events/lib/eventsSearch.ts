@@ -10,9 +10,14 @@ const SLUG = /^[a-z0-9-]+$/
 const SLUG_LIST = /^[a-z0-9-]+(,[a-z0-9-]+)*$/
 const DAY = /^\d{4}-\d{2}-\d{2}$/
 
+/** ?obsazenost= values; Czech in the URL like the other filters, English in the API. */
+export const OCCUPANCY = ["volna", "chybi"] as const
+export type Occupancy = (typeof OCCUPANCY)[number]
+const CAPACITY_OF = { volna: "free", chybi: "missing" } as const
+
 /**
  * Filters of /akce in the URL, so a link can be shared and survives a reload:
- * `?lokalita=praha-8&od=2026-10-24&do=2026-10-25&kategorie=hry&aktivita=volejbal,tenis&chybi=1`.
+ * `?lokalita=praha-8&od=2026-10-24&do=2026-10-25&kategorie=hry&aktivita=volejbal,tenis&obsazenost=chybi`.
  * Slugs, not ids, so the link stays readable. A malformed value is dropped
  * rather than failing the page (`.catch`).
  */
@@ -23,8 +28,8 @@ export const eventsSearchSchema = z.object({
   // comma-separated slugs; the router would otherwise put a JSON array in the URL
   kategorie: z.string().regex(SLUG_LIST).optional().catch(undefined),
   aktivita: z.string().regex(SLUG_LIST).optional().catch(undefined),
-  // the router parses "1" in the URL as the number 1
-  chybi: z.literal(1).optional().catch(undefined),
+  // volna = not full yet, chybi = still missing people (a subset of volna)
+  obsazenost: z.enum(OCCUPANCY).optional().catch(undefined),
 })
 
 export type EventsSearch = z.infer<typeof eventsSearchSchema>
@@ -42,7 +47,7 @@ export const hasActiveFilters = (search: EventsSearch): boolean =>
   search.do !== undefined ||
   search.kategorie !== undefined ||
   search.aktivita !== undefined ||
-  search.chybi !== undefined
+  search.obsazenost !== undefined
 
 /**
  * Turns the URL's slugs into the API's ids. Slugs the catalog doesn't know
@@ -72,6 +77,6 @@ export function toEventFilters(
     dateTo,
     activityIds,
     categoryIds,
-    missingOnly: search.chybi === 1,
+    capacity: search.obsazenost && CAPACITY_OF[search.obsazenost],
   }
 }

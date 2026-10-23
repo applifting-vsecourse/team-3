@@ -42,5 +42,6 @@ export type EventFilters = {
   dateTo?: string
   activityIds: string[]
   categoryIds: string[]
-  missingOnly: boolean
+  /** free: not full yet; missing: still missing people to reach the minimum */
+  capacity?: "free" | "missing"
 }

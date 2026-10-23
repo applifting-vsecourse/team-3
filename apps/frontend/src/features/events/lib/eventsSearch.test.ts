@@ -52,7 +52,7 @@ describe("eventsSearchSchema", () => {
         do: "2026-10-25",
         kategorie: "hry",
         aktivita: "volejbal,florbal",
-        chybi: 1,
+        obsazenost: "chybi",
       }),
     ).toEqual({
       lokalita: "praha-8",
@@ -60,7 +60,7 @@ describe("eventsSearchSchema", () => {
       do: "2026-10-25",
       kategorie: "hry",
       aktivita: "volejbal,florbal",
-      chybi: 1,
+      obsazenost: "chybi",
     })
   })
 
@@ -70,7 +70,7 @@ describe("eventsSearchSchema", () => {
         lokalita: "Praha 8",
         od: "24. 10.",
         kategorie: "hry,,",
-        chybi: "ano",
+        obsazenost: "plno",
       }),
     ).toEqual({})
   })
@@ -84,7 +84,7 @@ describe("toEventFilters", () => {
       dateTo: undefined,
       activityIds: [],
       categoryIds: [],
-      missingOnly: false,
+      capacity: undefined,
     })
   })
 
@@ -97,7 +97,7 @@ describe("toEventFilters", () => {
           do: "2026-10-25",
           kategorie: "hry",
           aktivita: "volejbal",
-          chybi: 1,
+          obsazenost: "chybi",
         },
         catalog,
       ),
@@ -107,7 +107,7 @@ describe("toEventFilters", () => {
       dateTo: "2026-10-25",
       activityIds: ["a-volejbal"],
       categoryIds: ["c-hry"],
-      missingOnly: true,
+      capacity: "missing",
     })
   })
 
@@ -135,7 +135,7 @@ describe("hasActiveFilters", () => {
     expect(hasActiveFilters({ do: "2026-10-25" })).toBe(true)
     expect(hasActiveFilters({ kategorie: "hry" })).toBe(true)
     expect(hasActiveFilters({ aktivita: "volejbal" })).toBe(true)
-    expect(hasActiveFilters({ chybi: 1 })).toBe(true)
+    expect(hasActiveFilters({ obsazenost: "volna" })).toBe(true)
   })
 })
 
@@ -154,16 +154,14 @@ describe("toSearchParams", () => {
       dateFrom: "2026-10-24",
       activityIds: ["a1", "a2"],
       categoryIds: ["c1"],
-      missingOnly: true,
+      capacity: "missing",
     })
     expect(params.toString()).toBe(
-      "localityId=l-praha&dateFrom=2026-10-24&activityId=a1&activityId=a2&categoryId=c1&missingOnly=true",
+      "localityId=l-praha&dateFrom=2026-10-24&activityId=a1&activityId=a2&categoryId=c1&capacity=missing",
     )
   })
 
   it("sends nothing for empty filters", () => {
-    expect(
-      toSearchParams({ activityIds: [], categoryIds: [], missingOnly: false }).toString(),
-    ).toBe("")
+    expect(toSearchParams({ activityIds: [], categoryIds: [] }).toString()).toBe("")
   })
 })

@@ -1,4 +1,4 @@
-import { Capacity } from './capacity';
+import { Capacity, CapacityFilter } from './capacity';
 
 /** Filters of the public event list (B-023, sprint 2 version). */
 export type PublicEventFilters = {
@@ -11,8 +11,8 @@ export type PublicEventFilters = {
   /** Activities and whole categories add up (OR). */
   activityIds?: string[];
   categoryIds?: string[];
-  /** Only events that still miss people to reach the minimum. */
-  missingOnly?: boolean;
+  /** `free`: not full yet; `missing`: still missing people to reach the minimum. */
+  capacity?: CapacityFilter;
 };
 
 /** An event as listed publicly, on the list and on the map. */

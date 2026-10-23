@@ -1,4 +1,4 @@
-import { FilterChip, FilterToggleChip } from "@/components/FilterChip/FilterChip"
+import { FilterChip } from "@/components/FilterChip/FilterChip"
 import { Button } from "@/components/ui/button"
 import { cn } from "@/lib/utils"
 
@@ -6,6 +6,7 @@ import type { ActivityCategory, Locality } from "@/features/events/api/catalogSc
 import { ActivityFilter } from "@/features/events/components/ActivityFilter"
 import { DateFilter } from "@/features/events/components/DateFilter"
 import { LocalityFilter } from "@/features/events/components/LocalityFilter"
+import { OccupancyFilter } from "@/features/events/components/OccupancyFilter"
 import { hasActiveFilters, type EventsSearch } from "@/features/events/lib/eventsSearch"
 
 type EventFiltersProps = {
@@ -56,12 +57,10 @@ export function EventFilters({
       ) : (
         <FilterChip disabled>Typ aktivity</FilterChip>
       )}
-      <FilterToggleChip
-        pressed={search.chybi === 1}
-        onPressedChange={(isOn) => onChange({ chybi: isOn ? 1 : undefined })}
-      >
-        Chybí lidé
-      </FilterToggleChip>
+      <OccupancyFilter
+        search={search}
+        onChange={(obsazenost) => onChange({ obsazenost })}
+      />
       {hasActiveFilters(search) ? (
         <Button
           variant="ghost"
