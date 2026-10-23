@@ -1,0 +1,46 @@
+/*
+ * Leaflet in the app's colours. Colours are tokens from global.css only
+ * (DESIGN.md › Colour). This file is not in a cascade layer on purpose:
+ * neither is leaflet.css, which would otherwise win over layered utilities.
+ */
+
+.leaflet-container {
+  font-family: var(--font-sans);
+  background: var(--muted);
+}
+
+/* Zoom buttons and attribution follow the theme. */
+.leaflet-bar {
+  border-color: var(--border);
+}
+.leaflet-bar a,
+.leaflet-bar a:hover {
+  background: var(--card);
+  color: var(--foreground);
+  border-bottom-color: var(--border);
+}
+.leaflet-bar a:hover {
+  background: var(--accent);
+}
+.leaflet-bar a.leaflet-disabled {
+  background: var(--card);
+  color: var(--muted-foreground);
+}
+.leaflet-container .leaflet-control-attribution {
+  background: color-mix(in srgb, var(--background) 80%, transparent);
+  color: var(--muted-foreground);
+}
+.leaflet-container .leaflet-control-attribution a {
+  color: var(--foreground);
+}
+
+/*
+ * Dark mode: OpenStreetMap has no dark tiles, so the light ones are inverted
+ * and turned back to their hues (water stays blue, parks green), then
+ * softened so the map sits behind the pins instead of glaring. Only the tile
+ * pane is filtered — pins, labels and controls keep their token colours.
+ * Dark mode isn't drawn in Figma yet; values tuned by eye.
+ */
+.dark .leaflet-tile-pane {
+  filter: invert(1) hue-rotate(180deg) brightness(0.85) contrast(0.9) saturate(0.6);
+}

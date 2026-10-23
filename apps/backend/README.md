@@ -1,4 +1,4 @@
-# Quacker Backend
+# HobbyHub Backend
 
 A simplified version of Applifting's backend template for educational purposes.
 
@@ -10,7 +10,7 @@ Compared to the bare bones Nest app you get when you create a new project, we al
 - **Prisma ORM**
 - **Docker Compose** runs the **Postgres** database for local development
 - BetterAuth-based authentication - this should allow for easy extending with e.g. social login providers
-- Example database entity (**Quack**) with migrations
+- HobbyHub data model (Prisma) with migrations
 - Configured tests and resolve common issues with them in Nest (like proper path resolving)
 - Decorator-based configuration with our `@applifting-io/nestjs-decorated-config` package
 - Unit tests
@@ -129,7 +129,7 @@ $ pnpm backend seed                    # refill demo data
 
 ### Test
 
-There is one example unit test (`src/modules/quack/services/quacks.service.spec.ts`) showing the pattern: mock the repository, test the service in isolation. CI runs it on every PR.
+The pattern to copy is `src/modules/event/services/events.service.spec.ts`: mock the repository, test the service in isolation. CI runs it on every PR.
 
 ```bash
 # unit tests

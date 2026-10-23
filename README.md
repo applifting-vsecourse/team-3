@@ -10,7 +10,7 @@ Starter template for [4IT580](https://4it580.vse.cz) team projects: a minimal, w
 
 **Stack:** React + Vite + TanStack Router/Query + Tailwind/shadcn (frontend) · NestJS + Prisma + PostgreSQL + BetterAuth (backend) · pnpm workspaces.
 
-What's included: working login/signup (BetterAuth — you use it, you don't build it), one worked-example feature (the quack feed: read a list, post a new one — copy its pattern), seeded demo data, example tests, CI. The full demo app this template was trimmed from lives on the `reference/full-app` branch.
+What's included: working login/signup (BetterAuth — you use it, you don't build it), one worked-example feature (the event list on `/akce` with filters and a map — copy its pattern), seeded demo data, example tests, CI. The full demo app this template was trimmed from lives on the `reference/full-app` branch.
 
 ## Prerequisites
 

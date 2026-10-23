@@ -5,7 +5,7 @@ export class SearchLocalitiesQueryDto {
   @ApiPropertyOptional({
     example: 'pra',
     description:
-      'Part of the name, with or without diacritics. At most 50 results; cities first.',
+      'Part of the name, with or without diacritics. At most 50 results; cities first. Without a query, all localities.',
   })
   @IsOptional()
   @IsString()

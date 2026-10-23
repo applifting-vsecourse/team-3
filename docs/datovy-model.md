@@ -25,7 +25,7 @@ Schéma vzniklo v rámci #47 (testovací data), protože bez něj nešla data na
 | `Payment`          | `payment`           | Simulovaná platba (předplatné, topování)                                                 | B-070               | ne       |
 | `Subscription`     | `subscription`      | Předplatné organizátora (evidence docházky)                                              | B-071               | ne       |
 
-Tabulky `session`, `account` a `verification` spravuje BetterAuth (přihlášení, ověření e-mailu, obnova hesla). Tabulka `quack` patří vzorové feature šablony a zmizí s B-085.
+Tabulky `session`, `account` a `verification` spravuje BetterAuth (přihlášení, ověření e-mailu, obnova hesla).
 
 ## Uživatelé a číselníky
 

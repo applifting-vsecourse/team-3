@@ -9,10 +9,10 @@ Zdroj: `HobbyHub_User_Stories_MVP.md` (US-01 až US-19, odvozené z Feature brea
 1. **Ber úkoly v pořadí.** Úkol začni, jen když jsou hotové všechny úkoly v řádku _Závisí na_.
 2. **Jeden úkol = jeden PR.** Název PR: `B-0XX: <název úkolu>`. Do popisu dej odkaz na US.
 3. **Před prací přečti** `CLAUDE.md` a `DESIGN.md`. DESIGN.md je závazný (tokeny, žádné vnořené karty, tři stavy seznamu).
-4. **Kopíruj vzor quack feature:** Prisma model → seed → repository → service → controller s DTO → zod schéma na FE → TanStack Query → stránka. Backend v `apps/backend/src/modules/<feature>/`, frontend v `apps/frontend/src/features/<feature>/`.
+4. **Kopíruj vzor feature akcí (`event`, #38):** Prisma model → seed → repository → service → controller s DTO → zod schéma na FE → TanStack Query → stránka. Backend v `apps/backend/src/modules/<feature>/`, frontend v `apps/frontend/src/features/<feature>/`.
 5. **UI ovládací prvky jen z kitu** (`pnpm dlx shadcn@latest add <name>`), bez stínů na kartách a inputech.
 6. **Validace vždy na FE i BE.** Oprávnění kontroluj na backendu (organizátor smí jen svou akci, správce jen svou skupinu, admin jen role `admin`).
-7. **Testy jsou součást úkolu.** Každý BE úkol má unit testy service vrstvy (vzor `quacks.service.spec.ts`), pravidla kapacity, stavů a oprávnění pokrytá testem. Před PR projdi `pnpm check-all`.
+7. **Testy jsou součást úkolu.** Každý BE úkol má unit testy service vrstvy (vzor `events.service.spec.ts`), pravidla kapacity, stavů a oprávnění pokrytá testem. Před PR projdi `pnpm check-all`.
 8. **Po změně schématu** vytvoř migraci `pnpm backend prisma:migrations:run` a rozšiř seed.
 9. **Narazíš na otevřenou otázku** (sekce na konci)? Nevymýšlej řešení, použij výchozí volbu z tabulky a zapiš to do PR.
 10. **Mimo rozsah znamená mimo rozsah.** Co v úkolu není, nedělej (chat, Google přihlášení, QR docházka, GPS, reklamy…).
@@ -347,7 +347,7 @@ Doménová logika (čistá funkce + testy): `approvedCount`, `missingToMin = max
 
 `US-02` · BE · M · závisí na: B-020
 
-- `GET /api/events` bez přihlášení. Parametry: `q` (název), `localityId` nebo `lat,lng,radiusKm` nebo `bbox` (výřez mapy – „Hledat v této oblasti“), `dateFrom`, `dateTo` (rozsah, oba včetně), `activityId[]`, `categoryId[]` (celá kategorie = všechny její aktivity, i nově přidané), `missingOnly` (jen akce s `missingToMin > 0`), `sort` (`date` výchozí / `distance`), stránkování. `activityId[]` a `categoryId[]` se sčítají (OR).
+- `GET /api/events` bez přihlášení. Parametry: `q` (název), `localityId` nebo `lat,lng,radiusKm` nebo `bbox` (výřez mapy – „Hledat v této oblasti“), `dateFrom`, `dateTo` (rozsah, oba včetně), `activityId[]`, `categoryId[]` (celá kategorie = všechny její aktivity, i nově přidané), `capacity` (obsazenost: `free` = jen akce, které nejsou plné, `missing` = jen akce s `missingToMin > 0`; změna 23. 10. z `missingOnly`), `sort` (`date` výchozí / `distance`), stránkování. `activityId[]` a `categoryId[]` se sčítají (OR).
 - `GET /api/events/facets` – stejné filtry kromě typu aktivity, vrací počty akcí po kategoriích a aktivitách pro výběr typu aktivity. Pokud se nevejde do sprintu, FE počty skryje.
 - Vrací jen `status = published`, `visibility = public`, `startsAt > now`. Nevrací soukromé a „jen pro členy“.
 - Každá položka: aktivita, název, termín, místo (lat/lng + adresa), `missingToMin`, `freeSpots`, `isFull`, organizátor (osoba nebo skupina), `isPromoted`.
@@ -357,7 +357,7 @@ Doménová logika (čistá funkce + testy): `approvedCount`, `missingToMin = max
 
 - [ ] Testy, že proběhlé, zrušené, soukromé a members-only akce se ve výpisu neobjeví.
 - [ ] Řazení podle vzdálenosti funguje vůči zadanému bodu.
-- [ ] Test, že `categoryId` vrátí akce všech aktivit kategorie a `missingOnly` jen akce, kterým chybí lidé.
+- [ ] Test, že `categoryId` vrátí akce všech aktivit kategorie a `capacity=free` jen akce, které nejsou plné, `capacity=missing` jen akce, kterým chybí lidé.
 
 ---
 
@@ -370,10 +370,10 @@ Doménová logika (čistá funkce + testy): `approvedCount`, `missingToMin = max
   - **Lokalita** – výběr z číselníku (B-002).
   - **Termín** – rozsah od–do s kalendářem a rychlými volbami Dnes / Zítra / Tento víkend / Příštích 7 dní. Minulost nejde vybrat.
   - **Typ aktivity** – dvě úrovně (kategorie › aktivita), zaškrtnutí kategorie vybere celou, pole „Hledat aktivitu“ hledá v aktivitách. U položek počty akcí (`/api/events/facets`).
-  - **Chybí lidé** – přepínač, jen akce, kterým chybí do minima. Návrh týmu, potvrdí PO (Q9).
+  - **Obsazenost** – jedna volba Všechny / Volná místa (jen akce, které nejsou plné) / Chybí lidé (jen akce, kterým chybí do minima; podmnožina volných míst). Původně přepínač „Chybí lidé“ (návrh týmu 20. 10.), 23. 10. rozšířen o volná místa, aby šly skrýt plné akce. Potvrdí PO (Q9).
   - **Zrušit vše** – jen když je aktivní filtr.
   - Čip **Další** (cena, úroveň) je Nice to have – dokud není hotový, nezobrazuje se.
-- Stav filtrů v URL (`?q=&lokalita=&od=&do=&kategorie=&aktivita=&chybi=1`), aby šel sdílet.
+- Stav filtrů v URL (`?q=&lokalita=&od=&do=&kategorie=&aktivita=&obsazenost=volna|chybi`), aby šel sdílet.
 - Přihlášenému se předvyplní domovská lokalita a v typu aktivity „Moje zájmy“ z profilu; obojí jde změnit.
 - Tři stavy seznamu: načítání (skeleton), prázdno (jedna věta), chyba s možností zkusit znovu.
 
@@ -880,7 +880,7 @@ Doménová logika (čistá funkce + testy): `approvedCount`, `missingToMin = max
 
 **Hotovo, když:**
 
-- [ ] `pnpm check-all` projde a v kódu není `quack`.
+- [ ] `pnpm check-all` projde a v kódu není `quack` (kromě jména lokální databáze `quacker` v `docker-compose.yml` a `.env.example`: přejmenování by rozbilo už vytvořené lokální databáze; hotovo v #38).
 
 ---
 
@@ -888,21 +888,21 @@ Doménová logika (čistá funkce + testy): `approvedCount`, `missingToMin = max
 
 Dokud tým nebo PO nerozhodne jinak, agent použije výchozí volbu.
 
-| #   | Otázka                                                     | Výchozí volba                                                                              | Kdo rozhodne |
-| --- | ---------------------------------------------------------- | ------------------------------------------------------------------------------------------ | ------------ |
-| Q1  | Mapa a našeptávač míst (poznámky zmiňují Google Maps)      | Leaflet + OSM, místo klikem do mapy + textová adresa, lokality z vlastního číselníku       | Tým          |
-| Q2  | Služba pro odhad lokality z IP                             | Jednoduchá offline databáze (např. GeoLite2 City), při chybě Praha                         | Tým          |
-| Q3  | Nahrávání fotek (profil, skupina)                          | V MVP jen URL obrázku                                                                      | Tým          |
-| Q4  | Podle čeho vybírat akce na úvodní stránce (F-68)           | Nejbližší termín v lokalitě, topované první                                                | PO           |
-| Q5  | Text obchodních podmínek a zásad ochrany údajů (F-65)      | Placeholder                                                                                | PO           |
-| Q6  | Ukázková data – dodá PO reálné skupiny ze sondy? (F-64)    | Tým vymyslí realistická data                                                               | PO           |
-| Q7  | Zálohy – jak dlouho držet a kdo odpovídá po předání (F-63) | 7 denních záloh                                                                            | PO           |
-| Q8  | Brand – logo, barvy, referenční aplikace (F-67)            | Podle design systému z nástřelu designu                                                    | PO / tým     |
-| Q9  | Filtr „Chybí lidé“ (návrh týmu 20. 10.)                    | Je v aplikaci                                                                              | PO           |
-| Q10 | Výchozí pohled /akce na mobilu                             | Mapa přes celou obrazovku, seznam ve vysouvacím panelu                                     | PO           |
-| Q11 | Zrušení, nebo smazání akce                                 | Jen zrušení se štítkem „Zrušeno“, akce se nemaže                                           | PO           |
-| Q12 | Organizátor jako účastník vlastní akce                     | Není automaticky, může se přihlásit; jeho přihláška se neschvaluje a počítá se do kapacity | PO           |
-| Q13 | Seznam kategorií a aktivit (B-002)                         | Seznam týmu z 20. 10. (8 kategorií + „Jiné“), konzultace s PO na standupu 23. 10.          | Tým          |
+| #   | Otázka                                                                            | Výchozí volba                                                                              | Kdo rozhodne |
+| --- | --------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------ | ------------ |
+| Q1  | Mapa a našeptávač míst (poznámky zmiňují Google Maps)                             | Leaflet + OSM, místo klikem do mapy + textová adresa, lokality z vlastního číselníku       | Tým          |
+| Q2  | Služba pro odhad lokality z IP                                                    | Jednoduchá offline databáze (např. GeoLite2 City), při chybě Praha                         | Tým          |
+| Q3  | Nahrávání fotek (profil, skupina)                                                 | V MVP jen URL obrázku                                                                      | Tým          |
+| Q4  | Podle čeho vybírat akce na úvodní stránce (F-68)                                  | Nejbližší termín v lokalitě, topované první                                                | PO           |
+| Q5  | Text obchodních podmínek a zásad ochrany údajů (F-65)                             | Placeholder                                                                                | PO           |
+| Q6  | Ukázková data – dodá PO reálné skupiny ze sondy? (F-64)                           | Tým vymyslí realistická data                                                               | PO           |
+| Q7  | Zálohy – jak dlouho držet a kdo odpovídá po předání (F-63)                        | 7 denních záloh                                                                            | PO           |
+| Q8  | Brand – logo, barvy, referenční aplikace (F-67)                                   | Podle design systému z nástřelu designu                                                    | PO / tým     |
+| Q9  | Filtr Obsazenost: Volná místa / Chybí lidé (návrh týmu 20. 10., rozšířen 23. 10.) | Je v aplikaci                                                                              | PO           |
+| Q10 | Výchozí pohled /akce na mobilu                                                    | Mapa přes celou obrazovku, seznam ve vysouvacím panelu                                     | PO           |
+| Q11 | Zrušení, nebo smazání akce                                                        | Jen zrušení se štítkem „Zrušeno“, akce se nemaže                                           | PO           |
+| Q12 | Organizátor jako účastník vlastní akce                                            | Není automaticky, může se přihlásit; jeho přihláška se neschvaluje a počítá se do kapacity | PO           |
+| Q13 | Seznam kategorií a aktivit (B-002)                                                | Seznam týmu z 20. 10. (8 kategorií + „Jiné“), konzultace s PO na standupu 23. 10.          | Tým          |
 
 ## Mimo MVP (agent nedělá)
 

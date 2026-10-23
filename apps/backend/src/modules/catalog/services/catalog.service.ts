@@ -3,8 +3,9 @@ import { Locality } from '@/modules/catalog/domain/locality';
 import { CatalogRepository } from '@/modules/catalog/repositories/catalog.repository';
 import { Injectable } from '@nestjs/common';
 
-// Enough for a city with all its districts (Praha + Praha 1–22). An empty
-// query returns the first LOCALITY_LIMIT localities, not all of them.
+// Enough for a city with all its districts (Praha + Praha 1–22). Only a search
+// is limited: without a query the whole catalog comes back, because the /akce
+// locality filter resolves slugs from it and lists every locality.
 const LOCALITY_LIMIT = 50;
 
 const collator = new Intl.Collator('cs', { numeric: true });
@@ -27,7 +28,7 @@ export class CatalogService {
   }
 
   /**
-   * Locality autocomplete. Matches the name, and also the slug so that
+   * Locality autocomplete, or the whole catalog for an empty query. Matches the name, and also the slug so that
    * "plzen" finds "Plzeň". Cities come before districts, districts in natural
    * order ("Praha 2" before "Praha 10").
    */
@@ -37,7 +38,7 @@ export class CatalogService {
       name,
       // "-" or "%" slugify to "" — searching for that would match everything.
       slug: toSlug(name) || undefined,
-      limit: LOCALITY_LIMIT,
+      limit: name ? LOCALITY_LIMIT : undefined,
     });
     return [...localities].sort(
       (a, b) =>
