@@ -92,7 +92,7 @@ describe('CatalogService', () => {
     });
   });
 
-  it('passes an empty query through without a slug', async () => {
+  it('returns the whole catalog for an empty query (no slug, no limit)', async () => {
     const repository = mock<CatalogRepository>();
     repository.findLocalities.mockResolvedValue([aLocality()]);
 
@@ -102,7 +102,7 @@ describe('CatalogService', () => {
     expect(repository.findLocalities).toHaveBeenCalledWith({
       name: '',
       slug: undefined,
-      limit: 50,
+      limit: undefined,
     });
   });
 });

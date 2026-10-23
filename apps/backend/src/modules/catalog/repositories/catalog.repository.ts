@@ -33,11 +33,12 @@ export class CatalogRepository {
   /**
    * Localities whose name (case-insensitive) or slug contains the query.
    * Ordered before `take`, so the cut-off is stable: cities first, then by name.
+   * Without `limit` all matches.
    */
   async findLocalities(query: {
     name: string;
     slug?: string;
-    limit: number;
+    limit?: number;
   }): Promise<Locality[]> {
     const localities = await this.prisma.locality.findMany({
       where: {

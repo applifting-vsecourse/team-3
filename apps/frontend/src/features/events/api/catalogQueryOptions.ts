@@ -14,8 +14,8 @@ export const catalogKeys = {
 const CATALOG_STALE_TIME = 60 * 60 * 1000
 
 /**
- * All localities. An empty query returns up to 50, which covers the whole
- * catalog today (cities + Praha 1–22), so filters can resolve slugs locally.
+ * All localities: without a query the API returns the whole catalog (only a
+ * search is capped at 50), so filters can resolve slugs and list them locally.
  */
 export const localitiesQueryOptions = () =>
   queryOptions({
