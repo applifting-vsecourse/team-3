@@ -66,7 +66,7 @@ describe("EventFilters", () => {
   it("shows Praha by default, without „Zrušit vše“", () => {
     renderFilters()
 
-    expect(screen.getByRole("button", { name: "Praha" })).toBeInTheDocument()
+    expect(screen.getByRole("button", { name: "Lokalita: Praha" })).toBeInTheDocument()
     expect(screen.queryByRole("button", { name: "Zrušit vše" })).not.toBeInTheDocument()
   })
 
@@ -89,7 +89,7 @@ describe("EventFilters", () => {
   it("offers „Zrušit vše“ with an active filter", async () => {
     const { onClearAll } = renderFilters({ search: { lokalita: "praha-8" } })
 
-    expect(screen.getByRole("button", { name: "Praha 8" })).toBeInTheDocument()
+    expect(screen.getByRole("button", { name: "Lokalita: Praha 8" })).toBeInTheDocument()
     await userEvent.click(screen.getByRole("button", { name: "Zrušit vše" }))
     expect(onClearAll).toHaveBeenCalledOnce()
   })
@@ -97,7 +97,7 @@ describe("EventFilters", () => {
   it("picks a locality and previews how many events it shows", async () => {
     const { onChange } = renderFilters()
 
-    await userEvent.click(screen.getByRole("button", { name: "Praha" }))
+    await userEvent.click(screen.getByRole("button", { name: "Lokalita: Praha" }))
     const panel = await screen.findByRole("dialog", { name: "Lokalita" })
     expect(
       await within(panel).findByRole("button", { name: "Zobrazit 2 akce" }),
@@ -111,7 +111,7 @@ describe("EventFilters", () => {
   it("finds a locality without diacritics and stores Praha as no parameter", async () => {
     const { onChange } = renderFilters({ search: { lokalita: "brno" } })
 
-    await userEvent.click(screen.getByRole("button", { name: "Brno" }))
+    await userEvent.click(screen.getByRole("button", { name: "Lokalita: Brno" }))
     const panel = await screen.findByRole("dialog", { name: "Lokalita" })
     await userEvent.type(within(panel).getByRole("combobox", { name: "Hledat lokalitu" }), "prah")
     expect(within(panel).queryByRole("option", { name: "Brno" })).not.toBeInTheDocument()
@@ -170,10 +170,32 @@ describe("EventFilters › Termín", () => {
     expect(onChange).toHaveBeenCalledWith({ od: "2026-10-27", do: "2026-10-27" })
   })
 
+  it("previews no date limit once the range is unselected in the calendar", async () => {
+    renderFilters({ search: { od: "2026-10-27", do: "2026-10-27" } })
+
+    await userEvent.click(screen.getByRole("button", { name: "Termín: 27. 10." }))
+    const panel = await screen.findByRole("dialog", { name: "Termín" })
+    // the API mock returns 2 events without a locality filter, regardless of dates;
+    // what matters is that the request no longer carries the URL's dates
+    await within(panel).findByRole("button", { name: /^Zobrazit/ })
+    get.mockClear()
+    const day27 = within(panel)
+      .getAllByRole("button")
+      .find((b) => b.textContent === "27" && b.closest("[role=gridcell], td"))!
+    await userEvent.click(day27)
+    await within(panel).findByRole("button", { name: "Zobrazit 2 akce" })
+
+    const eventCalls = get.mock.calls.filter(([path]) => path === "events")
+    expect(eventCalls.length).toBeGreaterThan(0)
+    for (const [, options] of eventCalls) {
+      expect(options?.searchParams?.has("dateFrom")).toBe(false)
+    }
+  })
+
   it("shows the range on the chip and clears it", async () => {
     const { onChange } = renderFilters({ search: { od: "2026-10-23", do: "2026-10-29" } })
 
-    await userEvent.click(screen.getByRole("button", { name: "23.–29. 10." }))
+    await userEvent.click(screen.getByRole("button", { name: "Termín: 23.–29. 10." }))
     const panel = await screen.findByRole("dialog", { name: "Termín" })
     await userEvent.click(within(panel).getByRole("button", { name: "Zrušit termín" }))
     expect(onChange).toHaveBeenCalledWith({ od: undefined, do: undefined })
@@ -252,6 +274,6 @@ describe("EventFilters › Typ aktivity", () => {
 
   it("names the chip after a single selection, counts several", () => {
     renderFilters({ ...withCatalog, search: { aktivita: "volejbal" } })
-    expect(screen.getByRole("button", { name: "Volejbal" })).toBeInTheDocument()
+    expect(screen.getByRole("button", { name: "Typ aktivity: Volejbal" })).toBeInTheDocument()
   })
 })

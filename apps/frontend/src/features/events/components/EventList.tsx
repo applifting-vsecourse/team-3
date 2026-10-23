@@ -34,7 +34,8 @@ export function EventList({
       <Alert variant="destructive">
         <AlertTitle>Akce se nepodařilo načíst</AlertTitle>
         <AlertDescription className="flex items-center justify-between gap-3">
-          <span>{error.message}</span>
+          {/* ky's message is a URL and a status code; it stays in the console */}
+          <span>Zkontrolujte připojení a zkuste to znovu.</span>
           {onRetry ? (
             <Button
               variant="outline"
@@ -57,7 +58,7 @@ export function EventList({
         aria-busy
         aria-label="Načítám akce"
       >
-        {[0, 1, 2, 3].map((i) => (
+        {Array.from({ length: limit ?? 4 }, (_, i) => (
           <EventCardSkeleton key={i} />
         ))}
       </div>

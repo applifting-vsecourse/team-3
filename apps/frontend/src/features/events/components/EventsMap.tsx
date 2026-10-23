@@ -23,6 +23,7 @@ type EventsMapProps = {
   highlightedId?: string
   center: { lat: number; lng: number }
   hasZoomControl?: boolean
+  attributionPosition?: "bottomright" | "topright"
   className?: string
 }
 
@@ -32,6 +33,7 @@ export function EventsMap({
   highlightedId,
   center,
   hasZoomControl,
+  attributionPosition,
   className,
 }: EventsMapProps) {
   return (
@@ -40,6 +42,7 @@ export function EventsMap({
       highlightedId={highlightedId}
       center={center}
       hasZoomControl={hasZoomControl}
+      attributionPosition={attributionPosition}
       className={className}
     />
   )

@@ -1,4 +1,4 @@
-import { FilterToggleChip } from "@/components/FilterChip/FilterChip"
+import { FilterChip, FilterToggleChip } from "@/components/FilterChip/FilterChip"
 import { Button } from "@/components/ui/button"
 import { cn } from "@/lib/utils"
 
@@ -39,7 +39,10 @@ export function EventFilters({
           localities={catalog.localities}
           onChange={(lokalita) => onChange({ lokalita })}
         />
-      ) : null}
+      ) : (
+        // keeps the bar from shifting while the catalog loads
+        <FilterChip disabled>Lokalita</FilterChip>
+      )}
       <DateFilter
         search={search}
         onChange={onChange}
@@ -50,7 +53,9 @@ export function EventFilters({
           categories={catalog.categories}
           onChange={onChange}
         />
-      ) : null}
+      ) : (
+        <FilterChip disabled>Typ aktivity</FilterChip>
+      )}
       <FilterToggleChip
         pressed={search.chybi === 1}
         onPressedChange={(isOn) => onChange({ chybi: isOn ? 1 : undefined })}
@@ -60,7 +65,7 @@ export function EventFilters({
       {hasActiveFilters(search) ? (
         <Button
           variant="ghost"
-          className={cn("h-11 shrink-0", isFloating && "rounded-full bg-background")}
+          className={cn("h-9 shrink-0", isFloating && "rounded-full bg-background")}
           onClick={onClearAll}
         >
           Zrušit vše

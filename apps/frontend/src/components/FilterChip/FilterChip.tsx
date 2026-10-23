@@ -14,13 +14,26 @@ const chipSelected =
 type FilterChipProps = ComponentProps<typeof Button> & {
   /** The filter has a value; the chip then shows it on a dark fill. */
   isSelected?: boolean
+  /** Which filter this is, so a screen reader hears „Lokalita: Praha 8“, not just „Praha 8“. */
+  filterName?: string
 }
 
 /** A chip that opens a filter's popover or bottom panel. */
-export function FilterChip({ isSelected, className, children, ...props }: FilterChipProps) {
+export function FilterChip({
+  isSelected,
+  filterName,
+  className,
+  children,
+  ...props
+}: FilterChipProps) {
   return (
     <Button
       variant="outline"
+      aria-label={
+        isSelected && filterName && typeof children === "string"
+          ? `${filterName}: ${children}`
+          : undefined
+      }
       className={cn(chip, isSelected ? chipSelected : chipDefault, "gap-1", className)}
       {...props}
     >

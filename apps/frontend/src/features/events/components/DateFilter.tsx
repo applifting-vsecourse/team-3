@@ -39,7 +39,8 @@ export function DateFilter({ search, onChange }: DateFilterProps) {
   const [today, setToday] = useState(() => pragueToday())
   // A start without an end is one day („klepnout dvakrát na stejné datum“ is optional).
   const chosen: DayRange = draft.od ? { od: draft.od, do: draft.do ?? draft.od } : {}
-  const preview = useEvents({ ...search, ...chosen })
+  // od/do explicitly: an emptied range must preview no date limit, not the URL's
+  const preview = useEvents({ ...search, od: chosen.od, do: chosen.do }, { isEnabled: isOpen })
 
   const apply = (range: DayRange) => {
     onChange(range)
@@ -58,10 +59,17 @@ export function DateFilter({ search, onChange }: DateFilterProps) {
         }
         setIsOpen(isOpening)
       }}
-      trigger={<FilterChip isSelected={Boolean(label)}>{label ?? "Termín"}</FilterChip>}
+      trigger={
+        <FilterChip
+          isSelected={Boolean(label)}
+          filterName="Termín"
+        >
+          {label ?? "Termín"}
+        </FilterChip>
+      }
       resetLabel="Zrušit termín"
       onReset={() => apply({ od: undefined, do: undefined })}
-      applyLabel={preview.events ? showEventsLabel(preview.events.length) : "Zobrazit akce"}
+      applyLabel={showEventsLabel(preview.isPlaceholderData ? undefined : preview.events?.length)}
       onApply={() => apply({ od: chosen.od, do: chosen.do })}
       popoverClassName="w-auto"
     >

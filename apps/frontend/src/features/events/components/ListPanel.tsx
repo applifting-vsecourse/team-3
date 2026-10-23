@@ -25,8 +25,8 @@ export function ListPanel({ isExpanded, onExpandedChange, children }: ListPanelP
       className={cn(
         "absolute inset-x-0 bottom-0 z-10 flex flex-col rounded-t-lg bg-background px-4 pb-4 shadow-md",
         // pulled up: covers the map; the filter chips stay above it
-        isExpanded && "top-0 overflow-y-auto pt-16 pb-20 shadow-none",
-        "md:static md:z-auto md:w-130 md:shrink-0 md:overflow-visible md:rounded-none md:p-0 md:shadow-none",
+        isExpanded && "top-0 overflow-y-auto pt-16 pb-16 shadow-none",
+        "md:static md:z-auto md:w-96 md:shrink-0 md:overflow-y-auto md:rounded-none md:p-0 md:shadow-none lg:w-130",
       )}
     >
       {isExpanded ? null : (

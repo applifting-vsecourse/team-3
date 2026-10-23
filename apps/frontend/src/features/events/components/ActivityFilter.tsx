@@ -51,7 +51,7 @@ export function ActivityFilter({ search, categories, onChange }: ActivityFilterP
   const [query, setQuery] = useState("")
   // desktop: the category shown on the right; mobile: the opened second level
   const [shownSlug, setShownSlug] = useState<string | undefined>()
-  const preview = useEvents({ ...search, ...toSearch(draft) })
+  const preview = useEvents({ ...search, ...toSearch(draft) }, { isEnabled: isOpen })
 
   const shown = categories.find((c) => c.slug === shownSlug)
   const isSecondLevel = !isDesktop && shown !== undefined && !query
@@ -81,10 +81,17 @@ export function ActivityFilter({ search, categories, onChange }: ActivityFilterP
         }
         setIsOpen(isOpening)
       }}
-      trigger={<FilterChip isSelected={Boolean(label)}>{label ?? "Typ aktivity"}</FilterChip>}
+      trigger={
+        <FilterChip
+          isSelected={Boolean(label)}
+          filterName="Typ aktivity"
+        >
+          {label ?? "Typ aktivity"}
+        </FilterChip>
+      }
       resetLabel="Zrušit výběr"
       onReset={() => apply({ categories: [], activities: [] })}
-      applyLabel={preview.events ? showEventsLabel(preview.events.length) : "Zobrazit akce"}
+      applyLabel={showEventsLabel(preview.isPlaceholderData ? undefined : preview.events?.length)}
       onApply={() => apply(draft)}
       popoverClassName="w-auto"
     >
@@ -95,7 +102,7 @@ export function ActivityFilter({ search, categories, onChange }: ActivityFilterP
         />
       )}
 
-      {query ? (
+      {query.trim() ? (
         <SearchResults
           categories={categories}
           query={query}

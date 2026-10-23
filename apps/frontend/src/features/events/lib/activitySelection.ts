@@ -73,14 +73,13 @@ export function selectionLabel(
   selection: ActivitySelection,
   categories: ActivityCategory[],
 ): string | undefined {
-  const count = selection.categories.length + selection.activities.length
-  if (count === 0) return undefined
-  if (count > 1) return `Typ aktivity (${count})`
-  const category = categories.find((c) => c.slug === selection.categories[0])
-  const activity = categories
-    .flatMap((c) => c.activities)
-    .find((a) => a.slug === selection.activities[0])
-  return category?.name ?? activity?.name ?? "Typ aktivity (1)"
+  // slugs the catalog doesn't know are dropped from the query, so don't count them
+  const names = [
+    ...categories.filter((c) => selection.categories.includes(c.slug)),
+    ...categories.flatMap((c) => c.activities).filter((a) => selection.activities.includes(a.slug)),
+  ].map((item) => item.name)
+  if (names.length === 0) return undefined
+  return names.length === 1 ? names[0] : `Typ aktivity (${names.length})`
 }
 
 const fold = (text: string) =>

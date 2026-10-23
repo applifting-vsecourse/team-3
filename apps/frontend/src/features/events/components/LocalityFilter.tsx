@@ -29,7 +29,7 @@ export function LocalityFilter({ search, localities, onChange }: LocalityFilterP
   const current = search.lokalita ?? DEFAULT_LOCALITY_SLUG
   const [isOpen, setIsOpen] = useState(false)
   const [draft, setDraft] = useState(current)
-  const preview = useEvents({ ...search, lokalita: draft })
+  const preview = useEvents({ ...search, lokalita: draft }, { isEnabled: isOpen })
 
   const currentName = localities.find((l) => l.slug === current)?.name
   // The default is stored as no parameter, so the link stays /akce.
@@ -47,11 +47,16 @@ export function LocalityFilter({ search, localities, onChange }: LocalityFilterP
         setIsOpen(isOpening)
       }}
       trigger={
-        <FilterChip isSelected={Boolean(currentName)}>{currentName ?? "Lokalita"}</FilterChip>
+        <FilterChip
+          isSelected={Boolean(currentName)}
+          filterName="Lokalita"
+        >
+          {currentName ?? "Lokalita"}
+        </FilterChip>
       }
       resetLabel="Celá Praha"
       onReset={() => apply(DEFAULT_LOCALITY_SLUG)}
-      applyLabel={preview.events ? showEventsLabel(preview.events.length) : "Zobrazit akce"}
+      applyLabel={showEventsLabel(preview.isPlaceholderData ? undefined : preview.events?.length)}
       onApply={() => apply(draft)}
       popoverClassName="w-80"
     >

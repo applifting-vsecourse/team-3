@@ -92,7 +92,9 @@ describe("EventList", () => {
     )
 
     expect(screen.getByText("Akce se nepodařilo načíst")).toBeInTheDocument()
-    expect(screen.getByText("Server neodpovídá")).toBeInTheDocument()
+    // a sentence for people, not ky's URL and status code
+    expect(screen.getByText("Zkontrolujte připojení a zkuste to znovu.")).toBeInTheDocument()
+    expect(screen.queryByText("Server neodpovídá")).not.toBeInTheDocument()
 
     await userEvent.click(screen.getByRole("button", { name: "Zkusit znovu" }))
     expect(onRetry).toHaveBeenCalledOnce()

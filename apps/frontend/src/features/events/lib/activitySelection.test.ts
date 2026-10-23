@@ -120,6 +120,13 @@ describe("selectionLabel", () => {
       selectionLabel({ categories: ["raketove-sporty"], activities: ["florbal"] }, categories),
     ).toBe("Typ aktivity (2)")
   })
+
+  it("does not count slugs the catalog doesn't know (they are dropped from the query)", () => {
+    expect(selectionLabel({ categories: [], activities: ["kriket"] }, categories)).toBeUndefined()
+    expect(selectionLabel({ categories: [], activities: ["kriket", "florbal"] }, categories)).toBe(
+      "Florbal",
+    )
+  })
 })
 
 describe("searchActivities", () => {

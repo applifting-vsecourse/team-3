@@ -12,7 +12,7 @@ These are rules, not suggestions. When a rule and a "nicer looking" idea disagre
 
 - **Never hardcode a colour.** No `#hex`, no `bg-blue-500`, no `rgb()`. Use the semantic classes only: `bg-background`, `text-foreground`, `text-muted-foreground`, `bg-card`, `bg-primary`, `bg-secondary`, `border-border`, `bg-destructive`.
 - **`primary` is for actions, not decoration.** One primary button per view. Everything else is `outline`, `ghost` or a plain link.
-- **`primary` (lime) is a fill, never a text or icon colour.** Lime on white fails contrast. Text on a lime fill is `primary-foreground`. The only non-button uses of lime are the brand elements below: the capacity bar fill, the „Chybí“ badge, the active bottom-nav pill and the logo.
+- **`primary` (lime) is a fill, never a text or icon colour.** Lime on white fails contrast. Text on a lime fill is `primary-foreground`. The only non-button uses of lime are the brand elements below: the capacity bar fill, the „Chybí“ badge, the „Chybí“ map pin, the active bottom-nav pill and the logo.
 - **`secondary` (light green) is for quiet brand labels** — the activity tag and the „Volná místa“ badge — with `secondary-foreground` text.
 - **`destructive` only for destructive actions and errors.** Never for emphasis.
 - **`accent` is a hover/active surface, not a brand colour.** It tints menu items and ghost buttons on hover, so it must stay quiet. The brand colour is `primary`.

@@ -53,7 +53,9 @@ function EventsPage() {
     <>
       <Seo title="Akce" />
       <Header userMenu={<HeaderMenu />} />
-      <main className="relative flex flex-1 flex-col md:block">
+      {/* Desktop: main takes exactly the rest of the viewport (basis-0 + min-h-0),
+          the list scrolls on its own and the map fills the height beside it. */}
+      <main className="relative flex flex-1 flex-col md:min-h-0 md:basis-0">
         <h1 className="sr-only">Akce</h1>
 
         <div
@@ -70,11 +72,11 @@ function EventsPage() {
             onChange={setSearch}
             onClearAll={() => void navigate({ search: {}, replace: true })}
             isFloating={!isDesktop && !isListExpanded}
-            className="overflow-x-auto px-4 py-3 md:px-10"
+            className="overflow-x-auto px-4 py-3 md:px-8"
           />
         </div>
 
-        <div className="flex flex-1 md:gap-8 md:px-10">
+        <div className="flex flex-1 md:min-h-0 md:gap-8 md:px-8">
           <ListPanel
             isExpanded={isListExpanded}
             onExpandedChange={setIsListExpanded}
@@ -94,9 +96,14 @@ function EventsPage() {
           </ListPanel>
 
           <div
-            // hidden, not unmounted, under the pulled-up list
+            // hidden, not unmounted, under the pulled-up list; inert keeps it out of Tab order
             aria-hidden={!isMapVisible}
-            className="absolute inset-0 md:sticky md:inset-auto md:top-0 md:h-svh md:min-w-0 md:flex-1 md:py-8"
+            inert={!isMapVisible}
+            className={cn(
+              "absolute inset-0 md:static md:min-w-0 md:flex-1 md:py-8",
+              // mobile: map controls below the floating chips
+              !isDesktop && "[&_.leaflet-top]:top-16",
+            )}
           >
             <div className="size-full overflow-hidden md:rounded-lg md:border md:border-border">
               <EventsMap
@@ -104,6 +111,7 @@ function EventsPage() {
                 highlightedId={highlightedId}
                 center={locality ?? FALLBACK_CENTER}
                 hasZoomControl={isDesktop}
+                attributionPosition={isDesktop ? "bottomright" : "topright"}
               />
             </div>
           </div>
