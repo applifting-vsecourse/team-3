@@ -126,7 +126,8 @@ function EventsPage() {
           <Button
             variant="outline"
             onClick={() => setIsListExpanded(false)}
-            className="absolute bottom-4 left-4 z-20 h-11 rounded-full bg-background shadow-md md:hidden"
+            // dark: the kit's outline is see-through in dark mode; this floats over cards
+            className="absolute bottom-4 left-4 z-20 h-11 rounded-full bg-background shadow-md md:hidden dark:bg-background dark:hover:bg-accent"
           >
             <MapIcon />
             Mapa

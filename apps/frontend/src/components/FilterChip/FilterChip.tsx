@@ -6,10 +6,13 @@ import { Toggle } from "@/components/ui/toggle"
 import { cn } from "@/lib/utils"
 
 // Figma: Filter chip. Selected (has a value / is on) = dark fill; default = hairline outline.
+// The dark: repeats override the kit's see-through outline background (dark:bg-input/30),
+// which would let the map show through floating chips.
 const chip = "h-9 shrink-0 rounded-full border px-4 text-sm whitespace-nowrap hover:text-foreground"
-const chipDefault = "border-border bg-background font-medium text-foreground hover:bg-accent"
+const chipDefault =
+  "border-border bg-background font-medium text-foreground hover:bg-accent dark:border-border dark:bg-background dark:hover:bg-accent"
 const chipSelected =
-  "border-foreground bg-foreground font-semibold text-background hover:bg-foreground/90 hover:text-background"
+  "border-foreground bg-foreground font-semibold text-background hover:bg-foreground/90 hover:text-background dark:border-foreground dark:bg-foreground dark:hover:bg-foreground/90"
 
 type FilterChipProps = ComponentProps<typeof Button> & {
   /** The filter has a value; the chip then shows it on a dark fill. */
