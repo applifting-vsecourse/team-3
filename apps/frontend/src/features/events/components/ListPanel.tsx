@@ -99,6 +99,9 @@ export function ListPanel({
       className={cn(
         // mobile: a sheet from under the filter chips to the bottom
         "absolute inset-x-0 top-16 bottom-0 z-10 flex flex-col rounded-t-lg bg-background shadow-md",
+        // the sheet continues below its bottom edge, so pulling it past the top
+        // (the elastic overshoot, up to 24px) never uncovers the map underneath
+        "after:absolute after:inset-x-0 after:top-full after:h-8 after:bg-background md:after:hidden",
         dragOffset === null &&
           "transition-transform duration-300 ease-out motion-reduce:transition-none",
         "md:static md:z-auto md:my-8 md:w-96 md:shrink-0 md:rounded-none md:shadow-none lg:w-130",
