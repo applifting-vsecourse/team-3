@@ -86,7 +86,7 @@
   --shadow-2xl: 0px 4px 16px 0px rgb(20 33 26 / 0.12), 0px 1px 3px 0px rgb(20 33 26 / 0.08);
 }
 
-/* Dark mode is not drawn in Figma yet: same hues, derived for contrast on a dark green background. */
+/* Dark mode: Figma collection „HobbyHub tokens“, mode Dark (same hues on a dark green background). */
 .dark {
   --background: #0f1712;
   --foreground: #eef3ea;

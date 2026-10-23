@@ -14,7 +14,7 @@ These are rules, not suggestions. When a rule and a "nicer looking" idea disagre
 - **`primary` is for actions, not decoration.** One primary button per view. Everything else is `outline`, `ghost` or a plain link.
 - **`primary` (lime) is a fill, never a text or icon colour.** Lime on white fails contrast. Text on a lime fill is `primary-foreground`. The only non-button uses of lime are the brand elements below: the capacity bar fill, the „Chybí“ badge, the „Chybí“ map pin, the active bottom-nav pill and the logo.
 - **`secondary` (light green) is for quiet brand labels** — the activity tag and the „Volná místa“ badge — with `secondary-foreground` text.
-- **`destructive` only for destructive actions and errors.** Never for emphasis.
+- **`destructive` only for destructive actions and errors.** Never for emphasis. In dark mode it is lighter (`#f97066`), because error text needs 4.5:1 on a dark card; the token test in `src/styles/tokens.test.ts` checks the text pairs in both modes.
 - **`accent` is a hover/active surface, not a brand colour.** It tints menu items and ghost buttons on hover, so it must stay quiet. The brand colour is `primary`.
 - Body text is `foreground`; supporting text is `muted-foreground`. There is no third level.
 
