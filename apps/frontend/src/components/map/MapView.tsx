@@ -10,6 +10,7 @@ import {
 } from "react-leaflet"
 
 import "leaflet/dist/leaflet.css"
+import "./map.css"
 
 import { cn } from "@/lib/utils"
 

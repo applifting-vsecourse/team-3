@@ -1,3 +1,5 @@
+import { readFileSync } from "node:fs"
+import { resolve } from "node:path"
 import { render, screen } from "@testing-library/react"
 import { describe, expect, it } from "vitest"
 
@@ -37,6 +39,17 @@ describe("MapView", () => {
 
     expect(screen.getByText("Běh · chybí 1")).toBeInTheDocument()
     expect(screen.queryByText("Deskovky")).not.toBeInTheDocument()
+  })
+})
+
+// Read from disk: Vitest empties CSS imports, even with ?raw.
+// (jsdom gives import.meta.url an http: scheme, so the path is from the package root)
+const mapCss = readFileSync(resolve(process.cwd(), "src/components/map/map.css"), "utf8")
+
+describe("map.css", () => {
+  it("styles Leaflet with tokens only and darkens just the tiles in dark mode", () => {
+    expect(mapCss).not.toMatch(/#[0-9a-f]{3,6}\b|rgba?\(/i)
+    expect(mapCss).toMatch(/\.dark \.leaflet-tile-pane\s*\{[^}]*filter:/)
   })
 })
 

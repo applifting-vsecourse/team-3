@@ -2,7 +2,8 @@
  * Map pin markup (Figma: Map pin). The paths come from the Figma component;
  * colours are token classes, never hex (DESIGN.md › Colour):
  * - default: dark pin
- * - highlighted: larger lime pin — an event that still misses people
+ * - highlighted: larger lime pin — an event that still misses people; its
+ *   outline and dot are primary-foreground, dark in both themes like text on lime
  * - full: muted pin
  */
 export type PinVariant = "default" | "highlighted" | "full"
@@ -20,8 +21,8 @@ const smallPin = (body: string) =>
 
 const largePin =
   `<svg width="40" height="50" viewBox="0 0 40 50" fill="none" aria-hidden="true">` +
-  `<path class="fill-primary stroke-foreground" stroke-width="3.33333" d="M20 48.3333C20 48.3333 36.6667 32.5 36.6667 19.1667C36.6667 9.5 29.1667 2.5 20 2.5C10.8333 2.5 3.33333 9.5 3.33333 19.1667C3.33333 32.5 20 48.3333 20 48.3333Z"/>` +
-  `<path class="fill-foreground" d="M20 25.8333C23.6819 25.8333 26.6667 22.8486 26.6667 19.1667C26.6667 15.4848 23.6819 12.5 20 12.5C16.3181 12.5 13.3333 15.4848 13.3333 19.1667C13.3333 22.8486 16.3181 25.8333 20 25.8333Z"/>` +
+  `<path class="fill-primary stroke-primary-foreground" stroke-width="3.33333" d="M20 48.3333C20 48.3333 36.6667 32.5 36.6667 19.1667C36.6667 9.5 29.1667 2.5 20 2.5C10.8333 2.5 3.33333 9.5 3.33333 19.1667C3.33333 32.5 20 48.3333 20 48.3333Z"/>` +
+  `<path class="fill-primary-foreground" d="M20 25.8333C23.6819 25.8333 26.6667 22.8486 26.6667 19.1667C26.6667 15.4848 23.6819 12.5 20 12.5C16.3181 12.5 13.3333 15.4848 13.3333 19.1667C13.3333 22.8486 16.3181 25.8333 20 25.8333Z"/>` +
   `</svg>`
 
 const SVG: Record<PinVariant, string> = {
