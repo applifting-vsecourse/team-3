@@ -88,25 +88,25 @@
 
 /* Dark mode: Figma collection „HobbyHub tokens“, mode Dark (same hues on a dark green background). */
 .dark {
-  --background: #0f1712;
+  --background: #0f1612;
   --foreground: #eef3ea;
-  --card: #17211b;
+  --card: #151e18;
   --card-foreground: #eef3ea;
-  --popover: #17211b;
+  --popover: #151e18;
   --popover-foreground: #eef3ea;
   --primary: #b6f24a;
   --primary-foreground: #14201a;
-  --secondary: #23331a;
-  --secondary-foreground: #cdeca0;
-  --muted: #1d2822;
-  --muted-foreground: #9aa89f;
-  --accent: #1d2822;
+  --secondary: #24331a;
+  --secondary-foreground: #cdeba8;
+  --muted: #1c2620;
+  --muted-foreground: #9aa79e;
+  --accent: #1c2620;
   --accent-foreground: #eef3ea;
   /* lighter than in light mode: #d92d20 is only 3.4:1 as error text on a dark card */
   --destructive: #f97066;
   --destructive-foreground: #ffffff;
-  --border: #2a362f;
-  --input: #2a362f;
+  --border: #2a3530;
+  --input: #2a3530;
   --ring: #b6f24a;
 }
 
