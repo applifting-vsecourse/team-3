@@ -66,6 +66,22 @@ describe("ListPanel", () => {
     expect(panel.className).toContain("transition-transform")
   })
 
+  it("reports how much of the closed sheet shows, so the map can keep its attribution above it", () => {
+    const onPeekHeightChange = vi.fn()
+    render(
+      <ListPanel
+        isExpanded={false}
+        onExpandedChange={vi.fn()}
+        onPeekHeightChange={onPeekHeightChange}
+      >
+        <p data-peek-end>1 akce</p>
+      </ListPanel>,
+    )
+
+    expect(onPeekHeightChange).toHaveBeenCalled()
+    expect(onPeekHeightChange.mock.lastCall?.[0]).toBeGreaterThanOrEqual(0)
+  })
+
   it("works from the keyboard", async () => {
     const onExpandedChange = renderPanel(false)
 

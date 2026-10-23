@@ -33,8 +33,6 @@ type MapViewProps = {
   center: { lat: number; lng: number }
   /** Zoom buttons bottom right; on touch screens pinch zoom is enough. */
   hasZoomControl?: boolean
-  /** The OSM attribution must stay visible; on mobile the list panel covers the bottom. */
-  attributionPosition?: "bottomright" | "topright"
   className?: string
 }
 
@@ -53,7 +51,6 @@ export function MapView({
   highlightedId,
   center,
   hasZoomControl = true,
-  attributionPosition = "bottomright",
   className,
 }: MapViewProps) {
   return (
@@ -70,7 +67,7 @@ export function MapView({
         attributionControl={false}
         className="size-full bg-muted"
       >
-        <AttributionControl position={attributionPosition} />
+        <AttributionControl position="bottomright" />
         {hasZoomControl ? <ZoomControl position="bottomright" /> : null}
         <TileLayer
           attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'

@@ -8,6 +8,11 @@ type ListPanelProps = {
   onExpandedChange: (isExpanded: boolean) => void
   /** Changes with the filters; the list then scrolls back to the top. */
   scrollResetKey?: string
+  /**
+   * How much of the closed sheet shows above the bottom, so map controls can sit
+   * above it. Pass a stable function (a state setter), it is an effect dependency.
+   */
+  onPeekHeightChange?: (px: number) => void
   children: ReactNode
 }
 
@@ -31,6 +36,7 @@ export function ListPanel({
   isExpanded,
   onExpandedChange,
   scrollResetKey,
+  onPeekHeightChange,
   children,
 }: ListPanelProps) {
   const isDesktop = useMediaQuery(DESKTOP_QUERY)
@@ -50,6 +56,7 @@ export function ListPanel({
       // both rects move with the transform, so their difference doesn't
       const peek = peekEnd.getBoundingClientRect().bottom - panel.getBoundingClientRect().top
       setClosedOffset(Math.max(0, panel.offsetHeight - peek - PEEK_GAP_PX))
+      onPeekHeightChange?.(Math.min(panel.offsetHeight, peek + PEEK_GAP_PX))
     }
     measure()
     if (typeof ResizeObserver === "undefined") return
@@ -57,7 +64,7 @@ export function ListPanel({
     observer.observe(panel)
     observer.observe(content)
     return () => observer.disconnect()
-  }, [isDesktop])
+  }, [isDesktop, onPeekHeightChange])
 
   // new filters, new results: start at the top, not halfway down the old list
   useEffect(() => {

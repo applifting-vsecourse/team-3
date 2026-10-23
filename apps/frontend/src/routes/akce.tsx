@@ -1,4 +1,4 @@
-import { useState } from "react"
+import { useState, type CSSProperties } from "react"
 import { createFileRoute } from "@tanstack/react-router"
 import { Map as MapIcon } from "lucide-react"
 
@@ -40,6 +40,7 @@ function EventsPage() {
   const isDesktop = useMediaQuery(DESKTOP_QUERY)
   const [isListExpanded, setIsListExpanded] = useState(false)
   const [highlightedId, setHighlightedId] = useState<string>()
+  const [panelPeekHeight, setPanelPeekHeight] = useState(0)
   const locality = catalog?.localities.find(
     (l) => l.slug === (search.lokalita ?? DEFAULT_LOCALITY_SLUG),
   )
@@ -85,6 +86,7 @@ function EventsPage() {
             isExpanded={isListExpanded}
             onExpandedChange={setIsListExpanded}
             scrollResetKey={JSON.stringify(search)}
+            onPeekHeightChange={setPanelPeekHeight}
           >
             <EventList
               events={events ?? []}
@@ -102,11 +104,16 @@ function EventsPage() {
             // hidden, not unmounted, under the pulled-up list; inert keeps it out of Tab order
             aria-hidden={!isMapVisible}
             inert={!isMapVisible}
+            // mobile: the OSM attribution sits bottom right just above the closed list
+            // sheet instead of hiding under it (! because leaflet.css isn't layered)
+            style={
+              isDesktop
+                ? undefined
+                : ({ "--map-bottom-inset": `${panelPeekHeight}px` } as CSSProperties)
+            }
             className={cn(
               "absolute inset-0 md:static md:min-w-0 md:flex-1 md:py-8",
-              // mobile: map controls below the floating chips
-              // (! because leaflet.css isn't in a cascade layer and would win otherwise)
-              !isDesktop && "[&_.leaflet-top]:top-16!",
+              !isDesktop && "[&_.leaflet-bottom]:bottom-(--map-bottom-inset)!",
             )}
           >
             <div className="size-full overflow-hidden md:rounded-lg md:border md:border-border">
@@ -115,7 +122,6 @@ function EventsPage() {
                 highlightedId={highlightedId}
                 center={locality ?? FALLBACK_CENTER}
                 hasZoomControl={isDesktop}
-                attributionPosition={isDesktop ? "bottomright" : "topright"}
               />
             </div>
           </div>
