@@ -53,7 +53,10 @@ describe('seedDemo', () => {
 
     await seedDemo(prisma, mockDeep<BetterAuth>());
 
-    expect(prisma.$executeRaw).toHaveBeenCalled();
+    // the lock is taken before the counts are checked again inside the transaction
+    const lockAt = prisma.$executeRaw.mock.invocationCallOrder[0]!;
+    const recheckAt = prisma.event.count.mock.invocationCallOrder[1]!;
+    expect(lockAt).toBeLessThan(recheckAt);
     expect(prisma.group.create).toHaveBeenCalledTimes(demoGroups.length);
     expect(prisma.event.create).toHaveBeenCalledTimes(demoEvents.length);
   });

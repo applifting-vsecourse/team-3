@@ -9,6 +9,9 @@ import { toEventRow, toGroupRow } from '@/scripts/seed/data/demo-rows';
 import { BetterAuth } from '@/shared/auth/providers/better-auth.provider';
 import { ensureUser } from './ensure-user';
 
+/** Advisory lock key for inserting the demo data; any constant unique to it. */
+const DEMO_SEED_LOCK = 4_702_026;
+
 /**
  * Testovací data #47: demo účty, skupiny, akce a účasti.
  *
@@ -19,9 +22,6 @@ import { ensureUser } from './ensure-user';
  * - Skupiny, akce a účasti jdou v jedné transakci: buď je tam všechno, nebo nic,
  *   a nepovedený seed se při dalším startu zopakuje celý.
  */
-/** Advisory lock key for inserting the demo data; any constant unique to it. */
-const DEMO_SEED_LOCK = 4_702_026;
-
 export async function seedDemo(
   prisma: PrismaService,
   auth: BetterAuth,
@@ -78,6 +78,8 @@ export async function seedDemo(
       // Two seeds starting at once (overlapping container starts) must not
       // both insert: the lock makes the second one wait until the first has
       // committed, and the counts inside the transaction then see its data.
+      // That relies on Postgres' default READ COMMITTED: under REPEATABLE READ
+      // the snapshot would predate the other seed's commit.
       await tx.$executeRaw`SELECT pg_advisory_xact_lock(${DEMO_SEED_LOCK})`;
       const [events, groups] = await Promise.all([
         tx.event.count(),
