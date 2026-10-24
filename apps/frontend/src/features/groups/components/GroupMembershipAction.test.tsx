@@ -1,12 +1,16 @@
 import type { ReactElement } from "react"
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query"
-import { screen } from "@testing-library/react"
-import { describe, expect, it } from "vitest"
+import { screen, within } from "@testing-library/react"
+import userEvent from "@testing-library/user-event"
+import { describe, expect, it, vi } from "vitest"
 
 import { renderWithRouter } from "@/test/renderWithRouter"
 
 import type { GroupDetail, Membership } from "@/features/groups/api/groupSchemas"
 import { GroupMembershipAction } from "@/features/groups/components/GroupMembershipAction"
+
+const { api } = vi.hoisted(() => ({ api: { post: vi.fn(() => Promise.resolve()) } }))
+vi.mock("@/lib/api-client", () => ({ api }))
 
 const group: GroupDetail = {
   id: "g-florbal",
@@ -71,8 +75,19 @@ describe("GroupMembershipAction", () => {
   it("a pending request waits for the named admin", async () => {
     await render(as({ role: "member", status: "pending" }))
     expect(screen.getByText("Žádost čeká na schválení")).toBeInTheDocument()
-    expect(screen.getByText("Správce Tomáš Dvořák ji schválí nebo zamítne.")).toBeInTheDocument()
-    expect(screen.queryByRole("button")).not.toBeInTheDocument()
+    expect(screen.getByText("Schválí nebo zamítne ji Tomáš Dvořák.")).toBeInTheDocument()
+    expect(screen.getByRole("button", { name: "Stáhnout žádost" })).toBeEnabled()
+  })
+
+  it("withdrawing a request is confirmed first", async () => {
+    await render(as({ role: "member", status: "pending" }))
+
+    await userEvent.click(screen.getByRole("button", { name: "Stáhnout žádost" }))
+    const dialog = await screen.findByRole("dialog", { name: "Stáhnout žádost o členství?" })
+    expect(api.post).not.toHaveBeenCalled()
+
+    await userEvent.click(within(dialog).getByRole("button", { name: "Stáhnout žádost" }))
+    expect(api.post).toHaveBeenCalledWith("groups/g-florbal/leave")
   })
 
   it("a member can leave", async () => {
