@@ -51,3 +51,19 @@ describe('EventRepository', () => {
     });
   });
 });
+
+describe('EventRepository.cancelEvent', () => {
+  it('writes only an event that is still published and ahead, so two cancels write once', async () => {
+    const prisma = mockDeep<PrismaService>();
+    prisma.event.updateMany.mockResolvedValue({ count: 0 });
+    const now = new Date('2026-10-24T08:00:00.000Z');
+
+    await expect(
+      new EventRepository(prisma).cancelEvent('e1', 'Důvod', now),
+    ).resolves.toBe(false);
+    expect(prisma.event.updateMany).toHaveBeenCalledWith({
+      where: { id: 'e1', status: 'published', startsAt: { gt: now } },
+      data: { status: 'cancelled', cancelReason: 'Důvod', cancelledAt: now },
+    });
+  });
+});

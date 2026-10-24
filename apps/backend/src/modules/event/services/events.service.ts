@@ -6,7 +6,12 @@ import {
   PublicEventFilters,
 } from '@/modules/event/domain/event';
 import { EventRepository } from '@/modules/event/repositories/event.repository';
-import { Injectable, NotFoundException } from '@nestjs/common';
+import {
+  ConflictException,
+  ForbiddenException,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
 
 // One endpoint serves both the list and the map in sprint 2, without paging
 // (deviation from B-023, which has paging and a separate /events/map).
@@ -65,6 +70,48 @@ export class EventsService {
       ? await this.eventRepository.findApprovedParticipants(event.id)
       : null;
     return { ...event, participants };
+  }
+
+  /**
+   * The organizer cancels the event, with a reason (B-028, #52). The event is
+   * not deleted: it leaves the list and the map, and its detail stays
+   * reachable with the „Zrušeno“ label. The app never cancels on its own,
+   * not even when the minimum isn't reached.
+   */
+  async cancelEvent(
+    id: string,
+    userId: string,
+    reason: string,
+    now: Date = new Date(),
+  ): Promise<EventDetailView> {
+    const event = await this.getEventDetail(id, userId, now); // 404 first
+    if (event.organizer.id !== userId) {
+      throw new ForbiddenException({
+        code: 'NOT_ORGANIZER',
+        message: 'Akci může zrušit jen její organizátor.',
+      });
+    }
+    this.assertCancellable(event, now);
+    if (!(await this.eventRepository.cancelEvent(id, reason, now))) {
+      // changed between the check and the write (e.g. cancelled in another tab)
+      this.assertCancellable(await this.getEventDetail(id, userId, now), now);
+    }
+    return this.getEventDetail(id, userId, now);
+  }
+
+  private assertCancellable(event: EventDetail, now: Date): void {
+    if (event.status === 'cancelled') {
+      throw new ConflictException({
+        code: 'EVENT_CANCELLED',
+        message: 'Akce už je zrušená.',
+      });
+    }
+    if (event.startsAt <= now) {
+      throw new ConflictException({
+        code: 'EVENT_STARTED',
+        message: 'Akce už začala, zrušit ji nejde.',
+      });
+    }
   }
 
   private async canView(
