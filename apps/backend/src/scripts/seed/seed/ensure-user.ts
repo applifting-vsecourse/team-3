@@ -66,16 +66,9 @@ export async function ensureUser(
   }
 
   // Usernames are unique. If someone else holds this one, the account gets a
-  // derived one (unique through the account id) rather than none: without a
-  // username it would count as unfinished and be re-seeded on every start.
-  const holder = await prisma.user.findUnique({
-    where: { username: params.username },
-    select: { id: true },
-  });
-  const username =
-    holder && holder.id !== account.id
-      ? `${params.username}.${account.id}`.slice(0, 50)
-      : params.username;
+  // derived one rather than none: without a username it would count as
+  // unfinished and be re-seeded on every start.
+  const username = await freeUsername(prisma, params.username, account.id);
   if (username !== params.username) {
     console.warn(
       `Username ${params.username} is taken; ${email} is seeded as ${username}`,
@@ -123,5 +116,46 @@ async function hasSeedPassword(
   });
   if (!credential?.password) return false;
   const context = await auth.$context;
-  return context.password.verify({ hash: credential.password, password });
+  try {
+    return await context.password.verify({
+      hash: credential.password,
+      password,
+    });
+  } catch {
+    // not a BetterAuth hash (a row written outside it): not the seed's account
+    return false;
+  }
+}
+
+/** The username plugin's limit; it also stores usernames lower-cased. */
+const MAX_USERNAME_LENGTH = 30;
+
+/**
+ * `wanted` when it is free (or already this account's), otherwise
+ * `wanted.<6 characters of the id>`, numbered on the rare clash. Kept within
+ * the username plugin's rules (lower case, at most 30 characters), so the
+ * account can still sign in by username and be edited later.
+ */
+async function freeUsername(
+  prisma: PrismaService,
+  wanted: string,
+  accountId: string,
+): Promise<string> {
+  const isFree = async (username: string): Promise<boolean> => {
+    const holder = await prisma.user.findUnique({
+      where: { username },
+      select: { id: true },
+    });
+    return !holder || holder.id === accountId;
+  };
+  if (await isFree(wanted)) return wanted;
+
+  const suffix = accountId.slice(0, 6).toLowerCase();
+  // room for ".", the suffix and up to three digits
+  const base = wanted.slice(0, MAX_USERNAME_LENGTH - 1 - suffix.length - 3);
+  for (let n = 0; n < 1000; n++) {
+    const candidate = `${base}.${suffix}${n === 0 ? '' : n}`;
+    if (await isFree(candidate)) return candidate;
+  }
+  throw new Error(`No free username derived from ${wanted}`);
 }
