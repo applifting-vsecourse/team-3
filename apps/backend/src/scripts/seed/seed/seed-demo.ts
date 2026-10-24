@@ -19,6 +19,9 @@ import { ensureUser } from './ensure-user';
  * - Skupiny, akce a účasti jdou v jedné transakci: buď je tam všechno, nebo nic,
  *   a nepovedený seed se při dalším startu zopakuje celý.
  */
+/** Advisory lock key for inserting the demo data; any constant unique to it. */
+const DEMO_SEED_LOCK = 4_702_026;
+
 export async function seedDemo(
   prisma: PrismaService,
   auth: BetterAuth,
@@ -70,8 +73,18 @@ export async function seedDemo(
   }
 
   const now = new Date();
-  await prisma.$transaction(
+  const inserted = await prisma.$transaction(
     async (tx) => {
+      // Two seeds starting at once (overlapping container starts) must not
+      // both insert: the lock makes the second one wait until the first has
+      // committed, and the counts inside the transaction then see its data.
+      await tx.$executeRaw`SELECT pg_advisory_xact_lock(${DEMO_SEED_LOCK})`;
+      const [events, groups] = await Promise.all([
+        tx.event.count(),
+        tx.group.count(),
+      ]);
+      if (events > 0 || groups > 0) return false;
+
       for (const group of demoGroups.map((g) => toGroupRow(g, now))) {
         await tx.group.create({
           data: {
@@ -132,9 +145,16 @@ export async function seedDemo(
           },
         });
       }
+      return true;
     },
     { timeout: 120_000 },
   );
+  if (!inserted) {
+    console.log(
+      'Another seed inserted the demo groups and events meanwhile — skipping.',
+    );
+    return;
+  }
 
   const participations = demoEvents.reduce(
     (sum, event) => sum + event.participations.length,

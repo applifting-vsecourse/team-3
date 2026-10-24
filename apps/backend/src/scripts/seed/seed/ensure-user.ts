@@ -18,6 +18,11 @@ type EnsureUserParams = {
  * Založí uživatele přes BetterAuth (heslo se uloží stejně jako při registraci),
  * pokud ještě neexistuje. Profil se nastaví jen při založení, takže opakovaný seed
  * nepřepíše, co si demo účet mezitím v aplikaci změnil.
+ *
+ * Účet bez uživatelského jména je nedokončený seed: registrace v aplikaci jméno
+ * vyžaduje, takže ho bez jména mohl založit jen seed, který spadl hned po
+ * registraci (dřív hledání podle e-mailu s velkými písmeny nebo kolize jména).
+ * Takový účet se dokončí, místo aby se hlásil jako hotový.
  */
 export async function ensureUser(
   prisma: PrismaService,
@@ -29,28 +34,49 @@ export async function ensureUser(
   // again and every later seed fails on „user already exists“.
   const email = params.email.trim().toLowerCase();
   const existing = await prisma.user.findUnique({ where: { email } });
-  if (existing) {
+  if (existing && existing.username !== null) {
     return { user: existing, created: false };
   }
 
-  await auth.api.signUpEmail({
-    body: {
-      email,
-      password: params.password,
-      name: params.name,
-    },
-  });
+  if (existing) {
+    console.log(
+      `Finishing seeded account ${email}: an earlier seed stopped right after sign-up`,
+    );
+  } else {
+    await auth.api.signUpEmail({
+      body: {
+        email,
+        password: params.password,
+        name: params.name,
+      },
+    });
+  }
 
-  const created = await prisma.user.findUnique({ where: { email } });
-  if (!created) {
+  const account =
+    existing ?? (await prisma.user.findUnique({ where: { email } }));
+  if (!account) {
     throw new Error(`Failed to create user with email: ${email}`);
+  }
+
+  // Usernames are unique. If someone already holds this one, seed the account
+  // without it rather than failing every start on the clash.
+  const holder = await prisma.user.findUnique({
+    where: { username: params.username },
+    select: { id: true },
+  });
+  const username =
+    holder && holder.id !== account.id ? undefined : params.username;
+  if (!username) {
+    console.warn(
+      `Username ${params.username} is taken; ${email} is seeded without it`,
+    );
   }
 
   const seededAt = new Date();
   const user = await prisma.user.update({
-    where: { id: created.id },
+    where: { id: account.id },
     data: {
-      username: params.username,
+      username,
       role: params.role ?? 'user',
       emailVerified: params.emailVerified,
       bio: params.bio,
@@ -71,5 +97,5 @@ export async function ensureUser(
     });
   }
 
-  return { user, created: true };
+  return { user, created: !existing };
 }
