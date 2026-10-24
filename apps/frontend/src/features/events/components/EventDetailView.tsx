@@ -34,9 +34,10 @@ type EventDetailViewProps = {
 
 /**
  * The event detail (Figma A-05, desktop A-05d; B-026): what, when, where, who
- * organizes it and who is coming. Desktop puts the map in a column on the
- * right, mobile right below the facts. The join action sits under the
- * capacity (#42). A cancelled event keeps its detail (shared links still
+ * organizes it and who is coming. Desktop has the main content on the left
+ * and a panel on the right with the facts, the map, the capacity and the
+ * action (#42); on a phone the panel follows the title, so the facts come
+ * before the capacity. A cancelled event keeps its detail (shared links still
  * work) with the „Zrušeno“ label and the reason (#52).
  */
 export function EventDetailView({
@@ -79,34 +80,22 @@ export function EventDetailView({
   if (isLoading || !event) return <EventDetailSkeleton />
 
   return (
-    <article className="grid gap-8 md:grid-cols-5 md:gap-x-12">
-      <div className="flex flex-col gap-6 md:col-span-3">
-        <header className="flex flex-col gap-3">
-          <div className="flex flex-wrap items-center gap-2">
-            <ActivityTag name={event.activity.name} />
-            {event.status === "cancelled" ? <StatusBadge status={{ kind: "cancelled" }} /> : null}
-          </div>
-          <h1 className="text-2xl font-semibold tracking-tight md:text-3xl">{event.title}</h1>
-        </header>
-        {event.status === "cancelled" ? (
-          // instead of the capacity: „Chybí ještě 2“ would read as if it still happens
-          <Alert>
-            <AlertTitle>Akce je zrušená</AlertTitle>
-            {event.cancelReason ? (
-              <AlertDescription className="whitespace-pre-line">
-                {event.cancelReason}
-              </AlertDescription>
-            ) : null}
-          </Alert>
-        ) : (
-          <CapacityBar
-            approvedCount={event.approvedCount}
-            minParticipants={event.minParticipants}
-            maxParticipants={event.maxParticipants}
-          />
-        )}
-        {participation}
-        {organizerActions}
+    // One order for both: on a phone it is the reading order; on desktop the
+    // panel moves to the right, spanning both rows, and the second row takes
+    // what is left of its height, so the main content doesn't drift down.
+    <article className="grid gap-8 md:grid-cols-5 md:grid-rows-[auto_1fr] md:items-start md:gap-x-12">
+      <header className="flex flex-col gap-3 md:col-span-3">
+        <div className="flex flex-wrap items-center gap-2">
+          <ActivityTag name={event.activity.name} />
+          {event.status === "cancelled" ? <StatusBadge status={{ kind: "cancelled" }} /> : null}
+        </div>
+        <h1 className="text-2xl font-semibold tracking-tight md:text-3xl">{event.title}</h1>
+      </header>
+
+      <section
+        aria-label="Termín, místo a účast"
+        className="flex flex-col gap-6 md:col-span-2 md:col-start-4 md:row-span-2 md:row-start-1"
+      >
         <dl className="flex flex-col gap-4">
           <DetailRow
             icon={CalendarDays}
@@ -129,24 +118,42 @@ export function EventDetailView({
             {approvalModeLabel(event.approvalMode)}
           </DetailRow>
         </dl>
-      </div>
-
-      <div className="h-56 overflow-hidden rounded-lg border border-border md:col-span-2 md:col-start-4 md:row-span-2 md:row-start-1 md:h-72">
-        <MapView
-          isStatic
-          label="Místo akce na mapě"
-          center={{ lat: event.lat, lng: event.lng }}
-          pins={[
-            {
-              id: event.id,
-              lat: event.lat,
-              lng: event.lng,
-              variant: "default",
-              label: placeName(event.address),
-            },
-          ]}
-        />
-      </div>
+        <div className="h-56 overflow-hidden rounded-lg border border-border">
+          <MapView
+            isStatic
+            label="Místo akce na mapě"
+            center={{ lat: event.lat, lng: event.lng }}
+            pins={[
+              {
+                id: event.id,
+                lat: event.lat,
+                lng: event.lng,
+                variant: "default",
+                label: placeName(event.address),
+              },
+            ]}
+          />
+        </div>
+        {event.status === "cancelled" ? (
+          // instead of the capacity: „Chybí ještě 2“ would read as if it still happens
+          <Alert>
+            <AlertTitle>Akce je zrušená</AlertTitle>
+            {event.cancelReason ? (
+              <AlertDescription className="whitespace-pre-line">
+                {event.cancelReason}
+              </AlertDescription>
+            ) : null}
+          </Alert>
+        ) : (
+          <CapacityBar
+            approvedCount={event.approvedCount}
+            minParticipants={event.minParticipants}
+            maxParticipants={event.maxParticipants}
+          />
+        )}
+        {participation}
+        {organizerActions}
+      </section>
 
       <div className="flex flex-col gap-8 md:col-span-3">
         <section className="flex flex-col gap-3">
@@ -202,22 +209,26 @@ function EventDetailSkeleton() {
     <div
       aria-busy
       aria-label="Načítám akci"
-      className="grid gap-8 md:grid-cols-5 md:gap-x-12"
+      className="grid gap-8 md:grid-cols-5 md:grid-rows-[auto_1fr] md:items-start md:gap-x-12"
     >
       <h1 className="sr-only">Detail akce</h1>
-      <div className="flex flex-col gap-6 md:col-span-3">
-        <div className="flex flex-col gap-3">
-          <Skeleton className="h-6 w-24 rounded-full" />
-          <Skeleton className="h-8 w-3/4" />
-        </div>
-        <Skeleton className="h-2 w-full rounded-full" />
-        <div className="flex flex-col gap-4">
-          <Skeleton className="h-10 w-1/2" />
-          <Skeleton className="h-10 w-2/3" />
-          <Skeleton className="h-10 w-1/3" />
-        </div>
+      <div className="flex flex-col gap-3 md:col-span-3">
+        <Skeleton className="h-6 w-24 rounded-full" />
+        <Skeleton className="h-8 w-3/4" />
       </div>
-      <Skeleton className="h-56 rounded-lg md:col-span-2 md:h-72" />
+      <div className="flex flex-col gap-6 md:col-span-2 md:col-start-4 md:row-span-2 md:row-start-1">
+        <div className="flex flex-col gap-4">
+          <Skeleton className="h-10 w-2/3" />
+          <Skeleton className="h-10 w-full" />
+          <Skeleton className="h-10 w-1/2" />
+        </div>
+        <Skeleton className="h-56 rounded-lg" />
+        <Skeleton className="h-2 w-full rounded-full" />
+      </div>
+      <div className="flex flex-col gap-3 md:col-span-3">
+        <Skeleton className="h-6 w-24" />
+        <Skeleton className="h-10 w-1/2" />
+      </div>
     </div>
   )
 }

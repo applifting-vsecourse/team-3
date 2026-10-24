@@ -146,6 +146,51 @@ describe("EventDetailView", () => {
     expect(screen.getByRole("button", { name: "Zrušit akci" })).toBeInTheDocument()
   })
 
+  describe("layout (Figma A-05, A-05d)", () => {
+    // `a` comes before `b` in the document, i.e. in the reading order on a phone
+    const isBefore = (a: Node, b: Node) =>
+      Boolean(a.compareDocumentPosition(b) & Node.DOCUMENT_POSITION_FOLLOWING)
+
+    const renderDetail = () =>
+      renderWithRouter(
+        <EventDetailView
+          event={anEventDetail({ approvedCount: 3, missingToMin: 1 })}
+          signInFrom={signInFrom}
+          participation={<button type="button">Přijdu</button>}
+          organizerActions={<button type="button">Upravit</button>}
+        />,
+      )
+
+    it("the panel holds the facts, the map, the capacity and the action, in this order", async () => {
+      await renderDetail()
+      const panel = screen.getByRole("region", { name: "Termín, místo a účast" })
+
+      const facts = within(panel).getByText("Termín")
+      const map = within(panel).getByLabelText("Místo akce na mapě")
+      const capacity = within(panel).getByText("Chybí ještě 1")
+      const action = within(panel).getByRole("button", { name: "Přijdu" })
+      const organizerAction = within(panel).getByRole("button", { name: "Upravit" })
+      expect(isBefore(facts, map)).toBe(true)
+      expect(isBefore(map, capacity)).toBe(true)
+      expect(isBefore(capacity, action)).toBe(true)
+      expect(isBefore(action, organizerAction)).toBe(true)
+    })
+
+    it("on a phone the title comes first, then the panel, then the main content", async () => {
+      await renderDetail()
+      const title = screen.getByRole("heading", { level: 1 })
+      const panel = screen.getByRole("region", { name: "Termín, místo a účast" })
+
+      expect(isBefore(title, panel)).toBe(true)
+      for (const name of ["Pořádá", "O akci", "Účastníci 3"]) {
+        const heading = screen.getByRole("heading", { name })
+        // the main content is outside the panel (left on desktop), after it on a phone
+        expect(panel).not.toContainElement(heading)
+        expect(isBefore(panel, heading)).toBe(true)
+      }
+    })
+  })
+
   it("shows a skeleton while loading", async () => {
     await renderWithRouter(
       <EventDetailView
