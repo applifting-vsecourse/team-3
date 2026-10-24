@@ -3,6 +3,7 @@ import { useQueryClient } from "@tanstack/react-query"
 import { createFileRoute } from "@tanstack/react-router"
 import { z } from "zod"
 
+import { ROUTES } from "@/app/routes"
 import { Header } from "@/components/Header/Header"
 import { Seo } from "@/components/Seo"
 import { authKeys } from "@/lib/auth-keys"
@@ -10,15 +11,17 @@ import { authKeys } from "@/lib/auth-keys"
 import { EmailVerifiedView } from "@/features/auth/components/EmailVerifiedView"
 import { HeaderMenu } from "@/features/auth/components/HeaderMenu"
 import { useSession } from "@/features/auth/hooks/useSession"
+import { safeRedirect } from "@/features/auth/lib/redirect"
 
 export const Route = createFileRoute("/email-overen")({
   component: EmailVerifiedPage,
-  // BetterAuth adds `error` (e.g. TOKEN_EXPIRED) when the link didn't work
-  validateSearch: z.object({ error: z.string().optional() }),
+  // BetterAuth adds `error` (e.g. TOKEN_EXPIRED) when the link didn't work;
+  // `from` is the page the sign-up started from (B-012)
+  validateSearch: z.object({ error: z.string().optional(), from: z.string().optional() }),
 })
 
 function EmailVerifiedPage() {
-  const { error } = Route.useSearch()
+  const { error, from } = Route.useSearch()
   const queryClient = useQueryClient()
   const { user } = useSession()
   const [isRefreshed, setIsRefreshed] = useState(false)
@@ -41,6 +44,7 @@ function EmailVerifiedPage() {
             <EmailVerifiedView
               error={error}
               isUnverified={Boolean(user && !user.emailVerified)}
+              continueTo={safeRedirect(from, ROUTES.events)}
             />
           ) : (
             <p

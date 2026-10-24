@@ -15,14 +15,12 @@ import {
 } from "@/components/ui/form"
 import { Input } from "@/components/ui/input"
 
-// the same rule as at sign-up (BetterAuth's minimum is 8)
-const MIN_PASSWORD_LENGTH = 8
+import { passwordSchema } from "@/features/auth/lib/password"
 
 const schema = z
   .object({
-    password: z
-      .string()
-      .min(MIN_PASSWORD_LENGTH, `Heslo musí mít aspoň ${MIN_PASSWORD_LENGTH} znaků`),
+    // the same rule as at sign-up (B-010); the API checks it too
+    password: passwordSchema,
     passwordConfirmation: z.string().min(1, "Zopakujte heslo"),
   })
   .refine((values) => values.password === values.passwordConfirmation, {

@@ -15,10 +15,16 @@ type EmailVerifiedViewProps = {
   error?: string
   /** Signed in and still unverified, e.g. the page was opened by hand. */
   isUnverified?: boolean
+  /** Where „Pokračovat“ leads: the page the sign-up started from (B-012). */
+  continueTo?: string
 }
 
 /** Figma B-02: what the link in the verification e-mail led to. */
-export function EmailVerifiedView({ error, isUnverified }: EmailVerifiedViewProps) {
+export function EmailVerifiedView({
+  error,
+  isUnverified,
+  continueTo = ROUTES.events,
+}: EmailVerifiedViewProps) {
   if (error || isUnverified) {
     return (
       <section className="flex flex-col gap-3">
@@ -51,7 +57,8 @@ export function EmailVerifiedView({ error, isUnverified }: EmailVerifiedViewProp
         asChild
         className="mt-3 self-start"
       >
-        <Link to={ROUTES.events}>Pokračovat</Link>
+        {/* a plain link: the page may come with its search, which `to` can't take as text */}
+        <a href={continueTo}>Pokračovat</a>
       </Button>
     </section>
   )
