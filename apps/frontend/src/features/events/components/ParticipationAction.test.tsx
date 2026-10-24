@@ -93,11 +93,38 @@ describe("ParticipationAction", () => {
     expect(screen.queryByRole("button")).not.toBeInTheDocument()
   })
 
-  it("with approval, a participant is told that (the request is #53)", async () => {
-    await renderAction({ approvalMode: "approval" })
+  it("with approval, „Poslat žádost“ asks first and then sends the request (A-05a, #53)", async () => {
+    const { onJoin } = await renderAction({ approvalMode: "approval" })
 
-    expect(screen.getByText(/schvaluje organizátor/)).toBeInTheDocument()
     expect(screen.queryByRole("button", { name: "Přijdu" })).not.toBeInTheDocument()
+    await userEvent.click(screen.getByRole("button", { name: "Poslat žádost" }))
+    const dialog = screen.getByRole("dialog", { name: "Poslat žádost o účast?" })
+    expect(onJoin).not.toHaveBeenCalled()
+    await userEvent.click(within(dialog).getByRole("button", { name: "Poslat žádost" }))
+    expect(onJoin).toHaveBeenCalledOnce()
+  })
+
+  it("a request can be called off before it's sent", async () => {
+    const { onJoin } = await renderAction({ approvalMode: "approval" })
+
+    await userEvent.click(screen.getByRole("button", { name: "Poslat žádost" }))
+    await userEvent.click(screen.getByRole("button", { name: "Zpět" }))
+
+    expect(onJoin).not.toHaveBeenCalled()
+  })
+
+  it("a full event with approval takes no request: „Plno“", async () => {
+    await renderAction({ approvalMode: "approval", isFull: true, freeSpots: 0, approvedCount: 12 })
+
+    expect(screen.getByRole("button", { name: "Plno" })).toBeDisabled()
+    expect(screen.queryByRole("button", { name: "Poslat žádost" })).not.toBeInTheDocument()
+  })
+
+  it("a rejected request is told so and can't be sent again", async () => {
+    await renderAction({ approvalMode: "approval", myParticipation: "rejected" })
+
+    expect(screen.getByText("Organizátor vaši účast zamítl.")).toBeInTheDocument()
+    expect(screen.queryByRole("button", { name: "Poslat žádost" })).not.toBeInTheDocument()
   })
 
   it("a waiting request can be withdrawn", async () => {

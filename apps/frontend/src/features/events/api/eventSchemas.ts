@@ -53,10 +53,18 @@ export const eventDetailSchema = publicEventSchema.extend({
 
 export type EventDetail = z.infer<typeof eventDetailSchema>
 
-/** GET /api/events/:id/participants — only for the organizer (#43); requests come with #53. */
+const eventRequestSchema = eventParticipantSchema.extend({ requestedAt: z.coerce.date() })
+
+export type EventRequest = z.infer<typeof eventRequestSchema>
+
+/** GET /api/events/:id/participants — only for the organizer: who is in and who is waiting (#43, #53). */
 export const eventParticipantsSchema = z.object({
   participants: z.array(eventParticipantSchema),
+  /** Requests waiting for the organizer, oldest first; always empty without approval. */
+  requests: z.array(eventRequestSchema),
 })
+
+export type EventManagement = z.infer<typeof eventParticipantsSchema>
 
 /** POST /api/events answers with the detail and the link to share (B-021). */
 export const createdEventSchema = eventDetailSchema.extend({ shareUrl: z.string() })

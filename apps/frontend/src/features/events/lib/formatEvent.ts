@@ -47,6 +47,20 @@ export function formatEventTime(startsAt: Date, endsAt: Date | null): string {
   return `${start} – ${formatEventStart(endsAt)}`
 }
 
+const dayMonthFormat = new Intl.DateTimeFormat("cs-CZ", {
+  timeZone: PRAGUE_TZ,
+  day: "numeric",
+  month: "numeric",
+})
+
+/** When a request was sent, on the management page (#53): "Žádost z 23. 10. v 17:30". */
+export function formatRequestTime(date: Date): string {
+  const parts = dayMonthFormat.formatToParts(date)
+  const get = (type: Intl.DateTimeFormatPartTypes) =>
+    parts.find((part) => part.type === type)?.value ?? ""
+  return `Žádost z ${get("day")}. ${get("month")}. v ${timeFormat.format(date)}`
+}
+
 export const approvalModeLabel = (mode: "open" | "approval"): string =>
   mode === "open" ? "Bez schválení" : "Se schválením organizátora"
 
