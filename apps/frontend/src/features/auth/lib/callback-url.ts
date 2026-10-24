@@ -6,5 +6,9 @@ import { ROUTES } from "@/app/routes"
  * it didn't). Absolute: the link goes through the backend first, and without
  * it BetterAuth would send the user to the backend's own „/“.
  */
-export const afterVerificationUrl = () =>
-  new URL(ROUTES.emailVerified, window.location.origin).toString()
+export const afterVerificationUrl = (from?: string) => {
+  const url = new URL(ROUTES.emailVerified, window.location.origin)
+  // „Pokračovat“ there leads back where the sign-up started, e.g. the event (B-012)
+  if (from) url.searchParams.set("from", from)
+  return url.toString()
+}

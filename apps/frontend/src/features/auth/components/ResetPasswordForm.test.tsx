@@ -22,7 +22,9 @@ describe("ResetPasswordForm", () => {
 
     await fill("kratke", "kratke")
 
-    expect(await screen.findByText("Heslo musí mít aspoň 8 znaků")).toBeInTheDocument()
+    expect(
+      await screen.findByText("Heslo musí mít aspoň 10 znaků a obsahovat písmeno i číslici."),
+    ).toBeInTheDocument()
     expect(onSubmit).not.toHaveBeenCalled()
   })
 

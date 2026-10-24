@@ -10,6 +10,18 @@ describe("authErrorMessage", () => {
     expect(authErrorMessage({ code: "PASSWORD_TOO_SHORT" }, "x")).toBe("Heslo je příliš krátké.")
   })
 
+  it("a wrong e-mail and a wrong password read the same (#37)", () => {
+    expect(authErrorMessage({ code: "INVALID_EMAIL_OR_PASSWORD" }, "x")).toBe(
+      "Nesprávný e-mail nebo heslo.",
+    )
+  })
+
+  it("a weak password from the API says the rule (B-010)", () => {
+    expect(authErrorMessage({ code: "WEAK_PASSWORD", message: "Heslo musí…" }, "x")).toBe(
+      "Heslo musí mít aspoň 10 znaků a obsahovat písmeno i číslici.",
+    )
+  })
+
   it("a rate limit (429) asks to wait, whatever the code", () => {
     expect(authErrorMessage({ status: 429, message: "Too many requests" }, "x")).toBe(
       "Příliš mnoho pokusů. Zkuste to prosím za minutu.",

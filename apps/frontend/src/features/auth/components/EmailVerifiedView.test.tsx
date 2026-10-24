@@ -13,6 +13,12 @@ describe("EmailVerifiedView", () => {
     expect(screen.getByRole("link", { name: "Pokračovat" })).toHaveAttribute("href", "/akce")
   })
 
+  it("continues back to the page the sign-up started from, e.g. the event (B-012)", async () => {
+    await renderWithRouter(<EmailVerifiedView continueTo="/akce/abc" />)
+
+    expect(screen.getByRole("link", { name: "Pokračovat" })).toHaveAttribute("href", "/akce/abc")
+  })
+
   it("explains an expired link in Czech and where to get a new one", async () => {
     await renderWithRouter(<EmailVerifiedView error="TOKEN_EXPIRED" />)
 
