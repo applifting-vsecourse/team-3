@@ -22,7 +22,7 @@ describe("CancelEventDialog", () => {
     await open()
     await userEvent.click(screen.getAllByRole("button", { name: "Zrušit akci" }).at(-1)!)
 
-    expect(await screen.findByText("Napište, proč se akce ruší")).toBeInTheDocument()
+    expect(await screen.findByText("Napiš, proč se akce ruší")).toBeInTheDocument()
     expect(onCancel).not.toHaveBeenCalled()
   })
 

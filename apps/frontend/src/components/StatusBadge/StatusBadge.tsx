@@ -3,15 +3,23 @@ import { cn } from "@/lib/utils"
 export type CapacityStatus =
   { kind: "missing"; missing: number } | { kind: "free" } | { kind: "full" } | { kind: "cancelled" }
 
-const STYLES: Record<CapacityStatus["kind"], string> = {
+/** The user's own place, in „Moje akce“ (C-01): „Jdu“, „Čeká na schválení“. */
+export type ParticipationBadge = { kind: "going" } | { kind: "pending" }
+
+export type BadgeStatus = CapacityStatus | ParticipationBadge
+
+const STYLES: Record<BadgeStatus["kind"], string> = {
   // the only highlighted state: the event can't happen without more people
   missing: "bg-primary text-primary-foreground",
   free: "bg-secondary text-secondary-foreground",
   full: "bg-muted text-muted-foreground",
   cancelled: "bg-foreground text-background",
+  // Figma draws these as the Volná and Plno variants with their own label
+  going: "bg-secondary text-secondary-foreground",
+  pending: "bg-muted text-muted-foreground",
 }
 
-const label = (status: CapacityStatus): string => {
+const label = (status: BadgeStatus): string => {
   switch (status.kind) {
     case "missing":
       return `Chybí ${status.missing}`
@@ -21,11 +29,15 @@ const label = (status: CapacityStatus): string => {
       return "Plno"
     case "cancelled":
       return "Zrušeno"
+    case "going":
+      return "Jdu"
+    case "pending":
+      return "Čeká na schválení"
   }
 }
 
-/** Occupancy of an event (Figma: Status badge, DESIGN.md › HobbyHub components). */
-export function StatusBadge({ status, className }: { status: CapacityStatus; className?: string }) {
+/** Occupancy of an event, or the user's place in it (Figma: Status badge, DESIGN.md › HobbyHub components). */
+export function StatusBadge({ status, className }: { status: BadgeStatus; className?: string }) {
   return (
     <span
       className={cn(

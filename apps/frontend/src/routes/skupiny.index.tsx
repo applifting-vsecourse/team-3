@@ -1,13 +1,12 @@
 import { createFileRoute, Link } from "@tanstack/react-router"
 import { Plus } from "lucide-react"
 
-import { Header } from "@/components/Header/Header"
 import { Seo } from "@/components/Seo"
 import { Button } from "@/components/ui/button"
 import { DESKTOP_QUERY, useMediaQuery } from "@/hooks/useMediaQuery"
 import { cn } from "@/lib/utils"
 
-import { HeaderMenu } from "@/features/auth/components/HeaderMenu"
+import { AppHeader } from "@/features/auth/components/AppHeader"
 import { useSession } from "@/features/auth/hooks/useSession"
 import { GroupFilters } from "@/features/groups/components/GroupFilters"
 import { GroupList } from "@/features/groups/components/GroupList"
@@ -40,7 +39,7 @@ function GroupsPage() {
   return (
     <>
       <Seo title="Skupiny" />
-      <Header userMenu={<HeaderMenu />} />
+      <AppHeader />
       <main
         className={cn(
           GROUPS_PAGE,

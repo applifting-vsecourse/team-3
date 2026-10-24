@@ -15,6 +15,7 @@ import { mock, MockProxy } from 'jest-mock-extended';
 import {
   CAPACITY_SCAN_LIMIT,
   EventsService,
+  MY_EVENTS_LIMIT,
   PUBLIC_EVENTS_LIMIT,
 } from './events.service';
 
@@ -672,5 +673,30 @@ describe('EventsService.getParticipants', () => {
     await expect(service.getParticipants('e1', 'u1', now)).rejects.toThrow(
       NotFoundException,
     );
+  });
+});
+
+describe('EventsService.getMyEvents', () => {
+  it('asks the repository for the tab of the signed-in user, with the limit', async () => {
+    const repository = mock<EventRepository>();
+    const events = [
+      {
+        ...anEvent('e1', 2),
+        status: 'published' as const,
+        myParticipation: 'pending' as const,
+        pendingRequests: null,
+      },
+    ];
+    repository.findMyEvents.mockResolvedValue(events);
+
+    await expect(
+      new EventsService(repository).getMyEvents('u1', 'attending', now),
+    ).resolves.toEqual(events);
+    expect(repository.findMyEvents).toHaveBeenCalledWith({
+      tab: 'attending',
+      userId: 'u1',
+      now,
+      limit: MY_EVENTS_LIMIT,
+    });
   });
 });

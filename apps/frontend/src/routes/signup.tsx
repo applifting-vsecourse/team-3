@@ -42,7 +42,7 @@ function SignUpPage() {
       await navigate({ href: safeRedirect(from, ROUTES.events) })
     } catch (error) {
       setErrorMessage(
-        error instanceof Error ? error.message : "Registrace se nepovedla. Zkuste to prosím znovu.",
+        error instanceof Error ? error.message : "Registrace se nepovedla. Zkus to prosím znovu.",
       )
     }
   }
@@ -55,13 +55,13 @@ function SignUpPage() {
         description="Jeden účet pro přihlašování na akce i jejich pořádání."
         footer={
           <>
-            Už máte účet?{" "}
+            Už máš účet?{" "}
             <Link
               to={ROUTES.login}
               search={{ from }}
               className="font-medium text-foreground underline underline-offset-4"
             >
-              Přihlaste se
+              Přihlas se
             </Link>
           </>
         }

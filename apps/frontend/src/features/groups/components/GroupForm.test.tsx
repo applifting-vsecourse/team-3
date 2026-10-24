@@ -53,10 +53,10 @@ describe("GroupForm", () => {
     expect(submit).toBeEnabled()
     await userEvent.click(submit)
 
-    expect(await screen.findByText("Vyplňte název skupiny")).toBeInTheDocument()
+    expect(await screen.findByText("Vyplň název skupiny")).toBeInTheDocument()
     expect(screen.getByText("Skupina potřebuje právě jednu aktivitu")).toBeInTheDocument()
     expect(screen.getByText("Skupina potřebuje právě jednu lokalitu")).toBeInTheDocument()
-    expect(screen.getByText("Vyberte typ skupiny")).toBeInTheDocument()
+    expect(screen.getByText("Vyber typ skupiny")).toBeInTheDocument()
     expect(onSubmit).not.toHaveBeenCalled()
   })
 

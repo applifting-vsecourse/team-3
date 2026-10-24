@@ -58,6 +58,21 @@ export const eventParticipantsSchema = z.object({
   participants: z.array(eventParticipantSchema),
 })
 
+/** Tabs of „Moje akce“ in the API (B-035); Proběhlé comes with #61. */
+export type MyEventsTab = "attending" | "organizing"
+
+/** GET /api/me/events?tab= — an event with the user's place in it. */
+export const myEventSchema = publicEventSchema.extend({
+  status: z.enum(["published", "cancelled"]),
+  myParticipation: z.enum(["approved", "pending"]).nullable(),
+  /** Requests waiting for approval; only under `organizing`. */
+  pendingRequests: z.number().nullable(),
+})
+
+export const myEventsSchema = z.array(myEventSchema)
+
+export type MyEvent = z.infer<typeof myEventSchema>
+
 /** POST /api/events answers with the detail and the link to share (B-021). */
 export const createdEventSchema = eventDetailSchema.extend({ shareUrl: z.string() })
 

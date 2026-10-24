@@ -37,7 +37,7 @@ export function EventParticipants({
         </ul>
       ) : (
         <p className="text-muted-foreground">
-          Jména přihlášených uvidíte po{" "}
+          Jména přihlášených uvidíš po{" "}
           <Link
             to={ROUTES.login}
             search={{ from: signInFrom }}

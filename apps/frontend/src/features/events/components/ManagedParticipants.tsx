@@ -41,7 +41,7 @@ export function ManagedParticipants({ participants, error, onRetry }: ManagedPar
           <AlertTitle>Účastníky se nepodařilo načíst</AlertTitle>
           <AlertDescription className="flex items-center justify-between gap-3">
             {/* ky's message is a URL and a status code; it stays in the console */}
-            <span>Zkontrolujte připojení a zkuste to znovu.</span>
+            <span>Zkontroluj připojení a zkus to znovu.</span>
             <Button
               variant="outline"
               size="sm"
@@ -69,7 +69,7 @@ export function ManagedParticipants({ participants, error, onRetry }: ManagedPar
           ))}
         </div>
       ) : participants.length === 0 ? (
-        <p className="text-muted-foreground">Až se někdo přihlásí, uvidíte ho tady.</p>
+        <p className="text-muted-foreground">Až se někdo přihlásí, uvidíš ho tady.</p>
       ) : (
         <ul className="flex flex-col gap-3">
           {participants.map((participant) => (

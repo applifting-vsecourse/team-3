@@ -43,7 +43,7 @@ function LoginPage() {
       await navigate({ href: safeRedirect(from, ROUTES.events) })
     } catch (error) {
       setErrorMessage(
-        error instanceof Error ? error.message : "Přihlášení se nepovedlo. Zkuste to prosím znovu.",
+        error instanceof Error ? error.message : "Přihlášení se nepovedlo. Zkus to prosím znovu.",
       )
     }
   }
@@ -53,18 +53,16 @@ function LoginPage() {
       <Seo title="Přihlášení" />
       <AuthLayout
         title="Přihlášení"
-        description={
-          from ? "Po přihlášení se vrátíte tam, kde jste byli." : "Vítejte zpět v HobbyHubu."
-        }
+        description={from ? "Po přihlášení tě vrátíme zpátky." : "Vítej zpátky v HobbyHubu."}
         footer={
           <>
-            Nemáte účet?{" "}
+            Nemáš účet?{" "}
             <Link
               to={ROUTES.signup}
               search={{ from }}
               className="font-medium text-foreground underline underline-offset-4"
             >
-              Zaregistrujte se
+              Zaregistruj se
             </Link>
           </>
         }
@@ -79,7 +77,7 @@ function LoginPage() {
             to={ROUTES.forgotPassword}
             className="font-medium text-foreground underline underline-offset-4"
           >
-            Zapomněli jste heslo?
+            Zapomenuté heslo?
           </Link>
         </p>
       </AuthLayout>

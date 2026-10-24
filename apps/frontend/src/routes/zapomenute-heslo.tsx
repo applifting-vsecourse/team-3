@@ -32,7 +32,7 @@ function ForgotPasswordPage() {
       <Seo title="Zapomenuté heslo" />
       <AuthLayout
         title="Zapomenuté heslo"
-        description="Pošleme vám odkaz, přes který si nastavíte nové heslo."
+        description="Pošleme ti odkaz, přes který si nastavíš nové heslo."
         footer={
           <Link
             to={ROUTES.login}

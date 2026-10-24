@@ -4,6 +4,8 @@ import { computeCapacity } from '@/modules/event/domain/capacity';
 import {
   EventDetail,
   EventParticipant,
+  MyEvent,
+  MyEventsTab,
   NewEvent,
   PublicEvent,
   PublicEventFilters,
@@ -19,6 +21,7 @@ import {
   ParticipationStatus,
 } from '@/modules/event/domain/participation';
 import { Injectable } from '@nestjs/common';
+import { buildMyEventsWhere } from './my-events-where';
 import { buildPublicEventsWhere } from './public-events-where';
 
 // What the list and the detail both show of an event.
@@ -86,6 +89,53 @@ export class EventRepository {
       take: query.limit,
     });
     return events.map((event) => toPublicEvent(event, query.now));
+  }
+
+  /**
+   * A tab of „Moje akce“ (B-035), soonest first, at most `limit`. Besides the
+   * user's own participation, the organizer's tab loads the waiting requests
+   * to count them.
+   */
+  async findMyEvents(query: {
+    tab: MyEventsTab;
+    userId: string;
+    now: Date;
+    limit: number;
+  }): Promise<MyEvent[]> {
+    const { tab, userId, now } = query;
+    const events = await this.prisma.event.findMany({
+      where: buildMyEventsWhere(tab, userId, now),
+      include: {
+        ...publicEventInclude,
+        participations: {
+          where:
+            tab === 'organizing'
+              ? { OR: [{ userId }, { status: 'pending' }] }
+              : { userId },
+          select: { userId: true, status: true },
+        },
+      },
+      orderBy: [{ startsAt: 'asc' }, { id: 'asc' }],
+      take: query.limit,
+    });
+    return events.map((event) => {
+      const mine = event.participations.find(
+        (participation) => participation.userId === userId,
+      )?.status;
+      return {
+        ...toPublicEvent(event, now),
+        // the where lets through only these two
+        status: event.status === 'cancelled' ? 'cancelled' : 'published',
+        myParticipation:
+          mine === 'approved' || mine === 'pending' ? mine : null,
+        pendingRequests:
+          tab === 'organizing'
+            ? event.participations.filter(
+                (participation) => participation.status === 'pending',
+              ).length
+            : null,
+      };
+    });
   }
 
   /**

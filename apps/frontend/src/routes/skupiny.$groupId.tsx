@@ -4,7 +4,6 @@ import { RefreshCw } from "lucide-react"
 
 import { ROUTES } from "@/app/routes"
 import { BackLink } from "@/components/BackLink/BackLink"
-import { Header } from "@/components/Header/Header"
 import { Seo } from "@/components/Seo"
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 import { Button } from "@/components/ui/button"
@@ -12,7 +11,7 @@ import { Skeleton } from "@/components/ui/skeleton"
 import { HTTPError } from "@/lib/api-client"
 import { cn } from "@/lib/utils"
 
-import { HeaderMenu } from "@/features/auth/components/HeaderMenu"
+import { AppHeader } from "@/features/auth/components/AppHeader"
 import { useSession } from "@/features/auth/hooks/useSession"
 import { encodeRedirectUri } from "@/features/auth/lib/redirect"
 import { groupQueryOptions } from "@/features/groups/api/groupsQueryOptions"
@@ -39,7 +38,7 @@ function GroupPage() {
   return (
     <>
       <Seo title={group?.name ?? (isNotFound ? "Skupina nenalezena" : "Skupina")} />
-      <Header userMenu={<HeaderMenu />} />
+      <AppHeader />
       <main className={cn(GROUPS_PAGE, "flex-1 gap-4")}>
         <BackLink
           to={ROUTES.groups}
@@ -97,7 +96,7 @@ function GroupError({ isNotFound, onRetry }: { isNotFound: boolean; onRetry: () 
       <Alert variant="destructive">
         <AlertTitle>Skupinu se nepodařilo načíst</AlertTitle>
         <AlertDescription className="flex items-center justify-between gap-3">
-          <span>Zkontrolujte připojení a zkuste to znovu.</span>
+          <span>Zkontroluj připojení a zkus to znovu.</span>
           <Button
             variant="outline"
             size="sm"

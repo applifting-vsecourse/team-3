@@ -52,14 +52,14 @@ describe("EventForm", () => {
     await submit()
 
     for (const message of [
-      "Vyplňte název akce",
+      "Vyplň název akce",
       "Akce potřebuje aktivitu",
       "Akce potřebuje lokalitu",
-      "Vyberte místo na mapě",
-      "Vyplňte adresu",
-      "Vyplňte datum a čas",
-      "Vyplňte minimum",
-      "Vyplňte maximum",
+      "Vyber místo na mapě",
+      "Vyplň adresu",
+      "Vyplň datum a čas",
+      "Vyplň minimum",
+      "Vyplň maximum",
     ]) {
       expect(await screen.findByText(message)).toBeInTheDocument()
     }
@@ -79,7 +79,7 @@ describe("EventForm", () => {
     await submit()
 
     const map = screen.getByRole("region", { name: "Místo na mapě *" })
-    expect(map).toHaveAccessibleDescription("Vyberte místo na mapě")
+    expect(map).toHaveAccessibleDescription("Vyber místo na mapě")
   })
 
   it("min 0, max below min and a date in the past can't be saved", async () => {
@@ -140,9 +140,9 @@ describe("EventForm", () => {
   })
 
   it("shows the server's answer and disables the button while saving", () => {
-    renderForm({ errorMessage: "Nejdřív ověřte svůj e-mail.", isSubmitting: true })
+    renderForm({ errorMessage: "Nejdřív si ověř e-mail.", isSubmitting: true })
 
-    expect(screen.getByText("Nejdřív ověřte svůj e-mail.")).toBeInTheDocument()
+    expect(screen.getByText("Nejdřív si ověř e-mail.")).toBeInTheDocument()
     expect(screen.getByRole("button", { name: "Zveřejnit akci" })).toBeDisabled()
   })
 
