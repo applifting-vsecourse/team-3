@@ -104,20 +104,18 @@ describe("GroupMembershipAction", () => {
     )
   })
 
-  it("a deactivated group and a blocked user get nothing", async () => {
-    const { container, rerender } = await render({ status: "inactive" })
-    expect(container).toBeEmptyDOMElement()
-
-    rerender(
-      withQueryClient(
-        <GroupMembershipAction
-          group={{ ...group, viewerMembership: { role: "member", status: "blocked" } }}
-          isSignedIn
-          signInFrom=""
-        />,
-      ),
-    )
+  it("a deactivated group says so and offers nothing (#54)", async () => {
+    await render({ status: "inactive" })
+    expect(screen.getByText("Skupina už není aktivní")).toBeInTheDocument()
+    expect(
+      screen.getByText("Nejde se do ní přidat. Proběhlé akce zůstávají v historii."),
+    ).toBeInTheDocument()
     expect(screen.queryByRole("button")).not.toBeInTheDocument()
     expect(screen.queryByRole("link")).not.toBeInTheDocument()
+  })
+
+  it("a blocked user gets nothing (#63)", async () => {
+    const { container } = await render(as({ role: "member", status: "blocked" }))
+    expect(container).toBeEmptyDOMElement()
   })
 })

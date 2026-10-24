@@ -18,6 +18,7 @@ import {
 } from "@/components/ui/dialog"
 
 import type { GroupDetail } from "@/features/groups/api/groupSchemas"
+import { InactiveGroupNotice } from "@/features/groups/components/InactiveGroupNotice"
 import { useJoinGroup, useLeaveGroup } from "@/features/groups/hooks/useGroupMutations"
 
 type GroupMembershipActionProps = {
@@ -32,7 +33,7 @@ const showError = (error: Error) => toast.error(error.message)
 /**
  * The one main action of the group page, by the viewer's relation to the
  * group (Figma: A-08 · Stavy tlačítka skupiny, B-053). A deactivated group
- * offers nothing (its notice is #54), nor does a block (#63).
+ * only says so (#54); a block (#63) offers nothing.
  */
 export function GroupMembershipAction({
   group,
@@ -43,6 +44,7 @@ export function GroupMembershipAction({
   const leave = useLeaveGroup(group.id)
   const membership = group.viewerMembership
 
+  if (group.status !== "active") return <InactiveGroupNotice />
   if (!hasMembershipAction(group)) return null
 
   if (!isSignedIn) {
@@ -131,9 +133,12 @@ export function GroupMembershipAction({
   )
 }
 
-/** Whether the page has a main action at all, so it doesn't draw an empty action bar. */
+/**
+ * Whether the action bar has anything to show, so it isn't drawn empty: a
+ * deactivated group shows its notice; a block (#63) leaves nothing.
+ */
 export const hasMembershipAction = (group: GroupDetail): boolean =>
-  group.status === "active" && group.viewerMembership?.status !== "blocked"
+  group.status !== "active" || group.viewerMembership?.status !== "blocked"
 
 /**
  * Figma: „Správce Tomáš Dvořák ji schválí nebo zamítne.“ — reworded without
