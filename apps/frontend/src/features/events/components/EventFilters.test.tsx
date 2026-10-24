@@ -4,7 +4,8 @@ import { render, screen, within } from "@testing-library/react"
 import userEvent from "@testing-library/user-event"
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest"
 
-import type { ActivityCategory, Locality } from "@/features/events/api/catalogSchemas"
+import type { ActivityCategory, Locality } from "@/lib/catalog/catalogSchemas"
+
 import { EventFilters } from "@/features/events/components/EventFilters"
 import { anEvent } from "@/features/events/test/anEvent"
 

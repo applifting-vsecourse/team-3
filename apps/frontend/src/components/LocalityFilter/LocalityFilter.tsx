@@ -2,6 +2,7 @@ import { useState } from "react"
 import { Check } from "lucide-react"
 
 import { FilterChip } from "@/components/FilterChip/FilterChip"
+import { FilterPanel } from "@/components/FilterPanel/FilterPanel"
 import {
   Command,
   CommandEmpty,
@@ -9,33 +10,43 @@ import {
   CommandItem,
   CommandList,
 } from "@/components/ui/command"
+import type { Locality } from "@/lib/catalog/catalogSchemas"
+import { DEFAULT_LOCALITY_SLUG, localityOptions } from "@/lib/catalog/localityOptions"
 import { cn } from "@/lib/utils"
 
-import type { Locality } from "@/features/events/api/catalogSchemas"
-import { FilterPanel } from "@/features/events/components/FilterPanel"
-import { useEvents } from "@/features/events/hooks/useEvents"
-import { DEFAULT_LOCALITY_SLUG, type EventsSearch } from "@/features/events/lib/eventsSearch"
-import { showEventsLabel } from "@/features/events/lib/formatEvent"
-import { localityOptions } from "@/features/events/lib/localityOptions"
-
 type LocalityFilterProps = {
-  search: EventsSearch
+  /** The applied locality's slug; undefined is the default, Praha. */
+  value: string | undefined
   localities: Locality[]
-  onChange: (lokalita: string | undefined) => void
+  onChange: (slug: string | undefined) => void
+  /** The apply button, e.g. „Zobrazit 12 akcí“ for the locality being picked. */
+  applyLabel: string
+  /** The slug being picked while the panel is open, undefined once it closes, so the page can preview its result. */
+  onDraftChange?: (draft: string | undefined) => void
 }
 
 /** Chip „Praha“ › one locality; a city includes its districts. */
-export function LocalityFilter({ search, localities, onChange }: LocalityFilterProps) {
-  const current = search.lokalita ?? DEFAULT_LOCALITY_SLUG
+export function LocalityFilter({
+  value,
+  localities,
+  onChange,
+  applyLabel,
+  onDraftChange,
+}: LocalityFilterProps) {
+  const current = value ?? DEFAULT_LOCALITY_SLUG
   const [isOpen, setIsOpen] = useState(false)
   const [draft, setDraft] = useState(current)
-  const preview = useEvents({ ...search, lokalita: draft }, { isEnabled: isOpen })
 
   const currentName = localities.find((l) => l.slug === current)?.name
+  const updateDraft = (slug: string) => {
+    setDraft(slug)
+    onDraftChange?.(slug)
+  }
   // The default is stored as no parameter, so the link stays /akce.
   const apply = (slug: string) => {
     onChange(slug === DEFAULT_LOCALITY_SLUG ? undefined : slug)
     setIsOpen(false)
+    onDraftChange?.(undefined)
   }
 
   return (
@@ -43,7 +54,8 @@ export function LocalityFilter({ search, localities, onChange }: LocalityFilterP
       title="Lokalita"
       isOpen={isOpen}
       onOpenChange={(isOpening) => {
-        if (isOpening) setDraft(current)
+        if (isOpening) updateDraft(current)
+        else onDraftChange?.(undefined)
         setIsOpen(isOpening)
       }}
       trigger={
@@ -56,7 +68,7 @@ export function LocalityFilter({ search, localities, onChange }: LocalityFilterP
       }
       resetLabel="Celá Praha"
       onReset={() => apply(DEFAULT_LOCALITY_SLUG)}
-      applyLabel={showEventsLabel(preview.isPlaceholderData ? undefined : preview.events?.length)}
+      applyLabel={applyLabel}
       onApply={() => apply(draft)}
       popoverClassName="w-80"
     >
@@ -91,7 +103,7 @@ export function LocalityFilter({ search, localities, onChange }: LocalityFilterP
               // the slug is unique, names aren't (two villages can share one)
               value={locality.slug}
               keywords={[locality.name]}
-              onSelect={() => setDraft(locality.slug)}
+              onSelect={() => updateDraft(locality.slug)}
               // Figma: Picker row/Locality – districts indented under their city
               className={cn(
                 "rounded-lg px-4 py-3 text-base",

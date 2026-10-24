@@ -1,8 +1,7 @@
 import { queryOptions } from "@tanstack/react-query"
 
 import { api } from "@/lib/api-client"
-
-import { activityTreeSchema, localitiesSchema } from "@/features/events/api/catalogSchemas"
+import { activityTreeSchema, localitiesSchema } from "@/lib/catalog/catalogSchemas"
 
 export const catalogKeys = {
   all: () => ["catalog"] as const,

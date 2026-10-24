@@ -14,9 +14,12 @@ import { Route as ProtectedPagesRouteImport } from './routes/_ProtectedPages'
 import { Route as AkceRouteImport } from './routes/akce'
 import { Route as LoginRouteImport } from './routes/login'
 import { Route as SignupRouteImport } from './routes/signup'
-import { Route as SkupinyRouteImport } from './routes/skupiny'
 import { Route as ProtectedPagesProfilRouteImport } from './routes/_ProtectedPages/profil'
 import { Route as AkceEventIdRouteImport } from './routes/akce_.$eventId'
+import { Route as SkupinyIndexRouteImport } from './routes/skupiny.index'
+import { Route as SkupinyGroupIdRouteImport } from './routes/skupiny.$groupId'
+import { Route as ProtectedPagesSkupinyNovaRouteImport } from './routes/_ProtectedPages/skupiny.nova'
+import { Route as ProtectedPagesSkupinyGroupIdUpravitRouteImport } from './routes/_ProtectedPages/skupiny.$groupId.upravit'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
@@ -42,11 +45,6 @@ const SignupRoute = SignupRouteImport.update({
   path: '/signup',
   getParentRoute: () => rootRouteImport,
 } as any)
-const SkupinyRoute = SkupinyRouteImport.update({
-  id: '/skupiny',
-  path: '/skupiny',
-  getParentRoute: () => rootRouteImport,
-} as any)
 const ProtectedPagesProfilRoute = ProtectedPagesProfilRouteImport.update({
   id: '/profil',
   path: '/profil',
@@ -57,24 +55,52 @@ const AkceEventIdRoute = AkceEventIdRouteImport.update({
   path: '/akce/$eventId',
   getParentRoute: () => rootRouteImport,
 } as any)
+const SkupinyIndexRoute = SkupinyIndexRouteImport.update({
+  id: '/skupiny/',
+  path: '/skupiny/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const SkupinyGroupIdRoute = SkupinyGroupIdRouteImport.update({
+  id: '/skupiny/$groupId',
+  path: '/skupiny/$groupId',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ProtectedPagesSkupinyNovaRoute =
+  ProtectedPagesSkupinyNovaRouteImport.update({
+    id: '/skupiny/nova',
+    path: '/skupiny/nova',
+    getParentRoute: () => ProtectedPagesRoute,
+  } as any)
+const ProtectedPagesSkupinyGroupIdUpravitRoute =
+  ProtectedPagesSkupinyGroupIdUpravitRouteImport.update({
+    id: '/skupiny/$groupId/upravit',
+    path: '/skupiny/$groupId/upravit',
+    getParentRoute: () => ProtectedPagesRoute,
+  } as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/akce': typeof AkceRoute
   '/login': typeof LoginRoute
   '/signup': typeof SignupRoute
-  '/skupiny': typeof SkupinyRoute
   '/profil': typeof ProtectedPagesProfilRoute
   '/akce/$eventId': typeof AkceEventIdRoute
+  '/skupiny/$groupId': typeof SkupinyGroupIdRoute
+  '/skupiny/': typeof SkupinyIndexRoute
+  '/skupiny/nova': typeof ProtectedPagesSkupinyNovaRoute
+  '/skupiny/$groupId/upravit': typeof ProtectedPagesSkupinyGroupIdUpravitRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/akce': typeof AkceRoute
   '/login': typeof LoginRoute
   '/signup': typeof SignupRoute
-  '/skupiny': typeof SkupinyRoute
   '/profil': typeof ProtectedPagesProfilRoute
   '/akce/$eventId': typeof AkceEventIdRoute
+  '/skupiny/$groupId': typeof SkupinyGroupIdRoute
+  '/skupiny': typeof SkupinyIndexRoute
+  '/skupiny/nova': typeof ProtectedPagesSkupinyNovaRoute
+  '/skupiny/$groupId/upravit': typeof ProtectedPagesSkupinyGroupIdUpravitRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -83,9 +109,12 @@ export interface FileRoutesById {
   '/akce': typeof AkceRoute
   '/login': typeof LoginRoute
   '/signup': typeof SignupRoute
-  '/skupiny': typeof SkupinyRoute
   '/_ProtectedPages/profil': typeof ProtectedPagesProfilRoute
   '/akce_/$eventId': typeof AkceEventIdRoute
+  '/skupiny/$groupId': typeof SkupinyGroupIdRoute
+  '/skupiny/': typeof SkupinyIndexRoute
+  '/_ProtectedPages/skupiny/nova': typeof ProtectedPagesSkupinyNovaRoute
+  '/_ProtectedPages/skupiny/$groupId/upravit': typeof ProtectedPagesSkupinyGroupIdUpravitRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -94,18 +123,24 @@ export interface FileRouteTypes {
     | '/akce'
     | '/login'
     | '/signup'
-    | '/skupiny'
     | '/profil'
     | '/akce/$eventId'
+    | '/skupiny/$groupId'
+    | '/skupiny/'
+    | '/skupiny/nova'
+    | '/skupiny/$groupId/upravit'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
     | '/akce'
     | '/login'
     | '/signup'
-    | '/skupiny'
     | '/profil'
     | '/akce/$eventId'
+    | '/skupiny/$groupId'
+    | '/skupiny'
+    | '/skupiny/nova'
+    | '/skupiny/$groupId/upravit'
   id:
     | '__root__'
     | '/'
@@ -113,9 +148,12 @@ export interface FileRouteTypes {
     | '/akce'
     | '/login'
     | '/signup'
-    | '/skupiny'
     | '/_ProtectedPages/profil'
     | '/akce_/$eventId'
+    | '/skupiny/$groupId'
+    | '/skupiny/'
+    | '/_ProtectedPages/skupiny/nova'
+    | '/_ProtectedPages/skupiny/$groupId/upravit'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -124,8 +162,9 @@ export interface RootRouteChildren {
   AkceRoute: typeof AkceRoute
   LoginRoute: typeof LoginRoute
   SignupRoute: typeof SignupRoute
-  SkupinyRoute: typeof SkupinyRoute
   AkceEventIdRoute: typeof AkceEventIdRoute
+  SkupinyGroupIdRoute: typeof SkupinyGroupIdRoute
+  SkupinyIndexRoute: typeof SkupinyIndexRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -165,13 +204,6 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof SignupRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/skupiny': {
-      id: '/skupiny'
-      path: '/skupiny'
-      fullPath: '/skupiny'
-      preLoaderRoute: typeof SkupinyRouteImport
-      parentRoute: typeof rootRouteImport
-    }
     '/_ProtectedPages/profil': {
       id: '/_ProtectedPages/profil'
       path: '/profil'
@@ -186,15 +218,48 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AkceEventIdRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/skupiny/': {
+      id: '/skupiny/'
+      path: '/skupiny'
+      fullPath: '/skupiny/'
+      preLoaderRoute: typeof SkupinyIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/skupiny/$groupId': {
+      id: '/skupiny/$groupId'
+      path: '/skupiny/$groupId'
+      fullPath: '/skupiny/$groupId'
+      preLoaderRoute: typeof SkupinyGroupIdRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/_ProtectedPages/skupiny/nova': {
+      id: '/_ProtectedPages/skupiny/nova'
+      path: '/skupiny/nova'
+      fullPath: '/skupiny/nova'
+      preLoaderRoute: typeof ProtectedPagesSkupinyNovaRouteImport
+      parentRoute: typeof ProtectedPagesRoute
+    }
+    '/_ProtectedPages/skupiny/$groupId/upravit': {
+      id: '/_ProtectedPages/skupiny/$groupId/upravit'
+      path: '/skupiny/$groupId/upravit'
+      fullPath: '/skupiny/$groupId/upravit'
+      preLoaderRoute: typeof ProtectedPagesSkupinyGroupIdUpravitRouteImport
+      parentRoute: typeof ProtectedPagesRoute
+    }
   }
 }
 
 interface ProtectedPagesRouteChildren {
   ProtectedPagesProfilRoute: typeof ProtectedPagesProfilRoute
+  ProtectedPagesSkupinyNovaRoute: typeof ProtectedPagesSkupinyNovaRoute
+  ProtectedPagesSkupinyGroupIdUpravitRoute: typeof ProtectedPagesSkupinyGroupIdUpravitRoute
 }
 
 const ProtectedPagesRouteChildren: ProtectedPagesRouteChildren = {
   ProtectedPagesProfilRoute: ProtectedPagesProfilRoute,
+  ProtectedPagesSkupinyNovaRoute: ProtectedPagesSkupinyNovaRoute,
+  ProtectedPagesSkupinyGroupIdUpravitRoute:
+    ProtectedPagesSkupinyGroupIdUpravitRoute,
 }
 
 const ProtectedPagesRouteWithChildren = ProtectedPagesRoute._addFileChildren(
@@ -207,8 +272,9 @@ const rootRouteChildren: RootRouteChildren = {
   AkceRoute: AkceRoute,
   LoginRoute: LoginRoute,
   SignupRoute: SignupRoute,
-  SkupinyRoute: SkupinyRoute,
   AkceEventIdRoute: AkceEventIdRoute,
+  SkupinyGroupIdRoute: SkupinyGroupIdRoute,
+  SkupinyIndexRoute: SkupinyIndexRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
