@@ -51,7 +51,7 @@ Demo accounts for walking through the app (all demo accounts share one password)
 | Unverified email            | Eva Malá       | `eva.mala@example.com`       | `hobbyhub-demo-2026`           |
 | Superadmin (`role = admin`) | –              | `SUPERADMIN_EMAIL` from env  | `SUPERADMIN_PASSWORD` from env |
 
-Locally the superadmin is `admin@example.com` / `adminpassword` (from `apps/backend/.env.example`). On staging it uses the values set in the deployment environment. The prepared demo cases (an approval event with one free spot, events missing one person, pending group requests) are described in the header of `demo-data.ts`.
+Locally the superadmin is `admin@example.com` / `adminpassword26` (from `apps/backend/.env.example`; passwords need 10 characters with a letter and a digit, B-010). A database seeded before that keeps `adminpassword`. On staging it uses the values set in the deployment environment. The prepared demo cases (an approval event with one free spot, events missing one person, pending group requests) are described in the header of `demo-data.ts`.
 
 Verification/reset emails are printed to the backend terminal (console mailer) unless you configure Resend or SMTP in `apps/backend/.env`.
 
