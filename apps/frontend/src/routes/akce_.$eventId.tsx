@@ -1,12 +1,11 @@
 import { useEffect } from "react"
 import { useQueryClient } from "@tanstack/react-query"
-import { createFileRoute, Link, useCanGoBack, useLocation, useRouter } from "@tanstack/react-router"
-import { ArrowLeft } from "lucide-react"
+import { createFileRoute, useLocation } from "@tanstack/react-router"
 
 import { ROUTES } from "@/app/routes"
+import { BackLink } from "@/components/BackLink/BackLink"
 import { Header } from "@/components/Header/Header"
 import { Seo } from "@/components/Seo"
-import { Button } from "@/components/ui/button"
 import { authKeys } from "@/lib/auth-keys"
 
 import { HeaderMenu } from "@/features/auth/components/HeaderMenu"
@@ -45,7 +44,10 @@ function EventDetailPage() {
       <Header userMenu={<HeaderMenu />} />
       <main className="flex-1">
         <div className="mx-auto flex w-full max-w-4xl flex-col gap-6 px-4 py-6 md:px-8 md:py-8">
-          <BackLink />
+          <BackLink
+            to={ROUTES.events}
+            fallbackLabel="Všechny akce"
+          />
           <EventDetailView
             event={event}
             isLoading={isPending}
@@ -57,35 +59,5 @@ function EventDetailPage() {
         </div>
       </main>
     </>
-  )
-}
-
-/**
- * Back to where the user came from — the list keeps its filters in the URL,
- * so they come back too. A shared link has nowhere to go back to and leads to
- * the list instead.
- */
-function BackLink() {
-  const router = useRouter()
-  const canGoBack = useCanGoBack()
-  return (
-    <Button
-      asChild
-      variant="ghost"
-      size="sm"
-      className="-ml-3 w-fit"
-    >
-      <Link
-        to={ROUTES.events}
-        onClick={(e) => {
-          if (!canGoBack) return
-          e.preventDefault()
-          router.history.back()
-        }}
-      >
-        <ArrowLeft />
-        {canGoBack ? "Zpět" : "Všechny akce"}
-      </Link>
-    </Button>
   )
 }

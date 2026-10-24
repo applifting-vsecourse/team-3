@@ -19,6 +19,7 @@ import { Route as AkceEventIdRouteImport } from './routes/akce_.$eventId'
 import { Route as SkupinyIndexRouteImport } from './routes/skupiny.index'
 import { Route as SkupinyGroupIdRouteImport } from './routes/skupiny.$groupId'
 import { Route as ProtectedPagesSkupinyNovaRouteImport } from './routes/_ProtectedPages/skupiny.nova'
+import { Route as ProtectedPagesSkupinyGroupIdSpravaRouteImport } from './routes/_ProtectedPages/skupiny.$groupId.sprava'
 import { Route as ProtectedPagesSkupinyGroupIdUpravitRouteImport } from './routes/_ProtectedPages/skupiny.$groupId.upravit'
 
 const IndexRoute = IndexRouteImport.update({
@@ -71,6 +72,12 @@ const ProtectedPagesSkupinyNovaRoute =
     path: '/skupiny/nova',
     getParentRoute: () => ProtectedPagesRoute,
   } as any)
+const ProtectedPagesSkupinyGroupIdSpravaRoute =
+  ProtectedPagesSkupinyGroupIdSpravaRouteImport.update({
+    id: '/skupiny/$groupId/sprava',
+    path: '/skupiny/$groupId/sprava',
+    getParentRoute: () => ProtectedPagesRoute,
+  } as any)
 const ProtectedPagesSkupinyGroupIdUpravitRoute =
   ProtectedPagesSkupinyGroupIdUpravitRouteImport.update({
     id: '/skupiny/$groupId/upravit',
@@ -88,6 +95,7 @@ export interface FileRoutesByFullPath {
   '/skupiny/$groupId': typeof SkupinyGroupIdRoute
   '/skupiny/': typeof SkupinyIndexRoute
   '/skupiny/nova': typeof ProtectedPagesSkupinyNovaRoute
+  '/skupiny/$groupId/sprava': typeof ProtectedPagesSkupinyGroupIdSpravaRoute
   '/skupiny/$groupId/upravit': typeof ProtectedPagesSkupinyGroupIdUpravitRoute
 }
 export interface FileRoutesByTo {
@@ -100,6 +108,7 @@ export interface FileRoutesByTo {
   '/skupiny/$groupId': typeof SkupinyGroupIdRoute
   '/skupiny': typeof SkupinyIndexRoute
   '/skupiny/nova': typeof ProtectedPagesSkupinyNovaRoute
+  '/skupiny/$groupId/sprava': typeof ProtectedPagesSkupinyGroupIdSpravaRoute
   '/skupiny/$groupId/upravit': typeof ProtectedPagesSkupinyGroupIdUpravitRoute
 }
 export interface FileRoutesById {
@@ -114,6 +123,7 @@ export interface FileRoutesById {
   '/skupiny/$groupId': typeof SkupinyGroupIdRoute
   '/skupiny/': typeof SkupinyIndexRoute
   '/_ProtectedPages/skupiny/nova': typeof ProtectedPagesSkupinyNovaRoute
+  '/_ProtectedPages/skupiny/$groupId/sprava': typeof ProtectedPagesSkupinyGroupIdSpravaRoute
   '/_ProtectedPages/skupiny/$groupId/upravit': typeof ProtectedPagesSkupinyGroupIdUpravitRoute
 }
 export interface FileRouteTypes {
@@ -128,6 +138,7 @@ export interface FileRouteTypes {
     | '/skupiny/$groupId'
     | '/skupiny/'
     | '/skupiny/nova'
+    | '/skupiny/$groupId/sprava'
     | '/skupiny/$groupId/upravit'
   fileRoutesByTo: FileRoutesByTo
   to:
@@ -140,6 +151,7 @@ export interface FileRouteTypes {
     | '/skupiny/$groupId'
     | '/skupiny'
     | '/skupiny/nova'
+    | '/skupiny/$groupId/sprava'
     | '/skupiny/$groupId/upravit'
   id:
     | '__root__'
@@ -153,6 +165,7 @@ export interface FileRouteTypes {
     | '/skupiny/$groupId'
     | '/skupiny/'
     | '/_ProtectedPages/skupiny/nova'
+    | '/_ProtectedPages/skupiny/$groupId/sprava'
     | '/_ProtectedPages/skupiny/$groupId/upravit'
   fileRoutesById: FileRoutesById
 }
@@ -239,6 +252,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ProtectedPagesSkupinyNovaRouteImport
       parentRoute: typeof ProtectedPagesRoute
     }
+    '/_ProtectedPages/skupiny/$groupId/sprava': {
+      id: '/_ProtectedPages/skupiny/$groupId/sprava'
+      path: '/skupiny/$groupId/sprava'
+      fullPath: '/skupiny/$groupId/sprava'
+      preLoaderRoute: typeof ProtectedPagesSkupinyGroupIdSpravaRouteImport
+      parentRoute: typeof ProtectedPagesRoute
+    }
     '/_ProtectedPages/skupiny/$groupId/upravit': {
       id: '/_ProtectedPages/skupiny/$groupId/upravit'
       path: '/skupiny/$groupId/upravit'
@@ -252,12 +272,15 @@ declare module '@tanstack/react-router' {
 interface ProtectedPagesRouteChildren {
   ProtectedPagesProfilRoute: typeof ProtectedPagesProfilRoute
   ProtectedPagesSkupinyNovaRoute: typeof ProtectedPagesSkupinyNovaRoute
+  ProtectedPagesSkupinyGroupIdSpravaRoute: typeof ProtectedPagesSkupinyGroupIdSpravaRoute
   ProtectedPagesSkupinyGroupIdUpravitRoute: typeof ProtectedPagesSkupinyGroupIdUpravitRoute
 }
 
 const ProtectedPagesRouteChildren: ProtectedPagesRouteChildren = {
   ProtectedPagesProfilRoute: ProtectedPagesProfilRoute,
   ProtectedPagesSkupinyNovaRoute: ProtectedPagesSkupinyNovaRoute,
+  ProtectedPagesSkupinyGroupIdSpravaRoute:
+    ProtectedPagesSkupinyGroupIdSpravaRoute,
   ProtectedPagesSkupinyGroupIdUpravitRoute:
     ProtectedPagesSkupinyGroupIdUpravitRoute,
 }

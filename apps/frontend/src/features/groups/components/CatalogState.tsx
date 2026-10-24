@@ -7,14 +7,18 @@ import { Skeleton } from "@/components/ui/skeleton"
 type CatalogStateProps = {
   /** Queries the form waits for (the catalog, and the group when editing). */
   queries: readonly { error: Error | null; refetch: () => unknown }[]
+  errorTitle?: string
 }
 
-/** What the group form shows until its activities and localities have loaded. */
-export function CatalogState({ queries }: CatalogStateProps) {
+/** What a group page shows until its data (the catalog, the group) has loaded, or why it couldn't. */
+export function CatalogState({
+  queries,
+  errorTitle = "Formulář se nepodařilo načíst",
+}: CatalogStateProps) {
   if (queries.some((query) => query.error)) {
     return (
       <Alert variant="destructive">
-        <AlertTitle>Formulář se nepodařilo načíst</AlertTitle>
+        <AlertTitle>{errorTitle}</AlertTitle>
         <AlertDescription className="flex items-center justify-between gap-3">
           <span>Zkontrolujte připojení a zkuste to znovu.</span>
           <Button
@@ -35,7 +39,7 @@ export function CatalogState({ queries }: CatalogStateProps) {
     <div
       className="flex flex-col gap-6"
       aria-busy
-      aria-label="Načítám formulář"
+      aria-label="Načítám"
     >
       {[0, 1, 2, 3].map((i) => (
         <div

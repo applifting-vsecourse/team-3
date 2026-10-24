@@ -1,9 +1,9 @@
-import type { ReactNode } from "react"
 import { Link } from "@tanstack/react-router"
-import { Lock, MapPin, Pencil, Users } from "lucide-react"
+import { Lock, MapPin, Users } from "lucide-react"
 
 import { ActivityTile } from "@/components/ActivityTile/ActivityTile"
-import { Avatar, AvatarFallback } from "@/components/ui/avatar"
+import { DetailRow } from "@/components/DetailRow/DetailRow"
+import { PersonRow } from "@/components/PersonRow/PersonRow"
 import { Button } from "@/components/ui/button"
 
 import type { GroupDetail } from "@/features/groups/api/groupSchemas"
@@ -11,17 +11,9 @@ import { GROUP_TYPE_LONG, memberCountLabel } from "@/features/groups/lib/formatG
 
 type GroupProfileProps = {
   group: GroupDetail
-  /** The viewer is one of its admins, so the page offers editing. */
+  /** The viewer is one of its admins, so the page leads to the group's management. */
   isAdmin: boolean
 }
-
-const initials = (name: string): string =>
-  name
-    .split(/\s+/)
-    .filter(Boolean)
-    .slice(0, 2)
-    .map((part) => part[0]?.toLocaleUpperCase("cs"))
-    .join("")
 
 /**
  * The group page (Figma A-08): activity, name, locality, type, approved
@@ -41,32 +33,30 @@ export function GroupProfile({ group, isAdmin }: GroupProfileProps) {
 
       <h1 className="text-3xl font-semibold tracking-tight">{group.name}</h1>
 
-      <ul className="flex flex-col gap-3">
+      <dl className="flex flex-col gap-3">
         <DetailRow
-          icon={<MapPin className="size-5" />}
+          icon={MapPin}
           label="Lokalita"
         >
           {group.locality.name}
         </DetailRow>
         <DetailRow
-          icon={
-            group.type === "closed" ? <Lock className="size-5" /> : <Users className="size-5" />
-          }
+          icon={group.type === "closed" ? Lock : Users}
           label="Typ skupiny"
         >
           {GROUP_TYPE_LONG[group.type]}
         </DetailRow>
         <DetailRow
-          icon={<Users className="size-5" />}
+          icon={Users}
           label="Členové"
         >
           {memberCountLabel(group.memberCount)}
         </DetailRow>
-      </ul>
+      </dl>
 
       <section
         aria-labelledby="group-admins"
-        className="flex flex-col gap-2"
+        className="flex flex-col gap-1"
       >
         <h2
           id="group-admins"
@@ -74,21 +64,17 @@ export function GroupProfile({ group, isAdmin }: GroupProfileProps) {
         >
           Spravuje
         </h2>
-        <ul className="flex flex-col gap-3">
+        <ul>
           {group.admins.map((admin) => (
             <li
               key={admin.id}
-              className="flex items-center gap-3"
+              // Figma: Person row ends with a hairline
+              className="border-b border-border py-3"
             >
-              <Avatar className="size-10">
-                <AvatarFallback className="bg-secondary text-sm font-semibold text-secondary-foreground">
-                  {initials(admin.name)}
-                </AvatarFallback>
-              </Avatar>
-              <div className="flex flex-col">
-                <span className="text-sm font-semibold">{admin.name}</span>
-                <span className="text-sm text-muted-foreground">Správce skupiny</span>
-              </div>
+              <PersonRow
+                name={admin.name}
+                description="Správce skupiny"
+              />
             </li>
           ))}
         </ul>
@@ -97,7 +83,7 @@ export function GroupProfile({ group, isAdmin }: GroupProfileProps) {
       {group.description ? (
         <section
           aria-labelledby="group-about"
-          className="flex flex-col gap-2 border-t border-border pt-6"
+          className="flex flex-col gap-2"
         >
           <h2
             id="group-about"
@@ -110,47 +96,22 @@ export function GroupProfile({ group, isAdmin }: GroupProfileProps) {
       ) : null}
 
       {isAdmin ? (
-        <Button
-          asChild
-          variant="outline"
-          size="lg"
-          className="w-full md:w-auto md:self-start"
-        >
-          <Link
-            to="/skupiny/$groupId/upravit"
-            params={{ groupId: group.id }}
+        // Figma: Lišta s akcí — above the bottom navigation on mobile, in the flow on desktop
+        <div className="sticky bottom-16 -mx-4 border-t border-border bg-background px-4 py-3 md:static md:mx-0 md:border-0 md:bg-transparent md:p-0">
+          <Button
+            asChild
+            size="lg"
+            className="w-full md:w-auto"
           >
-            <Pencil />
-            Upravit skupinu
-          </Link>
-        </Button>
+            <Link
+              to="/skupiny/$groupId/sprava"
+              params={{ groupId: group.id }}
+            >
+              Spravovat skupinu
+            </Link>
+          </Button>
+        </div>
       ) : null}
     </article>
-  )
-}
-
-/** Figma: Detail row */
-function DetailRow({
-  icon,
-  label,
-  children,
-}: {
-  icon: ReactNode
-  label: string
-  children: ReactNode
-}) {
-  return (
-    <li className="flex items-center gap-3">
-      <span
-        aria-hidden
-        className="flex size-10 shrink-0 items-center justify-center rounded-md bg-muted text-foreground"
-      >
-        {icon}
-      </span>
-      <div className="flex flex-col">
-        <span className="text-xs text-muted-foreground">{label}</span>
-        <span className="text-base">{children}</span>
-      </div>
-    </li>
   )
 }

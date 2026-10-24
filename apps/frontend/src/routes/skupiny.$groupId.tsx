@@ -1,7 +1,9 @@
 import { useQuery } from "@tanstack/react-query"
 import { createFileRoute, Link } from "@tanstack/react-router"
-import { ArrowLeft, RefreshCw } from "lucide-react"
+import { RefreshCw } from "lucide-react"
 
+import { ROUTES } from "@/app/routes"
+import { BackLink } from "@/components/BackLink/BackLink"
 import { Header } from "@/components/Header/Header"
 import { Seo } from "@/components/Seo"
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
@@ -24,22 +26,18 @@ function GroupPage() {
   const { user } = useSession()
   const groupQuery = useQuery(groupQueryOptions(groupId))
   const group = groupQuery.data
+  const isNotFound =
+    groupQuery.error instanceof HTTPError && groupQuery.error.response.status === 404
 
   return (
     <>
-      <Seo title={group?.name ?? "Skupina"} />
+      <Seo title={group?.name ?? (isNotFound ? "Skupina nenalezena" : "Skupina")} />
       <Header userMenu={<HeaderMenu />} />
       <main className="mx-auto flex w-full max-w-2xl flex-1 flex-col gap-6 px-4 py-6 md:py-8">
-        <Link
-          to="/skupiny"
-          className="flex items-center gap-2 self-start rounded-md text-sm font-medium text-muted-foreground outline-none hover:text-foreground focus-visible:ring-[3px] focus-visible:ring-ring/50"
-        >
-          <ArrowLeft
-            aria-hidden
-            className="size-4"
-          />
-          Skupiny
-        </Link>
+        <BackLink
+          to={ROUTES.groups}
+          fallbackLabel="Všechny skupiny"
+        />
 
         {group ? (
           <GroupProfile
@@ -48,9 +46,7 @@ function GroupPage() {
           />
         ) : groupQuery.error ? (
           <GroupError
-            isNotFound={
-              groupQuery.error instanceof HTTPError && groupQuery.error.response.status === 404
-            }
+            isNotFound={isNotFound}
             onRetry={() => void groupQuery.refetch()}
           />
         ) : (
@@ -59,6 +55,7 @@ function GroupPage() {
             aria-busy
             aria-label="Načítám skupinu"
           >
+            <h1 className="sr-only">Skupina</h1>
             <Skeleton className="size-16 rounded-lg" />
             <Skeleton className="h-9 w-3/4" />
             <Skeleton className="h-32 w-full" />
@@ -71,27 +68,37 @@ function GroupPage() {
 
 function GroupError({ isNotFound, onRetry }: { isNotFound: boolean; onRetry: () => void }) {
   if (isNotFound) {
+    // same as „Akce nenalezena“ on the event detail
     return (
-      <div className="flex flex-col gap-2 py-8">
-        <h1 className="text-2xl font-semibold tracking-tight">Skupina neexistuje</h1>
-        <p className="text-muted-foreground">Odkaz je možná překlepnutý.</p>
-      </div>
+      <section className="flex flex-col items-center gap-3 py-16 text-center">
+        <h1 className="text-2xl font-semibold tracking-tight">Skupina nenalezena</h1>
+        <p className="text-muted-foreground">Odkaz je neplatný, nebo skupina neexistuje.</p>
+        <Button
+          asChild
+          className="mt-3"
+        >
+          <Link to={ROUTES.groups}>Prohlédnout skupiny</Link>
+        </Button>
+      </section>
     )
   }
   return (
-    <Alert variant="destructive">
-      <AlertTitle>Skupinu se nepodařilo načíst</AlertTitle>
-      <AlertDescription className="flex items-center justify-between gap-3">
-        <span>Zkontrolujte připojení a zkuste to znovu.</span>
-        <Button
-          variant="outline"
-          size="sm"
-          onClick={onRetry}
-        >
-          <RefreshCw className="size-4" />
-          Zkusit znovu
-        </Button>
-      </AlertDescription>
-    </Alert>
+    <>
+      <h1 className="sr-only">Skupina</h1>
+      <Alert variant="destructive">
+        <AlertTitle>Skupinu se nepodařilo načíst</AlertTitle>
+        <AlertDescription className="flex items-center justify-between gap-3">
+          <span>Zkontrolujte připojení a zkuste to znovu.</span>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={onRetry}
+          >
+            <RefreshCw className="size-4" />
+            Zkusit znovu
+          </Button>
+        </AlertDescription>
+      </Alert>
+    </>
   )
 }

@@ -61,7 +61,7 @@ type FormValues = z.input<typeof schema>
 /** Figma D-06: Radio card */
 const TYPE_OPTIONS: { value: GroupType; title: string; hint: string }[] = [
   { value: "public", title: "Veřejná", hint: "Kdokoli se přidá jedním klepnutím." },
-  { value: "closed", title: "Neveřejná", hint: "O členství se žádá, žádosti schvaluje správce." },
+  { value: "closed", title: "Neveřejná", hint: "O členství se žádá, žádosti schvaluješ ty." },
 ]
 
 type GroupFormProps = {
@@ -243,16 +243,15 @@ export function GroupForm({
                       key={option.value}
                       htmlFor={`${typeId}-${option.value}`}
                       className={cn(
-                        "flex cursor-pointer items-start gap-3 rounded-lg border border-border p-4 transition-colors hover:bg-accent",
+                        "flex cursor-pointer items-start gap-3 rounded-lg border border-border bg-card px-4 py-3 transition-colors hover:bg-accent",
                         field.value === option.value && "border-foreground",
                       )}
                     >
                       <RadioGroupItem
                         id={`${typeId}-${option.value}`}
                         value={option.value}
-                        className="mt-0.5"
                       />
-                      <span className="flex flex-col gap-1">
+                      <span className="flex flex-col">
                         <span className="text-sm font-semibold">{option.title}</span>
                         <span className="text-sm text-muted-foreground">{option.hint}</span>
                       </span>
@@ -274,7 +273,7 @@ export function GroupForm({
               <FormControl>
                 <Textarea
                   placeholder="např. Pravidelné deskovky v klubovně, hlavně středně těžké hry."
-                  className="min-h-28"
+                  className="min-h-24"
                   {...field}
                 />
               </FormControl>

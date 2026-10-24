@@ -9,15 +9,18 @@ type PersonRowProps = {
   className?: string
 }
 
-/** A person or a group with an avatar — organizer, participant, member (Figma: Person row). */
+/** A person or a group with an avatar — organizer, participant, member (Figma: Person row, Member). */
 export function PersonRow({ name, description, className }: PersonRowProps) {
   return (
     <div className={cn("flex min-w-0 items-center gap-3", className)}>
       <Avatar size="lg">
-        <AvatarFallback>{initials(name)}</AvatarFallback>
+        {/* Figma: Avatar — initials on the quiet brand fill */}
+        <AvatarFallback className="bg-secondary font-semibold text-secondary-foreground">
+          {initials(name)}
+        </AvatarFallback>
       </Avatar>
       <div className="flex min-w-0 flex-col">
-        <span className="truncate text-base font-medium">{name}</span>
+        <span className="truncate text-sm font-semibold">{name}</span>
         {description ? (
           <span className="truncate text-sm text-muted-foreground">{description}</span>
         ) : null}

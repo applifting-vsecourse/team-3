@@ -13,16 +13,16 @@ export function GroupCard({ group }: { group: Group }) {
     <Link
       to="/skupiny/$groupId"
       params={{ groupId: group.id }}
-      className="flex items-center gap-3 rounded-lg border border-border bg-card p-3 text-card-foreground transition-colors outline-none hover:border-foreground focus-visible:ring-[3px] focus-visible:ring-ring/50"
+      className="flex items-start gap-3 rounded-lg border border-border bg-card p-3 text-card-foreground transition-colors outline-none hover:border-foreground focus-visible:ring-[3px] focus-visible:ring-ring/50"
     >
       <ActivityTile icon={group.activity.category.icon} />
       <div className="flex min-w-0 flex-1 flex-col gap-1">
-        <h2 className="line-clamp-2 text-base font-semibold tracking-tight">{group.name}</h2>
+        <h2 className="truncate text-base font-semibold tracking-tight">{group.name}</h2>
         <p className="truncate text-sm text-muted-foreground">{groupFacts(group)}</p>
-        <p className="flex items-center gap-1 text-sm text-muted-foreground">
+        <p className="flex items-center gap-1 text-xs font-medium text-muted-foreground">
           <TypeIcon
             aria-hidden
-            className="size-4 shrink-0 text-foreground"
+            className="size-4 shrink-0"
           />
           <span className="truncate">{GROUP_TYPE_SHORT[group.type]}</span>
         </p>

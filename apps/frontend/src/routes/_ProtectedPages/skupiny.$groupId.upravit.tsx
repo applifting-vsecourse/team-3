@@ -1,14 +1,14 @@
 import { useQuery } from "@tanstack/react-query"
-import { createFileRoute, Link, useNavigate } from "@tanstack/react-router"
+import { createFileRoute, useNavigate } from "@tanstack/react-router"
 import { toast } from "sonner"
 
+import { BackLink } from "@/components/BackLink/BackLink"
 import { Seo } from "@/components/Seo"
-import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
-import { Button } from "@/components/ui/button"
 import { useCatalog } from "@/hooks/useCatalog"
 
 import { useSession } from "@/features/auth/hooks/useSession"
 import { groupQueryOptions } from "@/features/groups/api/groupsQueryOptions"
+import { AdminOnlyNotice } from "@/features/groups/components/AdminOnlyNotice"
 import { CatalogState } from "@/features/groups/components/CatalogState"
 import { GroupForm } from "@/features/groups/components/GroupForm"
 import { useUpdateGroup } from "@/features/groups/hooks/useGroupMutations"
@@ -35,25 +35,14 @@ function EditGroupPage() {
     <>
       <Seo title="Upravit skupinu" />
       <div className="mx-auto flex w-full max-w-2xl flex-col gap-6 px-4 py-6 md:py-8">
+        <BackLink
+          to="/skupiny/$groupId/sprava"
+          params={{ groupId }}
+          fallbackLabel="Správa skupiny"
+        />
         <h1 className="text-3xl font-semibold tracking-tight">Upravit skupinu</h1>
         {catalog && group && !isAdmin ? (
-          <Alert>
-            <AlertTitle>Skupinu může upravit jen její správce</AlertTitle>
-            <AlertDescription className="flex flex-col items-start gap-3">
-              <Button
-                asChild
-                variant="outline"
-                size="sm"
-              >
-                <Link
-                  to="/skupiny/$groupId"
-                  params={{ groupId }}
-                >
-                  Zpět na skupinu
-                </Link>
-              </Button>
-            </AlertDescription>
-          </Alert>
+          <AdminOnlyNotice groupId={groupId} />
         ) : catalog && group ? (
           <GroupForm
             catalog={catalog}
