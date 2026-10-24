@@ -58,8 +58,8 @@ const schema = z
       .trim()
       .min(1, "Vyplňte název akce")
       .max(EVENT_TITLE_MAX_LENGTH, `Název může mít nejvýš ${EVENT_TITLE_MAX_LENGTH} znaků`),
-    activityId: z.string().min(1, "Vyberte aktivitu"),
-    localityId: z.string().min(1, "Vyberte lokalitu"),
+    activityId: z.string().min(1, "Akce potřebuje aktivitu"),
+    localityId: z.string().min(1, "Akce potřebuje lokalitu"),
     place: z.object({ lat: z.number(), lng: z.number() }).nullable(),
     address: z
       .string()
@@ -102,36 +102,45 @@ const APPROVAL_OPTIONS: { value: EventInput["approvalMode"]; title: string; hint
   },
 ]
 
-/** `YYYY-MM-DDTHH:mm` in the browser's time, for `<input type="datetime-local" min>` */
-const localNow = () => {
-  const now = new Date()
-  return new Date(now.getTime() - now.getTimezoneOffset() * 60_000).toISOString().slice(0, 16)
-}
+/** `YYYY-MM-DDTHH:mm` in the browser's time, as `<input type="datetime-local">` takes it */
+const toLocalInput = (date: Date) =>
+  new Date(date.getTime() - date.getTimezoneOffset() * 60_000).toISOString().slice(0, 16)
 
 type EventFormProps = {
   catalog: Catalog
+  /** Prefilled values, e.g. when editing (#41). */
+  initialValues?: Partial<EventInput>
   isSubmitting: boolean
   errorMessage?: string | null
   onSubmit: (input: EventInput) => void | Promise<void>
 }
 
 /** Figma D-01: a new event (B-022). The organizer is the signed-in user. */
-export function EventForm({ catalog, isSubmitting, errorMessage, onSubmit }: EventFormProps) {
+export function EventForm({
+  catalog,
+  initialValues,
+  isSubmitting,
+  errorMessage,
+  onSubmit,
+}: EventFormProps) {
   const placeLabelId = useId()
   const approvalId = useId()
   const form = useForm<FormValues>({
     resolver: zodResolver(schema),
     defaultValues: {
-      title: "",
-      activityId: "",
-      localityId: "",
-      place: null,
-      address: "",
-      startsAt: "",
-      minParticipants: "",
-      maxParticipants: "",
-      approvalMode: "open",
-      description: "",
+      title: initialValues?.title ?? "",
+      activityId: initialValues?.activityId ?? "",
+      localityId: initialValues?.localityId ?? "",
+      place:
+        initialValues?.lat !== undefined && initialValues.lng !== undefined
+          ? { lat: initialValues.lat, lng: initialValues.lng }
+          : null,
+      address: initialValues?.address ?? "",
+      startsAt: initialValues?.startsAt ? toLocalInput(new Date(initialValues.startsAt)) : "",
+      minParticipants: initialValues?.minParticipants?.toString() ?? "",
+      maxParticipants: initialValues?.maxParticipants?.toString() ?? "",
+      approvalMode: initialValues?.approvalMode ?? "open",
+      description: initialValues?.description ?? "",
     },
   })
 
@@ -331,7 +340,7 @@ export function EventForm({ catalog, isSubmitting, errorMessage, onSubmit }: Eve
               <FormControl>
                 <Input
                   type="datetime-local"
-                  min={localNow()}
+                  min={toLocalInput(new Date())}
                   className="h-11"
                   {...field}
                 />

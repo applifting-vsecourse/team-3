@@ -1,7 +1,8 @@
 import { useState, type CSSProperties } from "react"
-import { createFileRoute } from "@tanstack/react-router"
-import { Map as MapIcon } from "lucide-react"
+import { createFileRoute, Link } from "@tanstack/react-router"
+import { Map as MapIcon, Plus } from "lucide-react"
 
+import { ROUTES } from "@/app/routes"
 import { Header } from "@/components/Header/Header"
 import { Seo } from "@/components/Seo"
 import { Button } from "@/components/ui/button"
@@ -10,6 +11,7 @@ import { DEFAULT_LOCALITY_SLUG } from "@/lib/catalog/localityOptions"
 import { cn } from "@/lib/utils"
 
 import { HeaderMenu } from "@/features/auth/components/HeaderMenu"
+import { useSession } from "@/features/auth/hooks/useSession"
 import { EventFilters } from "@/features/events/components/EventFilters"
 import { EventList } from "@/features/events/components/EventList"
 import { EventsMap } from "@/features/events/components/EventsMap"
@@ -39,6 +41,7 @@ function EventsPage() {
   const navigate = Route.useNavigate()
   const { events, catalog, isPending, error, retry } = useEvents(search)
   const isDesktop = useMediaQuery(DESKTOP_QUERY)
+  const { user } = useSession()
   const [panelSnap, setPanelSnap] = useState<PanelSnap>("peek")
   const isListExpanded = panelSnap === "list"
   const [highlightedId, setHighlightedId] = useState<string>()
@@ -142,6 +145,19 @@ function EventsPage() {
           >
             <MapIcon />
             Mapa
+          </Button>
+        ) : null}
+
+        {/* „Založit akci“ floats for a signed-in user only; a visitor doesn't see it (#40) */}
+        {user ? (
+          <Button
+            asChild
+            className="absolute right-4 bottom-4 z-20 h-11 rounded-full shadow-md md:right-8 md:bottom-12"
+          >
+            <Link to={ROUTES.newEvent}>
+              <Plus />
+              Založit akci
+            </Link>
           </Button>
         ) : null}
       </main>
