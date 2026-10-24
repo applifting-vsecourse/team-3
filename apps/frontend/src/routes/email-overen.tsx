@@ -17,7 +17,10 @@ export const Route = createFileRoute("/email-overen")({
   component: EmailVerifiedPage,
   // BetterAuth adds `error` (e.g. TOKEN_EXPIRED) when the link didn't work;
   // `from` is the page the sign-up started from (B-012)
-  validateSearch: z.object({ error: z.string().optional(), from: z.string().optional() }),
+  validateSearch: z.object({
+    error: z.string().optional().catch(undefined),
+    from: z.string().optional().catch(undefined),
+  }),
 })
 
 function EmailVerifiedPage() {

@@ -7,6 +7,9 @@ export const encodeRedirectUri = (location: ParsedLocation) => encodeURIComponen
 const isAppPath = (path: string) =>
   path.startsWith("/") && !path.startsWith("//") && !/[\\\p{Cc}]/u.test(path)
 
+// Signed in, these pages send you on to `from`: pointing at them would loop.
+const isAuthPage = (path: string) => /^\/(login|signup)(?:[/?#]|$)/.test(path)
+
 /**
  * Where to go back to after signing in or up (B-012): the page `from`
  * names, or `fallback`. Only a path in this app, so a crafted link
@@ -16,7 +19,7 @@ export const safeRedirect = (encoded: string | undefined, fallback: string): str
   if (!encoded) return fallback
   try {
     const path = decodeURIComponent(encoded)
-    return isAppPath(path) ? path : fallback
+    return isAppPath(path) && !isAuthPage(path) ? path : fallback
   } catch {
     return fallback
   }

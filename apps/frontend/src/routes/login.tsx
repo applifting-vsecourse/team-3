@@ -13,7 +13,8 @@ import { safeRedirect } from "@/features/auth/lib/redirect"
 
 // `from`: the page to come back to, e.g. the event (B-012)
 const loginSearchParamsSchema = z.object({
-  from: z.string().optional(),
+  // TanStack parses `?from=123` into a number: such a `from` is dropped, not an error page
+  from: z.string().optional().catch(undefined),
 })
 
 export const Route = createFileRoute("/login")({

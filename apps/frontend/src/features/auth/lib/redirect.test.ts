@@ -22,6 +22,12 @@ describe("safeRedirect (B-012)", () => {
     }
   })
 
+  it("never leads back to sign-in or sign-up, which would loop for a signed-in user", () => {
+    expect(safeRedirect(encodeURIComponent("/login"), "/akce")).toBe("/akce")
+    expect(safeRedirect(encodeURIComponent("/signup?from=x"), "/akce")).toBe("/akce")
+    expect(safeRedirect(encodeURIComponent("/loginy"), "/akce")).toBe("/loginy")
+  })
+
   it("no `from`, or one that can't be decoded, is the fallback", () => {
     expect(safeRedirect(undefined, "/akce")).toBe("/akce")
     expect(safeRedirect("%E0%A4%A", "/akce")).toBe("/akce")

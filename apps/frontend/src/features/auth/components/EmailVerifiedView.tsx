@@ -1,5 +1,3 @@
-import { Link } from "@tanstack/react-router"
-
 import { ROUTES } from "@/app/routes"
 import { Button } from "@/components/ui/button"
 
@@ -41,7 +39,7 @@ export function EmailVerifiedView({
           variant="outline"
           className="mt-3 self-start"
         >
-          <Link to={ROUTES.events}>Pokračovat na akce</Link>
+          <a href={continueTo}>Pokračovat</a>
         </Button>
       </section>
     )

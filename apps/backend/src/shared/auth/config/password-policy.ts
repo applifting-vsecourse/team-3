@@ -6,6 +6,8 @@ const PASSWORD_FIELDS: Record<string, string> = {
   '/sign-up/email': 'password',
   '/reset-password': 'newPassword',
   '/change-password': 'newPassword',
+  // server-only (not over HTTP), but a future auth.api.setPassword gets the rule too
+  '/set-password': 'newPassword',
 };
 
 /**
