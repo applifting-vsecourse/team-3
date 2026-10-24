@@ -324,4 +324,70 @@ describe('GroupsService', () => {
       expect(repository.deleteMembership).not.toHaveBeenCalled();
     });
   });
+
+  describe('deactivateGroup (B-051)', () => {
+    it('an admin deactivates the group', async () => {
+      const { repository, service } = setup();
+      repository.findGroupById.mockResolvedValue(aGroup('g1'));
+      repository.isActiveAdmin.mockResolvedValue(true);
+
+      await service.deactivateGroup('g1', 'u-petra');
+
+      expect(repository.isActiveAdmin).toHaveBeenCalledWith('g1', 'u-petra');
+      expect(repository.deactivateGroup).toHaveBeenCalledWith(
+        'g1',
+        expect.any(Date),
+      );
+    });
+
+    it('anyone else gets 403 and nothing is written', async () => {
+      const { repository, service } = setup();
+      repository.findGroupById.mockResolvedValue(aGroup('g1'));
+      repository.isActiveAdmin.mockResolvedValue(false);
+
+      await expect(
+        service.deactivateGroup('g1', 'u-jakub'),
+      ).rejects.toBeInstanceOf(ForbiddenException);
+      expect(repository.deactivateGroup).not.toHaveBeenCalled();
+    });
+
+    it('a deactivated group is read-only: 409 GROUP_INACTIVE, nothing is written', async () => {
+      const { repository, service } = setup();
+      repository.findGroupById.mockResolvedValue({
+        ...aGroup('g1'),
+        status: 'inactive',
+        viewerMembership: { role: 'admin', status: 'active' },
+      });
+      repository.isActiveAdmin.mockResolvedValue(true);
+      repository.countActiveAdmins.mockResolvedValue(2);
+      const inactive = { response: { code: 'GROUP_INACTIVE' } };
+
+      await expect(
+        service.deactivateGroup('g1', 'u-petra'),
+      ).rejects.toMatchObject(inactive);
+      await expect(
+        service.updateGroup('g1', { name: 'Nový název' }, 'u-petra'),
+      ).rejects.toMatchObject(inactive);
+      await expect(service.getMembers('g1', 'u-petra')).rejects.toMatchObject(
+        inactive,
+      );
+      await expect(
+        service.approveRequest('g1', 'u-petra', 'u-jakub'),
+      ).rejects.toMatchObject(inactive);
+      await expect(service.leave('g1', 'u-petra')).rejects.toMatchObject(
+        inactive,
+      );
+      // nobody joins or asks to join either
+      await expect(service.join('g1', 'u-jakub')).rejects.toMatchObject(
+        inactive,
+      );
+
+      expect(repository.deactivateGroup).not.toHaveBeenCalled();
+      expect(repository.updateGroup).not.toHaveBeenCalled();
+      expect(repository.findMembers).not.toHaveBeenCalled();
+      expect(repository.approveRequest).not.toHaveBeenCalled();
+      expect(repository.deleteMembership).not.toHaveBeenCalled();
+      expect(repository.createMembership).not.toHaveBeenCalled();
+    });
+  });
 });
