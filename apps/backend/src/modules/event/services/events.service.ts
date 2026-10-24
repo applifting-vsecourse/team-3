@@ -3,6 +3,7 @@ import {
   EventChanges,
   EventDetail,
   EventDetailView,
+  EventParticipant,
   NewEvent,
   PublicEvent,
   PublicEventFilters,
@@ -215,6 +216,26 @@ export class EventsService {
     if (!decision) throw new NotFoundException('Event not found');
     if (!decision.ok) throw updateRefused(decision.refusal);
     return this.getEventDetail(id, userId, now);
+  }
+
+  /**
+   * Who is in, for the organizer's management page (B-033, #43); anyone else
+   * gets 403. A cancelled or past event too: the organizer may still want to
+   * know who was coming. Pending requests come with #53.
+   */
+  async getParticipants(
+    eventId: string,
+    userId: string,
+    now: Date = new Date(),
+  ): Promise<EventParticipant[]> {
+    const event = await this.getEventDetail(eventId, userId, now); // 404 first
+    if (event.organizer.id !== userId) {
+      throw new ForbiddenException({
+        code: 'NOT_ORGANIZER',
+        message: 'Účastníky akce spravuje jen její organizátor.',
+      });
+    }
+    return event.participants ?? [];
   }
 
   private assertCancellable(event: EventDetail, now: Date): void {

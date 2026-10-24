@@ -4,6 +4,7 @@ export const ROUTES = {
   eventDetail: "/akce/$eventId",
   newEvent: "/akce/nova",
   editEvent: "/akce/$eventId/upravit",
+  manageEvent: "/akce/$eventId/sprava",
   groups: "/skupiny",
   profile: "/profil",
   login: "/login",

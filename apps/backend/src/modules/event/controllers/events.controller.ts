@@ -30,6 +30,7 @@ import { CancelEventDto } from './dto/cancel-event.dto';
 import { CreateEventDto } from './dto/create-event.dto';
 import { CreatedEventResponseDto } from './dto/created-event.response.dto';
 import { EventDetailResponseDto } from './dto/event-detail.response.dto';
+import { EventParticipantsResponseDto } from './dto/event-participants.response.dto';
 import { ListEventsQueryDto } from './dto/list-events.query.dto';
 import { PublicEventResponseDto } from './dto/public-event.response.dto';
 import { UpdateEventDto } from './dto/update-event.dto';
@@ -160,6 +161,27 @@ export class EventsController {
   ): Promise<EventDetailResponseDto> {
     return EventDetailResponseDto.fromDomain(
       await this.eventsService.cancelEvent(id, user.id, body.reason),
+    );
+  }
+
+  // A session is enough: who may see the list is the organizer check.
+  @Get(':id/participants')
+  @UseGuards(AuthenticatedUserGuard)
+  @ApiCookieAuth()
+  @ApiOperation({
+    summary:
+      "Who is in, for the event's management page (B-033); only its organizer",
+  })
+  @ApiResponse({ status: 200, type: EventParticipantsResponseDto })
+  @ApiResponse({ status: 401, description: 'Not signed in' })
+  @ApiResponse({ status: 403, description: 'NOT_ORGANIZER' })
+  @ApiResponse({ status: 404, description: 'No such event for this user' })
+  async participants(
+    @Param('id') id: string,
+    @User() user: Identity,
+  ): Promise<EventParticipantsResponseDto> {
+    return EventParticipantsResponseDto.fromDomain(
+      await this.eventsService.getParticipants(id, user.id),
     );
   }
 

@@ -35,6 +35,10 @@ export const publicEventsSchema = z.array(publicEventSchema)
 
 export type PublicEvent = z.infer<typeof publicEventSchema>
 
+const eventParticipantSchema = z.object({ id: z.string(), name: z.string() })
+
+export type EventParticipant = z.infer<typeof eventParticipantSchema>
+
 /** GET /api/events/:id */
 export const eventDetailSchema = publicEventSchema.extend({
   description: z.string().nullable(),
@@ -42,12 +46,17 @@ export const eventDetailSchema = publicEventSchema.extend({
   status: z.enum(["published", "cancelled"]),
   cancelReason: z.string().nullable(),
   /** Approved participants; null for a visitor, who gets only `approvedCount`. */
-  participants: z.array(z.object({ id: z.string(), name: z.string() })).nullable(),
+  participants: z.array(eventParticipantSchema).nullable(),
   /** The signed-in user's own participation; null for a visitor or someone not in. */
   myParticipation: z.enum(["pending", "approved", "rejected", "removed"]).nullable(),
 })
 
 export type EventDetail = z.infer<typeof eventDetailSchema>
+
+/** GET /api/events/:id/participants — only for the organizer (#43); requests come with #53. */
+export const eventParticipantsSchema = z.object({
+  participants: z.array(eventParticipantSchema),
+})
 
 /** POST /api/events answers with the detail and the link to share (B-021). */
 export const createdEventSchema = eventDetailSchema.extend({ shareUrl: z.string() })

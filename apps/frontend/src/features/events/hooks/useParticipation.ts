@@ -17,6 +17,8 @@ function useParticipationMutation(eventId: string, viewerId: string, send: () =>
     onSuccess: (event) => {
       queryClient.setQueryData(eventKeys.detail(eventId, viewerId), event)
       void queryClient.invalidateQueries({ queryKey: eventKeys.lists() })
+      // the organizer joining their own event shows up on the management page
+      void queryClient.invalidateQueries({ queryKey: eventKeys.participants(eventId, viewerId) })
     },
     // A refusal (e.g. someone else took the last place) means the cached
     // detail is out of date: refetch it, so „Přijdu“ turns into „Plno“.
