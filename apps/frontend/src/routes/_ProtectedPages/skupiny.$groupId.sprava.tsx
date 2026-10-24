@@ -5,24 +5,31 @@ import { Pencil } from "lucide-react"
 import { BackLink } from "@/components/BackLink/BackLink"
 import { Seo } from "@/components/Seo"
 import { Button } from "@/components/ui/button"
+import { DESKTOP_QUERY, useMediaQuery } from "@/hooks/useMediaQuery"
+import { cn } from "@/lib/utils"
 
 import { useSession } from "@/features/auth/hooks/useSession"
+import type { GroupDetail } from "@/features/groups/api/groupSchemas"
 import { groupQueryOptions } from "@/features/groups/api/groupsQueryOptions"
 import { AdminOnlyNotice } from "@/features/groups/components/AdminOnlyNotice"
 import { CatalogState } from "@/features/groups/components/CatalogState"
 import { GroupCard } from "@/features/groups/components/GroupCard"
+import { GroupFacts, GroupHeading } from "@/features/groups/components/GroupSummary"
+import { GROUP_TYPE_FOR_ADMIN } from "@/features/groups/lib/formatGroup"
+import { GROUPS_PAGE } from "@/features/groups/lib/pageLayout"
 
 export const Route = createFileRoute("/_ProtectedPages/skupiny/$groupId/sprava")({
   component: ManageGroupPage,
 })
 
 /**
- * Figma D-07, the admin's entry from the group page. In #45 it only leads to
- * editing; the Žádosti / Členové tabs come with #46, deactivation with #54.
+ * Figma D-07 (mobile) and D-07d (desktop), the admin's entry from the group
+ * page. Requests and members come with #46, deactivation with #54.
  */
 function ManageGroupPage() {
   const { groupId } = Route.useParams()
   const { user } = useSession()
+  const isDesktop = useMediaQuery(DESKTOP_QUERY)
   const groupQuery = useQuery(groupQueryOptions(groupId))
   const group = groupQuery.data
   const isAdmin = Boolean(user && group?.admins.some((admin) => admin.id === user.id))
@@ -30,33 +37,31 @@ function ManageGroupPage() {
   return (
     <>
       <Seo title="Správa skupiny" />
-      <div className="mx-auto flex w-full max-w-2xl flex-col gap-6 px-4 py-6 md:py-8">
+      <div className={cn(GROUPS_PAGE, "gap-4")}>
         <BackLink
           to="/skupiny/$groupId"
           params={{ groupId }}
-          fallbackLabel="Na skupinu"
+          fallbackLabel="Skupina"
+          label="Skupina"
         />
-        <h1 className="text-3xl font-semibold tracking-tight">Správa skupiny</h1>
         {group && !isAdmin ? (
           <AdminOnlyNotice groupId={groupId} />
+        ) : group && isDesktop ? (
+          // D-07d: the group's summary on the left; requests and members (#46) on the right
+          <div className="grid grid-cols-[minmax(0,27.5rem)_minmax(0,1fr)] items-start gap-12">
+            <section className="flex flex-col gap-5">
+              <GroupHeading group={group} />
+              <GroupFacts
+                group={group}
+                typeLabels={GROUP_TYPE_FOR_ADMIN}
+              />
+              <div className="flex gap-2">
+                <EditButton groupId={groupId} />
+              </div>
+            </section>
+          </div>
         ) : group ? (
-          <>
-            <GroupCard group={group} />
-            <Button
-              asChild
-              variant="outline"
-              size="lg"
-              className="w-full"
-            >
-              <Link
-                to="/skupiny/$groupId/upravit"
-                params={{ groupId }}
-              >
-                <Pencil />
-                Upravit skupinu
-              </Link>
-            </Button>
-          </>
+          <ManageMobile group={group} />
         ) : (
           <CatalogState
             queries={[groupQuery]}
@@ -65,5 +70,38 @@ function ManageGroupPage() {
         )}
       </div>
     </>
+  )
+}
+
+/** D-07: the group's card, then its actions. */
+function ManageMobile({ group }: { group: GroupDetail }) {
+  return (
+    <>
+      <h1 className="text-3xl font-semibold tracking-tight">Správa skupiny</h1>
+      <GroupCard group={group} />
+      <EditButton
+        groupId={group.id}
+        className="w-full"
+      />
+    </>
+  )
+}
+
+function EditButton({ groupId, className }: { groupId: string; className?: string }) {
+  return (
+    <Button
+      asChild
+      variant="outline"
+      size="lg"
+      className={cn("h-11", className)}
+    >
+      <Link
+        to="/skupiny/$groupId/upravit"
+        params={{ groupId }}
+      >
+        <Pencil />
+        Upravit skupinu
+      </Link>
+    </Button>
   )
 }

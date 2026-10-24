@@ -8,6 +8,9 @@ import type { Group } from "@/features/groups/api/groupSchemas"
 import { GroupCard } from "@/features/groups/components/GroupCard"
 import { groupCountLabel } from "@/features/groups/lib/formatGroup"
 
+// Figma A-07d: three columns on a wide desktop, one on mobile
+const GRID = "grid gap-3 md:grid-cols-2 md:gap-4 lg:grid-cols-3"
+
 type GroupListProps = {
   groups: Group[]
   isLoading?: boolean
@@ -17,7 +20,7 @@ type GroupListProps = {
   hasActivityFilter?: boolean
 }
 
-/** The list of /skupiny (Figma A-07) with its loading, empty and error states. */
+/** The list of /skupiny (Figma A-07, A-07d) with its loading, empty and error states. */
 export function GroupList({
   groups,
   isLoading,
@@ -50,7 +53,7 @@ export function GroupList({
   if (isLoading) {
     return (
       <div
-        className="flex flex-col gap-3"
+        className={GRID}
         aria-busy
         aria-label="Načítám skupiny"
       >
@@ -71,7 +74,7 @@ export function GroupList({
             : "V této lokalitě zatím žádná skupina není."}
         </p>
       ) : (
-        <ul className="flex flex-col gap-3">
+        <ul className={GRID}>
           {groups.map((group) => (
             <li key={group.id}>
               <GroupCard group={group} />
