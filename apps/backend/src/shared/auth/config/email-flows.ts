@@ -10,6 +10,10 @@ export const EMAIL_VERIFICATION_TTL_SECONDS = 24 * 60 * 60;
 /** How long a password-reset link works. */
 export const PASSWORD_RESET_TTL_SECONDS = 60 * 60;
 
+/** Subjects of the account e-mails: Czech and „ty“, like the app (DESIGN.md › Copy). */
+export const VERIFY_EMAIL_SUBJECT = 'Ověř si e-mail v HobbyHubu';
+export const RESET_PASSWORD_SUBJECT = 'Nové heslo do HobbyHubu';
+
 export type EmailFlowOptions = {
   emailAndPassword: NonNullable<BetterAuthOptions['emailAndPassword']>;
   emailVerification: NonNullable<BetterAuthOptions['emailVerification']>;
@@ -32,7 +36,7 @@ export const emailFlowOptions = (
         username: user.name,
         url: passwordResetUrl,
       });
-      await emailProvider.sendEmail(user.email, 'Password reset', html);
+      await emailProvider.sendEmail(user.email, RESET_PASSWORD_SUBJECT, html);
     },
   },
   emailVerification: {
@@ -40,11 +44,7 @@ export const emailFlowOptions = (
     sendOnSignUp: true,
     sendVerificationEmail: async ({ user, url }): Promise<void> => {
       const html = await renderEmail(VerifyEmail, { url });
-      await emailProvider.sendEmail(
-        user.email,
-        'Verify your email address',
-        html,
-      );
+      await emailProvider.sendEmail(user.email, VERIFY_EMAIL_SUBJECT, html);
     },
   },
 });
