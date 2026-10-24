@@ -13,6 +13,11 @@ const chipDefault =
   "border-border bg-background font-medium text-foreground hover:bg-accent dark:border-border dark:bg-background dark:hover:bg-accent"
 const chipSelected =
   "border-foreground bg-foreground font-semibold text-background hover:bg-foreground/90 hover:text-background dark:border-foreground dark:bg-foreground dark:hover:bg-foreground/90"
+// chipSelected behind data-[state=on], class for class. Tailwind only generates classes it finds
+// written out, so this can't be built from chipSelected at runtime; FilterChip.test.tsx checks
+// the two match. The dark: ones are needed: chipDefault's dark: classes would otherwise win.
+const chipOn =
+  "data-[state=on]:border-foreground data-[state=on]:bg-foreground data-[state=on]:font-semibold data-[state=on]:text-background data-[state=on]:hover:bg-foreground/90 data-[state=on]:hover:text-background dark:data-[state=on]:border-foreground dark:data-[state=on]:bg-foreground dark:data-[state=on]:hover:bg-foreground/90"
 
 type FilterChipProps = ComponentProps<typeof Button> & {
   /** The filter has a value; the chip then shows it on a dark fill. */
@@ -50,12 +55,7 @@ export function FilterChip({
 export function FilterToggleChip({ className, ...props }: ComponentProps<typeof Toggle>) {
   return (
     <Toggle
-      className={cn(
-        chip,
-        chipDefault,
-        "data-[state=on]:border-foreground data-[state=on]:bg-foreground data-[state=on]:font-semibold data-[state=on]:text-background",
-        className,
-      )}
+      className={cn(chip, chipDefault, chipOn, className)}
       {...props}
     />
   )

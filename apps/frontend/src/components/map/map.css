@@ -39,7 +39,8 @@
  * and turned back to their hues (water stays blue, parks green), then
  * softened so the map sits behind the pins instead of glaring. Only the tile
  * pane is filtered — pins, labels and controls keep their token colours.
- * Dark mode isn't drawn in Figma yet; values tuned by eye.
+ * Figma's Dark mode has its own map/* tokens for a drawn map; with raster OSM
+ * tiles the code can't apply them, so it inverts instead. Values tuned by eye.
  */
 .dark .leaflet-tile-pane {
   filter: invert(1) hue-rotate(180deg) brightness(0.85) contrast(0.9) saturate(0.6);

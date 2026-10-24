@@ -43,12 +43,12 @@ function Calendar({
         ),
         button_previous: cn(
           buttonVariants({ variant: buttonVariant }),
-          "size-(--cell-size) p-0 select-none aria-disabled:opacity-50",
+          "size-(--cell-size) p-0 select-none aria-disabled:text-muted-foreground aria-disabled:opacity-50",
           defaultClassNames.button_previous,
         ),
         button_next: cn(
           buttonVariants({ variant: buttonVariant }),
-          "size-(--cell-size) p-0 select-none aria-disabled:opacity-50",
+          "size-(--cell-size) p-0 select-none aria-disabled:text-muted-foreground aria-disabled:opacity-50",
           defaultClassNames.button_next,
         ),
         month_caption: cn(
@@ -95,7 +95,9 @@ function Calendar({
           "text-muted-foreground aria-selected:text-muted-foreground",
           defaultClassNames.outside,
         ),
-        disabled: cn("text-border", defaultClassNames.disabled),
+        // Figma Calendar/Day State=Disabled: muted-foreground at 50 %. The opacity sits on the day
+        // button (disabled:/aria-disabled:), not here too, or the two would multiply to 25 %.
+        disabled: cn("text-muted-foreground", defaultClassNames.disabled),
         hidden: cn("invisible", defaultClassNames.hidden),
         ...classNames,
       }}
@@ -182,7 +184,7 @@ function CalendarDayButton({
       data-range-end={modifiers.range_end}
       data-range-middle={modifiers.range_middle}
       className={cn(
-        "flex aspect-square size-auto w-full min-w-(--cell-size) flex-col gap-1 rounded-full leading-none font-normal group-data-[focused=true]/day:relative group-data-[focused=true]/day:z-10 group-data-[focused=true]/day:border-ring group-data-[focused=true]/day:ring-[3px] group-data-[focused=true]/day:ring-ring/50 data-[range-end=true]:bg-foreground data-[range-end=true]:font-semibold data-[range-end=true]:text-background data-[range-middle=true]:rounded-sm data-[range-middle=true]:bg-secondary data-[range-middle=true]:text-foreground data-[range-start=true]:bg-foreground data-[range-start=true]:font-semibold data-[range-start=true]:text-background data-[selected-single=true]:bg-foreground data-[selected-single=true]:font-semibold data-[selected-single=true]:text-background dark:hover:text-accent-foreground [&>span]:text-xs [&>span]:opacity-70",
+        "flex aspect-square size-auto w-full min-w-(--cell-size) flex-col gap-1 rounded-full leading-none font-normal group-data-[focused=true]/day:relative group-data-[focused=true]/day:z-10 group-data-[focused=true]/day:border-ring group-data-[focused=true]/day:ring-[3px] group-data-[focused=true]/day:ring-ring/50 aria-disabled:opacity-50 data-[range-end=true]:bg-foreground data-[range-end=true]:font-semibold data-[range-end=true]:text-background data-[range-middle=true]:rounded-sm data-[range-middle=true]:bg-secondary data-[range-middle=true]:text-foreground data-[range-start=true]:bg-foreground data-[range-start=true]:font-semibold data-[range-start=true]:text-background data-[selected-single=true]:bg-foreground data-[selected-single=true]:font-semibold data-[selected-single=true]:text-background dark:hover:text-accent-foreground [&>span]:text-xs [&>span]:opacity-70",
         defaultClassNames.day,
         className,
       )}
