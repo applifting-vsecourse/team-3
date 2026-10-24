@@ -148,8 +148,9 @@ function ManageEventPage() {
                     error={participants.error}
                     onRetry={participants.retry}
                     isHeadingHidden={isHeadingHidden}
+                    canDecide={event.status === "published" && event.startsAt > new Date()}
                     isFull={event.isFull}
-                    decidingId={decide.isPending ? decide.variables.userId : undefined}
+                    isDeciding={decide.isPending}
                     onDecide={(request, decision) =>
                       decide.mutate(
                         { userId: request.id, decision },
@@ -157,8 +158,8 @@ function ManageEventPage() {
                           onSuccess: () =>
                             toast.success(
                               decision === "approve"
-                                ? `Žádost od ${request.name} je schválená.`
-                                : `Žádost od ${request.name} je zamítnutá.`,
+                                ? `Schváleno: ${request.name}`
+                                : `Zamítnuto: ${request.name}`,
                             ),
                           // the API's 409 says why, in Czech (e.g. „Akce je plná.“)
                           onError: (decideError) => toast.error(decideError.message),

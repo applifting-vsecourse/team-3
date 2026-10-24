@@ -17,10 +17,12 @@ type ManagedRequestsProps = {
   onRetry: () => void
   /** Inside a tab the tab names the list: the heading stays for screen readers only. */
   isHeadingHidden?: boolean
+  /** False once the event is cancelled or has started: nothing can be decided any more. */
+  canDecide: boolean
   /** No place left: approving waits until someone leaves; rejecting still works. */
   isFull: boolean
-  /** The request being approved or rejected right now; only its row waits. */
-  decidingId: string | undefined
+  /** A decision is on its way: no other is sent before it's back (a second click would only fail). */
+  isDeciding: boolean
   onDecide: (request: EventRequest, decision: "approve" | "reject") => void
 }
 
@@ -34,8 +36,9 @@ export function ManagedRequests({
   error,
   onRetry,
   isHeadingHidden = false,
+  canDecide,
   isFull,
-  decidingId,
+  isDeciding,
   onDecide,
 }: ManagedRequestsProps) {
   const headingId = useId()
@@ -89,23 +92,26 @@ export function ManagedRequests({
         <p className="text-muted-foreground">Žádné žádosti o účast teď nečekají.</p>
       ) : (
         <>
-          {isFull ? (
+          {!canDecide ? (
+            <p className="text-sm text-muted-foreground">
+              Akce je zrušená nebo už začala, žádosti už vyřídit nejde.
+            </p>
+          ) : isFull ? (
             <p className="text-sm text-muted-foreground">
               Akce je plná. Schválit půjde, až se uvolní místo.
             </p>
           ) : null}
           <ul className="flex flex-col">
-            {requests.map((request) => {
-              const isDeciding = decidingId === request.id
-              return (
-                <li
-                  key={request.id}
-                  className="border-b border-border py-3 last:border-b-0"
-                >
-                  <PersonRow
-                    name={request.name}
-                    description={formatRequestTime(request.requestedAt)}
-                    actions={
+            {requests.map((request) => (
+              <li
+                key={request.id}
+                className="border-b border-border py-3 last:border-b-0"
+              >
+                <PersonRow
+                  name={request.name}
+                  description={formatRequestTime(request.requestedAt)}
+                  actions={
+                    canDecide ? (
                       <>
                         <Button
                           variant="outline"
@@ -130,11 +136,11 @@ export function ManagedRequests({
                           Schválit
                         </Button>
                       </>
-                    }
-                  />
-                </li>
-              )
-            })}
+                    ) : undefined
+                  }
+                />
+              </li>
+            ))}
           </ul>
         </>
       )}

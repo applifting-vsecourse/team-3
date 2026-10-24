@@ -24,8 +24,9 @@ const renderRequests = (props: Partial<Parameters<typeof ManagedRequests>[0]> = 
       requests={[jakub, eva]}
       error={undefined}
       onRetry={onRetry}
+      canDecide
       isFull={false}
-      decidingId={undefined}
+      isDeciding={false}
       onDecide={onDecide}
       {...props}
     />,
@@ -54,12 +55,20 @@ describe("ManagedRequests (#53)", () => {
     expect(onDecide).toHaveBeenNthCalledWith(2, eva, "reject")
   })
 
-  it("only the row being decided waits", () => {
-    renderRequests({ decidingId: "u5" })
+  it("while a decision is on its way, no other can be sent (a second click would only fail)", () => {
+    renderRequests({ isDeciding: true })
 
-    expect(screen.getByRole("button", { name: "Schválit žádost: Jakub Král" })).toBeDisabled()
-    expect(screen.getByRole("button", { name: "Zamítnout žádost: Jakub Král" })).toBeDisabled()
-    expect(screen.getByRole("button", { name: "Schválit žádost: Eva Malá" })).toBeEnabled()
+    for (const button of screen.getAllByRole("button")) expect(button).toBeDisabled()
+  })
+
+  it("a cancelled or started event lists the requests without buttons, saying why", () => {
+    renderRequests({ canDecide: false })
+
+    expect(
+      screen.getByText("Akce je zrušená nebo už začala, žádosti už vyřídit nejde."),
+    ).toBeInTheDocument()
+    expect(screen.getByText("Jakub Král")).toBeInTheDocument()
+    expect(screen.queryByRole("button")).not.toBeInTheDocument()
   })
 
   it("a full event says why approving waits; rejecting still works", () => {
