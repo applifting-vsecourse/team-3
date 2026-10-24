@@ -26,6 +26,16 @@ const luminance = (hex: string) => {
   return 0.2126 * r + 0.7152 * g + 0.0722 * b
 }
 
+// color-mix(in srgb, a p%, b): channel by channel, the way the browser mixes it
+const mix = (a: string, b: string, p: number) =>
+  `#${[1, 3, 5]
+    .map((i) =>
+      Math.round(parseInt(a.slice(i, i + 2), 16) * p + parseInt(b.slice(i, i + 2), 16) * (1 - p))
+        .toString(16)
+        .padStart(2, "0"),
+    )
+    .join("")}`
+
 const contrast = (a: string, b: string) => {
   const [hi, lo] = [luminance(a), luminance(b)].sort((x, y) => y - x) as [number, number]
   return (hi + 0.05) / (lo + 0.05)
@@ -43,6 +53,7 @@ const TEXT_PAIRS: [string, string][] = [
   ["background", "foreground"], // selected chip, pin label
   ["destructive", "card"], // error alert
   ["destructive", "background"],
+  ["destructive-foreground", "destructive"], // destructive button
 ]
 
 describe.each([
@@ -53,6 +64,15 @@ describe.each([
 
   it.each(TEXT_PAIRS)("%s on %s is at least 4.5:1", (text, surface) => {
     expect(contrast(tokens[text]!, tokens[surface]!)).toBeGreaterThanOrEqual(4.5)
+  })
+
+  it("destructive-foreground on the destructive hover is at least 4.5:1", () => {
+    const [, share = "", other = ""] =
+      /--color-destructive-hover:\s*color-mix\(in srgb, var\(--destructive\) (\d+)%, var\(--([\w-]+)\)\)/.exec(
+        css,
+      ) ?? []
+    const hover = mix(tokens.destructive!, tokens[other]!, Number(share) / 100)
+    expect(contrast(tokens["destructive-foreground"]!, hover)).toBeGreaterThanOrEqual(4.5)
   })
 
   it("the checkbox edge (muted-foreground) is at least 3:1 against the page", () => {

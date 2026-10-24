@@ -23,6 +23,9 @@
   --color-accent-foreground: var(--accent-foreground);
   --color-destructive: var(--destructive);
   --color-destructive-foreground: var(--destructive-foreground);
+  /* Not a Figma token: hover of a destructive fill. Mixing in foreground moves it away from
+     destructive-foreground in both modes, so hover raises contrast (tokens.test.ts checks it). */
+  --color-destructive-hover: color-mix(in srgb, var(--destructive) 90%, var(--foreground));
   --color-border: var(--border);
   --color-input: var(--input);
   --color-ring: var(--ring);
@@ -104,7 +107,7 @@
   --accent-foreground: #eef3ea;
   /* lighter than in light mode: #d92d20 is only 3.4:1 as error text on a dark card */
   --destructive: #f97066;
-  --destructive-foreground: #ffffff;
+  --destructive-foreground: #14201a;
   --border: #2a3530;
   --input: #2a3530;
   --ring: #b6f24a;
