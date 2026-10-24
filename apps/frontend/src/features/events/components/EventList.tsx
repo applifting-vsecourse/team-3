@@ -141,7 +141,7 @@ export function EventList({
   )
 }
 
-function EventCardSkeleton({ isPeekEnd }: { isPeekEnd?: boolean }) {
+export function EventCardSkeleton({ isPeekEnd }: { isPeekEnd?: boolean }) {
   return (
     <div
       data-peek-end={isPeekEnd ? "" : undefined}

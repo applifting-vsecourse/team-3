@@ -5,12 +5,11 @@ import { toast } from "sonner"
 
 import { ROUTES } from "@/app/routes"
 import { BackLink } from "@/components/BackLink/BackLink"
-import { Header } from "@/components/Header/Header"
 import { Seo } from "@/components/Seo"
 import { Button } from "@/components/ui/button"
 import { authKeys } from "@/lib/auth-keys"
 
-import { HeaderMenu } from "@/features/auth/components/HeaderMenu"
+import { AppHeader } from "@/features/auth/components/AppHeader"
 import { useSession } from "@/features/auth/hooks/useSession"
 import { encodeRedirectUri } from "@/features/auth/lib/redirect"
 import { CancelEventDialog } from "@/features/events/components/CancelEventDialog"
@@ -54,7 +53,7 @@ function EventDetailPage() {
   return (
     <>
       <Seo title={event?.title ?? (isNotFound ? "Akce nenalezena" : "Akce")} />
-      <Header userMenu={<HeaderMenu />} />
+      <AppHeader />
       <main className="flex-1">
         <div className="mx-auto flex w-full max-w-4xl flex-col gap-6 px-4 py-6 md:px-8 md:py-8">
           <BackLink

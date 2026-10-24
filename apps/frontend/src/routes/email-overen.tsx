@@ -4,12 +4,11 @@ import { createFileRoute } from "@tanstack/react-router"
 import { z } from "zod"
 
 import { ROUTES } from "@/app/routes"
-import { Header } from "@/components/Header/Header"
 import { Seo } from "@/components/Seo"
 import { authKeys } from "@/lib/auth-keys"
 
+import { AppHeader } from "@/features/auth/components/AppHeader"
 import { EmailVerifiedView } from "@/features/auth/components/EmailVerifiedView"
-import { HeaderMenu } from "@/features/auth/components/HeaderMenu"
 import { useSession } from "@/features/auth/hooks/useSession"
 import { safeRedirect } from "@/features/auth/lib/redirect"
 
@@ -40,7 +39,7 @@ function EmailVerifiedPage() {
   return (
     <>
       <Seo title={error ? "E-mail se nepodařilo ověřit" : "E-mail je ověřený"} />
-      <Header userMenu={<HeaderMenu />} />
+      <AppHeader />
       <main className="flex-1">
         <div className="mx-auto w-full max-w-sm px-4 py-16">
           {isRefreshed || error ? (

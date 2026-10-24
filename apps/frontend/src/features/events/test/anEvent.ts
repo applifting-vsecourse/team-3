@@ -1,4 +1,4 @@
-import type { EventDetail, PublicEvent } from "@/features/events/api/eventSchemas"
+import type { EventDetail, MyEvent, PublicEvent } from "@/features/events/api/eventSchemas"
 
 /** A seed-like event for component tests: Fri 23. 10. 2026, 17:30 Prague time. */
 export const anEvent = (overrides: Partial<PublicEvent> = {}): PublicEvent => ({
@@ -42,5 +42,14 @@ export const anEventDetail = (overrides: Partial<EventDetail> = {}): EventDetail
     { id: "u5", name: "Marek Novák" },
   ],
   myParticipation: null,
+  ...overrides,
+})
+
+/** An event in „Moje akce“: by default one the user is going to. */
+export const aMyEvent = (overrides: Partial<MyEvent> = {}): MyEvent => ({
+  ...anEvent(),
+  status: "published",
+  myParticipation: "approved",
+  pendingRequests: null,
   ...overrides,
 })
