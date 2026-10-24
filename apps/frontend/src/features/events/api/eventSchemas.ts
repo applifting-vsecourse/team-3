@@ -43,6 +43,8 @@ export const eventDetailSchema = publicEventSchema.extend({
   cancelReason: z.string().nullable(),
   /** Approved participants; null for a visitor, who gets only `approvedCount`. */
   participants: z.array(z.object({ id: z.string(), name: z.string() })).nullable(),
+  /** The signed-in user's own participation; null for a visitor or someone not in. */
+  myParticipation: z.enum(["pending", "approved", "rejected", "removed"]).nullable(),
 })
 
 export type EventDetail = z.infer<typeof eventDetailSchema>

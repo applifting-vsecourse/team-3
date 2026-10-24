@@ -29,6 +29,7 @@ const created: EventDetailView = {
   status: 'published',
   cancelReason: null,
   participants: [],
+  myParticipation: null,
 };
 
 describe('CreatedEventResponseDto', () => {

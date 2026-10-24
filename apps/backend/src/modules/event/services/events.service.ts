@@ -6,6 +6,11 @@ import {
   PublicEvent,
   PublicEventFilters,
 } from '@/modules/event/domain/event';
+import {
+  decideJoin,
+  decideLeave,
+  ParticipationRefusal,
+} from '@/modules/event/domain/participation';
 import { EventRepository } from '@/modules/event/repositories/event.repository';
 import {
   BadRequestException,
@@ -14,6 +19,19 @@ import {
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
+
+/** Shown as they are in the app (409 with the code). */
+const REFUSAL_MESSAGES: Record<ParticipationRefusal, string> = {
+  EVENT_FULL: 'Akce je plná.',
+  ALREADY_JOINED: 'Na akci už jste přihlášení.',
+  EVENT_STARTED: 'Akce už začala.',
+  EVENT_CANCELLED: 'Akce je zrušená.',
+  PARTICIPATION_REFUSED: 'Organizátor vaši účast zamítl.',
+  NOT_JOINED: 'Na akci nejste přihlášení.',
+};
+
+const refused = (refusal: ParticipationRefusal): ConflictException =>
+  new ConflictException({ code: refusal, message: REFUSAL_MESSAGES[refusal] });
 
 // One endpoint serves both the list and the map in sprint 2, without paging
 // (deviation from B-023, which has paging and a separate /events/map).
@@ -68,10 +86,15 @@ export class EventsService {
     if (!event || !(await this.canView(event, viewerId))) {
       throw new NotFoundException('Event not found');
     }
-    const participants = viewerId
-      ? await this.eventRepository.findApprovedParticipants(event.id)
-      : null;
-    return { ...event, participants };
+    if (!viewerId)
+      return { ...event, participants: null, myParticipation: null };
+    const [participants, mine] = await Promise.all([
+      this.eventRepository.findApprovedParticipants(event.id),
+      this.eventRepository.findParticipationStatus(event.id, viewerId),
+    ]);
+    // someone who withdrew is simply not in
+    const myParticipation = !mine || mine === 'withdrawn' ? null : mine;
+    return { ...event, participants, myParticipation };
   }
 
   /**
@@ -145,6 +168,42 @@ export class EventsService {
         message: 'Akce už začala, zrušit ji nejde.',
       });
     }
+  }
+
+  /**
+   * Joins the event (B-031): at once without approval, and the organizer
+   * always; with approval as a request (#53). Refusals are 409 with a code.
+   * Returns the detail as the user now sees it.
+   */
+  async join(
+    eventId: string,
+    userId: string,
+    now: Date = new Date(),
+  ): Promise<EventDetailView> {
+    await this.getEventDetail(eventId, userId, now); // 404 if the user can't see it
+    const decision = await this.eventRepository.join(eventId, userId, (state) =>
+      decideJoin(state, now),
+    );
+    if (!decision) throw new NotFoundException('Event not found');
+    if (!decision.ok) throw refused(decision.refusal);
+    return this.getEventDetail(eventId, userId, now);
+  }
+
+  /** Leaves the event or withdraws a request, before it starts; the place is free again. */
+  async leave(
+    eventId: string,
+    userId: string,
+    now: Date = new Date(),
+  ): Promise<EventDetailView> {
+    await this.getEventDetail(eventId, userId, now);
+    const decision = await this.eventRepository.leave(
+      eventId,
+      userId,
+      (state) => decideLeave(state, now),
+    );
+    if (!decision) throw new NotFoundException('Event not found');
+    if (!decision.ok) throw refused(decision.refusal);
+    return this.getEventDetail(eventId, userId, now);
   }
 
   private async canView(

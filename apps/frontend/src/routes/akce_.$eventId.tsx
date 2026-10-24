@@ -14,8 +14,10 @@ import { useSession } from "@/features/auth/hooks/useSession"
 import { encodeRedirectUri } from "@/features/auth/lib/redirect"
 import { CancelEventDialog } from "@/features/events/components/CancelEventDialog"
 import { EventDetailView } from "@/features/events/components/EventDetailView"
+import { ParticipationAction } from "@/features/events/components/ParticipationAction"
 import { useCancelEvent } from "@/features/events/hooks/useCancelEvent"
 import { useEventDetail } from "@/features/events/hooks/useEventDetail"
+import { useJoinEvent, useLeaveEvent } from "@/features/events/hooks/useParticipation"
 
 // `akce_`: not nested in /akce, whose page has no outlet. Public on purpose:
 // a shared link opens straight on the detail, without signing in (US-03).
@@ -31,6 +33,9 @@ function EventDetailPage() {
   const { event, isPending, isNotFound, error, retry } = useEventDetail(eventId, viewerId)
   const location = useLocation()
   const queryClient = useQueryClient()
+  const join = useJoinEvent(eventId, session.user?.id ?? "")
+  const leave = useLeaveEvent(eventId, session.user?.id ?? "")
+  const signInFrom = encodeRedirectUri(location)
   const cancelEvent = useCancelEvent(eventId, session.user?.id ?? "")
   // only the organizer, and only while the event can still be cancelled
   const canCancel =
@@ -64,7 +69,39 @@ function EventDetailPage() {
             isNotFound={isNotFound}
             error={error}
             onRetry={retry}
-            signInFrom={encodeRedirectUri(location)}
+            signInFrom={signInFrom}
+            participation={
+              event ? (
+                <ParticipationAction
+                  event={event}
+                  viewer={
+                    session.user
+                      ? { id: session.user.id, emailVerified: session.user.emailVerified }
+                      : null
+                  }
+                  signInFrom={signInFrom}
+                  isPending={join.isPending || leave.isPending}
+                  onJoin={() =>
+                    join.mutate(undefined, {
+                      onSuccess: (updated) =>
+                        toast.success(
+                          updated.myParticipation === "pending"
+                            ? "Žádost je odeslaná."
+                            : "Jste přihlášení na akci.",
+                        ),
+                      // the API's 409 says why, in Czech (e.g. „Akce je plná.“)
+                      onError: (joinError) => toast.error(joinError.message),
+                    })
+                  }
+                  onLeave={() =>
+                    leave.mutate(undefined, {
+                      onSuccess: () => toast.success("Odhlásili jste se z akce."),
+                      onError: (leaveError) => toast.error(leaveError.message),
+                    })
+                  }
+                />
+              ) : null
+            }
             organizerActions={
               canCancel ? (
                 <CancelEventDialog

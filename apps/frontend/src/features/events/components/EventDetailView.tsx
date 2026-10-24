@@ -26,6 +26,8 @@ type EventDetailViewProps = {
   onRetry?: () => void
   /** Login's `from`, so a visitor who signs in to see the names comes back here. */
   signInFrom: string
+  /** The join / leave action under the capacity (B-032); the page builds it. */
+  participation?: ReactNode
   /** The organizer's own actions, e.g. „Zrušit akci“ (#52); the page builds them. */
   organizerActions?: ReactNode
 }
@@ -33,8 +35,9 @@ type EventDetailViewProps = {
 /**
  * The event detail (Figma A-05, desktop A-05d; B-026): what, when, where, who
  * organizes it and who is coming. Desktop puts the map in a column on the
- * right, mobile right below the facts. A cancelled event keeps its detail
- * (shared links still work) with the „Zrušeno“ label and the reason (#52).
+ * right, mobile right below the facts. The join action sits under the
+ * capacity (#42). A cancelled event keeps its detail (shared links still
+ * work) with the „Zrušeno“ label and the reason (#52).
  */
 export function EventDetailView({
   event,
@@ -43,6 +46,7 @@ export function EventDetailView({
   error,
   onRetry,
   signInFrom,
+  participation,
   organizerActions,
 }: EventDetailViewProps) {
   if (isNotFound) return <EventNotFound />
@@ -101,6 +105,7 @@ export function EventDetailView({
             maxParticipants={event.maxParticipants}
           />
         )}
+        {participation}
         {organizerActions}
         <dl className="flex flex-col gap-4">
           <DetailRow

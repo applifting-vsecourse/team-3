@@ -57,6 +57,8 @@ export type EventDetail = PublicEvent & {
 /** The detail and, for a signed-in viewer, who is coming; a visitor gets only the count. */
 export type EventDetailView = EventDetail & {
   participants: EventParticipant[] | null;
+  /** The signed-in viewer's own participation; null for a visitor or someone not in. */
+  myParticipation: 'pending' | 'approved' | 'rejected' | 'removed' | null;
 };
 
 /** What the organizer fills in when creating an event (B-021). */
