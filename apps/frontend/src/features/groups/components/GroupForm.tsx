@@ -160,14 +160,19 @@ export function GroupForm({
                   <SelectTrigger
                     ref={field.ref}
                     onBlur={field.onBlur}
-                    className="w-full data-[size=default]:h-11"
+                    // same type size as the name input (Figma: 15 px in all fields)
+                    className="w-full text-base data-[size=default]:h-11 md:text-sm"
                   >
                     <SelectValue placeholder="Vyberte aktivitu">
                       {field.value ? activityLabel(field.value) : undefined}
                     </SelectValue>
                   </SelectTrigger>
                 </FormControl>
-                <SelectContent className="max-h-80">
+                <SelectContent
+                  // under the field like a dropdown; item-aligned would cover the form
+                  position="popper"
+                  className="max-h-80"
+                >
                   {catalog.categories.map((category) => (
                     <SelectGroup key={category.id}>
                       <SelectLabel>{category.name}</SelectLabel>
@@ -202,12 +207,17 @@ export function GroupForm({
                   <SelectTrigger
                     ref={field.ref}
                     onBlur={field.onBlur}
-                    className="w-full data-[size=default]:h-11"
+                    // same type size as the name input (Figma: 15 px in all fields)
+                    className="w-full text-base data-[size=default]:h-11 md:text-sm"
                   >
                     <SelectValue placeholder="Vyberte lokalitu" />
                   </SelectTrigger>
                 </FormControl>
-                <SelectContent className="max-h-80">
+                <SelectContent
+                  // under the field like a dropdown; item-aligned would cover the form
+                  position="popper"
+                  className="max-h-80"
+                >
                   {localityOptions(catalog.localities).map((locality) => (
                     <SelectItem
                       key={locality.id}
