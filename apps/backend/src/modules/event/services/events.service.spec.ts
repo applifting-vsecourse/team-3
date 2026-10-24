@@ -627,3 +627,50 @@ describe('EventsService.updateEvent', () => {
     expect(unknown.repository.updateEvent).not.toHaveBeenCalled();
   });
 });
+
+describe('EventsService.getParticipants', () => {
+  const setup = (
+    detail: EventDetail = aDetail(),
+  ): { repository: MockProxy<EventRepository>; service: EventsService } => {
+    const repository = mock<EventRepository>();
+    repository.findEventDetail.mockResolvedValue(detail);
+    repository.findApprovedParticipants.mockResolvedValue(participants);
+    repository.findParticipationStatus.mockResolvedValue(null);
+    return { repository, service: new EventsService(repository) };
+  };
+
+  it('the organizer gets the approved participants', async () => {
+    const { service } = setup();
+
+    await expect(service.getParticipants('e1', 'u1', now)).resolves.toEqual(
+      participants,
+    );
+  });
+
+  it('a cancelled event still shows who was coming', async () => {
+    const { service } = setup(aDetail({ status: 'cancelled' }));
+
+    await expect(service.getParticipants('e1', 'u1', now)).resolves.toEqual(
+      participants,
+    );
+  });
+
+  it('anyone else gets 403, a participant too (#43)', async () => {
+    const { service } = setup();
+
+    const error = (await service
+      .getParticipants('e1', 'u2', now)
+      .catch((e: unknown) => e)) as ForbiddenException;
+
+    expect(error).toBeInstanceOf(ForbiddenException);
+    expect(error.getResponse()).toMatchObject({ code: 'NOT_ORGANIZER' });
+  });
+
+  it('an event the user may not see is 404', async () => {
+    const { service } = setup(aDetail({ status: 'hidden' }));
+
+    await expect(service.getParticipants('e1', 'u1', now)).rejects.toThrow(
+      NotFoundException,
+    );
+  });
+});

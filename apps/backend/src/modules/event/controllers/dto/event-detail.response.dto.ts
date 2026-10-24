@@ -2,7 +2,7 @@ import { EventDetailView } from '@/modules/event/domain/event';
 import { ApiProperty } from '@nestjs/swagger';
 import { PublicEventResponseDto } from './public-event.response.dto';
 
-class EventParticipantDto {
+export class EventParticipantDto {
   @ApiProperty()
   id!: string;
 
