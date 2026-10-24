@@ -32,7 +32,7 @@ export function GroupManagement({ groupId, isDesktop }: GroupManagementProps) {
       <Alert variant="destructive">
         <AlertTitle>Členy a žádosti se nepodařilo načíst</AlertTitle>
         <AlertDescription className="flex items-center justify-between gap-3">
-          <span>Zkontrolujte připojení a zkuste to znovu.</span>
+          <span>Zkontroluj připojení a zkus to znovu.</span>
           <Button
             variant="outline"
             size="sm"

@@ -16,8 +16,8 @@ describe("SignInForm", () => {
 
     await userEvent.click(screen.getByRole("button", { name: "Přihlásit se" }))
 
-    expect(await screen.findByText("Vyplňte e-mail")).toBeInTheDocument()
-    expect(screen.getByText("Vyplňte heslo")).toBeInTheDocument()
+    expect(await screen.findByText("Vyplň e-mail")).toBeInTheDocument()
+    expect(screen.getByText("Vyplň heslo")).toBeInTheDocument()
     expect(onSubmit).not.toHaveBeenCalled()
   })
 

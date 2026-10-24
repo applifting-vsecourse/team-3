@@ -34,7 +34,7 @@ export function GroupList({
         <AlertTitle>Skupiny se nepodařilo načíst</AlertTitle>
         <AlertDescription className="flex items-center justify-between gap-3">
           {/* ky's message is a URL and a status code; it stays in the console */}
-          <span>Zkontrolujte připojení a zkuste to znovu.</span>
+          <span>Zkontroluj připojení a zkus to znovu.</span>
           {onRetry ? (
             <Button
               variant="outline"

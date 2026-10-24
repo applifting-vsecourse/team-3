@@ -118,6 +118,7 @@ export class GroupsController {
   @ApiResponse({ status: 401, description: 'Not signed in' })
   @ApiResponse({ status: 403, description: 'Not an admin of the group' })
   @ApiResponse({ status: 404, description: 'No such group' })
+  @ApiResponse({ status: 409, description: 'GROUP_INACTIVE' })
   async update(
     @Param('id') id: string,
     @Body() body: UpdateGroupDto,
@@ -214,5 +215,28 @@ export class GroupsController {
     @User() user: Identity,
   ): Promise<void> {
     await this.groupsService.rejectRequest(id, user.id, userId);
+  }
+
+  @Post(':id/deactivate')
+  @HttpCode(204)
+  @UseGuards(AuthenticatedUserGuard)
+  @ApiCookieAuth()
+  @ApiOperation({
+    summary:
+      'Deactivate the group (not delete): it leaves the list, nobody joins, waiting requests are removed; only an admin',
+  })
+  @ApiResponse({ status: 204 })
+  @ApiResponse({ status: 401, description: 'Not signed in' })
+  @ApiResponse({ status: 403, description: 'Not an admin of the group' })
+  @ApiResponse({ status: 404, description: 'No such group' })
+  @ApiResponse({
+    status: 409,
+    description: 'GROUP_INACTIVE: already deactivated',
+  })
+  async deactivate(
+    @Param('id') id: string,
+    @User() user: Identity,
+  ): Promise<void> {
+    await this.groupsService.deactivateGroup(id, user.id);
   }
 }

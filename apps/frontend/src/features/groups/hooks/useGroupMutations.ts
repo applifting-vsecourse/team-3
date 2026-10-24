@@ -67,3 +67,7 @@ export const useDecideRequest = (groupId: string) =>
     ({ userId, decision }: { userId: string; decision: "approve" | "reject" }) =>
       api.post(`groups/${groupId}/requests/${userId}/${decision}`),
   )
+
+/** „Deaktivovat skupinu“ (B-051): only an admin; the group becomes read-only. */
+export const useDeactivateGroup = (groupId: string) =>
+  useMembershipMutation(groupId, () => api.post(`groups/${groupId}/deactivate`))

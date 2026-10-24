@@ -1,11 +1,10 @@
 import { createFileRoute, Link } from "@tanstack/react-router"
 
 import { ROUTES } from "@/app/routes"
-import { Header } from "@/components/Header/Header"
 import { Seo } from "@/components/Seo"
 import { Button } from "@/components/ui/button"
 
-import { HeaderMenu } from "@/features/auth/components/HeaderMenu"
+import { AppHeader } from "@/features/auth/components/AppHeader"
 import { useSession } from "@/features/auth/hooks/useSession"
 
 export const Route = createFileRoute("/")({
@@ -19,7 +18,7 @@ function LandingPage() {
   return (
     <>
       <Seo />
-      <Header userMenu={<HeaderMenu />} />
+      <AppHeader />
       <main className="flex-1">
         <section className="mx-auto w-full max-w-2xl px-4 pt-16 pb-12 text-center">
           <h1 className="text-4xl font-bold tracking-tight text-balance sm:text-5xl">

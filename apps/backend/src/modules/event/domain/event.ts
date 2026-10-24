@@ -70,6 +70,23 @@ export type EventDetailView = EventDetail & {
   myParticipation: 'pending' | 'approved' | 'rejected' | 'removed' | null;
 };
 
+/**
+ * Tabs of „Moje akce“ (B-035). `past` (Proběhlé) comes with #61, the events
+ * of my groups under `organizing` with #70.
+ */
+export const MY_EVENTS_TABS = ['attending', 'organizing'] as const;
+export type MyEventsTab = (typeof MY_EVENTS_TABS)[number];
+
+/** An event in „Moje akce“: with the user's own place in it. */
+export type MyEvent = PublicEvent & {
+  /** A cancelled event stays in the list with its label (Q11). */
+  status: 'published' | 'cancelled';
+  /** Only a place that is still on; withdrawn, rejected and removed aren't listed. */
+  myParticipation: 'approved' | 'pending' | null;
+  /** Requests waiting for the organizer; null under `attending`, which isn't the user's business. */
+  pendingRequests: number | null;
+};
+
 /** What the organizer fills in when creating an event (B-021). */
 export type NewEvent = {
   title: string;

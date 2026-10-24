@@ -60,7 +60,7 @@ export function ParticipationAction({
         {manage}
         <Note>
           {event.myParticipation === "approved"
-            ? "Akce už začala. Jste přihlášení."
+            ? "Akce už začala. Máš na ní místo."
             : "Akce už začala."}
         </Note>
       </Row>
@@ -87,7 +87,7 @@ export function ParticipationAction({
     return (
       <Row>
         {manage}
-        <Note>Na akci se přihlásíte, až ověříte svůj e-mail.</Note>
+        <Note>Na akci se přihlásíš, až si ověříš e-mail.</Note>
       </Row>
     )
   }
@@ -146,9 +146,9 @@ function JoinControl({ event, isOrganizer, isPending, onJoin, onLeave }: JoinCon
         </>
       )
     case "rejected":
-      return <Note>Organizátor vaši účast zamítl.</Note>
+      return <Note>Organizátor tvoji účast zamítl.</Note>
     case "removed":
-      return <Note>Organizátor vás z akce odebral.</Note>
+      return <Note>Organizátor tě z akce odebral.</Note>
     case null:
       break
   }
@@ -170,7 +170,7 @@ function JoinControl({ event, isOrganizer, isPending, onJoin, onLeave }: JoinCon
         variant="default"
         label="Poslat žádost"
         title="Poslat žádost o účast?"
-        description="Organizátor žádost schválí, nebo zamítne. Dokud nerozhodne, můžete ji stáhnout."
+        description="Organizátor žádost schválí, nebo zamítne. Dokud nerozhodne, můžeš ji stáhnout."
         isPending={isPending}
         onConfirm={onJoin}
       />

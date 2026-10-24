@@ -28,7 +28,7 @@ export function useSignUp() {
         // where the link in the verification e-mail leads back to
         callbackURL: afterVerificationUrl(input.from),
       })
-      if (error) throw toAuthRequestError(error, "Registrace se nepovedla. Zkuste to prosím znovu.")
+      if (error) throw toAuthRequestError(error, "Registrace se nepovedla. Zkus to prosím znovu.")
     },
     onSuccess: async () => {
       await queryClient.invalidateQueries({ queryKey: authKeys.session() })

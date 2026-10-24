@@ -34,7 +34,7 @@ describe("ManagedParticipants", () => {
     )
 
     expect(screen.getByRole("heading", { name: "Účastníci 0" })).toBeInTheDocument()
-    expect(screen.getByText("Až se někdo přihlásí, uvidíte ho tady.")).toBeInTheDocument()
+    expect(screen.getByText("Až se někdo přihlásí, uvidíš ho tady.")).toBeInTheDocument()
   })
 
   it("shows that it is loading", () => {

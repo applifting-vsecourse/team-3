@@ -87,7 +87,7 @@ export class GroupsService {
     patch: Partial<GroupInput>,
     userId: string,
   ): Promise<GroupDetail> {
-    const group = await this.getGroup(id);
+    const group = await this.getActiveGroup(id);
     await this.assertAdmin(id, userId, 'Skupinu může upravit jen její správce');
     await this.assertCatalogHas(patch);
     await this.groupRepository.updateGroup(id, patch, {
@@ -117,7 +117,7 @@ export class GroupsService {
 
   /** „Odejít ze skupiny“, also withdrawing a pending request. */
   async leave(groupId: string, userId: string): Promise<void> {
-    const group = await this.getGroup(groupId, userId);
+    const group = await this.getActiveGroup(groupId, userId);
     const decision = decideLeave(
       group.viewerMembership,
       await this.groupRepository.countActiveAdmins(groupId),
@@ -128,7 +128,7 @@ export class GroupsService {
 
   /** Requests and members for the management (D-07); only an admin. */
   async getMembers(groupId: string, userId: string): Promise<GroupMembers> {
-    await this.getGroup(groupId);
+    await this.getActiveGroup(groupId);
     await this.assertAdmin(
       groupId,
       userId,
@@ -157,12 +157,40 @@ export class GroupsService {
     await this.groupRepository.deleteMembership(groupId, userId);
   }
 
+  /**
+   * „Deaktivovat skupinu“ (B-051): the group is kept, not deleted — it drops
+   * out of the list, nobody joins and its waiting requests are removed,
+   * since nobody will decide them. Members stay as history; it is final.
+   */
+  async deactivateGroup(groupId: string, userId: string): Promise<void> {
+    await this.getActiveGroup(groupId);
+    await this.assertAdmin(
+      groupId,
+      userId,
+      'Skupinu může deaktivovat jen její správce',
+    );
+    await this.groupRepository.deactivateGroup(groupId, new Date());
+  }
+
+  /**
+   * A deactivated group is read-only (#54): no editing, management,
+   * leaving or deciding requests — 409 GROUP_INACTIVE.
+   */
+  private async getActiveGroup(
+    id: string,
+    viewerId: string | null = null,
+  ): Promise<GroupDetail> {
+    const group = await this.getGroup(id, viewerId);
+    if (group.status !== 'active') throw MEMBERSHIP_ERRORS.GROUP_INACTIVE();
+    return group;
+  }
+
   private async assertPendingRequest(
     groupId: string,
     adminId: string,
     userId: string,
   ): Promise<void> {
-    await this.getGroup(groupId);
+    await this.getActiveGroup(groupId);
     await this.assertAdmin(
       groupId,
       adminId,

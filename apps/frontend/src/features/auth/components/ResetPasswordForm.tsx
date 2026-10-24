@@ -21,7 +21,7 @@ const schema = z
   .object({
     // the same rule as at sign-up (B-010); the API checks it too
     password: passwordSchema,
-    passwordConfirmation: z.string().min(1, "Zopakujte heslo"),
+    passwordConfirmation: z.string().min(1, "Zopakuj heslo"),
   })
   .refine((values) => values.password === values.passwordConfirmation, {
     message: "Hesla se neshodují",

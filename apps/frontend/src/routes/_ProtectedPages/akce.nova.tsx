@@ -33,10 +33,10 @@ function NewEventPage() {
         <h1 className="text-3xl font-semibold tracking-tight">Nová akce</h1>
         {user && !user.emailVerified ? (
           <Alert>
-            <AlertTitle>Nejdřív ověřte svůj e-mail</AlertTitle>
+            <AlertTitle>Nejdřív si ověř e-mail</AlertTitle>
             <AlertDescription>
-              Akci můžete založit, až e-mail ověříte. Odkaz jsme poslali na {user.email}, nový si
-              pošlete z pruhu nahoře.
+              Akci můžeš založit, až e-mail ověříš. Odkaz jsme poslali na {user.email}, nový si
+              pošli z pruhu nahoře.
             </AlertDescription>
           </Alert>
         ) : catalog ? (

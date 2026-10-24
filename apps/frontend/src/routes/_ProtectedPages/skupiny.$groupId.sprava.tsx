@@ -1,6 +1,7 @@
 import { useQuery } from "@tanstack/react-query"
-import { createFileRoute, Link } from "@tanstack/react-router"
+import { createFileRoute, Link, useNavigate } from "@tanstack/react-router"
 import { Pencil } from "lucide-react"
+import { toast } from "sonner"
 
 import { BackLink } from "@/components/BackLink/BackLink"
 import { Seo } from "@/components/Seo"
@@ -13,9 +14,11 @@ import type { GroupDetail } from "@/features/groups/api/groupSchemas"
 import { groupQueryOptions } from "@/features/groups/api/groupsQueryOptions"
 import { AdminOnlyNotice } from "@/features/groups/components/AdminOnlyNotice"
 import { CatalogState } from "@/features/groups/components/CatalogState"
+import { DeactivateGroupButton } from "@/features/groups/components/DeactivateGroupButton"
 import { GroupCard } from "@/features/groups/components/GroupCard"
 import { GroupManagement } from "@/features/groups/components/GroupManagement"
 import { GroupFacts, GroupHeading } from "@/features/groups/components/GroupSummary"
+import { InactiveGroupNotice } from "@/features/groups/components/InactiveGroupNotice"
 import { GROUP_TYPE_FOR_ADMIN } from "@/features/groups/lib/formatGroup"
 import { GROUPS_PAGE } from "@/features/groups/lib/pageLayout"
 
@@ -25,7 +28,8 @@ export const Route = createFileRoute("/_ProtectedPages/skupiny/$groupId/sprava")
 
 /**
  * Figma D-07 (mobile) and D-07d (desktop), the admin's entry from the group
- * page: requests and members (#46); deactivation comes with #54.
+ * page: requests and members (#46), editing and deactivation (#54). A
+ * deactivated group is read-only, so its management is closed.
  */
 function ManageGroupPage() {
   const { groupId } = Route.useParams()
@@ -38,6 +42,11 @@ function ManageGroupPage() {
   const group = groupQuery.data
   const isAdmin =
     group?.viewerMembership?.role === "admin" && group.viewerMembership.status === "active"
+  const navigate = useNavigate()
+  const onDeactivated = () => {
+    toast.success("Skupina je deaktivovaná")
+    void navigate({ to: "/skupiny/$groupId", params: { groupId } })
+  }
 
   return (
     <>
@@ -49,7 +58,9 @@ function ManageGroupPage() {
           fallbackLabel="Skupina"
           label="Skupina"
         />
-        {group && !isAdmin ? (
+        {group?.status === "inactive" ? (
+          <InactiveGroupNotice />
+        ) : group && !isAdmin ? (
           <AdminOnlyNotice groupId={groupId} />
         ) : group && isDesktop ? (
           // D-07d: the group's summary on the left, requests and members on the right
@@ -60,8 +71,13 @@ function ManageGroupPage() {
                 group={group}
                 typeLabels={GROUP_TYPE_FOR_ADMIN}
               />
-              <div className="flex gap-2">
+              <div className="flex flex-wrap gap-2">
                 <EditButton groupId={groupId} />
+                <DeactivateGroupButton
+                  groupId={groupId}
+                  groupName={group.name}
+                  onDeactivated={onDeactivated}
+                />
               </div>
             </section>
             <GroupManagement
@@ -70,7 +86,10 @@ function ManageGroupPage() {
             />
           </div>
         ) : group ? (
-          <ManageMobile group={group} />
+          <ManageMobile
+            group={group}
+            onDeactivated={onDeactivated}
+          />
         ) : (
           <CatalogState
             queries={[groupQuery]}
@@ -82,8 +101,8 @@ function ManageGroupPage() {
   )
 }
 
-/** D-07: the group's card, then its actions. */
-function ManageMobile({ group }: { group: GroupDetail }) {
+/** D-07: the group's card, requests and members, then the group's actions. */
+function ManageMobile({ group, onDeactivated }: { group: GroupDetail; onDeactivated: () => void }) {
   return (
     <>
       <h1 className="text-3xl font-semibold tracking-tight">Správa skupiny</h1>
@@ -92,10 +111,18 @@ function ManageMobile({ group }: { group: GroupDetail }) {
         groupId={group.id}
         isDesktop={false}
       />
-      <EditButton
-        groupId={group.id}
-        className="w-full"
-      />
+      <div className="flex flex-col gap-2 py-4">
+        <EditButton
+          groupId={group.id}
+          className="w-full"
+        />
+        <DeactivateGroupButton
+          groupId={group.id}
+          groupName={group.name}
+          onDeactivated={onDeactivated}
+          className="w-full"
+        />
+      </div>
     </>
   )
 }

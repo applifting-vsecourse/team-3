@@ -12,6 +12,7 @@ import { groupQueryOptions } from "@/features/groups/api/groupsQueryOptions"
 import { AdminOnlyNotice } from "@/features/groups/components/AdminOnlyNotice"
 import { CatalogState } from "@/features/groups/components/CatalogState"
 import { GroupForm } from "@/features/groups/components/GroupForm"
+import { InactiveGroupNotice } from "@/features/groups/components/InactiveGroupNotice"
 import { useUpdateGroup } from "@/features/groups/hooks/useGroupMutations"
 import { GROUPS_FORM, GROUPS_PAGE } from "@/features/groups/lib/pageLayout"
 
@@ -48,7 +49,9 @@ function EditGroupPage() {
         />
         <div className={GROUPS_FORM}>
           <h1 className="text-3xl font-semibold tracking-tight md:text-4xl">Upravit skupinu</h1>
-          {catalog && group && !isAdmin ? (
+          {group?.status === "inactive" ? (
+            <InactiveGroupNotice />
+          ) : catalog && group && !isAdmin ? (
             <AdminOnlyNotice groupId={groupId} />
           ) : catalog && group ? (
             <GroupForm
