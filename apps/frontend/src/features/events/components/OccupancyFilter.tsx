@@ -1,9 +1,9 @@
 import { useId, useState } from "react"
 
 import { FilterChip } from "@/components/FilterChip/FilterChip"
+import { FilterPanel } from "@/components/FilterPanel/FilterPanel"
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
 
-import { FilterPanel } from "@/features/events/components/FilterPanel"
 import { useEvents } from "@/features/events/hooks/useEvents"
 import type { EventsSearch, Occupancy } from "@/features/events/lib/eventsSearch"
 import { showEventsLabel } from "@/features/events/lib/formatEvent"

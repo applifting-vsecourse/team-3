@@ -1,5 +1,7 @@
-import type { Locality } from "@/features/events/api/catalogSchemas"
-import { DEFAULT_LOCALITY_SLUG } from "@/features/events/lib/eventsSearch"
+import type { Locality } from "@/lib/catalog/catalogSchemas"
+
+/** Lists without ?lokalita= show Praha; Praha is the default, not an active filter. */
+export const DEFAULT_LOCALITY_SLUG = "praha"
 
 export type LocalityOption = Locality & { isDistrict: boolean }
 
