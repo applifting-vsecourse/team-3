@@ -1,22 +1,9 @@
 import { useQuery } from "@tanstack/react-query"
 
-import {
-  activityTreeQueryOptions,
-  localitiesQueryOptions,
-} from "@/features/events/api/catalogQueryOptions"
+import { useCatalog } from "@/hooks/useCatalog"
+
 import { eventsQueryOptions } from "@/features/events/api/eventsQueryOptions"
 import { toEventFilters, type EventsSearch } from "@/features/events/lib/eventsSearch"
-
-/** Localities and the activity tree the filters resolve their slugs with. */
-export function useEventsCatalog() {
-  const localitiesQuery = useQuery(localitiesQueryOptions())
-  const activitiesQuery = useQuery(activityTreeQueryOptions())
-  const catalog =
-    localitiesQuery.data && activitiesQuery.data
-      ? { localities: localitiesQuery.data, categories: activitiesQuery.data }
-      : undefined
-  return { catalog, queries: [localitiesQuery, activitiesQuery] as const }
-}
 
 /**
  * Events for the given URL filters. The list and a filter panel's
@@ -24,7 +11,7 @@ export function useEventsCatalog() {
  * `isEnabled: false` (a closed panel) fetches nothing.
  */
 export function useEvents(search: EventsSearch, { isEnabled = true } = {}) {
-  const { catalog, queries } = useEventsCatalog()
+  const { catalog, queries } = useCatalog()
   const eventsQuery = useQuery(
     eventsQueryOptions(catalog && isEnabled ? toEventFilters(search, catalog) : undefined),
   )

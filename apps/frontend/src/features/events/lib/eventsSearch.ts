@@ -1,13 +1,14 @@
 import { z } from "zod"
 
-import type { ActivityCategory, Locality } from "@/features/events/api/catalogSchemas"
+import {
+  catalogSearchShape,
+  hasCatalogFilters,
+  toCatalogFilters,
+  type Catalog,
+} from "@/lib/catalog/catalogSearch"
+
 import type { EventFilters } from "@/features/events/api/eventSchemas"
 
-/** /akce without ?lokalita= shows Praha; Praha is the default, not an active filter. */
-export const DEFAULT_LOCALITY_SLUG = "praha"
-
-const SLUG = /^[a-z0-9-]+$/
-const SLUG_LIST = /^[a-z0-9-]+(,[a-z0-9-]+)*$/
 const DAY = /^\d{4}-\d{2}-\d{2}$/
 
 /** ?obsazenost= values; Czech in the URL like the other filters, English in the API. */
@@ -22,61 +23,34 @@ const CAPACITY_OF = { volna: "free", chybi: "missing" } as const
  * rather than failing the page (`.catch`).
  */
 export const eventsSearchSchema = z.object({
-  lokalita: z.string().regex(SLUG).optional().catch(undefined),
+  ...catalogSearchShape,
   od: z.string().regex(DAY).optional().catch(undefined),
   do: z.string().regex(DAY).optional().catch(undefined),
-  // comma-separated slugs; the router would otherwise put a JSON array in the URL
-  kategorie: z.string().regex(SLUG_LIST).optional().catch(undefined),
-  aktivita: z.string().regex(SLUG_LIST).optional().catch(undefined),
   // volna = not full yet, chybi = still missing people (a subset of volna)
   obsazenost: z.enum(OCCUPANCY).optional().catch(undefined),
 })
 
 export type EventsSearch = z.infer<typeof eventsSearchSchema>
 
-export const splitSlugs = (value: string | undefined): string[] => (value ? value.split(",") : [])
-
-/** Empty list → undefined, so the parameter disappears from the URL. */
-export const joinSlugs = (slugs: string[]): string | undefined =>
-  slugs.length > 0 ? slugs.join(",") : undefined
-
 /** Whether „Zrušit vše“ has anything to clear. Praha is the default, not a filter. */
 export const hasActiveFilters = (search: EventsSearch): boolean =>
-  (search.lokalita !== undefined && search.lokalita !== DEFAULT_LOCALITY_SLUG) ||
+  hasCatalogFilters(search) ||
   search.od !== undefined ||
   search.do !== undefined ||
-  search.kategorie !== undefined ||
-  search.aktivita !== undefined ||
   search.obsazenost !== undefined
 
 /**
  * Turns the URL's slugs into the API's ids. Slugs the catalog doesn't know
  * (an old link, a typo) are left out instead of matching nothing.
  */
-export function toEventFilters(
-  search: EventsSearch,
-  catalog: { localities: Locality[]; categories: ActivityCategory[] },
-): EventFilters {
-  const localitySlug = search.lokalita ?? DEFAULT_LOCALITY_SLUG
-  const locality = catalog.localities.find((l) => l.slug === localitySlug)
-
-  const categorySlugs = new Set(splitSlugs(search.kategorie))
-  const activitySlugs = new Set(splitSlugs(search.aktivita))
-  const categoryIds = catalog.categories.filter((c) => categorySlugs.has(c.slug)).map((c) => c.id)
-  const activityIds = catalog.categories
-    .flatMap((c) => c.activities)
-    .filter((a) => activitySlugs.has(a.slug))
-    .map((a) => a.id)
-
+export function toEventFilters(search: EventsSearch, catalog: Catalog): EventFilters {
   // An inverted range in a hand-edited URL would be a 400; keep just the start.
   const dateTo = search.od && search.do && search.do < search.od ? undefined : search.do
 
   return {
-    localityId: locality?.id,
+    ...toCatalogFilters(search, catalog),
     dateFrom: search.od,
     dateTo,
-    activityIds,
-    categoryIds,
     capacity: search.obsazenost && CAPACITY_OF[search.obsazenost],
   }
 }

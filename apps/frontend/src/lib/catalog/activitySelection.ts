@@ -1,4 +1,4 @@
-import type { Activity, ActivityCategory } from "@/features/events/api/catalogSchemas"
+import type { Activity, ActivityCategory } from "@/lib/catalog/catalogSchemas"
 
 /**
  * Selected activity types as slugs, the shape of ?kategorie= and ?aktivita=.
@@ -72,6 +72,7 @@ export function toggleActivity(
 export function selectionLabel(
   selection: ActivitySelection,
   categories: ActivityCategory[],
+  filterName = "Typ aktivity",
 ): string | undefined {
   // slugs the catalog doesn't know are dropped from the query, so don't count them
   const names = [
@@ -79,7 +80,7 @@ export function selectionLabel(
     ...categories.flatMap((c) => c.activities).filter((a) => selection.activities.includes(a.slug)),
   ].map((item) => item.name)
   if (names.length === 0) return undefined
-  return names.length === 1 ? names[0] : `Typ aktivity (${names.length})`
+  return names.length === 1 ? names[0] : `${filterName} (${names.length})`
 }
 
 const fold = (text: string) =>

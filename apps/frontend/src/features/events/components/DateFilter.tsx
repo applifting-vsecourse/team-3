@@ -2,9 +2,9 @@ import { useState } from "react"
 import { cs } from "react-day-picker/locale"
 
 import { FilterChip, FilterToggleChip } from "@/components/FilterChip/FilterChip"
+import { FilterPanel } from "@/components/FilterPanel/FilterPanel"
 import { Calendar } from "@/components/ui/calendar"
 
-import { FilterPanel } from "@/features/events/components/FilterPanel"
 import { useEvents } from "@/features/events/hooks/useEvents"
 import {
   dateToDay,

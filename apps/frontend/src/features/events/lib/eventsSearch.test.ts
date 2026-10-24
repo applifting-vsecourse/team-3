@@ -1,15 +1,10 @@
 import { describe, expect, it } from "vitest"
 
-import type { ActivityCategory, Locality } from "@/features/events/api/catalogSchemas"
+import type { ActivityCategory, Locality } from "@/lib/catalog/catalogSchemas"
+
 import { toSearchParams } from "@/features/events/api/eventsQueryOptions"
 
-import {
-  eventsSearchSchema,
-  hasActiveFilters,
-  joinSlugs,
-  splitSlugs,
-  toEventFilters,
-} from "./eventsSearch"
+import { eventsSearchSchema, hasActiveFilters, toEventFilters } from "./eventsSearch"
 
 const locality = (slug: string, parentId: string | null = null): Locality => ({
   id: `l-${slug}`,
@@ -136,14 +131,6 @@ describe("hasActiveFilters", () => {
     expect(hasActiveFilters({ kategorie: "hry" })).toBe(true)
     expect(hasActiveFilters({ aktivita: "volejbal" })).toBe(true)
     expect(hasActiveFilters({ obsazenost: "volna" })).toBe(true)
-  })
-})
-
-describe("slug lists", () => {
-  it("round-trip through the URL", () => {
-    expect(splitSlugs(joinSlugs(["volejbal", "florbal"]))).toEqual(["volejbal", "florbal"])
-    expect(joinSlugs([])).toBeUndefined()
-    expect(splitSlugs(undefined)).toEqual([])
   })
 })
 

@@ -6,6 +6,7 @@ import { Header } from "@/components/Header/Header"
 import { Seo } from "@/components/Seo"
 import { Button } from "@/components/ui/button"
 import { DESKTOP_QUERY, useMediaQuery } from "@/hooks/useMediaQuery"
+import { DEFAULT_LOCALITY_SLUG } from "@/lib/catalog/localityOptions"
 import { cn } from "@/lib/utils"
 
 import { HeaderMenu } from "@/features/auth/components/HeaderMenu"
@@ -15,7 +16,6 @@ import { EventsMap } from "@/features/events/components/EventsMap"
 import { ListPanel, type PanelSnap } from "@/features/events/components/ListPanel"
 import { useEvents } from "@/features/events/hooks/useEvents"
 import {
-  DEFAULT_LOCALITY_SLUG,
   eventsSearchSchema,
   hasActiveFilters,
   type EventsSearch,
