@@ -157,7 +157,8 @@ function EventsPage() {
             style={
               isDesktop || isListExpanded ? undefined : { bottom: `${panelPeekHeight + 36}px` }
             }
-            className="absolute right-4 bottom-4 z-20 h-11 rounded-full shadow-md md:right-8 md:bottom-14"
+            // follows the sheet as it moves, instead of jumping ahead of it
+            className="absolute right-4 bottom-4 z-20 h-11 rounded-full shadow-md transition-[bottom] duration-300 ease-out motion-reduce:transition-none md:right-8 md:bottom-14"
           >
             <Link to={ROUTES.newEvent}>
               <Plus />

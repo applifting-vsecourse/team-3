@@ -336,7 +336,7 @@ export function EventForm({
           name="startsAt"
           render={({ field }) => (
             <FormItem>
-              <FormLabel>Datum a čas (pražský čas) *</FormLabel>
+              <FormLabel>Datum a čas (čas v ČR) *</FormLabel>
               <FormControl>
                 <Input
                   type="datetime-local"

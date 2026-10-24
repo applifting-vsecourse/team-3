@@ -95,7 +95,7 @@ describe("EventForm", () => {
     await userEvent.clear(screen.getByLabelText("Maximum lidí *"))
     await userEvent.type(screen.getByLabelText("Maximum lidí *"), "4")
     await userEvent.type(
-      screen.getByLabelText("Datum a čas (pražský čas) *"),
+      screen.getByLabelText("Datum a čas (čas v ČR) *"),
       toPragueWallTime(new Date(Date.now() - 86_400_000)),
     )
     await submit()
@@ -116,10 +116,7 @@ describe("EventForm", () => {
     // the map looks at the chosen locality; its middle is the place
     await userEvent.click(screen.getByRole("button", { name: "Umístit špendlík do středu mapy" }))
     await userEvent.type(screen.getByLabelText("Adresa *"), "Herna Karlín, Křižíkova 52, Praha 8")
-    await userEvent.type(
-      screen.getByLabelText("Datum a čas (pražský čas) *"),
-      toPragueWallTime(start),
-    )
+    await userEvent.type(screen.getByLabelText("Datum a čas (čas v ČR) *"), toPragueWallTime(start))
     await userEvent.type(screen.getByLabelText("Minimum lidí *"), "3")
     await userEvent.type(screen.getByLabelText("Maximum lidí *"), "6")
     await userEvent.click(screen.getByRole("radio", { name: /Schvaluji přihlášky/ }))
