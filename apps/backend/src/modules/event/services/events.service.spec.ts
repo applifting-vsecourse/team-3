@@ -1,7 +1,7 @@
 import { computeCapacity } from '@/modules/event/domain/capacity';
 import { EventDetail, PublicEvent } from '@/modules/event/domain/event';
 import { EventRepository } from '@/modules/event/repositories/event.repository';
-import { NotFoundException } from '@nestjs/common';
+import { ConflictException, NotFoundException } from '@nestjs/common';
 import { mock, MockProxy } from 'jest-mock-extended';
 import {
   CAPACITY_SCAN_LIMIT,
@@ -254,6 +254,107 @@ describe('EventsService.getEventDetail', () => {
       await expect(service.getEventDetail('e1', 'u9', now)).rejects.toThrow(
         NotFoundException,
       );
+    });
+  });
+});
+
+describe('EventsService participation', () => {
+  const setup = (
+    detail: EventDetail = aDetail(),
+  ): { repository: MockProxy<EventRepository>; service: EventsService } => {
+    const repository = mock<EventRepository>();
+    repository.findEventDetail.mockResolvedValue(detail);
+    repository.findApprovedParticipants.mockResolvedValue(participants);
+    repository.findParticipationStatus.mockResolvedValue(null);
+    repository.isActiveGroupMember.mockResolvedValue(false);
+    return { repository, service: new EventsService(repository) };
+  };
+
+  it('the detail tells a signed-in user their own participation; a withdrawn one is none', async () => {
+    const { repository, service } = setup();
+
+    repository.findParticipationStatus.mockResolvedValue('approved');
+    await expect(
+      service.getEventDetail('e1', 'u9', now),
+    ).resolves.toMatchObject({ myParticipation: 'approved' });
+
+    repository.findParticipationStatus.mockResolvedValue('withdrawn');
+    await expect(
+      service.getEventDetail('e1', 'u9', now),
+    ).resolves.toMatchObject({ myParticipation: null });
+
+    await expect(
+      service.getEventDetail('e1', null, now),
+    ).resolves.toMatchObject({ myParticipation: null });
+  });
+
+  it('join decides with the rules at „now“ and returns the updated detail', async () => {
+    const { repository, service } = setup();
+    repository.join.mockImplementation(async (_e, _u, decide) =>
+      decide({
+        eventStatus: 'published',
+        startsAt: new Date('2026-10-24T16:00:00.000Z'),
+        approvalMode: 'open',
+        maxParticipants: 6,
+        isOrganizer: false,
+        existingStatus: null,
+        approvedCount: 2,
+      }),
+    );
+    repository.findParticipationStatus.mockResolvedValue('approved');
+
+    const result = await service.join('e1', 'u9', now);
+
+    expect(repository.join).toHaveBeenCalledWith(
+      'e1',
+      'u9',
+      expect.any(Function),
+    );
+    expect(result.myParticipation).toBe('approved');
+  });
+
+  it('a refusal is 409 with its code and a Czech message, e.g. a full event', async () => {
+    const { repository, service } = setup();
+    repository.join.mockResolvedValue({ ok: false, refusal: 'EVENT_FULL' });
+
+    const error = (await service
+      .join('e1', 'u9', now)
+      .catch((e: unknown) => e)) as ConflictException;
+
+    expect(error).toBeInstanceOf(ConflictException);
+    expect(error.getResponse()).toEqual({
+      code: 'EVENT_FULL',
+      message: 'Akce je plná.',
+    });
+  });
+
+  it('an event the user may not see is 404, and nothing is joined', async () => {
+    const { repository, service } = setup(
+      aDetail({ visibility: 'members', group: { id: 'g1', name: 'Skupina' } }),
+    );
+
+    await expect(service.join('e1', 'u9', now)).rejects.toThrow(
+      NotFoundException,
+    );
+    expect(repository.join).not.toHaveBeenCalled();
+  });
+
+  it('leaving when not in is 409 NOT_JOINED', async () => {
+    const { repository, service } = setup();
+    repository.leave.mockResolvedValue({ ok: false, refusal: 'NOT_JOINED' });
+
+    await expect(service.leave('e1', 'u9', now)).rejects.toThrow(
+      ConflictException,
+    );
+  });
+
+  it('leaving frees the place: the detail comes back without the participation', async () => {
+    const { repository, service } = setup();
+    repository.leave.mockResolvedValue({ ok: true });
+    repository.findParticipationStatus.mockResolvedValue('withdrawn');
+
+    await expect(service.leave('e1', 'u9', now)).resolves.toMatchObject({
+      myParticipation: null,
     });
   });
 });

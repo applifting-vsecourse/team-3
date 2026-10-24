@@ -51,3 +51,57 @@ describe('EventRepository', () => {
     });
   });
 });
+
+describe('EventRepository.join', () => {
+  const setup = (
+    approvedCount: number,
+  ): { prisma: ReturnType<typeof mockDeep<PrismaService>> } => {
+    const prisma = mockDeep<PrismaService>();
+    // the transaction client is the same mock
+    prisma.$transaction.mockImplementation(((
+      run: (tx: PrismaService) => Promise<unknown>,
+    ) => run(prisma)) as never);
+    prisma.event.findUnique.mockResolvedValue({
+      status: 'published',
+      startsAt: new Date('2026-10-25T16:00:00.000Z'),
+      approvalMode: 'open',
+      maxParticipants: 6,
+      organizerUserId: 'u1',
+    } as never);
+    prisma.participation.findUnique.mockResolvedValue(null);
+    prisma.participation.count.mockResolvedValue(approvedCount);
+    return { prisma };
+  };
+
+  it('locks the event row before it counts the places, then writes the decision', async () => {
+    const { prisma } = setup(2);
+    const decide = jest.fn().mockReturnValue({ ok: true, status: 'approved' });
+
+    await new EventRepository(prisma).join('e1', 'u9', decide);
+
+    const lockAt = prisma.$executeRaw.mock.invocationCallOrder[0]!;
+    const countAt = prisma.participation.count.mock.invocationCallOrder[0]!;
+    expect(lockAt).toBeLessThan(countAt);
+    expect(decide).toHaveBeenCalledWith(
+      expect.objectContaining({ approvedCount: 2, isOrganizer: false }),
+    );
+    expect(prisma.participation.upsert).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: { eventId_userId: { eventId: 'e1', userId: 'u9' } },
+        create: expect.objectContaining({ status: 'approved' }),
+      }),
+    );
+  });
+
+  it('writes nothing when the rules refuse', async () => {
+    const { prisma } = setup(6);
+    const decide = jest
+      .fn()
+      .mockReturnValue({ ok: false, refusal: 'EVENT_FULL' });
+
+    await expect(
+      new EventRepository(prisma).join('e1', 'u9', decide),
+    ).resolves.toEqual({ ok: false, refusal: 'EVENT_FULL' });
+    expect(prisma.participation.upsert).not.toHaveBeenCalled();
+  });
+});

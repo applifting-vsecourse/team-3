@@ -7,6 +7,12 @@ import {
   PublicEvent,
   PublicEventFilters,
 } from '@/modules/event/domain/event';
+import {
+  JoinDecision,
+  JoinState,
+  ParticipationRefusal,
+  ParticipationStatus,
+} from '@/modules/event/domain/participation';
 import { Injectable } from '@nestjs/common';
 import { buildPublicEventsWhere } from './public-events-where';
 
@@ -105,6 +111,104 @@ export class EventRepository {
       orderBy: [{ approvedAt: { sort: 'asc', nulls: 'last' } }, { id: 'asc' }],
     });
     return participations.map((participation) => participation.user);
+  }
+
+  async findParticipationStatus(
+    eventId: string,
+    userId: string,
+  ): Promise<ParticipationStatus | null> {
+    const participation = await this.prisma.participation.findUnique({
+      where: { eventId_userId: { eventId, userId } },
+      select: { status: true },
+    });
+    return participation?.status ?? null;
+  }
+
+  /**
+   * Joins under a row lock on the event (B-031): a second join of the same
+   * event waits until the first has committed, so two people can't both take
+   * the last place. `decide` gets the state read under the lock. Null when
+   * the event doesn't exist.
+   */
+  async join(
+    eventId: string,
+    userId: string,
+    decide: (state: JoinState) => JoinDecision,
+  ): Promise<JoinDecision | null> {
+    return this.prisma.$transaction(async (tx) => {
+      await tx.$executeRaw`SELECT 1 FROM "event" WHERE "id" = ${eventId} FOR UPDATE`;
+      const event = await tx.event.findUnique({
+        where: { id: eventId },
+        select: {
+          status: true,
+          startsAt: true,
+          approvalMode: true,
+          maxParticipants: true,
+          organizerUserId: true,
+        },
+      });
+      if (!event) return null;
+      const [existing, approvedCount] = await Promise.all([
+        tx.participation.findUnique({
+          where: { eventId_userId: { eventId, userId } },
+          select: { status: true },
+        }),
+        tx.participation.count({ where: { eventId, status: 'approved' } }),
+      ]);
+      const decision = decide({
+        eventStatus: event.status,
+        startsAt: event.startsAt,
+        approvalMode: event.approvalMode,
+        maxParticipants: event.maxParticipants,
+        isOrganizer: event.organizerUserId === userId,
+        existingStatus: existing?.status ?? null,
+        approvedCount,
+      });
+      if (!decision.ok) return decision;
+
+      const approvedAt = decision.status === 'approved' ? new Date() : null;
+      // one row per user and event: coming back after withdrawing reuses it
+      await tx.participation.upsert({
+        where: { eventId_userId: { eventId, userId } },
+        create: { eventId, userId, status: decision.status, approvedAt },
+        update: { status: decision.status, approvedAt, message: null },
+      });
+      return decision;
+    });
+  }
+
+  /** Leaves an event or withdraws a request; the place is free again. */
+  async leave(
+    eventId: string,
+    userId: string,
+    decide: (state: {
+      startsAt: Date;
+      existingStatus: ParticipationStatus | null;
+    }) => { ok: true } | { ok: false; refusal: ParticipationRefusal },
+  ): Promise<
+    { ok: true } | { ok: false; refusal: ParticipationRefusal } | null
+  > {
+    return this.prisma.$transaction(async (tx) => {
+      const event = await tx.event.findUnique({
+        where: { id: eventId },
+        select: { startsAt: true },
+      });
+      if (!event) return null;
+      const existing = await tx.participation.findUnique({
+        where: { eventId_userId: { eventId, userId } },
+        select: { status: true },
+      });
+      const decision = decide({
+        startsAt: event.startsAt,
+        existingStatus: existing?.status ?? null,
+      });
+      if (!decision.ok) return decision;
+      await tx.participation.update({
+        where: { eventId_userId: { eventId, userId } },
+        data: { status: 'withdrawn', approvedAt: null },
+      });
+      return decision;
+    });
   }
 
   async isActiveGroupMember(groupId: string, userId: string): Promise<boolean> {
