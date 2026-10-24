@@ -64,8 +64,6 @@ export const eventParticipantsSchema = z.object({
   requests: z.array(eventRequestSchema),
 })
 
-export type EventManagement = z.infer<typeof eventParticipantsSchema>
-
 /** Tabs of „Moje akce“ in the API (B-035); Proběhlé comes with #61. */
 export type MyEventsTab = "attending" | "organizing"
 

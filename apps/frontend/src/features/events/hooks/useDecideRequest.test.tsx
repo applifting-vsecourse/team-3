@@ -1,5 +1,5 @@
 import type { ReactNode } from "react"
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query"
+import { QueryClient, QueryClientProvider, QueryObserver } from "@tanstack/react-query"
 import { act, renderHook, waitFor } from "@testing-library/react"
 import { describe, expect, it, vi } from "vitest"
 
@@ -43,6 +43,34 @@ describe("useDecideRequest (#53)", () => {
     // an approval takes a place: the capacity on the detail and in the list changes
     expect(invalidate).toHaveBeenCalledWith({ queryKey: ["events", "detail", "e1", "u1"] })
     expect(invalidate).toHaveBeenCalledWith({ queryKey: ["events", "list"] })
+  })
+
+  it("stays pending until the detail is back, so „Schválit“ waits for the new capacity", async () => {
+    vi.mocked(api.post).mockReturnValue({
+      json: () => Promise.resolve({ participants: [{ id: "u5", name: "Jakub" }], requests: [] }),
+    } as never)
+    const { queryClient, result } = setup()
+    let detailBack: (() => void) | undefined
+    // the page's detail query, on screen: its refetch is what the decision waits for
+    queryClient.setQueryData(["events", "detail", "e1", "u1"], { isFull: false })
+    const detail = new QueryObserver(queryClient, {
+      queryKey: ["events", "detail", "e1", "u1"],
+      queryFn: () =>
+        new Promise((resolve) => {
+          detailBack = () => resolve({ isFull: true })
+        }),
+      staleTime: Infinity,
+    })
+    const unsubscribe = detail.subscribe(vi.fn())
+
+    act(() => result.current.mutate({ userId: "u5", decision: "approve" }))
+
+    await waitFor(() => expect(detail.getCurrentResult().fetchStatus).toBe("fetching"))
+    expect(result.current.isPending).toBe(true)
+    act(() => detailBack?.())
+    await waitFor(() => expect(result.current.isSuccess).toBe(true))
+    expect(queryClient.getQueryData(["events", "detail", "e1", "u1"])).toEqual({ isFull: true })
+    unsubscribe()
   })
 
   it("a refusal (full meanwhile, withdrawn) refetches the lists on the page", async () => {
