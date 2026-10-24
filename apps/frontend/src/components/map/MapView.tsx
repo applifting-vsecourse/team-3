@@ -33,6 +33,14 @@ type MapViewProps = {
   center: { lat: number; lng: number }
   /** Zoom buttons bottom right; on touch screens pinch zoom is enough. */
   hasZoomControl?: boolean
+  /** Makes the pins clickable, e.g. to open the event's detail. */
+  onPinClick?: (pinId: string) => void
+  /**
+   * A picture of where, not a map to explore (Figma: Map/Static): no panning,
+   * no zoom, so on a phone the page scrolls over it instead of the map.
+   */
+  isStatic?: boolean
+  label?: string
   className?: string
 }
 
@@ -51,13 +59,16 @@ export function MapView({
   highlightedId,
   center,
   hasZoomControl = true,
+  onPinClick,
+  isStatic = false,
+  label = "Mapa akcí",
   className,
 }: MapViewProps) {
   return (
     // MapContainer doesn't pass aria attributes on, hence the wrapper
     <div
       role="region"
-      aria-label="Mapa akcí"
+      aria-label={label}
       className={cn("isolate z-0 size-full", className)}
     >
       <MapContainer
@@ -65,10 +76,16 @@ export function MapView({
         zoom={DEFAULT_ZOOM}
         zoomControl={false}
         attributionControl={false}
+        dragging={!isStatic}
+        touchZoom={!isStatic}
+        scrollWheelZoom={!isStatic}
+        doubleClickZoom={!isStatic}
+        boxZoom={!isStatic}
+        keyboard={!isStatic}
         className="size-full bg-muted"
       >
         <AttributionControl position="bottomright" />
-        {hasZoomControl ? <ZoomControl position="bottomright" /> : null}
+        {hasZoomControl && !isStatic ? <ZoomControl position="bottomright" /> : null}
         <TileLayer
           attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
           url="https://tile.openstreetmap.org/{z}/{x}/{y}.png"
@@ -82,6 +99,7 @@ export function MapView({
             key={pin.id}
             pin={pin}
             isHighlighted={pin.id === highlightedId}
+            onClick={onPinClick}
           />
         ))}
       </MapContainer>
@@ -89,7 +107,13 @@ export function MapView({
   )
 }
 
-function Pin({ pin, isHighlighted }: { pin: MapPinData; isHighlighted: boolean }) {
+type PinProps = {
+  pin: MapPinData
+  isHighlighted: boolean
+  onClick?: (pinId: string) => void
+}
+
+function Pin({ pin, isHighlighted, onClick }: PinProps) {
   const icon = useMemo(() => {
     const { width, height } = pinSize(pin.variant)
     return divIcon({
@@ -105,9 +129,12 @@ function Pin({ pin, isHighlighted }: { pin: MapPinData; isHighlighted: boolean }
     <Marker
       position={[pin.lat, pin.lng]}
       icon={icon}
-      // The list next to the map is the accessible way to the events; pins
-      // only show where they are until the preview arrives (B-029).
-      interactive={false}
+      // A click opens the event; the preview first comes in sprint 3 (B-029).
+      // The list next to the map is the accessible way to the events, so the
+      // pins stay out of the Tab order.
+      interactive={Boolean(onClick)}
+      eventHandlers={onClick ? { click: () => onClick(pin.id) } : undefined}
+      title={onClick ? pin.label : undefined}
       keyboard={false}
       zIndexOffset={isHighlighted ? 1000 : pin.variant === "highlighted" ? 100 : 0}
     />

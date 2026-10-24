@@ -12,6 +12,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
+import { initials } from "@/lib/initials"
 
 import { useSession } from "@/features/auth/hooks/useSession"
 import { useSignOut } from "@/features/auth/hooks/useSignOut"
@@ -40,15 +41,6 @@ export function HeaderMenu() {
     )
   }
 
-  const initials = user.name
-    .split(" ")
-    // Skip words that don't start with a letter, e.g. "(Delete" in "Admin (Delete in Prod)".
-    .filter((word) => /^\p{L}/u.test(word))
-    .map((word) => word[0])
-    .join("")
-    .slice(0, 2)
-    .toUpperCase()
-
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
@@ -59,7 +51,7 @@ export function HeaderMenu() {
           className="rounded-full"
         >
           <Avatar className="size-8">
-            <AvatarFallback>{initials}</AvatarFallback>
+            <AvatarFallback>{initials(user.name)}</AvatarFallback>
           </Avatar>
         </Button>
       </DropdownMenuTrigger>

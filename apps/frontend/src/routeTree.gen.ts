@@ -16,6 +16,7 @@ import { Route as LoginRouteImport } from './routes/login'
 import { Route as SignupRouteImport } from './routes/signup'
 import { Route as SkupinyRouteImport } from './routes/skupiny'
 import { Route as ProtectedPagesProfilRouteImport } from './routes/_ProtectedPages/profil'
+import { Route as AkceEventIdRouteImport } from './routes/akce_.$eventId'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
@@ -51,6 +52,11 @@ const ProtectedPagesProfilRoute = ProtectedPagesProfilRouteImport.update({
   path: '/profil',
   getParentRoute: () => ProtectedPagesRoute,
 } as any)
+const AkceEventIdRoute = AkceEventIdRouteImport.update({
+  id: '/akce_/$eventId',
+  path: '/akce/$eventId',
+  getParentRoute: () => rootRouteImport,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -59,6 +65,7 @@ export interface FileRoutesByFullPath {
   '/signup': typeof SignupRoute
   '/skupiny': typeof SkupinyRoute
   '/profil': typeof ProtectedPagesProfilRoute
+  '/akce/$eventId': typeof AkceEventIdRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -67,6 +74,7 @@ export interface FileRoutesByTo {
   '/signup': typeof SignupRoute
   '/skupiny': typeof SkupinyRoute
   '/profil': typeof ProtectedPagesProfilRoute
+  '/akce/$eventId': typeof AkceEventIdRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -77,12 +85,27 @@ export interface FileRoutesById {
   '/signup': typeof SignupRoute
   '/skupiny': typeof SkupinyRoute
   '/_ProtectedPages/profil': typeof ProtectedPagesProfilRoute
+  '/akce_/$eventId': typeof AkceEventIdRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/akce' | '/login' | '/signup' | '/skupiny' | '/profil'
+  fullPaths:
+    | '/'
+    | '/akce'
+    | '/login'
+    | '/signup'
+    | '/skupiny'
+    | '/profil'
+    | '/akce/$eventId'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/akce' | '/login' | '/signup' | '/skupiny' | '/profil'
+  to:
+    | '/'
+    | '/akce'
+    | '/login'
+    | '/signup'
+    | '/skupiny'
+    | '/profil'
+    | '/akce/$eventId'
   id:
     | '__root__'
     | '/'
@@ -92,6 +115,7 @@ export interface FileRouteTypes {
     | '/signup'
     | '/skupiny'
     | '/_ProtectedPages/profil'
+    | '/akce_/$eventId'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -101,6 +125,7 @@ export interface RootRouteChildren {
   LoginRoute: typeof LoginRoute
   SignupRoute: typeof SignupRoute
   SkupinyRoute: typeof SkupinyRoute
+  AkceEventIdRoute: typeof AkceEventIdRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -154,6 +179,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ProtectedPagesProfilRouteImport
       parentRoute: typeof ProtectedPagesRoute
     }
+    '/akce_/$eventId': {
+      id: '/akce_/$eventId'
+      path: '/akce/$eventId'
+      fullPath: '/akce/$eventId'
+      preLoaderRoute: typeof AkceEventIdRouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
 
@@ -176,6 +208,7 @@ const rootRouteChildren: RootRouteChildren = {
   LoginRoute: LoginRoute,
   SignupRoute: SignupRoute,
   SkupinyRoute: SkupinyRoute,
+  AkceEventIdRoute: AkceEventIdRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

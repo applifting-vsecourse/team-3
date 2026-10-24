@@ -1,7 +1,12 @@
 import { matchesCapacity } from '@/modules/event/domain/capacity';
-import { PublicEvent, PublicEventFilters } from '@/modules/event/domain/event';
+import {
+  EventDetail,
+  EventDetailView,
+  PublicEvent,
+  PublicEventFilters,
+} from '@/modules/event/domain/event';
 import { EventRepository } from '@/modules/event/repositories/event.repository';
-import { Injectable } from '@nestjs/common';
+import { Injectable, NotFoundException } from '@nestjs/common';
 
 // One endpoint serves both the list and the map in sprint 2, without paging
 // (deviation from B-023, which has paging and a separate /events/map).
@@ -39,5 +44,42 @@ export class EventsService {
     return events
       .filter((event) => matchesCapacity(event.capacity, capacity))
       .slice(0, PUBLIC_EVENTS_LIMIT);
+  }
+
+  /**
+   * One event for its detail page (B-026), for visitors too: a shared link
+   * opens without signing in. Unknown, hidden and deleted events, and a
+   * members-only event for anyone outside the group, are all 404, so the
+   * response doesn't reveal that such an event exists.
+   */
+  async getEventDetail(
+    id: string,
+    viewerId: string | null,
+    now: Date = new Date(),
+  ): Promise<EventDetailView> {
+    const event = await this.eventRepository.findEventDetail(id, now);
+    if (!event || !(await this.canView(event, viewerId))) {
+      throw new NotFoundException('Event not found');
+    }
+    const participants = viewerId
+      ? await this.eventRepository.findApprovedParticipants(event.id)
+      : null;
+    return { ...event, participants };
+  }
+
+  private async canView(
+    event: EventDetail,
+    viewerId: string | null,
+  ): Promise<boolean> {
+    // a cancelled event stays reachable, with its reason (#52)
+    if (event.status === 'hidden' || event.status === 'deleted') return false;
+    // a private event is reachable by anyone with the link
+    if (event.visibility !== 'members') return true;
+    if (!viewerId) return false;
+    if (event.organizer.id === viewerId) return true;
+    return (
+      event.group !== null &&
+      this.eventRepository.isActiveGroupMember(event.group.id, viewerId)
+    );
   }
 }

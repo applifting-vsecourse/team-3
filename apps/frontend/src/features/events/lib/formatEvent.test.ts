@@ -3,10 +3,12 @@ import { describe, expect, it } from "vitest"
 import { anEvent } from "@/features/events/test/anEvent"
 
 import {
+  approvalModeLabel,
   capacityStatus,
   eventCountLabel,
   eventFacts,
   formatEventStart,
+  formatEventTime,
   placeName,
 } from "./formatEvent"
 
@@ -15,6 +17,34 @@ describe("formatEventStart", () => {
     expect(formatEventStart(new Date("2026-10-23T15:30:00.000Z"))).toBe("Pá 23. 10. · 17:30")
     // after the clocks go back on 25. 10.
     expect(formatEventStart(new Date("2026-10-26T07:00:00.000Z"))).toBe("Po 26. 10. · 8:00")
+  })
+})
+
+describe("formatEventTime", () => {
+  const start = new Date("2026-10-23T15:30:00.000Z")
+
+  it("is just the start when there is no end", () => {
+    expect(formatEventTime(start, null)).toBe("Pá 23. 10. · 17:30")
+  })
+
+  it("adds the end time on the same day", () => {
+    expect(formatEventTime(start, new Date("2026-10-23T17:30:00.000Z"))).toBe(
+      "Pá 23. 10. · 17:30–19:30",
+    )
+  })
+
+  it("adds the end's day when it ends after midnight in Prague", () => {
+    // 22:30 UTC is already Saturday 0:30 in Prague
+    expect(formatEventTime(start, new Date("2026-10-23T22:30:00.000Z"))).toBe(
+      "Pá 23. 10. · 17:30 – So 24. 10. · 0:30",
+    )
+  })
+})
+
+describe("approvalModeLabel", () => {
+  it("names both ways of joining", () => {
+    expect(approvalModeLabel("open")).toBe("Bez schválení")
+    expect(approvalModeLabel("approval")).toBe("Se schválením organizátora")
   })
 })
 

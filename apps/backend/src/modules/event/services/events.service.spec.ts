@@ -1,7 +1,8 @@
 import { computeCapacity } from '@/modules/event/domain/capacity';
-import { PublicEvent } from '@/modules/event/domain/event';
+import { EventDetail, PublicEvent } from '@/modules/event/domain/event';
 import { EventRepository } from '@/modules/event/repositories/event.repository';
-import { mock } from 'jest-mock-extended';
+import { NotFoundException } from '@nestjs/common';
+import { mock, MockProxy } from 'jest-mock-extended';
 import {
   CAPACITY_SCAN_LIMIT,
   EventsService,
@@ -112,5 +113,147 @@ describe('EventsService', () => {
     });
     expect(result).toHaveLength(PUBLIC_EVENTS_LIMIT);
     expect(result.every((event) => event.id.startsWith('missing-'))).toBe(true);
+  });
+});
+
+const aDetail = (overrides: Partial<EventDetail> = {}): EventDetail => ({
+  ...anEvent('e1', 2),
+  description: 'Hrajeme Carcassonne a Azul, hry půjčíme.',
+  approvalMode: 'open',
+  visibility: 'public',
+  status: 'published',
+  cancelReason: null,
+  ...overrides,
+});
+
+const participants = [
+  { id: 'u2', name: 'Jana' },
+  { id: 'u3', name: 'Tomáš' },
+];
+
+describe('EventsService.getEventDetail', () => {
+  const setup = (
+    detail: EventDetail | null,
+  ): { repository: MockProxy<EventRepository>; service: EventsService } => {
+    const repository = mock<EventRepository>();
+    repository.findEventDetail.mockResolvedValue(detail);
+    repository.findApprovedParticipants.mockResolvedValue(participants);
+    repository.isActiveGroupMember.mockResolvedValue(false);
+    return { repository, service: new EventsService(repository) };
+  };
+
+  it('a visitor gets the count, not the names', async () => {
+    const { repository, service } = setup(aDetail());
+
+    const result = await service.getEventDetail('e1', null, now);
+
+    expect(result.capacity.approvedCount).toBe(2);
+    expect(result.participants).toBeNull();
+    expect(repository.findApprovedParticipants).not.toHaveBeenCalled();
+    expect(repository.findEventDetail).toHaveBeenCalledWith('e1', now);
+  });
+
+  it('a signed-in user also gets the names of approved participants', async () => {
+    const { repository, service } = setup(aDetail());
+
+    const result = await service.getEventDetail('e1', 'u9', now);
+
+    expect(result.participants).toEqual(participants);
+    expect(repository.findApprovedParticipants).toHaveBeenCalledWith('e1');
+  });
+
+  it('an unknown event is 404', async () => {
+    const { service } = setup(null);
+
+    await expect(service.getEventDetail('nope', null, now)).rejects.toThrow(
+      NotFoundException,
+    );
+  });
+
+  it.each(['hidden', 'deleted'] as const)(
+    'a %s event is 404, even for its organizer',
+    async (status) => {
+      const { service } = setup(aDetail({ status }));
+
+      await expect(service.getEventDetail('e1', 'u1', now)).rejects.toThrow(
+        NotFoundException,
+      );
+    },
+  );
+
+  it('a cancelled event is returned with its reason', async () => {
+    const { service } = setup(
+      aDetail({ status: 'cancelled', cancelReason: 'Herna má zavřeno' }),
+    );
+
+    await expect(
+      service.getEventDetail('e1', null, now),
+    ).resolves.toMatchObject({
+      status: 'cancelled',
+      cancelReason: 'Herna má zavřeno',
+    });
+  });
+
+  it('a private event is open to anyone with the link, visitors included', async () => {
+    const { service } = setup(aDetail({ visibility: 'private' }));
+
+    await expect(
+      service.getEventDetail('e1', null, now),
+    ).resolves.toMatchObject({ id: 'e1', visibility: 'private' });
+  });
+
+  describe('a members-only event', () => {
+    const membersOnly = (): EventDetail =>
+      aDetail({
+        visibility: 'members',
+        group: { id: 'g1', name: 'Deskovkáři Karlín' },
+      });
+
+    it('is 404 for a visitor', async () => {
+      const { repository, service } = setup(membersOnly());
+
+      await expect(service.getEventDetail('e1', null, now)).rejects.toThrow(
+        NotFoundException,
+      );
+      expect(repository.isActiveGroupMember).not.toHaveBeenCalled();
+    });
+
+    it('is 404 for a signed-in user outside the group', async () => {
+      const { repository, service } = setup(membersOnly());
+
+      await expect(service.getEventDetail('e1', 'u9', now)).rejects.toThrow(
+        NotFoundException,
+      );
+      expect(repository.isActiveGroupMember).toHaveBeenCalledWith('g1', 'u9');
+    });
+
+    it('is shown to an active member of the group, with the names', async () => {
+      const { repository, service } = setup(membersOnly());
+      repository.isActiveGroupMember.mockResolvedValue(true);
+
+      const result = await service.getEventDetail('e1', 'u9', now);
+
+      expect(result.id).toBe('e1');
+      expect(result.participants).toEqual(participants);
+    });
+
+    it('is shown to its organizer', async () => {
+      const { repository, service } = setup(membersOnly());
+
+      await expect(
+        service.getEventDetail('e1', 'u1', now),
+      ).resolves.toMatchObject({ id: 'e1' });
+      expect(repository.isActiveGroupMember).not.toHaveBeenCalled();
+    });
+
+    it('without a group is 404 for anyone but its organizer', async () => {
+      const { service } = setup(
+        aDetail({ visibility: 'members', group: null }),
+      );
+
+      await expect(service.getEventDetail('e1', 'u9', now)).rejects.toThrow(
+        NotFoundException,
+      );
+    });
   });
 });

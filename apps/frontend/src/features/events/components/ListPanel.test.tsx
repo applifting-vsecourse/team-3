@@ -82,6 +82,33 @@ describe("ListPanel", () => {
     expect(onSnapChange).not.toHaveBeenCalled()
   })
 
+  it("a drag that ends on a card doesn't open it; the next tap does", () => {
+    const onOpen = vi.fn()
+    render(
+      <ListPanel
+        snap="peek"
+        onSnapChange={vi.fn()}
+      >
+        <button
+          type="button"
+          data-peek-end
+          onClick={onOpen}
+        >
+          Deskovky po práci
+        </button>
+      </ListPanel>,
+    )
+    const card = screen.getByRole("button", { name: "Deskovky po práci" })
+
+    swipe(card, 600, 500, 100)
+    fireEvent.click(card)
+    expect(onOpen).not.toHaveBeenCalled()
+
+    swipe(card, 600, 601, 80)
+    fireEvent.click(card)
+    expect(onOpen).toHaveBeenCalledOnce()
+  })
+
   it("moves with the finger while dragging, and settles with an animation", () => {
     const { sheet, card } = renderPanel("peek")
 

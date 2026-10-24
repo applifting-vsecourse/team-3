@@ -39,3 +39,22 @@ export type PublicEvent = {
   capacity: Capacity;
   isPromoted: boolean;
 };
+
+/** An approved participant, as listed on the event detail. */
+export type EventParticipant = { id: string; name: string };
+
+/** An event on its detail page (B-026). */
+export type EventDetail = PublicEvent & {
+  description: string | null;
+  approvalMode: 'open' | 'approval';
+  /** `private` = reachable through its link only; `members` = the group's members only. */
+  visibility: 'public' | 'private' | 'members';
+  /** `hidden` and `deleted` never leave the service (404). */
+  status: 'published' | 'cancelled' | 'hidden' | 'deleted';
+  cancelReason: string | null;
+};
+
+/** The detail and, for a signed-in viewer, who is coming; a visitor gets only the count. */
+export type EventDetailView = EventDetail & {
+  participants: EventParticipant[] | null;
+};

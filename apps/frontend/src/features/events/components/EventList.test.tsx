@@ -2,12 +2,14 @@ import { render, screen } from "@testing-library/react"
 import userEvent from "@testing-library/user-event"
 import { describe, expect, it, vi } from "vitest"
 
+import { renderWithRouter } from "@/test/renderWithRouter"
+
 import { EventList } from "@/features/events/components/EventList"
 import { anEvent } from "@/features/events/test/anEvent"
 
 describe("EventList", () => {
-  it("shows a card with title, date, place, status and facts", () => {
-    render(<EventList events={[anEvent()]} />)
+  it("shows a card with title, date, place, status and facts", async () => {
+    await renderWithRouter(<EventList events={[anEvent()]} />)
 
     expect(screen.getByText("1 akce")).toBeInTheDocument()
     expect(screen.getByRole("heading", { name: "Language exchange: CZ/EN/ES" })).toBeInTheDocument()
@@ -17,8 +19,17 @@ describe("EventList", () => {
     expect(screen.getByText("4/12 · Praha 8")).toBeInTheDocument()
   })
 
-  it("labels events that miss people and full events", () => {
-    render(
+  it("the card's title links to the event's detail", async () => {
+    await renderWithRouter(<EventList events={[anEvent({ id: "cm-e1" })]} />)
+
+    expect(screen.getByRole("link", { name: "Language exchange: CZ/EN/ES" })).toHaveAttribute(
+      "href",
+      "/akce/cm-e1",
+    )
+  })
+
+  it("labels events that miss people and full events", async () => {
+    await renderWithRouter(
       <EventList
         events={[
           anEvent({ id: "e1", approvedCount: 3, missingToMin: 1 }),
@@ -34,7 +45,7 @@ describe("EventList", () => {
 
   it("reports the hovered card, so the map can highlight its pin", async () => {
     const onHighlight = vi.fn()
-    render(
+    await renderWithRouter(
       <EventList
         events={[anEvent()]}
         onHighlight={onHighlight}
@@ -48,8 +59,8 @@ describe("EventList", () => {
     expect(onHighlight).toHaveBeenLastCalledWith(undefined)
   })
 
-  it("keeps cards below the closed mobile panel rendered but inert", () => {
-    render(
+  it("keeps cards below the closed mobile panel rendered but inert", async () => {
+    await renderWithRouter(
       <EventList
         events={[anEvent({ id: "e1" }), anEvent({ id: "e2", title: "Deskovky po práci" })]}
         inertAfter={1}
