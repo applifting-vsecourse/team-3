@@ -4,13 +4,50 @@ import {
   GroupInput,
   GroupSummary,
 } from '@/modules/group/domain/group';
+import {
+  decideJoin,
+  decideLeave,
+  decideRequest,
+  GroupMembers,
+  MembershipError,
+} from '@/modules/group/domain/membership';
 import { GroupRepository } from '@/modules/group/repositories/group.repository';
 import {
   BadRequestException,
+  ConflictException,
   ForbiddenException,
+  HttpException,
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
+
+const MEMBERSHIP_ERRORS: Record<MembershipError, () => HttpException> = {
+  GROUP_INACTIVE: () =>
+    new ConflictException({
+      code: 'GROUP_INACTIVE',
+      message: 'Skupina už není aktivní',
+    }),
+  MEMBER_BLOCKED: () =>
+    new ForbiddenException({
+      code: 'MEMBER_BLOCKED',
+      message: 'Do skupiny se nemůžeš znovu přidat',
+    }),
+  NOT_MEMBER: () =>
+    new NotFoundException({
+      code: 'NOT_MEMBER',
+      message: 'Ve skupině nejsi',
+    }),
+  LAST_ADMIN: () =>
+    new ConflictException({
+      code: 'LAST_ADMIN',
+      message: 'Poslední správce nemůže ze skupiny odejít',
+    }),
+  NOT_PENDING: () =>
+    new ConflictException({
+      code: 'NOT_PENDING',
+      message: 'Žádost už je vyřízená',
+    }),
+};
 
 // No paging in sprint 2, like the event list; the endpoint is public, so it stays bounded.
 export const GROUPS_LIMIT = 200;
@@ -27,8 +64,12 @@ export class GroupsService {
     });
   }
 
-  async getGroup(id: string): Promise<GroupDetail> {
-    const group = await this.groupRepository.findGroupById(id);
+  /** `viewerId`: the signed-in viewer, whose own membership the page shows. */
+  async getGroup(
+    id: string,
+    viewerId: string | null = null,
+  ): Promise<GroupDetail> {
+    const group = await this.groupRepository.findGroupById(id, viewerId);
     if (!group) throw new NotFoundException('Skupina neexistuje');
     return group;
   }
@@ -37,7 +78,7 @@ export class GroupsService {
   async createGroup(input: GroupInput, userId: string): Promise<GroupDetail> {
     await this.assertCatalogHas(input);
     const id = await this.groupRepository.createGroup(input, userId);
-    return this.getGroup(id);
+    return this.getGroup(id, userId);
   }
 
   /** Only an admin of the group may change it; anyone else gets 403. */
@@ -46,13 +87,101 @@ export class GroupsService {
     patch: Partial<GroupInput>,
     userId: string,
   ): Promise<GroupDetail> {
-    await this.getGroup(id);
-    if (!(await this.groupRepository.isActiveAdmin(id, userId))) {
-      throw new ForbiddenException('Skupinu může upravit jen její správce');
-    }
+    const group = await this.getGroup(id);
+    await this.assertAdmin(id, userId, 'Skupinu může upravit jen její správce');
     await this.assertCatalogHas(patch);
-    await this.groupRepository.updateGroup(id, patch);
-    return this.getGroup(id);
+    await this.groupRepository.updateGroup(id, patch, {
+      // in a public group only joining is approved, so nobody is left waiting
+      approvePending: group.type === 'closed' && patch.type === 'public',
+    });
+    return this.getGroup(id, userId);
+  }
+
+  /** „Přidat se“ / „Požádat o členství“ (US-17): the resulting status. */
+  async join(
+    groupId: string,
+    userId: string,
+  ): Promise<{ status: 'active' | 'pending' | 'blocked' }> {
+    const group = await this.getGroup(groupId, userId);
+    const decision = decideJoin(group, group.viewerMembership);
+    if (decision.kind === 'error') throw MEMBERSHIP_ERRORS[decision.error]();
+    if (decision.kind === 'create') {
+      await this.groupRepository.createMembership(
+        groupId,
+        userId,
+        decision.status,
+      );
+    }
+    return { status: decision.status };
+  }
+
+  /** „Odejít ze skupiny“, also withdrawing a pending request. */
+  async leave(groupId: string, userId: string): Promise<void> {
+    const group = await this.getGroup(groupId, userId);
+    const decision = decideLeave(
+      group.viewerMembership,
+      await this.groupRepository.countActiveAdmins(groupId),
+    );
+    if (decision.kind === 'error') throw MEMBERSHIP_ERRORS[decision.error]();
+    await this.groupRepository.deleteMembership(groupId, userId);
+  }
+
+  /** Requests and members for the management (D-07); only an admin. */
+  async getMembers(groupId: string, userId: string): Promise<GroupMembers> {
+    await this.getGroup(groupId);
+    await this.assertAdmin(
+      groupId,
+      userId,
+      'Členy a žádosti vidí jen správce skupiny',
+    );
+    return this.groupRepository.findMembers(groupId);
+  }
+
+  /** Any admin approves a pending request (US-17). */
+  async approveRequest(
+    groupId: string,
+    adminId: string,
+    userId: string,
+  ): Promise<void> {
+    await this.assertPendingRequest(groupId, adminId, userId);
+    await this.groupRepository.approveRequest(groupId, userId);
+  }
+
+  /** Any admin rejects a pending request; it is removed, so the user can ask again. */
+  async rejectRequest(
+    groupId: string,
+    adminId: string,
+    userId: string,
+  ): Promise<void> {
+    await this.assertPendingRequest(groupId, adminId, userId);
+    await this.groupRepository.deleteMembership(groupId, userId);
+  }
+
+  private async assertPendingRequest(
+    groupId: string,
+    adminId: string,
+    userId: string,
+  ): Promise<void> {
+    await this.getGroup(groupId);
+    await this.assertAdmin(
+      groupId,
+      adminId,
+      'Žádosti vyřizuje jen správce skupiny',
+    );
+    const decision = decideRequest(
+      await this.groupRepository.findMembership(groupId, userId),
+    );
+    if (decision.kind === 'error') throw MEMBERSHIP_ERRORS[decision.error]();
+  }
+
+  private async assertAdmin(
+    groupId: string,
+    userId: string,
+    message: string,
+  ): Promise<void> {
+    if (!(await this.groupRepository.isActiveAdmin(groupId, userId))) {
+      throw new ForbiddenException(message);
+    }
   }
 
   private async assertCatalogHas(ids: {

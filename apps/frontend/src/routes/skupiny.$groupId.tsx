@@ -1,5 +1,5 @@
 import { useQuery } from "@tanstack/react-query"
-import { createFileRoute, Link } from "@tanstack/react-router"
+import { createFileRoute, Link, useLocation } from "@tanstack/react-router"
 import { RefreshCw } from "lucide-react"
 
 import { ROUTES } from "@/app/routes"
@@ -10,21 +10,28 @@ import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 import { Button } from "@/components/ui/button"
 import { Skeleton } from "@/components/ui/skeleton"
 import { HTTPError } from "@/lib/api-client"
+import { cn } from "@/lib/utils"
 
 import { HeaderMenu } from "@/features/auth/components/HeaderMenu"
 import { useSession } from "@/features/auth/hooks/useSession"
+import { encodeRedirectUri } from "@/features/auth/lib/redirect"
 import { groupQueryOptions } from "@/features/groups/api/groupsQueryOptions"
 import { GroupProfile } from "@/features/groups/components/GroupProfile"
+import { GROUPS_PAGE } from "@/features/groups/lib/pageLayout"
 
 export const Route = createFileRoute("/skupiny/$groupId")({
   component: GroupPage,
 })
 
-/** Figma A-08. Public: visitors see the page without an account. */
+/** Figma A-08, A-08d. Public: visitors see the page without an account. */
 function GroupPage() {
   const { groupId } = Route.useParams()
-  const { user } = useSession()
-  const groupQuery = useQuery(groupQueryOptions(groupId))
+  const session = useSession()
+  const user = session.user
+  // undefined while the session loads; a failed check counts as a visitor
+  const viewerId = session.isPending ? undefined : (user?.id ?? null)
+  const groupQuery = useQuery(groupQueryOptions(groupId, viewerId))
+  const location = useLocation()
   const group = groupQuery.data
   const isNotFound =
     groupQuery.error instanceof HTTPError && groupQuery.error.response.status === 404
@@ -33,16 +40,18 @@ function GroupPage() {
     <>
       <Seo title={group?.name ?? (isNotFound ? "Skupina nenalezena" : "Skupina")} />
       <Header userMenu={<HeaderMenu />} />
-      <main className="mx-auto flex w-full max-w-2xl flex-1 flex-col gap-6 px-4 py-6 md:py-8">
+      <main className={cn(GROUPS_PAGE, "flex-1 gap-4")}>
         <BackLink
           to={ROUTES.groups}
           fallbackLabel="Všechny skupiny"
+          label="Skupiny"
         />
 
         {group ? (
           <GroupProfile
             group={group}
-            isAdmin={Boolean(user && group.admins.some((admin) => admin.id === user.id))}
+            isSignedIn={Boolean(user)}
+            signInFrom={encodeRedirectUri(location)}
           />
         ) : groupQuery.error ? (
           <GroupError

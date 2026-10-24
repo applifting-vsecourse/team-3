@@ -29,14 +29,38 @@ export const groupSchema = z.object({
 
 export const groupsSchema = z.array(groupSchema)
 
+export const membershipSchema = z.object({
+  role: z.enum(["admin", "member"]),
+  // blocked: set by an admin (#63), the user can't join again
+  status: z.enum(["pending", "active", "blocked"]),
+})
+
 export const groupDetailSchema = groupSchema.extend({
   description: z.string().nullable(),
   status: z.enum(["active", "inactive"]),
   admins: z.array(z.object({ id: z.string(), name: z.string() })),
+  /** The signed-in viewer's own membership; null for a visitor or a non-member. */
+  viewerMembership: membershipSchema.nullable(),
+})
+
+const memberEntrySchema = z.object({
+  userId: z.string(),
+  name: z.string(),
+  role: z.enum(["admin", "member"]),
+  since: z.coerce.date(),
+})
+
+/** GET /api/groups/:id/members, only for an admin (Figma D-07). */
+export const groupMembersSchema = z.object({
+  requests: z.array(memberEntrySchema),
+  members: z.array(memberEntrySchema),
 })
 
 export type Group = z.infer<typeof groupSchema>
 export type GroupDetail = z.infer<typeof groupDetailSchema>
+export type Membership = z.infer<typeof membershipSchema>
+export type GroupMemberEntry = z.infer<typeof memberEntrySchema>
+export type GroupMembers = z.infer<typeof groupMembersSchema>
 
 /** Query parameters of GET /api/groups, already resolved to ids. */
 export type GroupFilters = {

@@ -119,7 +119,7 @@ export function GroupForm({
             type: values.type,
           }),
         )}
-        className="flex flex-col gap-6"
+        className="flex flex-col gap-5"
       >
         {errorMessage ? (
           <Alert variant="destructive">
@@ -297,7 +297,8 @@ export function GroupForm({
         <Button
           type="submit"
           size="lg"
-          className="w-full"
+          // D-06d: as wide as its label on desktop
+          className="h-11 w-full md:w-auto md:self-start"
           disabled={isSubmitting}
         >
           {isSubmitting ? <Loader2 className="size-4 animate-spin" /> : null}

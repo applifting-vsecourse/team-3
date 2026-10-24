@@ -5,6 +5,7 @@ import { toast } from "sonner"
 import { BackLink } from "@/components/BackLink/BackLink"
 import { Seo } from "@/components/Seo"
 import { useCatalog } from "@/hooks/useCatalog"
+import { cn } from "@/lib/utils"
 
 import { useSession } from "@/features/auth/hooks/useSession"
 import { groupQueryOptions } from "@/features/groups/api/groupsQueryOptions"
@@ -12,62 +13,69 @@ import { AdminOnlyNotice } from "@/features/groups/components/AdminOnlyNotice"
 import { CatalogState } from "@/features/groups/components/CatalogState"
 import { GroupForm } from "@/features/groups/components/GroupForm"
 import { useUpdateGroup } from "@/features/groups/hooks/useGroupMutations"
+import { GROUPS_FORM, GROUPS_PAGE } from "@/features/groups/lib/pageLayout"
 
 export const Route = createFileRoute("/_ProtectedPages/skupiny/$groupId/upravit")({
   component: EditGroupPage,
 })
 
 /**
- * D-07 › Upravit skupinu: the same form as founding (D-06), every field can
+ * D-07 › Upravit skupinu: the same form as founding (D-06, D-06d), every field can
  * change. Only an admin; the API answers 403 to anyone else as well.
  */
 function EditGroupPage() {
   const { groupId } = Route.useParams()
   const navigate = useNavigate()
-  const { user } = useSession()
+  const session = useSession()
+  const user = session.user
+  // undefined while the session loads; a failed check counts as a visitor
+  const viewerId = session.isPending ? undefined : (user?.id ?? null)
   const { catalog, queries } = useCatalog()
-  const groupQuery = useQuery(groupQueryOptions(groupId))
+  const groupQuery = useQuery(groupQueryOptions(groupId, viewerId))
   const updateGroup = useUpdateGroup(groupId)
   const group = groupQuery.data
-  const isAdmin = Boolean(user && group?.admins.some((admin) => admin.id === user.id))
+  const isAdmin =
+    group?.viewerMembership?.role === "admin" && group.viewerMembership.status === "active"
 
   return (
     <>
       <Seo title="Upravit skupinu" />
-      <div className="mx-auto flex w-full max-w-2xl flex-col gap-6 px-4 py-6 md:py-8">
+      <div className={cn(GROUPS_PAGE, "gap-4")}>
         <BackLink
           to="/skupiny/$groupId/sprava"
           params={{ groupId }}
           fallbackLabel="Správa skupiny"
         />
-        <h1 className="text-3xl font-semibold tracking-tight">Upravit skupinu</h1>
-        {catalog && group && !isAdmin ? (
-          <AdminOnlyNotice groupId={groupId} />
-        ) : catalog && group ? (
-          <GroupForm
-            catalog={catalog}
-            initialValues={{
-              name: group.name,
-              description: group.description,
-              activityId: group.activity.id,
-              localityId: group.locality.id,
-              type: group.type,
-            }}
-            submitLabel="Uložit změny"
-            isSubmitting={updateGroup.isPending}
-            errorMessage={updateGroup.error?.message}
-            onSubmit={(input) =>
-              updateGroup.mutate(input, {
-                onSuccess: () => {
-                  toast.success("Změny jsou uložené")
-                  void navigate({ to: "/skupiny/$groupId", params: { groupId } })
-                },
-              })
-            }
-          />
-        ) : (
-          <CatalogState queries={[...queries, groupQuery]} />
-        )}
+        <div className={GROUPS_FORM}>
+          <h1 className="text-3xl font-semibold tracking-tight md:text-4xl">Upravit skupinu</h1>
+          {catalog && group && !isAdmin ? (
+            <AdminOnlyNotice groupId={groupId} />
+          ) : catalog && group ? (
+            <GroupForm
+              catalog={catalog}
+              initialValues={{
+                name: group.name,
+                description: group.description,
+                activityId: group.activity.id,
+                localityId: group.locality.id,
+                type: group.type,
+              }}
+              submitLabel="Uložit změny"
+              isSubmitting={updateGroup.isPending}
+              errorMessage={updateGroup.error?.message}
+              onSubmit={(input) =>
+                updateGroup.mutate(input, {
+                  onSuccess: () => {
+                    toast.success("Změny jsou uložené")
+                    void navigate({ to: "/skupiny/$groupId", params: { groupId } })
+                  },
+                })
+              }
+            />
+          ) : (
+            <CatalogState queries={[...queries, groupQuery]} />
+          )}
+        </div>
       </div>
     </>
   )
