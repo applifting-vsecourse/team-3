@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest"
 
-import type { ActivityCategory } from "@/features/events/api/catalogSchemas"
+import type { ActivityCategory } from "@/lib/catalog/catalogSchemas"
 
 import {
   categoryState,
@@ -119,6 +119,16 @@ describe("selectionLabel", () => {
     expect(
       selectionLabel({ categories: ["raketove-sporty"], activities: ["florbal"] }, categories),
     ).toBe("Typ aktivity (2)")
+  })
+
+  it("counts under the filter's own name", () => {
+    expect(
+      selectionLabel(
+        { categories: ["raketove-sporty"], activities: ["florbal"] },
+        categories,
+        "Aktivita",
+      ),
+    ).toBe("Aktivita (2)")
   })
 
   it("does not count slugs the catalog doesn't know (they are dropped from the query)", () => {
