@@ -174,8 +174,9 @@ export function OrganizingEvents({ viewerId }: { viewerId: string }) {
           </ul>
         </>
       )}
-      {/* floats above the bottom navigation while the list scrolls, then rests under it */}
-      <div className="sticky bottom-20 flex justify-end md:bottom-8">
+      {/* mobile: floats above the bottom navigation while the list scrolls, then
+          rests under it; on desktop „Založit akci“ is in the header (C-02d) */}
+      <div className="sticky bottom-20 flex justify-end md:hidden">
         <Button
           asChild
           className="h-11 shadow-md"
