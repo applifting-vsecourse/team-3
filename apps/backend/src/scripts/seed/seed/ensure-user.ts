@@ -148,11 +148,12 @@ async function freeUsername(
     });
     return !holder || holder.id === accountId;
   };
-  if (await isFree(wanted)) return wanted;
+  const name = wanted.toLowerCase().slice(0, MAX_USERNAME_LENGTH);
+  if (await isFree(name)) return name;
 
   const suffix = accountId.slice(0, 6).toLowerCase();
   // room for ".", the suffix and up to three digits
-  const base = wanted.slice(0, MAX_USERNAME_LENGTH - 1 - suffix.length - 3);
+  const base = name.slice(0, MAX_USERNAME_LENGTH - 1 - suffix.length - 3);
   for (let n = 0; n < 1000; n++) {
     const candidate = `${base}.${suffix}${n === 0 ? '' : n}`;
     if (await isFree(candidate)) return candidate;

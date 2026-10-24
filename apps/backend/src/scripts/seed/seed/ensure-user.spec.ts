@@ -192,6 +192,22 @@ describe('ensureUser', () => {
     expect(prisma.user.update).not.toHaveBeenCalled();
   });
 
+  it('normalises the wanted username to the plugin rules too', async () => {
+    const { prisma, auth } = setup([]);
+
+    await ensureUser(prisma, auth, {
+      ...params,
+      username: 'Velmi.Dlouhe.Uzivatelske.Jmeno.X',
+    });
+
+    expect(prisma.user.update).toHaveBeenCalledWith({
+      where: { id: NEW_ID },
+      data: expect.objectContaining({
+        username: 'velmi.dlouhe.uzivatelske.jmeno',
+      }),
+    });
+  });
+
   it("leaves alone an account without a username that isn't the seed's (different password)", async () => {
     // someone registered SUPERADMIN_EMAIL through the API, without a username
     const { prisma, auth } = setup([
