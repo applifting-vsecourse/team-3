@@ -12,6 +12,7 @@ import {
   Max,
   MaxLength,
   Min,
+  ValidateIf,
 } from 'class-validator';
 import {
   EVENT_ADDRESS_MAX_LENGTH,
@@ -23,6 +24,17 @@ import {
 const trim = ({ value }: { value: unknown }): unknown =>
   typeof value === 'string' ? value.trim() : value;
 
+// `@IsOptional()` lets null through as well, and these columns can't be
+// null: the database would refuse it with a 500. Only a missing field is skipped.
+const IsOptionalNotNull = (): PropertyDecorator =>
+  ValidateIf((_dto: object, value: unknown) => value !== undefined);
+
+// A coordinate on its own would move the pin half way: both or neither.
+const IsPartOfPlace = (): PropertyDecorator =>
+  ValidateIf(
+    (dto: UpdateEventDto) => dto.lat !== undefined || dto.lng !== undefined,
+  );
+
 /**
  * PATCH /events/:id (B-028, #41): the fields the form lets the organizer
  * change. Not the activity nor the way of joining (design decision for
@@ -32,7 +44,7 @@ const trim = ({ value }: { value: unknown }): unknown =>
  */
 export class UpdateEventDto {
   @ApiPropertyOptional({ maxLength: EVENT_TITLE_MAX_LENGTH })
-  @IsOptional()
+  @IsOptionalNotNull()
   @Transform(trim)
   @IsString()
   @IsNotEmpty()
@@ -50,26 +62,26 @@ export class UpdateEventDto {
   description?: string;
 
   @ApiPropertyOptional()
-  @IsOptional()
+  @IsOptionalNotNull()
   @IsString()
   @IsNotEmpty()
   @MaxLength(100)
   localityId?: string;
 
   @ApiPropertyOptional()
-  @IsOptional()
+  @IsPartOfPlace()
   @IsNumber()
   @IsLatitude()
   lat?: number;
 
   @ApiPropertyOptional()
-  @IsOptional()
+  @IsPartOfPlace()
   @IsNumber()
   @IsLongitude()
   lng?: number;
 
   @ApiPropertyOptional({ maxLength: EVENT_ADDRESS_MAX_LENGTH })
-  @IsOptional()
+  @IsOptionalNotNull()
   @Transform(trim)
   @IsString()
   @IsNotEmpty()
@@ -77,19 +89,19 @@ export class UpdateEventDto {
   address?: string;
 
   @ApiPropertyOptional({ type: String, format: 'date-time' })
-  @IsOptional()
+  @IsOptionalNotNull()
   @IsDateString({ strict: true })
   startsAt?: string;
 
   @ApiPropertyOptional({ minimum: 1 })
-  @IsOptional()
+  @IsOptionalNotNull()
   @IsInt()
   @Min(1)
   @Max(EVENT_MAX_PARTICIPANTS)
   minParticipants?: number;
 
   @ApiPropertyOptional({ minimum: 1 })
-  @IsOptional()
+  @IsOptionalNotNull()
   @IsInt()
   @Min(1)
   @Max(EVENT_MAX_PARTICIPANTS)

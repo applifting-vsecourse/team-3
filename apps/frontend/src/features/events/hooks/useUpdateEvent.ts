@@ -20,5 +20,10 @@ export function useUpdateEvent(eventId: string, viewerId: string) {
       queryClient.setQueryData(eventKeys.detail(eventId, viewerId), event)
       void queryClient.invalidateQueries({ queryKey: eventKeys.lists() })
     },
+    // a refusal (cancelled elsewhere, started, someone joined meanwhile) means
+    // the cached detail is out of date: refetch it, so the form knows
+    onError: () => {
+      void queryClient.invalidateQueries({ queryKey: eventKeys.detail(eventId, viewerId) })
+    },
   })
 }

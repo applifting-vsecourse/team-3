@@ -166,9 +166,9 @@ describe("EventForm", () => {
 
       expect(screen.getByRole("combobox", { name: "Aktivita *" })).toBeDisabled()
       expect(screen.getByRole("radio", { name: /Schvaluji přihlášky/ })).toBeDisabled()
-      expect(
-        screen.getByText("Aktivitu ani způsob přihlašování po založení změnit nejde."),
-      ).toBeInTheDocument()
+      // each disabled control says why, right under it
+      expect(screen.getByText("Aktivitu po založení změnit nejde.")).toBeInTheDocument()
+      expect(screen.getByText("Způsob přihlašování po založení změnit nejde.")).toBeInTheDocument()
       expect(screen.getByRole("button", { name: "Uložit změny" })).toBeInTheDocument()
     })
 

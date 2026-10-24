@@ -260,6 +260,9 @@ export function EventForm({
                   ))}
                 </SelectContent>
               </Select>
+              {isEdit ? (
+                <p className="text-sm text-muted-foreground">Aktivitu po založení změnit nejde.</p>
+              ) : null}
               <FormMessage />
             </FormItem>
           )}
@@ -452,7 +455,7 @@ export function EventForm({
               </FormControl>
               {isEdit ? (
                 <p className="text-sm text-muted-foreground">
-                  Aktivitu ani způsob přihlašování po založení změnit nejde.
+                  Způsob přihlašování po založení změnit nejde.
                 </p>
               ) : null}
               <FormMessage />

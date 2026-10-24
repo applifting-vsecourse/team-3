@@ -515,14 +515,17 @@ describe('EventsService.updateEvent', () => {
       activity: true,
       locality: true,
     });
-    repository.updateEvent.mockImplementation(async (_id, _changes, check) => {
-      const problem = check({
+    // what the lock reads: by default the same event as the pre-read
+    repository.updateEvent.mockImplementation(async (_id, decide) =>
+      decide({
+        status: detail.status,
+        startsAt: detail.startsAt,
+        endsAt: detail.endsAt,
         approvedCount: 2,
         minParticipants: 3,
         maxParticipants: 6,
-      });
-      return problem ? { ok: false, problem } : { ok: true };
-    });
+      }),
+    );
     return { repository, service: new EventsService(repository) };
   };
 
@@ -534,9 +537,38 @@ describe('EventsService.updateEvent', () => {
 
     expect(repository.updateEvent).toHaveBeenCalledWith(
       'e1',
-      changes,
       expect.any(Function),
     );
+    const decide = repository.updateEvent.mock.calls[0]![1];
+    expect(
+      decide({
+        status: 'published',
+        startsAt: aDetail().startsAt,
+        endsAt: null,
+        approvedCount: 2,
+        minParticipants: 3,
+        maxParticipants: 6,
+      }),
+    ).toEqual({ ok: true, data: changes });
+  });
+
+  it('an edit that waited for the lock behind a cancel is 409, not written', async () => {
+    const { repository, service } = setup();
+    // the pre-read still saw it published; the cancel won the lock
+    repository.updateEvent.mockImplementation(async (_id, decide) =>
+      decide({
+        status: 'cancelled',
+        startsAt: aDetail().startsAt,
+        endsAt: null,
+        approvedCount: 2,
+        minParticipants: 3,
+        maxParticipants: 6,
+      }),
+    );
+
+    await expect(
+      service.updateEvent('e1', 'u1', { title: 'Pozdě' }, now),
+    ).rejects.toThrow(ConflictException);
   });
 
   it('anyone else gets 403 and nothing changes (B-028)', async () => {

@@ -28,7 +28,35 @@ describe('UpdateEventDto', () => {
 
   it('keeps the same field rules as creating: min ≥ 1, numbers for coordinates, a non-empty title', () => {
     expect(invalid({ minParticipants: 0 })).toEqual(['minParticipants']);
-    expect(invalid({ lat: '50.1' })).toEqual(['lat']);
+    expect(invalid({ lat: '50.1', lng: 14.45 })).toEqual(['lat']);
     expect(invalid({ title: '  ' })).toEqual(['title']);
+  });
+
+  it('null is a 400 for fields that must have a value; the description may be cleared', () => {
+    expect(
+      invalid({
+        title: null,
+        localityId: null,
+        address: null,
+        startsAt: null,
+        minParticipants: null,
+        maxParticipants: null,
+      }).sort(),
+    ).toEqual([
+      'address',
+      'localityId',
+      'maxParticipants',
+      'minParticipants',
+      'startsAt',
+      'title',
+    ]);
+    expect(invalid({ description: null })).toEqual([]);
+  });
+
+  it('the place moves with both coordinates or not at all', () => {
+    expect(invalid({ lat: 50.1 })).toEqual(['lng']);
+    expect(invalid({ lng: 14.45 })).toEqual(['lat']);
+    expect(invalid({ lat: null, lng: null }).sort()).toEqual(['lat', 'lng']);
+    expect(invalid({ lat: 50.1, lng: 14.45 })).toEqual([]);
   });
 });

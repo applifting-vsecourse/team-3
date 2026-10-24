@@ -2,13 +2,16 @@ import { PrismaService } from '@/core/prisma/prisma.service';
 import { Prisma } from '@/generated/prisma/client';
 import { computeCapacity } from '@/modules/event/domain/capacity';
 import {
-  EventChanges,
   EventDetail,
   EventParticipant,
   NewEvent,
   PublicEvent,
   PublicEventFilters,
 } from '@/modules/event/domain/event';
+import {
+  UpdateDecision,
+  UpdateState,
+} from '@/modules/event/domain/event-update';
 import {
   JoinDecision,
   JoinState,
@@ -248,34 +251,35 @@ export class EventRepository {
   }
 
   /**
-   * Changes the event under the same row lock as joining (#41): the approved
-   * count `check` sees can't grow before the write, so the maximum is never
-   * lowered below the people who have a place. `check` returns a Czech
-   * problem or null. Null when the event doesn't exist.
+   * Changes the event under the same row lock as joining (#41): the state
+   * `decide` sees can't change before the write, so the maximum is never
+   * lowered below the people who have a place, and a cancel that came first
+   * is seen. Writes what `decide` says; null when the event doesn't exist.
    */
   async updateEvent(
     id: string,
-    changes: EventChanges,
-    check: (current: {
-      approvedCount: number;
-      minParticipants: number;
-      maxParticipants: number;
-    }) => string | null,
-  ): Promise<{ ok: true } | { ok: false; problem: string } | null> {
+    decide: (state: UpdateState) => UpdateDecision,
+  ): Promise<UpdateDecision | null> {
     return this.prisma.$transaction(async (tx) => {
       await tx.$executeRaw`SELECT 1 FROM "event" WHERE "id" = ${id} FOR UPDATE`;
       const event = await tx.event.findUnique({
         where: { id },
-        select: { minParticipants: true, maxParticipants: true },
+        select: {
+          status: true,
+          startsAt: true,
+          endsAt: true,
+          minParticipants: true,
+          maxParticipants: true,
+        },
       });
       if (!event) return null;
       const approvedCount = await tx.participation.count({
         where: { eventId: id, status: 'approved' },
       });
-      const problem = check({ approvedCount, ...event });
-      if (problem) return { ok: false, problem };
-      await tx.event.update({ where: { id }, data: changes });
-      return { ok: true };
+      const decision = decide({ ...event, approvedCount });
+      if (!decision.ok) return decision;
+      await tx.event.update({ where: { id }, data: decision.data });
+      return decision;
     });
   }
 

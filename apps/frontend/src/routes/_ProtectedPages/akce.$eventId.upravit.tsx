@@ -11,6 +11,7 @@ import { useSession } from "@/features/auth/hooks/useSession"
 import { EventForm } from "@/features/events/components/EventForm"
 import { useEventDetail } from "@/features/events/hooks/useEventDetail"
 import { useUpdateEvent } from "@/features/events/hooks/useUpdateEvent"
+import { editRefusal } from "@/features/events/lib/editRefusal"
 import { CatalogState } from "@/features/groups/components/CatalogState"
 
 export const Route = createFileRoute("/_ProtectedPages/akce/$eventId/upravit")({
@@ -30,15 +31,7 @@ function EditEventPage() {
   const { catalog, queries } = useCatalog()
   const updateEvent = useUpdateEvent(eventId, session.user?.id ?? "")
 
-  const refusal = !event
-    ? null
-    : event.organizer.id !== session.user?.id
-      ? "Upravit akci může jen její organizátor."
-      : event.status === "cancelled"
-        ? "Zrušenou akci nejde upravit."
-        : event.startsAt <= new Date()
-          ? "Akce už začala, upravit ji nejde."
-          : null
+  const refusal = event ? editRefusal(event, session.user?.id) : null
 
   return (
     <>

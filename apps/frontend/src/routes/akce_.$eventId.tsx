@@ -19,6 +19,7 @@ import { ParticipationAction } from "@/features/events/components/ParticipationA
 import { useCancelEvent } from "@/features/events/hooks/useCancelEvent"
 import { useEventDetail } from "@/features/events/hooks/useEventDetail"
 import { useJoinEvent, useLeaveEvent } from "@/features/events/hooks/useParticipation"
+import { editRefusal } from "@/features/events/lib/editRefusal"
 
 // `akce_`: not nested in /akce, whose page has no outlet. Public on purpose:
 // a shared link opens straight on the detail, without signing in (US-03).
@@ -39,11 +40,7 @@ function EventDetailPage() {
   const signInFrom = encodeRedirectUri(location)
   const cancelEvent = useCancelEvent(eventId, session.user?.id ?? "")
   // only the organizer, and only while the event can still be edited or cancelled
-  const canManage =
-    event !== undefined &&
-    session.user?.id === event.organizer.id &&
-    event.status === "published" &&
-    event.startsAt > new Date()
+  const canManage = event !== undefined && editRefusal(event, session.user?.id) === null
 
   // The cached session says signed in, yet the API answered as to a visitor:
   // the cookie has expired. Refresh the session so the header and the login

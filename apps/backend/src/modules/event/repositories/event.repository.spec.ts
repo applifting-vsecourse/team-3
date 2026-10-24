@@ -123,54 +123,54 @@ describe('EventRepository.join', () => {
 });
 
 describe('EventRepository.updateEvent', () => {
+  const stored = {
+    status: 'published',
+    startsAt: new Date('2026-10-24T16:00:00.000Z'),
+    endsAt: null,
+    minParticipants: 3,
+    maxParticipants: 6,
+  };
   const setup = (): ReturnType<typeof mockDeep<PrismaService>> => {
     const prisma = mockDeep<PrismaService>();
     prisma.$transaction.mockImplementation(((
       run: (tx: PrismaService) => Promise<unknown>,
     ) => run(prisma)) as never);
-    prisma.event.findUnique.mockResolvedValue({
-      minParticipants: 3,
-      maxParticipants: 6,
-    } as never);
+    prisma.event.findUnique.mockResolvedValue(stored as never);
     prisma.participation.count.mockResolvedValue(5);
     return prisma;
   };
 
-  it('locks the event row before it counts the approved, then writes', async () => {
+  it('locks the event row before it reads it, then writes what was decided', async () => {
     const prisma = setup();
-    const check = jest.fn().mockReturnValue(null);
+    const endsAt = new Date('2026-10-25T19:00:00.000Z');
+    const decide = jest.fn().mockReturnValue({
+      ok: true,
+      data: { maxParticipants: 8, endsAt },
+    });
 
     await expect(
-      new EventRepository(prisma).updateEvent(
-        'e1',
-        { maxParticipants: 8 },
-        check,
-      ),
-    ).resolves.toEqual({ ok: true });
+      new EventRepository(prisma).updateEvent('e1', decide),
+    ).resolves.toEqual({ ok: true, data: { maxParticipants: 8, endsAt } });
     expect(prisma.$executeRaw.mock.invocationCallOrder[0]!).toBeLessThan(
-      prisma.participation.count.mock.invocationCallOrder[0]!,
+      prisma.event.findUnique.mock.invocationCallOrder[0]!,
     );
-    expect(check).toHaveBeenCalledWith({
-      approvedCount: 5,
-      minParticipants: 3,
-      maxParticipants: 6,
-    });
+    expect(decide).toHaveBeenCalledWith({ ...stored, approvedCount: 5 });
     expect(prisma.event.update).toHaveBeenCalledWith({
       where: { id: 'e1' },
-      data: { maxParticipants: 8 },
+      data: { maxParticipants: 8, endsAt },
     });
   });
 
-  it('writes nothing when the check finds a problem', async () => {
+  it('writes nothing when the change is refused', async () => {
     const prisma = setup();
+    const refused = {
+      ok: false,
+      refusal: { code: 'INVALID_CAPACITY', problem: 'Maximum…' },
+    } as const;
 
     await expect(
-      new EventRepository(prisma).updateEvent(
-        'e1',
-        { maxParticipants: 4 },
-        () => 'Maximum…',
-      ),
-    ).resolves.toEqual({ ok: false, problem: 'Maximum…' });
+      new EventRepository(prisma).updateEvent('e1', () => refused),
+    ).resolves.toEqual(refused);
     expect(prisma.event.update).not.toHaveBeenCalled();
   });
 });
