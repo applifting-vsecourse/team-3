@@ -1,4 +1,4 @@
-import { useId } from "react"
+import { useId, useMemo } from "react"
 import { zodResolver } from "@hookform/resolvers/zod"
 import { Loader2 } from "lucide-react"
 import { useForm, useWatch } from "react-hook-form"
@@ -52,46 +52,52 @@ const count = (name: string) =>
     )
     .refine((value) => Number(value) <= EVENT_MAX_PARTICIPANTS, `Nejvýš ${EVENT_MAX_PARTICIPANTS}`)
 
-const schema = z
-  .object({
-    title: z
-      .string()
-      .trim()
-      .min(1, "Vyplňte název akce")
-      .max(EVENT_TITLE_MAX_LENGTH, `Název může mít nejvýš ${EVENT_TITLE_MAX_LENGTH} znaků`),
-    activityId: z.string().min(1, "Akce potřebuje aktivitu"),
-    localityId: z.string().min(1, "Akce potřebuje lokalitu"),
-    place: z.object({ lat: z.number(), lng: z.number() }).nullable(),
-    address: z
-      .string()
-      .trim()
-      .min(1, "Vyplňte adresu")
-      .max(EVENT_ADDRESS_MAX_LENGTH, `Adresa může mít nejvýš ${EVENT_ADDRESS_MAX_LENGTH} znaků`),
-    startsAt: z
-      .string()
-      .min(1, "Vyplňte datum a čas")
-      .refine((value) => fromPragueWallTime(value) > new Date(), "Termín musí být v budoucnosti"),
-    minParticipants: count("minimum"),
-    maxParticipants: count("maximum"),
-    approvalMode: z.enum(["open", "approval"]),
-    description: z
-      .string()
-      .trim()
-      .max(
-        EVENT_DESCRIPTION_MAX_LENGTH,
-        `Popis může mít nejvýš ${EVENT_DESCRIPTION_MAX_LENGTH} znaků`,
-      ),
-  })
-  .refine((values) => values.place !== null, {
-    message: "Vyberte místo na mapě",
-    path: ["place"],
-  })
-  .refine((values) => Number(values.maxParticipants) >= Number(values.minParticipants), {
-    message: "Maximum nesmí být menší než minimum",
-    path: ["maxParticipants"],
-  })
+/** `approvedCount`: when editing, the maximum can't go below the people already in (#41). */
+const buildSchema = (approvedCount: number) =>
+  z
+    .object({
+      title: z
+        .string()
+        .trim()
+        .min(1, "Vyplňte název akce")
+        .max(EVENT_TITLE_MAX_LENGTH, `Název může mít nejvýš ${EVENT_TITLE_MAX_LENGTH} znaků`),
+      activityId: z.string().min(1, "Akce potřebuje aktivitu"),
+      localityId: z.string().min(1, "Akce potřebuje lokalitu"),
+      place: z.object({ lat: z.number(), lng: z.number() }).nullable(),
+      address: z
+        .string()
+        .trim()
+        .min(1, "Vyplňte adresu")
+        .max(EVENT_ADDRESS_MAX_LENGTH, `Adresa může mít nejvýš ${EVENT_ADDRESS_MAX_LENGTH} znaků`),
+      startsAt: z
+        .string()
+        .min(1, "Vyplňte datum a čas")
+        .refine((value) => fromPragueWallTime(value) > new Date(), "Termín musí být v budoucnosti"),
+      minParticipants: count("minimum"),
+      maxParticipants: count("maximum"),
+      approvalMode: z.enum(["open", "approval"]),
+      description: z
+        .string()
+        .trim()
+        .max(
+          EVENT_DESCRIPTION_MAX_LENGTH,
+          `Popis může mít nejvýš ${EVENT_DESCRIPTION_MAX_LENGTH} znaků`,
+        ),
+    })
+    .refine((values) => values.place !== null, {
+      message: "Vyberte místo na mapě",
+      path: ["place"],
+    })
+    .refine((values) => Number(values.maxParticipants) >= Number(values.minParticipants), {
+      message: "Maximum nesmí být menší než minimum",
+      path: ["maxParticipants"],
+    })
+    .refine((values) => Number(values.maxParticipants) >= approvedCount, {
+      message: `Maximum nejde snížit pod počet přihlášených (${approvedCount})`,
+      path: ["maxParticipants"],
+    })
 
-type FormValues = z.input<typeof schema>
+type FormValues = z.input<ReturnType<typeof buildSchema>>
 
 /** Figma D-01: Radio card; „Bez schválení“ is the default (PO 19. 10.) */
 const APPROVAL_OPTIONS: { value: EventInput["approvalMode"]; title: string; hint: string }[] = [
@@ -105,6 +111,13 @@ const APPROVAL_OPTIONS: { value: EventInput["approvalMode"]; title: string; hint
 
 type EventFormProps = {
   catalog: Catalog
+  /**
+   * `edit` (#41): the same form, but the activity and the way of joining stay
+   * as they are (design decision for D-02), and the maximum can't go below
+   * `approvedCount`.
+   */
+  mode?: "create" | "edit"
+  approvedCount?: number
   /** Prefilled values, e.g. when editing (#41). */
   initialValues?: Partial<EventInput>
   isSubmitting: boolean
@@ -112,9 +125,11 @@ type EventFormProps = {
   onSubmit: (input: EventInput) => void | Promise<void>
 }
 
-/** Figma D-01: a new event (B-022). The organizer is the signed-in user. */
+/** Figma D-01: a new event (B-022), and D-02 editing it (#41). The organizer is the signed-in user. */
 export function EventForm({
   catalog,
+  mode = "create",
+  approvedCount = 0,
   initialValues,
   isSubmitting,
   errorMessage,
@@ -123,6 +138,8 @@ export function EventForm({
   const placeLabelId = useId()
   const placeErrorId = useId()
   const approvalId = useId()
+  const isEdit = mode === "edit"
+  const schema = useMemo(() => buildSchema(approvedCount), [approvedCount])
   const form = useForm<FormValues>({
     resolver: zodResolver(schema),
     defaultValues: {
@@ -211,6 +228,7 @@ export function EventForm({
               <Select
                 value={field.value}
                 onValueChange={field.onChange}
+                disabled={isEdit}
               >
                 <FormControl>
                   <SelectTrigger
@@ -408,6 +426,7 @@ export function EventForm({
                   ref={field.ref}
                   value={field.value}
                   onValueChange={field.onChange}
+                  disabled={isEdit}
                   className="gap-2"
                 >
                   {APPROVAL_OPTIONS.map((option) => (
@@ -431,6 +450,11 @@ export function EventForm({
                   ))}
                 </RadioGroup>
               </FormControl>
+              {isEdit ? (
+                <p className="text-sm text-muted-foreground">
+                  Aktivitu ani způsob přihlašování po založení změnit nejde.
+                </p>
+              ) : null}
               <FormMessage />
             </FormItem>
           )}
@@ -461,7 +485,7 @@ export function EventForm({
           disabled={isSubmitting}
         >
           {isSubmitting ? <Loader2 className="size-4 animate-spin" /> : null}
-          Zveřejnit akci
+          {isEdit ? "Uložit změny" : "Zveřejnit akci"}
         </Button>
       </form>
     </Form>
