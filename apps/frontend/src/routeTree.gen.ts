@@ -12,6 +12,7 @@ import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as ProtectedPagesRouteImport } from './routes/_ProtectedPages'
 import { Route as AkceRouteImport } from './routes/akce'
+import { Route as EmailOverenRouteImport } from './routes/email-overen'
 import { Route as LoginRouteImport } from './routes/login'
 import { Route as ResetPasswordRouteImport } from './routes/reset-password'
 import { Route as SignupRouteImport } from './routes/signup'
@@ -36,6 +37,11 @@ const ProtectedPagesRoute = ProtectedPagesRouteImport.update({
 const AkceRoute = AkceRouteImport.update({
   id: '/akce',
   path: '/akce',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const EmailOverenRoute = EmailOverenRouteImport.update({
+  id: '/email-overen',
+  path: '/email-overen',
   getParentRoute: () => rootRouteImport,
 } as any)
 const LoginRoute = LoginRouteImport.update({
@@ -100,6 +106,7 @@ const ProtectedPagesSkupinyGroupIdUpravitRoute =
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/akce': typeof AkceRoute
+  '/email-overen': typeof EmailOverenRoute
   '/login': typeof LoginRoute
   '/reset-password': typeof ResetPasswordRoute
   '/signup': typeof SignupRoute
@@ -115,6 +122,7 @@ export interface FileRoutesByFullPath {
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/akce': typeof AkceRoute
+  '/email-overen': typeof EmailOverenRoute
   '/login': typeof LoginRoute
   '/reset-password': typeof ResetPasswordRoute
   '/signup': typeof SignupRoute
@@ -132,6 +140,7 @@ export interface FileRoutesById {
   '/': typeof IndexRoute
   '/_ProtectedPages': typeof ProtectedPagesRouteWithChildren
   '/akce': typeof AkceRoute
+  '/email-overen': typeof EmailOverenRoute
   '/login': typeof LoginRoute
   '/reset-password': typeof ResetPasswordRoute
   '/signup': typeof SignupRoute
@@ -149,6 +158,7 @@ export interface FileRouteTypes {
   fullPaths:
     | '/'
     | '/akce'
+    | '/email-overen'
     | '/login'
     | '/reset-password'
     | '/signup'
@@ -164,6 +174,7 @@ export interface FileRouteTypes {
   to:
     | '/'
     | '/akce'
+    | '/email-overen'
     | '/login'
     | '/reset-password'
     | '/signup'
@@ -180,6 +191,7 @@ export interface FileRouteTypes {
     | '/'
     | '/_ProtectedPages'
     | '/akce'
+    | '/email-overen'
     | '/login'
     | '/reset-password'
     | '/signup'
@@ -197,6 +209,7 @@ export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   ProtectedPagesRoute: typeof ProtectedPagesRouteWithChildren
   AkceRoute: typeof AkceRoute
+  EmailOverenRoute: typeof EmailOverenRoute
   LoginRoute: typeof LoginRoute
   ResetPasswordRoute: typeof ResetPasswordRoute
   SignupRoute: typeof SignupRoute
@@ -227,6 +240,13 @@ declare module '@tanstack/react-router' {
       path: '/akce'
       fullPath: '/akce'
       preLoaderRoute: typeof AkceRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/email-overen': {
+      id: '/email-overen'
+      path: '/email-overen'
+      fullPath: '/email-overen'
+      preLoaderRoute: typeof EmailOverenRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/login': {
@@ -333,6 +353,7 @@ const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   ProtectedPagesRoute: ProtectedPagesRouteWithChildren,
   AkceRoute: AkceRoute,
+  EmailOverenRoute: EmailOverenRoute,
   LoginRoute: LoginRoute,
   ResetPasswordRoute: ResetPasswordRoute,
   SignupRoute: SignupRoute,

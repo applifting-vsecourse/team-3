@@ -55,15 +55,16 @@ describe("ResetPasswordForm", () => {
     expect(onSubmit).toHaveBeenCalledWith("nove-heslo-2026")
   })
 
-  it("shows the server's answer, e.g. an expired link", () => {
+  it("shows the answer it is given, e.g. an expired link", () => {
+    const message = "Odkaz je neplatný, nebo už vypršel. Pošlete si prosím nový."
     render(
       <ResetPasswordForm
         isLoading={false}
-        errorMessage="Invalid token"
+        errorMessage={message}
         onSubmit={vi.fn()}
       />,
     )
 
-    expect(screen.getByText("Invalid token")).toBeInTheDocument()
+    expect(screen.getByText(message)).toBeInTheDocument()
   })
 })

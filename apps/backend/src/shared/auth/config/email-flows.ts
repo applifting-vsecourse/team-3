@@ -23,6 +23,9 @@ export const emailFlowOptions = (
   emailAndPassword: {
     enabled: true,
     resetPasswordTokenExpiresIn: PASSWORD_RESET_TTL_SECONDS,
+    // a forgotten password is often reset because the account is at risk:
+    // the new password signs out every other session
+    revokeSessionsOnPasswordReset: true,
     sendResetPassword: async ({ user, token }): Promise<void> => {
       const passwordResetUrl = `${config.frontendUrl}/${config.frontendResetPasswordUrl}?token=${token}`;
       const html = await renderEmail(ResetPassword, {

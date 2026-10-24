@@ -29,7 +29,10 @@ export function VerifyEmailBanner({ email }: { email: string }) {
           disabled={resend.isPending}
           onClick={() =>
             resend.mutate(email, {
-              onSuccess: () => toast.success(`Nový odkaz je na cestě na ${email}. Platí 24 hodin.`),
+              onSuccess: (result) =>
+                result === "already-verified"
+                  ? toast.success("E-mail už je ověřený.")
+                  : toast.success(`Nový odkaz je na cestě na ${email}. Platí 24 hodin.`),
               onError: (error) => toast.error(error.message),
             })
           }

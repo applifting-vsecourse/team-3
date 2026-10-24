@@ -12,9 +12,9 @@ vi.mock("@/features/auth/lib/auth-client", () => ({
   },
 }))
 
-const renderBanner = () =>
+const renderBanner = (queryClient = new QueryClient()) =>
   render(
-    <QueryClientProvider client={new QueryClient()}>
+    <QueryClientProvider client={queryClient}>
       <VerifyEmailBanner email="jakub.kral@example.com" />
     </QueryClientProvider>,
   )
@@ -28,7 +28,7 @@ describe("VerifyEmailBanner", () => {
     expect(screen.getByRole("status")).toHaveTextContent(/přihlásit na akci ani nic založit/)
   })
 
-  it("sends a new link that leads back into the app", async () => {
+  it("sends a new link that leads back into the app, to the page saying whether it worked", async () => {
     renderBanner()
 
     await userEvent.click(screen.getByRole("button", { name: "Poslat odkaz znovu" }))
@@ -36,8 +36,22 @@ describe("VerifyEmailBanner", () => {
     await waitFor(() =>
       expect(authClient.sendVerificationEmail).toHaveBeenCalledWith({
         email: "jakub.kral@example.com",
-        callbackURL: `${window.location.origin}/akce`,
+        callbackURL: `${window.location.origin}/email-overen`,
       }),
     )
+  })
+
+  it("verified meanwhile (another tab): refreshes the session instead of showing an error", async () => {
+    vi.mocked(authClient.sendVerificationEmail).mockResolvedValueOnce({
+      data: null,
+      error: { code: "EMAIL_ALREADY_VERIFIED", message: "Email is already verified", status: 400 },
+    })
+    const queryClient = new QueryClient()
+    const invalidate = vi.spyOn(queryClient, "invalidateQueries")
+    renderBanner(queryClient)
+
+    await userEvent.click(screen.getByRole("button", { name: "Poslat odkaz znovu" }))
+
+    await waitFor(() => expect(invalidate).toHaveBeenCalledWith({ queryKey: ["auth", "session"] }))
   })
 })
