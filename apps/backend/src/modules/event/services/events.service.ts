@@ -4,6 +4,8 @@ import {
   EventDetail,
   EventDetailView,
   EventParticipant,
+  MyEvent,
+  MyEventsTab,
   NewEvent,
   PublicEvent,
   PublicEventFilters,
@@ -63,6 +65,7 @@ export const PUBLIC_EVENTS_LIMIT = 200;
 // filtering. The endpoint is public, so the query must stay bounded however
 // many events exist.
 export const CAPACITY_SCAN_LIMIT = 2000;
+export const MY_EVENTS_LIMIT = 200;
 
 @Injectable()
 export class EventsService {
@@ -92,6 +95,23 @@ export class EventsService {
     return events
       .filter((event) => matchesCapacity(event.capacity, capacity))
       .slice(0, PUBLIC_EVENTS_LIMIT);
+  }
+
+  /**
+   * A tab of „Moje akce“ (B-035), soonest first. Personal lists stay short;
+   * the limit only bounds the query.
+   */
+  async getMyEvents(
+    userId: string,
+    tab: MyEventsTab,
+    now: Date = new Date(),
+  ): Promise<MyEvent[]> {
+    return this.eventRepository.findMyEvents({
+      tab,
+      userId,
+      now,
+      limit: MY_EVENTS_LIMIT,
+    });
   }
 
   /**

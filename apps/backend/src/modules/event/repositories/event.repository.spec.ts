@@ -174,3 +174,111 @@ describe('EventRepository.updateEvent', () => {
     expect(prisma.event.update).not.toHaveBeenCalled();
   });
 });
+
+describe('EventRepository.findMyEvents', () => {
+  const now = new Date('2026-10-23T08:00:00.000Z');
+
+  // what Prisma returns for the include; only the parts the mapping reads matter
+  const aRow = (
+    participations: { userId: string; status: string }[],
+    status = 'published',
+  ): Record<string, unknown> => ({
+    id: 'e1',
+    title: 'Deskovky',
+    startsAt: new Date('2026-10-24T16:00:00.000Z'),
+    endsAt: null,
+    address: 'Herna Karlín, Křižíkova 52, Praha 8',
+    lat: 50.09,
+    lng: 14.45,
+    status,
+    minParticipants: 3,
+    maxParticipants: 6,
+    promotedUntil: null,
+    activity: {
+      id: 'a1',
+      slug: 'deskove-hry',
+      name: 'Deskové hry',
+      category: { id: 'c1', slug: 'hry', name: 'Hry', icon: 'dice' },
+    },
+    locality: { id: 'l1', slug: 'praha-8', name: 'Praha 8' },
+    organizer: { id: 'u-org', name: 'Petra' },
+    group: null,
+    _count: { participations: 2 },
+    participations,
+  });
+
+  it('attending: loads only the user’s own participation and its status', async () => {
+    const prisma = mockDeep<PrismaService>();
+    prisma.event.findMany.mockResolvedValue([
+      aRow([{ userId: 'u1', status: 'pending' }]),
+    ] as never);
+
+    const [event] = await new EventRepository(prisma).findMyEvents({
+      tab: 'attending',
+      userId: 'u1',
+      now,
+      limit: 200,
+    });
+
+    expect(event).toMatchObject({
+      id: 'e1',
+      status: 'published',
+      myParticipation: 'pending',
+      pendingRequests: null,
+      capacity: { approvedCount: 2, missingToMin: 1 },
+    });
+    expect(prisma.event.findMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        include: expect.objectContaining({
+          participations: {
+            where: { userId: 'u1' },
+            select: { userId: true, status: true },
+          },
+        }),
+        orderBy: [{ startsAt: 'asc' }, { id: 'asc' }],
+        take: 200,
+      }),
+    );
+  });
+
+  it('organizing: counts the waiting requests, the organizer’s own place apart', async () => {
+    const prisma = mockDeep<PrismaService>();
+    prisma.event.findMany.mockResolvedValue([
+      aRow(
+        [
+          { userId: 'u-org', status: 'approved' },
+          { userId: 'u2', status: 'pending' },
+          { userId: 'u3', status: 'pending' },
+        ],
+        'cancelled',
+      ),
+    ] as never);
+
+    const [event] = await new EventRepository(prisma).findMyEvents({
+      tab: 'organizing',
+      userId: 'u-org',
+      now,
+      limit: 200,
+    });
+
+    expect(event).toMatchObject({
+      status: 'cancelled',
+      myParticipation: 'approved',
+      pendingRequests: 2,
+    });
+  });
+
+  it('organizing without joining: no participation of my own', async () => {
+    const prisma = mockDeep<PrismaService>();
+    prisma.event.findMany.mockResolvedValue([aRow([])] as never);
+
+    const [event] = await new EventRepository(prisma).findMyEvents({
+      tab: 'organizing',
+      userId: 'u-org',
+      now,
+      limit: 200,
+    });
+
+    expect(event).toMatchObject({ myParticipation: null, pendingRequests: 0 });
+  });
+});
