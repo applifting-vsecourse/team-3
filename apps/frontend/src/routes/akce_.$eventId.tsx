@@ -1,12 +1,13 @@
 import { useEffect } from "react"
 import { useQueryClient } from "@tanstack/react-query"
-import { createFileRoute, useLocation } from "@tanstack/react-router"
+import { createFileRoute, Link, useLocation } from "@tanstack/react-router"
 import { toast } from "sonner"
 
 import { ROUTES } from "@/app/routes"
 import { BackLink } from "@/components/BackLink/BackLink"
 import { Header } from "@/components/Header/Header"
 import { Seo } from "@/components/Seo"
+import { Button } from "@/components/ui/button"
 import { authKeys } from "@/lib/auth-keys"
 
 import { HeaderMenu } from "@/features/auth/components/HeaderMenu"
@@ -18,6 +19,7 @@ import { ParticipationAction } from "@/features/events/components/ParticipationA
 import { useCancelEvent } from "@/features/events/hooks/useCancelEvent"
 import { useEventDetail } from "@/features/events/hooks/useEventDetail"
 import { useJoinEvent, useLeaveEvent } from "@/features/events/hooks/useParticipation"
+import { editRefusal } from "@/features/events/lib/editRefusal"
 
 // `akce_`: not nested in /akce, whose page has no outlet. Public on purpose:
 // a shared link opens straight on the detail, without signing in (US-03).
@@ -37,12 +39,8 @@ function EventDetailPage() {
   const leave = useLeaveEvent(eventId, session.user?.id ?? "")
   const signInFrom = encodeRedirectUri(location)
   const cancelEvent = useCancelEvent(eventId, session.user?.id ?? "")
-  // only the organizer, and only while the event can still be cancelled
-  const canCancel =
-    event !== undefined &&
-    session.user?.id === event.organizer.id &&
-    event.status === "published" &&
-    event.startsAt > new Date()
+  // only the organizer, and only while the event can still be edited or cancelled
+  const canManage = event !== undefined && editRefusal(event, session.user?.id) === null
 
   // The cached session says signed in, yet the API answered as to a visitor:
   // the cookie has expired. Refresh the session so the header and the login
@@ -103,19 +101,32 @@ function EventDetailPage() {
               ) : null
             }
             organizerActions={
-              canCancel ? (
-                <CancelEventDialog
-                  isPending={cancelEvent.isPending}
-                  onCancel={(reason) =>
-                    cancelEvent.mutateAsync(reason).then(
-                      () => toast.success("Akce je zrušená."),
-                      (cancelError: Error) => {
-                        toast.error(cancelError.message)
-                        throw cancelError
-                      },
-                    )
-                  }
-                />
+              canManage ? (
+                <div className="flex flex-wrap gap-3">
+                  <Button
+                    asChild
+                    variant="outline"
+                  >
+                    <Link
+                      to={ROUTES.editEvent}
+                      params={{ eventId }}
+                    >
+                      Upravit
+                    </Link>
+                  </Button>
+                  <CancelEventDialog
+                    isPending={cancelEvent.isPending}
+                    onCancel={(reason) =>
+                      cancelEvent.mutateAsync(reason).then(
+                        () => toast.success("Akce je zrušená."),
+                        (cancelError: Error) => {
+                          toast.error(cancelError.message)
+                          throw cancelError
+                        },
+                      )
+                    }
+                  />
+                </div>
               ) : null
             }
           />

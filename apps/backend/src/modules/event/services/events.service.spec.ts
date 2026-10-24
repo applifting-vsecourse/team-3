@@ -502,3 +502,128 @@ describe('EventsService participation', () => {
     });
   });
 });
+
+describe('EventsService.updateEvent', () => {
+  const setup = (
+    detail: EventDetail = aDetail(),
+  ): { repository: MockProxy<EventRepository>; service: EventsService } => {
+    const repository = mock<EventRepository>();
+    repository.findEventDetail.mockResolvedValue(detail);
+    repository.findApprovedParticipants.mockResolvedValue(participants);
+    repository.findParticipationStatus.mockResolvedValue(null);
+    repository.catalogRefsExist.mockResolvedValue({
+      activity: true,
+      locality: true,
+    });
+    // what the lock reads: by default the same event as the pre-read
+    repository.updateEvent.mockImplementation(async (_id, decide) =>
+      decide({
+        status: detail.status,
+        startsAt: detail.startsAt,
+        endsAt: detail.endsAt,
+        approvedCount: 2,
+        minParticipants: 3,
+        maxParticipants: 6,
+      }),
+    );
+    return { repository, service: new EventsService(repository) };
+  };
+
+  it('the organizer changes the event and gets the updated detail', async () => {
+    const { repository, service } = setup();
+    const changes = { title: 'Deskovky ve středu', maxParticipants: 8 };
+
+    await service.updateEvent('e1', 'u1', changes, now);
+
+    expect(repository.updateEvent).toHaveBeenCalledWith(
+      'e1',
+      expect.any(Function),
+    );
+    const decide = repository.updateEvent.mock.calls[0]![1];
+    expect(
+      decide({
+        status: 'published',
+        startsAt: aDetail().startsAt,
+        endsAt: null,
+        approvedCount: 2,
+        minParticipants: 3,
+        maxParticipants: 6,
+      }),
+    ).toEqual({ ok: true, data: changes });
+  });
+
+  it('an edit that waited for the lock behind a cancel is 409, not written', async () => {
+    const { repository, service } = setup();
+    // the pre-read still saw it published; the cancel won the lock
+    repository.updateEvent.mockImplementation(async (_id, decide) =>
+      decide({
+        status: 'cancelled',
+        startsAt: aDetail().startsAt,
+        endsAt: null,
+        approvedCount: 2,
+        minParticipants: 3,
+        maxParticipants: 6,
+      }),
+    );
+
+    await expect(
+      service.updateEvent('e1', 'u1', { title: 'Pozdě' }, now),
+    ).rejects.toThrow(ConflictException);
+  });
+
+  it('anyone else gets 403 and nothing changes (B-028)', async () => {
+    const { repository, service } = setup();
+
+    await expect(
+      service.updateEvent('e1', 'u9', { title: 'Cizí' }, now),
+    ).rejects.toThrow(ForbiddenException);
+    expect(repository.updateEvent).not.toHaveBeenCalled();
+  });
+
+  it('a started event is 400 (B-028)', async () => {
+    const { repository, service } = setup(aDetail({ startsAt: now }));
+
+    await expect(
+      service.updateEvent('e1', 'u1', { title: 'Pozdě' }, now),
+    ).rejects.toThrow(BadRequestException);
+    expect(repository.updateEvent).not.toHaveBeenCalled();
+  });
+
+  it('the maximum below the approved participants is 400 with the count (B-028)', async () => {
+    const { service } = setup();
+
+    const error = (await service
+      .updateEvent('e1', 'u1', { maxParticipants: 1, minParticipants: 1 }, now)
+      .catch((e: unknown) => e)) as BadRequestException;
+
+    expect(error).toBeInstanceOf(BadRequestException);
+    expect(JSON.stringify(error.getResponse())).toContain(
+      'Maximum nejde snížit pod počet přihlášených (2).',
+    );
+  });
+
+  it('a cancelled event is 409', async () => {
+    const { service } = setup(aDetail({ status: 'cancelled' }));
+
+    await expect(
+      service.updateEvent('e1', 'u1', { title: 'x' }, now),
+    ).rejects.toThrow(ConflictException);
+  });
+
+  it('a new start in the past, or an unknown locality, is 400', async () => {
+    const past = setup();
+    await expect(
+      past.service.updateEvent('e1', 'u1', { startsAt: now }, now),
+    ).rejects.toThrow(BadRequestException);
+
+    const unknown = setup();
+    unknown.repository.catalogRefsExist.mockResolvedValue({
+      activity: true,
+      locality: false,
+    });
+    await expect(
+      unknown.service.updateEvent('e1', 'u1', { localityId: 'l-x' }, now),
+    ).rejects.toThrow(BadRequestException);
+    expect(unknown.repository.updateEvent).not.toHaveBeenCalled();
+  });
+});

@@ -121,3 +121,56 @@ describe('EventRepository.join', () => {
     expect(prisma.participation.upsert).not.toHaveBeenCalled();
   });
 });
+
+describe('EventRepository.updateEvent', () => {
+  const stored = {
+    status: 'published',
+    startsAt: new Date('2026-10-24T16:00:00.000Z'),
+    endsAt: null,
+    minParticipants: 3,
+    maxParticipants: 6,
+  };
+  const setup = (): ReturnType<typeof mockDeep<PrismaService>> => {
+    const prisma = mockDeep<PrismaService>();
+    prisma.$transaction.mockImplementation(((
+      run: (tx: PrismaService) => Promise<unknown>,
+    ) => run(prisma)) as never);
+    prisma.event.findUnique.mockResolvedValue(stored as never);
+    prisma.participation.count.mockResolvedValue(5);
+    return prisma;
+  };
+
+  it('locks the event row before it reads it, then writes what was decided', async () => {
+    const prisma = setup();
+    const endsAt = new Date('2026-10-25T19:00:00.000Z');
+    const decide = jest.fn().mockReturnValue({
+      ok: true,
+      data: { maxParticipants: 8, endsAt },
+    });
+
+    await expect(
+      new EventRepository(prisma).updateEvent('e1', decide),
+    ).resolves.toEqual({ ok: true, data: { maxParticipants: 8, endsAt } });
+    expect(prisma.$executeRaw.mock.invocationCallOrder[0]!).toBeLessThan(
+      prisma.event.findUnique.mock.invocationCallOrder[0]!,
+    );
+    expect(decide).toHaveBeenCalledWith({ ...stored, approvedCount: 5 });
+    expect(prisma.event.update).toHaveBeenCalledWith({
+      where: { id: 'e1' },
+      data: { maxParticipants: 8, endsAt },
+    });
+  });
+
+  it('writes nothing when the change is refused', async () => {
+    const prisma = setup();
+    const refused = {
+      ok: false,
+      refusal: { code: 'INVALID_CAPACITY', problem: 'Maximum…' },
+    } as const;
+
+    await expect(
+      new EventRepository(prisma).updateEvent('e1', () => refused),
+    ).resolves.toEqual(refused);
+    expect(prisma.event.update).not.toHaveBeenCalled();
+  });
+});

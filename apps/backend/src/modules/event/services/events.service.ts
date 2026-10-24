@@ -1,11 +1,17 @@
 import { matchesCapacity } from '@/modules/event/domain/capacity';
 import {
+  EventChanges,
   EventDetail,
   EventDetailView,
   NewEvent,
   PublicEvent,
   PublicEventFilters,
 } from '@/modules/event/domain/event';
+import {
+  decideUpdate,
+  lifecycleRefusal,
+  UpdateRefusal,
+} from '@/modules/event/domain/event-update';
 import {
   decideJoin,
   decideLeave,
@@ -16,6 +22,7 @@ import {
   BadRequestException,
   ConflictException,
   ForbiddenException,
+  HttpException,
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
@@ -32,6 +39,21 @@ const REFUSAL_MESSAGES: Record<ParticipationRefusal, string> = {
 
 const refused = (refusal: ParticipationRefusal): ConflictException =>
   new ConflictException({ code: refusal, message: REFUSAL_MESSAGES[refusal] });
+
+const updateRefused = (refusal: UpdateRefusal): HttpException => {
+  switch (refusal.code) {
+    case 'EVENT_CANCELLED':
+      return new ConflictException({
+        code: refusal.code,
+        message: 'Zrušenou akci nejde upravit.',
+      });
+    case 'EVENT_STARTED':
+      // B-028: changing a started event is a 400
+      return new BadRequestException(['Akce už začala, upravit ji nejde.']);
+    case 'INVALID_CAPACITY':
+      return new BadRequestException([refusal.problem]);
+  }
+};
 
 // One endpoint serves both the list and the map in sprint 2, without paging
 // (deviation from B-023, which has paging and a separate /events/map).
@@ -152,6 +174,46 @@ export class EventsService {
       // changed between the check and the write (e.g. cancelled in another tab)
       this.assertCancellable(await this.getEventDetail(id, userId, now), now);
     }
+    return this.getEventDetail(id, userId, now);
+  }
+
+  /**
+   * The organizer changes the event (B-028, #41), until it starts. The
+   * maximum can't go below the people who already have a place, and the end
+   * moves with the start; the activity and the way of joining can't change
+   * at all (the DTO doesn't take them).
+   */
+  async updateEvent(
+    id: string,
+    userId: string,
+    changes: EventChanges,
+    now: Date = new Date(),
+  ): Promise<EventDetailView> {
+    const event = await this.getEventDetail(id, userId, now); // 404 first
+    if (event.organizer.id !== userId) {
+      throw new ForbiddenException({
+        code: 'NOT_ORGANIZER',
+        message: 'Upravit akci může jen její organizátor.',
+      });
+    }
+    // fail fast, before the field checks; checked again under the lock
+    const refusal = lifecycleRefusal(event, now);
+    if (refusal) throw updateRefused(refusal);
+    if (changes.startsAt && changes.startsAt <= now) {
+      throw new BadRequestException(['Termín musí být v budoucnosti.']);
+    }
+    if (changes.localityId) {
+      const refs = await this.eventRepository.catalogRefsExist(
+        event.activity.id,
+        changes.localityId,
+      );
+      if (!refs.locality) throw new BadRequestException(['Neznámá lokalita.']);
+    }
+    const decision = await this.eventRepository.updateEvent(id, (state) =>
+      decideUpdate(state, changes, now),
+    );
+    if (!decision) throw new NotFoundException('Event not found');
+    if (!decision.ok) throw updateRefused(decision.refusal);
     return this.getEventDetail(id, userId, now);
   }
 

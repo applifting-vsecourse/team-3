@@ -23,6 +23,7 @@ import { Route as SkupinyIndexRouteImport } from './routes/skupiny.index'
 import { Route as SkupinyGroupIdRouteImport } from './routes/skupiny.$groupId'
 import { Route as ProtectedPagesAkceNovaRouteImport } from './routes/_ProtectedPages/akce.nova'
 import { Route as ProtectedPagesSkupinyNovaRouteImport } from './routes/_ProtectedPages/skupiny.nova'
+import { Route as ProtectedPagesAkceEventIdUpravitRouteImport } from './routes/_ProtectedPages/akce.$eventId.upravit'
 import { Route as ProtectedPagesSkupinyGroupIdSpravaRouteImport } from './routes/_ProtectedPages/skupiny.$groupId.sprava'
 import { Route as ProtectedPagesSkupinyGroupIdUpravitRouteImport } from './routes/_ProtectedPages/skupiny.$groupId.upravit'
 
@@ -96,6 +97,12 @@ const ProtectedPagesSkupinyNovaRoute =
     path: '/skupiny/nova',
     getParentRoute: () => ProtectedPagesRoute,
   } as any)
+const ProtectedPagesAkceEventIdUpravitRoute =
+  ProtectedPagesAkceEventIdUpravitRouteImport.update({
+    id: '/akce/$eventId/upravit',
+    path: '/akce/$eventId/upravit',
+    getParentRoute: () => ProtectedPagesRoute,
+  } as any)
 const ProtectedPagesSkupinyGroupIdSpravaRoute =
   ProtectedPagesSkupinyGroupIdSpravaRouteImport.update({
     id: '/skupiny/$groupId/sprava',
@@ -123,6 +130,7 @@ export interface FileRoutesByFullPath {
   '/skupiny/': typeof SkupinyIndexRoute
   '/akce/nova': typeof ProtectedPagesAkceNovaRoute
   '/skupiny/nova': typeof ProtectedPagesSkupinyNovaRoute
+  '/akce/$eventId/upravit': typeof ProtectedPagesAkceEventIdUpravitRoute
   '/skupiny/$groupId/sprava': typeof ProtectedPagesSkupinyGroupIdSpravaRoute
   '/skupiny/$groupId/upravit': typeof ProtectedPagesSkupinyGroupIdUpravitRoute
 }
@@ -140,6 +148,7 @@ export interface FileRoutesByTo {
   '/skupiny': typeof SkupinyIndexRoute
   '/akce/nova': typeof ProtectedPagesAkceNovaRoute
   '/skupiny/nova': typeof ProtectedPagesSkupinyNovaRoute
+  '/akce/$eventId/upravit': typeof ProtectedPagesAkceEventIdUpravitRoute
   '/skupiny/$groupId/sprava': typeof ProtectedPagesSkupinyGroupIdSpravaRoute
   '/skupiny/$groupId/upravit': typeof ProtectedPagesSkupinyGroupIdUpravitRoute
 }
@@ -159,6 +168,7 @@ export interface FileRoutesById {
   '/skupiny/': typeof SkupinyIndexRoute
   '/_ProtectedPages/akce/nova': typeof ProtectedPagesAkceNovaRoute
   '/_ProtectedPages/skupiny/nova': typeof ProtectedPagesSkupinyNovaRoute
+  '/_ProtectedPages/akce/$eventId/upravit': typeof ProtectedPagesAkceEventIdUpravitRoute
   '/_ProtectedPages/skupiny/$groupId/sprava': typeof ProtectedPagesSkupinyGroupIdSpravaRoute
   '/_ProtectedPages/skupiny/$groupId/upravit': typeof ProtectedPagesSkupinyGroupIdUpravitRoute
 }
@@ -178,6 +188,7 @@ export interface FileRouteTypes {
     | '/skupiny/'
     | '/akce/nova'
     | '/skupiny/nova'
+    | '/akce/$eventId/upravit'
     | '/skupiny/$groupId/sprava'
     | '/skupiny/$groupId/upravit'
   fileRoutesByTo: FileRoutesByTo
@@ -195,6 +206,7 @@ export interface FileRouteTypes {
     | '/skupiny'
     | '/akce/nova'
     | '/skupiny/nova'
+    | '/akce/$eventId/upravit'
     | '/skupiny/$groupId/sprava'
     | '/skupiny/$groupId/upravit'
   id:
@@ -213,6 +225,7 @@ export interface FileRouteTypes {
     | '/skupiny/'
     | '/_ProtectedPages/akce/nova'
     | '/_ProtectedPages/skupiny/nova'
+    | '/_ProtectedPages/akce/$eventId/upravit'
     | '/_ProtectedPages/skupiny/$groupId/sprava'
     | '/_ProtectedPages/skupiny/$groupId/upravit'
   fileRoutesById: FileRoutesById
@@ -331,6 +344,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ProtectedPagesSkupinyNovaRouteImport
       parentRoute: typeof ProtectedPagesRoute
     }
+    '/_ProtectedPages/akce/$eventId/upravit': {
+      id: '/_ProtectedPages/akce/$eventId/upravit'
+      path: '/akce/$eventId/upravit'
+      fullPath: '/akce/$eventId/upravit'
+      preLoaderRoute: typeof ProtectedPagesAkceEventIdUpravitRouteImport
+      parentRoute: typeof ProtectedPagesRoute
+    }
     '/_ProtectedPages/skupiny/$groupId/sprava': {
       id: '/_ProtectedPages/skupiny/$groupId/sprava'
       path: '/skupiny/$groupId/sprava'
@@ -352,6 +372,7 @@ interface ProtectedPagesRouteChildren {
   ProtectedPagesProfilRoute: typeof ProtectedPagesProfilRoute
   ProtectedPagesAkceNovaRoute: typeof ProtectedPagesAkceNovaRoute
   ProtectedPagesSkupinyNovaRoute: typeof ProtectedPagesSkupinyNovaRoute
+  ProtectedPagesAkceEventIdUpravitRoute: typeof ProtectedPagesAkceEventIdUpravitRoute
   ProtectedPagesSkupinyGroupIdSpravaRoute: typeof ProtectedPagesSkupinyGroupIdSpravaRoute
   ProtectedPagesSkupinyGroupIdUpravitRoute: typeof ProtectedPagesSkupinyGroupIdUpravitRoute
 }
@@ -360,6 +381,7 @@ const ProtectedPagesRouteChildren: ProtectedPagesRouteChildren = {
   ProtectedPagesProfilRoute: ProtectedPagesProfilRoute,
   ProtectedPagesAkceNovaRoute: ProtectedPagesAkceNovaRoute,
   ProtectedPagesSkupinyNovaRoute: ProtectedPagesSkupinyNovaRoute,
+  ProtectedPagesAkceEventIdUpravitRoute: ProtectedPagesAkceEventIdUpravitRoute,
   ProtectedPagesSkupinyGroupIdSpravaRoute:
     ProtectedPagesSkupinyGroupIdSpravaRoute,
   ProtectedPagesSkupinyGroupIdUpravitRoute:

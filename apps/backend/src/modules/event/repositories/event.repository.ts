@@ -9,6 +9,10 @@ import {
   PublicEventFilters,
 } from '@/modules/event/domain/event';
 import {
+  UpdateDecision,
+  UpdateState,
+} from '@/modules/event/domain/event-update';
+import {
   JoinDecision,
   JoinState,
   ParticipationRefusal,
@@ -242,6 +246,39 @@ export class EventRepository {
         where: { eventId_userId: { eventId, userId } },
         data: { status: 'withdrawn', approvedAt: null },
       });
+      return decision;
+    });
+  }
+
+  /**
+   * Changes the event under the same row lock as joining (#41): the state
+   * `decide` sees can't change before the write, so the maximum is never
+   * lowered below the people who have a place, and a cancel that came first
+   * is seen. Writes what `decide` says; null when the event doesn't exist.
+   */
+  async updateEvent(
+    id: string,
+    decide: (state: UpdateState) => UpdateDecision,
+  ): Promise<UpdateDecision | null> {
+    return this.prisma.$transaction(async (tx) => {
+      await tx.$executeRaw`SELECT 1 FROM "event" WHERE "id" = ${id} FOR UPDATE`;
+      const event = await tx.event.findUnique({
+        where: { id },
+        select: {
+          status: true,
+          startsAt: true,
+          endsAt: true,
+          minParticipants: true,
+          maxParticipants: true,
+        },
+      });
+      if (!event) return null;
+      const approvedCount = await tx.participation.count({
+        where: { eventId: id, status: 'approved' },
+      });
+      const decision = decide({ ...event, approvedCount });
+      if (!decision.ok) return decision;
+      await tx.event.update({ where: { id }, data: decision.data });
       return decision;
     });
   }

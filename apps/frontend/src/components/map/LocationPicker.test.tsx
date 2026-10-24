@@ -45,4 +45,15 @@ describe("LocationPicker", () => {
 
     expect(container.querySelectorAll(".leaflet-marker-icon")).toHaveLength(1)
   })
+
+  it("opens on an already picked place, not on the locality (editing an event)", async () => {
+    const letnany = { lat: 50.1333, lng: 14.5167 }
+    const { onChange } = renderPicker(letnany)
+
+    await userEvent.click(screen.getByRole("button", { name: "Umístit špendlík do středu mapy" }))
+
+    const point = onChange.mock.calls[0]![0] as { lat: number; lng: number }
+    expect(point.lat).toBeCloseTo(letnany.lat, 3)
+    expect(point.lng).toBeCloseTo(letnany.lng, 3)
+  })
 })

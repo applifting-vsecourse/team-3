@@ -74,7 +74,8 @@ export function LocationPicker({
       >
         <MapContainer
           ref={mapRef}
-          center={[center.lat, center.lng]}
+          // read once, on mount: an already picked place (editing) opens in view
+          center={value ? [value.lat, value.lng] : [center.lat, center.lng]}
           zoom={ZOOM}
           attributionControl={false}
           // in a long form the wheel scrolls the page, not the map

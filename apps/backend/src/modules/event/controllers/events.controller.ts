@@ -13,6 +13,7 @@ import {
   Get,
   HttpCode,
   Param,
+  Patch,
   Post,
   Query,
   UseGuards,
@@ -31,6 +32,7 @@ import { CreatedEventResponseDto } from './dto/created-event.response.dto';
 import { EventDetailResponseDto } from './dto/event-detail.response.dto';
 import { ListEventsQueryDto } from './dto/list-events.query.dto';
 import { PublicEventResponseDto } from './dto/public-event.response.dto';
+import { UpdateEventDto } from './dto/update-event.dto';
 
 // Public on purpose: visitors browse upcoming events without an account (US-02).
 @ApiTags('events')
@@ -209,6 +211,42 @@ export class EventsController {
   ): Promise<EventDetailResponseDto> {
     return EventDetailResponseDto.fromDomain(
       await this.eventsService.leave(id, user.id),
+    );
+  }
+
+  @Patch(':id')
+  @UseGuards(VerifiedUserGuard)
+  @ApiCookieAuth()
+  @ApiOperation({
+    summary:
+      'Change the event (B-028); only its organizer, before it starts. Not the activity nor the way of joining.',
+  })
+  @ApiResponse({ status: 200, type: EventDetailResponseDto })
+  @ApiResponse({
+    status: 400,
+    description:
+      'Invalid field, max below min or below the approved, a start in the past, or the event already started',
+  })
+  @ApiResponse({ status: 401, description: 'Not signed in' })
+  @ApiResponse({
+    status: 403,
+    description: 'NOT_ORGANIZER, EMAIL_NOT_VERIFIED or USER_BLOCKED',
+  })
+  @ApiResponse({ status: 404, description: 'No such event for this user' })
+  @ApiResponse({ status: 409, description: 'EVENT_CANCELLED' })
+  async update(
+    @Param('id') id: string,
+    @Body() body: UpdateEventDto,
+    @User() user: Identity,
+  ): Promise<EventDetailResponseDto> {
+    return EventDetailResponseDto.fromDomain(
+      await this.eventsService.updateEvent(id, user.id, {
+        ...body,
+        // an emptied description is no description
+        description:
+          body.description === undefined ? undefined : body.description || null,
+        startsAt: body.startsAt ? new Date(body.startsAt) : undefined,
+      }),
     );
   }
 }

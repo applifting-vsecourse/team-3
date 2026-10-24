@@ -145,4 +145,62 @@ describe("EventForm", () => {
     expect(screen.getByText("Nejdřív ověřte svůj e-mail.")).toBeInTheDocument()
     expect(screen.getByRole("button", { name: "Zveřejnit akci" })).toBeDisabled()
   })
+
+  describe("editing (#41)", () => {
+    const existing = {
+      title: "Deskovky po práci",
+      description: "Hry půjčíme.",
+      activityId: "a-deskove-hry",
+      localityId: "l-praha-8",
+      lat: 50.11,
+      lng: 14.47,
+      address: "Herna Karlín, Křižíkova 52, Praha 8",
+      startsAt: new Date(Date.now() + 5 * 86_400_000).toISOString(),
+      minParticipants: 3,
+      maxParticipants: 6,
+      approvalMode: "approval" as const,
+    }
+
+    it("keeps the activity and the way of joining, and saves instead of publishing", () => {
+      renderForm({ mode: "edit", initialValues: existing, approvedCount: 4 })
+
+      expect(screen.getByRole("combobox", { name: "Aktivita *" })).toBeDisabled()
+      expect(screen.getByRole("radio", { name: /Schvaluji přihlášky/ })).toBeDisabled()
+      // each disabled control says why, right under it
+      expect(screen.getByText("Aktivitu po založení změnit nejde.")).toBeInTheDocument()
+      expect(screen.getByText("Způsob přihlašování po založení změnit nejde.")).toBeInTheDocument()
+      expect(screen.getByRole("button", { name: "Uložit změny" })).toBeInTheDocument()
+    })
+
+    it("the maximum can't go below the people already in; the form says why", async () => {
+      const { onSubmit } = renderForm({ mode: "edit", initialValues: existing, approvedCount: 4 })
+
+      await userEvent.clear(screen.getByLabelText("Maximum lidí *"))
+      await userEvent.type(screen.getByLabelText("Maximum lidí *"), "3")
+      await userEvent.click(screen.getByRole("button", { name: "Uložit změny" }))
+
+      expect(
+        await screen.findByText("Maximum nejde snížit pod počet přihlášených (4)"),
+      ).toBeInTheDocument()
+      expect(onSubmit).not.toHaveBeenCalled()
+    })
+
+    it("saves the changed values", async () => {
+      const { onSubmit } = renderForm({ mode: "edit", initialValues: existing, approvedCount: 4 })
+
+      await userEvent.clear(screen.getByLabelText("Název akce *"))
+      await userEvent.type(screen.getByLabelText("Název akce *"), "Deskovky ve středu")
+      await userEvent.clear(screen.getByLabelText("Maximum lidí *"))
+      await userEvent.type(screen.getByLabelText("Maximum lidí *"), "8")
+      await userEvent.click(screen.getByRole("button", { name: "Uložit změny" }))
+
+      expect(onSubmit).toHaveBeenCalledWith(
+        expect.objectContaining({
+          title: "Deskovky ve středu",
+          maxParticipants: 8,
+          minParticipants: 3,
+        }),
+      )
+    })
+  })
 })
