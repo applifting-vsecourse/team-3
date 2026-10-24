@@ -68,6 +68,11 @@ Změna odsouhlasená s PO a rozhodnutí týmu 20. 10.:
 - **Skupina se deaktivuje** (tým, upřesnění změny 19. 10.) – v UI i v backlogu „Deaktivovat skupinu“ místo „Zrušit“, aby se to nepletlo se zrušením akce (#54, B-051).
 - **Testovací data** (#47, tým) obsahují demo účty (hledající, organizátorka, správce skupin, neověřený účet) a připravené případy pro průchod happy path na demu.
 
+### Změny scope 24. 10.
+
+- **Moje skupiny** (tým, B-056): záložky Všechny / Moje na `/skupiny`, navazuje na #46. Bez nich se člen ani správce ke své skupině nedostane jinak než přes výpis.
+- **Zapomenuté heslo není ve sprintu 2** (PO, zpráva 24. 10.). Ověření e-mailu ve sprintu zůstává (#58).
+
 ## Mimo scope
 
 PO teď nechce řešit hodnocení a funkce kolem, rozšiřovaly by scope bez vlivu na happy path.

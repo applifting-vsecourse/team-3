@@ -69,6 +69,7 @@ Zdroj: `HobbyHub_User_Stories_MVP.md` (US-01 až US-19, odvozené z Feature brea
 | B-053                          | Členství ve veřejné a neveřejné skupině                       | US-17               | FS     | M    | B-052               |
 | B-054                          | Jmenování správců                                             | US-16               | FS     | S    | B-053               |
 | B-055                          | Akce skupiny                                                  | US-18               | FS     | M    | B-053, B-022, B-034 |
+| B-056                          | Moje skupiny                                                  | US-17               | FS     | S    | B-053               |
 | **Fáze 6 – Důvěra**            |                                                               |                     |        |      |                     |
 | B-060                          | Hodnocení akce a organizátora                                 | US-09               | FS     | M    | B-031, B-043        |
 | B-061                          | Nahlášení uživatele, akce, skupiny, hodnocení                 | US-10               | FS     | S    | B-060, B-052        |
@@ -700,6 +701,19 @@ Doménová logika (čistá funkce + testy): `approvedCount`, `missingToMin = max
 **Hotovo, když:**
 
 - [ ] Testy `canManageEvent` pro organizátora, správce skupiny a běžného člena.
+
+---
+
+### B-056 Moje skupiny
+
+`US-17` · FS · S · závisí na: B-053
+
+- `GET /api/me/groups` (`AuthenticatedUserGuard`): skupiny se stavem `active`, kde mám členství `active` nebo `pending`; u každé moje `role` a `status` členství. Řazení: čekající nahoře, pak podle názvu.
+- FE `/skupiny`: pro přihlášeného záložky **Všechny** / **Moje** (`?tab=moje`). Filtry jen pro Všechny. V Moje sekce „Čeká na schválení“ a „Moje skupiny“, u správce popisek „Správce“.
+
+**Hotovo, když:**
+
+- [ ] Test: deaktivovaná skupina, zamítnuté a zablokované členství se nevrací; `pending` ano.
 
 ---
 
