@@ -71,7 +71,10 @@ describe("ParticipationAction", () => {
   it("the organizer sees „Spravovat akci“ and next to it „Přijdu“, even with approval", async () => {
     const { onJoin } = await renderAction({ approvalMode: "approval" }, { viewer: organizer })
 
-    expect(screen.getByRole("button", { name: "Spravovat akci" })).toBeInTheDocument()
+    expect(screen.getByRole("link", { name: "Spravovat akci" })).toHaveAttribute(
+      "href",
+      "/akce/e1/sprava",
+    )
     await userEvent.click(screen.getByRole("button", { name: "Přijdu" }))
     expect(onJoin).toHaveBeenCalledOnce()
   })

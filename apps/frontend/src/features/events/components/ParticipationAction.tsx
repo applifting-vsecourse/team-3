@@ -84,13 +84,17 @@ export function ParticipationAction({
   return (
     <div className="flex flex-wrap items-center gap-3">
       {isOrganizer ? (
-        // the management page comes with #43
         <Button
+          asChild
           variant="outline"
           size="lg"
-          disabled
         >
-          Spravovat akci
+          <Link
+            to={ROUTES.manageEvent}
+            params={{ eventId: event.id }}
+          >
+            Spravovat akci
+          </Link>
         </Button>
       ) : null}
       <JoinControl
