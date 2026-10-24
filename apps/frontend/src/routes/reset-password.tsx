@@ -1,4 +1,5 @@
 import { useState } from "react"
+import { useQueryClient } from "@tanstack/react-query"
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router"
 import { toast } from "sonner"
 import { z } from "zod"
@@ -6,6 +7,7 @@ import { z } from "zod"
 import { ROUTES } from "@/app/routes"
 import { AuthLayout } from "@/components/AuthLayout"
 import { Seo } from "@/components/Seo"
+import { authKeys } from "@/lib/auth-keys"
 
 import { ResetPasswordForm } from "@/features/auth/components/ResetPasswordForm"
 import { useResetPassword } from "@/features/auth/hooks/usePasswordReset"
@@ -25,6 +27,7 @@ export const Route = createFileRoute("/reset-password")({
 function ResetPasswordPage() {
   const { token, error } = Route.useSearch()
   const navigate = useNavigate()
+  const queryClient = useQueryClient()
   const reset = useResetPassword()
   const [errorMessage, setErrorMessage] = useState<string | null>(null)
 
@@ -33,6 +36,9 @@ function ResetPasswordPage() {
     setErrorMessage(null)
     try {
       await reset.mutateAsync({ token, newPassword })
+      // the reset signed out every session, this browser's too: without this
+      // the login page would still see the cached session and send the user on
+      queryClient.setQueryData(authKeys.session(), null)
       toast.success("Heslo je změněné. Přihlaste se novým heslem.")
       await navigate({ to: ROUTES.login })
     } catch (resetError) {
