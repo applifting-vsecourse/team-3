@@ -7,6 +7,7 @@ import {
   IsLatitude,
   IsLongitude,
   IsNotEmpty,
+  IsNumber,
   IsOptional,
   IsString,
   Max,
@@ -83,11 +84,15 @@ export class CreateEventDto {
   @MaxLength(100)
   localityId!: string;
 
+  // IsLatitude/IsLongitude also accept a numeric string, which the database
+  // would refuse with a 500; a number is required
   @ApiProperty({ example: 50.0928, description: 'The place picked on the map' })
+  @IsNumber()
   @IsLatitude()
   lat!: number;
 
   @ApiProperty({ example: 14.4508 })
+  @IsNumber()
   @IsLongitude()
   lng!: number;
 

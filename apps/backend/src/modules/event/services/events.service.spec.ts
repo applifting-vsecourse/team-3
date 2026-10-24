@@ -316,7 +316,7 @@ describe('EventsService.createEvent', () => {
     expect(repository.createEvent).not.toHaveBeenCalled();
   });
 
-  it('an unknown activity or locality is 400 naming the field', async () => {
+  it('an unknown activity or locality is 400 saying which, in Czech', async () => {
     const { repository, service } = setup({ activity: false, locality: true });
 
     const error = (await service
@@ -324,7 +324,7 @@ describe('EventsService.createEvent', () => {
       .catch((e: unknown) => e)) as BadRequestException;
 
     expect(error).toBeInstanceOf(BadRequestException);
-    expect(JSON.stringify(error.getResponse())).toContain('activityId');
+    expect(JSON.stringify(error.getResponse())).toContain('Neznámá aktivita.');
     expect(repository.createEvent).not.toHaveBeenCalled();
   });
 });

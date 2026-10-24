@@ -72,6 +72,13 @@ describe('CreateEventDto', () => {
     ]);
   });
 
+  it('coordinates must be numbers, not numeric strings', () => {
+    expect(invalid({ ...valid, lat: '50.09', lng: '14.45' }).sort()).toEqual([
+      'lat',
+      'lng',
+    ]);
+  });
+
   it('only the two approval modes', () => {
     expect(invalid({ ...valid, approvalMode: 'invite' })).toEqual([
       'approvalMode',

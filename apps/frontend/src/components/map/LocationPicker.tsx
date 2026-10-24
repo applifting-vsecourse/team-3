@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef } from "react"
 import { divIcon, type Map as LeafletMap } from "leaflet"
+import { Plus } from "lucide-react"
 import {
   AttributionControl,
   MapContainer,
@@ -26,6 +27,8 @@ type LocationPickerProps = {
   center: LatLng
   /** Id of the visible heading that names the map. */
   labelledBy: string
+  /** Id of the error message under the map, while there is one. */
+  describedBy?: string
   isInvalid?: boolean
   className?: string
 }
@@ -42,6 +45,7 @@ export function LocationPicker({
   onChange,
   center,
   labelledBy,
+  describedBy,
   isInvalid,
   className,
 }: LocationPickerProps) {
@@ -61,8 +65,10 @@ export function LocationPicker({
       <div
         role="region"
         aria-labelledby={labelledBy}
+        // a region can't be aria-invalid: the error is its description
+        aria-describedby={describedBy}
         className={cn(
-          "isolate z-0 h-64 overflow-hidden rounded-lg border border-border",
+          "relative isolate z-0 h-64 overflow-hidden rounded-lg border border-border",
           isInvalid && "border-destructive",
         )}
       >
@@ -71,6 +77,8 @@ export function LocationPicker({
           center={[center.lat, center.lng]}
           zoom={ZOOM}
           attributionControl={false}
+          // in a long form the wheel scrolls the page, not the map
+          scrollWheelZoom={false}
           className="size-full bg-muted"
         >
           <AttributionControl position="bottomright" />
@@ -92,6 +100,11 @@ export function LocationPicker({
             />
           ) : null}
         </MapContainer>
+        {/* where „Umístit špendlík do středu mapy“ puts the pin */}
+        <Plus
+          aria-hidden
+          className="pointer-events-none absolute top-1/2 left-1/2 z-500 size-5 -translate-x-1/2 -translate-y-1/2 text-foreground"
+        />
       </div>
       <Button
         type="button"

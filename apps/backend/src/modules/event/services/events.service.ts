@@ -84,15 +84,16 @@ export class EventsService {
   ): Promise<EventDetailView> {
     // a date in the past can't be saved (the DTO can't know „now“ in tests)
     if (event.startsAt <= now) {
-      throw new BadRequestException(['startsAt must be in the future']);
+      // shown as they are in the form, so in Czech (like the groups service)
+      throw new BadRequestException(['Termín musí být v budoucnosti.']);
     }
     const refs = await this.eventRepository.catalogRefsExist(
       event.activityId,
       event.localityId,
     );
     const problems = [
-      refs.activity ? null : 'activityId must be an existing activity',
-      refs.locality ? null : 'localityId must be an existing locality',
+      refs.activity ? null : 'Neznámá aktivita.',
+      refs.locality ? null : 'Neznámá lokalita.',
     ].filter((problem): problem is string => problem !== null);
     if (problems.length > 0) {
       throw new BadRequestException(problems);

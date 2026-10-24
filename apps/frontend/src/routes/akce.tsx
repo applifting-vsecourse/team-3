@@ -152,7 +152,12 @@ function EventsPage() {
         {user ? (
           <Button
             asChild
-            className="absolute right-4 bottom-4 z-20 h-11 rounded-full shadow-md md:right-8 md:bottom-12"
+            // mobile: above the lowered sheet and the map's attribution (which
+            // sits on the sheet's edge), never over the first card
+            style={
+              isDesktop || isListExpanded ? undefined : { bottom: `${panelPeekHeight + 36}px` }
+            }
+            className="absolute right-4 bottom-4 z-20 h-11 rounded-full shadow-md md:right-8 md:bottom-14"
           >
             <Link to={ROUTES.newEvent}>
               <Plus />

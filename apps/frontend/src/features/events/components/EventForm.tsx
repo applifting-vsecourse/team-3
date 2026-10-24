@@ -38,6 +38,7 @@ import {
   EVENT_TITLE_MAX_LENGTH,
   type EventInput,
 } from "@/features/events/api/eventSchemas"
+import { fromPragueWallTime, toPragueWallTime } from "@/features/events/lib/pragueTime"
 
 const count = (name: string) =>
   z
@@ -69,7 +70,7 @@ const schema = z
     startsAt: z
       .string()
       .min(1, "Vyplňte datum a čas")
-      .refine((value) => new Date(value) > new Date(), "Termín musí být v budoucnosti"),
+      .refine((value) => fromPragueWallTime(value) > new Date(), "Termín musí být v budoucnosti"),
     minParticipants: count("minimum"),
     maxParticipants: count("maximum"),
     approvalMode: z.enum(["open", "approval"]),
@@ -102,10 +103,6 @@ const APPROVAL_OPTIONS: { value: EventInput["approvalMode"]; title: string; hint
   },
 ]
 
-/** `YYYY-MM-DDTHH:mm` in the browser's time, as `<input type="datetime-local">` takes it */
-const toLocalInput = (date: Date) =>
-  new Date(date.getTime() - date.getTimezoneOffset() * 60_000).toISOString().slice(0, 16)
-
 type EventFormProps = {
   catalog: Catalog
   /** Prefilled values, e.g. when editing (#41). */
@@ -124,6 +121,7 @@ export function EventForm({
   onSubmit,
 }: EventFormProps) {
   const placeLabelId = useId()
+  const placeErrorId = useId()
   const approvalId = useId()
   const form = useForm<FormValues>({
     resolver: zodResolver(schema),
@@ -136,7 +134,7 @@ export function EventForm({
           ? { lat: initialValues.lat, lng: initialValues.lng }
           : null,
       address: initialValues?.address ?? "",
-      startsAt: initialValues?.startsAt ? toLocalInput(new Date(initialValues.startsAt)) : "",
+      startsAt: initialValues?.startsAt ? toPragueWallTime(new Date(initialValues.startsAt)) : "",
       minParticipants: initialValues?.minParticipants?.toString() ?? "",
       maxParticipants: initialValues?.maxParticipants?.toString() ?? "",
       approvalMode: initialValues?.approvalMode ?? "open",
@@ -170,7 +168,8 @@ export function EventForm({
             lat: values.place!.lat,
             lng: values.place!.lng,
             address: values.address.trim(),
-            startsAt: new Date(values.startsAt).toISOString(),
+            // entered as Prague time, whatever the device's time zone
+            startsAt: fromPragueWallTime(values.startsAt).toISOString(),
             minParticipants: Number(values.minParticipants),
             maxParticipants: Number(values.maxParticipants),
             approvalMode: values.approvalMode,
@@ -306,8 +305,9 @@ export function EventForm({
                 center={mapCenter}
                 labelledBy={placeLabelId}
                 isInvalid={Boolean(fieldState.error)}
+                describedBy={fieldState.error ? placeErrorId : undefined}
               />
-              <FormMessage />
+              <FormMessage id={placeErrorId} />
             </FormItem>
           )}
         />
@@ -336,11 +336,11 @@ export function EventForm({
           name="startsAt"
           render={({ field }) => (
             <FormItem>
-              <FormLabel>Datum a čas *</FormLabel>
+              <FormLabel>Datum a čas (pražský čas) *</FormLabel>
               <FormControl>
                 <Input
                   type="datetime-local"
-                  min={toLocalInput(new Date())}
+                  min={toPragueWallTime(new Date())}
                   className="h-11"
                   {...field}
                 />
@@ -400,9 +400,11 @@ export function EventForm({
           name="approvalMode"
           render={({ field }) => (
             <FormItem>
-              <FormLabel>Způsob přihlašování *</FormLabel>
+              <FormLabel id={`${approvalId}-label`}>Způsob přihlašování *</FormLabel>
               <FormControl>
                 <RadioGroup
+                  // a <label for> can't name a radiogroup; this does
+                  aria-labelledby={`${approvalId}-label`}
                   ref={field.ref}
                   value={field.value}
                   onValueChange={field.onChange}

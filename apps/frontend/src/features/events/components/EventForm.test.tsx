@@ -5,6 +5,7 @@ import { describe, expect, it, vi } from "vitest"
 import type { Catalog } from "@/lib/catalog/catalogSearch"
 
 import { EventForm } from "@/features/events/components/EventForm"
+import { toPragueWallTime } from "@/features/events/lib/pragueTime"
 
 const catalog: Catalog = {
   localities: [
@@ -44,10 +45,6 @@ const renderForm = (props: Partial<Parameters<typeof EventForm>[0]> = {}) => {
 
 const submit = () => userEvent.click(screen.getByRole("button", { name: "Zveřejnit akci" }))
 
-// `YYYY-MM-DDTHH:mm` in the browser's time, as the datetime-local input takes it
-const localInput = (date: Date) =>
-  new Date(date.getTime() - date.getTimezoneOffset() * 60_000).toISOString().slice(0, 16)
-
 describe("EventForm", () => {
   it("an untouched form can be sent and says, under each field, what is missing", async () => {
     const { onSubmit } = renderForm()
@@ -69,10 +66,20 @@ describe("EventForm", () => {
     expect(onSubmit).not.toHaveBeenCalled()
   })
 
-  it("„Bez schválení“ is the default way of joining", () => {
+  it("„Bez schválení“ is the default way of joining; the choice is a named group", () => {
     renderForm()
 
     expect(screen.getByRole("radio", { name: /Bez schválení/ })).toBeChecked()
+    expect(screen.getByRole("radiogroup", { name: "Způsob přihlašování *" })).toBeInTheDocument()
+  })
+
+  it("ties the place's error to the map", async () => {
+    renderForm()
+
+    await submit()
+
+    const map = screen.getByRole("region", { name: "Místo na mapě *" })
+    expect(map).toHaveAccessibleDescription("Vyberte místo na mapě")
   })
 
   it("min 0, max below min and a date in the past can't be saved", async () => {
@@ -88,8 +95,8 @@ describe("EventForm", () => {
     await userEvent.clear(screen.getByLabelText("Maximum lidí *"))
     await userEvent.type(screen.getByLabelText("Maximum lidí *"), "4")
     await userEvent.type(
-      screen.getByLabelText("Datum a čas *"),
-      localInput(new Date(Date.now() - 86_400_000)),
+      screen.getByLabelText("Datum a čas (pražský čas) *"),
+      toPragueWallTime(new Date(Date.now() - 86_400_000)),
     )
     await submit()
 
@@ -109,7 +116,10 @@ describe("EventForm", () => {
     // the map looks at the chosen locality; its middle is the place
     await userEvent.click(screen.getByRole("button", { name: "Umístit špendlík do středu mapy" }))
     await userEvent.type(screen.getByLabelText("Adresa *"), "Herna Karlín, Křižíkova 52, Praha 8")
-    await userEvent.type(screen.getByLabelText("Datum a čas *"), localInput(start))
+    await userEvent.type(
+      screen.getByLabelText("Datum a čas (pražský čas) *"),
+      toPragueWallTime(start),
+    )
     await userEvent.type(screen.getByLabelText("Minimum lidí *"), "3")
     await userEvent.type(screen.getByLabelText("Maximum lidí *"), "6")
     await userEvent.click(screen.getByRole("radio", { name: /Schvaluji přihlášky/ }))
