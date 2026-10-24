@@ -6,6 +6,7 @@ import "@/styles/global.css"
 import { BottomNav } from "@/components/BottomNav/BottomNav"
 import { Toaster } from "@/components/ui/sonner"
 
+import { VerifyEmailBanner } from "@/features/auth/components/VerifyEmailBanner"
 import { useSession } from "@/features/auth/hooks/useSession"
 
 export const Route = createRootRouteWithContext<{
@@ -22,6 +23,7 @@ function RootComponent() {
       {/* Pages fill the viewport (main is flex-1); bottom padding keeps content
           clear of the fixed mobile navigation. */}
       <div className="flex min-h-svh flex-col pb-16 md:pb-0">
+        {user && !user.emailVerified ? <VerifyEmailBanner email={user.email} /> : null}
         <Outlet />
       </div>
       <BottomNav

@@ -13,7 +13,9 @@ import { Route as IndexRouteImport } from './routes/index'
 import { Route as ProtectedPagesRouteImport } from './routes/_ProtectedPages'
 import { Route as AkceRouteImport } from './routes/akce'
 import { Route as LoginRouteImport } from './routes/login'
+import { Route as ResetPasswordRouteImport } from './routes/reset-password'
 import { Route as SignupRouteImport } from './routes/signup'
+import { Route as ZapomenuteHesloRouteImport } from './routes/zapomenute-heslo'
 import { Route as ProtectedPagesProfilRouteImport } from './routes/_ProtectedPages/profil'
 import { Route as AkceEventIdRouteImport } from './routes/akce_.$eventId'
 import { Route as SkupinyIndexRouteImport } from './routes/skupiny.index'
@@ -41,9 +43,19 @@ const LoginRoute = LoginRouteImport.update({
   path: '/login',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ResetPasswordRoute = ResetPasswordRouteImport.update({
+  id: '/reset-password',
+  path: '/reset-password',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const SignupRoute = SignupRouteImport.update({
   id: '/signup',
   path: '/signup',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ZapomenuteHesloRoute = ZapomenuteHesloRouteImport.update({
+  id: '/zapomenute-heslo',
+  path: '/zapomenute-heslo',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ProtectedPagesProfilRoute = ProtectedPagesProfilRouteImport.update({
@@ -89,7 +101,9 @@ export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/akce': typeof AkceRoute
   '/login': typeof LoginRoute
+  '/reset-password': typeof ResetPasswordRoute
   '/signup': typeof SignupRoute
+  '/zapomenute-heslo': typeof ZapomenuteHesloRoute
   '/profil': typeof ProtectedPagesProfilRoute
   '/akce/$eventId': typeof AkceEventIdRoute
   '/skupiny/$groupId': typeof SkupinyGroupIdRoute
@@ -102,7 +116,9 @@ export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/akce': typeof AkceRoute
   '/login': typeof LoginRoute
+  '/reset-password': typeof ResetPasswordRoute
   '/signup': typeof SignupRoute
+  '/zapomenute-heslo': typeof ZapomenuteHesloRoute
   '/profil': typeof ProtectedPagesProfilRoute
   '/akce/$eventId': typeof AkceEventIdRoute
   '/skupiny/$groupId': typeof SkupinyGroupIdRoute
@@ -117,7 +133,9 @@ export interface FileRoutesById {
   '/_ProtectedPages': typeof ProtectedPagesRouteWithChildren
   '/akce': typeof AkceRoute
   '/login': typeof LoginRoute
+  '/reset-password': typeof ResetPasswordRoute
   '/signup': typeof SignupRoute
+  '/zapomenute-heslo': typeof ZapomenuteHesloRoute
   '/_ProtectedPages/profil': typeof ProtectedPagesProfilRoute
   '/akce_/$eventId': typeof AkceEventIdRoute
   '/skupiny/$groupId': typeof SkupinyGroupIdRoute
@@ -132,7 +150,9 @@ export interface FileRouteTypes {
     | '/'
     | '/akce'
     | '/login'
+    | '/reset-password'
     | '/signup'
+    | '/zapomenute-heslo'
     | '/profil'
     | '/akce/$eventId'
     | '/skupiny/$groupId'
@@ -145,7 +165,9 @@ export interface FileRouteTypes {
     | '/'
     | '/akce'
     | '/login'
+    | '/reset-password'
     | '/signup'
+    | '/zapomenute-heslo'
     | '/profil'
     | '/akce/$eventId'
     | '/skupiny/$groupId'
@@ -159,7 +181,9 @@ export interface FileRouteTypes {
     | '/_ProtectedPages'
     | '/akce'
     | '/login'
+    | '/reset-password'
     | '/signup'
+    | '/zapomenute-heslo'
     | '/_ProtectedPages/profil'
     | '/akce_/$eventId'
     | '/skupiny/$groupId'
@@ -174,7 +198,9 @@ export interface RootRouteChildren {
   ProtectedPagesRoute: typeof ProtectedPagesRouteWithChildren
   AkceRoute: typeof AkceRoute
   LoginRoute: typeof LoginRoute
+  ResetPasswordRoute: typeof ResetPasswordRoute
   SignupRoute: typeof SignupRoute
+  ZapomenuteHesloRoute: typeof ZapomenuteHesloRoute
   AkceEventIdRoute: typeof AkceEventIdRoute
   SkupinyGroupIdRoute: typeof SkupinyGroupIdRoute
   SkupinyIndexRoute: typeof SkupinyIndexRoute
@@ -210,11 +236,25 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof LoginRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/reset-password': {
+      id: '/reset-password'
+      path: '/reset-password'
+      fullPath: '/reset-password'
+      preLoaderRoute: typeof ResetPasswordRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/signup': {
       id: '/signup'
       path: '/signup'
       fullPath: '/signup'
       preLoaderRoute: typeof SignupRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/zapomenute-heslo': {
+      id: '/zapomenute-heslo'
+      path: '/zapomenute-heslo'
+      fullPath: '/zapomenute-heslo'
+      preLoaderRoute: typeof ZapomenuteHesloRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/_ProtectedPages/profil': {
@@ -294,7 +334,9 @@ const rootRouteChildren: RootRouteChildren = {
   ProtectedPagesRoute: ProtectedPagesRouteWithChildren,
   AkceRoute: AkceRoute,
   LoginRoute: LoginRoute,
+  ResetPasswordRoute: ResetPasswordRoute,
   SignupRoute: SignupRoute,
+  ZapomenuteHesloRoute: ZapomenuteHesloRoute,
   AkceEventIdRoute: AkceEventIdRoute,
   SkupinyGroupIdRoute: SkupinyGroupIdRoute,
   SkupinyIndexRoute: SkupinyIndexRoute,
