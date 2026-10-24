@@ -12,13 +12,19 @@ import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as ProtectedPagesRouteImport } from './routes/_ProtectedPages'
 import { Route as AkceRouteImport } from './routes/akce'
+import { Route as EmailOverenRouteImport } from './routes/email-overen'
 import { Route as LoginRouteImport } from './routes/login'
+import { Route as ResetPasswordRouteImport } from './routes/reset-password'
 import { Route as SignupRouteImport } from './routes/signup'
+import { Route as ZapomenuteHesloRouteImport } from './routes/zapomenute-heslo'
 import { Route as ProtectedPagesProfilRouteImport } from './routes/_ProtectedPages/profil'
 import { Route as AkceEventIdRouteImport } from './routes/akce_.$eventId'
 import { Route as SkupinyIndexRouteImport } from './routes/skupiny.index'
 import { Route as SkupinyGroupIdRouteImport } from './routes/skupiny.$groupId'
+import { Route as ProtectedPagesAkceNovaRouteImport } from './routes/_ProtectedPages/akce.nova'
 import { Route as ProtectedPagesSkupinyNovaRouteImport } from './routes/_ProtectedPages/skupiny.nova'
+import { Route as ProtectedPagesAkceEventIdSpravaRouteImport } from './routes/_ProtectedPages/akce.$eventId.sprava'
+import { Route as ProtectedPagesAkceEventIdUpravitRouteImport } from './routes/_ProtectedPages/akce.$eventId.upravit'
 import { Route as ProtectedPagesSkupinyGroupIdSpravaRouteImport } from './routes/_ProtectedPages/skupiny.$groupId.sprava'
 import { Route as ProtectedPagesSkupinyGroupIdUpravitRouteImport } from './routes/_ProtectedPages/skupiny.$groupId.upravit'
 
@@ -36,14 +42,29 @@ const AkceRoute = AkceRouteImport.update({
   path: '/akce',
   getParentRoute: () => rootRouteImport,
 } as any)
+const EmailOverenRoute = EmailOverenRouteImport.update({
+  id: '/email-overen',
+  path: '/email-overen',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const LoginRoute = LoginRouteImport.update({
   id: '/login',
   path: '/login',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ResetPasswordRoute = ResetPasswordRouteImport.update({
+  id: '/reset-password',
+  path: '/reset-password',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const SignupRoute = SignupRouteImport.update({
   id: '/signup',
   path: '/signup',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ZapomenuteHesloRoute = ZapomenuteHesloRouteImport.update({
+  id: '/zapomenute-heslo',
+  path: '/zapomenute-heslo',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ProtectedPagesProfilRoute = ProtectedPagesProfilRouteImport.update({
@@ -66,10 +87,27 @@ const SkupinyGroupIdRoute = SkupinyGroupIdRouteImport.update({
   path: '/skupiny/$groupId',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ProtectedPagesAkceNovaRoute = ProtectedPagesAkceNovaRouteImport.update({
+  id: '/akce/nova',
+  path: '/akce/nova',
+  getParentRoute: () => ProtectedPagesRoute,
+} as any)
 const ProtectedPagesSkupinyNovaRoute =
   ProtectedPagesSkupinyNovaRouteImport.update({
     id: '/skupiny/nova',
     path: '/skupiny/nova',
+    getParentRoute: () => ProtectedPagesRoute,
+  } as any)
+const ProtectedPagesAkceEventIdSpravaRoute =
+  ProtectedPagesAkceEventIdSpravaRouteImport.update({
+    id: '/akce/$eventId/sprava',
+    path: '/akce/$eventId/sprava',
+    getParentRoute: () => ProtectedPagesRoute,
+  } as any)
+const ProtectedPagesAkceEventIdUpravitRoute =
+  ProtectedPagesAkceEventIdUpravitRouteImport.update({
+    id: '/akce/$eventId/upravit',
+    path: '/akce/$eventId/upravit',
     getParentRoute: () => ProtectedPagesRoute,
   } as any)
 const ProtectedPagesSkupinyGroupIdSpravaRoute =
@@ -88,26 +126,38 @@ const ProtectedPagesSkupinyGroupIdUpravitRoute =
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/akce': typeof AkceRoute
+  '/email-overen': typeof EmailOverenRoute
   '/login': typeof LoginRoute
+  '/reset-password': typeof ResetPasswordRoute
   '/signup': typeof SignupRoute
+  '/zapomenute-heslo': typeof ZapomenuteHesloRoute
   '/profil': typeof ProtectedPagesProfilRoute
   '/akce/$eventId': typeof AkceEventIdRoute
   '/skupiny/$groupId': typeof SkupinyGroupIdRoute
   '/skupiny/': typeof SkupinyIndexRoute
+  '/akce/nova': typeof ProtectedPagesAkceNovaRoute
   '/skupiny/nova': typeof ProtectedPagesSkupinyNovaRoute
+  '/akce/$eventId/sprava': typeof ProtectedPagesAkceEventIdSpravaRoute
+  '/akce/$eventId/upravit': typeof ProtectedPagesAkceEventIdUpravitRoute
   '/skupiny/$groupId/sprava': typeof ProtectedPagesSkupinyGroupIdSpravaRoute
   '/skupiny/$groupId/upravit': typeof ProtectedPagesSkupinyGroupIdUpravitRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/akce': typeof AkceRoute
+  '/email-overen': typeof EmailOverenRoute
   '/login': typeof LoginRoute
+  '/reset-password': typeof ResetPasswordRoute
   '/signup': typeof SignupRoute
+  '/zapomenute-heslo': typeof ZapomenuteHesloRoute
   '/profil': typeof ProtectedPagesProfilRoute
   '/akce/$eventId': typeof AkceEventIdRoute
   '/skupiny/$groupId': typeof SkupinyGroupIdRoute
   '/skupiny': typeof SkupinyIndexRoute
+  '/akce/nova': typeof ProtectedPagesAkceNovaRoute
   '/skupiny/nova': typeof ProtectedPagesSkupinyNovaRoute
+  '/akce/$eventId/sprava': typeof ProtectedPagesAkceEventIdSpravaRoute
+  '/akce/$eventId/upravit': typeof ProtectedPagesAkceEventIdUpravitRoute
   '/skupiny/$groupId/sprava': typeof ProtectedPagesSkupinyGroupIdSpravaRoute
   '/skupiny/$groupId/upravit': typeof ProtectedPagesSkupinyGroupIdUpravitRoute
 }
@@ -116,13 +166,19 @@ export interface FileRoutesById {
   '/': typeof IndexRoute
   '/_ProtectedPages': typeof ProtectedPagesRouteWithChildren
   '/akce': typeof AkceRoute
+  '/email-overen': typeof EmailOverenRoute
   '/login': typeof LoginRoute
+  '/reset-password': typeof ResetPasswordRoute
   '/signup': typeof SignupRoute
+  '/zapomenute-heslo': typeof ZapomenuteHesloRoute
   '/_ProtectedPages/profil': typeof ProtectedPagesProfilRoute
   '/akce_/$eventId': typeof AkceEventIdRoute
   '/skupiny/$groupId': typeof SkupinyGroupIdRoute
   '/skupiny/': typeof SkupinyIndexRoute
+  '/_ProtectedPages/akce/nova': typeof ProtectedPagesAkceNovaRoute
   '/_ProtectedPages/skupiny/nova': typeof ProtectedPagesSkupinyNovaRoute
+  '/_ProtectedPages/akce/$eventId/sprava': typeof ProtectedPagesAkceEventIdSpravaRoute
+  '/_ProtectedPages/akce/$eventId/upravit': typeof ProtectedPagesAkceEventIdUpravitRoute
   '/_ProtectedPages/skupiny/$groupId/sprava': typeof ProtectedPagesSkupinyGroupIdSpravaRoute
   '/_ProtectedPages/skupiny/$groupId/upravit': typeof ProtectedPagesSkupinyGroupIdUpravitRoute
 }
@@ -131,26 +187,38 @@ export interface FileRouteTypes {
   fullPaths:
     | '/'
     | '/akce'
+    | '/email-overen'
     | '/login'
+    | '/reset-password'
     | '/signup'
+    | '/zapomenute-heslo'
     | '/profil'
     | '/akce/$eventId'
     | '/skupiny/$groupId'
     | '/skupiny/'
+    | '/akce/nova'
     | '/skupiny/nova'
+    | '/akce/$eventId/sprava'
+    | '/akce/$eventId/upravit'
     | '/skupiny/$groupId/sprava'
     | '/skupiny/$groupId/upravit'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
     | '/akce'
+    | '/email-overen'
     | '/login'
+    | '/reset-password'
     | '/signup'
+    | '/zapomenute-heslo'
     | '/profil'
     | '/akce/$eventId'
     | '/skupiny/$groupId'
     | '/skupiny'
+    | '/akce/nova'
     | '/skupiny/nova'
+    | '/akce/$eventId/sprava'
+    | '/akce/$eventId/upravit'
     | '/skupiny/$groupId/sprava'
     | '/skupiny/$groupId/upravit'
   id:
@@ -158,13 +226,19 @@ export interface FileRouteTypes {
     | '/'
     | '/_ProtectedPages'
     | '/akce'
+    | '/email-overen'
     | '/login'
+    | '/reset-password'
     | '/signup'
+    | '/zapomenute-heslo'
     | '/_ProtectedPages/profil'
     | '/akce_/$eventId'
     | '/skupiny/$groupId'
     | '/skupiny/'
+    | '/_ProtectedPages/akce/nova'
     | '/_ProtectedPages/skupiny/nova'
+    | '/_ProtectedPages/akce/$eventId/sprava'
+    | '/_ProtectedPages/akce/$eventId/upravit'
     | '/_ProtectedPages/skupiny/$groupId/sprava'
     | '/_ProtectedPages/skupiny/$groupId/upravit'
   fileRoutesById: FileRoutesById
@@ -173,8 +247,11 @@ export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   ProtectedPagesRoute: typeof ProtectedPagesRouteWithChildren
   AkceRoute: typeof AkceRoute
+  EmailOverenRoute: typeof EmailOverenRoute
   LoginRoute: typeof LoginRoute
+  ResetPasswordRoute: typeof ResetPasswordRoute
   SignupRoute: typeof SignupRoute
+  ZapomenuteHesloRoute: typeof ZapomenuteHesloRoute
   AkceEventIdRoute: typeof AkceEventIdRoute
   SkupinyGroupIdRoute: typeof SkupinyGroupIdRoute
   SkupinyIndexRoute: typeof SkupinyIndexRoute
@@ -203,6 +280,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AkceRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/email-overen': {
+      id: '/email-overen'
+      path: '/email-overen'
+      fullPath: '/email-overen'
+      preLoaderRoute: typeof EmailOverenRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/login': {
       id: '/login'
       path: '/login'
@@ -210,11 +294,25 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof LoginRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/reset-password': {
+      id: '/reset-password'
+      path: '/reset-password'
+      fullPath: '/reset-password'
+      preLoaderRoute: typeof ResetPasswordRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/signup': {
       id: '/signup'
       path: '/signup'
       fullPath: '/signup'
       preLoaderRoute: typeof SignupRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/zapomenute-heslo': {
+      id: '/zapomenute-heslo'
+      path: '/zapomenute-heslo'
+      fullPath: '/zapomenute-heslo'
+      preLoaderRoute: typeof ZapomenuteHesloRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/_ProtectedPages/profil': {
@@ -245,11 +343,32 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof SkupinyGroupIdRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/_ProtectedPages/akce/nova': {
+      id: '/_ProtectedPages/akce/nova'
+      path: '/akce/nova'
+      fullPath: '/akce/nova'
+      preLoaderRoute: typeof ProtectedPagesAkceNovaRouteImport
+      parentRoute: typeof ProtectedPagesRoute
+    }
     '/_ProtectedPages/skupiny/nova': {
       id: '/_ProtectedPages/skupiny/nova'
       path: '/skupiny/nova'
       fullPath: '/skupiny/nova'
       preLoaderRoute: typeof ProtectedPagesSkupinyNovaRouteImport
+      parentRoute: typeof ProtectedPagesRoute
+    }
+    '/_ProtectedPages/akce/$eventId/sprava': {
+      id: '/_ProtectedPages/akce/$eventId/sprava'
+      path: '/akce/$eventId/sprava'
+      fullPath: '/akce/$eventId/sprava'
+      preLoaderRoute: typeof ProtectedPagesAkceEventIdSpravaRouteImport
+      parentRoute: typeof ProtectedPagesRoute
+    }
+    '/_ProtectedPages/akce/$eventId/upravit': {
+      id: '/_ProtectedPages/akce/$eventId/upravit'
+      path: '/akce/$eventId/upravit'
+      fullPath: '/akce/$eventId/upravit'
+      preLoaderRoute: typeof ProtectedPagesAkceEventIdUpravitRouteImport
       parentRoute: typeof ProtectedPagesRoute
     }
     '/_ProtectedPages/skupiny/$groupId/sprava': {
@@ -271,14 +390,20 @@ declare module '@tanstack/react-router' {
 
 interface ProtectedPagesRouteChildren {
   ProtectedPagesProfilRoute: typeof ProtectedPagesProfilRoute
+  ProtectedPagesAkceNovaRoute: typeof ProtectedPagesAkceNovaRoute
   ProtectedPagesSkupinyNovaRoute: typeof ProtectedPagesSkupinyNovaRoute
+  ProtectedPagesAkceEventIdSpravaRoute: typeof ProtectedPagesAkceEventIdSpravaRoute
+  ProtectedPagesAkceEventIdUpravitRoute: typeof ProtectedPagesAkceEventIdUpravitRoute
   ProtectedPagesSkupinyGroupIdSpravaRoute: typeof ProtectedPagesSkupinyGroupIdSpravaRoute
   ProtectedPagesSkupinyGroupIdUpravitRoute: typeof ProtectedPagesSkupinyGroupIdUpravitRoute
 }
 
 const ProtectedPagesRouteChildren: ProtectedPagesRouteChildren = {
   ProtectedPagesProfilRoute: ProtectedPagesProfilRoute,
+  ProtectedPagesAkceNovaRoute: ProtectedPagesAkceNovaRoute,
   ProtectedPagesSkupinyNovaRoute: ProtectedPagesSkupinyNovaRoute,
+  ProtectedPagesAkceEventIdSpravaRoute: ProtectedPagesAkceEventIdSpravaRoute,
+  ProtectedPagesAkceEventIdUpravitRoute: ProtectedPagesAkceEventIdUpravitRoute,
   ProtectedPagesSkupinyGroupIdSpravaRoute:
     ProtectedPagesSkupinyGroupIdSpravaRoute,
   ProtectedPagesSkupinyGroupIdUpravitRoute:
@@ -293,8 +418,11 @@ const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   ProtectedPagesRoute: ProtectedPagesRouteWithChildren,
   AkceRoute: AkceRoute,
+  EmailOverenRoute: EmailOverenRoute,
   LoginRoute: LoginRoute,
+  ResetPasswordRoute: ResetPasswordRoute,
   SignupRoute: SignupRoute,
+  ZapomenuteHesloRoute: ZapomenuteHesloRoute,
   AkceEventIdRoute: AkceEventIdRoute,
   SkupinyGroupIdRoute: SkupinyGroupIdRoute,
   SkupinyIndexRoute: SkupinyIndexRoute,

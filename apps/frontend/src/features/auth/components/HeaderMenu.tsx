@@ -62,7 +62,10 @@ export function HeaderMenu() {
         <DropdownMenuLabel>
           <div className="flex flex-col">
             <span className="text-sm leading-none font-medium">{user.name}</span>
-            <span className="mt-1 text-xs text-muted-foreground">@{user.username}</span>
+            {/* accounts made since #37 have no username: B-010 doesn't ask for one */}
+            {user.username ? (
+              <span className="mt-1 text-xs text-muted-foreground">@{user.username}</span>
+            ) : null}
           </div>
         </DropdownMenuLabel>
         <DropdownMenuSeparator />

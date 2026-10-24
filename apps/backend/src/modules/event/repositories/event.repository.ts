@@ -4,9 +4,20 @@ import { computeCapacity } from '@/modules/event/domain/capacity';
 import {
   EventDetail,
   EventParticipant,
+  NewEvent,
   PublicEvent,
   PublicEventFilters,
 } from '@/modules/event/domain/event';
+import {
+  UpdateDecision,
+  UpdateState,
+} from '@/modules/event/domain/event-update';
+import {
+  JoinDecision,
+  JoinState,
+  ParticipationRefusal,
+  ParticipationStatus,
+} from '@/modules/event/domain/participation';
 import { Injectable } from '@nestjs/common';
 import { buildPublicEventsWhere } from './public-events-where';
 
@@ -105,6 +116,171 @@ export class EventRepository {
       orderBy: [{ approvedAt: { sort: 'asc', nulls: 'last' } }, { id: 'asc' }],
     });
     return participations.map((participation) => participation.user);
+  }
+
+  /** Whether the activity and the locality an event refers to exist. */
+  async catalogRefsExist(
+    activityId: string,
+    localityId: string,
+  ): Promise<{ activity: boolean; locality: boolean }> {
+    const [activity, locality] = await Promise.all([
+      this.prisma.activity.count({ where: { id: activityId } }),
+      this.prisma.locality.count({ where: { id: localityId } }),
+    ]);
+    return { activity: activity > 0, locality: locality > 0 };
+  }
+
+  /** A new public, published event of a person (B-021); returns its id. */
+  async createEvent(event: NewEvent, organizerUserId: string): Promise<string> {
+    const created = await this.prisma.event.create({
+      data: { ...event, organizerUserId },
+      select: { id: true },
+    });
+    return created.id;
+  }
+
+  /**
+   * Cancels the event (B-028): it is never deleted, only marked, with the
+   * reason the participants see. Conditional on it still being published and
+   * ahead, so of two cancels at once only one writes; false when none did.
+   */
+  async cancelEvent(id: string, reason: string, now: Date): Promise<boolean> {
+    const { count } = await this.prisma.event.updateMany({
+      where: { id, status: 'published', startsAt: { gt: now } },
+      data: { status: 'cancelled', cancelReason: reason, cancelledAt: now },
+    });
+    return count === 1;
+  }
+
+  async findParticipationStatus(
+    eventId: string,
+    userId: string,
+  ): Promise<ParticipationStatus | null> {
+    const participation = await this.prisma.participation.findUnique({
+      where: { eventId_userId: { eventId, userId } },
+      select: { status: true },
+    });
+    return participation?.status ?? null;
+  }
+
+  /**
+   * Joins under a row lock on the event (B-031): a second join of the same
+   * event waits until the first has committed, so two people can't both take
+   * the last place. `decide` gets the state read under the lock. Null when
+   * the event doesn't exist.
+   */
+  async join(
+    eventId: string,
+    userId: string,
+    decide: (state: JoinState) => JoinDecision,
+  ): Promise<JoinDecision | null> {
+    return this.prisma.$transaction(async (tx) => {
+      await tx.$executeRaw`SELECT 1 FROM "event" WHERE "id" = ${eventId} FOR UPDATE`;
+      const event = await tx.event.findUnique({
+        where: { id: eventId },
+        select: {
+          status: true,
+          startsAt: true,
+          approvalMode: true,
+          maxParticipants: true,
+          organizerUserId: true,
+        },
+      });
+      if (!event) return null;
+      const [existing, approvedCount] = await Promise.all([
+        tx.participation.findUnique({
+          where: { eventId_userId: { eventId, userId } },
+          select: { status: true },
+        }),
+        tx.participation.count({ where: { eventId, status: 'approved' } }),
+      ]);
+      const decision = decide({
+        eventStatus: event.status,
+        startsAt: event.startsAt,
+        approvalMode: event.approvalMode,
+        maxParticipants: event.maxParticipants,
+        isOrganizer: event.organizerUserId === userId,
+        existingStatus: existing?.status ?? null,
+        approvedCount,
+      });
+      if (!decision.ok) return decision;
+
+      const approvedAt = decision.status === 'approved' ? new Date() : null;
+      // one row per user and event: coming back after withdrawing reuses it
+      await tx.participation.upsert({
+        where: { eventId_userId: { eventId, userId } },
+        create: { eventId, userId, status: decision.status, approvedAt },
+        update: { status: decision.status, approvedAt, message: null },
+      });
+      return decision;
+    });
+  }
+
+  /** Leaves an event or withdraws a request; the place is free again. */
+  async leave(
+    eventId: string,
+    userId: string,
+    decide: (state: {
+      startsAt: Date;
+      existingStatus: ParticipationStatus | null;
+    }) => { ok: true } | { ok: false; refusal: ParticipationRefusal },
+  ): Promise<
+    { ok: true } | { ok: false; refusal: ParticipationRefusal } | null
+  > {
+    return this.prisma.$transaction(async (tx) => {
+      const event = await tx.event.findUnique({
+        where: { id: eventId },
+        select: { startsAt: true },
+      });
+      if (!event) return null;
+      const existing = await tx.participation.findUnique({
+        where: { eventId_userId: { eventId, userId } },
+        select: { status: true },
+      });
+      const decision = decide({
+        startsAt: event.startsAt,
+        existingStatus: existing?.status ?? null,
+      });
+      if (!decision.ok) return decision;
+      await tx.participation.update({
+        where: { eventId_userId: { eventId, userId } },
+        data: { status: 'withdrawn', approvedAt: null },
+      });
+      return decision;
+    });
+  }
+
+  /**
+   * Changes the event under the same row lock as joining (#41): the state
+   * `decide` sees can't change before the write, so the maximum is never
+   * lowered below the people who have a place, and a cancel that came first
+   * is seen. Writes what `decide` says; null when the event doesn't exist.
+   */
+  async updateEvent(
+    id: string,
+    decide: (state: UpdateState) => UpdateDecision,
+  ): Promise<UpdateDecision | null> {
+    return this.prisma.$transaction(async (tx) => {
+      await tx.$executeRaw`SELECT 1 FROM "event" WHERE "id" = ${id} FOR UPDATE`;
+      const event = await tx.event.findUnique({
+        where: { id },
+        select: {
+          status: true,
+          startsAt: true,
+          endsAt: true,
+          minParticipants: true,
+          maxParticipants: true,
+        },
+      });
+      if (!event) return null;
+      const approvedCount = await tx.participation.count({
+        where: { eventId: id, status: 'approved' },
+      });
+      const decision = decide({ ...event, approvedCount });
+      if (!decision.ok) return decision;
+      await tx.event.update({ where: { id }, data: decision.data });
+      return decision;
+    });
   }
 
   async isActiveGroupMember(groupId: string, userId: string): Promise<boolean> {

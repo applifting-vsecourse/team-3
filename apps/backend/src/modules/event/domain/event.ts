@@ -57,4 +57,38 @@ export type EventDetail = PublicEvent & {
 /** The detail and, for a signed-in viewer, who is coming; a visitor gets only the count. */
 export type EventDetailView = EventDetail & {
   participants: EventParticipant[] | null;
+  /** The signed-in viewer's own participation; null for a visitor or someone not in. */
+  myParticipation: 'pending' | 'approved' | 'rejected' | 'removed' | null;
 };
+
+/** What the organizer fills in when creating an event (B-021). */
+export type NewEvent = {
+  title: string;
+  description: string | null;
+  activityId: string;
+  localityId: string;
+  lat: number;
+  lng: number;
+  address: string;
+  startsAt: Date;
+  endsAt: Date | null;
+  minParticipants: number;
+  maxParticipants: number;
+  approvalMode: 'open' | 'approval';
+};
+
+/** What the organizer may change on an event (B-028, #41): not the activity nor the way of joining. */
+export type EventChanges = Partial<
+  Pick<
+    NewEvent,
+    | 'title'
+    | 'description'
+    | 'localityId'
+    | 'lat'
+    | 'lng'
+    | 'address'
+    | 'startsAt'
+    | 'minParticipants'
+    | 'maxParticipants'
+  >
+>;

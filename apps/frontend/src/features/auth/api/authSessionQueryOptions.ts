@@ -10,6 +10,8 @@ export type SessionUser = {
   name: string
   username: string
   role?: string
+  /** B-011: without it the user can't join or create events and groups. */
+  emailVerified: boolean
 }
 
 export type Session = {
@@ -36,6 +38,7 @@ export const authSessionQueryOptions = () =>
           name: user.name,
           username: user.username ?? "",
           role: user.role ?? undefined,
+          emailVerified: Boolean(user.emailVerified),
         },
       }
     },

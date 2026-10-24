@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button"
 import {
   Form,
   FormControl,
+  FormDescription,
   FormField,
   FormItem,
   FormLabel,
@@ -15,28 +16,18 @@ import {
 } from "@/components/ui/form"
 import { Input } from "@/components/ui/input"
 
-const schema = z
-  .object({
-    email: z.string().trim().min(1, "Email is required").email("Invalid email"),
-    name: z.string().trim().min(1, "Name is required"),
-    username: z.string().trim().min(1, "Username is required"),
-    password: z.string().trim().min(8, "Password must be at least 8 characters"),
-    passwordConfirmation: z.string().trim().min(1, "Password confirmation is required"),
-  })
-  .refine((values) => values.password === values.passwordConfirmation, {
-    message: "Passwords must match",
-    path: ["passwordConfirmation"],
-  })
+import { passwordSchema } from "@/features/auth/lib/password"
+
+// B-010: name, e-mail and password, nothing else
+const schema = z.object({
+  name: z.string().trim().min(1, "Vyplňte jméno"),
+  email: z.string().trim().min(1, "Vyplňte e-mail").email("Tohle není platný e-mail"),
+  password: passwordSchema,
+})
 
 type FormValues = z.infer<typeof schema>
 
-const defaultValues: FormValues = {
-  email: "",
-  name: "",
-  username: "",
-  password: "",
-  passwordConfirmation: "",
-}
+const defaultValues: FormValues = { name: "", email: "", password: "" }
 
 type SignUpFormProps = {
   isLoading: boolean
@@ -44,6 +35,7 @@ type SignUpFormProps = {
   onSubmit: (values: FormValues) => void | Promise<void>
 }
 
+/** Figma B-01 (#37): one account for joining events and organizing them. */
 export function SignUpForm({ isLoading, errorMessage, onSubmit }: SignUpFormProps) {
   const form = useForm<FormValues>({
     resolver: zodResolver(schema),
@@ -68,30 +60,14 @@ export function SignUpForm({ isLoading, errorMessage, onSubmit }: SignUpFormProp
           name="name"
           render={({ field }) => (
             <FormItem>
-              <FormLabel>Name</FormLabel>
+              <FormLabel>Jméno</FormLabel>
               <FormControl>
                 <Input
                   autoComplete="name"
                   {...field}
                 />
               </FormControl>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
-
-        <FormField
-          control={form.control}
-          name="username"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>Username</FormLabel>
-              <FormControl>
-                <Input
-                  autoComplete="username"
-                  {...field}
-                />
-              </FormControl>
+              <FormDescription>Uvidí ho organizátoři a účastníci akcí.</FormDescription>
               <FormMessage />
             </FormItem>
           )}
@@ -102,11 +78,11 @@ export function SignUpForm({ isLoading, errorMessage, onSubmit }: SignUpFormProp
           name="email"
           render={({ field }) => (
             <FormItem>
-              <FormLabel>Email</FormLabel>
+              <FormLabel>E-mail</FormLabel>
               <FormControl>
                 <Input
                   type="email"
-                  placeholder="e.g. john@doe.com"
+                  placeholder="např. jana@example.com"
                   autoComplete="email"
                   {...field}
                 />
@@ -121,7 +97,7 @@ export function SignUpForm({ isLoading, errorMessage, onSubmit }: SignUpFormProp
           name="password"
           render={({ field }) => (
             <FormItem>
-              <FormLabel>Password</FormLabel>
+              <FormLabel>Heslo</FormLabel>
               <FormControl>
                 <Input
                   type="password"
@@ -129,24 +105,7 @@ export function SignUpForm({ isLoading, errorMessage, onSubmit }: SignUpFormProp
                   {...field}
                 />
               </FormControl>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
-
-        <FormField
-          control={form.control}
-          name="passwordConfirmation"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>Confirm password</FormLabel>
-              <FormControl>
-                <Input
-                  type="password"
-                  autoComplete="new-password"
-                  {...field}
-                />
-              </FormControl>
+              <FormDescription>Aspoň 10 znaků, písmeno a číslice.</FormDescription>
               <FormMessage />
             </FormItem>
           )}
@@ -159,7 +118,7 @@ export function SignUpForm({ isLoading, errorMessage, onSubmit }: SignUpFormProp
           disabled={isLoading}
         >
           {isLoading ? <Loader2 className="size-4 animate-spin" /> : null}
-          Sign up
+          Zaregistrovat se
         </Button>
       </form>
     </Form>

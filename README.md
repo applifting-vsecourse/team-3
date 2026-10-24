@@ -51,7 +51,7 @@ Demo accounts for walking through the app (all demo accounts share one password)
 | Unverified email            | Eva Malá       | `eva.mala@example.com`       | `hobbyhub-demo-2026`           |
 | Superadmin (`role = admin`) | –              | `SUPERADMIN_EMAIL` from env  | `SUPERADMIN_PASSWORD` from env |
 
-Locally the superadmin is `admin@example.com` / `adminpassword` (from `apps/backend/.env.example`). On staging it uses the values set in the deployment environment. The prepared demo cases (an approval event with one free spot, events missing one person, pending group requests) are described in the header of `demo-data.ts`.
+Locally the superadmin is `admin@example.com` / `adminpassword26` (from `apps/backend/.env.example`; passwords need 10 characters with a letter and a digit, B-010). A database seeded before that keeps `adminpassword`. On staging it uses the values set in the deployment environment. The prepared demo cases (an approval event with one free spot, events missing one person, pending group requests) are described in the header of `demo-data.ts`.
 
 Verification/reset emails are printed to the backend terminal (console mailer) unless you configure Resend or SMTP in `apps/backend/.env`.
 
@@ -82,7 +82,7 @@ Two things worth knowing:
 
 - **You set exactly two URLs**, `BACKEND_URL` and `FRONTEND_URL`. The backend uses them for CORS, BetterAuth trusted origins and password-reset links; the frontend's API URL is derived from `BACKEND_URL`. Point them at the real domains or the backend rejects the browser.
 - **The frontend bakes its API URL in at build time** (`VITE_*` are build args, not runtime env), so changing `BACKEND_URL` needs a rebuild, not just a restart.
-- **The container migrates and seeds on every start** — it runs `prisma migrate deploy`, then the seed, then the app. The seed is repeatable: it syncs the activity/locality catalog, creates the superadmin and demo accounts only if they are missing (and finishes one an earlier seed left half-created, recognised by having no username and the seed's password), and inserts the demo groups and events only into a database with no events and no groups, so a redeploy never duplicates or moves them. Set `SEED_DEMO_DATA=false` to skip the demo data (the catalog is always seeded). If the superadmin can't be created (check `SUPERADMIN_EMAIL` and a `SUPERADMIN_PASSWORD` of at least 8 characters), the seed logs why and carries on with the demo data. Any other failed seed is logged and the app starts anyway.
+- **The container migrates and seeds on every start** — it runs `prisma migrate deploy`, then the seed, then the app. The seed is repeatable: it syncs the activity/locality catalog, creates the superadmin and demo accounts only if they are missing (and finishes one an earlier seed left half-created, recognised by having no username and the seed's password), and inserts the demo groups and events only into a database with no events and no groups, so a redeploy never duplicates or moves them. Set `SEED_DEMO_DATA=false` to skip the demo data (the catalog is always seeded). If the superadmin can't be created (check `SUPERADMIN_EMAIL` and a `SUPERADMIN_PASSWORD` of at least 10 characters with a letter and a digit), the seed logs why and carries on with the demo data. Any other failed seed is logged and the app starts anyway.
 
 ## When something goes wrong
 
