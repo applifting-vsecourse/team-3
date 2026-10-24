@@ -2,6 +2,7 @@ import { screen, within } from "@testing-library/react"
 import userEvent from "@testing-library/user-event"
 import { describe, expect, it, vi } from "vitest"
 
+import { expectValidDescriptionList } from "@/test/expectValidDescriptionList"
 import { renderWithRouter } from "@/test/renderWithRouter"
 
 import { EventDetailView } from "@/features/events/components/EventDetailView"
@@ -31,6 +32,8 @@ describe("EventDetailView", () => {
     expect(screen.getByText("Chybí ještě 1")).toBeInTheDocument()
     expect(screen.getByText("3 z 12 · min. 4")).toBeInTheDocument()
     expect(screen.getByRole("heading", { name: "Účastníci 3" })).toBeInTheDocument()
+    // the facts are a valid <dl> (Termín, Místo, Přihlašování)
+    expectValidDescriptionList(screen.getByText("Termín").closest("dl")!)
   })
 
   it.each([
