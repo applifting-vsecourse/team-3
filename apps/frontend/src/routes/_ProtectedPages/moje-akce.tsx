@@ -5,7 +5,7 @@ import { TabBar, TabBarItem } from "@/components/TabBar/TabBar"
 import { Tabs, TabsContent } from "@/components/ui/tabs"
 
 import { useSession } from "@/features/auth/hooks/useSession"
-import { AttendingEvents } from "@/features/events/components/MyEvents"
+import { AttendingEvents, OrganizingEvents } from "@/features/events/components/MyEvents"
 import { myEventsSearchSchema } from "@/features/events/lib/myEvents"
 
 export const Route = createFileRoute("/_ProtectedPages/moje-akce")({
@@ -48,7 +48,9 @@ function MyEventsPage() {
               <TabsContent value="prihlasen">
                 <AttendingEvents viewerId={user.id} />
               </TabsContent>
-              <TabsContent value="poradam" />
+              <TabsContent value="poradam">
+                <OrganizingEvents viewerId={user.id} />
+              </TabsContent>
             </>
           ) : null}
         </Tabs>

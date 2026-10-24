@@ -1,6 +1,6 @@
 import { useId, type ReactNode } from "react"
 import { Link } from "@tanstack/react-router"
-import { RefreshCw } from "lucide-react"
+import { Info, Plus, RefreshCw } from "lucide-react"
 
 import { ROUTES } from "@/app/routes"
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
@@ -10,7 +10,13 @@ import type { MyEvent } from "@/features/events/api/eventSchemas"
 import { EventCard } from "@/features/events/components/EventCard"
 import { EventCardSkeleton } from "@/features/events/components/EventList"
 import { useMyEvents } from "@/features/events/hooks/useMyEvents"
-import { attendingSections, attendingStatus } from "@/features/events/lib/myEvents"
+import {
+  attendingSections,
+  attendingStatus,
+  organizingFacts,
+  organizingStatus,
+  pendingRequestsSummary,
+} from "@/features/events/lib/myEvents"
 
 /**
  * Přihlášen (Figma C-01): requests waiting for approval on top, then the
@@ -119,6 +125,67 @@ function MyEventsEmpty({ children }: { children: ReactNode }) {
   return (
     <div className="flex flex-col items-center gap-4 py-8 text-center text-sm text-muted-foreground">
       {children}
+    </div>
+  )
+}
+
+/**
+ * Pořádám (Figma C-02): the events I created, soonest first, cancelled ones
+ * with their label. The strip on top sums up the requests to decide; a card
+ * opens the event's management. „Založit akci“ floats at the end.
+ */
+export function OrganizingEvents({ viewerId }: { viewerId: string }) {
+  const { events, isPending, error, retry } = useMyEvents("organizing", viewerId)
+  const summary = events ? pendingRequestsSummary(events) : null
+
+  return (
+    <div className="flex flex-col gap-6">
+      {error ? (
+        <MyEventsError onRetry={retry} />
+      ) : isPending || !events ? (
+        <MyEventsLoading />
+      ) : events.length === 0 ? (
+        <MyEventsEmpty>
+          <p>Zatím nepořádáš žádnou akci.</p>
+        </MyEventsEmpty>
+      ) : (
+        <>
+          {summary ? (
+            <Alert
+              variant="info"
+              role="status"
+            >
+              <Info />
+              <AlertTitle>{summary.title}</AlertTitle>
+              <AlertDescription>{summary.events}</AlertDescription>
+            </Alert>
+          ) : null}
+          <ul className="flex flex-col gap-3">
+            {events.map((event) => (
+              <li key={event.id}>
+                <EventCard
+                  event={event}
+                  status={organizingStatus(event)}
+                  facts={organizingFacts(event)}
+                  linkTo="manage"
+                />
+              </li>
+            ))}
+          </ul>
+        </>
+      )}
+      {/* floats above the bottom navigation while the list scrolls, then rests under it */}
+      <div className="sticky bottom-20 flex justify-end md:bottom-8">
+        <Button
+          asChild
+          className="h-11 shadow-md"
+        >
+          <Link to={ROUTES.newEvent}>
+            <Plus />
+            Založit akci
+          </Link>
+        </Button>
+      </div>
     </div>
   )
 }

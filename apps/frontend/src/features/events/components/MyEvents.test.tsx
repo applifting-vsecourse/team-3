@@ -8,7 +8,7 @@ import { api } from "@/lib/api-client"
 import type * as ApiClient from "@/lib/api-client"
 import { renderWithRouter } from "@/test/renderWithRouter"
 
-import { AttendingEvents } from "@/features/events/components/MyEvents"
+import { AttendingEvents, OrganizingEvents } from "@/features/events/components/MyEvents"
 import { aMyEvent } from "@/features/events/test/anEvent"
 
 vi.mock("@/lib/api-client", async (importOriginal) => ({
@@ -84,5 +84,55 @@ describe("AttendingEvents", () => {
     expect(await screen.findByText("Akce se nepodařilo načíst")).toBeInTheDocument()
     await userEvent.click(screen.getByRole("button", { name: "Zkusit znovu" }))
     expect(await screen.findByText("Zatím nejdeš na žádnou akci.")).toBeInTheDocument()
+  })
+})
+
+describe("OrganizingEvents", () => {
+  beforeEach(() => get.mockReset())
+
+  const organized = (overrides: Parameters<typeof aMyEvent>[0]) =>
+    aMyEvent({ myParticipation: null, pendingRequests: 0, ...overrides })
+
+  it("sums up the waiting requests and opens each event's management", async () => {
+    get.mockReturnValue(
+      asJson([
+        organized({ id: "e1", title: "Deskovky", approvedCount: 4, pendingRequests: 2 }),
+        organized({ id: "e2", title: "Fotovycházka", status: "cancelled" }),
+      ]),
+    )
+
+    await renderWithQuery(<OrganizingEvents viewerId="u1" />)
+
+    const summary = await screen.findByRole("status")
+    expect(summary).toHaveTextContent("2 žádosti čekají na schválení")
+    expect(summary).toHaveTextContent("Deskovky (2)")
+
+    const [deskovky, foto] = screen.getAllByRole("listitem")
+    expect(within(deskovky!).getByRole("link", { name: "Deskovky" })).toHaveAttribute(
+      "href",
+      "/akce/e1/sprava",
+    )
+    expect(within(deskovky!).getByText("4/12 · 2 žádosti")).toBeInTheDocument()
+    expect(within(foto!).getByText("Zrušeno")).toBeInTheDocument()
+
+    expect(get).toHaveBeenCalledWith("me/events", { searchParams: { tab: "organizing" } })
+  })
+
+  it("has no strip without requests", async () => {
+    get.mockReturnValue(asJson([organized({ title: "Deskovky" })]))
+
+    await renderWithQuery(<OrganizingEvents viewerId="u1" />)
+
+    expect(await screen.findByRole("link", { name: "Deskovky" })).toBeInTheDocument()
+    expect(screen.queryByRole("status")).not.toBeInTheDocument()
+  })
+
+  it("with nothing organized says so, and „Založit akci“ is there either way", async () => {
+    get.mockReturnValue(asJson([]))
+
+    await renderWithQuery(<OrganizingEvents viewerId="u1" />)
+
+    expect(await screen.findByText("Zatím nepořádáš žádnou akci.")).toBeInTheDocument()
+    expect(screen.getByRole("link", { name: "Založit akci" })).toHaveAttribute("href", "/akce/nova")
   })
 })
