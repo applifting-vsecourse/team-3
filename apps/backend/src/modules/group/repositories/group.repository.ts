@@ -7,6 +7,7 @@ import {
   GroupSummary,
   Membership,
   MembershipStatus,
+  MyGroup,
 } from '@/modules/group/domain/group';
 import {
   GroupMemberEntry,
@@ -14,6 +15,7 @@ import {
 } from '@/modules/group/domain/membership';
 import { Injectable } from '@nestjs/common';
 import { buildActiveGroupsWhere } from './active-groups-where';
+import { buildMyGroupsWhere } from './my-groups-where';
 
 const summaryInclude = {
   activity: { include: { category: true } },
@@ -75,6 +77,33 @@ export class GroupRepository {
       take: query.limit,
     });
     return groups.map(toSummary);
+  }
+
+  /** „Moje skupiny“ (B-056), each with my own membership; the service sorts them. */
+  async findMyGroups(userId: string): Promise<MyGroup[]> {
+    const groups = await this.prisma.group.findMany({
+      where: buildMyGroupsWhere(userId),
+      include: {
+        ...summaryInclude,
+        members: { where: { userId }, select: { role: true, status: true } },
+      },
+    });
+    return groups.flatMap((group) => {
+      const [membership] = group.members;
+      // the where clause guarantees an active or pending membership
+      if (
+        !membership ||
+        (membership.status !== 'active' && membership.status !== 'pending')
+      ) {
+        return [];
+      }
+      return [
+        {
+          ...toSummary(group),
+          membership: { role: membership.role, status: membership.status },
+        },
+      ];
+    });
   }
 
   /**

@@ -3,6 +3,7 @@ import {
   GroupDetail,
   GroupSummary,
   GroupType,
+  MyGroup,
 } from '@/modules/group/domain/group';
 import { ApiProperty } from '@nestjs/swagger';
 
@@ -122,6 +123,30 @@ export class GroupDetailResponseDto extends GroupResponseDto {
       status: group.status,
       admins: group.admins,
       viewerMembership: group.viewerMembership,
+    };
+  }
+}
+
+class MyMembershipDto {
+  @ApiProperty({ enum: ['admin', 'member'] })
+  role!: 'admin' | 'member';
+
+  @ApiProperty({
+    enum: ['active', 'pending'],
+    description: 'pending: my request waits for an admin',
+  })
+  status!: 'active' | 'pending';
+}
+
+/** GET /me/groups (B-056) */
+export class MyGroupResponseDto extends GroupResponseDto {
+  @ApiProperty({ type: MyMembershipDto })
+  membership!: MyMembershipDto;
+
+  static fromDomain(group: MyGroup): MyGroupResponseDto {
+    return {
+      ...GroupResponseDto.fromDomain(group),
+      membership: group.membership,
     };
   }
 }

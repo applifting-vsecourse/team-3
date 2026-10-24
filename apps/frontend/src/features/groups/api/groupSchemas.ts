@@ -56,7 +56,18 @@ export const groupMembersSchema = z.object({
   members: z.array(memberEntrySchema),
 })
 
+/** GET /api/me/groups (B-056): a group with my own membership. */
+export const myGroupSchema = groupSchema.extend({
+  membership: z.object({
+    role: z.enum(["admin", "member"]),
+    status: z.enum(["active", "pending"]),
+  }),
+})
+
+export const myGroupsSchema = z.array(myGroupSchema)
+
 export type Group = z.infer<typeof groupSchema>
+export type MyGroup = z.infer<typeof myGroupSchema>
 export type GroupDetail = z.infer<typeof groupDetailSchema>
 export type Membership = z.infer<typeof membershipSchema>
 export type GroupMemberEntry = z.infer<typeof memberEntrySchema>
