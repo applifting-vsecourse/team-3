@@ -104,14 +104,26 @@ describe("ParticipationAction", () => {
     expect(screen.getByRole("button", { name: "Stáhnout žádost" })).toBeInTheDocument()
   })
 
-  it("after the start there is nothing to join or leave", async () => {
+  it("after the start there is nothing to join or leave; a participant still sees they're in", async () => {
     await renderAction(
       { myParticipation: "approved" },
       { now: new Date("2026-10-23T16:00:00.000Z") },
     )
 
-    expect(screen.getByText("Akce už začala.")).toBeInTheDocument()
+    expect(screen.getByText("Akce už začala. Jste přihlášení.")).toBeInTheDocument()
     expect(screen.queryByRole("button")).not.toBeInTheDocument()
+  })
+
+  it("leaving in progress: „Odhlásit se“ can't be sent twice", async () => {
+    await renderAction({ myParticipation: "approved" }, { isPending: true })
+
+    expect(screen.getByRole("button", { name: "Odhlásit se" })).toBeDisabled()
+  })
+
+  it("a removed participant is told so, not that they were rejected", async () => {
+    await renderAction({ myParticipation: "removed" })
+
+    expect(screen.getByText("Organizátor vás z akce odebral.")).toBeInTheDocument()
   })
 
   it("a cancelled event shows no action (its label is #52)", async () => {

@@ -49,7 +49,15 @@ export function ParticipationAction({
 }: ParticipationActionProps) {
   // the „Zrušeno“ label is #52
   if (event.status === "cancelled") return null
-  if (event.startsAt <= now) return <Note>Akce už začala.</Note>
+  if (event.startsAt <= now) {
+    return (
+      <Note>
+        {event.myParticipation === "approved"
+          ? "Akce už začala. Jste přihlášení."
+          : "Akce už začala."}
+      </Note>
+    )
+  }
 
   if (!viewer) {
     return (
@@ -136,8 +144,9 @@ function JoinControl({ event, isOrganizer, isPending, onJoin, onLeave }: JoinCon
         </>
       )
     case "rejected":
-    case "removed":
       return <Note>Organizátor vaši účast zamítl.</Note>
+    case "removed":
+      return <Note>Organizátor vás z akce odebral.</Note>
     case null:
       break
   }
@@ -188,6 +197,8 @@ function LeaveButton({ label, title, description, isPending, onConfirm }: LeaveB
         <Button
           variant="outline"
           size="lg"
+          // a second confirmation while the first is on its way would only fail
+          disabled={isPending}
         >
           {label}
         </Button>

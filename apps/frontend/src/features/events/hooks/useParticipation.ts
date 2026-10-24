@@ -18,6 +18,11 @@ function useParticipationMutation(eventId: string, viewerId: string, send: () =>
       queryClient.setQueryData(eventKeys.detail(eventId, viewerId), event)
       void queryClient.invalidateQueries({ queryKey: eventKeys.lists() })
     },
+    // A refusal (e.g. someone else took the last place) means the cached
+    // detail is out of date: refetch it, so „Přijdu“ turns into „Plno“.
+    onError: () => {
+      void queryClient.invalidateQueries({ queryKey: eventKeys.detail(eventId, viewerId) })
+    },
   })
 }
 
