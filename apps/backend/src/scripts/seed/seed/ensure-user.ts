@@ -24,26 +24,26 @@ export async function ensureUser(
   auth: BetterAuth,
   params: EnsureUserParams,
 ): Promise<{ user: User; created: boolean }> {
-  const existing = await prisma.user.findUnique({
-    where: { email: params.email },
-  });
+  // BetterAuth stores e-mails lower-cased; look the account up the same way,
+  // or an address with capitals (e.g. in SUPERADMIN_EMAIL) is never found
+  // again and every later seed fails on „user already exists“.
+  const email = params.email.trim().toLowerCase();
+  const existing = await prisma.user.findUnique({ where: { email } });
   if (existing) {
     return { user: existing, created: false };
   }
 
   await auth.api.signUpEmail({
     body: {
-      email: params.email,
+      email,
       password: params.password,
       name: params.name,
     },
   });
 
-  const created = await prisma.user.findUnique({
-    where: { email: params.email },
-  });
+  const created = await prisma.user.findUnique({ where: { email } });
   if (!created) {
-    throw new Error(`Failed to create user with email: ${params.email}`);
+    throw new Error(`Failed to create user with email: ${email}`);
   }
 
   const seededAt = new Date();

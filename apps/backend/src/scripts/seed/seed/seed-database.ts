@@ -22,15 +22,25 @@ export const seedDatabase = async (
   await seedCatalog(prisma);
 
   // Superadmin. This should be deleted in a production app.
-  const { created } = await ensureUser(prisma, betterAuth, {
-    email: config.superadminEmail,
-    password: config.superadminPassword,
-    name: 'Admin (Delete in Prod)',
-    username: 'superadmin',
-    role: 'admin',
-    emailVerified: true,
-  });
-  console.log(created ? 'Superadmin created' : 'Superadmin already exists');
+  // A failure here (e.g. SUPERADMIN_PASSWORD shorter than BetterAuth's
+  // minimum) is logged and the seed goes on: before, it ended the whole seed,
+  // so staging never got its demo data.
+  try {
+    const { created } = await ensureUser(prisma, betterAuth, {
+      email: config.superadminEmail,
+      password: config.superadminPassword,
+      name: 'Admin (Delete in Prod)',
+      username: 'superadmin',
+      role: 'admin',
+      emailVerified: true,
+    });
+    console.log(created ? 'Superadmin created' : 'Superadmin already exists');
+  } catch (error) {
+    console.error(
+      'Superadmin could not be created — check SUPERADMIN_EMAIL and SUPERADMIN_PASSWORD (min. 8 characters). Continuing with the rest of the seed.',
+      error,
+    );
+  }
 
   if (process.env.SEED_DEMO_DATA === 'false') {
     console.log('SEED_DEMO_DATA=false — skipping demo data.');
