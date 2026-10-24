@@ -147,17 +147,16 @@ function EventsPage() {
           </Button>
         ) : null}
 
-        {/* „Založit akci“ floats for a signed-in user only; a visitor doesn't see it (#40) */}
+        {/* „Založit akci“ floats for a signed-in user only; a visitor doesn't see it (#40).
+            Mobile only: on desktop it is in the header (Figma: Header/App desktop). */}
         {user ? (
           <Button
             asChild
-            // mobile: above the lowered sheet and the map's attribution (which
-            // sits on the sheet's edge), never over the first card
-            style={
-              isDesktop || isListExpanded ? undefined : { bottom: `${panelPeekHeight + 36}px` }
-            }
+            // above the lowered sheet and the map's attribution (which sits on
+            // the sheet's edge), never over the first card
+            style={isListExpanded ? undefined : { bottom: `${panelPeekHeight + 36}px` }}
             // follows the sheet as it moves, instead of jumping ahead of it
-            className="absolute right-4 bottom-4 z-20 h-11 shadow-md transition-[bottom] duration-300 ease-out motion-reduce:transition-none md:right-8 md:bottom-14"
+            className="absolute right-4 bottom-4 z-20 h-11 shadow-md transition-[bottom] duration-300 ease-out motion-reduce:transition-none md:hidden"
           >
             <Link to={ROUTES.newEvent}>
               <Plus />
