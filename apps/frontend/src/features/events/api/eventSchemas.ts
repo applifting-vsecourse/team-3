@@ -47,6 +47,30 @@ export const eventDetailSchema = publicEventSchema.extend({
 
 export type EventDetail = z.infer<typeof eventDetailSchema>
 
+/** POST /api/events answers with the detail and the link to share (B-021). */
+export const createdEventSchema = eventDetailSchema.extend({ shareUrl: z.string() })
+
+// The same limits as the API's CreateEventDto.
+export const EVENT_TITLE_MAX_LENGTH = 120
+export const EVENT_DESCRIPTION_MAX_LENGTH = 2000
+export const EVENT_ADDRESS_MAX_LENGTH = 200
+export const EVENT_MAX_PARTICIPANTS = 500
+
+/** The body of POST /api/events. The organizer is the signed-in user, never sent. */
+export type EventInput = {
+  title: string
+  description: string | null
+  activityId: string
+  localityId: string
+  lat: number
+  lng: number
+  address: string
+  startsAt: string
+  minParticipants: number
+  maxParticipants: number
+  approvalMode: "open" | "approval"
+}
+
 /** Query parameters of GET /api/events, already resolved to ids. */
 export type EventFilters = {
   localityId?: string

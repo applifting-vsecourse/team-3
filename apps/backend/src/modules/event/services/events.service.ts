@@ -2,11 +2,13 @@ import { matchesCapacity } from '@/modules/event/domain/capacity';
 import {
   EventDetail,
   EventDetailView,
+  NewEvent,
   PublicEvent,
   PublicEventFilters,
 } from '@/modules/event/domain/event';
 import { EventRepository } from '@/modules/event/repositories/event.repository';
 import {
+  BadRequestException,
   ConflictException,
   ForbiddenException,
   Injectable,
@@ -70,6 +72,37 @@ export class EventsService {
       ? await this.eventRepository.findApprovedParticipants(event.id)
       : null;
     return { ...event, participants };
+  }
+
+  /**
+   * Creates an event of the signed-in user (B-021). The organizer is always
+   * `organizerId` from the session, never something from the request body.
+   * Returns the new event as its detail shows it to the organizer.
+   */
+  async createEvent(
+    event: NewEvent,
+    organizerId: string,
+    now: Date = new Date(),
+  ): Promise<EventDetailView> {
+    // a date in the past can't be saved (the DTO can't know „now“ in tests)
+    if (event.startsAt <= now) {
+      // shown as they are in the form, so in Czech (like the groups service)
+      throw new BadRequestException(['Termín musí být v budoucnosti.']);
+    }
+    const refs = await this.eventRepository.catalogRefsExist(
+      event.activityId,
+      event.localityId,
+    );
+    const problems = [
+      refs.activity ? null : 'Neznámá aktivita.',
+      refs.locality ? null : 'Neznámá lokalita.',
+    ].filter((problem): problem is string => problem !== null);
+    if (problems.length > 0) {
+      throw new BadRequestException(problems);
+    }
+
+    const id = await this.eventRepository.createEvent(event, organizerId);
+    return this.getEventDetail(id, organizerId, now);
   }
 
   /**
