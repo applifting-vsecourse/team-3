@@ -1,3 +1,4 @@
+import { useId } from "react"
 import { RefreshCw } from "lucide-react"
 
 import { PersonRow } from "@/components/PersonRow/PersonRow"
@@ -20,13 +21,14 @@ type ManagedParticipantsProps = {
  * someone #60.
  */
 export function ManagedParticipants({ participants, error, onRetry }: ManagedParticipantsProps) {
+  const headingId = useId()
   return (
     <section
-      aria-labelledby="managed-participants"
+      aria-labelledby={headingId}
       className="flex flex-col gap-3"
     >
       <h2
-        id="managed-participants"
+        id={headingId}
         className="text-lg font-semibold tracking-tight"
       >
         Účastníci{" "}

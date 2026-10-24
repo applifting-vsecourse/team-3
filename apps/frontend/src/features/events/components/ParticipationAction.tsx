@@ -1,4 +1,4 @@
-import { useState } from "react"
+import { useState, type ReactNode } from "react"
 import { Link } from "@tanstack/react-router"
 import { Check, Loader2 } from "lucide-react"
 
@@ -47,15 +47,22 @@ export function ParticipationAction({
   onLeave,
   now = new Date(),
 }: ParticipationActionProps) {
-  // the „Zrušeno“ label is #52
-  if (event.status === "cancelled") return null
+  const isOrganizer = viewer !== null && event.organizer.id === viewer.id
+  // in every state: who was coming still matters once the event is cancelled
+  // or has started (#43)
+  const manage = isOrganizer ? <ManageLink eventId={event.id} /> : null
+
+  if (event.status === "cancelled") return manage ? <Row>{manage}</Row> : null
   if (event.startsAt <= now) {
     return (
-      <Note>
-        {event.myParticipation === "approved"
-          ? "Akce už začala. Jste přihlášení."
-          : "Akce už začala."}
-      </Note>
+      <Row>
+        {manage}
+        <Note>
+          {event.myParticipation === "approved"
+            ? "Akce už začala. Jste přihlášení."
+            : "Akce už začala."}
+        </Note>
+      </Row>
     )
   }
 
@@ -76,27 +83,17 @@ export function ParticipationAction({
     )
   }
   if (!viewer.emailVerified) {
-    return <Note>Na akci se přihlásíte, až ověříte svůj e-mail.</Note>
+    return (
+      <Row>
+        {manage}
+        <Note>Na akci se přihlásíte, až ověříte svůj e-mail.</Note>
+      </Row>
+    )
   }
 
-  const isOrganizer = event.organizer.id === viewer.id
-
   return (
-    <div className="flex flex-wrap items-center gap-3">
-      {isOrganizer ? (
-        <Button
-          asChild
-          variant="outline"
-          size="lg"
-        >
-          <Link
-            to={ROUTES.manageEvent}
-            params={{ eventId: event.id }}
-          >
-            Spravovat akci
-          </Link>
-        </Button>
-      ) : null}
+    <Row>
+      {manage}
       <JoinControl
         event={event}
         isOrganizer={isOrganizer}
@@ -104,7 +101,7 @@ export function ParticipationAction({
         onJoin={onJoin}
         onLeave={onLeave}
       />
-    </div>
+    </Row>
   )
 }
 
@@ -229,6 +226,27 @@ function LeaveButton({ label, title, description, isPending, onConfirm }: LeaveB
       </DialogContent>
     </Dialog>
   )
+}
+
+function ManageLink({ eventId }: { eventId: string }) {
+  return (
+    <Button
+      asChild
+      variant="outline"
+      size="lg"
+    >
+      <Link
+        to={ROUTES.manageEvent}
+        params={{ eventId }}
+      >
+        Spravovat akci
+      </Link>
+    </Button>
+  )
+}
+
+function Row({ children }: { children: ReactNode }) {
+  return <div className="flex flex-wrap items-center gap-3">{children}</div>
 }
 
 function Note({ children }: { children: string }) {

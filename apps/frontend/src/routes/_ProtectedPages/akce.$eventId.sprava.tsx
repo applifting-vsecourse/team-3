@@ -87,6 +87,11 @@ function ManageEventPage() {
                 // instead of the capacity: „Chybí ještě 2“ would read as if it still happens
                 <Alert>
                   <AlertTitle>Akce je zrušená</AlertTitle>
+                  {event.cancelReason ? (
+                    <AlertDescription className="whitespace-pre-line">
+                      {event.cancelReason}
+                    </AlertDescription>
+                  ) : null}
                 </Alert>
               ) : (
                 <CapacityBar

@@ -136,6 +136,20 @@ describe("ParticipationAction", () => {
     expect(screen.queryByRole("link")).not.toBeInTheDocument()
   })
 
+  it("the organizer still gets to the management page once the event is cancelled", async () => {
+    await renderAction({ status: "cancelled" }, { viewer: organizer })
+
+    expect(screen.getByRole("link", { name: "Spravovat akci" })).toBeInTheDocument()
+    expect(screen.queryByRole("button")).not.toBeInTheDocument()
+  })
+
+  it("…and once it has started", async () => {
+    await renderAction({}, { viewer: organizer, now: new Date("2026-10-23T16:00:00.000Z") })
+
+    expect(screen.getByRole("link", { name: "Spravovat akci" })).toBeInTheDocument()
+    expect(screen.getByText("Akce už začala.")).toBeInTheDocument()
+  })
+
   it("joining in progress: „Přijdu“ is disabled", async () => {
     await renderAction({}, { isPending: true })
 
