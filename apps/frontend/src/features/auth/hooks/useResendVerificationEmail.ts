@@ -20,7 +20,7 @@ export function useResendVerificationEmail() {
         callbackURL: afterVerificationUrl(),
       })
       if (error?.code === "EMAIL_ALREADY_VERIFIED") return "already-verified"
-      if (error) throw toAuthRequestError(error, "Odkaz se nepodařilo odeslat. Zkuste to znovu.")
+      if (error) throw toAuthRequestError(error, "Odkaz se nepodařilo odeslat. Zkus to znovu.")
       return "sent"
     },
     onSuccess: (result) => {

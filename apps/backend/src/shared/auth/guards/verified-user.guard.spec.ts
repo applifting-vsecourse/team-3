@@ -61,7 +61,7 @@ describe('VerifiedUserGuard', () => {
     expect(error).toBeInstanceOf(ForbiddenException);
     expect(error.getResponse()).toMatchObject({ code: EMAIL_NOT_VERIFIED });
     // the forms show the message as it is: it is in Czech
-    expect(error.getResponse().message).toMatch(/ověřte svůj e-mail/);
+    expect(error.getResponse().message).toMatch(/ověř e-mail/);
   });
 
   it('a blocked user is 403 USER_BLOCKED, verified or not', async () => {

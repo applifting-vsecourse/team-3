@@ -84,7 +84,7 @@ function EventDetailPage() {
                         toast.success(
                           updated.myParticipation === "pending"
                             ? "Žádost je odeslaná."
-                            : "Jste přihlášení na akci.",
+                            : "Máš na akci místo.",
                         ),
                       // the API's 409 says why, in Czech (e.g. „Akce je plná.“)
                       onError: (joinError) => toast.error(joinError.message),
@@ -92,7 +92,7 @@ function EventDetailPage() {
                   }
                   onLeave={() =>
                     leave.mutate(undefined, {
-                      onSuccess: () => toast.success("Odhlásili jste se z akce."),
+                      onSuccess: () => toast.success("Na akci už nejdeš."),
                       onError: (leaveError) => toast.error(leaveError.message),
                     })
                   }

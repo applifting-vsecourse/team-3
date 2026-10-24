@@ -31,8 +31,8 @@ export function EmailVerifiedView({
         </h1>
         <p className="text-muted-foreground">
           {error
-            ? `${REASONS[error] ?? "Odkaz je neplatný."} Nový odkaz si pošlete z pruhu nahoře, když jste přihlášení.`
-            : "Otevřete odkaz z e-mailu, nebo si nový pošlete z pruhu nahoře."}
+            ? `${REASONS[error] ?? "Odkaz je neplatný."} Nový odkaz si po přihlášení pošli z pruhu nahoře.`
+            : "Otevři odkaz z e-mailu, nebo si nový pošli z pruhu nahoře."}
         </p>
         <Button
           asChild
@@ -49,7 +49,7 @@ export function EmailVerifiedView({
     <section className="flex flex-col gap-3">
       <h1 className="text-2xl font-semibold tracking-tight">E-mail je ověřený</h1>
       <p className="text-muted-foreground">
-        Teď se můžete hlásit na akce a zakládat vlastní akce i skupiny.
+        Teď se můžeš hlásit na akce a zakládat vlastní akce i skupiny.
       </p>
       <Button
         asChild

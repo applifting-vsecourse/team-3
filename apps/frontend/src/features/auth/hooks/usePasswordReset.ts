@@ -11,7 +11,7 @@ export function useRequestPasswordReset() {
   return useMutation({
     mutationFn: async (email: string) => {
       const { error } = await authClient.requestPasswordReset({ email })
-      if (error) throw toAuthRequestError(error, "Odkaz se nepodařilo odeslat. Zkuste to znovu.")
+      if (error) throw toAuthRequestError(error, "Odkaz se nepodařilo odeslat. Zkus to znovu.")
     },
   })
 }
@@ -21,7 +21,7 @@ export function useResetPassword() {
   return useMutation({
     mutationFn: async ({ token, newPassword }: { token: string; newPassword: string }) => {
       const { error } = await authClient.resetPassword({ token, newPassword })
-      if (error) throw toAuthRequestError(error, "Heslo se nepodařilo změnit. Zkuste to znovu.")
+      if (error) throw toAuthRequestError(error, "Heslo se nepodařilo změnit. Zkus to znovu.")
     },
   })
 }

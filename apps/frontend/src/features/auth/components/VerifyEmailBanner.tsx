@@ -20,8 +20,8 @@ export function VerifyEmailBanner({ email }: { email: string }) {
     >
       <div className="mx-auto flex w-full max-w-4xl flex-wrap items-center justify-between gap-x-4 gap-y-2 px-4 py-2 text-sm md:px-8">
         <p>
-          Ověřte svůj e-mail: odkaz jsme poslali na <span className="font-semibold">{email}</span>.
-          Bez ověření se nejde přihlásit na akci ani nic založit.
+          Ověř si e-mail: odkaz jsme poslali na <span className="font-semibold">{email}</span>. Bez
+          ověření se nejde přihlásit na akci ani nic založit.
         </p>
         <Button
           variant="outline"

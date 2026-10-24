@@ -57,7 +57,7 @@ export interface DemoUser {
   name: string;
   username: string;
   email: string;
-  /** Ověřený e-mail (B-011). Neověřený účet ukazuje lištu „Ověřte e-mail“ a nesmí se hlásit na akce. */
+  /** Ověřený e-mail (B-011). Neověřený účet ukazuje lištu „Ověř si e-mail“ a nesmí se hlásit na akce. */
   emailVerified: boolean;
   bio: string;
   homeLocalitySlug: DemoLocalitySlug;

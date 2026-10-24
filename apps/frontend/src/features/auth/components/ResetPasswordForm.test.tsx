@@ -58,7 +58,7 @@ describe("ResetPasswordForm", () => {
   })
 
   it("shows the answer it is given, e.g. an expired link", () => {
-    const message = "Odkaz je neplatný, nebo už vypršel. Pošlete si prosím nový."
+    const message = "Odkaz je neplatný, nebo už vypršel. Pošli si prosím nový."
     render(
       <ResetPasswordForm
         isLoading={false}

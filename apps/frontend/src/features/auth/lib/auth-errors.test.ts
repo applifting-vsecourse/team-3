@@ -5,7 +5,7 @@ import { authErrorMessage, toAuthRequestError } from "@/features/auth/lib/auth-e
 describe("authErrorMessage", () => {
   it("turns BetterAuth's codes into Czech", () => {
     expect(authErrorMessage({ code: "INVALID_TOKEN", message: "Invalid token" }, "x")).toBe(
-      "Odkaz je neplatný, nebo už vypršel. Pošlete si prosím nový.",
+      "Odkaz je neplatný, nebo už vypršel. Pošli si prosím nový.",
     )
     expect(authErrorMessage({ code: "PASSWORD_TOO_SHORT" }, "x")).toBe("Heslo je příliš krátké.")
   })
@@ -24,7 +24,7 @@ describe("authErrorMessage", () => {
 
   it("a rate limit (429) asks to wait, whatever the code", () => {
     expect(authErrorMessage({ status: 429, message: "Too many requests" }, "x")).toBe(
-      "Příliš mnoho pokusů. Zkuste to prosím za minutu.",
+      "Příliš mnoho pokusů. Zkus to prosím za minutu.",
     )
   })
 
@@ -36,7 +36,7 @@ describe("authErrorMessage", () => {
 
   it("the thrown error keeps the code to react to", () => {
     const error = toAuthRequestError({ code: "TOKEN_EXPIRED" }, "x")
-    expect(error.message).toBe("Odkaz už vypršel. Pošlete si prosím nový.")
+    expect(error.message).toBe("Odkaz už vypršel. Pošli si prosím nový.")
     expect(error.code).toBe("TOKEN_EXPIRED")
   })
 })

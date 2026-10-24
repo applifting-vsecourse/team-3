@@ -26,9 +26,7 @@ describe("EmailVerifiedView", () => {
       screen.getByRole("heading", { level: 1, name: "E-mail se nepodařilo ověřit" }),
     ).toBeInTheDocument()
     expect(
-      screen.getByText(
-        "Odkaz už vypršel. Nový odkaz si pošlete z pruhu nahoře, když jste přihlášení.",
-      ),
+      screen.getByText("Odkaz už vypršel. Nový odkaz si po přihlášení pošli z pruhu nahoře."),
     ).toBeInTheDocument()
   })
 

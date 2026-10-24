@@ -33,11 +33,11 @@ import {
 /** Shown as they are in the app (409 with the code). */
 const REFUSAL_MESSAGES: Record<ParticipationRefusal, string> = {
   EVENT_FULL: 'Akce je plná.',
-  ALREADY_JOINED: 'Na akci už jste přihlášení.',
+  ALREADY_JOINED: 'Na akci už máš místo nebo žádost.',
   EVENT_STARTED: 'Akce už začala.',
   EVENT_CANCELLED: 'Akce je zrušená.',
-  PARTICIPATION_REFUSED: 'Organizátor vaši účast zamítl.',
-  NOT_JOINED: 'Na akci nejste přihlášení.',
+  PARTICIPATION_REFUSED: 'Organizátor tvoji účast zamítl.',
+  NOT_JOINED: 'Na akci nemáš místo ani žádost.',
 };
 
 const refused = (refusal: ParticipationRefusal): ConflictException =>

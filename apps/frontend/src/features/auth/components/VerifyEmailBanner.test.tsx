@@ -23,7 +23,7 @@ describe("VerifyEmailBanner", () => {
   it("says what is blocked until the e-mail is verified, and where the link went", () => {
     renderBanner()
 
-    expect(screen.getByRole("status")).toHaveTextContent(/Ověřte svůj e-mail/)
+    expect(screen.getByRole("status")).toHaveTextContent(/Ověř si e-mail/)
     expect(screen.getByText("jakub.kral@example.com")).toBeInTheDocument()
     expect(screen.getByRole("status")).toHaveTextContent(/přihlásit na akci ani nic založit/)
   })

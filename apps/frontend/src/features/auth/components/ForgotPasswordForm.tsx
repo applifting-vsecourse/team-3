@@ -16,7 +16,7 @@ import {
 import { Input } from "@/components/ui/input"
 
 const schema = z.object({
-  email: z.string().trim().min(1, "Vyplňte e-mail").email("Tohle není platný e-mail"),
+  email: z.string().trim().min(1, "Vyplň e-mail").email("Tohle není platný e-mail"),
 })
 
 type FormValues = z.infer<typeof schema>

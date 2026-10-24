@@ -96,7 +96,7 @@ function GroupError({ isNotFound, onRetry }: { isNotFound: boolean; onRetry: () 
       <Alert variant="destructive">
         <AlertTitle>Skupinu se nepodařilo načíst</AlertTitle>
         <AlertDescription className="flex items-center justify-between gap-3">
-          <span>Zkontrolujte připojení a zkuste to znovu.</span>
+          <span>Zkontroluj připojení a zkus to znovu.</span>
           <Button
             variant="outline"
             size="sm"
