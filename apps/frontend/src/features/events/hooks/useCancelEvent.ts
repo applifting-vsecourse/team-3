@@ -17,5 +17,10 @@ export function useCancelEvent(eventId: string, viewerId: string) {
       queryClient.setQueryData(eventKeys.detail(eventId, viewerId), event)
       void queryClient.invalidateQueries({ queryKey: eventKeys.lists() })
     },
+    // a refusal (already cancelled elsewhere, already started) means the
+    // cached detail is out of date: refetch it, so „Zrušit akci“ goes away
+    onError: () => {
+      void queryClient.invalidateQueries({ queryKey: eventKeys.detail(eventId, viewerId) })
+    },
   })
 }

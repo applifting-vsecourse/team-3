@@ -109,13 +109,15 @@ export class EventRepository {
 
   /**
    * Cancels the event (B-028): it is never deleted, only marked, with the
-   * reason the participants see.
+   * reason the participants see. Conditional on it still being published and
+   * ahead, so of two cancels at once only one writes; false when none did.
    */
-  async cancelEvent(id: string, reason: string, now: Date): Promise<void> {
-    await this.prisma.event.update({
-      where: { id },
+  async cancelEvent(id: string, reason: string, now: Date): Promise<boolean> {
+    const { count } = await this.prisma.event.updateMany({
+      where: { id, status: 'published', startsAt: { gt: now } },
       data: { status: 'cancelled', cancelReason: reason, cancelledAt: now },
     });
+    return count === 1;
   }
 
   async isActiveGroupMember(groupId: string, userId: string): Promise<boolean> {

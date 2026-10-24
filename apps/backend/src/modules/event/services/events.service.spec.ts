@@ -269,8 +269,22 @@ describe('EventsService.cancelEvent', () => {
     const repository = mock<EventRepository>();
     repository.findEventDetail.mockResolvedValue(detail);
     repository.findApprovedParticipants.mockResolvedValue(participants);
+    repository.cancelEvent.mockResolvedValue(true);
     return { repository, service: new EventsService(repository) };
   };
+
+  it('of two cancels at once, the one that lost the write gets 409', async () => {
+    const { repository, service } = setup();
+    repository.cancelEvent.mockResolvedValue(false);
+    // re-read after the lost write: the other cancel got there first
+    repository.findEventDetail
+      .mockResolvedValueOnce(aDetail())
+      .mockResolvedValue(aDetail({ status: 'cancelled' }));
+
+    await expect(
+      service.cancelEvent('e1', 'u1', 'Druhý pokus', now),
+    ).rejects.toThrow(ConflictException);
+  });
 
   it('the organizer cancels with the reason; the event is marked, not deleted', async () => {
     const { repository, service } = setup();

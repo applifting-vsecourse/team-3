@@ -91,6 +91,15 @@ export class EventsService {
         message: 'Akci může zrušit jen její organizátor.',
       });
     }
+    this.assertCancellable(event, now);
+    if (!(await this.eventRepository.cancelEvent(id, reason, now))) {
+      // changed between the check and the write (e.g. cancelled in another tab)
+      this.assertCancellable(await this.getEventDetail(id, userId, now), now);
+    }
+    return this.getEventDetail(id, userId, now);
+  }
+
+  private assertCancellable(event: EventDetail, now: Date): void {
     if (event.status === 'cancelled') {
       throw new ConflictException({
         code: 'EVENT_CANCELLED',
@@ -103,8 +112,6 @@ export class EventsService {
         message: 'Akce už začala, zrušit ji nejde.',
       });
     }
-    await this.eventRepository.cancelEvent(id, reason, now);
-    return this.getEventDetail(id, userId, now);
   }
 
   private async canView(
