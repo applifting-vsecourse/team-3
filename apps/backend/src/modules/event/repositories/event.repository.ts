@@ -4,6 +4,7 @@ import { computeCapacity } from '@/modules/event/domain/capacity';
 import {
   EventDetail,
   EventParticipant,
+  NewEvent,
   PublicEvent,
   PublicEventFilters,
 } from '@/modules/event/domain/event';
@@ -111,6 +112,40 @@ export class EventRepository {
       orderBy: [{ approvedAt: { sort: 'asc', nulls: 'last' } }, { id: 'asc' }],
     });
     return participations.map((participation) => participation.user);
+  }
+
+  /** Whether the activity and the locality an event refers to exist. */
+  async catalogRefsExist(
+    activityId: string,
+    localityId: string,
+  ): Promise<{ activity: boolean; locality: boolean }> {
+    const [activity, locality] = await Promise.all([
+      this.prisma.activity.count({ where: { id: activityId } }),
+      this.prisma.locality.count({ where: { id: localityId } }),
+    ]);
+    return { activity: activity > 0, locality: locality > 0 };
+  }
+
+  /** A new public, published event of a person (B-021); returns its id. */
+  async createEvent(event: NewEvent, organizerUserId: string): Promise<string> {
+    const created = await this.prisma.event.create({
+      data: { ...event, organizerUserId },
+      select: { id: true },
+    });
+    return created.id;
+  }
+
+  /**
+   * Cancels the event (B-028): it is never deleted, only marked, with the
+   * reason the participants see. Conditional on it still being published and
+   * ahead, so of two cancels at once only one writes; false when none did.
+   */
+  async cancelEvent(id: string, reason: string, now: Date): Promise<boolean> {
+    const { count } = await this.prisma.event.updateMany({
+      where: { id, status: 'published', startsAt: { gt: now } },
+      data: { status: 'cancelled', cancelReason: reason, cancelledAt: now },
+    });
+    return count === 1;
   }
 
   async findParticipationStatus(

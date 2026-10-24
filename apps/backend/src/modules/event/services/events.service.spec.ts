@@ -1,7 +1,16 @@
 import { computeCapacity } from '@/modules/event/domain/capacity';
-import { EventDetail, PublicEvent } from '@/modules/event/domain/event';
+import {
+  EventDetail,
+  NewEvent,
+  PublicEvent,
+} from '@/modules/event/domain/event';
 import { EventRepository } from '@/modules/event/repositories/event.repository';
-import { ConflictException, NotFoundException } from '@nestjs/common';
+import {
+  BadRequestException,
+  ConflictException,
+  ForbiddenException,
+  NotFoundException,
+} from '@nestjs/common';
 import { mock, MockProxy } from 'jest-mock-extended';
 import {
   CAPACITY_SCAN_LIMIT,
@@ -255,6 +264,141 @@ describe('EventsService.getEventDetail', () => {
         NotFoundException,
       );
     });
+  });
+});
+
+describe('EventsService.createEvent', () => {
+  const newEvent = (overrides: Partial<NewEvent> = {}): NewEvent => ({
+    title: 'Deskovky po práci',
+    description: null,
+    activityId: 'a-deskove-hry',
+    localityId: 'l-praha-8',
+    lat: 50.0928,
+    lng: 14.4508,
+    address: 'Herna Karlín, Křižíkova 52, Praha 8',
+    startsAt: new Date('2026-10-24T16:00:00.000Z'),
+    endsAt: null,
+    minParticipants: 3,
+    maxParticipants: 6,
+    approvalMode: 'open',
+    ...overrides,
+  });
+
+  const setup = (
+    refs = { activity: true, locality: true },
+  ): {
+    repository: MockProxy<EventRepository>;
+    service: EventsService;
+  } => {
+    const repository = mock<EventRepository>();
+    repository.catalogRefsExist.mockResolvedValue(refs);
+    repository.createEvent.mockResolvedValue('e-new');
+    repository.findEventDetail.mockResolvedValue(
+      aDetail({ id: 'e-new', organizer: { id: 'u1', name: 'Petra' } }),
+    );
+    repository.findApprovedParticipants.mockResolvedValue([]);
+    return { repository, service: new EventsService(repository) };
+  };
+
+  it('creates the event with the signed-in user as organizer and returns its detail', async () => {
+    const { repository, service } = setup();
+    const event = newEvent();
+
+    const result = await service.createEvent(event, 'u1', now);
+
+    expect(repository.createEvent).toHaveBeenCalledWith(event, 'u1');
+    expect(result).toMatchObject({ id: 'e-new', organizer: { id: 'u1' } });
+    // the organizer sees the new event as a signed-in user: names, not just a count
+    expect(result.participants).toEqual([]);
+  });
+
+  it('a start in the past (or now) is 400 and nothing is created', async () => {
+    const { repository, service } = setup();
+
+    await expect(
+      service.createEvent(newEvent({ startsAt: now }), 'u1', now),
+    ).rejects.toThrow(BadRequestException);
+    expect(repository.createEvent).not.toHaveBeenCalled();
+  });
+
+  it('an unknown activity or locality is 400 saying which, in Czech', async () => {
+    const { repository, service } = setup({ activity: false, locality: true });
+
+    const error = (await service
+      .createEvent(newEvent(), 'u1', now)
+      .catch((e: unknown) => e)) as BadRequestException;
+
+    expect(error).toBeInstanceOf(BadRequestException);
+    expect(JSON.stringify(error.getResponse())).toContain('Neznámá aktivita.');
+    expect(repository.createEvent).not.toHaveBeenCalled();
+  });
+});
+
+describe('EventsService.cancelEvent', () => {
+  const setup = (
+    detail: EventDetail = aDetail(),
+  ): { repository: MockProxy<EventRepository>; service: EventsService } => {
+    const repository = mock<EventRepository>();
+    repository.findEventDetail.mockResolvedValue(detail);
+    repository.findApprovedParticipants.mockResolvedValue(participants);
+    repository.cancelEvent.mockResolvedValue(true);
+    return { repository, service: new EventsService(repository) };
+  };
+
+  it('of two cancels at once, the one that lost the write gets 409', async () => {
+    const { repository, service } = setup();
+    repository.cancelEvent.mockResolvedValue(false);
+    // re-read after the lost write: the other cancel got there first
+    repository.findEventDetail
+      .mockResolvedValueOnce(aDetail())
+      .mockResolvedValue(aDetail({ status: 'cancelled' }));
+
+    await expect(
+      service.cancelEvent('e1', 'u1', 'Druhý pokus', now),
+    ).rejects.toThrow(ConflictException);
+  });
+
+  it('the organizer cancels with the reason; the event is marked, not deleted', async () => {
+    const { repository, service } = setup();
+
+    await service.cancelEvent('e1', 'u1', 'Herna má zavřeno.', now);
+
+    expect(repository.cancelEvent).toHaveBeenCalledWith(
+      'e1',
+      'Herna má zavřeno.',
+      now,
+    );
+  });
+
+  it('anyone else gets 403 and nothing changes', async () => {
+    const { repository, service } = setup();
+
+    await expect(
+      service.cancelEvent('e1', 'u9', 'Nechci', now),
+    ).rejects.toThrow(ForbiddenException);
+    expect(repository.cancelEvent).not.toHaveBeenCalled();
+  });
+
+  it('an already cancelled or started event is 409', async () => {
+    const cancelled = setup(aDetail({ status: 'cancelled' }));
+    await expect(
+      cancelled.service.cancelEvent('e1', 'u1', 'Znovu', now),
+    ).rejects.toThrow(ConflictException);
+
+    const started = setup(aDetail({ startsAt: now }));
+    await expect(
+      started.service.cancelEvent('e1', 'u1', 'Pozdě', now),
+    ).rejects.toThrow(ConflictException);
+    expect(started.repository.cancelEvent).not.toHaveBeenCalled();
+  });
+
+  it('an event the user may not see is 404', async () => {
+    const { repository, service } = setup(aDetail({ status: 'hidden' }));
+
+    await expect(service.cancelEvent('e1', 'u1', 'Důvod', now)).rejects.toThrow(
+      NotFoundException,
+    );
+    expect(repository.cancelEvent).not.toHaveBeenCalled();
   });
 });
 

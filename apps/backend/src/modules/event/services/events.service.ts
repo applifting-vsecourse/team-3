@@ -2,6 +2,7 @@ import { matchesCapacity } from '@/modules/event/domain/capacity';
 import {
   EventDetail,
   EventDetailView,
+  NewEvent,
   PublicEvent,
   PublicEventFilters,
 } from '@/modules/event/domain/event';
@@ -12,7 +13,9 @@ import {
 } from '@/modules/event/domain/participation';
 import { EventRepository } from '@/modules/event/repositories/event.repository';
 import {
+  BadRequestException,
   ConflictException,
+  ForbiddenException,
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
@@ -92,6 +95,79 @@ export class EventsService {
     // someone who withdrew is simply not in
     const myParticipation = !mine || mine === 'withdrawn' ? null : mine;
     return { ...event, participants, myParticipation };
+  }
+
+  /**
+   * Creates an event of the signed-in user (B-021). The organizer is always
+   * `organizerId` from the session, never something from the request body.
+   * Returns the new event as its detail shows it to the organizer.
+   */
+  async createEvent(
+    event: NewEvent,
+    organizerId: string,
+    now: Date = new Date(),
+  ): Promise<EventDetailView> {
+    // a date in the past can't be saved (the DTO can't know „now“ in tests)
+    if (event.startsAt <= now) {
+      // shown as they are in the form, so in Czech (like the groups service)
+      throw new BadRequestException(['Termín musí být v budoucnosti.']);
+    }
+    const refs = await this.eventRepository.catalogRefsExist(
+      event.activityId,
+      event.localityId,
+    );
+    const problems = [
+      refs.activity ? null : 'Neznámá aktivita.',
+      refs.locality ? null : 'Neznámá lokalita.',
+    ].filter((problem): problem is string => problem !== null);
+    if (problems.length > 0) {
+      throw new BadRequestException(problems);
+    }
+
+    const id = await this.eventRepository.createEvent(event, organizerId);
+    return this.getEventDetail(id, organizerId, now);
+  }
+
+  /**
+   * The organizer cancels the event, with a reason (B-028, #52). The event is
+   * not deleted: it leaves the list and the map, and its detail stays
+   * reachable with the „Zrušeno“ label. The app never cancels on its own,
+   * not even when the minimum isn't reached.
+   */
+  async cancelEvent(
+    id: string,
+    userId: string,
+    reason: string,
+    now: Date = new Date(),
+  ): Promise<EventDetailView> {
+    const event = await this.getEventDetail(id, userId, now); // 404 first
+    if (event.organizer.id !== userId) {
+      throw new ForbiddenException({
+        code: 'NOT_ORGANIZER',
+        message: 'Akci může zrušit jen její organizátor.',
+      });
+    }
+    this.assertCancellable(event, now);
+    if (!(await this.eventRepository.cancelEvent(id, reason, now))) {
+      // changed between the check and the write (e.g. cancelled in another tab)
+      this.assertCancellable(await this.getEventDetail(id, userId, now), now);
+    }
+    return this.getEventDetail(id, userId, now);
+  }
+
+  private assertCancellable(event: EventDetail, now: Date): void {
+    if (event.status === 'cancelled') {
+      throw new ConflictException({
+        code: 'EVENT_CANCELLED',
+        message: 'Akce už je zrušená.',
+      });
+    }
+    if (event.startsAt <= now) {
+      throw new ConflictException({
+        code: 'EVENT_STARTED',
+        message: 'Akce už začala, zrušit ji nejde.',
+      });
+    }
   }
 
   /**

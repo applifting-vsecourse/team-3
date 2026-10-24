@@ -5,7 +5,9 @@ import { Identity } from '@/shared/auth/domain/identity';
 import { AuthenticatedUserGuard } from '@/shared/auth/guards/authenticated-user.guard';
 import { OptionalUserGuard } from '@/shared/auth/guards/optional-user.guard';
 import { VerifiedUserGuard } from '@/shared/auth/guards/verified-user.guard';
+import { Config } from '@/shared/config/config.service';
 import {
+  Body,
   Controller,
   Delete,
   Get,
@@ -23,6 +25,9 @@ import {
   ApiResponse,
   ApiTags,
 } from '@nestjs/swagger';
+import { CancelEventDto } from './dto/cancel-event.dto';
+import { CreateEventDto } from './dto/create-event.dto';
+import { CreatedEventResponseDto } from './dto/created-event.response.dto';
 import { EventDetailResponseDto } from './dto/event-detail.response.dto';
 import { ListEventsQueryDto } from './dto/list-events.query.dto';
 import { PublicEventResponseDto } from './dto/public-event.response.dto';
@@ -38,7 +43,10 @@ import { PublicEventResponseDto } from './dto/public-event.response.dto';
   }),
 )
 export class EventsController {
-  constructor(private readonly eventsService: EventsService) {}
+  constructor(
+    private readonly eventsService: EventsService,
+    private readonly config: Config,
+  ) {}
 
   @Get()
   @ApiOperation({
@@ -59,6 +67,48 @@ export class EventsController {
       capacity: query.capacity,
     });
     return events.map(PublicEventResponseDto.fromDomain);
+  }
+
+  @Post()
+  @UseGuards(VerifiedUserGuard)
+  @ApiCookieAuth()
+  @ApiOperation({
+    summary:
+      'Create an event; the organizer is the signed-in user (B-021), with a verified e-mail',
+  })
+  @ApiResponse({ status: 201, type: CreatedEventResponseDto })
+  @ApiResponse({
+    status: 400,
+    description:
+      'Invalid field: e.g. min below 1, max below min, start in the past, unknown activity',
+  })
+  @ApiResponse({ status: 401, description: 'Not signed in' })
+  @ApiResponse({
+    status: 403,
+    description: 'EMAIL_NOT_VERIFIED, or USER_BLOCKED',
+  })
+  async create(
+    @Body() body: CreateEventDto,
+    @User() user: Identity,
+  ): Promise<CreatedEventResponseDto> {
+    const event = await this.eventsService.createEvent(
+      {
+        title: body.title,
+        description: body.description || null,
+        activityId: body.activityId,
+        localityId: body.localityId,
+        lat: body.lat,
+        lng: body.lng,
+        address: body.address,
+        startsAt: new Date(body.startsAt),
+        endsAt: body.endsAt ? new Date(body.endsAt) : null,
+        minParticipants: body.minParticipants,
+        maxParticipants: body.maxParticipants,
+        approvalMode: body.approvalMode,
+      },
+      user.id,
+    );
+    return CreatedEventResponseDto.fromCreated(event, this.config.frontendUrl);
   }
 
   // Keep below any fixed path like /events/facets, or `:id` would catch it.
@@ -85,6 +135,30 @@ export class EventsController {
       viewer?.id ?? null,
     );
     return EventDetailResponseDto.fromDomain(event);
+  }
+
+  @Post(':id/cancel')
+  @HttpCode(200)
+  @UseGuards(AuthenticatedUserGuard)
+  @ApiCookieAuth()
+  @ApiOperation({
+    summary:
+      'Cancel the event with a reason (B-028); only its organizer, before it starts. Never deleted.',
+  })
+  @ApiResponse({ status: 200, type: EventDetailResponseDto })
+  @ApiResponse({ status: 400, description: 'Missing or too long reason' })
+  @ApiResponse({ status: 401, description: 'Not signed in' })
+  @ApiResponse({ status: 403, description: 'NOT_ORGANIZER' })
+  @ApiResponse({ status: 404, description: 'No such event for this user' })
+  @ApiResponse({ status: 409, description: 'EVENT_CANCELLED or EVENT_STARTED' })
+  async cancel(
+    @Param('id') id: string,
+    @Body() body: CancelEventDto,
+    @User() user: Identity,
+  ): Promise<EventDetailResponseDto> {
+    return EventDetailResponseDto.fromDomain(
+      await this.eventsService.cancelEvent(id, user.id, body.reason),
+    );
   }
 
   @Post(':id/participation')

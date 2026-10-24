@@ -12,8 +12,10 @@ import { authKeys } from "@/lib/auth-keys"
 import { HeaderMenu } from "@/features/auth/components/HeaderMenu"
 import { useSession } from "@/features/auth/hooks/useSession"
 import { encodeRedirectUri } from "@/features/auth/lib/redirect"
+import { CancelEventDialog } from "@/features/events/components/CancelEventDialog"
 import { EventDetailView } from "@/features/events/components/EventDetailView"
 import { ParticipationAction } from "@/features/events/components/ParticipationAction"
+import { useCancelEvent } from "@/features/events/hooks/useCancelEvent"
 import { useEventDetail } from "@/features/events/hooks/useEventDetail"
 import { useJoinEvent, useLeaveEvent } from "@/features/events/hooks/useParticipation"
 
@@ -34,6 +36,13 @@ function EventDetailPage() {
   const join = useJoinEvent(eventId, session.user?.id ?? "")
   const leave = useLeaveEvent(eventId, session.user?.id ?? "")
   const signInFrom = encodeRedirectUri(location)
+  const cancelEvent = useCancelEvent(eventId, session.user?.id ?? "")
+  // only the organizer, and only while the event can still be cancelled
+  const canCancel =
+    event !== undefined &&
+    session.user?.id === event.organizer.id &&
+    event.status === "published" &&
+    event.startsAt > new Date()
 
   // The cached session says signed in, yet the API answered as to a visitor:
   // the cookie has expired. Refresh the session so the header and the login
@@ -89,6 +98,22 @@ function EventDetailPage() {
                       onSuccess: () => toast.success("Odhlásili jste se z akce."),
                       onError: (leaveError) => toast.error(leaveError.message),
                     })
+                  }
+                />
+              ) : null
+            }
+            organizerActions={
+              canCancel ? (
+                <CancelEventDialog
+                  isPending={cancelEvent.isPending}
+                  onCancel={(reason) =>
+                    cancelEvent.mutateAsync(reason).then(
+                      () => toast.success("Akce je zrušená."),
+                      (cancelError: Error) => {
+                        toast.error(cancelError.message)
+                        throw cancelError
+                      },
+                    )
                   }
                 />
               ) : null

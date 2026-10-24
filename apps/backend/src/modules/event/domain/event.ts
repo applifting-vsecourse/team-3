@@ -60,3 +60,19 @@ export type EventDetailView = EventDetail & {
   /** The signed-in viewer's own participation; null for a visitor or someone not in. */
   myParticipation: 'pending' | 'approved' | 'rejected' | 'removed' | null;
 };
+
+/** What the organizer fills in when creating an event (B-021). */
+export type NewEvent = {
+  title: string;
+  description: string | null;
+  activityId: string;
+  localityId: string;
+  lat: number;
+  lng: number;
+  address: string;
+  startsAt: Date;
+  endsAt: Date | null;
+  minParticipants: number;
+  maxParticipants: number;
+  approvalMode: 'open' | 'approval';
+};

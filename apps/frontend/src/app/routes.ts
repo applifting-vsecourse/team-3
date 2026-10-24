@@ -2,6 +2,7 @@ export const ROUTES = {
   home: "/",
   events: "/akce",
   eventDetail: "/akce/$eventId",
+  newEvent: "/akce/nova",
   groups: "/skupiny",
   profile: "/profil",
   login: "/login",
