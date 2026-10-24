@@ -43,6 +43,16 @@ export const GROUP_TYPE_FOR_ADMIN: Record<GroupType, string> = {
   closed: "Neveřejná – žádosti schvaluješ ty",
 }
 
+/** „Moje“ (Figma A-07m): the type line says where I stand. */
+export function myGroupTypeLabel(group: {
+  type: GroupType
+  membership: { role: "admin" | "member"; status: "active" | "pending" }
+}): string {
+  if (group.membership.status === "pending") return "Neveřejná – žádost čeká na schválení"
+  const type = GROUP_TYPE_SHORT[group.type]
+  return group.membership.role === "admin" ? `${type} · Správce` : type
+}
+
 /** Card facts: „Florbal · Praha 9 · 8 členů“ */
 export const groupFacts = (group: {
   activity: { name: string }

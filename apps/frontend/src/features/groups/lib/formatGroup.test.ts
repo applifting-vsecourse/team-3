@@ -1,6 +1,12 @@
 import { describe, expect, it } from "vitest"
 
-import { groupCountLabel, groupFacts, memberCountLabel, showGroupsLabel } from "./formatGroup"
+import {
+  groupCountLabel,
+  groupFacts,
+  memberCountLabel,
+  myGroupTypeLabel,
+  showGroupsLabel,
+} from "./formatGroup"
 
 describe("memberCountLabel", () => {
   it.each([
@@ -44,5 +50,19 @@ describe("groupFacts", () => {
         memberCount: 8,
       }),
     ).toBe("Florbal · Praha 9 · 8 členů")
+  })
+})
+
+describe("myGroupTypeLabel", () => {
+  it("says where I stand (Figma A-07m)", () => {
+    expect(
+      myGroupTypeLabel({ type: "closed", membership: { role: "member", status: "pending" } }),
+    ).toBe("Neveřejná – žádost čeká na schválení")
+    expect(
+      myGroupTypeLabel({ type: "public", membership: { role: "member", status: "active" } }),
+    ).toBe("Veřejná")
+    expect(
+      myGroupTypeLabel({ type: "public", membership: { role: "admin", status: "active" } }),
+    ).toBe("Veřejná · Správce")
   })
 })
