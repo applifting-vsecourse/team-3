@@ -2,7 +2,7 @@ import { EventDetailView } from '@/modules/event/domain/event';
 import { ApiProperty } from '@nestjs/swagger';
 import { PublicEventResponseDto } from './public-event.response.dto';
 
-class EventParticipantDto {
+export class EventParticipantDto {
   @ApiProperty()
   id!: string;
 
@@ -38,6 +38,14 @@ export class EventDetailResponseDto extends PublicEventResponseDto {
   })
   participants!: EventParticipantDto[] | null;
 
+  @ApiProperty({
+    enum: ['pending', 'approved', 'rejected', 'removed'],
+    nullable: true,
+    description:
+      "The signed-in user's own participation; null for a visitor or someone not in",
+  })
+  myParticipation!: 'pending' | 'approved' | 'rejected' | 'removed' | null;
+
   static fromDomain(event: EventDetailView): EventDetailResponseDto {
     if (event.status === 'hidden' || event.status === 'deleted') {
       // the service answers 404 for these; this guards the response shape
@@ -50,6 +58,7 @@ export class EventDetailResponseDto extends PublicEventResponseDto {
       status: event.status,
       cancelReason: event.cancelReason,
       participants: event.participants,
+      myParticipation: event.myParticipation,
     };
   }
 }

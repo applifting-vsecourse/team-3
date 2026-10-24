@@ -2,6 +2,7 @@ import { GroupsService } from '@/modules/group/services/groups.service';
 import { User } from '@/shared/auth/decorators/user.decorator';
 import { Identity } from '@/shared/auth/domain/identity';
 import { AuthenticatedUserGuard } from '@/shared/auth/guards/authenticated-user.guard';
+import { VerifiedUserGuard } from '@/shared/auth/guards/verified-user.guard';
 import {
   Body,
   Controller,
@@ -66,12 +67,17 @@ export class GroupsController {
   }
 
   @Post()
-  @UseGuards(AuthenticatedUserGuard)
+  // B-011: founding a group needs a verified e-mail
+  @UseGuards(VerifiedUserGuard)
   @ApiCookieAuth()
   @ApiOperation({ summary: 'Found a group; the founder becomes its admin' })
   @ApiResponse({ status: 201, type: GroupDetailResponseDto })
   @ApiResponse({ status: 400, description: 'Invalid or unknown field' })
   @ApiResponse({ status: 401, description: 'Not signed in' })
+  @ApiResponse({
+    status: 403,
+    description: 'EMAIL_NOT_VERIFIED, or USER_BLOCKED',
+  })
   async create(
     @Body() body: CreateGroupDto,
     @User() user: Identity,

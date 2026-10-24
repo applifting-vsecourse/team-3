@@ -12,6 +12,9 @@ const params = {
   emailVerified: true,
 };
 
+// BetterAuth's ids: 32 characters of a-z, A-Z and 0-9
+const NEW_ID = 'Ab3dEfGh5jKlMn7pQrSt9vWxYz1b3d5f';
+
 type Row = {
   id: string;
   email: string;
@@ -47,7 +50,7 @@ const setup = (
     body: { email: string; password: string };
   }) => {
     rows.push({
-      id: 'new',
+      id: NEW_ID,
       email: body.email,
       username: null,
       password: body.password,
@@ -120,7 +123,7 @@ describe('ensureUser', () => {
       body: expect.objectContaining({ email: 'admin@hobbyhub.cz' }),
     });
     expect(prisma.user.update).toHaveBeenCalledWith({
-      where: { id: 'new' },
+      where: { id: NEW_ID },
       data: expect.objectContaining({ username: 'superadmin', role: 'admin' }),
     });
   });
@@ -147,6 +150,60 @@ describe('ensureUser', () => {
         username: 'superadmin',
         role: 'admin',
         emailVerified: true,
+      }),
+    });
+  });
+
+  it('keeps a derived username within the plugin rules and numbers it on a clash', async () => {
+    const long = { ...params, username: 'veronika.ruzickova.dlouha' };
+    const { prisma, auth } = setup([
+      { id: 'a', email: 'a@x.cz', username: 'veronika.ruzickova.dlouha' },
+      // the first derived name is taken too
+      { id: 'b', email: 'b@x.cz', username: 'veronika.ruzickova.d.ab3def' },
+    ]);
+
+    await ensureUser(prisma, auth, long);
+
+    const { username } = prisma.user.update.mock.calls[0]![0].data as {
+      username: string;
+    };
+    expect(username).toBe('veronika.ruzickova.d.ab3def1');
+    expect(username.length).toBeLessThanOrEqual(30);
+    expect(username).toBe(username.toLowerCase());
+  });
+
+  it("treats an account whose stored hash is not a BetterAuth one as not the seed's", async () => {
+    const { prisma, auth } = setup([
+      { id: 'u1', email: 'admin@hobbyhub.cz', username: null, password: 'x' },
+    ]);
+    Object.assign(auth, {
+      $context: Promise.resolve({
+        password: {
+          verify: async () => {
+            throw new Error('Invalid password hash');
+          },
+        },
+      }),
+    });
+
+    await expect(ensureUser(prisma, auth, params)).resolves.toMatchObject({
+      created: false,
+    });
+    expect(prisma.user.update).not.toHaveBeenCalled();
+  });
+
+  it('normalises the wanted username to the plugin rules too', async () => {
+    const { prisma, auth } = setup([]);
+
+    await ensureUser(prisma, auth, {
+      ...params,
+      username: 'Velmi.Dlouhe.Uzivatelske.Jmeno.X',
+    });
+
+    expect(prisma.user.update).toHaveBeenCalledWith({
+      where: { id: NEW_ID },
+      data: expect.objectContaining({
+        username: 'velmi.dlouhe.uzivatelske.jmeno',
       }),
     });
   });
@@ -180,9 +237,9 @@ describe('ensureUser', () => {
     await ensureUser(prisma, auth, params);
 
     expect(prisma.user.update).toHaveBeenCalledWith({
-      where: { id: 'new' },
+      where: { id: NEW_ID },
       data: expect.objectContaining({
-        username: 'superadmin.new',
+        username: 'superadmin.ab3def',
         role: 'admin',
       }),
     });

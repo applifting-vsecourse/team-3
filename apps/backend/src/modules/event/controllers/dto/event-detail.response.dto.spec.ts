@@ -29,6 +29,7 @@ const aView = (overrides: Partial<EventDetailView> = {}): EventDetailView => ({
   status: 'published',
   cancelReason: null,
   participants: null,
+  myParticipation: null,
   ...overrides,
 });
 

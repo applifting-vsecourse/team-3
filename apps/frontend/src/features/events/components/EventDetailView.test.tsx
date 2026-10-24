@@ -120,6 +120,32 @@ describe("EventDetailView", () => {
     expect(screen.queryByRole("heading", { name: "O akci" })).not.toBeInTheDocument()
   })
 
+  it("a cancelled event keeps its detail with the „Zrušeno“ label and the reason, not the capacity", async () => {
+    await renderWithRouter(
+      <EventDetailView
+        event={anEventDetail({ status: "cancelled", cancelReason: "Herna má zavřeno." })}
+        signInFrom={signInFrom}
+      />,
+    )
+
+    expect(screen.getByText("Zrušeno")).toBeInTheDocument()
+    expect(screen.getByText("Akce je zrušená")).toBeInTheDocument()
+    expect(screen.getByText("Herna má zavřeno.")).toBeInTheDocument()
+    expect(screen.queryByText("4 z 12 · min. 4")).not.toBeInTheDocument()
+  })
+
+  it("shows the organizer's actions the page passes in", async () => {
+    await renderWithRouter(
+      <EventDetailView
+        event={anEventDetail()}
+        signInFrom={signInFrom}
+        organizerActions={<button type="button">Zrušit akci</button>}
+      />,
+    )
+
+    expect(screen.getByRole("button", { name: "Zrušit akci" })).toBeInTheDocument()
+  })
+
   it("shows a skeleton while loading", async () => {
     await renderWithRouter(
       <EventDetailView

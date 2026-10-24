@@ -35,6 +35,10 @@ export const publicEventsSchema = z.array(publicEventSchema)
 
 export type PublicEvent = z.infer<typeof publicEventSchema>
 
+const eventParticipantSchema = z.object({ id: z.string(), name: z.string() })
+
+export type EventParticipant = z.infer<typeof eventParticipantSchema>
+
 /** GET /api/events/:id */
 export const eventDetailSchema = publicEventSchema.extend({
   description: z.string().nullable(),
@@ -42,10 +46,41 @@ export const eventDetailSchema = publicEventSchema.extend({
   status: z.enum(["published", "cancelled"]),
   cancelReason: z.string().nullable(),
   /** Approved participants; null for a visitor, who gets only `approvedCount`. */
-  participants: z.array(z.object({ id: z.string(), name: z.string() })).nullable(),
+  participants: z.array(eventParticipantSchema).nullable(),
+  /** The signed-in user's own participation; null for a visitor or someone not in. */
+  myParticipation: z.enum(["pending", "approved", "rejected", "removed"]).nullable(),
 })
 
 export type EventDetail = z.infer<typeof eventDetailSchema>
+
+/** GET /api/events/:id/participants — only for the organizer (#43); requests come with #53. */
+export const eventParticipantsSchema = z.object({
+  participants: z.array(eventParticipantSchema),
+})
+
+/** POST /api/events answers with the detail and the link to share (B-021). */
+export const createdEventSchema = eventDetailSchema.extend({ shareUrl: z.string() })
+
+// The same limits as the API's CreateEventDto.
+export const EVENT_TITLE_MAX_LENGTH = 120
+export const EVENT_DESCRIPTION_MAX_LENGTH = 2000
+export const EVENT_ADDRESS_MAX_LENGTH = 200
+export const EVENT_MAX_PARTICIPANTS = 500
+
+/** The body of POST /api/events. The organizer is the signed-in user, never sent. */
+export type EventInput = {
+  title: string
+  description: string | null
+  activityId: string
+  localityId: string
+  lat: number
+  lng: number
+  address: string
+  startsAt: string
+  minParticipants: number
+  maxParticipants: number
+  approvalMode: "open" | "approval"
+}
 
 /** Query parameters of GET /api/events, already resolved to ids. */
 export type EventFilters = {

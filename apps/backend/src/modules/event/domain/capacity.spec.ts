@@ -1,4 +1,9 @@
-import { Capacity, computeCapacity, matchesCapacity } from './capacity';
+import {
+  Capacity,
+  capacityChangeProblem,
+  computeCapacity,
+  matchesCapacity,
+} from './capacity';
 
 const limits = { minParticipants: 4, maxParticipants: 12 };
 
@@ -83,5 +88,32 @@ describe('matchesCapacity', () => {
         expect(matchesCapacity(at(n), 'free')).toBe(true);
       }
     }
+  });
+});
+
+describe('capacityChangeProblem', () => {
+  const current = { approvedCount: 5, minParticipants: 3, maxParticipants: 8 };
+
+  it('the maximum can go down to the people already approved, not below', () => {
+    expect(capacityChangeProblem(current, { maxParticipants: 5 })).toBeNull();
+    expect(capacityChangeProblem(current, { maxParticipants: 4 })).toBe(
+      'Maximum nejde snížit pod počet přihlášených (5).',
+    );
+  });
+
+  it('max below min is refused, also when only one of them changes', () => {
+    expect(capacityChangeProblem(current, { minParticipants: 9 })).toBe(
+      'Maximum nesmí být menší než minimum.',
+    );
+    expect(
+      capacityChangeProblem(current, {
+        minParticipants: 2,
+        maxParticipants: 6,
+      }),
+    ).toBeNull();
+  });
+
+  it('no change to the limits is fine', () => {
+    expect(capacityChangeProblem(current, {})).toBeNull();
   });
 });

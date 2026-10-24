@@ -4,6 +4,7 @@ import { api } from "@/lib/api-client"
 
 import {
   eventDetailSchema,
+  eventParticipantsSchema,
   publicEventsSchema,
   type EventFilters,
 } from "@/features/events/api/eventSchemas"
@@ -17,6 +18,9 @@ export const eventKeys = {
   // names, a visitor only their count.
   detail: (eventId: string, viewerId: string | null) =>
     [...eventKeys.details(), eventId, viewerId] as const,
+  // the organizer's list (#43); with the viewer, so nobody else gets it from the cache
+  participants: (eventId: string, viewerId: string | null) =>
+    [...eventKeys.all(), "participants", eventId, viewerId] as const,
 }
 
 // Repeated keys (activityId=a&activityId=b) — the API doesn't take activityId[].
@@ -54,4 +58,23 @@ export const eventDetailQueryOptions = (eventId: string, viewerId: string | null
         ? skipToken
         : async () =>
             eventDetailSchema.parse(await api.get(`events/${encodeURIComponent(eventId)}`).json()),
+  })
+
+/**
+ * Who is in, for the management page (#43). Only the organizer may ask (the
+ * API answers anyone else 403), so the page asks once the detail says so.
+ */
+export const eventParticipantsQueryOptions = (
+  eventId: string,
+  viewerId: string | null | undefined,
+  isOrganizer: boolean,
+) =>
+  queryOptions({
+    queryKey: eventKeys.participants(eventId, viewerId ?? null),
+    queryFn: isOrganizer
+      ? async () =>
+          eventParticipantsSchema.parse(
+            await api.get(`events/${encodeURIComponent(eventId)}/participants`).json(),
+          ).participants
+      : skipToken,
   })
