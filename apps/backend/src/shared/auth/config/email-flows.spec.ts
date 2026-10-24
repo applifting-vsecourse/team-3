@@ -48,6 +48,7 @@ describe('emailFlowOptions', () => {
     expect(emailAndPassword.resetPasswordTokenExpiresIn).toBe(
       PASSWORD_RESET_TTL_SECONDS,
     );
+    expect(emailAndPassword.revokeSessionsOnPasswordReset).toBe(true);
     await emailAndPassword.sendResetPassword!(
       { user, url: 'ignored', token: 't0k3n' },
       undefined,
