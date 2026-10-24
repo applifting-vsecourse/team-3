@@ -1,6 +1,7 @@
 import { useEffect } from "react"
 import { useQueryClient } from "@tanstack/react-query"
 import { createFileRoute, useLocation } from "@tanstack/react-router"
+import { toast } from "sonner"
 
 import { ROUTES } from "@/app/routes"
 import { BackLink } from "@/components/BackLink/BackLink"
@@ -11,7 +12,9 @@ import { authKeys } from "@/lib/auth-keys"
 import { HeaderMenu } from "@/features/auth/components/HeaderMenu"
 import { useSession } from "@/features/auth/hooks/useSession"
 import { encodeRedirectUri } from "@/features/auth/lib/redirect"
+import { CancelEventDialog } from "@/features/events/components/CancelEventDialog"
 import { EventDetailView } from "@/features/events/components/EventDetailView"
+import { useCancelEvent } from "@/features/events/hooks/useCancelEvent"
 import { useEventDetail } from "@/features/events/hooks/useEventDetail"
 
 // `akce_`: not nested in /akce, whose page has no outlet. Public on purpose:
@@ -28,6 +31,13 @@ function EventDetailPage() {
   const { event, isPending, isNotFound, error, retry } = useEventDetail(eventId, viewerId)
   const location = useLocation()
   const queryClient = useQueryClient()
+  const cancelEvent = useCancelEvent(eventId, session.user?.id ?? "")
+  // only the organizer, and only while the event can still be cancelled
+  const canCancel =
+    event !== undefined &&
+    session.user?.id === event.organizer.id &&
+    event.status === "published" &&
+    event.startsAt > new Date()
 
   // The cached session says signed in, yet the API answered as to a visitor:
   // the cookie has expired. Refresh the session so the header and the login
@@ -55,6 +65,22 @@ function EventDetailPage() {
             error={error}
             onRetry={retry}
             signInFrom={encodeRedirectUri(location)}
+            organizerActions={
+              canCancel ? (
+                <CancelEventDialog
+                  isPending={cancelEvent.isPending}
+                  onCancel={(reason) =>
+                    cancelEvent.mutateAsync(reason).then(
+                      () => toast.success("Akce je zrušená."),
+                      (cancelError: Error) => {
+                        toast.error(cancelError.message)
+                        throw cancelError
+                      },
+                    )
+                  }
+                />
+              ) : null
+            }
           />
         </div>
       </main>

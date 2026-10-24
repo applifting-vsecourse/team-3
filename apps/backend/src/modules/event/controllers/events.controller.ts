@@ -2,6 +2,7 @@ import { EventsService } from '@/modules/event/services/events.service';
 import { OptionalUser } from '@/shared/auth/decorators/optional-user.decorator';
 import { User } from '@/shared/auth/decorators/user.decorator';
 import { Identity } from '@/shared/auth/domain/identity';
+import { AuthenticatedUserGuard } from '@/shared/auth/guards/authenticated-user.guard';
 import { OptionalUserGuard } from '@/shared/auth/guards/optional-user.guard';
 import { VerifiedUserGuard } from '@/shared/auth/guards/verified-user.guard';
 import { Config } from '@/shared/config/config.service';
@@ -9,6 +10,7 @@ import {
   Body,
   Controller,
   Get,
+  HttpCode,
   Param,
   Post,
   Query,
@@ -22,6 +24,7 @@ import {
   ApiResponse,
   ApiTags,
 } from '@nestjs/swagger';
+import { CancelEventDto } from './dto/cancel-event.dto';
 import { CreateEventDto } from './dto/create-event.dto';
 import { CreatedEventResponseDto } from './dto/created-event.response.dto';
 import { EventDetailResponseDto } from './dto/event-detail.response.dto';
@@ -131,5 +134,29 @@ export class EventsController {
       viewer?.id ?? null,
     );
     return EventDetailResponseDto.fromDomain(event);
+  }
+
+  @Post(':id/cancel')
+  @HttpCode(200)
+  @UseGuards(AuthenticatedUserGuard)
+  @ApiCookieAuth()
+  @ApiOperation({
+    summary:
+      'Cancel the event with a reason (B-028); only its organizer, before it starts. Never deleted.',
+  })
+  @ApiResponse({ status: 200, type: EventDetailResponseDto })
+  @ApiResponse({ status: 400, description: 'Missing or too long reason' })
+  @ApiResponse({ status: 401, description: 'Not signed in' })
+  @ApiResponse({ status: 403, description: 'NOT_ORGANIZER' })
+  @ApiResponse({ status: 404, description: 'No such event for this user' })
+  @ApiResponse({ status: 409, description: 'EVENT_CANCELLED or EVENT_STARTED' })
+  async cancel(
+    @Param('id') id: string,
+    @Body() body: CancelEventDto,
+    @User() user: Identity,
+  ): Promise<EventDetailResponseDto> {
+    return EventDetailResponseDto.fromDomain(
+      await this.eventsService.cancelEvent(id, user.id, body.reason),
+    );
   }
 }
