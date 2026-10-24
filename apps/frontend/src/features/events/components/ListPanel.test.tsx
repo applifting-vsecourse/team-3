@@ -1,4 +1,4 @@
-import { fireEvent, render, screen } from "@testing-library/react"
+import { act, fireEvent, render, screen } from "@testing-library/react"
 import userEvent from "@testing-library/user-event"
 import { describe, expect, it, vi } from "vitest"
 
@@ -167,6 +167,74 @@ describe("ListPanel", () => {
     fireEvent.keyDown(target, { key: "Enter" })
     fireEvent.click(target)
     expect(onOpen).toHaveBeenCalledOnce()
+  })
+
+  describe("after a back navigation, when the router restores the list's scroll", () => {
+    // jsdom has no layout: a 600px sheet at y=100, the 24px handle above the
+    // list, and a list scrolled by 800px (the count row 40px, the first card
+    // ending 140px into it).
+    const layOut = (sheet: HTMLElement, card: HTMLElement) => {
+      const content = card.parentElement!
+      const scroller = content.parentElement!
+      const rect = (top: number, bottom: number) => ({ top, bottom }) as DOMRect
+      const contentTop = 124 - 800
+      Object.defineProperty(sheet, "offsetHeight", { value: 600, configurable: true })
+      vi.spyOn(sheet, "getBoundingClientRect").mockReturnValue(rect(100, 700))
+      vi.spyOn(scroller, "getBoundingClientRect").mockReturnValue(rect(124, 700))
+      vi.spyOn(content, "getBoundingClientRect").mockReturnValue(
+        rect(contentTop, contentTop + 2000),
+      )
+      vi.spyOn(screen.getByText("3 akce"), "getBoundingClientRect").mockReturnValue(
+        rect(contentTop, contentTop + 40),
+      )
+      vi.spyOn(card, "getBoundingClientRect").mockReturnValue(
+        rect(contentTop + 48, contentTop + 140),
+      )
+      return scroller
+    }
+
+    it("the lowered sheet still peeks with the count and the first card", () => {
+      const callbacks: ResizeObserverCallback[] = []
+      vi.stubGlobal(
+        "ResizeObserver",
+        class {
+          constructor(callback: ResizeObserverCallback) {
+            callbacks.push(callback)
+          }
+          observe = vi.fn()
+          unobserve = vi.fn()
+          disconnect = vi.fn()
+        },
+      )
+      const onVisibleHeightChange = vi.fn()
+      const { sheet, card } = renderPanel("peek", { onVisibleHeightChange })
+
+      layOut(sheet, card)
+      // the observer's first report comes after the router has restored the scroll
+      act(() => callbacks.forEach((callback) => callback([], {} as ResizeObserver)))
+
+      // 600 - (24 handle + 140 first card) - 8 gap; before the fix the card's
+      // scrolled-away position pushed the whole sheet below the screen
+      expect(sheet.style.transform).toBe("translateY(428px)")
+      expect(onVisibleHeightChange).toHaveBeenLastCalledWith(172)
+      vi.unstubAllGlobals()
+    })
+
+    it("the lowered sheet undoes the restored scroll; the pulled-up list keeps it", () => {
+      const { sheet, card } = renderPanel("peek")
+      const scroller = layOut(sheet, card)
+
+      scroller.scrollTop = 800
+      fireEvent.scroll(scroller)
+      expect(scroller.scrollTop).toBe(0)
+
+      document.body.innerHTML = ""
+      const pulledUp = renderPanel("list")
+      const listScroller = pulledUp.card.parentElement!.parentElement!
+      listScroller.scrollTop = 800
+      fireEvent.scroll(listScroller)
+      expect(listScroller.scrollTop).toBe(800)
+    })
   })
 
   it("moves with the finger while dragging, and settles with an animation", () => {

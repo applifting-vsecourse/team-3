@@ -60,7 +60,14 @@ export function CapacityBar({
         {isFull ? null : (
           <div
             data-slot="capacity-tick"
-            className="absolute inset-y-0 w-0.5 -translate-x-1/2 bg-foreground"
+            className={cn(
+              "absolute inset-y-0 w-0.5 -translate-x-1/2",
+              // Once the minimum is reached the tick sits on the lime fill, and
+              // a mark on a filled surface takes that surface's -foreground
+              // (DESIGN.md › Colour): `foreground` is near white in dark mode
+              // and vanished on lime. Light mode looks the same either way.
+              approvedCount >= minParticipants ? "bg-primary-foreground" : "bg-foreground",
+            )}
             style={{ left: `${percent(minParticipants, maxParticipants)}%` }}
           />
         )}
