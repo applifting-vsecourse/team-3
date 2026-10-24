@@ -58,3 +58,19 @@ export type EventDetail = PublicEvent & {
 export type EventDetailView = EventDetail & {
   participants: EventParticipant[] | null;
 };
+
+/** What the organizer fills in when creating an event (B-021). */
+export type NewEvent = {
+  title: string;
+  description: string | null;
+  activityId: string;
+  localityId: string;
+  lat: number;
+  lng: number;
+  address: string;
+  startsAt: Date;
+  endsAt: Date | null;
+  minParticipants: number;
+  maxParticipants: number;
+  approvalMode: 'open' | 'approval';
+};

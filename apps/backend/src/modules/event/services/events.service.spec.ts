@@ -1,7 +1,11 @@
 import { computeCapacity } from '@/modules/event/domain/capacity';
-import { EventDetail, PublicEvent } from '@/modules/event/domain/event';
+import {
+  EventDetail,
+  NewEvent,
+  PublicEvent,
+} from '@/modules/event/domain/event';
 import { EventRepository } from '@/modules/event/repositories/event.repository';
-import { NotFoundException } from '@nestjs/common';
+import { BadRequestException, NotFoundException } from '@nestjs/common';
 import { mock, MockProxy } from 'jest-mock-extended';
 import {
   CAPACITY_SCAN_LIMIT,
@@ -255,5 +259,72 @@ describe('EventsService.getEventDetail', () => {
         NotFoundException,
       );
     });
+  });
+});
+
+describe('EventsService.createEvent', () => {
+  const newEvent = (overrides: Partial<NewEvent> = {}): NewEvent => ({
+    title: 'Deskovky po práci',
+    description: null,
+    activityId: 'a-deskove-hry',
+    localityId: 'l-praha-8',
+    lat: 50.0928,
+    lng: 14.4508,
+    address: 'Herna Karlín, Křižíkova 52, Praha 8',
+    startsAt: new Date('2026-10-24T16:00:00.000Z'),
+    endsAt: null,
+    minParticipants: 3,
+    maxParticipants: 6,
+    approvalMode: 'open',
+    ...overrides,
+  });
+
+  const setup = (
+    refs = { activity: true, locality: true },
+  ): {
+    repository: MockProxy<EventRepository>;
+    service: EventsService;
+  } => {
+    const repository = mock<EventRepository>();
+    repository.catalogRefsExist.mockResolvedValue(refs);
+    repository.createEvent.mockResolvedValue('e-new');
+    repository.findEventDetail.mockResolvedValue(
+      aDetail({ id: 'e-new', organizer: { id: 'u1', name: 'Petra' } }),
+    );
+    repository.findApprovedParticipants.mockResolvedValue([]);
+    return { repository, service: new EventsService(repository) };
+  };
+
+  it('creates the event with the signed-in user as organizer and returns its detail', async () => {
+    const { repository, service } = setup();
+    const event = newEvent();
+
+    const result = await service.createEvent(event, 'u1', now);
+
+    expect(repository.createEvent).toHaveBeenCalledWith(event, 'u1');
+    expect(result).toMatchObject({ id: 'e-new', organizer: { id: 'u1' } });
+    // the organizer sees the new event as a signed-in user: names, not just a count
+    expect(result.participants).toEqual([]);
+  });
+
+  it('a start in the past (or now) is 400 and nothing is created', async () => {
+    const { repository, service } = setup();
+
+    await expect(
+      service.createEvent(newEvent({ startsAt: now }), 'u1', now),
+    ).rejects.toThrow(BadRequestException);
+    expect(repository.createEvent).not.toHaveBeenCalled();
+  });
+
+  it('an unknown activity or locality is 400 naming the field', async () => {
+    const { repository, service } = setup({ activity: false, locality: true });
+
+    const error = (await service
+      .createEvent(newEvent(), 'u1', now)
+      .catch((e: unknown) => e)) as BadRequestException;
+
+    expect(error).toBeInstanceOf(BadRequestException);
+    expect(JSON.stringify(error.getResponse())).toContain('activityId');
+    expect(repository.createEvent).not.toHaveBeenCalled();
   });
 });

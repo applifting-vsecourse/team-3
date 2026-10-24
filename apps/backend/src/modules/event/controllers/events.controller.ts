@@ -1,17 +1,29 @@
 import { EventsService } from '@/modules/event/services/events.service';
 import { OptionalUser } from '@/shared/auth/decorators/optional-user.decorator';
+import { User } from '@/shared/auth/decorators/user.decorator';
 import { Identity } from '@/shared/auth/domain/identity';
 import { OptionalUserGuard } from '@/shared/auth/guards/optional-user.guard';
+import { VerifiedUserGuard } from '@/shared/auth/guards/verified-user.guard';
+import { Config } from '@/shared/config/config.service';
 import {
+  Body,
   Controller,
   Get,
   Param,
+  Post,
   Query,
   UseGuards,
   UsePipes,
   ValidationPipe,
 } from '@nestjs/common';
-import { ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger';
+import {
+  ApiCookieAuth,
+  ApiOperation,
+  ApiResponse,
+  ApiTags,
+} from '@nestjs/swagger';
+import { CreateEventDto } from './dto/create-event.dto';
+import { CreatedEventResponseDto } from './dto/created-event.response.dto';
 import { EventDetailResponseDto } from './dto/event-detail.response.dto';
 import { ListEventsQueryDto } from './dto/list-events.query.dto';
 import { PublicEventResponseDto } from './dto/public-event.response.dto';
@@ -27,7 +39,10 @@ import { PublicEventResponseDto } from './dto/public-event.response.dto';
   }),
 )
 export class EventsController {
-  constructor(private readonly eventsService: EventsService) {}
+  constructor(
+    private readonly eventsService: EventsService,
+    private readonly config: Config,
+  ) {}
 
   @Get()
   @ApiOperation({
@@ -48,6 +63,48 @@ export class EventsController {
       capacity: query.capacity,
     });
     return events.map(PublicEventResponseDto.fromDomain);
+  }
+
+  @Post()
+  @UseGuards(VerifiedUserGuard)
+  @ApiCookieAuth()
+  @ApiOperation({
+    summary:
+      'Create an event; the organizer is the signed-in user (B-021), with a verified e-mail',
+  })
+  @ApiResponse({ status: 201, type: CreatedEventResponseDto })
+  @ApiResponse({
+    status: 400,
+    description:
+      'Invalid field: e.g. min below 1, max below min, start in the past, unknown activity',
+  })
+  @ApiResponse({ status: 401, description: 'Not signed in' })
+  @ApiResponse({
+    status: 403,
+    description: 'EMAIL_NOT_VERIFIED, or USER_BLOCKED',
+  })
+  async create(
+    @Body() body: CreateEventDto,
+    @User() user: Identity,
+  ): Promise<CreatedEventResponseDto> {
+    const event = await this.eventsService.createEvent(
+      {
+        title: body.title,
+        description: body.description || null,
+        activityId: body.activityId,
+        localityId: body.localityId,
+        lat: body.lat,
+        lng: body.lng,
+        address: body.address,
+        startsAt: new Date(body.startsAt),
+        endsAt: body.endsAt ? new Date(body.endsAt) : null,
+        minParticipants: body.minParticipants,
+        maxParticipants: body.maxParticipants,
+        approvalMode: body.approvalMode,
+      },
+      user.id,
+    );
+    return CreatedEventResponseDto.fromCreated(event, this.config.frontendUrl);
   }
 
   // Keep below any fixed path like /events/facets, or `:id` would catch it.

@@ -2,11 +2,16 @@ import { matchesCapacity } from '@/modules/event/domain/capacity';
 import {
   EventDetail,
   EventDetailView,
+  NewEvent,
   PublicEvent,
   PublicEventFilters,
 } from '@/modules/event/domain/event';
 import { EventRepository } from '@/modules/event/repositories/event.repository';
-import { Injectable, NotFoundException } from '@nestjs/common';
+import {
+  BadRequestException,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
 
 // One endpoint serves both the list and the map in sprint 2, without paging
 // (deviation from B-023, which has paging and a separate /events/map).
@@ -65,6 +70,36 @@ export class EventsService {
       ? await this.eventRepository.findApprovedParticipants(event.id)
       : null;
     return { ...event, participants };
+  }
+
+  /**
+   * Creates an event of the signed-in user (B-021). The organizer is always
+   * `organizerId` from the session, never something from the request body.
+   * Returns the new event as its detail shows it to the organizer.
+   */
+  async createEvent(
+    event: NewEvent,
+    organizerId: string,
+    now: Date = new Date(),
+  ): Promise<EventDetailView> {
+    // a date in the past can't be saved (the DTO can't know „now“ in tests)
+    if (event.startsAt <= now) {
+      throw new BadRequestException(['startsAt must be in the future']);
+    }
+    const refs = await this.eventRepository.catalogRefsExist(
+      event.activityId,
+      event.localityId,
+    );
+    const problems = [
+      refs.activity ? null : 'activityId must be an existing activity',
+      refs.locality ? null : 'localityId must be an existing locality',
+    ].filter((problem): problem is string => problem !== null);
+    if (problems.length > 0) {
+      throw new BadRequestException(problems);
+    }
+
+    const id = await this.eventRepository.createEvent(event, organizerId);
+    return this.getEventDetail(id, organizerId, now);
   }
 
   private async canView(

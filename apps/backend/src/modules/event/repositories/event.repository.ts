@@ -4,6 +4,7 @@ import { computeCapacity } from '@/modules/event/domain/capacity';
 import {
   EventDetail,
   EventParticipant,
+  NewEvent,
   PublicEvent,
   PublicEventFilters,
 } from '@/modules/event/domain/event';
@@ -105,6 +106,27 @@ export class EventRepository {
       orderBy: [{ approvedAt: { sort: 'asc', nulls: 'last' } }, { id: 'asc' }],
     });
     return participations.map((participation) => participation.user);
+  }
+
+  /** Whether the activity and the locality an event refers to exist. */
+  async catalogRefsExist(
+    activityId: string,
+    localityId: string,
+  ): Promise<{ activity: boolean; locality: boolean }> {
+    const [activity, locality] = await Promise.all([
+      this.prisma.activity.count({ where: { id: activityId } }),
+      this.prisma.locality.count({ where: { id: localityId } }),
+    ]);
+    return { activity: activity > 0, locality: locality > 0 };
+  }
+
+  /** A new public, published event of a person (B-021); returns its id. */
+  async createEvent(event: NewEvent, organizerUserId: string): Promise<string> {
+    const created = await this.prisma.event.create({
+      data: { ...event, organizerUserId },
+      select: { id: true },
+    });
+    return created.id;
   }
 
   async isActiveGroupMember(groupId: string, userId: string): Promise<boolean> {
