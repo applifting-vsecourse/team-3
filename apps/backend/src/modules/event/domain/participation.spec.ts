@@ -1,4 +1,10 @@
-import { decideJoin, decideLeave, JoinState } from './participation';
+import {
+  decideJoin,
+  decideLeave,
+  decideRequests,
+  JoinState,
+  RequestsState,
+} from './participation';
 
 const now = new Date('2026-10-24T08:00:00.000Z');
 const tomorrow = new Date('2026-10-25T16:00:00.000Z');
@@ -67,10 +73,11 @@ describe('decideJoin', () => {
       ok: true,
       status: 'pending',
     });
-    // a request takes no place, so it is allowed on a full event
+    // a request takes no place, but a full event takes no request either
+    // (B-031): the organizer couldn't approve it (#53)
     expect(
       decideJoin(state({ approvalMode: 'approval', approvedCount: 6 }), now),
-    ).toEqual({ ok: true, status: 'pending' });
+    ).toEqual({ ok: false, refusal: 'EVENT_FULL' });
   });
 
   it('the organizer joins approved even with approval, and counts towards the capacity (Q12)', () => {
@@ -105,5 +112,71 @@ describe('decideLeave', () => {
         refusal: 'NOT_JOINED',
       });
     }
+  });
+});
+
+describe('decideRequests (#53)', () => {
+  const requests = (overrides: Partial<RequestsState> = {}): RequestsState => ({
+    eventStatus: 'published',
+    startsAt: tomorrow,
+    maxParticipants: 6,
+    approvedCount: 4,
+    requestStatuses: ['pending'],
+    ...overrides,
+  });
+
+  it('the organizer approves or rejects a waiting request', () => {
+    expect(decideRequests(requests(), 'approve', now)).toEqual({ ok: true });
+    expect(decideRequests(requests(), 'reject', now)).toEqual({ ok: true });
+  });
+
+  it('the last place can be approved; past it approving is EVENT_FULL, rejecting still works', () => {
+    expect(
+      decideRequests(requests({ approvedCount: 5 }), 'approve', now),
+    ).toEqual({ ok: true });
+    expect(
+      decideRequests(requests({ approvedCount: 6 }), 'approve', now),
+    ).toEqual({ ok: false, refusal: 'EVENT_FULL' });
+    expect(
+      decideRequests(requests({ approvedCount: 6 }), 'reject', now),
+    ).toEqual({ ok: true });
+  });
+
+  it('all or none: two requests for one free place approve none', () => {
+    expect(
+      decideRequests(
+        requests({ approvedCount: 5, requestStatuses: ['pending', 'pending'] }),
+        'approve',
+        now,
+      ),
+    ).toEqual({ ok: false, refusal: 'EVENT_FULL' });
+  });
+
+  it('only waiting requests: withdrawn, decided or missing is NOT_PENDING', () => {
+    for (const status of [
+      'withdrawn',
+      'approved',
+      'rejected',
+      'removed',
+      null,
+    ] as const) {
+      expect(
+        decideRequests(
+          requests({ requestStatuses: ['pending', status] }),
+          'approve',
+          now,
+        ),
+      ).toEqual({ ok: false, refusal: 'NOT_PENDING' });
+    }
+  });
+
+  it('not on a cancelled event, nor one that started', () => {
+    expect(
+      decideRequests(requests({ eventStatus: 'cancelled' }), 'approve', now),
+    ).toEqual({ ok: false, refusal: 'EVENT_CANCELLED' });
+    expect(decideRequests(requests({ startsAt: now }), 'reject', now)).toEqual({
+      ok: false,
+      refusal: 'EVENT_STARTED',
+    });
   });
 });

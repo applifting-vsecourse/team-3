@@ -628,6 +628,14 @@ describe('EventsService.updateEvent', () => {
   });
 });
 
+const requests = [
+  {
+    id: 'u5',
+    name: 'Jakub',
+    requestedAt: new Date('2026-10-22T10:00:00.000Z'),
+  },
+];
+
 describe('EventsService.getParticipants', () => {
   const setup = (
     detail: EventDetail = aDetail(),
@@ -636,27 +644,30 @@ describe('EventsService.getParticipants', () => {
     repository.findEventDetail.mockResolvedValue(detail);
     repository.findApprovedParticipants.mockResolvedValue(participants);
     repository.findParticipationStatus.mockResolvedValue(null);
+    repository.findPendingRequests.mockResolvedValue(requests);
     return { repository, service: new EventsService(repository) };
   };
 
-  it('the organizer gets the approved participants', async () => {
+  it('the organizer gets the approved participants and the waiting requests', async () => {
     const { service } = setup();
 
-    await expect(service.getParticipants('e1', 'u1', now)).resolves.toEqual(
+    await expect(service.getParticipants('e1', 'u1', now)).resolves.toEqual({
       participants,
-    );
+      requests,
+    });
   });
 
   it('a cancelled event still shows who was coming', async () => {
     const { service } = setup(aDetail({ status: 'cancelled' }));
 
-    await expect(service.getParticipants('e1', 'u1', now)).resolves.toEqual(
+    await expect(service.getParticipants('e1', 'u1', now)).resolves.toEqual({
       participants,
-    );
+      requests,
+    });
   });
 
   it('anyone else gets 403, a participant too (#43)', async () => {
-    const { service } = setup();
+    const { repository, service } = setup();
 
     const error = (await service
       .getParticipants('e1', 'u2', now)
@@ -664,6 +675,8 @@ describe('EventsService.getParticipants', () => {
 
     expect(error).toBeInstanceOf(ForbiddenException);
     expect(error.getResponse()).toMatchObject({ code: 'NOT_ORGANIZER' });
+    // the requests (names of people asking) never leave for someone else
+    expect(repository.findPendingRequests).not.toHaveBeenCalled();
   });
 
   it('an event the user may not see is 404', async () => {
@@ -672,5 +685,120 @@ describe('EventsService.getParticipants', () => {
     await expect(service.getParticipants('e1', 'u1', now)).rejects.toThrow(
       NotFoundException,
     );
+  });
+});
+
+describe('EventsService.decideRequests (#53)', () => {
+  const setup = (
+    detail: EventDetail = aDetail({ approvalMode: 'approval' }),
+  ): { repository: MockProxy<EventRepository>; service: EventsService } => {
+    const repository = mock<EventRepository>();
+    repository.findEventDetail.mockResolvedValue(detail);
+    repository.findApprovedParticipants.mockResolvedValue(participants);
+    repository.findParticipationStatus.mockResolvedValue(null);
+    repository.findPendingRequests.mockResolvedValue([]);
+    // what the lock reads: 2 approved of 6, the decided users waiting
+    repository.decideRequests.mockImplementation(
+      async (_id, userIds, _outcome, decide) =>
+        decide({
+          eventStatus: 'published',
+          startsAt: detail.startsAt,
+          maxParticipants: 6,
+          approvedCount: 2,
+          requestStatuses: userIds.map(() => 'pending'),
+        }),
+    );
+    return { repository, service: new EventsService(repository) };
+  };
+
+  it('the organizer approves a request and gets the lists as they are now', async () => {
+    const { repository, service } = setup();
+
+    await expect(
+      service.decideRequests('e1', 'u1', ['u5'], 'approve', now),
+    ).resolves.toEqual({ participants, requests: [] });
+    expect(repository.decideRequests).toHaveBeenCalledWith(
+      'e1',
+      ['u5'],
+      'approved',
+      expect.any(Function),
+      now,
+    );
+  });
+
+  it('rejecting writes „rejected“; a repeated id counts once', async () => {
+    const { repository, service } = setup();
+
+    await service.decideRequests('e1', 'u1', ['u5', 'u5'], 'reject', now);
+
+    expect(repository.decideRequests).toHaveBeenCalledWith(
+      'e1',
+      ['u5'],
+      'rejected',
+      expect.any(Function),
+      now,
+    );
+  });
+
+  it('anyone else gets 403 and nothing is decided', async () => {
+    const { repository, service } = setup();
+
+    await expect(
+      service.decideRequests('e1', 'u5', ['u5'], 'approve', now),
+    ).rejects.toThrow(ForbiddenException);
+    expect(repository.decideRequests).not.toHaveBeenCalled();
+  });
+
+  it('approving past the free places is 409 EVENT_FULL with a Czech message', async () => {
+    const { repository, service } = setup();
+    repository.decideRequests.mockImplementation(
+      async (_id, userIds, _outcome, decide) =>
+        decide({
+          eventStatus: 'published',
+          startsAt: aDetail().startsAt,
+          maxParticipants: 6,
+          approvedCount: 6,
+          requestStatuses: userIds.map(() => 'pending'),
+        }),
+    );
+
+    const error = (await service
+      .decideRequests('e1', 'u1', ['u5'], 'approve', now)
+      .catch((e: unknown) => e)) as ConflictException;
+
+    expect(error).toBeInstanceOf(ConflictException);
+    expect(error.getResponse()).toEqual({
+      code: 'EVENT_FULL',
+      message: 'Akce je plná.',
+    });
+  });
+
+  it('a request withdrawn meanwhile is 409 NOT_PENDING', async () => {
+    const { repository, service } = setup();
+    repository.decideRequests.mockImplementation(
+      async (_id, _userIds, _outcome, decide) =>
+        decide({
+          eventStatus: 'published',
+          startsAt: aDetail().startsAt,
+          maxParticipants: 6,
+          approvedCount: 2,
+          requestStatuses: ['withdrawn'],
+        }),
+    );
+
+    const error = (await service
+      .decideRequests('e1', 'u1', ['u5'], 'approve', now)
+      .catch((e: unknown) => e)) as ConflictException;
+
+    expect(error.getResponse()).toMatchObject({ code: 'NOT_PENDING' });
+  });
+
+  it('an event the user may not see is 404', async () => {
+    const { repository, service } = setup(aDetail({ status: 'hidden' }));
+
+    await expect(
+      service.decideRequests('e1', 'u1', ['u5'], 'approve', now),
+    ).rejects.toThrow(NotFoundException);
+    expect(repository.decideRequests).not.toHaveBeenCalled();
   });
 });

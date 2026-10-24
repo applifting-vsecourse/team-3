@@ -3,7 +3,7 @@ import {
   EventChanges,
   EventDetail,
   EventDetailView,
-  EventParticipant,
+  EventManagementView,
   NewEvent,
   PublicEvent,
   PublicEventFilters,
@@ -16,6 +16,7 @@ import {
 import {
   decideJoin,
   decideLeave,
+  decideRequests,
   ParticipationRefusal,
 } from '@/modules/event/domain/participation';
 import { EventRepository } from '@/modules/event/repositories/event.repository';
@@ -36,6 +37,8 @@ const REFUSAL_MESSAGES: Record<ParticipationRefusal, string> = {
   EVENT_CANCELLED: 'Akce je zrušená.',
   PARTICIPATION_REFUSED: 'Organizátor vaši účast zamítl.',
   NOT_JOINED: 'Na akci nejste přihlášení.',
+  NOT_PENDING:
+    'Žádost už není aktuální: mezitím ji někdo vyřídil, nebo ji žadatel stáhl.',
 };
 
 const refused = (refusal: ParticipationRefusal): ConflictException =>
@@ -219,23 +222,65 @@ export class EventsService {
   }
 
   /**
-   * Who is in, for the organizer's management page (B-033, #43); anyone else
-   * gets 403. A cancelled or past event too: the organizer may still want to
-   * know who was coming. Pending requests come with #53.
+   * Who is in and who is waiting, for the organizer's management page
+   * (B-033, #43, #53); anyone else gets 403. A cancelled or past event too:
+   * the organizer may still want to know who was coming.
    */
   async getParticipants(
     eventId: string,
     userId: string,
     now: Date = new Date(),
-  ): Promise<EventParticipant[]> {
+  ): Promise<EventManagementView> {
     const event = await this.getEventDetail(eventId, userId, now); // 404 first
+    this.assertOrganizer(
+      event,
+      userId,
+      'Účastníky akce spravuje jen její organizátor.',
+    );
+    return {
+      participants: event.participants ?? [],
+      requests: await this.eventRepository.findPendingRequests(eventId),
+    };
+  }
+
+  /**
+   * The organizer approves or rejects waiting requests (B-033, #53), all of
+   * them or none: approving past the free places is 409 EVENT_FULL and
+   * changes nothing. Returns the management lists as they are now.
+   */
+  async decideRequests(
+    eventId: string,
+    userId: string,
+    requesterIds: string[],
+    decision: 'approve' | 'reject',
+    now: Date = new Date(),
+  ): Promise<EventManagementView> {
+    const event = await this.getEventDetail(eventId, userId, now); // 404 first
+    this.assertOrganizer(
+      event,
+      userId,
+      'Žádosti o účast vyřizuje jen organizátor akce.',
+    );
+    const result = await this.eventRepository.decideRequests(
+      eventId,
+      [...new Set(requesterIds)],
+      decision === 'approve' ? 'approved' : 'rejected',
+      (state) => decideRequests(state, decision, now),
+      now,
+    );
+    if (!result) throw new NotFoundException('Event not found');
+    if (!result.ok) throw refused(result.refusal);
+    return this.getParticipants(eventId, userId, now);
+  }
+
+  private assertOrganizer(
+    event: EventDetail,
+    userId: string,
+    message: string,
+  ): void {
     if (event.organizer.id !== userId) {
-      throw new ForbiddenException({
-        code: 'NOT_ORGANIZER',
-        message: 'Účastníky akce spravuje jen její organizátor.',
-      });
+      throw new ForbiddenException({ code: 'NOT_ORGANIZER', message });
     }
-    return event.participants ?? [];
   }
 
   private assertCancellable(event: EventDetail, now: Date): void {

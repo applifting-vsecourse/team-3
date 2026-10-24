@@ -9,7 +9,8 @@ export type ParticipationRefusal =
   | 'EVENT_STARTED'
   | 'EVENT_CANCELLED'
   | 'PARTICIPATION_REFUSED'
-  | 'NOT_JOINED';
+  | 'NOT_JOINED'
+  | 'NOT_PENDING';
 
 export type JoinState = {
   eventStatus: 'published' | 'cancelled' | 'hidden' | 'deleted';
@@ -32,7 +33,8 @@ export type JoinDecision =
  *   with approval the participation waits for the organizer (pending, #53);
  * - not twice, not on a full event, not on a cancelled or started one;
  * - someone the organizer rejected or removed can't come back on their own;
- *   someone who withdrew can.
+ *   someone who withdrew can;
+ * - a request to a full event is refused too, though it takes no place.
  * The caller runs it under a lock on the event, so the count is current.
  */
 export function decideJoin(state: JoinState, now: Date): JoinDecision {
@@ -52,12 +54,13 @@ export function decideJoin(state: JoinState, now: Date): JoinDecision {
   ) {
     return { ok: false, refusal: 'PARTICIPATION_REFUSED' };
   }
-  const status =
-    state.isOrganizer || state.approvalMode === 'open' ? 'approved' : 'pending';
-  // only an approved participation takes a place
-  if (status === 'approved' && state.approvedCount >= state.maxParticipants) {
+  // a request takes no place, but a full event takes none either (B-031):
+  // the organizer couldn't approve it, and waiting lists are not in the MVP
+  if (state.approvedCount >= state.maxParticipants) {
     return { ok: false, refusal: 'EVENT_FULL' };
   }
+  const status =
+    state.isOrganizer || state.approvalMode === 'open' ? 'approved' : 'pending';
   return { ok: true, status };
 }
 
@@ -73,5 +76,42 @@ export function decideLeave(
     return { ok: false, refusal: 'NOT_JOINED' };
   }
   if (state.startsAt <= now) return { ok: false, refusal: 'EVENT_STARTED' };
+  return { ok: true };
+}
+
+export type RequestsState = {
+  eventStatus: JoinState['eventStatus'];
+  startsAt: Date;
+  maxParticipants: number;
+  approvedCount: number;
+  /** The participation of each user whose request is decided; null for none. */
+  requestStatuses: (ParticipationStatus | null)[];
+};
+
+/**
+ * Whether the organizer may approve or reject these requests (B-033, #53):
+ * all of them or none. Only waiting requests of an event that is still on;
+ * approving can't take more places than are free, so of two requests for the
+ * last place only one gets it. The caller runs it under a lock on the event.
+ */
+export function decideRequests(
+  state: RequestsState,
+  decision: 'approve' | 'reject',
+  now: Date,
+): { ok: true } | { ok: false; refusal: ParticipationRefusal } {
+  if (state.eventStatus === 'cancelled') {
+    return { ok: false, refusal: 'EVENT_CANCELLED' };
+  }
+  if (state.startsAt <= now) return { ok: false, refusal: 'EVENT_STARTED' };
+  // withdrawn, or already decided (e.g. in another tab) meanwhile
+  if (state.requestStatuses.some((status) => status !== 'pending')) {
+    return { ok: false, refusal: 'NOT_PENDING' };
+  }
+  if (
+    decision === 'approve' &&
+    state.approvedCount + state.requestStatuses.length > state.maxParticipants
+  ) {
+    return { ok: false, refusal: 'EVENT_FULL' };
+  }
   return { ok: true };
 }
