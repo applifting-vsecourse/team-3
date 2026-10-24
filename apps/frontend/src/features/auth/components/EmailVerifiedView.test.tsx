@@ -19,7 +19,19 @@ describe("EmailVerifiedView", () => {
     expect(
       screen.getByRole("heading", { level: 1, name: "E-mail se nepodařilo ověřit" }),
     ).toBeInTheDocument()
-    expect(screen.getByText(/Odkaz už vypršel/)).toBeInTheDocument()
-    expect(screen.getByText(/z pruhu nahoře/)).toBeInTheDocument()
+    expect(
+      screen.getByText(
+        "Odkaz už vypršel. Nový odkaz si pošlete z pruhu nahoře, když jste přihlášení.",
+      ),
+    ).toBeInTheDocument()
+  })
+
+  it("doesn't claim success to a signed-in user who is still unverified", async () => {
+    await renderWithRouter(<EmailVerifiedView isUnverified />)
+
+    expect(
+      screen.getByRole("heading", { level: 1, name: "E-mail zatím není ověřený" }),
+    ).toBeInTheDocument()
+    expect(screen.queryByText("E-mail je ověřený")).not.toBeInTheDocument()
   })
 })
