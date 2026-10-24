@@ -4,6 +4,7 @@ import { api } from "@/lib/api-client"
 
 import {
   groupDetailSchema,
+  groupMembersSchema,
   groupsSchema,
   type GroupFilters,
 } from "@/features/groups/api/groupSchemas"
@@ -14,6 +15,7 @@ export const groupKeys = {
   list: (filters: GroupFilters | undefined) => [...groupKeys.lists(), filters] as const,
   details: () => [...groupKeys.all(), "detail"] as const,
   detail: (id: string) => [...groupKeys.details(), id] as const,
+  members: (id: string) => [...groupKeys.detail(id), "members"] as const,
 }
 
 // Repeated keys (activityId=a&activityId=b) — the API doesn't take activityId[].
@@ -39,8 +41,26 @@ export const groupsQueryOptions = (filters: GroupFilters | undefined) =>
     placeholderData: keepPreviousData,
   })
 
-export const groupQueryOptions = (id: string) =>
+/**
+ * The group as the viewer sees it: the answer carries their own membership,
+ * so the viewer is part of the key (signing in or out refetches). `viewerId`
+ * is undefined while the session loads, then nothing is fetched yet; null is
+ * a visitor.
+ */
+export const groupQueryOptions = (id: string, viewerId: string | null | undefined) =>
   queryOptions({
-    queryKey: groupKeys.detail(id),
-    queryFn: async () => groupDetailSchema.parse(await api.get(`groups/${id}`).json()),
+    queryKey: [...groupKeys.detail(id), "viewer", viewerId ?? null] as const,
+    queryFn:
+      viewerId === undefined
+        ? skipToken
+        : async () => groupDetailSchema.parse(await api.get(`groups/${id}`).json()),
+  })
+
+/** Requests and members for the group's management; the API answers 403 to anyone but an admin. */
+export const groupMembersQueryOptions = (id: string, { isEnabled = true } = {}) =>
+  queryOptions({
+    queryKey: groupKeys.members(id),
+    queryFn: isEnabled
+      ? async () => groupMembersSchema.parse(await api.get(`groups/${id}/members`).json())
+      : skipToken,
   })

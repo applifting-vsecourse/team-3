@@ -14,6 +14,7 @@ import { groupQueryOptions } from "@/features/groups/api/groupsQueryOptions"
 import { AdminOnlyNotice } from "@/features/groups/components/AdminOnlyNotice"
 import { CatalogState } from "@/features/groups/components/CatalogState"
 import { GroupCard } from "@/features/groups/components/GroupCard"
+import { GroupManagement } from "@/features/groups/components/GroupManagement"
 import { GroupFacts, GroupHeading } from "@/features/groups/components/GroupSummary"
 import { GROUP_TYPE_FOR_ADMIN } from "@/features/groups/lib/formatGroup"
 import { GROUPS_PAGE } from "@/features/groups/lib/pageLayout"
@@ -24,15 +25,19 @@ export const Route = createFileRoute("/_ProtectedPages/skupiny/$groupId/sprava")
 
 /**
  * Figma D-07 (mobile) and D-07d (desktop), the admin's entry from the group
- * page. Requests and members come with #46, deactivation with #54.
+ * page: requests and members (#46); deactivation comes with #54.
  */
 function ManageGroupPage() {
   const { groupId } = Route.useParams()
-  const { user } = useSession()
+  const session = useSession()
+  const user = session.user
+  // undefined while the session loads; a failed check counts as a visitor
+  const viewerId = session.isPending ? undefined : (user?.id ?? null)
   const isDesktop = useMediaQuery(DESKTOP_QUERY)
-  const groupQuery = useQuery(groupQueryOptions(groupId))
+  const groupQuery = useQuery(groupQueryOptions(groupId, viewerId))
   const group = groupQuery.data
-  const isAdmin = Boolean(user && group?.admins.some((admin) => admin.id === user.id))
+  const isAdmin =
+    group?.viewerMembership?.role === "admin" && group.viewerMembership.status === "active"
 
   return (
     <>
@@ -47,7 +52,7 @@ function ManageGroupPage() {
         {group && !isAdmin ? (
           <AdminOnlyNotice groupId={groupId} />
         ) : group && isDesktop ? (
-          // D-07d: the group's summary on the left; requests and members (#46) on the right
+          // D-07d: the group's summary on the left, requests and members on the right
           <div className="grid grid-cols-[minmax(0,27.5rem)_minmax(0,1fr)] items-start gap-12">
             <section className="flex flex-col gap-5">
               <GroupHeading group={group} />
@@ -59,6 +64,10 @@ function ManageGroupPage() {
                 <EditButton groupId={groupId} />
               </div>
             </section>
+            <GroupManagement
+              groupId={groupId}
+              isDesktop
+            />
           </div>
         ) : group ? (
           <ManageMobile group={group} />
@@ -79,6 +88,10 @@ function ManageMobile({ group }: { group: GroupDetail }) {
     <>
       <h1 className="text-3xl font-semibold tracking-tight">Správa skupiny</h1>
       <GroupCard group={group} />
+      <GroupManagement
+        groupId={group.id}
+        isDesktop={false}
+      />
       <EditButton
         groupId={group.id}
         className="w-full"

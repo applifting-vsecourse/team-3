@@ -26,12 +26,16 @@ export const Route = createFileRoute("/_ProtectedPages/skupiny/$groupId/upravit"
 function EditGroupPage() {
   const { groupId } = Route.useParams()
   const navigate = useNavigate()
-  const { user } = useSession()
+  const session = useSession()
+  const user = session.user
+  // undefined while the session loads; a failed check counts as a visitor
+  const viewerId = session.isPending ? undefined : (user?.id ?? null)
   const { catalog, queries } = useCatalog()
-  const groupQuery = useQuery(groupQueryOptions(groupId))
+  const groupQuery = useQuery(groupQueryOptions(groupId, viewerId))
   const updateGroup = useUpdateGroup(groupId)
   const group = groupQuery.data
-  const isAdmin = Boolean(user && group?.admins.some((admin) => admin.id === user.id))
+  const isAdmin =
+    group?.viewerMembership?.role === "admin" && group.viewerMembership.status === "active"
 
   return (
     <>

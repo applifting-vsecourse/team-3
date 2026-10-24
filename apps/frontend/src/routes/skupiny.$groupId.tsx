@@ -1,5 +1,5 @@
 import { useQuery } from "@tanstack/react-query"
-import { createFileRoute, Link } from "@tanstack/react-router"
+import { createFileRoute, Link, useLocation } from "@tanstack/react-router"
 import { RefreshCw } from "lucide-react"
 
 import { ROUTES } from "@/app/routes"
@@ -14,6 +14,7 @@ import { cn } from "@/lib/utils"
 
 import { HeaderMenu } from "@/features/auth/components/HeaderMenu"
 import { useSession } from "@/features/auth/hooks/useSession"
+import { encodeRedirectUri } from "@/features/auth/lib/redirect"
 import { groupQueryOptions } from "@/features/groups/api/groupsQueryOptions"
 import { GroupProfile } from "@/features/groups/components/GroupProfile"
 import { GROUPS_PAGE } from "@/features/groups/lib/pageLayout"
@@ -25,8 +26,12 @@ export const Route = createFileRoute("/skupiny/$groupId")({
 /** Figma A-08, A-08d. Public: visitors see the page without an account. */
 function GroupPage() {
   const { groupId } = Route.useParams()
-  const { user } = useSession()
-  const groupQuery = useQuery(groupQueryOptions(groupId))
+  const session = useSession()
+  const user = session.user
+  // undefined while the session loads; a failed check counts as a visitor
+  const viewerId = session.isPending ? undefined : (user?.id ?? null)
+  const groupQuery = useQuery(groupQueryOptions(groupId, viewerId))
+  const location = useLocation()
   const group = groupQuery.data
   const isNotFound =
     groupQuery.error instanceof HTTPError && groupQuery.error.response.status === 404
@@ -45,7 +50,8 @@ function GroupPage() {
         {group ? (
           <GroupProfile
             group={group}
-            isAdmin={Boolean(user && group.admins.some((admin) => admin.id === user.id))}
+            isSignedIn={Boolean(user)}
+            signInFrom={encodeRedirectUri(location)}
           />
         ) : groupQuery.error ? (
           <GroupError

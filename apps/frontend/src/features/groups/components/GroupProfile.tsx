@@ -1,27 +1,36 @@
-import { Link } from "@tanstack/react-router"
-
 import { PersonRow } from "@/components/PersonRow/PersonRow"
-import { Button } from "@/components/ui/button"
 import { DESKTOP_QUERY, useMediaQuery } from "@/hooks/useMediaQuery"
 
 import type { GroupDetail } from "@/features/groups/api/groupSchemas"
+import {
+  GroupMembershipAction,
+  hasMembershipAction,
+} from "@/features/groups/components/GroupMembershipAction"
 import { GroupFacts, GroupHeading } from "@/features/groups/components/GroupSummary"
 
 type GroupProfileProps = {
   group: GroupDetail
-  /** The viewer is one of its admins, so the page leads to the group's management. */
-  isAdmin: boolean
+  isSignedIn: boolean
+  /** Login's `from`, so a visitor who signs in to join comes back to the group. */
+  signInFrom: string
 }
 
 /**
  * The group page: activity, name, locality, type, approved members, admins
  * and description. Mobile (Figma A-08) stacks them with the action in a bar
  * above the bottom navigation; desktop (A-08d, like the event detail A-05d)
- * puts the facts and the action in a panel on the right. Membership (#46)
- * and the group's events (#70) come later.
+ * puts the facts and the action in a panel on the right. The group's
+ * events come with #70.
  */
-export function GroupProfile({ group, isAdmin }: GroupProfileProps) {
+export function GroupProfile({ group, isSignedIn, signInFrom }: GroupProfileProps) {
   const isDesktop = useMediaQuery(DESKTOP_QUERY)
+  const action = hasMembershipAction(group) ? (
+    <GroupMembershipAction
+      group={group}
+      isSignedIn={isSignedIn}
+      signInFrom={signInFrom}
+    />
+  ) : null
 
   if (isDesktop) {
     return (
@@ -34,7 +43,7 @@ export function GroupProfile({ group, isAdmin }: GroupProfileProps) {
         {/* Figma: Panel skupiny */}
         <div className="flex w-100 flex-col gap-4 rounded-lg border border-border bg-card p-6 text-card-foreground">
           <GroupFacts group={group} />
-          {isAdmin ? <ManageButton groupId={group.id} /> : null}
+          {action}
         </div>
       </article>
     )
@@ -46,10 +55,10 @@ export function GroupProfile({ group, isAdmin }: GroupProfileProps) {
       <GroupFacts group={group} />
       <GroupAdmins admins={group.admins} />
       <GroupAbout description={group.description} />
-      {isAdmin ? (
+      {action ? (
         // Figma: Lišta s akcí — above the bottom navigation
         <div className="sticky bottom-16 -mx-4 border-t border-border bg-background px-4 py-3">
-          <ManageButton groupId={group.id} />
+          {action}
         </div>
       ) : null}
     </article>
@@ -101,22 +110,5 @@ function GroupAbout({ description }: { description: string | null }) {
       </h2>
       <p className="text-base whitespace-pre-line">{description}</p>
     </section>
-  )
-}
-
-function ManageButton({ groupId }: { groupId: string }) {
-  return (
-    <Button
-      asChild
-      size="lg"
-      className="h-11 w-full"
-    >
-      <Link
-        to="/skupiny/$groupId/sprava"
-        params={{ groupId }}
-      >
-        Spravovat skupinu
-      </Link>
-    </Button>
   )
 }

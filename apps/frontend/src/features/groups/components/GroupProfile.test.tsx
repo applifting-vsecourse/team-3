@@ -1,3 +1,5 @@
+import type { ReactElement } from "react"
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query"
 import { screen } from "@testing-library/react"
 import { describe, expect, it } from "vitest"
 
@@ -22,16 +24,26 @@ const group: GroupDetail = {
   description: "Uzavřená parta na euro hry.",
   status: "active",
   admins: [{ id: "u-lucie", name: "Lucie Svobodová" }],
+  viewerMembership: null,
 }
+
+// the membership action uses mutations
+const withQueryClient = (ui: ReactElement) => (
+  <QueryClientProvider client={new QueryClient()}>{ui}</QueryClientProvider>
+)
+
+const profile = (overrides: Partial<GroupDetail> = {}) =>
+  withQueryClient(
+    <GroupProfile
+      group={{ ...group, ...overrides }}
+      isSignedIn
+      signInFrom="%2Fskupiny%2Fg-deskovky"
+    />,
+  )
 
 describe("GroupProfile", () => {
   it("shows activity, locality, type, approved members, admins and description (A-08)", async () => {
-    const { container } = await renderWithRouter(
-      <GroupProfile
-        group={group}
-        isAdmin={false}
-      />,
-    )
+    const { container } = await renderWithRouter(profile())
 
     expect(
       screen.getByRole("heading", { level: 1, name: "Deskovky Vinohrady" }),
@@ -45,21 +57,12 @@ describe("GroupProfile", () => {
     expectValidDescriptionList(container.querySelector("dl")!)
   })
 
-  it("only an admin is offered the group's management", async () => {
-    const { rerender } = await renderWithRouter(
-      <GroupProfile
-        group={group}
-        isAdmin={false}
-      />,
-    )
+  it("the main action follows the viewer's membership", async () => {
+    const { rerender } = await renderWithRouter(profile())
+    expect(screen.getByRole("button", { name: "Požádat o členství" })).toBeInTheDocument()
     expect(screen.queryByRole("link", { name: "Spravovat skupinu" })).not.toBeInTheDocument()
 
-    rerender(
-      <GroupProfile
-        group={group}
-        isAdmin
-      />,
-    )
+    rerender(profile({ viewerMembership: { role: "admin", status: "active" } }))
     expect(screen.getByRole("link", { name: "Spravovat skupinu" })).toHaveAttribute(
       "href",
       "/skupiny/g-deskovky/sprava",
@@ -67,12 +70,7 @@ describe("GroupProfile", () => {
   })
 
   it("without a description there is no empty „O skupině“", async () => {
-    await renderWithRouter(
-      <GroupProfile
-        group={{ ...group, description: null }}
-        isAdmin={false}
-      />,
-    )
+    await renderWithRouter(profile({ description: null }))
     expect(screen.queryByRole("heading", { name: "O skupině" })).not.toBeInTheDocument()
   })
 })
