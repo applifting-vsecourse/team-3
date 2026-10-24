@@ -1,11 +1,14 @@
 import { GroupsService } from '@/modules/group/services/groups.service';
+import { OptionalUser } from '@/shared/auth/decorators/optional-user.decorator';
 import { User } from '@/shared/auth/decorators/user.decorator';
 import { Identity } from '@/shared/auth/domain/identity';
 import { AuthenticatedUserGuard } from '@/shared/auth/guards/authenticated-user.guard';
+import { OptionalUserGuard } from '@/shared/auth/guards/optional-user.guard';
 import {
   Body,
   Controller,
   Get,
+  HttpCode,
   Param,
   Patch,
   Post,
@@ -21,6 +24,10 @@ import {
   ApiTags,
 } from '@nestjs/swagger';
 import { CreateGroupDto, UpdateGroupDto } from './dto/group-input.dto';
+import {
+  GroupMembersResponseDto,
+  JoinGroupResponseDto,
+} from './dto/group-members.response.dto';
 import {
   GroupDetailResponseDto,
   GroupResponseDto,
@@ -56,12 +63,19 @@ export class GroupsController {
   }
 
   @Get(':id')
-  @ApiOperation({ summary: 'A group page, deactivated groups included' })
+  @UseGuards(OptionalUserGuard)
+  @ApiOperation({
+    summary:
+      'A group page, deactivated groups included; a signed-in viewer also gets their own membership',
+  })
   @ApiResponse({ status: 200, type: GroupDetailResponseDto })
   @ApiResponse({ status: 404, description: 'No such group' })
-  async detail(@Param('id') id: string): Promise<GroupDetailResponseDto> {
+  async detail(
+    @Param('id') id: string,
+    @OptionalUser() viewer: Identity | null,
+  ): Promise<GroupDetailResponseDto> {
     return GroupDetailResponseDto.fromDomain(
-      await this.groupsService.getGroup(id),
+      await this.groupsService.getGroup(id, viewer?.id ?? null),
     );
   }
 
@@ -105,5 +119,94 @@ export class GroupsController {
   ): Promise<GroupDetailResponseDto> {
     const group = await this.groupsService.updateGroup(id, body, user.id);
     return GroupDetailResponseDto.fromDomain(group);
+  }
+
+  @Post(':id/join')
+  @HttpCode(200)
+  @UseGuards(AuthenticatedUserGuard)
+  @ApiCookieAuth()
+  @ApiOperation({
+    summary:
+      'Join a public group at once, or ask to join a closed one; asking again changes nothing',
+  })
+  @ApiResponse({ status: 200, type: JoinGroupResponseDto })
+  @ApiResponse({ status: 401, description: 'Not signed in' })
+  @ApiResponse({ status: 403, description: 'MEMBER_BLOCKED' })
+  @ApiResponse({ status: 404, description: 'No such group' })
+  @ApiResponse({ status: 409, description: 'GROUP_INACTIVE' })
+  async join(
+    @Param('id') id: string,
+    @User() user: Identity,
+  ): Promise<JoinGroupResponseDto> {
+    return this.groupsService.join(id, user.id);
+  }
+
+  @Post(':id/leave')
+  @HttpCode(204)
+  @UseGuards(AuthenticatedUserGuard)
+  @ApiCookieAuth()
+  @ApiOperation({ summary: 'Leave the group, or withdraw a pending request' })
+  @ApiResponse({ status: 204 })
+  @ApiResponse({ status: 401, description: 'Not signed in' })
+  @ApiResponse({ status: 404, description: 'No such group, or NOT_MEMBER' })
+  @ApiResponse({ status: 409, description: 'LAST_ADMIN' })
+  async leave(@Param('id') id: string, @User() user: Identity): Promise<void> {
+    await this.groupsService.leave(id, user.id);
+  }
+
+  @Get(':id/members')
+  @UseGuards(AuthenticatedUserGuard)
+  @ApiCookieAuth()
+  @ApiOperation({
+    summary: 'Pending requests and active members; only an admin of the group',
+  })
+  @ApiResponse({ status: 200, type: GroupMembersResponseDto })
+  @ApiResponse({ status: 401, description: 'Not signed in' })
+  @ApiResponse({ status: 403, description: 'Not an admin of the group' })
+  @ApiResponse({ status: 404, description: 'No such group' })
+  async members(
+    @Param('id') id: string,
+    @User() user: Identity,
+  ): Promise<GroupMembersResponseDto> {
+    return GroupMembersResponseDto.fromDomain(
+      await this.groupsService.getMembers(id, user.id),
+    );
+  }
+
+  @Post(':id/requests/:userId/approve')
+  @HttpCode(204)
+  @UseGuards(AuthenticatedUserGuard)
+  @ApiCookieAuth()
+  @ApiOperation({
+    summary: 'Approve a pending request; any admin of the group',
+  })
+  @ApiResponse({ status: 204 })
+  @ApiResponse({ status: 403, description: 'Not an admin of the group' })
+  @ApiResponse({ status: 409, description: 'NOT_PENDING' })
+  async approve(
+    @Param('id') id: string,
+    @Param('userId') userId: string,
+    @User() user: Identity,
+  ): Promise<void> {
+    await this.groupsService.approveRequest(id, user.id, userId);
+  }
+
+  @Post(':id/requests/:userId/reject')
+  @HttpCode(204)
+  @UseGuards(AuthenticatedUserGuard)
+  @ApiCookieAuth()
+  @ApiOperation({
+    summary:
+      'Reject a pending request; it is removed, so the user can ask again',
+  })
+  @ApiResponse({ status: 204 })
+  @ApiResponse({ status: 403, description: 'Not an admin of the group' })
+  @ApiResponse({ status: 409, description: 'NOT_PENDING' })
+  async reject(
+    @Param('id') id: string,
+    @Param('userId') userId: string,
+    @User() user: Identity,
+  ): Promise<void> {
+    await this.groupsService.rejectRequest(id, user.id, userId);
   }
 }

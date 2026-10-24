@@ -47,6 +47,14 @@ class GroupLocalityDto {
   name!: string;
 }
 
+class ViewerMembershipDto {
+  @ApiProperty({ enum: ['admin', 'member'] })
+  role!: 'admin' | 'member';
+
+  @ApiProperty({ enum: ['pending', 'active', 'blocked'] })
+  status!: 'pending' | 'active' | 'blocked';
+}
+
 class GroupAdminDto {
   @ApiProperty()
   id!: string;
@@ -99,12 +107,21 @@ export class GroupDetailResponseDto extends GroupResponseDto {
   @ApiProperty({ type: [GroupAdminDto] })
   admins!: GroupAdminDto[];
 
+  @ApiProperty({
+    type: ViewerMembershipDto,
+    nullable: true,
+    description:
+      "The signed-in viewer's own membership; null for a visitor or a non-member",
+  })
+  viewerMembership!: ViewerMembershipDto | null;
+
   static fromDomain(group: GroupDetail): GroupDetailResponseDto {
     return {
       ...GroupResponseDto.fromDomain(group),
       description: group.description,
       status: group.status,
       admins: group.admins,
+      viewerMembership: group.viewerMembership,
     };
   }
 }

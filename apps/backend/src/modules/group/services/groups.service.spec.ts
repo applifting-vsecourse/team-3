@@ -2,6 +2,7 @@ import { GroupDetail, GroupInput } from '@/modules/group/domain/group';
 import { GroupRepository } from '@/modules/group/repositories/group.repository';
 import {
   BadRequestException,
+  ConflictException,
   ForbiddenException,
   NotFoundException,
 } from '@nestjs/common';
@@ -31,6 +32,7 @@ const aGroup = (id: string): GroupDetail => ({
   description: null,
   status: 'active',
   admins: [{ id: 'u-petra', name: 'Petra' }],
+  viewerMembership: null,
 });
 
 const setup = (): {
@@ -100,7 +102,9 @@ describe('GroupsService', () => {
       await service.updateGroup('g1', patch, 'u-petra');
 
       expect(repository.isActiveAdmin).toHaveBeenCalledWith('g1', 'u-petra');
-      expect(repository.updateGroup).toHaveBeenCalledWith('g1', patch);
+      expect(repository.updateGroup).toHaveBeenCalledWith('g1', patch, {
+        approvePending: true,
+      });
     });
 
     it('anyone else gets 403 and nothing is written', async () => {
@@ -140,6 +144,184 @@ describe('GroupsService', () => {
         activityId: 'a-nope',
       });
       expect(repository.updateGroup).not.toHaveBeenCalled();
+    });
+  });
+
+  it('a closed group made public lets its waiting requests in', async () => {
+    const { repository, service } = setup();
+    repository.findGroupById.mockResolvedValue(aGroup('g1'));
+    repository.isActiveAdmin.mockResolvedValue(true);
+
+    await service.updateGroup('g1', { name: 'Jiný název' }, 'u-petra');
+    expect(repository.updateGroup).toHaveBeenLastCalledWith(
+      'g1',
+      { name: 'Jiný název' },
+      { approvePending: false },
+    );
+
+    await service.updateGroup('g1', { type: 'public' }, 'u-petra');
+    expect(repository.updateGroup).toHaveBeenLastCalledWith(
+      'g1',
+      { type: 'public' },
+      { approvePending: true },
+    );
+  });
+
+  describe('join', () => {
+    it('joining a public group makes a member at once', async () => {
+      const { repository, service } = setup();
+      repository.findGroupById.mockResolvedValue({
+        ...aGroup('g1'),
+        type: 'public',
+      });
+
+      await expect(service.join('g1', 'u-jakub')).resolves.toEqual({
+        status: 'active',
+      });
+      expect(repository.findGroupById).toHaveBeenCalledWith('g1', 'u-jakub');
+      expect(repository.createMembership).toHaveBeenCalledWith(
+        'g1',
+        'u-jakub',
+        'active',
+      );
+    });
+
+    it('a closed group gets a request', async () => {
+      const { repository, service } = setup();
+      repository.findGroupById.mockResolvedValue(aGroup('g1'));
+
+      await expect(service.join('g1', 'u-jakub')).resolves.toEqual({
+        status: 'pending',
+      });
+      expect(repository.createMembership).toHaveBeenCalledWith(
+        'g1',
+        'u-jakub',
+        'pending',
+      );
+    });
+
+    it('asking twice writes nothing the second time', async () => {
+      const { repository, service } = setup();
+      repository.findGroupById.mockResolvedValue({
+        ...aGroup('g1'),
+        viewerMembership: { role: 'member', status: 'pending' },
+      });
+
+      await expect(service.join('g1', 'u-jakub')).resolves.toEqual({
+        status: 'pending',
+      });
+      expect(repository.createMembership).not.toHaveBeenCalled();
+    });
+
+    it('a deactivated group is a 409 and a blocked user a 403', async () => {
+      const { repository, service } = setup();
+      repository.findGroupById.mockResolvedValueOnce({
+        ...aGroup('g1'),
+        status: 'inactive',
+      });
+      await expect(service.join('g1', 'u-jakub')).rejects.toBeInstanceOf(
+        ConflictException,
+      );
+
+      repository.findGroupById.mockResolvedValueOnce({
+        ...aGroup('g1'),
+        viewerMembership: { role: 'member', status: 'blocked' },
+      });
+      await expect(service.join('g1', 'u-jakub')).rejects.toBeInstanceOf(
+        ForbiddenException,
+      );
+      expect(repository.createMembership).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('leave', () => {
+    it('a member leaves', async () => {
+      const { repository, service } = setup();
+      repository.findGroupById.mockResolvedValue({
+        ...aGroup('g1'),
+        viewerMembership: { role: 'member', status: 'active' },
+      });
+      repository.countActiveAdmins.mockResolvedValue(1);
+
+      await service.leave('g1', 'u-jakub');
+      expect(repository.deleteMembership).toHaveBeenCalledWith('g1', 'u-jakub');
+    });
+
+    it('the last admin can not leave (409 LAST_ADMIN)', async () => {
+      const { repository, service } = setup();
+      repository.findGroupById.mockResolvedValue({
+        ...aGroup('g1'),
+        viewerMembership: { role: 'admin', status: 'active' },
+      });
+      repository.countActiveAdmins.mockResolvedValue(1);
+
+      await expect(service.leave('g1', 'u-petra')).rejects.toMatchObject({
+        response: { code: 'LAST_ADMIN' },
+      });
+      expect(repository.deleteMembership).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('requests', () => {
+    it('only an admin sees the members and handles requests (403)', async () => {
+      const { repository, service } = setup();
+      repository.findGroupById.mockResolvedValue(aGroup('g1'));
+      repository.isActiveAdmin.mockResolvedValue(false);
+
+      await expect(service.getMembers('g1', 'u-jakub')).rejects.toBeInstanceOf(
+        ForbiddenException,
+      );
+      await expect(
+        service.approveRequest('g1', 'u-jakub', 'u-petr'),
+      ).rejects.toBeInstanceOf(ForbiddenException);
+      await expect(
+        service.rejectRequest('g1', 'u-jakub', 'u-petr'),
+      ).rejects.toBeInstanceOf(ForbiddenException);
+      expect(repository.findMembers).not.toHaveBeenCalled();
+      expect(repository.approveRequest).not.toHaveBeenCalled();
+      expect(repository.deleteMembership).not.toHaveBeenCalled();
+    });
+
+    it('an admin approves a pending request', async () => {
+      const { repository, service } = setup();
+      repository.findGroupById.mockResolvedValue(aGroup('g1'));
+      repository.isActiveAdmin.mockResolvedValue(true);
+      repository.findMembership.mockResolvedValue({
+        role: 'member',
+        status: 'pending',
+      });
+
+      await service.approveRequest('g1', 'u-petra', 'u-jakub');
+      expect(repository.isActiveAdmin).toHaveBeenCalledWith('g1', 'u-petra');
+      expect(repository.approveRequest).toHaveBeenCalledWith('g1', 'u-jakub');
+    });
+
+    it('rejecting removes the request', async () => {
+      const { repository, service } = setup();
+      repository.findGroupById.mockResolvedValue(aGroup('g1'));
+      repository.isActiveAdmin.mockResolvedValue(true);
+      repository.findMembership.mockResolvedValue({
+        role: 'member',
+        status: 'pending',
+      });
+
+      await service.rejectRequest('g1', 'u-petra', 'u-jakub');
+      expect(repository.deleteMembership).toHaveBeenCalledWith('g1', 'u-jakub');
+    });
+
+    it('a request handled already is a 409, nothing is written', async () => {
+      const { repository, service } = setup();
+      repository.findGroupById.mockResolvedValue(aGroup('g1'));
+      repository.isActiveAdmin.mockResolvedValue(true);
+      repository.findMembership.mockResolvedValue({
+        role: 'member',
+        status: 'active',
+      });
+
+      await expect(
+        service.rejectRequest('g1', 'u-petra', 'u-jakub'),
+      ).rejects.toBeInstanceOf(ConflictException);
+      expect(repository.deleteMembership).not.toHaveBeenCalled();
     });
   });
 });
