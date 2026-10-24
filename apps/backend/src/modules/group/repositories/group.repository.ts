@@ -146,6 +146,19 @@ export class GroupRepository {
     });
   }
 
+  /** Deactivates the group and removes its waiting requests, in one write. */
+  async deactivateGroup(id: string, at: Date): Promise<void> {
+    await this.prisma.$transaction([
+      this.prisma.group.update({
+        where: { id },
+        data: { status: 'inactive', deactivatedAt: at },
+      }),
+      this.prisma.groupMember.deleteMany({
+        where: { groupId: id, status: 'pending' },
+      }),
+    ]);
+  }
+
   /** Pending requests and active members for the group's management (D-07). */
   async findMembers(groupId: string): Promise<GroupMembers> {
     const rows = await this.prisma.groupMember.findMany({
