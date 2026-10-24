@@ -121,3 +121,56 @@ describe('EventRepository.join', () => {
     expect(prisma.participation.upsert).not.toHaveBeenCalled();
   });
 });
+
+describe('EventRepository.updateEvent', () => {
+  const setup = (): ReturnType<typeof mockDeep<PrismaService>> => {
+    const prisma = mockDeep<PrismaService>();
+    prisma.$transaction.mockImplementation(((
+      run: (tx: PrismaService) => Promise<unknown>,
+    ) => run(prisma)) as never);
+    prisma.event.findUnique.mockResolvedValue({
+      minParticipants: 3,
+      maxParticipants: 6,
+    } as never);
+    prisma.participation.count.mockResolvedValue(5);
+    return prisma;
+  };
+
+  it('locks the event row before it counts the approved, then writes', async () => {
+    const prisma = setup();
+    const check = jest.fn().mockReturnValue(null);
+
+    await expect(
+      new EventRepository(prisma).updateEvent(
+        'e1',
+        { maxParticipants: 8 },
+        check,
+      ),
+    ).resolves.toEqual({ ok: true });
+    expect(prisma.$executeRaw.mock.invocationCallOrder[0]!).toBeLessThan(
+      prisma.participation.count.mock.invocationCallOrder[0]!,
+    );
+    expect(check).toHaveBeenCalledWith({
+      approvedCount: 5,
+      minParticipants: 3,
+      maxParticipants: 6,
+    });
+    expect(prisma.event.update).toHaveBeenCalledWith({
+      where: { id: 'e1' },
+      data: { maxParticipants: 8 },
+    });
+  });
+
+  it('writes nothing when the check finds a problem', async () => {
+    const prisma = setup();
+
+    await expect(
+      new EventRepository(prisma).updateEvent(
+        'e1',
+        { maxParticipants: 4 },
+        () => 'Maximum…',
+      ),
+    ).resolves.toEqual({ ok: false, problem: 'Maximum…' });
+    expect(prisma.event.update).not.toHaveBeenCalled();
+  });
+});

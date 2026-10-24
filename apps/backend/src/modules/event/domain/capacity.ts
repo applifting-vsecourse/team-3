@@ -35,3 +35,25 @@ export const matchesCapacity = (
   filter: CapacityFilter,
 ): boolean =>
   filter === 'missing' ? capacity.missingToMin > 0 : !capacity.isFull;
+
+/**
+ * Whether the limits may change to `changes` (B-028): max not below min, and
+ * the maximum never below the people already approved. A Czech message for
+ * the form, or null when it's fine.
+ */
+export const capacityChangeProblem = (
+  current: {
+    approvedCount: number;
+    minParticipants: number;
+    maxParticipants: number;
+  },
+  changes: { minParticipants?: number; maxParticipants?: number },
+): string | null => {
+  const min = changes.minParticipants ?? current.minParticipants;
+  const max = changes.maxParticipants ?? current.maxParticipants;
+  if (max < min) return 'Maximum nesmí být menší než minimum.';
+  if (max < current.approvedCount) {
+    return `Maximum nejde snížit pod počet přihlášených (${current.approvedCount}).`;
+  }
+  return null;
+};

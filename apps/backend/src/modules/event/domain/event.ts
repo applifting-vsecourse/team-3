@@ -76,3 +76,19 @@ export type NewEvent = {
   maxParticipants: number;
   approvalMode: 'open' | 'approval';
 };
+
+/** What the organizer may change on an event (B-028, #41): not the activity nor the way of joining. */
+export type EventChanges = Partial<
+  Pick<
+    NewEvent,
+    | 'title'
+    | 'description'
+    | 'localityId'
+    | 'lat'
+    | 'lng'
+    | 'address'
+    | 'startsAt'
+    | 'minParticipants'
+    | 'maxParticipants'
+  >
+>;

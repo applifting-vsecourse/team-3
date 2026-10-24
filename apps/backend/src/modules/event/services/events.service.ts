@@ -1,5 +1,9 @@
-import { matchesCapacity } from '@/modules/event/domain/capacity';
 import {
+  capacityChangeProblem,
+  matchesCapacity,
+} from '@/modules/event/domain/capacity';
+import {
+  EventChanges,
   EventDetail,
   EventDetailView,
   NewEvent,
@@ -152,6 +156,54 @@ export class EventsService {
       // changed between the check and the write (e.g. cancelled in another tab)
       this.assertCancellable(await this.getEventDetail(id, userId, now), now);
     }
+    return this.getEventDetail(id, userId, now);
+  }
+
+  /**
+   * The organizer changes the event (B-028, #41), until it starts. The
+   * maximum can't go below the people who already have a place; the activity
+   * and the way of joining can't change at all (the DTO doesn't take them).
+   */
+  async updateEvent(
+    id: string,
+    userId: string,
+    changes: EventChanges,
+    now: Date = new Date(),
+  ): Promise<EventDetailView> {
+    const event = await this.getEventDetail(id, userId, now); // 404 first
+    if (event.organizer.id !== userId) {
+      throw new ForbiddenException({
+        code: 'NOT_ORGANIZER',
+        message: 'Upravit akci může jen její organizátor.',
+      });
+    }
+    if (event.status === 'cancelled') {
+      throw new ConflictException({
+        code: 'EVENT_CANCELLED',
+        message: 'Zrušenou akci nejde upravit.',
+      });
+    }
+    // B-028: changing a started event is a 400
+    if (event.startsAt <= now) {
+      throw new BadRequestException(['Akce už začala, upravit ji nejde.']);
+    }
+    if (changes.startsAt && changes.startsAt <= now) {
+      throw new BadRequestException(['Termín musí být v budoucnosti.']);
+    }
+    if (changes.localityId) {
+      const refs = await this.eventRepository.catalogRefsExist(
+        event.activity.id,
+        changes.localityId,
+      );
+      if (!refs.locality) throw new BadRequestException(['Neznámá lokalita.']);
+    }
+    const result = await this.eventRepository.updateEvent(
+      id,
+      changes,
+      (current) => capacityChangeProblem(current, changes),
+    );
+    if (!result) throw new NotFoundException('Event not found');
+    if (!result.ok) throw new BadRequestException([result.problem]);
     return this.getEventDetail(id, userId, now);
   }
 
