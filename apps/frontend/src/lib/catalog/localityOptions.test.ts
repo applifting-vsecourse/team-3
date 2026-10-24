@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest"
 
-import type { Locality } from "@/features/events/api/catalogSchemas"
+import type { Locality } from "@/lib/catalog/catalogSchemas"
 
 import { localityOptions } from "./localityOptions"
 

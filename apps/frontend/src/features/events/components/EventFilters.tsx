@@ -1,13 +1,19 @@
+import { useState } from "react"
+
+import { ActivityFilter } from "@/components/ActivityFilter/ActivityFilter"
 import { FilterChip } from "@/components/FilterChip/FilterChip"
+import { LocalityFilter } from "@/components/LocalityFilter/LocalityFilter"
 import { Button } from "@/components/ui/button"
+import type { ActivitySelection } from "@/lib/catalog/activitySelection"
+import type { ActivityCategory, Locality } from "@/lib/catalog/catalogSchemas"
+import { toActivitySearch, toActivitySelection } from "@/lib/catalog/catalogSearch"
 import { cn } from "@/lib/utils"
 
-import type { ActivityCategory, Locality } from "@/features/events/api/catalogSchemas"
-import { ActivityFilter } from "@/features/events/components/ActivityFilter"
 import { DateFilter } from "@/features/events/components/DateFilter"
-import { LocalityFilter } from "@/features/events/components/LocalityFilter"
 import { OccupancyFilter } from "@/features/events/components/OccupancyFilter"
+import { useEvents } from "@/features/events/hooks/useEvents"
 import { hasActiveFilters, type EventsSearch } from "@/features/events/lib/eventsSearch"
+import { showEventsLabel } from "@/features/events/lib/formatEvent"
 
 type EventFiltersProps = {
   search: EventsSearch
@@ -35,7 +41,7 @@ export function EventFilters({
       className={cn("flex items-center gap-2", isFloating && "*:shadow-md", className)}
     >
       {catalog ? (
-        <LocalityFilter
+        <EventLocalityFilter
           search={search}
           localities={catalog.localities}
           onChange={(lokalita) => onChange({ lokalita })}
@@ -49,7 +55,7 @@ export function EventFilters({
         onChange={onChange}
       />
       {catalog ? (
-        <ActivityFilter
+        <EventActivityFilter
           search={search}
           categories={catalog.categories}
           onChange={onChange}
@@ -75,5 +81,59 @@ export function EventFilters({
         </Button>
       ) : null}
     </div>
+  )
+}
+
+/** „Zobrazit N akcí“ for what the panel shows; nothing is fetched while it is closed. */
+const usePreviewLabel = (search: EventsSearch | undefined) => {
+  const preview = useEvents(search ?? {}, { isEnabled: search !== undefined })
+  return showEventsLabel(preview.isPlaceholderData ? undefined : preview.events?.length)
+}
+
+function EventLocalityFilter({
+  search,
+  localities,
+  onChange,
+}: {
+  search: EventsSearch
+  localities: Locality[]
+  onChange: (lokalita: string | undefined) => void
+}) {
+  const [draft, setDraft] = useState<string>()
+  const applyLabel = usePreviewLabel(
+    draft === undefined ? undefined : { ...search, lokalita: draft },
+  )
+  return (
+    <LocalityFilter
+      value={search.lokalita}
+      localities={localities}
+      onChange={onChange}
+      onDraftChange={setDraft}
+      applyLabel={applyLabel}
+    />
+  )
+}
+
+function EventActivityFilter({
+  search,
+  categories,
+  onChange,
+}: {
+  search: EventsSearch
+  categories: ActivityCategory[]
+  onChange: (patch: Pick<EventsSearch, "kategorie" | "aktivita">) => void
+}) {
+  const [draft, setDraft] = useState<ActivitySelection>()
+  const applyLabel = usePreviewLabel(
+    draft === undefined ? undefined : { ...search, ...toActivitySearch(draft) },
+  )
+  return (
+    <ActivityFilter
+      selection={toActivitySelection(search)}
+      categories={categories}
+      onChange={(selection) => onChange(toActivitySearch(selection))}
+      onDraftChange={setDraft}
+      applyLabel={applyLabel}
+    />
   )
 }

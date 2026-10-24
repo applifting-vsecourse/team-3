@@ -7,22 +7,25 @@ type DetailRowProps = {
 }
 
 /**
- * One fact of a detail page — „Termín“, „Místo“… (Figma: Detail row).
- * Use inside a `<dl>`. A `<div>` in a `<dl>` may hold only its dt and dd, so
- * the icon sits inside the dt and is placed in the left column (pl-8 = icon
- * size-5 + gap-3) rather than being a flex item beside them.
+ * One fact of a detail page — „Termín“, „Místo“… (Figma: Detail row): the
+ * icon in a muted box, the label above the value. Use inside a `<dl>`.
+ * A `<div>` in a `<dl>` may hold only its dt and dd, so the icon box sits
+ * inside the dt; `contents` lets it take the grid's first column beside both.
  */
 export function DetailRow({ icon: Icon, label, children }: DetailRowProps) {
   return (
-    <div className="relative pl-8">
-      <dt className="text-sm text-muted-foreground">
-        <Icon
+    <div className="grid grid-cols-[auto_1fr] items-center gap-x-3">
+      {/* the label text becomes the grid's second item and still inherits the dt's type */}
+      <dt className="contents text-xs font-medium text-muted-foreground">
+        <span
           aria-hidden
-          className="absolute top-0 left-0 size-5"
-        />
+          className="row-span-2 flex size-10 items-center justify-center rounded-lg bg-muted text-foreground"
+        >
+          <Icon className="size-5" />
+        </span>
         {label}
       </dt>
-      <dd className="text-base">{children}</dd>
+      <dd className="col-start-2 text-base">{children}</dd>
     </div>
   )
 }

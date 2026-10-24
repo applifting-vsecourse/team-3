@@ -3,15 +3,11 @@ import { ChevronRight, Search } from "lucide-react"
 
 import { ActivityTile } from "@/components/ActivityTile/ActivityTile"
 import { FilterChip } from "@/components/FilterChip/FilterChip"
+import { FilterPanel } from "@/components/FilterPanel/FilterPanel"
 import { Checkbox } from "@/components/ui/checkbox"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { DESKTOP_QUERY, useMediaQuery } from "@/hooks/useMediaQuery"
-import { cn } from "@/lib/utils"
-
-import type { ActivityCategory } from "@/features/events/api/catalogSchemas"
-import { FilterPanel } from "@/features/events/components/FilterPanel"
-import { useEvents } from "@/features/events/hooks/useEvents"
 import {
   categoryState,
   isActivityChecked,
@@ -21,77 +17,88 @@ import {
   toggleCategory,
   type ActivitySelection,
   type CheckState,
-} from "@/features/events/lib/activitySelection"
-import { joinSlugs, splitSlugs, type EventsSearch } from "@/features/events/lib/eventsSearch"
-import { showEventsLabel } from "@/features/events/lib/formatEvent"
+} from "@/lib/catalog/activitySelection"
+import type { ActivityCategory } from "@/lib/catalog/catalogSchemas"
+import { cn } from "@/lib/utils"
 
 type ActivityFilterProps = {
-  search: EventsSearch
+  /** The applied selection. */
+  selection: ActivitySelection
   categories: ActivityCategory[]
-  onChange: (patch: Pick<EventsSearch, "kategorie" | "aktivita">) => void
+  onChange: (selection: ActivitySelection) => void
+  /** Chip and panel title: „Typ aktivity“ on /akce, „Aktivita“ on /skupiny. */
+  filterName?: string
+  /** The apply button, e.g. „Zobrazit 12 akcí“ for the selection being edited. */
+  applyLabel: string
+  /** The selection being edited while the panel is open, undefined once it closes, so the page can preview its result. */
+  onDraftChange?: (draft: ActivitySelection | undefined) => void
 }
-
-const toSearch = (selection: ActivitySelection) => ({
-  kategorie: joinSlugs(selection.categories),
-  aktivita: joinSlugs(selection.activities),
-})
 
 /**
  * Chip „Typ aktivity“ › category › activity (Figma: Popover – typ aktivity,
  * A-02a, A-02b). Counts per item need /api/events/facets, so they are hidden.
  */
-export function ActivityFilter({ search, categories, onChange }: ActivityFilterProps) {
+export function ActivityFilter({
+  selection: current,
+  categories,
+  onChange,
+  filterName = "Typ aktivity",
+  applyLabel,
+  onDraftChange,
+}: ActivityFilterProps) {
   const isDesktop = useMediaQuery(DESKTOP_QUERY)
-  const current: ActivitySelection = {
-    categories: splitSlugs(search.kategorie),
-    activities: splitSlugs(search.aktivita),
-  }
   const [isOpen, setIsOpen] = useState(false)
   const [draft, setDraft] = useState(current)
   const [query, setQuery] = useState("")
   // desktop: the category shown on the right; mobile: the opened second level
   const [shownSlug, setShownSlug] = useState<string | undefined>()
-  const preview = useEvents({ ...search, ...toSearch(draft) }, { isEnabled: isOpen })
 
   const shown = categories.find((c) => c.slug === shownSlug)
   const isSecondLevel = !isDesktop && shown !== undefined && !query
-  const label = selectionLabel(current, categories)
+  const label = selectionLabel(current, categories, filterName)
 
-  const apply = (selection: ActivitySelection) => {
-    onChange(toSearch(selection))
+  const updateDraft = (selection: ActivitySelection) => {
+    setDraft(selection)
+    onDraftChange?.(selection)
+  }
+  const close = () => {
     setIsOpen(false)
+    onDraftChange?.(undefined)
+  }
+  const apply = (selection: ActivitySelection) => {
+    onChange(selection)
+    close()
   }
 
   return (
     <FilterPanel
-      title={isSecondLevel ? shown.name : "Typ aktivity"}
+      title={isSecondLevel ? shown.name : filterName}
       onBack={isSecondLevel ? () => setShownSlug(undefined) : undefined}
       backLabel="Zpět na kategorie"
       isOpen={isOpen}
       onOpenChange={(isOpening) => {
-        if (isOpening) {
-          setDraft(current)
-          setQuery("")
-          // desktop opens on the first category with something selected
-          setShownSlug(
-            isDesktop
-              ? (categories.find((c) => categoryState(current, c) !== "off") ?? categories[0])?.slug
-              : undefined,
-          )
-        }
-        setIsOpen(isOpening)
+        if (!isOpening) return close()
+        updateDraft(current)
+        setQuery("")
+        // desktop opens on the first category with something selected
+        setShownSlug(
+          isDesktop
+            ? (categories.find((c) => categoryState(current, c) !== "off") ?? categories[0])?.slug
+            : undefined,
+        )
+        setIsOpen(true)
       }}
       trigger={
         <FilterChip
           isSelected={Boolean(label)}
-          filterName="Typ aktivity"
+          filterName={filterName}
         >
-          {label ?? "Typ aktivity"}
+          {label ?? filterName}
         </FilterChip>
       }
       resetLabel="Zrušit výběr"
       onReset={() => apply({ categories: [], activities: [] })}
-      applyLabel={showEventsLabel(preview.isPlaceholderData ? undefined : preview.events?.length)}
+      applyLabel={applyLabel}
       onApply={() => apply(draft)}
       popoverClassName="w-auto"
     >
@@ -107,7 +114,7 @@ export function ActivityFilter({ search, categories, onChange }: ActivityFilterP
           categories={categories}
           query={query}
           selection={draft}
-          onChange={setDraft}
+          onChange={updateDraft}
         />
       ) : isDesktop ? (
         <div className="mt-2 flex">
@@ -118,7 +125,7 @@ export function ActivityFilter({ search, categories, onChange }: ActivityFilterP
                   category={category}
                   state={categoryState(draft, category)}
                   isHighlighted={category.slug === shownSlug}
-                  onToggle={() => setDraft(toggleCategory(draft, category))}
+                  onToggle={() => updateDraft(toggleCategory(draft, category))}
                   onOpen={() => setShownSlug(category.slug)}
                 />
               </li>
@@ -132,7 +139,7 @@ export function ActivityFilter({ search, categories, onChange }: ActivityFilterP
             <CategoryActivities
               category={shown}
               selection={draft}
-              onChange={setDraft}
+              onChange={updateDraft}
               className="w-80"
             />
           ) : null}
@@ -141,7 +148,7 @@ export function ActivityFilter({ search, categories, onChange }: ActivityFilterP
         <CategoryActivities
           category={shown}
           selection={draft}
-          onChange={setDraft}
+          onChange={updateDraft}
         />
       ) : (
         <ul className="mt-2 flex flex-col">
@@ -150,7 +157,7 @@ export function ActivityFilter({ search, categories, onChange }: ActivityFilterP
               <CategoryRow
                 category={category}
                 state={categoryState(draft, category)}
-                onToggle={() => setDraft(toggleCategory(draft, category))}
+                onToggle={() => updateDraft(toggleCategory(draft, category))}
                 onOpen={() => setShownSlug(category.slug)}
               />
             </li>
