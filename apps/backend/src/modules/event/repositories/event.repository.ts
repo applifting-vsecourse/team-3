@@ -107,6 +107,17 @@ export class EventRepository {
     return participations.map((participation) => participation.user);
   }
 
+  /**
+   * Cancels the event (B-028): it is never deleted, only marked, with the
+   * reason the participants see.
+   */
+  async cancelEvent(id: string, reason: string, now: Date): Promise<void> {
+    await this.prisma.event.update({
+      where: { id },
+      data: { status: 'cancelled', cancelReason: reason, cancelledAt: now },
+    });
+  }
+
   async isActiveGroupMember(groupId: string, userId: string): Promise<boolean> {
     const member = await this.prisma.groupMember.findUnique({
       where: { groupId_userId: { groupId, userId } },

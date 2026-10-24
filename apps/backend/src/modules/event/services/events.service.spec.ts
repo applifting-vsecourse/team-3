@@ -1,7 +1,11 @@
 import { computeCapacity } from '@/modules/event/domain/capacity';
 import { EventDetail, PublicEvent } from '@/modules/event/domain/event';
 import { EventRepository } from '@/modules/event/repositories/event.repository';
-import { NotFoundException } from '@nestjs/common';
+import {
+  ConflictException,
+  ForbiddenException,
+  NotFoundException,
+} from '@nestjs/common';
 import { mock, MockProxy } from 'jest-mock-extended';
 import {
   CAPACITY_SCAN_LIMIT,
@@ -255,5 +259,59 @@ describe('EventsService.getEventDetail', () => {
         NotFoundException,
       );
     });
+  });
+});
+
+describe('EventsService.cancelEvent', () => {
+  const setup = (
+    detail: EventDetail = aDetail(),
+  ): { repository: MockProxy<EventRepository>; service: EventsService } => {
+    const repository = mock<EventRepository>();
+    repository.findEventDetail.mockResolvedValue(detail);
+    repository.findApprovedParticipants.mockResolvedValue(participants);
+    return { repository, service: new EventsService(repository) };
+  };
+
+  it('the organizer cancels with the reason; the event is marked, not deleted', async () => {
+    const { repository, service } = setup();
+
+    await service.cancelEvent('e1', 'u1', 'Herna má zavřeno.', now);
+
+    expect(repository.cancelEvent).toHaveBeenCalledWith(
+      'e1',
+      'Herna má zavřeno.',
+      now,
+    );
+  });
+
+  it('anyone else gets 403 and nothing changes', async () => {
+    const { repository, service } = setup();
+
+    await expect(
+      service.cancelEvent('e1', 'u9', 'Nechci', now),
+    ).rejects.toThrow(ForbiddenException);
+    expect(repository.cancelEvent).not.toHaveBeenCalled();
+  });
+
+  it('an already cancelled or started event is 409', async () => {
+    const cancelled = setup(aDetail({ status: 'cancelled' }));
+    await expect(
+      cancelled.service.cancelEvent('e1', 'u1', 'Znovu', now),
+    ).rejects.toThrow(ConflictException);
+
+    const started = setup(aDetail({ startsAt: now }));
+    await expect(
+      started.service.cancelEvent('e1', 'u1', 'Pozdě', now),
+    ).rejects.toThrow(ConflictException);
+    expect(started.repository.cancelEvent).not.toHaveBeenCalled();
+  });
+
+  it('an event the user may not see is 404', async () => {
+    const { repository, service } = setup(aDetail({ status: 'hidden' }));
+
+    await expect(service.cancelEvent('e1', 'u1', 'Důvod', now)).rejects.toThrow(
+      NotFoundException,
+    );
+    expect(repository.cancelEvent).not.toHaveBeenCalled();
   });
 });
