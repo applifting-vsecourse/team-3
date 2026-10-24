@@ -13,10 +13,11 @@ const before = new Date("2026-10-23T08:00:00.000Z")
 const jakub: Viewer = { id: "u9", emailVerified: true }
 const organizer: Viewer = { id: "u1", emailVerified: true } // the fixture's organizer
 
-const renderAction = async (
-  event: Partial<EventDetail> = {},
-  { viewer = jakub, isPending = false, now = before } = {},
-) => {
+type RenderOptions = { viewer?: Viewer | null; isPending?: boolean; now?: Date }
+
+const renderAction = async (event: Partial<EventDetail> = {}, options: RenderOptions = {}) => {
+  // a missing viewer is Jakub; an explicit null is a visitor
+  const { viewer = jakub, isPending = false, now = before } = options
   const onJoin = vi.fn()
   const onLeave = vi.fn()
   await renderWithRouter(
