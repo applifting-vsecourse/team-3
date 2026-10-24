@@ -1,12 +1,12 @@
 import { act, fireEvent, render, screen } from "@testing-library/react"
 import userEvent from "@testing-library/user-event"
-import { describe, expect, it, vi } from "vitest"
+import { afterEach, describe, expect, it, vi } from "vitest"
 
 import { ListPanel, type PanelSnap } from "@/features/events/components/ListPanel"
 
 const renderPanel = (snap: PanelSnap, extra: { onVisibleHeightChange?: () => void } = {}) => {
   const onSnapChange = vi.fn()
-  render(
+  const { unmount } = render(
     <ListPanel
       snap={snap}
       onSnapChange={onSnapChange}
@@ -18,6 +18,7 @@ const renderPanel = (snap: PanelSnap, extra: { onVisibleHeightChange?: () => voi
   )
   return {
     onSnapChange,
+    unmount,
     sheet: screen.getByRole("region", { name: "Seznam akcí" }),
     card: screen.getByText("První karta"),
   }
@@ -170,6 +171,8 @@ describe("ListPanel", () => {
   })
 
   describe("after a back navigation, when the router restores the list's scroll", () => {
+    afterEach(() => vi.unstubAllGlobals())
+
     // jsdom has no layout: a 600px sheet at y=100, the 24px handle above the
     // list, and a list scrolled by 800px (the count row 40px, the first card
     // ending 140px into it).
@@ -217,18 +220,47 @@ describe("ListPanel", () => {
       // scrolled-away position pushed the whole sheet below the screen
       expect(sheet.style.transform).toBe("translateY(428px)")
       expect(onVisibleHeightChange).toHaveBeenLastCalledWith(172)
-      vi.unstubAllGlobals()
+    })
+
+    it("lowering a scrolled list brings it back to the top", () => {
+      const children = (
+        <>
+          <p data-peek-min>3 akce</p>
+          <p data-peek-end>První karta</p>
+        </>
+      )
+      const { rerender } = render(
+        <ListPanel
+          snap="list"
+          onSnapChange={vi.fn()}
+        >
+          {children}
+        </ListPanel>,
+      )
+      const scroller = screen.getByText("První karta").parentElement!.parentElement!
+      const scrollTo = vi.fn()
+      scroller.scrollTo = scrollTo
+
+      rerender(
+        <ListPanel
+          snap="peek"
+          onSnapChange={vi.fn()}
+        >
+          {children}
+        </ListPanel>,
+      )
+      expect(scrollTo).toHaveBeenCalledWith({ top: 0 })
     })
 
     it("the lowered sheet undoes the restored scroll; the pulled-up list keeps it", () => {
-      const { sheet, card } = renderPanel("peek")
+      const { sheet, card, unmount } = renderPanel("peek")
       const scroller = layOut(sheet, card)
 
       scroller.scrollTop = 800
       fireEvent.scroll(scroller)
       expect(scroller.scrollTop).toBe(0)
 
-      document.body.innerHTML = ""
+      unmount()
       const pulledUp = renderPanel("list")
       const listScroller = pulledUp.card.parentElement!.parentElement!
       listScroller.scrollTop = 800

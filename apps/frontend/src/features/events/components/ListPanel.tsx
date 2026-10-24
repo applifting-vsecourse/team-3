@@ -274,9 +274,10 @@ export function ListPanel({
       </button>
       <div
         ref={scrollRef}
-        // The router restores the list's scroll after a back navigation. Pulled
-        // up (and on desktop) that brings the user back to the card they
-        // opened; lowered, it would hide the count, so it is undone.
+        // The router restores the list's scroll after a back navigation. On
+        // desktop that brings the user back to the card they opened; the
+        // mobile sheet always comes back lowered, where it would hide the
+        // count, so there it is undone.
         onScroll={
           isLowered
             ? (e) => {

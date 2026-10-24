@@ -72,7 +72,7 @@ The Figma page „Design system“ is the reference. Build these once in `src/co
   - **Chybí** (below the minimum): status semibold „Chybí ještě 2“, fill `bg-primary`, tick visible.
   - **Volná místa** (minimum reached, spots left): status regular, fill `bg-primary`, tick visible.
   - **Plno**: status and count `text-muted-foreground`, full fill `bg-muted-foreground`, no tick.
-  - Track `bg-muted`, height 8px, `rounded-full`; tick `bg-foreground`, 2px wide. Widths are computed from the numbers, never hardcoded.
+  - Track `bg-muted`, height 8px, `rounded-full`; tick 2px wide, `bg-foreground` on the track and `bg-primary-foreground` once the fill is past it (in dark mode `foreground` is near white and vanishes on lime; at exactly the minimum half the tick is still on the track, so it stays `bg-foreground`). Widths are computed from the numbers, never hardcoded.
 - **Status badge** (Figma: Status badge) — `rounded-full`, `text-xs font-semibold`, `px-2 py-0.5`. Chybí = `bg-primary text-primary-foreground` (the only highlighted one); Volná = `bg-secondary text-secondary-foreground`; Plno = `bg-muted text-muted-foreground`; Zrušeno = `bg-foreground text-background`. Labels: „Chybí X“, „Volná místa“, „Plno“, „Zrušeno“.
 - **Activity tag** (Figma: Tag/Activity) — the activity of an event or group: `rounded-full bg-secondary text-secondary-foreground text-xs font-semibold px-3 py-1`. Shows the activity name (second level), not the category.
 - **Activity tile** (Figma: Activity tile) — the category icon on an event card, one variant per category from B-002. An event card shows this icon, not a photo.
