@@ -1,3 +1,6 @@
+import { useNavigate } from "@tanstack/react-router"
+
+import { ROUTES } from "@/app/routes"
 import { MapView, type MapPinData } from "@/components/map/MapView"
 
 import type { PublicEvent } from "@/features/events/api/eventSchemas"
@@ -26,7 +29,7 @@ type EventsMapProps = {
   className?: string
 }
 
-/** The same events as the list, as pins; filters apply to both. */
+/** The same events as the list, as pins; filters apply to both. A pin opens the event. */
 export function EventsMap({
   events,
   highlightedId,
@@ -34,12 +37,14 @@ export function EventsMap({
   hasZoomControl,
   className,
 }: EventsMapProps) {
+  const navigate = useNavigate()
   return (
     <MapView
       pins={events.map(toPin)}
       highlightedId={highlightedId}
       center={center}
       hasZoomControl={hasZoomControl}
+      onPinClick={(eventId) => void navigate({ to: ROUTES.eventDetail, params: { eventId } })}
       className={className}
     />
   )

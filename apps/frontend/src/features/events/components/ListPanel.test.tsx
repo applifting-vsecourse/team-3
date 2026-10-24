@@ -82,6 +82,93 @@ describe("ListPanel", () => {
     expect(onSnapChange).not.toHaveBeenCalled()
   })
 
+  it("a drag that ends on a card doesn't open it; the next tap does", () => {
+    const onOpen = vi.fn()
+    render(
+      <ListPanel
+        snap="peek"
+        onSnapChange={vi.fn()}
+      >
+        <button
+          type="button"
+          data-peek-end
+          onClick={onOpen}
+        >
+          Deskovky po práci
+        </button>
+      </ListPanel>,
+    )
+    const card = screen.getByRole("button", { name: "Deskovky po práci" })
+
+    swipe(card, 600, 500, 100)
+    fireEvent.click(card)
+    expect(onOpen).not.toHaveBeenCalled()
+
+    swipe(card, 600, 601, 80)
+    fireEvent.click(card)
+    expect(onOpen).toHaveBeenCalledOnce()
+  })
+
+  it("a drag the browser follows with no click doesn't swallow the next tap in the pulled-up list", () => {
+    const onOpen = vi.fn()
+    const card = (
+      <button
+        type="button"
+        data-peek-end
+        onClick={onOpen}
+      >
+        Deskovky po práci
+      </button>
+    )
+    const { rerender } = render(
+      <ListPanel
+        snap="peek"
+        onSnapChange={vi.fn()}
+      >
+        {card}
+      </ListPanel>,
+    )
+    // swipe up, and no click follows (touch browsers send none after a move)
+    swipe(screen.getByRole("button", { name: "Deskovky po práci" }), 600, 400, 100)
+    rerender(
+      <ListPanel
+        snap="list"
+        onSnapChange={vi.fn()}
+      >
+        {card}
+      </ListPanel>,
+    )
+
+    const target = screen.getByRole("button", { name: "Deskovky po práci" })
+    fireEvent.pointerDown(target, { pointerId: 2, pointerType: "touch" })
+    fireEvent.click(target)
+    expect(onOpen).toHaveBeenCalledOnce()
+  })
+
+  it("a key press after a drag with no click isn't swallowed either", () => {
+    const onOpen = vi.fn()
+    render(
+      <ListPanel
+        snap="peek"
+        onSnapChange={vi.fn()}
+      >
+        <button
+          type="button"
+          data-peek-end
+          onClick={onOpen}
+        >
+          Deskovky po práci
+        </button>
+      </ListPanel>,
+    )
+    const target = screen.getByRole("button", { name: "Deskovky po práci" })
+    swipe(target, 600, 400, 100)
+
+    fireEvent.keyDown(target, { key: "Enter" })
+    fireEvent.click(target)
+    expect(onOpen).toHaveBeenCalledOnce()
+  })
+
   it("moves with the finger while dragging, and settles with an animation", () => {
     const { sheet, card } = renderPanel("peek")
 

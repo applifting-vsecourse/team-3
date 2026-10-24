@@ -67,7 +67,8 @@ export function ListPanel({
   const [offsets, setOffsets] = useState<Record<PanelSnap, number>>({ list: 0, peek: 0, map: 0 })
   const [dragOffset, setDragOffset] = useState<number | null>(null)
   const drag = useRef<{ y: number; time: number; from: number } | null>(null)
-  // A drag that ends on the handle must not also count as a tap on it.
+  // A drag must not also count as a tap on what it ends on: the handle, or a
+  // card, which would open the event.
   const isClickSuppressed = useRef(false)
 
   // Measure what peeks. The content wrapper is observed (not the scroll box,
@@ -209,6 +210,21 @@ export function ListPanel({
       aria-label="Seznam akcí"
       style={isDesktop ? undefined : { transform: `translateY(${offset}px)` }}
       {...(isSheetDraggable ? pointerHandlers : {})}
+      // A touch browser sends no click after a drag, so the flag would outlive
+      // it; any new press or key (also in the pulled-up list, where the sheet
+      // has no pointer handlers) starts fresh.
+      onPointerDownCapture={() => {
+        isClickSuppressed.current = false
+      }}
+      onKeyDownCapture={() => {
+        isClickSuppressed.current = false
+      }}
+      onClickCapture={(e) => {
+        if (!isClickSuppressed.current) return
+        isClickSuppressed.current = false
+        e.preventDefault()
+        e.stopPropagation()
+      }}
       // the wheel over the lowered sheet pulls it up, as a swipe would
       onWheel={
         isSheetDraggable
@@ -236,13 +252,7 @@ export function ListPanel({
         // pulled up, the sheet itself doesn't drag, so the handle does
         {...(isSheetDraggable ? {} : pointerHandlers)}
         // a tap (pointer or keyboard) steps up, or back to the peek from the list
-        onClick={() => {
-          if (isClickSuppressed.current) {
-            isClickSuppressed.current = false
-            return
-          }
-          onSnapChange(snap === "map" ? "peek" : snap === "peek" ? "list" : "peek")
-        }}
+        onClick={() => onSnapChange(snap === "map" ? "peek" : snap === "peek" ? "list" : "peek")}
         className="flex h-6 shrink-0 cursor-grab touch-none items-center justify-center rounded-t-lg outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50 active:cursor-grabbing md:hidden"
       >
         <span className="h-1 w-9 rounded-full bg-border" />

@@ -23,6 +23,33 @@ export function formatEventStart(date: Date): string {
   return `${weekday.charAt(0).toUpperCase()}${weekday.slice(1)} ${get("day")}. ${get("month")}. · ${get("hour")}:${get("minute")}`
 }
 
+const timeFormat = new Intl.DateTimeFormat("cs-CZ", {
+  timeZone: PRAGUE_TZ,
+  hour: "numeric",
+  minute: "2-digit",
+})
+
+const dayFormat = new Intl.DateTimeFormat("cs-CZ", {
+  timeZone: PRAGUE_TZ,
+  dateStyle: "short",
+})
+
+/**
+ * When an event happens, on its detail: "Pá 23. 10. · 17:30–19:30", with the
+ * end's day when it ends on another day ("Pá 23. 10. · 22:00 – So 24. 10. · 2:00").
+ */
+export function formatEventTime(startsAt: Date, endsAt: Date | null): string {
+  const start = formatEventStart(startsAt)
+  if (!endsAt) return start
+  if (dayFormat.format(startsAt) === dayFormat.format(endsAt)) {
+    return `${start}–${timeFormat.format(endsAt)}`
+  }
+  return `${start} – ${formatEventStart(endsAt)}`
+}
+
+export const approvalModeLabel = (mode: "open" | "approval"): string =>
+  mode === "open" ? "Bez schválení" : "Se schválením organizátora"
+
 /**
  * The place's name is the address up to the first comma
  * („Kavárna Pražírna, Dělnická 12, Praha 7“ → „Kavárna Pražírna“).

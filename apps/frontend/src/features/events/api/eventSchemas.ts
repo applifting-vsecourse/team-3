@@ -35,6 +35,18 @@ export const publicEventsSchema = z.array(publicEventSchema)
 
 export type PublicEvent = z.infer<typeof publicEventSchema>
 
+/** GET /api/events/:id */
+export const eventDetailSchema = publicEventSchema.extend({
+  description: z.string().nullable(),
+  approvalMode: z.enum(["open", "approval"]),
+  status: z.enum(["published", "cancelled"]),
+  cancelReason: z.string().nullable(),
+  /** Approved participants; null for a visitor, who gets only `approvedCount`. */
+  participants: z.array(z.object({ id: z.string(), name: z.string() })).nullable(),
+})
+
+export type EventDetail = z.infer<typeof eventDetailSchema>
+
 /** Query parameters of GET /api/events, already resolved to ids. */
 export type EventFilters = {
   localityId?: string

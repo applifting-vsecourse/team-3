@@ -1,3 +1,6 @@
+import { Link } from "@tanstack/react-router"
+
+import { ROUTES } from "@/app/routes"
 import { ActivityTile } from "@/components/ActivityTile/ActivityTile"
 import { StatusBadge } from "@/components/StatusBadge/StatusBadge"
 import { cn } from "@/lib/utils"
@@ -19,7 +22,11 @@ type EventCardProps = {
   className?: string
 }
 
-/** An event in the list (Figma: Event card/List). */
+/**
+ * An event in the list (Figma: Event card/List). The title links to the
+ * detail; its ::after stretches over the card, so the whole card is clickable
+ * while the link is still named by the title. The focus ring moves to the card.
+ */
 export function EventCard({
   event,
   isHighlighted,
@@ -32,14 +39,23 @@ export function EventCard({
       onMouseEnter={onMouseEnter}
       onMouseLeave={onMouseLeave}
       className={cn(
-        "flex items-center gap-3 rounded-lg border border-border bg-card p-3 text-card-foreground transition-colors hover:border-foreground",
+        "relative flex items-center gap-3 rounded-lg border border-border bg-card p-3 text-card-foreground transition-colors hover:border-foreground",
+        "has-[a:focus-visible]:ring-[3px] has-[a:focus-visible]:ring-ring/50",
         isHighlighted && "border-foreground",
         className,
       )}
     >
       <ActivityTile icon={event.activity.category.icon} />
       <div className="flex min-w-0 flex-1 flex-col gap-1">
-        <h2 className="line-clamp-2 text-base font-semibold tracking-tight">{event.title}</h2>
+        <h2 className="line-clamp-2 text-base font-semibold tracking-tight">
+          <Link
+            to={ROUTES.eventDetail}
+            params={{ eventId: event.id }}
+            className="outline-none after:absolute after:inset-0 after:rounded-lg"
+          >
+            {event.title}
+          </Link>
+        </h2>
         <p className="truncate text-sm text-muted-foreground">
           <time dateTime={event.startsAt.toISOString()}>{formatEventStart(event.startsAt)}</time>
           {" · "}

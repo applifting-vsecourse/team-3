@@ -9,3 +9,5 @@ globalThis.ResizeObserver ??= class {
   disconnect = vi.fn()
 }
 Object.defineProperty(Element.prototype, "scrollIntoView", { value: vi.fn(), configurable: true })
+// The router restores scroll on navigation (renderWithRouter).
+Object.defineProperty(window, "scrollTo", { value: vi.fn(), configurable: true })
