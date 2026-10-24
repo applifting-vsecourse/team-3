@@ -65,6 +65,14 @@ function LoginPage() {
           errorMessage={errorMessage}
           onSubmit={handleSubmit}
         />
+        <p className="mt-4 text-sm">
+          <Link
+            to={ROUTES.forgotPassword}
+            className="font-medium text-foreground underline underline-offset-4"
+          >
+            Zapomněli jste heslo?
+          </Link>
+        </p>
       </AuthLayout>
     </>
   )
