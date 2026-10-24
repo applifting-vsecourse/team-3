@@ -17,6 +17,7 @@ These are rules, not suggestions. When a rule and a "nicer looking" idea disagre
 - **`destructive` only for destructive actions and errors.** Never for emphasis. In dark mode it is lighter (`#f97066`), because error text needs 4.5:1 on a dark card; the token test in `src/styles/tokens.test.ts` checks the text pairs in both modes.
 - **`accent` is a hover/active surface, not a brand colour.** It tints menu items and ghost buttons on hover, so it must stay quiet. The brand colour is `primary`.
 - Body text is `foreground`; supporting text is `muted-foreground`. There is no third level.
+- **Every screen must work in both modes.** Never use `text-white`/`bg-black` or the kit's default `dark:` overrides; text and icons on a filled surface use that surface's `-foreground` token, and a selected/on state must restate its `dark:` classes if the default state has any. Check dark mode in Figma by switching the frame to mode „Dark“ (page „Tmavý režim“ shows all components). The one exception is the kit's `bg-black/50` overlay behind dialogs and drawers: Figma has no overlay token, and darkening the page works in both modes.
 
 ## Layout
 
@@ -75,7 +76,7 @@ The Figma page „Design system“ is the reference. Build these once in `src/co
 - **Status badge** (Figma: Status badge) — `rounded-full`, `text-xs font-semibold`, `px-2 py-0.5`. Chybí = `bg-primary text-primary-foreground` (the only highlighted one); Volná = `bg-secondary text-secondary-foreground`; Plno = `bg-muted text-muted-foreground`; Zrušeno = `bg-foreground text-background`. Labels: „Chybí X“, „Volná místa“, „Plno“, „Zrušeno“.
 - **Activity tag** (Figma: Tag/Activity) — the activity of an event or group: `rounded-full bg-secondary text-secondary-foreground text-xs font-semibold px-3 py-1`. Shows the activity name (second level), not the category.
 - **Activity tile** (Figma: Activity tile) — the category icon on an event card, one variant per category from B-002. An event card shows this icon, not a photo.
-- **Navigation** — desktop: header with logo, Akce, Skupiny (active item `bg-muted font-semibold`). Mobile: bottom navigation with icon + label, active item has a lime pill (`bg-primary rounded-full`) behind the icon. The map is part of Akce, never its own item.
+- **Navigation** — desktop: header with logo, Akce, Skupiny (active item `bg-muted font-semibold`). Mobile: bottom navigation with icon + label, active item has a lime pill (`bg-primary rounded-full`) behind the icon; an inactive item has both icon and label in `muted-foreground`. The map is part of Akce, never its own item.
 
 ## When you are unsure
 
