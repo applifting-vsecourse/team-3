@@ -66,10 +66,11 @@ function BottomNavLink({ icon, children, ...props }: BottomNavLinkProps) {
     <Link
       {...props}
       // Same data-status approach as HeaderNavLink: the indicator pill and the
-      // label react to the router's active state via group-data variants.
+      // label react to the router's active state via group-data variants. The
+      // icon inherits this colour: inactive icon and label are both muted (Figma Nav/Bottom).
       className="group flex flex-1 flex-col items-center gap-0.5 text-xs font-medium text-muted-foreground data-[status=active]:font-semibold data-[status=active]:text-foreground"
     >
-      <span className="flex h-7 w-13 items-center justify-center rounded-full text-foreground group-data-[status=active]:bg-primary group-data-[status=active]:text-primary-foreground">
+      <span className="flex h-7 w-13 items-center justify-center rounded-full group-data-[status=active]:bg-primary group-data-[status=active]:text-primary-foreground">
         {icon}
       </span>
       {children}
