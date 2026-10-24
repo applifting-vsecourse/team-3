@@ -176,8 +176,6 @@ export function ListPanel({
   const pointerHandlers = {
     onPointerDown: (e: ReactPointerEvent) => {
       if (e.pointerType === "mouse" && e.button !== 0) return
-      // a drag the browser followed with no click must not swallow this tap
-      isClickSuppressed.current = false
       e.currentTarget.setPointerCapture?.(e.pointerId)
       drag.current = { y: e.clientY, time: performance.now(), from: restingOffset }
     },
@@ -212,6 +210,15 @@ export function ListPanel({
       aria-label="Seznam akcí"
       style={isDesktop ? undefined : { transform: `translateY(${offset}px)` }}
       {...(isSheetDraggable ? pointerHandlers : {})}
+      // A touch browser sends no click after a drag, so the flag would outlive
+      // it; any new press or key (also in the pulled-up list, where the sheet
+      // has no pointer handlers) starts fresh.
+      onPointerDownCapture={() => {
+        isClickSuppressed.current = false
+      }}
+      onKeyDownCapture={() => {
+        isClickSuppressed.current = false
+      }}
       onClickCapture={(e) => {
         if (!isClickSuppressed.current) return
         isClickSuppressed.current = false

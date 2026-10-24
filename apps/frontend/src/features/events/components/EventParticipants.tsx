@@ -22,7 +22,8 @@ export function EventParticipants({
   return (
     <section className="flex flex-col gap-3">
       <h2 className="text-lg font-semibold tracking-tight">
-        Přihlášení <span className="font-normal text-muted-foreground">{approvedCount}</span>
+        {/* not „Přihlášení“: next to the sign-in link it would read as signing in */}
+        Účastníci <span className="font-normal text-muted-foreground">{approvedCount}</span>
       </h2>
       {approvedCount === 0 ? (
         <p className="text-muted-foreground">Zatím se nikdo nepřihlásil.</p>

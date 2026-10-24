@@ -178,6 +178,7 @@ function EventDetailSkeleton() {
       aria-label="Načítám akci"
       className="grid gap-8 md:grid-cols-5 md:gap-x-12"
     >
+      <h1 className="sr-only">Detail akce</h1>
       <div className="flex flex-col gap-6 md:col-span-3">
         <div className="flex flex-col gap-3">
           <Skeleton className="h-6 w-24 rounded-full" />

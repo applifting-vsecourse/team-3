@@ -30,7 +30,7 @@ describe("EventDetailView", () => {
     expect(screen.getByText("Petra")).toBeInTheDocument()
     expect(screen.getByText("Chybí ještě 1")).toBeInTheDocument()
     expect(screen.getByText("3 z 12 · min. 4")).toBeInTheDocument()
-    expect(screen.getByRole("heading", { name: "Přihlášení 3" })).toBeInTheDocument()
+    expect(screen.getByRole("heading", { name: "Účastníci 3" })).toBeInTheDocument()
   })
 
   it.each([
@@ -47,7 +47,7 @@ describe("EventDetailView", () => {
     expect(screen.getByText(label)).toBeInTheDocument()
   })
 
-  it("a signed-in user sees who is coming", async () => {
+  it("lists the participants when the API sends their names (signed-in variant)", async () => {
     await renderWithRouter(
       <EventDetailView
         event={anEventDetail()}
@@ -61,7 +61,7 @@ describe("EventDetailView", () => {
     expect(screen.queryByRole("link", { name: "přihlášení k účtu" })).not.toBeInTheDocument()
   })
 
-  it("a visitor sees only the count, and a way to sign in that comes back here", async () => {
+  it("shows only the count when the API sends no names (visitor variant), with a sign-in link back here", async () => {
     await renderWithRouter(
       <EventDetailView
         event={anEventDetail({ participants: null })}
@@ -69,7 +69,7 @@ describe("EventDetailView", () => {
       />,
     )
 
-    expect(screen.getByRole("heading", { name: "Přihlášení 4" })).toBeInTheDocument()
+    expect(screen.getByRole("heading", { name: "Účastníci 4" })).toBeInTheDocument()
     expect(screen.queryByText("Jana Svobodová")).not.toBeInTheDocument()
     expect(screen.queryByRole("list")).not.toBeInTheDocument()
     const signIn = screen.getByRole("link", { name: "přihlášení k účtu" })
@@ -126,9 +126,10 @@ describe("EventDetailView", () => {
     )
 
     expect(screen.getByLabelText("Načítám akci")).toBeInTheDocument()
+    expect(screen.getByRole("heading", { level: 1, name: "Detail akce" })).toBeInTheDocument()
   })
 
-  it("an unknown or members-only event is „not found“, with a way to the list", async () => {
+  it("renders „not found“ with a way to the list (the 404 detection is in useEventDetail)", async () => {
     await renderWithRouter(
       <EventDetailView
         isNotFound

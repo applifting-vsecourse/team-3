@@ -39,4 +39,12 @@ describe('OptionalUserGuard', () => {
     await expect(guard.canActivate(contextFor(request))).resolves.toBe(true);
     expect(request.session).toBe(session);
   });
+
+  it('serves a visitor when the session lookup fails, instead of failing the request', async () => {
+    getSession.mockRejectedValue(new Error('database unreachable'));
+    const request: Record<string, unknown> = {};
+
+    await expect(guard.canActivate(contextFor(request))).resolves.toBe(true);
+    expect(request.session).toBeNull();
+  });
 });
