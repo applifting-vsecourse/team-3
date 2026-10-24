@@ -5,7 +5,13 @@ import {
   GroupFilters,
   GroupInput,
   GroupSummary,
+  Membership,
+  MembershipStatus,
 } from '@/modules/group/domain/group';
+import {
+  GroupMemberEntry,
+  GroupMembers,
+} from '@/modules/group/domain/membership';
 import { Injectable } from '@nestjs/common';
 import { buildActiveGroupsWhere } from './active-groups-where';
 
@@ -17,6 +23,17 @@ const summaryInclude = {
 } satisfies Prisma.GroupInclude;
 
 type SummaryRow = Prisma.GroupGetPayload<{ include: typeof summaryInclude }>;
+
+const detailInclude = {
+  ...summaryInclude,
+  members: {
+    where: { role: 'admin', status: 'active' },
+    select: { user: { select: { id: true, name: true } } },
+    orderBy: [{ createdAt: 'asc' }, { id: 'asc' }],
+  },
+} satisfies Prisma.GroupInclude;
+
+type DetailRow = Prisma.GroupGetPayload<{ include: typeof detailInclude }>;
 
 const toSummary = (group: SummaryRow): GroupSummary => ({
   id: group.id,
@@ -60,25 +77,113 @@ export class GroupRepository {
     return groups.map(toSummary);
   }
 
-  /** Any group by id, deactivated ones too (a shared link keeps working). */
-  async findGroupById(id: string): Promise<GroupDetail | null> {
-    const group = await this.prisma.group.findUnique({
-      where: { id },
-      include: {
-        ...summaryInclude,
-        members: {
-          where: { role: 'admin', status: 'active' },
-          select: { user: { select: { id: true, name: true } } },
-          orderBy: [{ createdAt: 'asc' }, { id: 'asc' }],
-        },
-      },
-    });
+  /**
+   * Any group by id, deactivated ones too (a shared link keeps working),
+   * with the viewer's own membership when they are signed in.
+   */
+  async findGroupById(
+    id: string,
+    viewerId: string | null = null,
+  ): Promise<GroupDetail | null> {
+    const [group, viewerMembership] = await Promise.all([
+      this.findGroupRow(id),
+      viewerId ? this.findMembership(id, viewerId) : null,
+    ]);
     if (!group) return null;
     return {
       ...toSummary(group),
       description: group.description,
       status: group.status,
       admins: group.members.map((member) => member.user),
+      viewerMembership,
+    };
+  }
+
+  private findGroupRow(id: string): Promise<DetailRow | null> {
+    return this.prisma.group.findUnique({
+      where: { id },
+      include: detailInclude,
+    });
+  }
+
+  async findMembership(
+    groupId: string,
+    userId: string,
+  ): Promise<Membership | null> {
+    return this.prisma.groupMember.findUnique({
+      where: { groupId_userId: { groupId, userId } },
+      select: { role: true, status: true },
+    });
+  }
+
+  async countActiveAdmins(groupId: string): Promise<number> {
+    return this.prisma.groupMember.count({
+      where: { groupId, role: 'admin', status: 'active' },
+    });
+  }
+
+  async createMembership(
+    groupId: string,
+    userId: string,
+    status: Extract<MembershipStatus, 'active' | 'pending'>,
+  ): Promise<void> {
+    await this.prisma.groupMember.create({
+      data: { groupId, userId, role: 'member', status },
+    });
+  }
+
+  async approveRequest(groupId: string, userId: string): Promise<void> {
+    await this.prisma.groupMember.update({
+      where: { groupId_userId: { groupId, userId } },
+      data: { status: 'active' },
+    });
+  }
+
+  /** Leaving, withdrawing a request and a rejected request all remove the row, so the user can ask again. */
+  async deleteMembership(groupId: string, userId: string): Promise<void> {
+    await this.prisma.groupMember.delete({
+      where: { groupId_userId: { groupId, userId } },
+    });
+  }
+
+  /** Deactivates the group and removes its waiting requests, in one write. */
+  async deactivateGroup(id: string, at: Date): Promise<void> {
+    await this.prisma.$transaction([
+      this.prisma.group.update({
+        where: { id },
+        data: { status: 'inactive', deactivatedAt: at },
+      }),
+      this.prisma.groupMember.deleteMany({
+        where: { groupId: id, status: 'pending' },
+      }),
+    ]);
+  }
+
+  /** Pending requests and active members for the group's management (D-07). */
+  async findMembers(groupId: string): Promise<GroupMembers> {
+    const rows = await this.prisma.groupMember.findMany({
+      where: { groupId, status: { in: ['pending', 'active'] } },
+      select: {
+        role: true,
+        status: true,
+        createdAt: true,
+        user: { select: { id: true, name: true } },
+      },
+      // admins first among members (D-07: „Správce skupiny“ on top)
+      orderBy: [{ role: 'asc' }, { createdAt: 'asc' }, { id: 'asc' }],
+    });
+    const entry = (row: (typeof rows)[number]): GroupMemberEntry => ({
+      userId: row.user.id,
+      name: row.user.name,
+      role: row.role,
+      since: row.createdAt,
+    });
+    return {
+      requests: rows
+        .filter((row) => row.status === 'pending')
+        .sort((a, b) => a.createdAt.getTime() - b.createdAt.getTime())
+        .map(entry),
+      members: rows.filter((row) => row.status === 'active').map(entry),
     };
   }
 
@@ -119,7 +224,25 @@ export class GroupRepository {
     return group.id;
   }
 
-  async updateGroup(id: string, patch: Partial<GroupInput>): Promise<void> {
-    await this.prisma.group.update({ where: { id }, data: patch });
+  /**
+   * `approvePending`: the group became public, where only joining is approved,
+   * so the waiting requests become members in the same write.
+   */
+  async updateGroup(
+    id: string,
+    patch: Partial<GroupInput>,
+    { approvePending = false } = {},
+  ): Promise<void> {
+    await this.prisma.$transaction([
+      this.prisma.group.update({ where: { id }, data: patch }),
+      ...(approvePending
+        ? [
+            this.prisma.groupMember.updateMany({
+              where: { groupId: id, status: 'pending' },
+              data: { status: 'active' },
+            }),
+          ]
+        : []),
+    ]);
   }
 }

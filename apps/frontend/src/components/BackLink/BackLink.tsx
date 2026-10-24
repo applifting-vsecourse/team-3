@@ -6,6 +6,8 @@ import { Button } from "@/components/ui/button"
 type BackLinkProps = Pick<LinkProps, "to" | "params"> & {
   /** The label when there is no history, e.g. „Všechny akce“ for `to` = the list. */
   fallbackLabel: string
+  /** A fixed label instead of „Zpět“ / `fallbackLabel`, where Figma names it (e.g. „Skupiny“). */
+  label?: string
 }
 
 /**
@@ -13,7 +15,7 @@ type BackLinkProps = Pick<LinkProps, "to" | "params"> & {
  * so they come back too. A shared link has nowhere to go back to and leads to
  * the list instead.
  */
-export function BackLink({ to, params, fallbackLabel }: BackLinkProps) {
+export function BackLink({ to, params, fallbackLabel, label }: BackLinkProps) {
   const router = useRouter()
   const canGoBack = useCanGoBack()
   return (
@@ -33,7 +35,7 @@ export function BackLink({ to, params, fallbackLabel }: BackLinkProps) {
         }}
       >
         <ArrowLeft />
-        {canGoBack ? "Zpět" : fallbackLabel}
+        {label ?? (canGoBack ? "Zpět" : fallbackLabel)}
       </Link>
     </Button>
   )

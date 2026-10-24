@@ -32,7 +32,7 @@ const schema = z.object({
   reason: z
     .string()
     .trim()
-    .min(1, "Napište, proč se akce ruší")
+    .min(1, "Napiš, proč se akce ruší")
     .max(REASON_MAX_LENGTH, `Důvod může mít nejvýš ${REASON_MAX_LENGTH} znaků`),
 })
 
@@ -90,7 +90,7 @@ export function CancelEventDialog({ isPending, onCancel }: CancelEventDialogProp
               <DialogTitle>Zrušit akci?</DialogTitle>
               <DialogDescription>
                 Akce zmizí ze seznamu a z mapy. Přes odkaz zůstane vidět se štítkem „Zrušeno“ a s
-                vaším důvodem.
+                tvým důvodem.
               </DialogDescription>
             </DialogHeader>
             <FormField

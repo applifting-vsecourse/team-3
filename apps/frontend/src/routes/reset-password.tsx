@@ -39,7 +39,7 @@ function ResetPasswordPage() {
       // the reset signed out every session, this browser's too: without this
       // the login page would still see the cached session and send the user on
       queryClient.setQueryData(authKeys.session(), null)
-      toast.success("Heslo je změněné. Přihlaste se novým heslem.")
+      toast.success("Heslo je změněné. Přihlas se novým heslem.")
       await navigate({ to: ROUTES.login })
     } catch (resetError) {
       setErrorMessage(
@@ -62,11 +62,11 @@ function ResetPasswordPage() {
       <Seo title="Nové heslo" />
       <AuthLayout
         title="Nové heslo"
-        description="Zvolte si nové heslo k účtu."
+        description="Zvol si nové heslo k účtu."
         footer={backToRequest}
       >
         {!token || error ? (
-          <p role="alert">Odkaz je neplatný, nebo už vypršel. Pošlete si prosím nový.</p>
+          <p role="alert">Odkaz je neplatný, nebo už vypršel. Pošli si prosím nový.</p>
         ) : (
           <ResetPasswordForm
             isLoading={reset.isPending}

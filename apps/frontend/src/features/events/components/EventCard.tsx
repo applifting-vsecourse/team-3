@@ -2,7 +2,7 @@ import { Link } from "@tanstack/react-router"
 
 import { ROUTES } from "@/app/routes"
 import { ActivityTile } from "@/components/ActivityTile/ActivityTile"
-import { StatusBadge } from "@/components/StatusBadge/StatusBadge"
+import { StatusBadge, type BadgeStatus } from "@/components/StatusBadge/StatusBadge"
 import { cn } from "@/lib/utils"
 
 import type { PublicEvent } from "@/features/events/api/eventSchemas"
@@ -19,6 +19,14 @@ type EventCardProps = {
   isHighlighted?: boolean
   onMouseEnter?: () => void
   onMouseLeave?: () => void
+  /** Instead of the occupancy, e.g. the user's place in „Moje akce“. */
+  status?: BadgeStatus
+  /** Instead of „4/12 · Praha 8“. */
+  facts?: string
+  /** The organizer goes to the event's management (C-02), everyone else to its detail. */
+  linkTo?: "detail" | "manage"
+  /** h3 under a section heading. */
+  titleAs?: "h2" | "h3"
   className?: string
 }
 
@@ -32,6 +40,10 @@ export function EventCard({
   isHighlighted,
   onMouseEnter,
   onMouseLeave,
+  status,
+  facts,
+  linkTo = "detail",
+  titleAs: Title = "h2",
   className,
 }: EventCardProps) {
   return (
@@ -47,24 +59,24 @@ export function EventCard({
     >
       <ActivityTile icon={event.activity.category.icon} />
       <div className="flex min-w-0 flex-1 flex-col gap-1">
-        <h2 className="line-clamp-2 text-base font-semibold tracking-tight">
+        <Title className="line-clamp-2 text-base font-semibold tracking-tight">
           <Link
-            to={ROUTES.eventDetail}
+            to={linkTo === "manage" ? ROUTES.manageEvent : ROUTES.eventDetail}
             params={{ eventId: event.id }}
             className="outline-none after:absolute after:inset-0 after:rounded-lg"
           >
             {event.title}
           </Link>
-        </h2>
+        </Title>
         <p className="truncate text-sm text-muted-foreground">
           <time dateTime={event.startsAt.toISOString()}>{formatEventStart(event.startsAt)}</time>
           {" · "}
           {placeName(event.address)}
         </p>
         <div className="flex items-center gap-2">
-          <StatusBadge status={capacityStatus(event)} />
+          <StatusBadge status={status ?? capacityStatus(event)} />
           <span className="truncate text-xs font-medium text-muted-foreground">
-            {eventFacts(event)}
+            {facts ?? eventFacts(event)}
           </span>
         </div>
       </div>

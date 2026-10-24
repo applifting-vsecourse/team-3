@@ -5,14 +5,19 @@ import { api } from "@/lib/api-client"
 import {
   eventDetailSchema,
   eventParticipantsSchema,
+  myEventsSchema,
   publicEventsSchema,
   type EventFilters,
+  type MyEventsTab,
 } from "@/features/events/api/eventSchemas"
 
 export const eventKeys = {
   all: () => ["events"] as const,
   lists: () => [...eventKeys.all(), "list"] as const,
   list: (filters: EventFilters | undefined) => [...eventKeys.lists(), filters] as const,
+  // under lists(), so joining, leaving, creating, editing and cancelling refresh it too
+  mine: (tab: MyEventsTab, viewerId: string) =>
+    [...eventKeys.lists(), "mine", tab, viewerId] as const,
   details: () => [...eventKeys.all(), "detail"] as const,
   // The viewer is part of the key: a signed-in user gets the participants'
   // names, a visitor only their count.
@@ -77,4 +82,12 @@ export const eventParticipantsQueryOptions = (
             await api.get(`events/${encodeURIComponent(eventId)}/participants`).json(),
           ).participants
       : skipToken,
+  })
+
+/** A tab of „Moje akce“ (B-035), soonest first; with the viewer, so nobody else gets it from the cache. */
+export const myEventsQueryOptions = (tab: MyEventsTab, viewerId: string) =>
+  queryOptions({
+    queryKey: eventKeys.mine(tab, viewerId),
+    queryFn: async () =>
+      myEventsSchema.parse(await api.get("me/events", { searchParams: { tab } }).json()),
   })

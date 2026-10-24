@@ -1,30 +1,36 @@
 import { useQuery } from "@tanstack/react-query"
-import { createFileRoute, Link } from "@tanstack/react-router"
+import { createFileRoute, Link, useLocation } from "@tanstack/react-router"
 import { RefreshCw } from "lucide-react"
 
 import { ROUTES } from "@/app/routes"
 import { BackLink } from "@/components/BackLink/BackLink"
-import { Header } from "@/components/Header/Header"
 import { Seo } from "@/components/Seo"
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 import { Button } from "@/components/ui/button"
 import { Skeleton } from "@/components/ui/skeleton"
 import { HTTPError } from "@/lib/api-client"
+import { cn } from "@/lib/utils"
 
-import { HeaderMenu } from "@/features/auth/components/HeaderMenu"
+import { AppHeader } from "@/features/auth/components/AppHeader"
 import { useSession } from "@/features/auth/hooks/useSession"
+import { encodeRedirectUri } from "@/features/auth/lib/redirect"
 import { groupQueryOptions } from "@/features/groups/api/groupsQueryOptions"
 import { GroupProfile } from "@/features/groups/components/GroupProfile"
+import { GROUPS_PAGE } from "@/features/groups/lib/pageLayout"
 
 export const Route = createFileRoute("/skupiny/$groupId")({
   component: GroupPage,
 })
 
-/** Figma A-08. Public: visitors see the page without an account. */
+/** Figma A-08, A-08d. Public: visitors see the page without an account. */
 function GroupPage() {
   const { groupId } = Route.useParams()
-  const { user } = useSession()
-  const groupQuery = useQuery(groupQueryOptions(groupId))
+  const session = useSession()
+  const user = session.user
+  // undefined while the session loads; a failed check counts as a visitor
+  const viewerId = session.isPending ? undefined : (user?.id ?? null)
+  const groupQuery = useQuery(groupQueryOptions(groupId, viewerId))
+  const location = useLocation()
   const group = groupQuery.data
   const isNotFound =
     groupQuery.error instanceof HTTPError && groupQuery.error.response.status === 404
@@ -32,17 +38,19 @@ function GroupPage() {
   return (
     <>
       <Seo title={group?.name ?? (isNotFound ? "Skupina nenalezena" : "Skupina")} />
-      <Header userMenu={<HeaderMenu />} />
-      <main className="mx-auto flex w-full max-w-2xl flex-1 flex-col gap-6 px-4 py-6 md:py-8">
+      <AppHeader />
+      <main className={cn(GROUPS_PAGE, "flex-1 gap-4")}>
         <BackLink
           to={ROUTES.groups}
           fallbackLabel="Všechny skupiny"
+          label="Skupiny"
         />
 
         {group ? (
           <GroupProfile
             group={group}
-            isAdmin={Boolean(user && group.admins.some((admin) => admin.id === user.id))}
+            isSignedIn={Boolean(user)}
+            signInFrom={encodeRedirectUri(location)}
           />
         ) : groupQuery.error ? (
           <GroupError
@@ -88,7 +96,7 @@ function GroupError({ isNotFound, onRetry }: { isNotFound: boolean; onRetry: () 
       <Alert variant="destructive">
         <AlertTitle>Skupinu se nepodařilo načíst</AlertTitle>
         <AlertDescription className="flex items-center justify-between gap-3">
-          <span>Zkontrolujte připojení a zkuste to znovu.</span>
+          <span>Zkontroluj připojení a zkus to znovu.</span>
           <Button
             variant="outline"
             size="sm"

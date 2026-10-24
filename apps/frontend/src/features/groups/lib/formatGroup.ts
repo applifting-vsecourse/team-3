@@ -37,6 +37,12 @@ export const GROUP_TYPE_LONG: Record<GroupType, string> = {
   closed: "Neveřejná – správce schvaluje žádosti",
 }
 
+/** In the management, addressed to the admin (Figma D-07d). */
+export const GROUP_TYPE_FOR_ADMIN: Record<GroupType, string> = {
+  public: "Veřejná – kdokoli se přidá jedním klepnutím",
+  closed: "Neveřejná – žádosti schvaluješ ty",
+}
+
 /** Card facts: „Florbal · Praha 9 · 8 členů“ */
 export const groupFacts = (group: {
   activity: { name: string }

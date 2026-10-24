@@ -13,7 +13,7 @@ export function GroupCard({ group }: { group: Group }) {
     <Link
       to="/skupiny/$groupId"
       params={{ groupId: group.id }}
-      className="flex items-start gap-3 rounded-lg border border-border bg-card p-3 text-card-foreground transition-colors outline-none hover:border-foreground focus-visible:ring-[3px] focus-visible:ring-ring/50"
+      className="flex h-full items-start gap-3 rounded-lg border border-border bg-card p-3 text-card-foreground transition-colors outline-none hover:border-foreground focus-visible:ring-[3px] focus-visible:ring-ring/50"
     >
       <ActivityTile icon={group.activity.category.icon} />
       <div className="flex min-w-0 flex-1 flex-col gap-1">

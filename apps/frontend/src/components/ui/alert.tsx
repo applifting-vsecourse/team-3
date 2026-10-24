@@ -9,8 +9,14 @@ const alertVariants = cva(
     variants: {
       variant: {
         default: "bg-card text-card-foreground",
+        // Figma: Alert, tone Destructive (zrušená akce, neaktivní skupina, chyby): a destructive
+        // hairline and title, the body in foreground so it stays readable
         destructive:
-          "bg-card text-destructive *:data-[slot=alert-description]:text-destructive/90 [&>svg]:text-current",
+          "border-destructive bg-card text-destructive *:data-[slot=alert-description]:text-foreground *:data-[slot=alert-title]:font-semibold [&>svg]:text-current",
+        // Figma: Alert, tones Info (ověření e-mailu, čekající žádost) and Neutral (poznámka)
+        info: "border-0 bg-secondary text-secondary-foreground has-[>svg]:grid-cols-[calc(var(--spacing)*5)_1fr] *:data-[slot=alert-description]:text-secondary-foreground *:data-[slot=alert-title]:font-semibold [&>svg]:size-5 [&>svg]:translate-y-0",
+        neutral:
+          "border-0 bg-muted text-foreground has-[>svg]:grid-cols-[calc(var(--spacing)*5)_1fr] *:data-[slot=alert-description]:text-foreground *:data-[slot=alert-title]:font-semibold [&>svg]:size-5 [&>svg]:translate-y-0",
       },
     },
     defaultVariants: {

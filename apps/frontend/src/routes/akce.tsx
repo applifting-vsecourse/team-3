@@ -3,14 +3,13 @@ import { createFileRoute, Link } from "@tanstack/react-router"
 import { Map as MapIcon, Plus } from "lucide-react"
 
 import { ROUTES } from "@/app/routes"
-import { Header } from "@/components/Header/Header"
 import { Seo } from "@/components/Seo"
 import { Button } from "@/components/ui/button"
 import { DESKTOP_QUERY, useMediaQuery } from "@/hooks/useMediaQuery"
 import { DEFAULT_LOCALITY_SLUG } from "@/lib/catalog/localityOptions"
 import { cn } from "@/lib/utils"
 
-import { HeaderMenu } from "@/features/auth/components/HeaderMenu"
+import { AppHeader } from "@/features/auth/components/AppHeader"
 import { useSession } from "@/features/auth/hooks/useSession"
 import { EventFilters } from "@/features/events/components/EventFilters"
 import { EventList } from "@/features/events/components/EventList"
@@ -59,7 +58,7 @@ function EventsPage() {
   return (
     <>
       <Seo title="Akce" />
-      <Header userMenu={<HeaderMenu />} />
+      <AppHeader />
       {/* Desktop: main takes exactly the rest of the viewport (basis-0 + min-h-0),
           the list scrolls on its own and the map fills the height beside it. */}
       <main className="relative flex flex-1 flex-col overflow-hidden md:min-h-0 md:basis-0">
@@ -141,7 +140,7 @@ function EventsPage() {
             variant="outline"
             onClick={() => setPanelSnap("peek")}
             // dark: the kit's outline is see-through in dark mode; this floats over cards
-            className="absolute bottom-4 left-4 z-20 h-11 rounded-full bg-background shadow-md md:hidden dark:bg-background dark:hover:bg-accent"
+            className="absolute bottom-4 left-4 z-20 h-11 bg-background shadow-md md:hidden dark:bg-background dark:hover:bg-accent"
           >
             <MapIcon />
             Mapa
@@ -158,7 +157,7 @@ function EventsPage() {
               isDesktop || isListExpanded ? undefined : { bottom: `${panelPeekHeight + 36}px` }
             }
             // follows the sheet as it moves, instead of jumping ahead of it
-            className="absolute right-4 bottom-4 z-20 h-11 rounded-full shadow-md transition-[bottom] duration-300 ease-out motion-reduce:transition-none md:right-8 md:bottom-14"
+            className="absolute right-4 bottom-4 z-20 h-11 shadow-md transition-[bottom] duration-300 ease-out motion-reduce:transition-none md:right-8 md:bottom-14"
           >
             <Link to={ROUTES.newEvent}>
               <Plus />

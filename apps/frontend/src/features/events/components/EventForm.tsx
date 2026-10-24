@@ -44,8 +44,8 @@ const count = (name: string) =>
   z
     .string()
     .trim()
-    .min(1, `Vyplňte ${name}`)
-    .regex(/^\d+$/, "Zadejte celé číslo")
+    .min(1, `Vyplň ${name}`)
+    .regex(/^\d+$/, "Zadej celé číslo")
     .refine(
       (value) => Number(value) >= 1,
       `${name[0]!.toUpperCase()}${name.slice(1)} musí být aspoň 1`,
@@ -59,7 +59,7 @@ const buildSchema = (approvedCount: number) =>
       title: z
         .string()
         .trim()
-        .min(1, "Vyplňte název akce")
+        .min(1, "Vyplň název akce")
         .max(EVENT_TITLE_MAX_LENGTH, `Název může mít nejvýš ${EVENT_TITLE_MAX_LENGTH} znaků`),
       activityId: z.string().min(1, "Akce potřebuje aktivitu"),
       localityId: z.string().min(1, "Akce potřebuje lokalitu"),
@@ -67,11 +67,11 @@ const buildSchema = (approvedCount: number) =>
       address: z
         .string()
         .trim()
-        .min(1, "Vyplňte adresu")
+        .min(1, "Vyplň adresu")
         .max(EVENT_ADDRESS_MAX_LENGTH, `Adresa může mít nejvýš ${EVENT_ADDRESS_MAX_LENGTH} znaků`),
       startsAt: z
         .string()
-        .min(1, "Vyplňte datum a čas")
+        .min(1, "Vyplň datum a čas")
         .refine((value) => fromPragueWallTime(value) > new Date(), "Termín musí být v budoucnosti"),
       minParticipants: count("minimum"),
       maxParticipants: count("maximum"),
@@ -85,7 +85,7 @@ const buildSchema = (approvedCount: number) =>
         ),
     })
     .refine((values) => values.place !== null, {
-      message: "Vyberte místo na mapě",
+      message: "Vyber místo na mapě",
       path: ["place"],
     })
     .refine((values) => Number(values.maxParticipants) >= Number(values.minParticipants), {
@@ -105,7 +105,7 @@ const APPROVAL_OPTIONS: { value: EventInput["approvalMode"]; title: string; hint
   {
     value: "approval",
     title: "Schvaluji přihlášky",
-    hint: "Lidé posílají žádost, kterou schválíte nebo zamítnete.",
+    hint: "Lidé posílají žádost, kterou schválíš nebo zamítneš.",
   },
 ]
 
@@ -236,7 +236,7 @@ export function EventForm({
                     onBlur={field.onBlur}
                     className="w-full text-base data-[size=default]:h-11 md:text-sm"
                   >
-                    <SelectValue placeholder="Vyberte aktivitu">
+                    <SelectValue placeholder="Vyber aktivitu">
                       {field.value ? activityLabel(field.value) : undefined}
                     </SelectValue>
                   </SelectTrigger>
@@ -284,7 +284,7 @@ export function EventForm({
                     onBlur={field.onBlur}
                     className="w-full text-base data-[size=default]:h-11 md:text-sm"
                   >
-                    <SelectValue placeholder="Vyberte lokalitu" />
+                    <SelectValue placeholder="Vyber lokalitu" />
                   </SelectTrigger>
                 </FormControl>
                 <SelectContent
@@ -319,7 +319,7 @@ export function EventForm({
               >
                 Místo na mapě *
               </p>
-              <p className="text-sm text-muted-foreground">Klepněte do mapy tam, kde se sejdete.</p>
+              <p className="text-sm text-muted-foreground">Klepni do mapy tam, kde se sejdete.</p>
               <LocationPicker
                 value={field.value}
                 onChange={(point) => field.onChange(point)}

@@ -89,7 +89,7 @@ describe("ParticipationAction", () => {
   it("an unverified user is told to verify first, with no button", async () => {
     await renderAction({}, { viewer: { id: "u9", emailVerified: false } })
 
-    expect(screen.getByText(/až ověříte svůj e-mail/)).toBeInTheDocument()
+    expect(screen.getByText(/až si ověříš e-mail/)).toBeInTheDocument()
     expect(screen.queryByRole("button")).not.toBeInTheDocument()
   })
 
@@ -113,7 +113,7 @@ describe("ParticipationAction", () => {
       { now: new Date("2026-10-23T16:00:00.000Z") },
     )
 
-    expect(screen.getByText("Akce už začala. Jste přihlášení.")).toBeInTheDocument()
+    expect(screen.getByText("Akce už začala. Máš na ní místo.")).toBeInTheDocument()
     expect(screen.queryByRole("button")).not.toBeInTheDocument()
   })
 
@@ -126,7 +126,7 @@ describe("ParticipationAction", () => {
   it("a removed participant is told so, not that they were rejected", async () => {
     await renderAction({ myParticipation: "removed" })
 
-    expect(screen.getByText("Organizátor vás z akce odebral.")).toBeInTheDocument()
+    expect(screen.getByText("Organizátor tě z akce odebral.")).toBeInTheDocument()
   })
 
   it("a cancelled event shows no action (its label is #52)", async () => {

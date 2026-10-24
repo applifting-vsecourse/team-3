@@ -42,11 +42,11 @@ const schema = z.object({
   name: z
     .string()
     .trim()
-    .min(1, "Vyplňte název skupiny")
+    .min(1, "Vyplň název skupiny")
     .max(GROUP_NAME_MAX_LENGTH, `Název může mít nejvýš ${GROUP_NAME_MAX_LENGTH} znaků`),
   activityId: z.string().min(1, "Skupina potřebuje právě jednu aktivitu"),
   localityId: z.string().min(1, "Skupina potřebuje právě jednu lokalitu"),
-  type: z.enum(GROUP_TYPES, { message: "Vyberte typ skupiny" }),
+  type: z.enum(GROUP_TYPES, { message: "Vyber typ skupiny" }),
   description: z
     .string()
     .trim()
@@ -119,7 +119,7 @@ export function GroupForm({
             type: values.type,
           }),
         )}
-        className="flex flex-col gap-6"
+        className="flex flex-col gap-5"
       >
         {errorMessage ? (
           <Alert variant="destructive">
@@ -163,7 +163,7 @@ export function GroupForm({
                     // same type size as the name input (Figma: 15 px in all fields)
                     className="w-full text-base data-[size=default]:h-11 md:text-sm"
                   >
-                    <SelectValue placeholder="Vyberte aktivitu">
+                    <SelectValue placeholder="Vyber aktivitu">
                       {field.value ? activityLabel(field.value) : undefined}
                     </SelectValue>
                   </SelectTrigger>
@@ -210,7 +210,7 @@ export function GroupForm({
                     // same type size as the name input (Figma: 15 px in all fields)
                     className="w-full text-base data-[size=default]:h-11 md:text-sm"
                   >
-                    <SelectValue placeholder="Vyberte lokalitu" />
+                    <SelectValue placeholder="Vyber lokalitu" />
                   </SelectTrigger>
                 </FormControl>
                 <SelectContent
@@ -297,7 +297,8 @@ export function GroupForm({
         <Button
           type="submit"
           size="lg"
-          className="w-full"
+          // D-06d: as wide as its label on desktop
+          className="h-11 w-full md:w-auto md:self-start"
           disabled={isSubmitting}
         >
           {isSubmitting ? <Loader2 className="size-4 animate-spin" /> : null}

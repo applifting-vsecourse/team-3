@@ -45,7 +45,7 @@ function EditEventPage() {
         ) : error ? (
           <Alert variant="destructive">
             <AlertTitle>Akci se nepodařilo načíst</AlertTitle>
-            <AlertDescription>Zkontrolujte připojení a zkuste to znovu.</AlertDescription>
+            <AlertDescription>Zkontroluj připojení a zkus to znovu.</AlertDescription>
           </Alert>
         ) : isPending || !event ? (
           <Skeleton className="h-96 w-full" />

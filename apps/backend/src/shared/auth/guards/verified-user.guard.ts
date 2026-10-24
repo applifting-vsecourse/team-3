@@ -49,14 +49,13 @@ export class VerifiedUserGuard implements CanActivate {
       throw new ForbiddenException({
         code: USER_BLOCKED,
         // shown as it is in the app's forms
-        message: 'Váš účet je zablokovaný.',
+        message: 'Tvůj účet je zablokovaný.',
       });
     }
     if (!user.emailVerified) {
       throw new ForbiddenException({
         code: EMAIL_NOT_VERIFIED,
-        message:
-          'Nejdřív ověřte svůj e-mail. Nový odkaz si pošlete z pruhu nahoře.',
+        message: 'Nejdřív si ověř e-mail. Nový odkaz si pošli z pruhu nahoře.',
       });
     }
 

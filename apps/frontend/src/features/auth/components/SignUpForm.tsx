@@ -20,8 +20,8 @@ import { passwordSchema } from "@/features/auth/lib/password"
 
 // B-010: name, e-mail and password, nothing else
 const schema = z.object({
-  name: z.string().trim().min(1, "Vyplňte jméno"),
-  email: z.string().trim().min(1, "Vyplňte e-mail").email("Tohle není platný e-mail"),
+  name: z.string().trim().min(1, "Vyplň jméno"),
+  email: z.string().trim().min(1, "Vyplň e-mail").email("Tohle není platný e-mail"),
   password: passwordSchema,
 })
 

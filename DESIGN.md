@@ -38,11 +38,18 @@ Use the scale only: `1, 2, 3, 4, 6, 8, 12, 16` (Tailwind units — 4px…64px). 
 - Sizes come from the scale: `text-sm` supporting, `text-base` body, `text-lg`/`text-xl` subheads, `text-2xl`+ page titles. Headings get `tracking-tight`; body does not.
 - Sentence case everywhere. No ALL CAPS except a single small label style (`text-xs uppercase tracking-widest`), used sparingly.
 
+## Copy
+
+- **The app says „ty“ (tykání), everywhere** — buttons, errors, empty states, toasts, API messages the app shows: „Zkontroluj připojení a zkus to znovu.“, „Ověř si e-mail“. Never „vy“.
+- **Keep it gender-neutral.** Past tense and adjectives in the second person give away a gender („jsi přihlášený“, „odhlásil ses“). Rephrase around them: „Máš na akci místo.“, „Na akci už nejdeš.“, „Zapomenuté heslo?“.
+- Content people write themselves (event and group descriptions) stays as they wrote it.
+
 ## Surfaces
 
 - **Borders are hairlines**: `border border-border`. One border, not two adjacent ones.
 - **Shadows are rare.** Only for things that genuinely float above the page — dropdowns, dialogs, toasts. Cards and inputs do not get shadows.
 - Radius comes from the token (`rounded-lg`/`rounded-md`). Never mix radii in one component.
+- **Every button is `rounded-lg`** (Figma Button, `radius/lg`), floating ones included. Pills (`rounded-full`) are for chips, badges, tags and avatars, never for a button.
 
 ## Forms
 
