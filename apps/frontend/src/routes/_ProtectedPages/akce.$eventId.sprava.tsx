@@ -81,7 +81,7 @@ function ManageEventPage() {
           </Alert>
         ) : (
           // D-03d: the event's summary on the left, who is coming on the right
-          <div className="grid items-start gap-8 md:grid-cols-[minmax(0,27.5rem)_minmax(0,1fr)] md:gap-12">
+          <div className="grid grid-cols-1 items-start gap-8 md:grid-cols-[minmax(0,27.5rem)_minmax(0,1fr)] md:gap-12">
             <section className="flex flex-col gap-5">
               <div className="flex flex-col gap-1">
                 <h1 className="text-3xl font-semibold tracking-tight md:text-4xl">{event.title}</h1>

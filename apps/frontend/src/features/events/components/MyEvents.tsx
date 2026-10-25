@@ -19,7 +19,8 @@ import {
 } from "@/features/events/lib/myEvents"
 
 // Figma C-01d, C-02d: three columns on a wide desktop like Moje skupiny, one on mobile
-const GRID = "grid gap-3 md:grid-cols-2 md:gap-4 lg:grid-cols-3"
+// grid-cols-1 = minmax(0, 1fr): a long title truncates instead of widening the page on mobile
+const GRID = "grid grid-cols-1 gap-3 md:grid-cols-2 md:gap-4 lg:grid-cols-3"
 
 /**
  * Přihlášen (Figma C-01): requests waiting for approval on top, then the
