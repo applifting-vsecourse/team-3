@@ -5,6 +5,7 @@ import {
   emailFlowOptions,
   withEmailFlows,
 } from '@/shared/auth/config/email-flows';
+import { rateLimitOptions } from '@/shared/auth/config/rate-limit';
 import { Config } from '@/shared/config/config.service';
 import { Inject, Provider } from '@nestjs/common';
 import { betterAuth } from 'better-auth';
@@ -30,6 +31,7 @@ const createAuth = (
       provider: 'postgresql',
     }),
     trustedOrigins: [config.frontendUrl],
+    rateLimit: rateLimitOptions,
     plugins: [...(betterAuthCoreConfig.plugins ?? [])],
   });
 
