@@ -8,12 +8,20 @@ import { ErrorLayout } from "./ErrorLayout"
 export function NotFound() {
   return (
     <ErrorLayout
-      title="Page not found"
-      description="The page you're looking for doesn't exist or has been moved."
+      title="Stránka nenalezena"
+      description="Odkaz je neplatný, nebo stránka už neexistuje."
       action={
-        <Button asChild>
-          <Link to={ROUTES.home}>Go home</Link>
-        </Button>
+        <div className="flex flex-wrap justify-center gap-3">
+          <Button asChild>
+            <Link to={ROUTES.events}>Procházet akce</Link>
+          </Button>
+          <Button
+            asChild
+            variant="outline"
+          >
+            <Link to={ROUTES.home}>Na úvod</Link>
+          </Button>
+        </div>
       }
     />
   )

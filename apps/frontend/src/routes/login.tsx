@@ -41,7 +41,10 @@ function LoginPage() {
     try {
       await signIn.mutateAsync(values)
       // href, not to: the page may come with its search (the list's filters)
-      await navigate({ href: safeRedirect(from, ROUTES.events) })
+      // replace: „Zpět“ on the page we return to mustn't lead back to the login.
+      // Coming from an event, it is then in the history twice (one „Zpět“ shows
+      // it again): the login can't see the entry before it, so it can't go back.
+      await navigate({ href: safeRedirect(from, ROUTES.events), replace: true })
     } catch (error) {
       setErrorMessage(
         error instanceof Error ? error.message : "Přihlášení se nepovedlo. Zkus to prosím znovu.",
@@ -62,6 +65,8 @@ function LoginPage() {
             <Link
               to={ROUTES.signup}
               search={{ from }}
+              // switching between sign-in and sign-up doesn't pile up in the history
+              replace
               className="font-medium text-foreground underline underline-offset-4"
             >
               Zaregistruj se

@@ -16,12 +16,16 @@ function TestUi() {
 /**
  * Renders `ui` inside a router, for components with a `<Link>`. The router is
  * loaded before the first render, so queries work synchronously, and
- * `rerender` swaps the ui as with plain `render`.
+ * `rerender` swaps the ui as with plain `render`. `previous` are the URLs
+ * visited before `url`, for components that go back.
  */
-export async function renderWithRouter(ui: ReactElement, { url = "/" } = {}) {
+export async function renderWithRouter(
+  ui: ReactElement,
+  { url = "/", previous = [] as string[] } = {},
+) {
   const router = createRouter({
     routeTree: createRootRoute({ component: TestUi }),
-    history: createMemoryHistory({ initialEntries: [url] }),
+    history: createMemoryHistory({ initialEntries: [...previous, url] }),
   })
   await router.load()
   return {
