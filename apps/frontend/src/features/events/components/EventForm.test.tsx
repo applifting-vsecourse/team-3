@@ -158,6 +158,14 @@ describe("EventForm", () => {
     expect(await screen.findByText("Konec musí být jiný než začátek")).toBeInTheDocument()
   })
 
+  it("the description says what makes an event worth joining (level, price, gear aren't fields)", () => {
+    renderForm()
+
+    expect(screen.getByLabelText("Popis")).toHaveAccessibleDescription(
+      "Napiš, pro koho akce je, jaká úroveň stačí, kolik stojí a co si vzít s sebou.",
+    )
+  })
+
   it("shows the server's answer and disables the button while saving", () => {
     renderForm({ errorMessage: "Nejdřív si ověř e-mail.", isSubmitting: true })
 
