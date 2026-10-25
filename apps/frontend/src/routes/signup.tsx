@@ -60,6 +60,8 @@ function SignUpPage() {
             <Link
               to={ROUTES.login}
               search={{ from }}
+              // switching between sign-in and sign-up doesn't pile up in the history
+              replace
               className="font-medium text-foreground underline underline-offset-4"
             >
               Přihlas se

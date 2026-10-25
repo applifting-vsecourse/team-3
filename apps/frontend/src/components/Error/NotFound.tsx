@@ -8,8 +8,8 @@ import { ErrorLayout } from "./ErrorLayout"
 export function NotFound() {
   return (
     <ErrorLayout
-      title="Stránka neexistuje"
-      description="Odkaz je možná překlep, nebo stránka už není."
+      title="Stránka nenalezena"
+      description="Odkaz je neplatný, nebo stránka už neexistuje."
       action={
         <div className="flex flex-wrap justify-center gap-3">
           <Button asChild>

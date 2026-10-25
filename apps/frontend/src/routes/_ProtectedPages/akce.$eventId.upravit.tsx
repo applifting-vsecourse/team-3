@@ -1,4 +1,4 @@
-import { createFileRoute, useNavigate } from "@tanstack/react-router"
+import { createFileRoute, useCanGoBack, useNavigate, useRouter } from "@tanstack/react-router"
 import { toast } from "sonner"
 
 import { ROUTES } from "@/app/routes"
@@ -25,6 +25,8 @@ export const Route = createFileRoute("/_ProtectedPages/akce/$eventId/upravit")({
 function EditEventPage() {
   const { eventId } = Route.useParams()
   const navigate = useNavigate()
+  const router = useRouter()
+  const canGoBack = useCanGoBack()
   const session = useSession()
   const viewerId = session.isPending ? undefined : (session.user?.id ?? null)
   const { event, isPending, isNotFound, error } = useEventDetail(eventId, viewerId)
@@ -77,8 +79,11 @@ function EditEventPage() {
               updateEvent.mutate(changes, {
                 onSuccess: () => {
                   toast.success("Změny jsou uložené.")
-                  // replace: „Zpět“ from the detail mustn't reopen the form just saved
-                  void navigate({ to: ROUTES.eventDetail, params: { eventId }, replace: true })
+                  // Back where the edit was opened (the detail or Správa akce), so the
+                  // saved form leaves the history; the detail is updated in the cache.
+                  // Opened from a link, there is no back: the detail replaces the form.
+                  if (canGoBack) router.history.back()
+                  else void navigate({ to: ROUTES.eventDetail, params: { eventId }, replace: true })
                 },
               })
             }
