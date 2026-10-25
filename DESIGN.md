@@ -24,6 +24,7 @@ These are rules, not suggestions. When a rule and a "nicer looking" idea disagre
 - **Cards are for separable items in a list** — an event, a group, a search result. They are not page sections and not layout tools.
 - **Never nest a card inside a card.** If content needs grouping inside a card, use spacing and a hairline divider.
 - **A page is not a card.** Page content sits on `background` in a centred column (`max-w-2xl` for reading, `max-w-4xl` for wide layouts), not inside a floating panel.
+- **A detail's action panel is the one bordered section** (Figma: Panel akce A-05d, Panel skupiny A-08d). On desktop the facts and the main action sit on the right in `w-100 rounded-lg border border-border bg-card p-6`; on a phone there is no panel, the facts follow the title and the main action sits in a bar above the bottom navigation (`sticky bottom-16`, Figma: Lišta s akcí). It holds no cards.
 - **Every page keeps the app chrome.** The header is present on every route, including login and sign-up. Pages never render as standalone islands.
 - Forbidden by default: the centred-hero-plus-three-feature-cards layout, carousels, and any section whose only purpose is to look full.
 - **No big empty areas on desktop** (PO). Pages sit on the 1200 px grid (`PAGE` in `src/lib/pageLayout.ts`). Use the width for real content: a form gets two columns (D-01d: „Co a kdy“ | „Kde“ with the map, D-06d), sign-in and sign-up show the nearest events next to the form, lists go into three columns. A narrow column with half the screen blank is a bug, not whitespace.
@@ -80,7 +81,7 @@ The Figma page „Design system“ is the reference. Build these once in `src/co
   - **Chybí** (below the minimum): status semibold „Chybí ještě 2“, fill `bg-primary`, tick visible.
   - **Volná místa** (minimum reached, spots left): status regular, fill `bg-primary`, tick visible.
   - **Plno**: status and count `text-muted-foreground`, full fill `bg-muted-foreground`, no tick.
-  - Track `bg-muted`, height 8px, `rounded-full`; tick `bg-foreground`, 2px wide. Widths are computed from the numbers, never hardcoded.
+  - Track `bg-muted`, height 8px, `rounded-full`; tick 2px wide, `bg-foreground` on the track and `bg-primary-foreground` once the fill is past it (in dark mode `foreground` is near white and vanishes on lime; at exactly the minimum half the tick is still on the track, so it stays `bg-foreground`). Widths are computed from the numbers, never hardcoded.
 - **Status badge** (Figma: Status badge) — `rounded-full`, `text-xs font-semibold`, `px-2 py-0.5`. Chybí = `bg-primary text-primary-foreground` (the only highlighted one); Volná = `bg-secondary text-secondary-foreground`; Plno = `bg-muted text-muted-foreground`; Zrušeno = `bg-foreground text-background`. Labels: „Chybí X“, „Volná místa“, „Plno“, „Zrušeno“.
 - **Activity tag** (Figma: Tag/Activity) — the activity of an event or group: `rounded-full bg-secondary text-secondary-foreground text-xs font-semibold px-3 py-1`. Shows the activity name (second level), not the category.
 - **Activity tile** (Figma: Activity tile) — the category icon on an event card, one variant per category from B-002. An event card shows this icon, not a photo.

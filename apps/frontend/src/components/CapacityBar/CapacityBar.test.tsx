@@ -34,6 +34,15 @@ describe("CapacityBar", () => {
     expect(screen.getByText("Volná místa: 2")).not.toHaveClass("font-semibold")
   })
 
+  it("the tick takes the colour of what it sits on, so it shows in dark mode too", () => {
+    // below the minimum it sits on the track
+    expect(renderBar(6).tick).toHaveClass("bg-foreground")
+    // at the minimum the fill ends at the tick: half of it is on the track
+    expect(renderBar(8).tick).toHaveClass("bg-foreground")
+    // past the minimum it sits inside the lime fill (foreground is near white in dark mode)
+    expect(renderBar(9).tick).toHaveClass("bg-primary-foreground")
+  })
+
   it("full: muted, filled to the end, no tick", () => {
     const { fill, tick } = renderBar(10)
 

@@ -7,7 +7,10 @@ import { ROUTES } from "@/app/routes"
 import { BackLink } from "@/components/BackLink/BackLink"
 import { Seo } from "@/components/Seo"
 import { Button } from "@/components/ui/button"
+import { DESKTOP_QUERY, useMediaQuery } from "@/hooks/useMediaQuery"
 import { authKeys } from "@/lib/auth-keys"
+import { PAGE } from "@/lib/pageLayout"
+import { cn } from "@/lib/utils"
 
 import { AppHeader } from "@/features/auth/components/AppHeader"
 import { useSession } from "@/features/auth/hooks/useSession"
@@ -15,6 +18,7 @@ import { encodeRedirectUri } from "@/features/auth/lib/redirect"
 import { CancelEventDialog } from "@/features/events/components/CancelEventDialog"
 import { EventDetailView } from "@/features/events/components/EventDetailView"
 import { ParticipationAction } from "@/features/events/components/ParticipationAction"
+import { ShareEventButton } from "@/features/events/components/ShareEventButton"
 import { useCancelEvent } from "@/features/events/hooks/useCancelEvent"
 import { useEventDetail } from "@/features/events/hooks/useEventDetail"
 import { useJoinEvent, useLeaveEvent } from "@/features/events/hooks/useParticipation"
@@ -33,6 +37,7 @@ function EventDetailPage() {
   const viewerId = session.isPending ? undefined : (session.user?.id ?? null)
   const { event, isPending, isNotFound, error, retry } = useEventDetail(eventId, viewerId)
   const location = useLocation()
+  const isDesktop = useMediaQuery(DESKTOP_QUERY)
   const queryClient = useQueryClient()
   const join = useJoinEvent(eventId, session.user?.id ?? "")
   const leave = useLeaveEvent(eventId, session.user?.id ?? "")
@@ -55,11 +60,23 @@ function EventDetailPage() {
       <Seo title={event?.title ?? (isNotFound ? "Akce nenalezena" : "Akce")} />
       <AppHeader />
       <main className="flex-1">
-        <div className="mx-auto flex w-full max-w-4xl flex-col gap-6 px-4 py-6 md:px-8 md:py-8">
-          <BackLink
-            to={ROUTES.events}
-            fallbackLabel="Všechny akce"
-          />
+        <div className={cn(PAGE, "gap-4")}>
+          {/* Figma A-05 (Header/Sub): back on the left, „Sdílet“ on the right;
+              desktop shares from the panel (A-05d) */}
+          <div className="flex items-center justify-between gap-3">
+            <BackLink
+              to={ROUTES.events}
+              fallbackLabel="Všechny akce"
+              label="Akce"
+            />
+            {event && !isDesktop ? (
+              <ShareEventButton
+                label="Sdílet"
+                shouldUseShareSheet
+                className="-mr-3"
+              />
+            ) : null}
+          </div>
           <EventDetailView
             event={event}
             isLoading={isPending}
