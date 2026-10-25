@@ -167,9 +167,10 @@ function JoinControl({ event, isOrganizer, isPending, onJoin, onLeave }: JoinCon
         </>
       )
     case "rejected":
-      return <Note>Organizátor tvoji účast zamítl.</Note>
+      // gender-neutral (DESIGN.md › Copy): the organizer may well be a woman
+      return <Note>Tvoje žádost o účast byla zamítnuta.</Note>
     case "removed":
-      return <Note>Organizátor tě z akce odebral.</Note>
+      return <Note>Na akci už nemáš místo.</Note>
     case null:
       break
   }
@@ -200,9 +201,12 @@ function JoinControl({ event, isOrganizer, isPending, onJoin, onLeave }: JoinCon
   )
 }
 
+// Muted, not lime: lime is for what you can do (DESIGN.md, „Plno“ is muted);
+// a disabled lime button reads as broken, in the dark theme especially.
 function FullButton() {
   return (
     <Button
+      variant="outline"
       size="lg"
       disabled
     >

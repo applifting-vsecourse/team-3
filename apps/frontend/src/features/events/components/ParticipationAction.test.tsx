@@ -160,7 +160,7 @@ describe("ParticipationAction", () => {
   it("a rejected request is told so and can't be sent again", async () => {
     await renderAction({ approvalMode: "approval", myParticipation: "rejected" })
 
-    expect(screen.getByText("Organizátor tvoji účast zamítl.")).toBeInTheDocument()
+    expect(screen.getByText("Tvoje žádost o účast byla zamítnuta.")).toBeInTheDocument()
     expect(screen.queryByRole("button", { name: "Poslat žádost" })).not.toBeInTheDocument()
   })
 
@@ -190,7 +190,7 @@ describe("ParticipationAction", () => {
   it("a removed participant is told so, not that they were rejected", async () => {
     await renderAction({ myParticipation: "removed" })
 
-    expect(screen.getByText("Organizátor tě z akce odebral.")).toBeInTheDocument()
+    expect(screen.getByText("Na akci už nemáš místo.")).toBeInTheDocument()
   })
 
   it("a cancelled event shows no action (its label is #52)", async () => {

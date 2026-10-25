@@ -37,7 +37,8 @@ const REFUSAL_MESSAGES: Record<ParticipationRefusal, string> = {
   ALREADY_JOINED: 'Na akci už máš místo nebo žádost.',
   EVENT_STARTED: 'Akce už začala.',
   EVENT_CANCELLED: 'Akce je zrušená.',
-  PARTICIPATION_REFUSED: 'Organizátor tvoji účast zamítl.',
+  // rejected or removed; neutral, as the organizer may be a woman
+  PARTICIPATION_REFUSED: 'Na tuhle akci se už přihlásit nemůžeš.',
   NOT_JOINED: 'Na akci nemáš místo ani žádost.',
   NOT_PENDING:
     'Žádost už není aktuální: mezitím ji někdo vyřídil, nebo ji žadatel stáhl.',
