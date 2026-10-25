@@ -32,10 +32,7 @@ export const emailFlowOptions = (
     revokeSessionsOnPasswordReset: true,
     sendResetPassword: async ({ user, token }): Promise<void> => {
       const passwordResetUrl = `${config.frontendUrl}/${config.frontendResetPasswordUrl}?token=${token}`;
-      const html = await renderEmail(ResetPassword, {
-        username: user.name,
-        url: passwordResetUrl,
-      });
+      const html = await renderEmail(ResetPassword, { url: passwordResetUrl });
       await emailProvider.sendEmail(user.email, RESET_PASSWORD_SUBJECT, html);
     },
   },

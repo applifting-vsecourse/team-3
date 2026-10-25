@@ -17,14 +17,15 @@ export interface VerifyEmailProps {
   url: string;
 }
 
-// Czech and „ty“ like the app (DESIGN.md › Copy); the button in the brand
-// colours (--primary, --primary-foreground), as e-mails can't read CSS variables.
+// Czech and „ty“ like the app (DESIGN.md › Copy), in the app's colours
+// (--primary, --primary-foreground, --muted, --muted-foreground, --border)
+// written out, as e-mails can't read CSS variables.
 export const VerifyEmail = ({ url }: VerifyEmailProps): React.JSX.Element => (
   <Html lang="cs">
     <Head />
-    <Preview>Ověř si e-mail a můžeš se hlásit na akce</Preview>
+    <Preview>Odkaz platí 24 hodin.</Preview>
     <Tailwind>
-      <Body lang="cs" className="bg-gray-50 font-sans py-10">
+      <Body lang="cs" className="bg-[#f2f5ef] font-sans py-10">
         <Container className="bg-white rounded-lg mx-auto p-8 max-w-xl">
           <Heading className="text-2xl font-bold text-[#14201a] m-0">
             Vítej v HobbyHubu
@@ -45,11 +46,13 @@ export const VerifyEmail = ({ url }: VerifyEmailProps): React.JSX.Element => (
             Kdyby tlačítko nefungovalo, zkopíruj si do prohlížeče tento odkaz.
             Platí 24 hodin.
           </Text>
-          <Text className="text-blue-600 text-sm break-all">{url}</Text>
+          <Text className="text-[#14201a] underline text-sm break-all">
+            {url}
+          </Text>
           <Hr className="border-[#e1e7dc] my-6" />
           <Text className="text-[#5b6860] text-xs">
-            Nečekáš tenhle e-mail? Klidně ho ignoruj, bez klepnutí na odkaz se
-            nic neověří.
+            Tenhle e-mail ti nic neříká? Klidně ho ignoruj, dokud na odkaz
+            neklepneš, nic se neověří.
           </Text>
         </Container>
       </Body>

@@ -50,6 +50,8 @@ describe('emailFlowOptions', () => {
     expect(emailAndPassword.resetPasswordTokenExpiresIn).toBe(
       PASSWORD_RESET_TTL_SECONDS,
     );
+    // the e-mail says „Platí hodinu.“ and /zapomenute-heslo „Odkaz platí 1 hodinu.“
+    expect(PASSWORD_RESET_TTL_SECONDS).toBe(3600);
     expect(emailAndPassword.revokeSessionsOnPasswordReset).toBe(true);
     await emailAndPassword.sendResetPassword!(
       { user, url: 'ignored', token: 't0k3n' },

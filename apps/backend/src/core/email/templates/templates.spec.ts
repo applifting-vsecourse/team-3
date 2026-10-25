@@ -1,3 +1,4 @@
+import { text } from 'node:stream/consumers';
 import * as React from 'react';
 import { prerenderToNodeStream } from 'react-dom/static';
 import { ResetPassword } from './reset-password';
@@ -15,9 +16,7 @@ const markup = async <TProps extends object>(
   const { prelude } = await prerenderToNodeStream(
     React.createElement(Component, props),
   );
-  let html = '';
-  for await (const chunk of prelude) html += String(chunk);
-  return html;
+  return text(prelude);
 };
 
 describe('account e-mails', () => {
@@ -39,20 +38,20 @@ describe('account e-mails', () => {
     expect(html).not.toMatch(/Verify|Welcome/);
   });
 
-  it('the reset e-mail is Czech, greets by name and carries the link', async () => {
+  it('the reset e-mail is Czech and carries the link', async () => {
     const html = await markup(ResetPassword, {
-      username: 'Jakub',
       url: 'https://hobbyhub.example/reset-password?token=t0k3n',
     });
 
     expect(html).toContain('<html dir="ltr" lang="cs">');
     expect(html).not.toContain('lang="en"');
-    expect(html).toMatch(/Ahoj\s*(<!-- -->)?Jakub/);
+    expect(html).toContain('Ahoj, přišla nám žádost o nové heslo');
     expect(html).toContain('Nastavit nové heslo');
     expect(html).toContain('Platí hodinu.');
-    expect(html).toContain(
-      'https://hobbyhub.example/reset-password?token=t0k3n',
-    );
+    expect(
+      html.match(/https:\/\/hobbyhub\.example\/reset-password\?token=t0k3n/g),
+    ).toHaveLength(2);
+    expect(html).toContain('background-color:rgb(182,242,74)');
     expect(html).not.toMatch(/Reset your password|Hi /);
   });
 });
