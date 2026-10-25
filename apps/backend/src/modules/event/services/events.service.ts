@@ -127,7 +127,7 @@ export class EventsService {
   ): Promise<EventDetailView> {
     const event = await this.eventRepository.findEventDetail(id, now);
     if (!event || !(await this.canView(event, viewerId))) {
-      throw new NotFoundException('Event not found');
+      throw new NotFoundException('Akce neexistuje.');
     }
     if (!viewerId)
       return { ...event, participants: null, myParticipation: null };
@@ -233,7 +233,7 @@ export class EventsService {
     const decision = await this.eventRepository.updateEvent(id, (state) =>
       decideUpdate(state, changes, now),
     );
-    if (!decision) throw new NotFoundException('Event not found');
+    if (!decision) throw new NotFoundException('Akce neexistuje.');
     if (!decision.ok) throw updateRefused(decision.refusal);
     return this.getEventDetail(id, userId, now);
   }
@@ -287,7 +287,7 @@ export class EventsService {
     const decision = await this.eventRepository.join(eventId, userId, (state) =>
       decideJoin(state, now),
     );
-    if (!decision) throw new NotFoundException('Event not found');
+    if (!decision) throw new NotFoundException('Akce neexistuje.');
     if (!decision.ok) throw refused(decision.refusal);
     return this.getEventDetail(eventId, userId, now);
   }
@@ -304,7 +304,7 @@ export class EventsService {
       userId,
       (state) => decideLeave(state, now),
     );
-    if (!decision) throw new NotFoundException('Event not found');
+    if (!decision) throw new NotFoundException('Akce neexistuje.');
     if (!decision.ok) throw refused(decision.refusal);
     return this.getEventDetail(eventId, userId, now);
   }
