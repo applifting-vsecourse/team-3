@@ -12,6 +12,7 @@ import { simulatedInboxKeys } from "@/features/auth/api/simulatedInbox"
 import { VerifyEmailBanner } from "@/features/auth/components/VerifyEmailBanner"
 import { authClient } from "@/features/auth/lib/auth-client"
 import { safeRedirect } from "@/features/auth/lib/redirect"
+import { showVerifyEmailBanner } from "@/features/auth/lib/verify-email-banner"
 
 vi.mock("@/features/auth/lib/auth-client", () => ({
   authClient: {
@@ -103,6 +104,19 @@ describe("VerifyEmailBanner", () => {
     const bannerRow = screen.getByRole("status").firstElementChild
     const headerRow = screen.getByRole("banner").firstElementChild
     expect(insets(bannerRow)).toEqual(insets(headerRow))
+  })
+
+  it("„Ověřit e-mail“ elsewhere on the page brings it into view, with the focus", async () => {
+    await renderBanner()
+    const banner = screen.getByRole("status")
+    const scrollIntoView = vi.spyOn(banner, "scrollIntoView")
+
+    showVerifyEmailBanner()
+
+    expect(scrollIntoView).toHaveBeenCalledWith({ block: "start" })
+    expect(banner).toHaveFocus()
+    // not a stop when tabbing through the page
+    expect(banner).toHaveAttribute("tabindex", "-1")
   })
 
   it("a new link leads back to the page it was asked for on, like the one from the sign-up", async () => {

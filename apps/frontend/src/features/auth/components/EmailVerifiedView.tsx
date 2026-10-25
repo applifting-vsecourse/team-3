@@ -13,8 +13,19 @@ type EmailVerifiedViewProps = {
   error?: string
   /** Signed in and still unverified, e.g. the page was opened by hand. */
   isUnverified?: boolean
-  /** Where „Pokračovat“ leads: the page the sign-up started from (B-012). */
+  /** Where the button leads: the page the sign-up started from (B-012). */
   continueTo?: string
+}
+
+/**
+ * The button says where it leads: back to the event the sign-up started on,
+ * or to the events. Any other page (a group, Moje akce…) stays „Pokračovat“.
+ */
+const continueLabel = (continueTo: string) => {
+  const { pathname } = new URL(continueTo, window.location.origin)
+  if (/^\/akce\/(?!nova\/?$)[^/]+\/?$/.test(pathname)) return "Zpět na akci"
+  if (pathname === ROUTES.events) return "Procházet akce"
+  return "Pokračovat"
 }
 
 /** Figma B-02: what the link in the verification e-mail led to. */
@@ -39,7 +50,7 @@ export function EmailVerifiedView({
           variant="outline"
           className="mt-3 self-start"
         >
-          <a href={continueTo}>Pokračovat</a>
+          <a href={continueTo}>{continueLabel(continueTo)}</a>
         </Button>
       </section>
     )
@@ -56,7 +67,7 @@ export function EmailVerifiedView({
         className="mt-3 self-start"
       >
         {/* a plain link: the page may come with its search, which `to` can't take as text */}
-        <a href={continueTo}>Pokračovat</a>
+        <a href={continueTo}>{continueLabel(continueTo)}</a>
       </Button>
     </section>
   )
