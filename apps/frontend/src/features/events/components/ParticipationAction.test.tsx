@@ -21,6 +21,7 @@ const renderAction = async (event: Partial<EventDetail> = {}, options: RenderOpt
   const { viewer = jakub, isPending = false, now = before } = options
   const onJoin = vi.fn().mockResolvedValue(undefined)
   const onLeave = vi.fn().mockResolvedValue(undefined)
+  const onVerifyEmail = vi.fn()
   await renderWithRouter(
     <ParticipationAction
       event={anEventDetail(event)}
@@ -29,10 +30,11 @@ const renderAction = async (event: Partial<EventDetail> = {}, options: RenderOpt
       isPending={isPending}
       onJoin={onJoin}
       onLeave={onLeave}
+      onVerifyEmail={onVerifyEmail}
       now={now}
     />,
   )
-  return { onJoin, onLeave }
+  return { onJoin, onLeave, onVerifyEmail }
 }
 
 /** A request the test answers when it wants to. */
@@ -165,6 +167,7 @@ describe("ParticipationAction", () => {
 
     expect(screen.getByRole("button", { name: "Plno" })).toBeDisabled()
     expect(screen.queryByText(/až si ověříš e-mail/)).not.toBeInTheDocument()
+    expect(screen.queryByRole("button", { name: "Ověřit e-mail" })).not.toBeInTheDocument()
   })
 
   it("a visitor is offered the sign-in that comes back to the event", async () => {
@@ -174,11 +177,17 @@ describe("ParticipationAction", () => {
     expect(link.getAttribute("href")).toMatch(/^\/login\?from=/)
   })
 
-  it("an unverified user is told to verify first, with no button", async () => {
-    await renderAction({}, { viewer: { id: "u9", emailVerified: false } })
+  it("an unverified user is told to verify first and gets there from the bar, not „Přijdu“", async () => {
+    const { onJoin, onVerifyEmail } = await renderAction(
+      {},
+      { viewer: { id: "u9", emailVerified: false } },
+    )
 
-    expect(screen.getByText(/až si ověříš e-mail/)).toBeInTheDocument()
-    expect(screen.queryByRole("button")).not.toBeInTheDocument()
+    expect(screen.getByText("Na akci se přihlásíš, až si ověříš e-mail.")).toBeInTheDocument()
+    expect(screen.queryByRole("button", { name: "Přijdu" })).not.toBeInTheDocument()
+    await userEvent.click(screen.getByRole("button", { name: "Ověřit e-mail" }))
+    expect(onVerifyEmail).toHaveBeenCalledOnce()
+    expect(onJoin).not.toHaveBeenCalled()
   })
 
   it("with approval, „Poslat žádost“ asks first and then sends the request (A-05a, #53)", async () => {

@@ -32,6 +32,8 @@ type ParticipationActionProps = {
    */
   onJoin: () => Promise<unknown>
   onLeave: () => Promise<unknown>
+  /** Leads an unverified user to the banner that sends or opens the link. */
+  onVerifyEmail?: () => void
   /** For tests; the event has started once `startsAt` is past it. */
   now?: Date
 }
@@ -50,6 +52,7 @@ export function ParticipationAction({
   isPending,
   onJoin,
   onLeave,
+  onVerifyEmail,
   now = new Date(),
 }: ParticipationActionProps) {
   const isOrganizer = viewer !== null && event.organizer.id === viewer.id
@@ -117,7 +120,23 @@ export function ParticipationAction({
     return (
       <Row>
         {manage}
-        {event.isFull ? <FullButton /> : <Note>Na akci se přihlásíš, až si ověříš e-mail.</Note>}
+        {event.isFull ? (
+          <FullButton />
+        ) : (
+          <>
+            {/* the next step right here: on a phone the banner has scrolled away */}
+            {onVerifyEmail ? (
+              <Button
+                variant="outline"
+                size="lg"
+                onClick={onVerifyEmail}
+              >
+                Ověřit e-mail
+              </Button>
+            ) : null}
+            <Note>Na akci se přihlásíš, až si ověříš e-mail.</Note>
+          </>
+        )}
       </Row>
     )
   }

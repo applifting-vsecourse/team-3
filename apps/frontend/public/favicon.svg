@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32">
+  <!-- HobbyHub mark (Figma Logo/Mark): a group of four with one spot still free.
+       Lime on the dark brand green, so it reads on light and dark browser tabs. -->
+  <rect width="32" height="32" rx="7" fill="#14201a"/>
+  <g fill="#b6f24a">
+    <circle cx="10.5" cy="10.5" r="4.5"/>
+    <circle cx="21.5" cy="10.5" r="4.5"/>
+    <circle cx="10.5" cy="21.5" r="4.5"/>
+  </g>
+  <circle cx="21.5" cy="21.5" r="3.6" fill="none" stroke="#b6f24a" stroke-width="1.6" stroke-dasharray="1.9 1.4"/>
+</svg>
