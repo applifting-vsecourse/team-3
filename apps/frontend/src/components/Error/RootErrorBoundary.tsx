@@ -23,7 +23,13 @@ export function RootErrorBoundary(_props: RootErrorBoundaryProps) {
             asChild
             variant="outline"
           >
-            <Link to={ROUTES.home}>Na úvod</Link>
+            {/* a full load: after a deploy, an old code chunk is a usual way here */}
+            <Link
+              to={ROUTES.home}
+              reloadDocument
+            >
+              Na úvod
+            </Link>
           </Button>
         </div>
       }
