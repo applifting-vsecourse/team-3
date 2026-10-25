@@ -6,7 +6,7 @@ import { authClient } from "@/features/auth/lib/auth-client"
 import { toAuthRequestError } from "@/features/auth/lib/auth-errors"
 import { afterVerificationUrl } from "@/features/auth/lib/callback-url"
 
-export type ResendInput = {
+type ResendInput = {
   email: string
   /** The page to come back to after verifying, as `resendFrom` gives it. */
   from?: string
