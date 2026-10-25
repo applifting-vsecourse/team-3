@@ -20,10 +20,10 @@ const get = vi.mocked(api.get)
 const asJson = (body: unknown) =>
   ({ json: () => Promise.resolve(JSON.parse(JSON.stringify(body))) }) as never
 
-const renderNearest = () =>
+const renderNearest = (props: { localitySlug?: string } = {}) =>
   renderWithRouter(
     <QueryClientProvider client={new QueryClient({ defaultOptions: { queries: { retry: 0 } } })}>
-      <NearestEvents />
+      <NearestEvents {...props} />
     </QueryClientProvider>,
   )
 
@@ -58,5 +58,24 @@ describe("NearestEvents", () => {
 
     await userEvent.click(await screen.findByRole("button", { name: "Zkusit znovu" }))
     expect(await screen.findByRole("link", { name: "Deskovky" })).toBeInTheDocument()
+  })
+
+  it("with a locality, asks only for its events once the catalog knows its id", async () => {
+    get.mockImplementation(((path: string) =>
+      path === "localities"
+        ? asJson([
+            { id: "l-praha", slug: "praha", name: "Praha", parentId: null, lat: 50, lng: 14 },
+          ])
+        : asJson([anEvent({ title: "Deskovky" })])) as never)
+
+    await renderNearest({ localitySlug: "praha" })
+
+    expect(await screen.findByRole("link", { name: "Deskovky" })).toBeInTheDocument()
+    expect(get).not.toHaveBeenCalledWith("events", {
+      searchParams: new URLSearchParams(),
+    })
+    expect(get).toHaveBeenCalledWith("events", {
+      searchParams: new URLSearchParams({ localityId: "l-praha" }),
+    })
   })
 })
