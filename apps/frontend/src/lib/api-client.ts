@@ -17,19 +17,18 @@ export const api = ky.create({
   credentials: "include",
   retry: { limit: 0 },
   hooks: {
-    // NestJS returns { message: string | string[] } on validation failures.
-    // Without this the user would see ky's generic "Request failed with status
-    // code 400" and never learn what was actually wrong.
+    // NestJS returns { message: string | string[] } on validation failures and
+    // the API's refusals carry a Czech message („Akce je plná.“). Without this
+    // the user would see ky's generic "Request failed with status code 400"
+    // and never learn what was actually wrong. Ky 2 has already read the body
+    // into `error.data` (the response itself can't be read again).
     beforeError: [
-      async ({ error }) => {
+      ({ error }) => {
         if (!(error instanceof HTTPError)) return error
-        try {
-          const body = (await error.response.clone().json()) as { message?: string | string[] }
-          const message = Array.isArray(body.message) ? body.message.join(", ") : body.message
-          if (message) error.message = message
-        } catch {
-          // response had no JSON body — keep ky's default message
-        }
+        const body = error.data as { message?: unknown } | undefined
+        const message = Array.isArray(body?.message) ? body.message.join(", ") : body?.message
+        // no JSON body or no message: keep ky's default message
+        if (typeof message === "string" && message) error.message = message
         return error
       },
     ],
