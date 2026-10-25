@@ -3,7 +3,7 @@ import { Link } from "@tanstack/react-router"
 import { CalendarDays, MapPin, RefreshCw, UserCheck } from "lucide-react"
 
 import { ROUTES } from "@/app/routes"
-import { ActivityTag } from "@/components/ActivityTag/ActivityTag"
+import { ActivityTile } from "@/components/ActivityTile/ActivityTile"
 import { CapacityBar } from "@/components/CapacityBar/CapacityBar"
 import { DetailRow } from "@/components/DetailRow/DetailRow"
 import { MapView } from "@/components/map/MapView"
@@ -12,9 +12,11 @@ import { StatusBadge } from "@/components/StatusBadge/StatusBadge"
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 import { Button } from "@/components/ui/button"
 import { Skeleton } from "@/components/ui/skeleton"
+import { DESKTOP_QUERY, useMediaQuery } from "@/hooks/useMediaQuery"
 
 import type { EventDetail } from "@/features/events/api/eventSchemas"
 import { EventParticipants } from "@/features/events/components/EventParticipants"
+import { ShareEventButton } from "@/features/events/components/ShareEventButton"
 import { approvalModeLabel, formatEventTime, placeName } from "@/features/events/lib/formatEvent"
 
 type EventDetailViewProps = {
@@ -26,7 +28,7 @@ type EventDetailViewProps = {
   onRetry?: () => void
   /** Login's `from`, so a visitor who signs in to see the names comes back here. */
   signInFrom: string
-  /** The join / leave action under the capacity (B-032); the page builds it. */
+  /** The join / leave action (B-032): in the panel on desktop, in the bar above the navigation on a phone; the page builds it. */
   participation?: ReactNode
   /** The organizer's own actions, e.g. „Zrušit akci“ (#52); the page builds them. */
   organizerActions?: ReactNode
@@ -34,11 +36,11 @@ type EventDetailViewProps = {
 
 /**
  * The event detail (Figma A-05, desktop A-05d; B-026): what, when, where, who
- * organizes it and who is coming. Desktop has the main content on the left
- * and a panel on the right with the facts, the map, the capacity and the
- * action (#42); on a phone the panel follows the title, so the facts come
- * before the capacity. A cancelled event keeps its detail (shared links still
- * work) with the „Zrušeno“ label and the reason (#52).
+ * organizes it and who is coming. The capacity comes right under the title,
+ * then the facts and the map. Desktop puts those in a panel on the right with
+ * the action; a phone keeps the action in a bar above the bottom navigation,
+ * so it stays in sight (#42). A cancelled event keeps its detail (shared
+ * links still work) with the „Zrušeno“ label and the reason (#52).
  */
 export function EventDetailView({
   event,
@@ -50,6 +52,8 @@ export function EventDetailView({
   participation,
   organizerActions,
 }: EventDetailViewProps) {
+  const isDesktop = useMediaQuery(DESKTOP_QUERY)
+
   if (isNotFound) return <EventNotFound />
 
   if (error) {
@@ -77,113 +81,175 @@ export function EventDetailView({
     )
   }
 
-  if (isLoading || !event) return <EventDetailSkeleton />
+  if (isLoading || !event) return <EventDetailSkeleton isDesktop={isDesktop} />
+
+  const isCancelled = event.status === "cancelled"
+  const heading = (
+    <header className="flex flex-col gap-5 md:gap-6">
+      <div className="flex flex-wrap items-center gap-3">
+        <ActivityTile icon={event.activity.category.icon} />
+        <div className="flex flex-col">
+          <span className="text-sm font-semibold">{event.activity.name}</span>
+          <span className="text-sm text-muted-foreground">{event.activity.category.name}</span>
+        </div>
+        {isCancelled ? <StatusBadge status={{ kind: "cancelled" }} /> : null}
+      </div>
+      <h1 className="text-3xl font-semibold tracking-tight md:text-4xl">{event.title}</h1>
+    </header>
+  )
+  const capacity = isCancelled ? (
+    // instead of the capacity: „Chybí ještě 2“ would read as if it still happens
+    <Alert>
+      <AlertTitle>Akce je zrušená</AlertTitle>
+      {event.cancelReason ? (
+        <AlertDescription className="whitespace-pre-line">{event.cancelReason}</AlertDescription>
+      ) : null}
+    </Alert>
+  ) : (
+    <CapacityBar
+      approvedCount={event.approvedCount}
+      minParticipants={event.minParticipants}
+      maxParticipants={event.maxParticipants}
+    />
+  )
+  const facts = (
+    <dl className="flex flex-col gap-3 md:gap-4">
+      <DetailRow
+        icon={CalendarDays}
+        label="Kdy"
+      >
+        <time dateTime={event.startsAt.toISOString()}>
+          {formatEventTime(event.startsAt, event.endsAt)}
+        </time>
+      </DetailRow>
+      <DetailRow
+        icon={MapPin}
+        label="Kde"
+      >
+        {event.address}
+      </DetailRow>
+      <DetailRow
+        icon={UserCheck}
+        label="Přihlašování"
+      >
+        {approvalModeLabel(event.approvalMode)}
+      </DetailRow>
+    </dl>
+  )
+  const map = (
+    <div className="h-40 overflow-hidden rounded-lg border border-border">
+      <MapView
+        isStatic
+        label="Místo akce na mapě"
+        center={{ lat: event.lat, lng: event.lng }}
+        pins={[
+          {
+            id: event.id,
+            lat: event.lat,
+            lng: event.lng,
+            variant: "default",
+            label: placeName(event.address),
+          },
+        ]}
+      />
+    </div>
+  )
+  const organizer = <EventOrganizer event={event} />
+  const about = event.description ? (
+    <section className="flex flex-col gap-2">
+      <h2 className="text-lg font-semibold tracking-tight">O akci</h2>
+      <p className="whitespace-pre-line">{event.description}</p>
+    </section>
+  ) : null
+  const participants = (
+    <EventParticipants
+      approvedCount={event.approvedCount}
+      participants={event.participants}
+      signInFrom={signInFrom}
+    />
+  )
+
+  // Figma lays the two out differently (as the group page, A-08 / A-08d), so
+  // each gets its own order rather than one order bent by the grid.
+  if (isDesktop) {
+    return (
+      <article className="grid grid-cols-[minmax(0,1fr)_auto] items-start gap-12">
+        <div className="flex flex-col gap-6">
+          {heading}
+          {about}
+          {participants}
+          {organizer}
+        </div>
+        {/* Figma: Panel akce */}
+        <section
+          aria-label="Termín, místo a účast"
+          className="flex w-100 flex-col gap-4 rounded-lg border border-border bg-card p-6 text-card-foreground"
+        >
+          {capacity}
+          {facts}
+          {map}
+          {participation}
+          <ShareEventButton label="Sdílet odkaz" />
+          {organizerActions}
+        </section>
+      </article>
+    )
+  }
 
   return (
-    // One order for both: on a phone it is the reading order; on desktop the
-    // panel moves to the right, spanning both rows, and the second row takes
-    // what is left of its height, so the main content doesn't drift down.
-    <article className="grid gap-8 md:grid-cols-5 md:grid-rows-[auto_1fr] md:items-start md:gap-x-12">
-      <header className="flex flex-col gap-3 md:col-span-3">
-        <div className="flex flex-wrap items-center gap-2">
-          <ActivityTag name={event.activity.name} />
-          {event.status === "cancelled" ? <StatusBadge status={{ kind: "cancelled" }} /> : null}
-        </div>
-        <h1 className="text-2xl font-semibold tracking-tight md:text-3xl">{event.title}</h1>
-      </header>
-
+    <article className="flex flex-col gap-5">
+      {heading}
       <section
         aria-label="Termín, místo a účast"
-        className="flex flex-col gap-6 md:col-span-2 md:col-start-4 md:row-span-2 md:row-start-1"
+        className="flex flex-col gap-5"
       >
-        <dl className="flex flex-col gap-4">
-          <DetailRow
-            icon={CalendarDays}
-            label="Termín"
-          >
-            <time dateTime={event.startsAt.toISOString()}>
-              {formatEventTime(event.startsAt, event.endsAt)}
-            </time>
-          </DetailRow>
-          <DetailRow
-            icon={MapPin}
-            label="Místo"
-          >
-            {event.address}
-          </DetailRow>
-          <DetailRow
-            icon={UserCheck}
-            label="Přihlašování"
-          >
-            {approvalModeLabel(event.approvalMode)}
-          </DetailRow>
-        </dl>
-        <div className="h-56 overflow-hidden rounded-lg border border-border">
-          <MapView
-            isStatic
-            label="Místo akce na mapě"
-            center={{ lat: event.lat, lng: event.lng }}
-            pins={[
-              {
-                id: event.id,
-                lat: event.lat,
-                lng: event.lng,
-                variant: "default",
-                label: placeName(event.address),
-              },
-            ]}
-          />
-        </div>
-        {event.status === "cancelled" ? (
-          // instead of the capacity: „Chybí ještě 2“ would read as if it still happens
-          <Alert>
-            <AlertTitle>Akce je zrušená</AlertTitle>
-            {event.cancelReason ? (
-              <AlertDescription className="whitespace-pre-line">
-                {event.cancelReason}
-              </AlertDescription>
-            ) : null}
-          </Alert>
-        ) : (
-          <CapacityBar
-            approvedCount={event.approvedCount}
-            minParticipants={event.minParticipants}
-            maxParticipants={event.maxParticipants}
-          />
-        )}
-        {participation}
+        {capacity}
+        {facts}
+        {map}
         {organizerActions}
       </section>
-
-      <div className="flex flex-col gap-8 md:col-span-3">
-        <section className="flex flex-col gap-3">
-          <h2 className="text-lg font-semibold tracking-tight">Pořádá</h2>
-          {/* a group's event is organized by the group (B-055); links come with
-              the group detail and public profiles */}
-          {event.group ? (
-            <PersonRow
-              name={event.group.name}
-              description="Skupina"
-            />
-          ) : (
-            <PersonRow name={event.organizer.name} />
-          )}
-        </section>
-
-        {event.description ? (
-          <section className="flex flex-col gap-3">
-            <h2 className="text-lg font-semibold tracking-tight">O akci</h2>
-            <p className="whitespace-pre-line">{event.description}</p>
-          </section>
-        ) : null}
-
-        <EventParticipants
-          approvedCount={event.approvedCount}
-          participants={event.participants}
-          signInFrom={signInFrom}
-        />
+      {organizer}
+      {about}
+      {participants}
+      {/* Figma: Lišta s akcí — above the bottom navigation, it stays while
+          scrolling; empty (a cancelled event for a visitor) it isn't drawn */}
+      <div className="sticky bottom-16 -mx-4 border-t border-border bg-background px-4 py-3 empty:hidden">
+        {participation}
       </div>
     </article>
+  )
+}
+
+/** Figma: „Pořádá“ and a Person row ending with a hairline, as „Spravuje“ on a group. */
+function EventOrganizer({ event }: { event: EventDetail }) {
+  return (
+    <section
+      aria-labelledby="event-organizer"
+      className="flex flex-col gap-1"
+    >
+      <h2
+        id="event-organizer"
+        className="text-xs font-medium text-muted-foreground"
+      >
+        Pořádá
+      </h2>
+      <div className="border-b border-border py-3">
+        {/* a group's event is organized by the group (B-055); links come with
+            the group detail and public profiles */}
+        {event.group ? (
+          <PersonRow
+            name={event.group.name}
+            description="Skupina"
+          />
+        ) : (
+          // creating an event takes a verified e-mail (VerifiedUserGuard)
+          <PersonRow
+            name={event.organizer.name}
+            description="Organizátor · ověřený e-mail"
+          />
+        )}
+      </div>
+    </section>
   )
 }
 
@@ -204,31 +270,32 @@ function EventNotFound() {
   )
 }
 
-function EventDetailSkeleton() {
+function EventDetailSkeleton({ isDesktop }: { isDesktop: boolean }) {
+  const heading = (
+    <div className="flex flex-col gap-5">
+      <Skeleton className="size-16 rounded-lg" />
+      <Skeleton className="h-9 w-3/4" />
+    </div>
+  )
+  const panel = (
+    <div className="flex flex-col gap-4">
+      <Skeleton className="h-2 w-full rounded-full" />
+      <Skeleton className="h-10 w-2/3" />
+      <Skeleton className="h-10 w-full" />
+      <Skeleton className="h-40 rounded-lg" />
+    </div>
+  )
   return (
     <div
       aria-busy
       aria-label="Načítám akci"
-      className="grid gap-8 md:grid-cols-5 md:grid-rows-[auto_1fr] md:items-start md:gap-x-12"
+      className={
+        isDesktop ? "grid grid-cols-[minmax(0,1fr)_auto] items-start gap-12" : "flex flex-col gap-5"
+      }
     >
       <h1 className="sr-only">Detail akce</h1>
-      <div className="flex flex-col gap-3 md:col-span-3">
-        <Skeleton className="h-6 w-24 rounded-full" />
-        <Skeleton className="h-8 w-3/4" />
-      </div>
-      <div className="flex flex-col gap-6 md:col-span-2 md:col-start-4 md:row-span-2 md:row-start-1">
-        <div className="flex flex-col gap-4">
-          <Skeleton className="h-10 w-2/3" />
-          <Skeleton className="h-10 w-full" />
-          <Skeleton className="h-10 w-1/2" />
-        </div>
-        <Skeleton className="h-56 rounded-lg" />
-        <Skeleton className="h-2 w-full rounded-full" />
-      </div>
-      <div className="flex flex-col gap-3 md:col-span-3">
-        <Skeleton className="h-6 w-24" />
-        <Skeleton className="h-10 w-1/2" />
-      </div>
+      {heading}
+      {isDesktop ? <div className="w-100 rounded-lg border border-border p-6">{panel}</div> : panel}
     </div>
   )
 }

@@ -1,6 +1,6 @@
 import { screen, within } from "@testing-library/react"
 import userEvent from "@testing-library/user-event"
-import { describe, expect, it, vi } from "vitest"
+import { afterEach, describe, expect, it, vi } from "vitest"
 
 import { expectValidDescriptionList } from "@/test/expectValidDescriptionList"
 import { renderWithRouter } from "@/test/renderWithRouter"
@@ -22,6 +22,7 @@ describe("EventDetailView", () => {
     expect(
       screen.getByRole("heading", { level: 1, name: "Language exchange: CZ/EN/ES" }),
     ).toBeInTheDocument()
+    // Figma: Activity tile with the activity and its category
     expect(screen.getByText("Jazykový tandem")).toBeInTheDocument()
     expect(screen.getByText(/Procvičte si angličtinu/)).toBeInTheDocument()
     expect(screen.getByText("Pá 23. 10. · 17:30")).toBeInTheDocument()
@@ -29,11 +30,12 @@ describe("EventDetailView", () => {
     expect(screen.getByLabelText("Místo akce na mapě")).toBeInTheDocument()
     expect(screen.getByText("Bez schválení")).toBeInTheDocument()
     expect(screen.getByText("Petra")).toBeInTheDocument()
+    expect(screen.getByText("Organizátor · ověřený e-mail")).toBeInTheDocument()
     expect(screen.getByText("Chybí ještě 1")).toBeInTheDocument()
     expect(screen.getByText("3 z 12 · min. 4")).toBeInTheDocument()
-    expect(screen.getByRole("heading", { name: "Účastníci 3" })).toBeInTheDocument()
-    // the facts are a valid <dl> (Termín, Místo, Přihlašování)
-    expectValidDescriptionList(screen.getByText("Termín").closest("dl")!)
+    expect(screen.getByRole("heading", { name: "Přihlášení (3)" })).toBeInTheDocument()
+    // the facts are a valid <dl> (Kdy, Kde, Přihlašování)
+    expectValidDescriptionList(screen.getByText("Kdy").closest("dl")!)
   })
 
   it.each([
@@ -61,7 +63,7 @@ describe("EventDetailView", () => {
     const list = screen.getByRole("list")
     expect(within(list).getAllByRole("listitem")).toHaveLength(4)
     expect(within(list).getByText("Jana Svobodová")).toBeInTheDocument()
-    expect(screen.queryByRole("link", { name: "přihlášení k účtu" })).not.toBeInTheDocument()
+    expect(screen.queryByRole("link", { name: "přihlášení" })).not.toBeInTheDocument()
   })
 
   it("shows only the count when the API sends no names (visitor variant), with a sign-in link back here", async () => {
@@ -72,10 +74,10 @@ describe("EventDetailView", () => {
       />,
     )
 
-    expect(screen.getByRole("heading", { name: "Účastníci 4" })).toBeInTheDocument()
+    expect(screen.getByRole("heading", { name: "Přihlášení (4)" })).toBeInTheDocument()
     expect(screen.queryByText("Jana Svobodová")).not.toBeInTheDocument()
     expect(screen.queryByRole("list")).not.toBeInTheDocument()
-    const signIn = screen.getByRole("link", { name: "přihlášení k účtu" })
+    const signIn = screen.getByRole("link", { name: "přihlášení" })
     expect(signIn.getAttribute("href")).toMatch(/^\/login\?from=/)
     expect(
       decodeURIComponent(
@@ -147,12 +149,24 @@ describe("EventDetailView", () => {
   })
 
   describe("layout (Figma A-05, A-05d)", () => {
-    // `a` comes before `b` in the document, i.e. in the reading order on a phone
-    const isBefore = (a: Node, b: Node) =>
-      Boolean(a.compareDocumentPosition(b) & Node.DOCUMENT_POSITION_FOLLOWING)
+    afterEach(() => vi.unstubAllGlobals())
 
-    const renderDetail = () =>
-      renderWithRouter(
+    // `a` comes before `b` in the document, i.e. in the reading order
+    const inOrder = (...nodes: Node[]) =>
+      nodes
+        .slice(1)
+        .every((node, i) =>
+          Boolean(nodes[i]!.compareDocumentPosition(node) & Node.DOCUMENT_POSITION_FOLLOWING),
+        )
+
+    const renderDetail = async ({ isDesktop }: { isDesktop: boolean }) => {
+      vi.stubGlobal("matchMedia", (query: string) => ({
+        matches: isDesktop,
+        media: query,
+        addEventListener: vi.fn(),
+        removeEventListener: vi.fn(),
+      }))
+      await renderWithRouter(
         <EventDetailView
           event={anEventDetail({ approvedCount: 3, missingToMin: 1 })}
           signInFrom={signInFrom}
@@ -160,34 +174,52 @@ describe("EventDetailView", () => {
           organizerActions={<button type="button">Upravit</button>}
         />,
       )
+      return screen.getByRole("region", { name: "Termín, místo a účast" })
+    }
 
-    it("the panel holds the facts, the map, the capacity and the action, in this order", async () => {
-      await renderDetail()
-      const panel = screen.getByRole("region", { name: "Termín, místo a účast" })
+    it("desktop: the panel holds the capacity, the facts, the map and the actions, in this order", async () => {
+      const panel = await renderDetail({ isDesktop: true })
 
-      const facts = within(panel).getByText("Termín")
-      const map = within(panel).getByLabelText("Místo akce na mapě")
-      const capacity = within(panel).getByText("Chybí ještě 1")
-      const action = within(panel).getByRole("button", { name: "Přijdu" })
-      const organizerAction = within(panel).getByRole("button", { name: "Upravit" })
-      expect(isBefore(facts, map)).toBe(true)
-      expect(isBefore(map, capacity)).toBe(true)
-      expect(isBefore(capacity, action)).toBe(true)
-      expect(isBefore(action, organizerAction)).toBe(true)
+      expect(
+        inOrder(
+          within(panel).getByText("Chybí ještě 1"),
+          within(panel).getByText("Kdy"),
+          within(panel).getByLabelText("Místo akce na mapě"),
+          within(panel).getByRole("button", { name: "Přijdu" }),
+          within(panel).getByRole("button", { name: "Sdílet odkaz" }),
+          within(panel).getByRole("button", { name: "Upravit" }),
+        ),
+      ).toBe(true)
+      // on the left: O akci → Přihlášení → Pořádá
+      const left = ["O akci", "Přihlášení (3)", "Pořádá"].map((name) =>
+        screen.getByRole("heading", { name }),
+      )
+      left.forEach((heading) => expect(panel).not.toContainElement(heading))
+      expect(inOrder(...left)).toBe(true)
     })
 
-    it("on a phone the title comes first, then the panel, then the main content", async () => {
-      await renderDetail()
-      const title = screen.getByRole("heading", { level: 1 })
-      const panel = screen.getByRole("region", { name: "Termín, místo a účast" })
+    it("phone: the capacity right under the title, the action in the bar at the end", async () => {
+      const panel = await renderDetail({ isDesktop: false })
 
-      expect(isBefore(title, panel)).toBe(true)
-      for (const name of ["Pořádá", "O akci", "Účastníci 3"]) {
-        const heading = screen.getByRole("heading", { name })
-        // the main content is outside the panel (left on desktop), after it on a phone
-        expect(panel).not.toContainElement(heading)
-        expect(isBefore(panel, heading)).toBe(true)
-      }
+      expect(
+        inOrder(
+          screen.getByRole("heading", { level: 1 }),
+          within(panel).getByText("Chybí ještě 1"),
+          within(panel).getByText("Kdy"),
+          within(panel).getByLabelText("Místo akce na mapě"),
+          screen.getByRole("heading", { name: "Pořádá" }),
+          screen.getByRole("heading", { name: "O akci" }),
+          screen.getByRole("heading", { name: "Přihlášení (3)" }),
+          screen.getByRole("button", { name: "Přijdu" }),
+        ),
+      ).toBe(true)
+      // the bar above the bottom navigation stays in sight while scrolling
+      expect(screen.getByRole("button", { name: "Přijdu" }).parentElement).toHaveClass(
+        "sticky",
+        "bottom-16",
+      )
+      // sharing is at the top of the page on a phone (the route), not in the panel
+      expect(screen.queryByRole("button", { name: /Sdílet/ })).not.toBeInTheDocument()
     })
   })
 

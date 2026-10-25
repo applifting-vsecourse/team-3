@@ -89,18 +89,23 @@ export function ParticipationAction({
   }
   if (!viewer) {
     return (
-      <Button
-        asChild
-        size="lg"
-        className="self-start"
-      >
-        <Link
-          to={ROUTES.login}
-          search={{ from: signInFrom }}
+      <Row>
+        <Button
+          asChild
+          size="lg"
         >
-          Přihlásit se na akci
-        </Link>
-      </Button>
+          <Link
+            to={ROUTES.login}
+            search={{ from: signInFrom }}
+          >
+            Přihlásit se na akci
+          </Link>
+        </Button>
+        {/* Figma A-05d; sign-up keeps the way back too (B-012) */}
+        <Note>
+          Přihlásit se na akci můžeš s účtem. Po přihlášení nebo registraci tě vrátíme sem.
+        </Note>
+      </Row>
     )
   }
   if (!viewer.emailVerified) {
@@ -179,14 +184,18 @@ function JoinControl({ event, isOrganizer, isPending, onJoin, onLeave }: JoinCon
   // the organizer joins at once even with approval (Q12); anyone else asks
   if (event.approvalMode === "approval" && !isOrganizer) {
     return (
-      <ConfirmButton
-        variant="default"
-        label="Poslat žádost"
-        title="Poslat žádost o účast?"
-        description="Organizátor žádost schválí, nebo zamítne. Dokud nerozhodne, můžeš ji stáhnout."
-        isPending={isPending}
-        onConfirm={onJoin}
-      />
+      <>
+        <ConfirmButton
+          variant="default"
+          label="Poslat žádost"
+          title="Poslat žádost o účast?"
+          description="Organizátor žádost schválí, nebo zamítne. Dokud nerozhodne, můžeš ji stáhnout."
+          isPending={isPending}
+          onConfirm={onJoin}
+        />
+        {/* Figma A-05, under the button in the bar */}
+        <Note>Organizátor žádost schválí, nebo zamítne. Do začátku akce ji můžeš stáhnout.</Note>
+      </>
     )
   }
   return (
@@ -294,8 +303,9 @@ function ManageLink({ eventId }: { eventId: string }) {
   )
 }
 
+// Stacked, the buttons take the width of the bar or the panel (Figma A-05, A-05d).
 function Row({ children }: { children: ReactNode }) {
-  return <div className="flex flex-wrap items-center gap-3">{children}</div>
+  return <div className="flex flex-col gap-3">{children}</div>
 }
 
 function Note({ children }: { children: string }) {
