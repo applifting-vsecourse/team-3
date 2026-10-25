@@ -93,9 +93,11 @@ function EditEventPage() {
                     // Back where the edit was opened (the detail or Správa akce), so the
                     // saved form isn't behind „Zpět“; the detail is updated in the cache.
                     // Opened from a link, there is no back: the detail replaces the form.
-                    if (canGoBack) router.history.back()
-                    else
-                      {void navigate({ to: ROUTES.eventDetail, params: { eventId }, replace: true })}
+                    if (canGoBack) {
+                      router.history.back()
+                    } else {
+                      void navigate({ to: ROUTES.eventDetail, params: { eventId }, replace: true })
+                    }
                   },
                 })
               }
