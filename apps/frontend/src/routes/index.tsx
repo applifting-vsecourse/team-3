@@ -1,64 +1,24 @@
-import { createFileRoute, Link } from "@tanstack/react-router"
+import { createFileRoute } from "@tanstack/react-router"
 
-import { ROUTES } from "@/app/routes"
 import { Seo } from "@/components/Seo"
-import { Button } from "@/components/ui/button"
 
 import { AppHeader } from "@/features/auth/components/AppHeader"
 import { useSession } from "@/features/auth/hooks/useSession"
+import { LandingView } from "@/features/events/components/LandingView"
 
 export const Route = createFileRoute("/")({
   component: LandingPage,
 })
 
-// Placeholder until the real landing page with upcoming events (US-01, #36).
 function LandingPage() {
-  const { user } = useSession()
+  const { user, isPending } = useSession()
 
   return (
     <>
       <Seo />
       <AppHeader />
-      <main className="flex-1">
-        <section className="mx-auto w-full max-w-2xl px-4 pt-16 pb-12 text-center">
-          <h1 className="text-4xl font-bold tracking-tight text-balance sm:text-5xl">
-            Najdi partu na svůj koníček.
-          </h1>
-          <p className="mx-auto mt-4 max-w-md text-lg text-pretty text-muted-foreground">
-            HobbyHub spojuje lidi, kteří chtějí sportovat, hrát nebo tvořit spolu. Najdi akci ve
-            svém okolí, nebo založ vlastní, když ti chybí lidi.
-          </p>
-
-          {/* The call to action depends on who is asking: no point offering an
-              account to someone who already has one. */}
-          <div className="mt-8 flex flex-wrap items-center justify-center gap-3">
-            {user ? (
-              <Button
-                asChild
-                size="lg"
-              >
-                <Link to={ROUTES.events}>Procházet akce</Link>
-              </Button>
-            ) : (
-              <>
-                <Button
-                  asChild
-                  size="lg"
-                >
-                  <Link to={ROUTES.signup}>Zaregistrovat se</Link>
-                </Button>
-                <Button
-                  asChild
-                  size="lg"
-                  variant="outline"
-                >
-                  <Link to={ROUTES.events}>Procházet akce</Link>
-                </Button>
-              </>
-            )}
-          </div>
-        </section>
-      </main>
+      {/* Wait for the session, so a signed-in user never sees the invitation flash. */}
+      <LandingView shouldInviteToSignUp={!user && !isPending} />
     </>
   )
 }
