@@ -1,9 +1,12 @@
+import { useQuery } from "@tanstack/react-query"
 import { useLocation } from "@tanstack/react-router"
 import { Loader2 } from "lucide-react"
 import { toast } from "sonner"
 
 import { Button } from "@/components/ui/button"
 
+import { simulatedInboxQueryOptions } from "@/features/auth/api/simulatedInbox"
+import { SimulatedInboxDialog } from "@/features/auth/components/SimulatedInboxDialog"
 import { useResendVerificationEmail } from "@/features/auth/hooks/useResendVerificationEmail"
 import { resendFrom } from "@/features/auth/lib/callback-url"
 
@@ -15,6 +18,7 @@ import { resendFrom } from "@/features/auth/lib/callback-url"
 export function VerifyEmailBanner({ email }: { email: string }) {
   const resend = useResendVerificationEmail()
   const location = useLocation()
+  const inbox = useQuery(simulatedInboxQueryOptions(email))
 
   return (
     <div
@@ -26,26 +30,36 @@ export function VerifyEmailBanner({ email }: { email: string }) {
           Ověř si e-mail: odkaz jsme poslali na <span className="font-semibold">{email}</span>. Bez
           ověření se nejde přihlásit na akci ani nic založit.
         </p>
-        <Button
-          variant="outline"
-          size="sm"
-          disabled={resend.isPending}
-          onClick={() =>
-            resend.mutate(
-              { email, from: resendFrom(location) },
-              {
-                onSuccess: (result) =>
-                  result === "already-verified"
-                    ? toast.success("E-mail už je ověřený.")
-                    : toast.success(`Nový odkaz je na cestě na ${email}. Platí 24 hodin.`),
-                onError: (error) => toast.error(error.message),
-              },
-            )
-          }
-        >
-          {resend.isPending ? <Loader2 className="size-4 animate-spin" /> : null}
-          Poslat odkaz znovu
-        </Button>
+        <div className="flex flex-wrap gap-2">
+          <Button
+            variant="outline"
+            size="sm"
+            disabled={resend.isPending}
+            onClick={() =>
+              resend.mutate(
+                { email, from: resendFrom(location) },
+                {
+                  onSuccess: (result) =>
+                    result === "already-verified"
+                      ? toast.success("E-mail už je ověřený.")
+                      : toast.success(`Nový odkaz je na cestě na ${email}. Platí 24 hodin.`),
+                  onError: (error) => toast.error(error.message),
+                },
+              )
+            }
+          >
+            {resend.isPending ? <Loader2 className="size-4 animate-spin" /> : null}
+            Poslat odkaz znovu
+          </Button>
+          {/* only where e-mails are simulated; real ones (404) or an error: nothing */}
+          {inbox.data ? (
+            <SimulatedInboxDialog
+              email={email}
+              messages={inbox.data.messages}
+              onOpen={() => void inbox.refetch()}
+            />
+          ) : null}
+        </div>
       </div>
     </div>
   )

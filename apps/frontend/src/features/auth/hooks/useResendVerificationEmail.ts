@@ -2,6 +2,7 @@ import { useMutation, useQueryClient } from "@tanstack/react-query"
 
 import { authKeys } from "@/lib/auth-keys"
 
+import { simulatedInboxKeys } from "@/features/auth/api/simulatedInbox"
 import { authClient } from "@/features/auth/lib/auth-client"
 import { toAuthRequestError } from "@/features/auth/lib/auth-errors"
 import { afterVerificationUrl } from "@/features/auth/lib/callback-url"
@@ -33,6 +34,9 @@ export function useResendVerificationEmail() {
     onSuccess: (result) => {
       if (result === "already-verified") {
         void queryClient.invalidateQueries({ queryKey: authKeys.session() })
+      } else {
+        // where e-mails are simulated, the new one is there to open (#58)
+        void queryClient.invalidateQueries({ queryKey: simulatedInboxKeys.all() })
       }
     },
   })
