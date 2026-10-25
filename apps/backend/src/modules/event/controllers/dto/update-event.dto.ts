@@ -105,6 +105,7 @@ export class UpdateEventDto {
   })
   @IsOptional()
   @IsDateString({ strict: true })
+  @Validate(ParsableDate)
   endsAt?: string | null;
 
   @ApiPropertyOptional({ minimum: 1 })
