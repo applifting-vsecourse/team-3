@@ -90,12 +90,17 @@ function EventDetailPage() {
                       onError: (joinError) => toast.error(joinError.message),
                     })
                   }
-                  onLeave={() =>
+                  onLeave={() => {
+                    // a withdrawn request never had a place to give up
+                    const isWithdrawingRequest = event.myParticipation === "pending"
                     leave.mutate(undefined, {
-                      onSuccess: () => toast.success("Na akci už nejdeš."),
+                      onSuccess: () =>
+                        toast.success(
+                          isWithdrawingRequest ? "Žádost je stažená." : "Na akci už nejdeš.",
+                        ),
                       onError: (leaveError) => toast.error(leaveError.message),
                     })
-                  }
+                  }}
                 />
               ) : null
             }

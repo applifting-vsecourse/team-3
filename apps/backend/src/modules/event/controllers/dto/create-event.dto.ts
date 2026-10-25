@@ -1,3 +1,4 @@
+import { LAST_STORABLE_TIME } from '@/modules/event/domain/event-dates';
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { Transform } from 'class-transformer';
 import {
@@ -42,13 +43,38 @@ class MaxNotBelowMin implements ValidatorConstraintInterface {
 
 @ValidatorConstraint({ name: 'endsAfterStart' })
 class EndsAfterStart implements ValidatorConstraintInterface {
-  validate(endsAt: string, args: ValidationArguments): boolean {
-    const { startsAt } = args.object as CreateEventDto;
-    return !startsAt || new Date(endsAt) > new Date(startsAt);
+  validate(endsAt: unknown, args: ValidationArguments): boolean {
+    const { startsAt } = args.object as { startsAt?: unknown };
+    // a missing, non-string or unreadable date is IsDateString's and
+    // ParsableDate's to report (Date.parse of an object can even throw)
+    if (typeof startsAt !== 'string' || typeof endsAt !== 'string') return true;
+    const start = Date.parse(startsAt);
+    const end = Date.parse(endsAt);
+    return Number.isNaN(start) || Number.isNaN(end) || end > start;
   }
 
   defaultMessage(): string {
     return 'endsAt must be after startsAt';
+  }
+}
+
+/**
+ * validator.js's ISO 8601 also takes week dates („2027-W10-3“) and a decimal
+ * comma („…T18:00:00,5Z“), which `new Date` can't read: such a date reached
+ * the database as an Invalid Date and failed with a 500 instead of a 400.
+ * `Date.parse` is the parser `new Date` uses. A start or end that is the year
+ * 10000 in UTC (e.g. „9999-12-31T23:30:00-01:00“) can't be stored either.
+ */
+@ValidatorConstraint({ name: 'parsableDate' })
+export class ParsableDate implements ValidatorConstraintInterface {
+  validate(value: unknown): boolean {
+    if (typeof value !== 'string') return false;
+    const time = Date.parse(value);
+    return !Number.isNaN(time) && time <= LAST_STORABLE_TIME;
+  }
+
+  defaultMessage(args: ValidationArguments): string {
+    return `${args.property} must be a date and time like 2026-11-02T17:00:00Z`;
   }
 }
 
@@ -109,11 +135,13 @@ export class CreateEventDto {
     description: 'Must be in the future',
   })
   @IsDateString({ strict: true })
+  @Validate(ParsableDate)
   startsAt!: string;
 
   @ApiPropertyOptional({ type: String, format: 'date-time' })
   @IsOptional()
   @IsDateString({ strict: true })
+  @Validate(ParsableDate)
   @Validate(EndsAfterStart)
   endsAt?: string;
 

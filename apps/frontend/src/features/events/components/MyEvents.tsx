@@ -1,6 +1,6 @@
 import { useId, type ReactNode } from "react"
 import { Link } from "@tanstack/react-router"
-import { Info, Plus, RefreshCw } from "lucide-react"
+import { Info, RefreshCw } from "lucide-react"
 
 import { ROUTES } from "@/app/routes"
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
@@ -17,6 +17,10 @@ import {
   organizingStatus,
   pendingRequestsSummary,
 } from "@/features/events/lib/myEvents"
+
+// Figma C-01d, C-02d: three columns on a wide desktop like Moje skupiny, one on mobile
+// grid-cols-1 = minmax(0, 1fr): a long title truncates instead of widening the page on mobile
+const GRID = "grid grid-cols-1 gap-3 md:grid-cols-2 md:gap-4 lg:grid-cols-3"
 
 /**
  * Přihlášen (Figma C-01): requests waiting for approval on top, then the
@@ -73,7 +77,7 @@ function AttendingSection({ title, events }: { title: string; events: MyEvent[] 
       >
         {title}
       </h2>
-      <ul className="flex flex-col gap-3">
+      <ul className={GRID}>
         {events.map((event) => (
           <li key={event.id}>
             <EventCard
@@ -91,7 +95,7 @@ function AttendingSection({ title, events }: { title: string; events: MyEvent[] 
 function MyEventsLoading() {
   return (
     <div
-      className="flex flex-col gap-3"
+      className={GRID}
       aria-busy
       aria-label="Načítám akce"
     >
@@ -132,7 +136,7 @@ function MyEventsEmpty({ children }: { children: ReactNode }) {
 /**
  * Pořádám (Figma C-02): the events I created, soonest first, cancelled ones
  * with their label. The strip on top sums up the requests to decide; a card
- * opens the event's management. „Založit akci“ floats at the end.
+ * opens the event's management. „Založit akci“ is the page's, in both tabs.
  */
 export function OrganizingEvents({ viewerId }: { viewerId: string }) {
   const { events, isPending, error, retry } = useMyEvents("organizing", viewerId)
@@ -160,7 +164,7 @@ export function OrganizingEvents({ viewerId }: { viewerId: string }) {
               <AlertDescription>{summary.events}</AlertDescription>
             </Alert>
           ) : null}
-          <ul className="flex flex-col gap-3">
+          <ul className={GRID}>
             {events.map((event) => (
               <li key={event.id}>
                 <EventCard
@@ -174,19 +178,6 @@ export function OrganizingEvents({ viewerId }: { viewerId: string }) {
           </ul>
         </>
       )}
-      {/* mobile: floats above the bottom navigation while the list scrolls, then
-          rests under it; on desktop „Založit akci“ is in the header (C-02d) */}
-      <div className="sticky bottom-20 flex justify-end md:hidden">
-        <Button
-          asChild
-          className="h-11 shadow-md"
-        >
-          <Link to={ROUTES.newEvent}>
-            <Plus />
-            Založit akci
-          </Link>
-        </Button>
-      </div>
     </div>
   )
 }

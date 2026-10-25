@@ -53,9 +53,15 @@ export const eventDetailSchema = publicEventSchema.extend({
 
 export type EventDetail = z.infer<typeof eventDetailSchema>
 
-/** GET /api/events/:id/participants — only for the organizer (#43); requests come with #53. */
+const eventRequestSchema = eventParticipantSchema.extend({ requestedAt: z.coerce.date() })
+
+export type EventRequest = z.infer<typeof eventRequestSchema>
+
+/** GET /api/events/:id/participants — only for the organizer: who is in and who is waiting (#43, #53). */
 export const eventParticipantsSchema = z.object({
   participants: z.array(eventParticipantSchema),
+  /** Requests waiting for the organizer, oldest first; always empty without approval. */
+  requests: z.array(eventRequestSchema),
 })
 
 /** Tabs of „Moje akce“ in the API (B-035); Proběhlé comes with #61. */
@@ -92,6 +98,8 @@ export type EventInput = {
   lng: number
   address: string
   startsAt: string
+  /** Optional (B-021); null clears it when editing. */
+  endsAt: string | null
   minParticipants: number
   maxParticipants: number
   approvalMode: "open" | "approval"

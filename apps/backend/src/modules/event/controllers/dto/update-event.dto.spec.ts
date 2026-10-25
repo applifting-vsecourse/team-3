@@ -14,10 +14,30 @@ describe('UpdateEventDto', () => {
     expect(invalid({ title: 'Nový název', maxParticipants: 8 })).toEqual([]);
   });
 
+  it('the end is a date-time, and null clears it', () => {
+    expect(invalid({ endsAt: '2026-11-02T20:00:00.000Z' })).toEqual([]);
+    expect(invalid({ endsAt: null })).toEqual([]);
+    expect(invalid({ endsAt: 'zítra' })).toEqual(['endsAt']);
+  });
+
   it('the activity and the way of joining cannot be changed', () => {
     expect(
       invalid({ activityId: 'a1', approvalMode: 'approval' }).sort(),
     ).toEqual(['activityId', 'approvalMode']);
+  });
+
+  it("a start a Date can't read (an ISO week date) is a 400, not a 500", () => {
+    expect(invalid({ startsAt: '2027-W10-3' })).toEqual(['startsAt']);
+    expect(invalid({ startsAt: '2026-11-02T17:00:00.000Z' })).toEqual([]);
+  });
+
+  it("an end a Date can't read, or the year 10000 in UTC, is a 400 too; null still clears it", () => {
+    expect(invalid({ endsAt: '2027-W10-3' })).toEqual(['endsAt']);
+    expect(invalid({ endsAt: '2026-11-02T19:00:00,5Z' })).toEqual(['endsAt']);
+    expect(invalid({ endsAt: '9999-12-31T23:30:00-01:00' })).toEqual([
+      'endsAt',
+    ]);
+    expect(invalid({ endsAt: null })).toEqual([]);
   });
 
   it('nor the organizer', () => {

@@ -66,8 +66,9 @@ export const eventDetailQueryOptions = (eventId: string, viewerId: string | null
   })
 
 /**
- * Who is in, for the management page (#43). Only the organizer may ask (the
- * API answers anyone else 403), so the page asks once the detail says so.
+ * Who is in and who is waiting, for the management page (#43, #53). Only the
+ * organizer may ask (the API answers anyone else 403), so the page asks once
+ * the detail says so.
  */
 export const eventParticipantsQueryOptions = (
   eventId: string,
@@ -80,7 +81,7 @@ export const eventParticipantsQueryOptions = (
       ? async () =>
           eventParticipantsSchema.parse(
             await api.get(`events/${encodeURIComponent(eventId)}/participants`).json(),
-          ).participants
+          )
       : skipToken,
   })
 

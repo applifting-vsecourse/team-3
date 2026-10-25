@@ -10,6 +10,7 @@ import { authSessionQueryOptions } from "@/features/auth/api/authSessionQueryOpt
 import { SignUpForm } from "@/features/auth/components/SignUpForm"
 import { useSignUp } from "@/features/auth/hooks/useSignUp"
 import { safeRedirect } from "@/features/auth/lib/redirect"
+import { NearestEvents } from "@/features/events/components/NearestEvents"
 
 // `from`: the page to come back to, e.g. the event (B-012)
 const signUpSearchParamsSchema = z.object({
@@ -39,7 +40,8 @@ function SignUpPage() {
     try {
       // signed in at once; the verification link leads back to `from` too
       await signUp.mutateAsync({ ...values, from })
-      await navigate({ href: safeRedirect(from, ROUTES.events) })
+      // replace: „Zpět“ on the page we return to mustn't lead back to the form
+      await navigate({ href: safeRedirect(from, ROUTES.events), replace: true })
     } catch (error) {
       setErrorMessage(
         error instanceof Error ? error.message : "Registrace se nepovedla. Zkus to prosím znovu.",
@@ -51,6 +53,7 @@ function SignUpPage() {
     <>
       <Seo title="Registrace" />
       <AuthLayout
+        aside={<NearestEvents />}
         title="Registrace"
         description="Jeden účet pro přihlašování na akce i jejich pořádání."
         footer={
@@ -59,6 +62,8 @@ function SignUpPage() {
             <Link
               to={ROUTES.login}
               search={{ from }}
+              // switching between sign-in and sign-up doesn't pile up in the history
+              replace
               className="font-medium text-foreground underline underline-offset-4"
             >
               Přihlas se

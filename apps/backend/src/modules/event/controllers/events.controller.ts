@@ -29,6 +29,7 @@ import {
 import { CancelEventDto } from './dto/cancel-event.dto';
 import { CreateEventDto } from './dto/create-event.dto';
 import { CreatedEventResponseDto } from './dto/created-event.response.dto';
+import { DecideRequestsDto } from './dto/decide-requests.dto';
 import { EventDetailResponseDto } from './dto/event-detail.response.dto';
 import { EventParticipantsResponseDto } from './dto/event-participants.response.dto';
 import { ListEventsQueryDto } from './dto/list-events.query.dto';
@@ -170,7 +171,7 @@ export class EventsController {
   @ApiCookieAuth()
   @ApiOperation({
     summary:
-      "Who is in, for the event's management page (B-033); only its organizer",
+      "Who is in and who is waiting, for the event's management page (B-033); only its organizer",
   })
   @ApiResponse({ status: 200, type: EventParticipantsResponseDto })
   @ApiResponse({ status: 401, description: 'Not signed in' })
@@ -182,6 +183,75 @@ export class EventsController {
   ): Promise<EventParticipantsResponseDto> {
     return EventParticipantsResponseDto.fromDomain(
       await this.eventsService.getParticipants(id, user.id),
+    );
+  }
+
+  @Post(':id/participants/approve')
+  @HttpCode(200)
+  @UseGuards(VerifiedUserGuard)
+  @ApiCookieAuth()
+  @ApiOperation({
+    summary:
+      'Approve waiting requests (B-033, #53), all or none; only the organizer',
+  })
+  @ApiResponse({ status: 200, type: EventParticipantsResponseDto })
+  @ApiResponse({ status: 400, description: 'Missing or invalid userIds' })
+  @ApiResponse({ status: 401, description: 'Not signed in' })
+  @ApiResponse({
+    status: 403,
+    description: 'NOT_ORGANIZER, EMAIL_NOT_VERIFIED or USER_BLOCKED',
+  })
+  @ApiResponse({ status: 404, description: 'No such event for this user' })
+  @ApiResponse({
+    status: 409,
+    description:
+      'EVENT_FULL (nothing approved), NOT_PENDING, EVENT_CANCELLED or EVENT_STARTED',
+  })
+  async approve(
+    @Param('id') id: string,
+    @Body() body: DecideRequestsDto,
+    @User() user: Identity,
+  ): Promise<EventParticipantsResponseDto> {
+    return EventParticipantsResponseDto.fromDomain(
+      await this.eventsService.decideRequests(
+        id,
+        user.id,
+        body.userIds,
+        'approve',
+      ),
+    );
+  }
+
+  // Rejecting takes no place, so a session is enough (like cancelling).
+  @Post(':id/participants/reject')
+  @HttpCode(200)
+  @UseGuards(AuthenticatedUserGuard)
+  @ApiCookieAuth()
+  @ApiOperation({
+    summary:
+      'Reject waiting requests (B-033, #53), all or none; only the organizer',
+  })
+  @ApiResponse({ status: 200, type: EventParticipantsResponseDto })
+  @ApiResponse({ status: 400, description: 'Missing or invalid userIds' })
+  @ApiResponse({ status: 401, description: 'Not signed in' })
+  @ApiResponse({ status: 403, description: 'NOT_ORGANIZER' })
+  @ApiResponse({ status: 404, description: 'No such event for this user' })
+  @ApiResponse({
+    status: 409,
+    description: 'NOT_PENDING, EVENT_CANCELLED or EVENT_STARTED',
+  })
+  async reject(
+    @Param('id') id: string,
+    @Body() body: DecideRequestsDto,
+    @User() user: Identity,
+  ): Promise<EventParticipantsResponseDto> {
+    return EventParticipantsResponseDto.fromDomain(
+      await this.eventsService.decideRequests(
+        id,
+        user.id,
+        body.userIds,
+        'reject',
+      ),
     );
   }
 
@@ -268,6 +338,13 @@ export class EventsController {
         description:
           body.description === undefined ? undefined : body.description || null,
         startsAt: body.startsAt ? new Date(body.startsAt) : undefined,
+        // null clears the end, a missing field keeps it
+        endsAt:
+          body.endsAt === undefined
+            ? undefined
+            : body.endsAt === null
+              ? null
+              : new Date(body.endsAt),
       }),
     );
   }

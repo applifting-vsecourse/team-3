@@ -40,7 +40,8 @@ function ResetPasswordPage() {
       // the login page would still see the cached session and send the user on
       queryClient.setQueryData(authKeys.session(), null)
       toast.success("Heslo je změněné. Přihlas se novým heslem.")
-      await navigate({ to: ROUTES.login })
+      // replace: the used reset form isn't a page to go back to
+      await navigate({ to: ROUTES.login, replace: true })
     } catch (resetError) {
       setErrorMessage(
         resetError instanceof Error ? resetError.message : "Heslo se nepodařilo změnit",

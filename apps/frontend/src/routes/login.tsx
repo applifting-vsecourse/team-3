@@ -10,6 +10,7 @@ import { authSessionQueryOptions } from "@/features/auth/api/authSessionQueryOpt
 import { SignInForm } from "@/features/auth/components/SignInForm"
 import { useSignIn } from "@/features/auth/hooks/useSignIn"
 import { safeRedirect } from "@/features/auth/lib/redirect"
+import { NearestEvents } from "@/features/events/components/NearestEvents"
 
 // `from`: the page to come back to, e.g. the event (B-012)
 const loginSearchParamsSchema = z.object({
@@ -40,7 +41,10 @@ function LoginPage() {
     try {
       await signIn.mutateAsync(values)
       // href, not to: the page may come with its search (the list's filters)
-      await navigate({ href: safeRedirect(from, ROUTES.events) })
+      // replace: „Zpět“ on the page we return to mustn't lead back to the login.
+      // Coming from an event, it is then in the history twice (one „Zpět“ shows
+      // it again): the login can't see the entry before it, so it can't go back.
+      await navigate({ href: safeRedirect(from, ROUTES.events), replace: true })
     } catch (error) {
       setErrorMessage(
         error instanceof Error ? error.message : "Přihlášení se nepovedlo. Zkus to prosím znovu.",
@@ -52,6 +56,7 @@ function LoginPage() {
     <>
       <Seo title="Přihlášení" />
       <AuthLayout
+        aside={<NearestEvents />}
         title="Přihlášení"
         description={from ? "Po přihlášení tě vrátíme zpátky." : "Vítej zpátky v HobbyHubu."}
         footer={
@@ -60,6 +65,8 @@ function LoginPage() {
             <Link
               to={ROUTES.signup}
               search={{ from }}
+              // switching between sign-in and sign-up doesn't pile up in the history
+              replace
               className="font-medium text-foreground underline underline-offset-4"
             >
               Zaregistruj se

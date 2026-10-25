@@ -54,15 +54,10 @@ describe("groupFacts", () => {
 })
 
 describe("myGroupTypeLabel", () => {
-  it("says where I stand (Figma A-07m)", () => {
-    expect(
-      myGroupTypeLabel({ type: "closed", membership: { role: "member", status: "pending" } }),
-    ).toBe("Neveřejná – žádost čeká na schválení")
-    expect(
-      myGroupTypeLabel({ type: "public", membership: { role: "member", status: "active" } }),
-    ).toBe("Veřejná")
-    expect(
-      myGroupTypeLabel({ type: "public", membership: { role: "admin", status: "active" } }),
-    ).toBe("Veřejná · Správce")
+  it("says that my request waits, else just the type (the role is the section)", () => {
+    expect(myGroupTypeLabel({ type: "closed", membership: { status: "pending" } })).toBe(
+      "Neveřejná – žádost čeká na schválení",
+    )
+    expect(myGroupTypeLabel({ type: "public", membership: { status: "active" } })).toBe("Veřejná")
   })
 })

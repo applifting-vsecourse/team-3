@@ -43,6 +43,15 @@ export type PublicEvent = {
 /** An approved participant, as listed on the event detail. */
 export type EventParticipant = { id: string; name: string };
 
+/** A request waiting for the organizer (#53), with when it was sent. */
+export type EventRequest = { id: string; name: string; requestedAt: Date };
+
+/** What the organizer's management page lists (#43, #53). */
+export type EventManagementView = {
+  participants: EventParticipant[];
+  requests: EventRequest[];
+};
+
 /** An event on its detail page (B-026). */
 export type EventDetail = PublicEvent & {
   description: string | null;
@@ -105,6 +114,7 @@ export type EventChanges = Partial<
     | 'lng'
     | 'address'
     | 'startsAt'
+    | 'endsAt'
     | 'minParticipants'
     | 'maxParticipants'
   >

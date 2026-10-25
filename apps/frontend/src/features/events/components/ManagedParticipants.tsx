@@ -5,6 +5,7 @@ import { PersonRow } from "@/components/PersonRow/PersonRow"
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 import { Button } from "@/components/ui/button"
 import { Skeleton } from "@/components/ui/skeleton"
+import { cn } from "@/lib/utils"
 
 import type { EventParticipant } from "@/features/events/api/eventSchemas"
 
@@ -13,14 +14,21 @@ type ManagedParticipantsProps = {
   participants: EventParticipant[] | undefined
   error: Error | undefined
   onRetry: () => void
+  /** Inside a tab the tab names the list: the heading stays for screen readers only. */
+  isHeadingHidden?: boolean
 }
 
 /**
  * Who is coming, on the organizer's management page (Figma D-03, #43), in
- * the order they got their place. Pending requests are #53, removing
- * someone #60.
+ * the order they got their place. Waiting requests are ManagedRequests
+ * (#53), removing someone is #60.
  */
-export function ManagedParticipants({ participants, error, onRetry }: ManagedParticipantsProps) {
+export function ManagedParticipants({
+  participants,
+  error,
+  onRetry,
+  isHeadingHidden = false,
+}: ManagedParticipantsProps) {
   const headingId = useId()
   return (
     <section
@@ -29,7 +37,7 @@ export function ManagedParticipants({ participants, error, onRetry }: ManagedPar
     >
       <h2
         id={headingId}
-        className="text-lg font-semibold tracking-tight"
+        className={cn("text-lg font-semibold tracking-tight", isHeadingHidden && "sr-only")}
       >
         Účastníci{" "}
         {participants ? (
