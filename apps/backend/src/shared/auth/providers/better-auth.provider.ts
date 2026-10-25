@@ -31,7 +31,6 @@ const createAuth = (
       provider: 'postgresql',
     }),
     trustedOrigins: [config.frontendUrl],
-    // the session check every page load makes isn't limited per IP (a classroom)
     rateLimit: rateLimitOptions,
     plugins: [...(betterAuthCoreConfig.plugins ?? [])],
   });
