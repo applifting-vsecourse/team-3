@@ -827,4 +827,16 @@ describe('EventsService.decideRequests (#53)', () => {
     ).rejects.toThrow(NotFoundException);
     expect(repository.decideRequests).not.toHaveBeenCalled();
   });
+
+  it('an event gone before the lock is 404 in Czech, like the detail', async () => {
+    const { repository, service } = setup();
+    repository.decideRequests.mockResolvedValue(null);
+
+    const error = (await service
+      .decideRequests('e1', 'u1', ['u5'], 'approve', now)
+      .catch((e: unknown) => e)) as NotFoundException;
+
+    expect(error).toBeInstanceOf(NotFoundException);
+    expect(error.message).toBe('Akce neexistuje.');
+  });
 });

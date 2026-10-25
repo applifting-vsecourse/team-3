@@ -289,7 +289,7 @@ export class EventsService {
       (state) => decideRequests(state, decision, now),
       now,
     );
-    if (!result) throw new NotFoundException('Event not found');
+    if (!result) throw new NotFoundException('Akce neexistuje.');
     if (!result.ok) throw refused(result.refusal);
     return this.getParticipants(eventId, userId, now);
   }
