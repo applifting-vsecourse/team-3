@@ -7,6 +7,7 @@ import { BackLink } from "@/components/BackLink/BackLink"
 import { Seo } from "@/components/Seo"
 import { Button } from "@/components/ui/button"
 import { DESKTOP_QUERY, useMediaQuery } from "@/hooks/useMediaQuery"
+import { PAGE } from "@/lib/pageLayout"
 import { cn } from "@/lib/utils"
 
 import { useSession } from "@/features/auth/hooks/useSession"
@@ -20,7 +21,6 @@ import { GroupManagement } from "@/features/groups/components/GroupManagement"
 import { GroupFacts, GroupHeading } from "@/features/groups/components/GroupSummary"
 import { InactiveGroupNotice } from "@/features/groups/components/InactiveGroupNotice"
 import { GROUP_TYPE_FOR_ADMIN } from "@/features/groups/lib/formatGroup"
-import { GROUPS_PAGE } from "@/features/groups/lib/pageLayout"
 
 export const Route = createFileRoute("/_ProtectedPages/skupiny/$groupId/sprava")({
   component: ManageGroupPage,
@@ -51,7 +51,7 @@ function ManageGroupPage() {
   return (
     <>
       <Seo title="Správa skupiny" />
-      <div className={cn(GROUPS_PAGE, "gap-4")}>
+      <div className={cn(PAGE, "gap-4")}>
         <BackLink
           to="/skupiny/$groupId"
           params={{ groupId }}

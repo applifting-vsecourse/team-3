@@ -10,6 +10,7 @@ import { authSessionQueryOptions } from "@/features/auth/api/authSessionQueryOpt
 import { SignUpForm } from "@/features/auth/components/SignUpForm"
 import { useSignUp } from "@/features/auth/hooks/useSignUp"
 import { safeRedirect } from "@/features/auth/lib/redirect"
+import { NearestEvents } from "@/features/events/components/NearestEvents"
 
 // `from`: the page to come back to, e.g. the event (B-012)
 const signUpSearchParamsSchema = z.object({
@@ -51,6 +52,7 @@ function SignUpPage() {
     <>
       <Seo title="Registrace" />
       <AuthLayout
+        aside={<NearestEvents />}
         title="Registrace"
         description="Jeden účet pro přihlašování na akce i jejich pořádání."
         footer={

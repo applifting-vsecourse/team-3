@@ -15,8 +15,9 @@ import { myGroupTypeLabel } from "@/features/groups/lib/formatGroup"
 
 /**
  * „Moje“ on /skupiny (Figma A-07m, A-07md; B-056): my requests waiting for
- * approval on top, then the groups I am in, like Moje akce (C-01). No
- * filters here, all my groups show. A group I run opens its management.
+ * approval on top, then the groups I run and the groups I am a member of,
+ * like Moje akce (C-01). No filters here, all my groups show. A group I run
+ * opens its management.
  */
 export function MyGroups({ viewerId }: { viewerId: string }) {
   const query = useQuery(myGroupsQueryOptions(viewerId))
@@ -55,7 +56,9 @@ export function MyGroups({ viewerId }: { viewerId: string }) {
   }
 
   const pending = query.data.filter((group) => group.membership.status === "pending")
-  const mine = query.data.filter((group) => group.membership.status === "active")
+  const active = query.data.filter((group) => group.membership.status === "active")
+  const running = active.filter((group) => group.membership.role === "admin")
+  const joined = active.filter((group) => group.membership.role === "member")
 
   if (query.data.length === 0) {
     return (
@@ -79,10 +82,16 @@ export function MyGroups({ viewerId }: { viewerId: string }) {
           groups={pending}
         />
       ) : null}
-      {mine.length > 0 ? (
+      {running.length > 0 ? (
         <MyGroupsSection
-          title={`Moje skupiny (${mine.length})`}
-          groups={mine}
+          title={`Spravuju (${running.length})`}
+          groups={running}
+        />
+      ) : null}
+      {joined.length > 0 ? (
+        <MyGroupsSection
+          title={`Jsem členem (${joined.length})`}
+          groups={joined}
         />
       ) : null}
     </div>
