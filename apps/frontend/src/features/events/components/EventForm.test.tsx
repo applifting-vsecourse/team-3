@@ -1,6 +1,7 @@
-import { render, screen } from "@testing-library/react"
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query"
+import { render, screen, waitFor } from "@testing-library/react"
 import userEvent from "@testing-library/user-event"
-import { describe, expect, it, vi } from "vitest"
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest"
 
 import type { Catalog } from "@/lib/catalog/catalogSearch"
 
@@ -33,17 +34,63 @@ const catalog: Catalog = {
 const renderForm = (props: Partial<Parameters<typeof EventForm>[0]> = {}) => {
   const onSubmit = vi.fn()
   render(
-    <EventForm
-      catalog={catalog}
-      isSubmitting={false}
-      onSubmit={onSubmit}
-      {...props}
-    />,
+    <QueryClientProvider client={new QueryClient({ defaultOptions: { queries: { retry: 0 } } })}>
+      <EventForm
+        catalog={catalog}
+        isSubmitting={false}
+        onSubmit={onSubmit}
+        {...props}
+      />
+    </QueryClientProvider>,
   )
   return { onSubmit }
 }
 
 const submit = () => userEvent.click(screen.getByRole("button", { name: "Zveřejnit akci" }))
+
+/** The address service (Photon) answering with these places. */
+const answerAddresses = (...features: object[]) => {
+  const fetchMock = vi.fn(() =>
+    Promise.resolve(Response.json({ type: "FeatureCollection", features })),
+  )
+  vi.stubGlobal("fetch", fetchMock)
+  return fetchMock
+}
+
+const letenska = {
+  type: "Feature",
+  geometry: { type: "Point", coordinates: [14.4072071, 50.0891477] },
+  properties: {
+    type: "house",
+    osm_key: "place",
+    housenumber: "525/15",
+    street: "Letenská",
+    district: "Malá Strana",
+    city: "Praha",
+  },
+}
+const krizikova = {
+  type: "Feature",
+  geometry: { type: "Point", coordinates: [14.4538834, 50.0929902] },
+  properties: {
+    type: "house",
+    osm_key: "place",
+    housenumber: "53/52",
+    street: "Křižíkova",
+    locality: "Karlín",
+    district: "Praha 8",
+    city: "Praha",
+  },
+}
+
+beforeEach(() => {
+  // no test talks to the real address service
+  answerAddresses()
+})
+
+afterEach(() => {
+  vi.unstubAllGlobals()
+})
 
 describe("EventForm", () => {
   it("an untouched form can be sent and says, under each field, what is missing", async () => {
@@ -171,6 +218,188 @@ describe("EventForm", () => {
 
     expect(screen.getByText("Nejdřív si ověř e-mail.")).toBeInTheDocument()
     expect(screen.getByRole("button", { name: "Zveřejnit akci" })).toBeDisabled()
+  })
+
+  describe("address suggestions (#40)", () => {
+    const inThreeDays = () => {
+      const start = new Date(Date.now() + 3 * 86_400_000)
+      start.setSeconds(0, 0)
+      return start.toISOString()
+    }
+    const fillTheRest = async () => {
+      await userEvent.type(screen.getByLabelText("Název akce *"), "Deskovky po práci")
+      await userEvent.type(screen.getByLabelText("Minimum"), "3")
+      await userEvent.type(screen.getByLabelText("Maximum"), "6")
+    }
+    const addressField = () => screen.getByRole("combobox", { name: "Adresa *" })
+
+    it("suggests real addresses near the chosen locality; a pick fills in the address and moves the pin", async () => {
+      const fetchMock = answerAddresses(letenska, krizikova)
+      const { onSubmit } = renderForm({
+        initialValues: {
+          activityId: "a-deskove-hry",
+          localityId: "l-praha-8",
+          startsAt: inThreeDays(),
+        },
+      })
+
+      await userEvent.type(addressField(), "Letenská 15")
+      const option = await screen.findByRole("option", { name: /Letenská 525\/15/ })
+      expect(screen.getByRole("listbox", { name: "Návrhy adres" })).toBeInTheDocument()
+      expect(screen.getByText("Adresy z OpenStreetMap")).toBeInTheDocument()
+      // one request once the typing stops, near the middle of Praha 8
+      expect(fetchMock).toHaveBeenCalledOnce()
+      const url = new URL(String((fetchMock.mock.calls[0] as unknown[])[0]))
+      expect(url.searchParams.get("q")).toBe("Letenská 15")
+      expect(url.searchParams.get("lat")).toBe("50.1100")
+      expect(url.searchParams.get("lon")).toBe("14.4700")
+
+      await userEvent.click(option)
+
+      expect(addressField()).toHaveValue("Letenská 525/15, Praha – Malá Strana")
+      expect(screen.queryByRole("listbox")).not.toBeInTheDocument()
+      await fillTheRest()
+      await submit()
+
+      expect(onSubmit).toHaveBeenCalledOnce()
+      const input = onSubmit.mock.calls[0]![0] as Record<string, unknown>
+      expect(input).toMatchObject({
+        address: "Letenská 525/15, Praha – Malá Strana",
+        lat: 50.0891477,
+        lng: 14.4072071,
+        // OpenStreetMap only says „Praha“ here: the chosen district stays
+        localityId: "l-praha-8",
+      })
+    })
+
+    it("an address in a Prague district sets that district as the locality", async () => {
+      answerAddresses(krizikova)
+      const { onSubmit } = renderForm({
+        initialValues: {
+          activityId: "a-deskove-hry",
+          localityId: "l-praha",
+          startsAt: inThreeDays(),
+        },
+      })
+
+      await userEvent.type(addressField(), "Křižíkova 52")
+      await userEvent.click(await screen.findByRole("option", { name: /Křižíkova 53\/52/ }))
+      await fillTheRest()
+      await submit()
+
+      expect(onSubmit).toHaveBeenCalledOnce()
+      expect(onSubmit.mock.calls[0]![0]).toMatchObject({
+        address: "Křižíkova 53/52, Praha 8 – Karlín",
+        localityId: "l-praha-8",
+      })
+    })
+
+    it("from the keyboard: Esc closes the list, arrows move in it, Enter picks", async () => {
+      answerAddresses(letenska, krizikova)
+      renderForm()
+
+      await userEvent.type(addressField(), "Letenská 15")
+      await screen.findByRole("listbox", { name: "Návrhy adres" })
+      expect(addressField()).toHaveAttribute("aria-expanded", "true")
+      // nothing is picked until the user moves into the list
+      expect(screen.getByRole("option", { name: /Letenská/ })).toHaveAttribute(
+        "aria-selected",
+        "false",
+      )
+
+      await userEvent.keyboard("{Escape}")
+      expect(screen.queryByRole("listbox")).not.toBeInTheDocument()
+      expect(addressField()).toHaveAttribute("aria-expanded", "false")
+      expect(addressField()).toHaveValue("Letenská 15")
+
+      await userEvent.keyboard("{ArrowDown}")
+      await screen.findByRole("listbox", { name: "Návrhy adres" })
+      await userEvent.keyboard("{ArrowDown}{ArrowDown}")
+      const krizikovaOption = screen.getByRole("option", { name: /Křižíkova/ })
+      expect(krizikovaOption).toHaveAttribute("aria-selected", "true")
+      expect(addressField()).toHaveAttribute("aria-activedescendant", krizikovaOption.id)
+
+      await userEvent.keyboard("{Enter}")
+      expect(addressField()).toHaveValue("Křižíkova 53/52, Praha 8 – Karlín")
+      expect(screen.queryByRole("listbox")).not.toBeInTheDocument()
+    })
+
+    it("Enter with nothing highlighted sends the form, as in any text field", async () => {
+      answerAddresses(letenska)
+      const { onSubmit } = renderForm({
+        initialValues: {
+          activityId: "a-deskove-hry",
+          localityId: "l-praha-8",
+          startsAt: inThreeDays(),
+        },
+      })
+      await userEvent.click(screen.getByRole("button", { name: "Umístit špendlík do středu mapy" }))
+      await fillTheRest()
+
+      await userEvent.type(addressField(), "Letenská 15")
+      await screen.findByRole("listbox", { name: "Návrhy adres" })
+      await userEvent.keyboard("{Enter}")
+
+      await waitFor(() => expect(onSubmit).toHaveBeenCalledOnce())
+      expect(onSubmit.mock.calls[0]![0]).toMatchObject({ address: "Letenská 15" })
+      expect(screen.queryByRole("listbox")).not.toBeInTheDocument()
+    })
+
+    it.each([
+      ["offline", () => Promise.reject(new TypeError("Failed to fetch"))],
+      ["the service is down", () => Promise.resolve(new Response("", { status: 503 }))],
+    ])("%s: no suggestions, no extra message, and the typed address is sent", async (_, answer) => {
+      const fetchMock = vi.fn(answer)
+      vi.stubGlobal("fetch", fetchMock)
+      const { onSubmit } = renderForm({
+        initialValues: {
+          activityId: "a-deskove-hry",
+          localityId: "l-praha-8",
+          startsAt: inThreeDays(),
+        },
+      })
+
+      await userEvent.type(addressField(), "Hřiště u školy, Praha 8")
+      await waitFor(() => expect(fetchMock).toHaveBeenCalled())
+      await userEvent.click(screen.getByRole("button", { name: "Umístit špendlík do středu mapy" }))
+      await fillTheRest()
+      await submit()
+
+      expect(screen.queryByRole("listbox")).not.toBeInTheDocument()
+      expect(screen.queryByText("Adresy z OpenStreetMap")).not.toBeInTheDocument()
+      expect(screen.queryByRole("alert")).not.toBeInTheDocument()
+      expect(onSubmit).toHaveBeenCalledOnce()
+      const input = onSubmit.mock.calls[0]![0] as Record<string, unknown>
+      expect(input).toMatchObject({ address: "Hřiště u školy, Praha 8" })
+      expect(input.lat).toBeCloseTo(50.11, 3)
+      expect(input.lng).toBeCloseTo(14.47, 3)
+    })
+
+    it("the organizer's own text needs no suggestion: it is sent as typed, the pin stays put", async () => {
+      answerAddresses(letenska)
+      const { onSubmit } = renderForm({
+        initialValues: {
+          activityId: "a-deskove-hry",
+          localityId: "l-praha-8",
+          startsAt: inThreeDays(),
+        },
+      })
+
+      await userEvent.click(screen.getByRole("button", { name: "Umístit špendlík do středu mapy" }))
+      await userEvent.type(addressField(), "Letenská 15, dvorek za domem")
+      await screen.findByRole("option", { name: /Letenská 525\/15/ })
+      // moving on leaves the suggestions unpicked
+      await userEvent.tab()
+      expect(screen.queryByRole("listbox")).not.toBeInTheDocument()
+      await fillTheRest()
+      await submit()
+
+      expect(onSubmit).toHaveBeenCalledOnce()
+      const input = onSubmit.mock.calls[0]![0] as Record<string, unknown>
+      expect(input).toMatchObject({ address: "Letenská 15, dvorek za domem" })
+      expect(input.lat).toBeCloseTo(50.11, 3)
+      expect(input.lng).toBeCloseTo(14.47, 3)
+    })
   })
 
   describe("editing (#41)", () => {

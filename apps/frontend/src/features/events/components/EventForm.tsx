@@ -35,6 +35,7 @@ import type { Catalog } from "@/lib/catalog/catalogSearch"
 import { DEFAULT_LOCALITY_SLUG, localityOptions } from "@/lib/catalog/localityOptions"
 import { cn } from "@/lib/utils"
 
+import { localityOfAddress } from "@/features/events/api/addressSearch"
 import {
   EVENT_ADDRESS_MAX_LENGTH,
   EVENT_DESCRIPTION_MAX_LENGTH,
@@ -42,6 +43,7 @@ import {
   EVENT_TITLE_MAX_LENGTH,
   type EventInput,
 } from "@/features/events/api/eventSchemas"
+import { AddressCombobox } from "@/features/events/components/AddressCombobox"
 import { dateToDay, dayToDate, pragueToday } from "@/features/events/lib/dateRange"
 import { formatDay } from "@/features/events/lib/formatEvent"
 import { eventTimes, toPragueWallTime } from "@/features/events/lib/pragueTime"
@@ -205,6 +207,7 @@ export function EventForm({
   })
 
   const localityId = useWatch({ control: form.control, name: "localityId" })
+  const place = useWatch({ control: form.control, name: "place" })
   const mapCenter = catalog.localities.find((l) => l.id === localityId) ??
     catalog.localities.find((l) => l.slug === DEFAULT_LOCALITY_SLUG) ??
     catalog.localities[0] ?? { lat: 50.0755, lng: 14.4378 }
@@ -641,11 +644,32 @@ export function EventForm({
                 <FormItem className="order-5 md:order-none">
                   <FormLabel>Adresa *</FormLabel>
                   <FormControl>
-                    <Input
+                    <AddressCombobox
                       placeholder="např. Herna Karlín, Křižíkova 52, Praha 8"
                       autoComplete="off"
                       className="h-11"
                       {...field}
+                      near={place ?? mapCenter}
+                      // a picked address also moves the pin, and sets the locality
+                      // when the catalog has a more precise one for it
+                      onPick={(suggestion) => {
+                        const options = {
+                          shouldDirty: true,
+                          shouldValidate: form.formState.isSubmitted,
+                        }
+                        field.onChange(suggestion.address)
+                        form.setValue(
+                          "place",
+                          { lat: suggestion.lat, lng: suggestion.lng },
+                          options,
+                        )
+                        const locality = localityOfAddress(
+                          suggestion,
+                          catalog.localities,
+                          form.getValues("localityId"),
+                        )
+                        if (locality) form.setValue("localityId", locality.id, options)
+                      }}
                     />
                   </FormControl>
                   <FormMessage />
