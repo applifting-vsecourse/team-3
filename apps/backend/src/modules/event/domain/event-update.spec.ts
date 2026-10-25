@@ -29,6 +29,27 @@ describe('decideUpdate', () => {
     });
   });
 
+  it('moving the start is refused when the moved end would pass the year 9999', () => {
+    const state = aState({
+      startsAt: new Date('9999-12-31T22:00:00.000Z'),
+      endsAt: new Date('9999-12-31T23:59:00.000Z'),
+    });
+
+    expect(
+      decideUpdate(
+        state,
+        { startsAt: new Date('9999-12-31T23:00:00.000Z') },
+        now,
+      ),
+    ).toEqual({
+      ok: false,
+      refusal: {
+        code: 'INVALID_END',
+        problem: 'Konec akce by vyšel příliš daleko v budoucnosti.',
+      },
+    });
+  });
+
   it('an event without an end stays without one', () => {
     const sunday = new Date('2026-10-25T17:00:00.000Z');
 

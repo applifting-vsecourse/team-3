@@ -1,5 +1,6 @@
 import { capacityChangeProblem } from './capacity';
 import { EventChanges } from './event';
+import { LAST_STORABLE_TIME } from './event-dates';
 
 /** Why the organizer's change was refused (B-028, #41). */
 export type UpdateRefusal =
@@ -62,11 +63,16 @@ export function decideUpdate(
   }
   if (!changes.startsAt || !state.endsAt) return { ok: true, data: changes };
   const duration = state.endsAt.getTime() - state.startsAt.getTime();
-  return {
-    ok: true,
-    data: {
-      ...changes,
-      endsAt: new Date(changes.startsAt.getTime() + duration),
-    },
-  };
+  const endsAt = new Date(changes.startsAt.getTime() + duration);
+  // the DTO checks only the dates that were sent, not the end moved here
+  if (endsAt.getTime() > LAST_STORABLE_TIME) {
+    return {
+      ok: false,
+      refusal: {
+        code: 'INVALID_END',
+        problem: 'Konec akce by vyšel příliš daleko v budoucnosti.',
+      },
+    };
+  }
+  return { ok: true, data: { ...changes, endsAt } };
 }
