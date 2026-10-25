@@ -54,8 +54,26 @@ export const eventsQueryOptions = (filters: EventFilters | undefined) =>
     placeholderData: keepPreviousData,
   })
 
-/** `viewerId` is undefined until the session is known, so the right variant is fetched. */
-export const eventDetailQueryOptions = (eventId: string, viewerId: string | null | undefined) =>
+/**
+ * How often a page asks again while it waits for someone else's decision
+ * (#53): the organizer's management page for new requests, the requester's
+ * detail for the answer. Focus and coming back to the tab refresh too, but two
+ * windows side by side never lose sight, so without this neither would move.
+ * Only while the tab is visible (TanStack's default).
+ */
+export const LIVE_REFRESH_MS = 10_000
+
+/**
+ * `viewerId` is undefined until the session is known, so the right variant is
+ * fetched. Asks again every LIVE_REFRESH_MS while the viewer's own request
+ * waits for the organizer, and with `isLive` (the management page) all the
+ * time for the organizer, for the capacity. Not for a missing or cancelled event.
+ */
+export const eventDetailQueryOptions = (
+  eventId: string,
+  viewerId: string | null | undefined,
+  { isLive = false }: { isLive?: boolean } = {},
+) =>
   queryOptions({
     queryKey: eventKeys.detail(eventId, viewerId ?? null),
     queryFn:
@@ -63,12 +81,20 @@ export const eventDetailQueryOptions = (eventId: string, viewerId: string | null
         ? skipToken
         : async () =>
             eventDetailSchema.parse(await api.get(`events/${encodeURIComponent(eventId)}`).json()),
+    refetchInterval: ({ state }) => {
+      // a missing or cancelled event has nothing left to wait for
+      if (state.status === "error" || state.data?.status === "cancelled") return false
+      const isOrganizer = state.data !== undefined && state.data.organizer.id === viewerId
+      return (isLive && isOrganizer) || state.data?.myParticipation === "pending"
+        ? LIVE_REFRESH_MS
+        : false
+    },
   })
 
 /**
  * Who is in and who is waiting, for the management page (#43, #53). Only the
  * organizer may ask (the API answers anyone else 403), so the page asks once
- * the detail says so.
+ * the detail says so. While it is open, new requests show up by themselves.
  */
 export const eventParticipantsQueryOptions = (
   eventId: string,
@@ -83,6 +109,7 @@ export const eventParticipantsQueryOptions = (
             await api.get(`events/${encodeURIComponent(eventId)}/participants`).json(),
           )
       : skipToken,
+    refetchInterval: LIVE_REFRESH_MS,
   })
 
 /** A tab of „Moje akce“ (B-035), soonest first; with the viewer, so nobody else gets it from the cache. */

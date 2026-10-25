@@ -14,7 +14,10 @@ function useParticipationMutation(eventId: string, viewerId: string, send: () =>
   const queryClient = useQueryClient()
   return useMutation({
     mutationFn: async (): Promise<EventDetail> => eventDetailSchema.parse(await send()),
-    onSuccess: (event) => {
+    onSuccess: async (event) => {
+      // a waiting request asks for the detail every few seconds: an answer
+      // still on its way may be from before this change and mustn't replace it
+      await queryClient.cancelQueries({ queryKey: eventKeys.detail(eventId, viewerId) })
       queryClient.setQueryData(eventKeys.detail(eventId, viewerId), event)
       void queryClient.invalidateQueries({ queryKey: eventKeys.lists() })
       // the organizer joining their own event shows up on the management page
