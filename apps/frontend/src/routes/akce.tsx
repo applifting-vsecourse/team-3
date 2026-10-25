@@ -1,8 +1,7 @@
 import { useState, type CSSProperties } from "react"
-import { createFileRoute, Link } from "@tanstack/react-router"
-import { Map as MapIcon, Plus } from "lucide-react"
+import { createFileRoute } from "@tanstack/react-router"
+import { Map as MapIcon } from "lucide-react"
 
-import { ROUTES } from "@/app/routes"
 import { Seo } from "@/components/Seo"
 import { Button } from "@/components/ui/button"
 import { DESKTOP_QUERY, useMediaQuery } from "@/hooks/useMediaQuery"
@@ -10,7 +9,6 @@ import { DEFAULT_LOCALITY_SLUG } from "@/lib/catalog/localityOptions"
 import { cn } from "@/lib/utils"
 
 import { AppHeader } from "@/features/auth/components/AppHeader"
-import { useSession } from "@/features/auth/hooks/useSession"
 import { EventFilters } from "@/features/events/components/EventFilters"
 import { EventList } from "@/features/events/components/EventList"
 import { EventsMap } from "@/features/events/components/EventsMap"
@@ -40,7 +38,6 @@ function EventsPage() {
   const navigate = Route.useNavigate()
   const { events, catalog, isPending, error, retry } = useEvents(search)
   const isDesktop = useMediaQuery(DESKTOP_QUERY)
-  const { user } = useSession()
   const [panelSnap, setPanelSnap] = useState<PanelSnap>("peek")
   const isListExpanded = panelSnap === "list"
   const [highlightedId, setHighlightedId] = useState<string>()
@@ -70,7 +67,8 @@ function EventsPage() {
             "absolute inset-x-0 top-0 z-20",
             // pb-1: the bar reaches the sheet below it (top-16), no strip of map between
             isListExpanded && "border-b border-border bg-background pb-1",
-            "md:static md:flex md:items-center md:border-b md:border-border md:bg-background md:pr-8",
+            // desktop: no hairline under the bar, the list and the map start below it
+            "md:static md:border-b-0 md:bg-background",
           )}
         >
           <EventFilters
@@ -82,20 +80,8 @@ function EventsPage() {
             // Chips scroll sideways on narrow screens without a visible scrollbar
             // (Figma A-02); a desktop scrollbar would also make the bar taller
             // and cover the top of the pulled-up list.
-            className="[scrollbar-width:none] overflow-x-auto px-4 py-3 md:min-w-0 md:flex-1 md:px-8 [&::-webkit-scrollbar]:hidden"
+            className="[scrollbar-width:none] overflow-x-auto px-4 py-3 md:px-8 [&::-webkit-scrollbar]:hidden"
           />
-          {/* desktop: at the end of the filter bar (Figma A-02d přihlášený); mobile floats below */}
-          {user ? (
-            <Button
-              asChild
-              className="hidden h-11 shrink-0 md:inline-flex"
-            >
-              <Link to={ROUTES.newEvent}>
-                <Plus />
-                Založit akci
-              </Link>
-            </Button>
-          ) : null}
         </div>
 
         <div className="flex flex-1 md:min-h-0 md:gap-8 md:px-8">
@@ -156,24 +142,6 @@ function EventsPage() {
           >
             <MapIcon />
             Mapa
-          </Button>
-        ) : null}
-
-        {/* „Založit akci“ floats for a signed-in user only; a visitor doesn't see it (#40).
-            Mobile only: on desktop it ends the filter bar above. */}
-        {user ? (
-          <Button
-            asChild
-            // above the lowered sheet and the map's attribution (which sits on
-            // the sheet's edge), never over the first card
-            style={isListExpanded ? undefined : { bottom: `${panelPeekHeight + 36}px` }}
-            // follows the sheet as it moves, instead of jumping ahead of it
-            className="absolute right-4 bottom-4 z-20 h-11 shadow-md transition-[bottom] duration-300 ease-out motion-reduce:transition-none md:hidden"
-          >
-            <Link to={ROUTES.newEvent}>
-              <Plus />
-              Založit akci
-            </Link>
           </Button>
         ) : null}
       </main>

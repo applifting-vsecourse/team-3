@@ -6,7 +6,6 @@ import { Seo } from "@/components/Seo"
 import { TabBar, TabBarItem } from "@/components/TabBar/TabBar"
 import { Button } from "@/components/ui/button"
 import { Tabs, TabsContent } from "@/components/ui/tabs"
-import { DESKTOP_QUERY, useMediaQuery } from "@/hooks/useMediaQuery"
 import { PAGE } from "@/lib/pageLayout"
 import { cn } from "@/lib/utils"
 
@@ -34,7 +33,6 @@ function GroupsPage() {
   const search = Route.useSearch()
   const navigate = Route.useNavigate()
   const { user } = useSession()
-  const isDesktop = useMediaQuery(DESKTOP_QUERY)
   const { groups, catalog, isPending, error, retry } = useGroups(search)
   // for the count on the tab; the same query fills the tab itself
   const myGroupsQuery = useQuery({
@@ -86,8 +84,7 @@ function GroupsPage() {
           {user ? (
             <Button
               asChild
-              // A-07d: Outline beside the title, the page's primary is „Založit akci“ in the header
-              variant={isDesktop ? "outline" : "default"}
+              // the page's primary, beside the title like „Založit akci“ in Moje akce (A-07d)
               size="lg"
               // mobile: floats above the bottom navigation (Figma A-07)
               className="fixed right-4 bottom-20 z-30 h-11 shadow-md md:static md:shadow-none"
