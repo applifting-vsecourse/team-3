@@ -1,6 +1,12 @@
 import { describe, expect, it } from "vitest"
 
-import { groupCountLabel, groupFacts, memberCountLabel, showGroupsLabel } from "./formatGroup"
+import {
+  groupCountLabel,
+  groupFacts,
+  memberCountLabel,
+  myGroupTypeLabel,
+  showGroupsLabel,
+} from "./formatGroup"
 
 describe("memberCountLabel", () => {
   it.each([
@@ -44,5 +50,14 @@ describe("groupFacts", () => {
         memberCount: 8,
       }),
     ).toBe("Florbal · Praha 9 · 8 členů")
+  })
+})
+
+describe("myGroupTypeLabel", () => {
+  it("says that my request waits, else just the type (the role is the section)", () => {
+    expect(myGroupTypeLabel({ type: "closed", membership: { status: "pending" } })).toBe(
+      "Neveřejná – žádost čeká na schválení",
+    )
+    expect(myGroupTypeLabel({ type: "public", membership: { status: "active" } })).toBe("Veřejná")
   })
 })

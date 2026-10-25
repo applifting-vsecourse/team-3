@@ -1,8 +1,7 @@
 import { useState, type CSSProperties } from "react"
-import { createFileRoute, Link } from "@tanstack/react-router"
-import { Map as MapIcon, Plus } from "lucide-react"
+import { createFileRoute } from "@tanstack/react-router"
+import { Map as MapIcon } from "lucide-react"
 
-import { ROUTES } from "@/app/routes"
 import { Seo } from "@/components/Seo"
 import { Button } from "@/components/ui/button"
 import { DESKTOP_QUERY, useMediaQuery } from "@/hooks/useMediaQuery"
@@ -10,7 +9,6 @@ import { DEFAULT_LOCALITY_SLUG } from "@/lib/catalog/localityOptions"
 import { cn } from "@/lib/utils"
 
 import { AppHeader } from "@/features/auth/components/AppHeader"
-import { useSession } from "@/features/auth/hooks/useSession"
 import { EventFilters } from "@/features/events/components/EventFilters"
 import { EventList } from "@/features/events/components/EventList"
 import { EventsMap } from "@/features/events/components/EventsMap"
@@ -40,7 +38,6 @@ function EventsPage() {
   const navigate = Route.useNavigate()
   const { events, catalog, isPending, error, retry } = useEvents(search)
   const isDesktop = useMediaQuery(DESKTOP_QUERY)
-  const { user } = useSession()
   const [panelSnap, setPanelSnap] = useState<PanelSnap>("peek")
   const isListExpanded = panelSnap === "list"
   const [highlightedId, setHighlightedId] = useState<string>()
@@ -70,7 +67,8 @@ function EventsPage() {
             "absolute inset-x-0 top-0 z-20",
             // pb-1: the bar reaches the sheet below it (top-16), no strip of map between
             isListExpanded && "border-b border-border bg-background pb-1",
-            "md:static md:border-b md:border-border md:bg-background",
+            // desktop: no hairline under the bar, the list and the map start below it
+            "md:static md:border-b-0 md:bg-background",
           )}
         >
           <EventFilters
@@ -144,25 +142,6 @@ function EventsPage() {
           >
             <MapIcon />
             Mapa
-          </Button>
-        ) : null}
-
-        {/* „Založit akci“ floats for a signed-in user only; a visitor doesn't see it (#40) */}
-        {user ? (
-          <Button
-            asChild
-            // mobile: above the lowered sheet and the map's attribution (which
-            // sits on the sheet's edge), never over the first card
-            style={
-              isDesktop || isListExpanded ? undefined : { bottom: `${panelPeekHeight + 36}px` }
-            }
-            // follows the sheet as it moves, instead of jumping ahead of it
-            className="absolute right-4 bottom-4 z-20 h-11 shadow-md transition-[bottom] duration-300 ease-out motion-reduce:transition-none md:right-8 md:bottom-14"
-          >
-            <Link to={ROUTES.newEvent}>
-              <Plus />
-              Založit akci
-            </Link>
           </Button>
         ) : null}
       </main>

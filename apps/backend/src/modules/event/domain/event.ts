@@ -114,6 +114,7 @@ export type EventChanges = Partial<
     | 'lng'
     | 'address'
     | 'startsAt'
+    | 'endsAt'
     | 'minParticipants'
     | 'maxParticipants'
   >

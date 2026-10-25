@@ -61,6 +61,22 @@ export function formatRequestTime(date: Date): string {
   return `Žádost z ${get("day")}. ${get("month")}. v ${timeFormat.format(date)}`
 }
 
+// a Prague day `YYYY-MM-DD` is read as a UTC date, so the time zone can't move it
+const formDayFormat = new Intl.DateTimeFormat("cs-CZ", {
+  timeZone: "UTC",
+  weekday: "short",
+  day: "numeric",
+  month: "numeric",
+  year: "numeric",
+})
+
+/** "Po 2. 11. 2026", a day in the event form (Figma D-01: Datum). */
+export function formatDay(day: string): string {
+  const [year = 0, month = 1, date = 1] = day.split("-").map(Number)
+  const label = formDayFormat.format(new Date(Date.UTC(year, month - 1, date)))
+  return `${label.charAt(0).toUpperCase()}${label.slice(1)}`
+}
+
 export const approvalModeLabel = (mode: "open" | "approval"): string =>
   mode === "open" ? "Bez schválení" : "Se schválením organizátora"
 

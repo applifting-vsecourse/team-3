@@ -13,6 +13,8 @@ import { Button } from "@/components/ui/button"
 import { Skeleton } from "@/components/ui/skeleton"
 import { Tabs, TabsContent } from "@/components/ui/tabs"
 import { DESKTOP_QUERY, useMediaQuery } from "@/hooks/useMediaQuery"
+import { PAGE } from "@/lib/pageLayout"
+import { cn } from "@/lib/utils"
 
 import { useSession } from "@/features/auth/hooks/useSession"
 import { CancelEventDialog } from "@/features/events/components/CancelEventDialog"
@@ -30,10 +32,10 @@ export const Route = createFileRoute("/_ProtectedPages/akce/$eventId/sprava")({
 })
 
 /**
- * Figma D-03 (#43, #53): the organizer's page of their event — who is
+ * Figma D-03, D-03d (#43, #53): the organizer's page of their event — who is
  * coming, against the minimum and the maximum, the requests waiting at an
- * event with approval, and the way to edit or cancel it. Anyone else gets
- * an explanation; the API answers them 403. Removing people is #60.
+ * event with approval, and the way to edit or cancel it. Anyone else gets an
+ * explanation; the API answers them 403. Removing people is #60.
  */
 function ManageEventPage() {
   const { eventId } = Route.useParams()
@@ -50,13 +52,16 @@ function ManageEventPage() {
   return (
     <>
       <Seo title="Správa akce" />
-      <div className="mx-auto flex w-full max-w-2xl flex-col gap-6 px-4 py-6 md:py-8">
+      <div className={cn(PAGE, "gap-6")}>
         <BackLink
           to={ROUTES.eventDetail}
           params={{ eventId }}
           fallbackLabel="Na akci"
         />
-        <h1 className="text-3xl font-semibold tracking-tight">Správa akce</h1>
+        {/* once the event is here, its title is the page's heading (D-03d) */}
+        {!isOrganizer || !event ? (
+          <h1 className="text-3xl font-semibold tracking-tight md:text-4xl">Správa akce</h1>
+        ) : null}
         {isNotFound ? (
           <Alert>
             <AlertTitle>Akce nenalezena</AlertTitle>
@@ -83,10 +88,11 @@ function ManageEventPage() {
             <AlertTitle>Akci spravuje jen její organizátor.</AlertTitle>
           </Alert>
         ) : (
-          <>
-            <section className="flex flex-col gap-3">
+          // D-03d: the event's summary on the left, who is coming on the right
+          <div className="grid grid-cols-1 items-start gap-8 md:grid-cols-[minmax(0,27.5rem)_minmax(0,1fr)] md:gap-12">
+            <section className="flex flex-col gap-5">
               <div className="flex flex-col gap-1">
-                <h2 className="text-xl font-semibold tracking-tight">{event.title}</h2>
+                <h1 className="text-3xl font-semibold tracking-tight md:text-4xl">{event.title}</h1>
                 <p className="text-sm text-muted-foreground">
                   {formatEventTime(event.startsAt, event.endsAt)}
                 </p>
@@ -108,35 +114,36 @@ function ManageEventPage() {
                   maxParticipants={event.maxParticipants}
                 />
               )}
-            </section>
-            {canEdit ? (
-              <div className="flex flex-wrap gap-3">
-                <Button
-                  asChild
-                  variant="outline"
-                >
-                  <Link
-                    to={ROUTES.editEvent}
-                    params={{ eventId }}
+              {canEdit ? (
+                <div className="flex flex-wrap gap-3">
+                  <Button
+                    asChild
+                    variant="outline"
                   >
-                    <Pencil />
-                    Upravit akci
-                  </Link>
-                </Button>
-                <CancelEventDialog
-                  isPending={cancelEvent.isPending}
-                  onCancel={(reason) =>
-                    cancelEvent.mutateAsync(reason).then(
-                      () => toast.success("Akce je zrušená."),
-                      (cancelError: Error) => {
-                        toast.error(cancelError.message)
-                        throw cancelError
-                      },
-                    )
-                  }
-                />
-              </div>
-            ) : null}
+                    <Link
+                      to={ROUTES.editEvent}
+                      params={{ eventId }}
+                    >
+                      <Pencil />
+                      Upravit akci
+                    </Link>
+                  </Button>
+                  <CancelEventDialog
+                    isPending={cancelEvent.isPending}
+                    onCancel={(reason) =>
+                      cancelEvent.mutateAsync(reason).then(
+                        () => toast.success("Akce je zrušená."),
+                        (cancelError: Error) => {
+                          toast.error(cancelError.message)
+                          throw cancelError
+                        },
+                      )
+                    }
+                  />
+                </div>
+              ) : null}
+            </section>
+            {/* the right column (D-03d): an event with approval adds the requests (#53) */}
             {event.approvalMode === "approval" ? (
               <RequestsAndParticipants
                 isDesktop={isDesktop}
@@ -184,7 +191,7 @@ function ManageEventPage() {
                 onRetry={participants.retry}
               />
             )}
-          </>
+          </div>
         )}
       </div>
     </>

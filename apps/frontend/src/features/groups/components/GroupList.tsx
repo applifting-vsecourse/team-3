@@ -9,7 +9,8 @@ import { GroupCard } from "@/features/groups/components/GroupCard"
 import { groupCountLabel } from "@/features/groups/lib/formatGroup"
 
 // Figma A-07d: three columns on a wide desktop, one on mobile
-const GRID = "grid gap-3 md:grid-cols-2 md:gap-4 lg:grid-cols-3"
+// grid-cols-1 = minmax(0, 1fr): a long title truncates instead of widening the page on mobile
+export const GROUP_GRID = "grid grid-cols-1 gap-3 md:grid-cols-2 md:gap-4 lg:grid-cols-3"
 
 type GroupListProps = {
   groups: Group[]
@@ -53,7 +54,7 @@ export function GroupList({
   if (isLoading) {
     return (
       <div
-        className={GRID}
+        className={GROUP_GRID}
         aria-busy
         aria-label="Načítám skupiny"
       >
@@ -74,7 +75,7 @@ export function GroupList({
             : "V této lokalitě zatím žádná skupina není."}
         </p>
       ) : (
-        <ul className={GRID}>
+        <ul className={GROUP_GRID}>
           {groups.map((group) => (
             <li key={group.id}>
               <GroupCard group={group} />
@@ -86,7 +87,7 @@ export function GroupList({
   )
 }
 
-function GroupCardSkeleton() {
+export function GroupCardSkeleton() {
   return (
     <div className="flex items-center gap-3 rounded-lg border border-border p-3">
       <Skeleton className="size-16 rounded-lg" />

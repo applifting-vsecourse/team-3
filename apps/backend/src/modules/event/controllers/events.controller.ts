@@ -338,6 +338,13 @@ export class EventsController {
         description:
           body.description === undefined ? undefined : body.description || null,
         startsAt: body.startsAt ? new Date(body.startsAt) : undefined,
+        // null clears the end, a missing field keeps it
+        endsAt:
+          body.endsAt === undefined
+            ? undefined
+            : body.endsAt === null
+              ? null
+              : new Date(body.endsAt),
       }),
     );
   }

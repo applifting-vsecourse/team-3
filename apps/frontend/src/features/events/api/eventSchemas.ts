@@ -98,6 +98,8 @@ export type EventInput = {
   lng: number
   address: string
   startsAt: string
+  /** Optional (B-021); null clears it when editing. */
+  endsAt: string | null
   minParticipants: number
   maxParticipants: number
   approvalMode: "open" | "approval"
