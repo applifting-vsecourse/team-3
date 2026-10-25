@@ -1,3 +1,5 @@
+import { addDays } from "@/features/events/lib/dateRange"
+
 // Events happen in Prague: their times are entered and shown as Prague wall
 // time, whatever time zone the device is in.
 const PRAGUE_TZ = "Europe/Prague"
@@ -49,4 +51,20 @@ export function fromPragueWallTime(value: string): Date {
 export function toPragueWallTime(date: Date): string {
   const p = pragueParts(date)
   return `${p.year}-${p.month}-${p.day}T${p.hour}:${p.minute}`
+}
+
+/**
+ * The start and the end of an event from the form (Figma D-01): a Prague day
+ * `YYYY-MM-DD`, a start `HH:mm` and an optional end `HH:mm`. An end earlier
+ * than the start is the next day, for an evening that runs past midnight.
+ */
+export function eventTimes(
+  day: string,
+  start: string,
+  end: string,
+): { startsAt: Date; endsAt: Date | null } {
+  const startsAt = fromPragueWallTime(`${day}T${start}`)
+  if (!end) return { startsAt, endsAt: null }
+  const endDay = end < start ? addDays(day, 1) : day
+  return { startsAt, endsAt: fromPragueWallTime(`${endDay}T${end}`) }
 }

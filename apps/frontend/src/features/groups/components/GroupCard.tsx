@@ -8,11 +8,11 @@ import { GROUP_TYPE_SHORT, groupFacts } from "@/features/groups/lib/formatGroup"
 
 type GroupCardProps = {
   group: Group
-  /** The type line; on „Moje“ it adds where I stand („· Správce“, a waiting request). */
+  /** The type line; on „Moje“ it says when my request waits. */
   typeLabel?: string
   /** A group I run opens its management (A-07m), any other its page. */
   linkTo?: "page" | "manage"
-  /** h3 under a section heading („Moje skupiny (2)“), h2 straight in the list. */
+  /** h3 under a section heading („Spravuju (1)“), h2 straight in the list. */
   titleAs?: "h2" | "h3"
 }
 

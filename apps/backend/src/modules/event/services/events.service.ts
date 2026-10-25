@@ -54,6 +54,7 @@ const updateRefused = (refusal: UpdateRefusal): HttpException => {
       // B-028: changing a started event is a 400
       return new BadRequestException(['Akce už začala, upravit ji nejde.']);
     case 'INVALID_CAPACITY':
+    case 'INVALID_END':
       return new BadRequestException([refusal.problem]);
   }
 };

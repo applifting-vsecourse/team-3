@@ -5,7 +5,7 @@ import { describe, expect, it, vi } from "vitest"
 import type { Catalog } from "@/lib/catalog/catalogSearch"
 
 import { EventForm } from "@/features/events/components/EventForm"
-import { toPragueWallTime } from "@/features/events/lib/pragueTime"
+import { eventTimes, toPragueWallTime } from "@/features/events/lib/pragueTime"
 
 const catalog: Catalog = {
   localities: [
@@ -57,7 +57,8 @@ describe("EventForm", () => {
       "Akce potřebuje lokalitu",
       "Vyber místo na mapě",
       "Vyplň adresu",
-      "Vyplň datum a čas",
+      "Akce potřebuje datum",
+      "Vyplň začátek",
       "Vyplň minimum",
       "Vyplň maximum",
     ]) {
@@ -83,21 +84,19 @@ describe("EventForm", () => {
   })
 
   it("min 0, max below min and a date in the past can't be saved", async () => {
-    const { onSubmit } = renderForm()
+    const { onSubmit } = renderForm({
+      initialValues: { startsAt: new Date(Date.now() - 86_400_000).toISOString() },
+    })
 
-    await userEvent.type(screen.getByLabelText("Minimum lidí *"), "0")
-    await userEvent.type(screen.getByLabelText("Maximum lidí *"), "0")
+    await userEvent.type(screen.getByLabelText("Minimum"), "0")
+    await userEvent.type(screen.getByLabelText("Maximum"), "0")
     await submit()
     expect(await screen.findByText("Minimum musí být aspoň 1")).toBeInTheDocument()
 
-    await userEvent.clear(screen.getByLabelText("Minimum lidí *"))
-    await userEvent.type(screen.getByLabelText("Minimum lidí *"), "6")
-    await userEvent.clear(screen.getByLabelText("Maximum lidí *"))
-    await userEvent.type(screen.getByLabelText("Maximum lidí *"), "4")
-    await userEvent.type(
-      screen.getByLabelText("Datum a čas (čas v ČR) *"),
-      toPragueWallTime(new Date(Date.now() - 86_400_000)),
-    )
+    await userEvent.clear(screen.getByLabelText("Minimum"))
+    await userEvent.type(screen.getByLabelText("Minimum"), "6")
+    await userEvent.clear(screen.getByLabelText("Maximum"))
+    await userEvent.type(screen.getByLabelText("Maximum"), "4")
     await submit()
 
     expect(await screen.findByText("Maximum nesmí být menší než minimum")).toBeInTheDocument()
@@ -105,20 +104,27 @@ describe("EventForm", () => {
     expect(onSubmit).not.toHaveBeenCalled()
   })
 
-  it("sends the event: numbers, the place from the map, the start as an instant", async () => {
-    const { onSubmit } = renderForm({
-      initialValues: { activityId: "a-deskove-hry", localityId: "l-praha-8" },
-    })
+  it("sends the event: numbers, the place from the map, the start and the end as instants", async () => {
     const start = new Date(Date.now() + 3 * 86_400_000)
     start.setSeconds(0, 0)
+    const [day = "", time = ""] = toPragueWallTime(start).split("T")
+    // the day comes from the calendar; here it is prefilled
+    const { onSubmit } = renderForm({
+      initialValues: {
+        activityId: "a-deskove-hry",
+        localityId: "l-praha-8",
+        startsAt: start.toISOString(),
+      },
+    })
 
     await userEvent.type(screen.getByLabelText("Název akce *"), "Deskovky po práci")
     // the map looks at the chosen locality; its middle is the place
     await userEvent.click(screen.getByRole("button", { name: "Umístit špendlík do středu mapy" }))
     await userEvent.type(screen.getByLabelText("Adresa *"), "Herna Karlín, Křižíkova 52, Praha 8")
-    await userEvent.type(screen.getByLabelText("Datum a čas (čas v ČR) *"), toPragueWallTime(start))
-    await userEvent.type(screen.getByLabelText("Minimum lidí *"), "3")
-    await userEvent.type(screen.getByLabelText("Maximum lidí *"), "6")
+    expect(screen.getByRole("button", { name: /Datum/ })).toHaveTextContent(/\d+\.\s\d+\.\s\d{4}/)
+    await userEvent.type(screen.getByLabelText("Konec"), "23:45")
+    await userEvent.type(screen.getByLabelText("Minimum"), "3")
+    await userEvent.type(screen.getByLabelText("Maximum"), "6")
     await userEvent.click(screen.getByRole("radio", { name: /Schvaluji přihlášky/ }))
     await submit()
 
@@ -131,12 +137,25 @@ describe("EventForm", () => {
       localityId: "l-praha-8",
       address: "Herna Karlín, Křižíkova 52, Praha 8",
       startsAt: start.toISOString(),
+      endsAt: eventTimes(day, time, "23:45").endsAt!.toISOString(),
       minParticipants: 3,
       maxParticipants: 6,
       approvalMode: "approval",
     })
     expect(input.lat).toBeCloseTo(50.11, 3)
     expect(input.lng).toBeCloseTo(14.47, 3)
+  })
+
+  it("an end equal to the start is refused; the end is optional", async () => {
+    const start = new Date(Date.now() + 2 * 86_400_000)
+    const [, time = ""] = toPragueWallTime(start).split("T")
+    renderForm({ initialValues: { startsAt: start.toISOString() } })
+
+    expect(screen.getByText("Nepovinné")).toBeInTheDocument()
+    await userEvent.type(screen.getByLabelText("Konec"), time)
+    await submit()
+
+    expect(await screen.findByText("Konec musí být jiný než začátek")).toBeInTheDocument()
   })
 
   it("shows the server's answer and disables the button while saving", () => {
@@ -175,8 +194,8 @@ describe("EventForm", () => {
     it("the maximum can't go below the people already in; the form says why", async () => {
       const { onSubmit } = renderForm({ mode: "edit", initialValues: existing, approvedCount: 4 })
 
-      await userEvent.clear(screen.getByLabelText("Maximum lidí *"))
-      await userEvent.type(screen.getByLabelText("Maximum lidí *"), "3")
+      await userEvent.clear(screen.getByLabelText("Maximum"))
+      await userEvent.type(screen.getByLabelText("Maximum"), "3")
       await userEvent.click(screen.getByRole("button", { name: "Uložit změny" }))
 
       expect(
@@ -190,8 +209,8 @@ describe("EventForm", () => {
 
       await userEvent.clear(screen.getByLabelText("Název akce *"))
       await userEvent.type(screen.getByLabelText("Název akce *"), "Deskovky ve středu")
-      await userEvent.clear(screen.getByLabelText("Maximum lidí *"))
-      await userEvent.type(screen.getByLabelText("Maximum lidí *"), "8")
+      await userEvent.clear(screen.getByLabelText("Maximum"))
+      await userEvent.type(screen.getByLabelText("Maximum"), "8")
       await userEvent.click(screen.getByRole("button", { name: "Uložit změny" }))
 
       expect(onSubmit).toHaveBeenCalledWith(

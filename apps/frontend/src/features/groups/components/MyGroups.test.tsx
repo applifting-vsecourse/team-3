@@ -51,7 +51,7 @@ const renderMine = () => renderWithRouter(withQueryClient(<MyGroups viewerId="u-
 beforeEach(() => api.get.mockReset())
 
 describe("MyGroups", () => {
-  it("my waiting requests on top, apart from my groups", async () => {
+  it("my waiting requests on top, then the groups I run, then the ones I am in", async () => {
     respond(petra)
     await renderMine()
 
@@ -59,17 +59,18 @@ describe("MyGroups", () => {
     expect(within(pending).getByText("Deskovky Vinohrady")).toBeInTheDocument()
     expect(within(pending).getByText("Neveřejná – žádost čeká na schválení")).toBeInTheDocument()
 
-    const mine = screen.getByRole("region", { name: "Moje skupiny (2)" })
-    expect(within(mine).getByText("Běžci ze Stromovky")).toBeInTheDocument()
+    const running = screen.getByRole("region", { name: "Spravuju (1)" })
+    expect(within(running).getByText("Volejbal Praha 7 – po práci")).toBeInTheDocument()
+    const joined = screen.getByRole("region", { name: "Jsem členem (1)" })
+    expect(within(joined).getByText("Běžci ze Stromovky")).toBeInTheDocument()
     expect(api.get).toHaveBeenCalledWith("me/groups")
   })
 
-  it("a group I run says so and opens its management, any other its page", async () => {
+  it("a group I run opens its management, any other its page", async () => {
     respond(petra)
     await renderMine()
 
-    expect(await screen.findByText("Veřejná · Správce")).toBeInTheDocument()
-    expect(screen.getByRole("link", { name: /Volejbal Praha 7/ })).toHaveAttribute(
+    expect(await screen.findByRole("link", { name: /Volejbal Praha 7/ })).toHaveAttribute(
       "href",
       "/skupiny/g-volejbal/sprava",
     )
@@ -83,8 +84,9 @@ describe("MyGroups", () => {
     respond([petra[1]])
     await renderMine()
 
-    expect(await screen.findByRole("region", { name: "Moje skupiny (1)" })).toBeInTheDocument()
+    expect(await screen.findByRole("region", { name: "Jsem členem (1)" })).toBeInTheDocument()
     expect(screen.queryByText(/Čeká na schválení/)).not.toBeInTheDocument()
+    expect(screen.queryByText(/Spravuju/)).not.toBeInTheDocument()
   })
 
   it("empty: one sentence and a way to all groups", async () => {

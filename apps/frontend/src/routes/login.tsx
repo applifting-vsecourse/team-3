@@ -10,6 +10,7 @@ import { authSessionQueryOptions } from "@/features/auth/api/authSessionQueryOpt
 import { SignInForm } from "@/features/auth/components/SignInForm"
 import { useSignIn } from "@/features/auth/hooks/useSignIn"
 import { safeRedirect } from "@/features/auth/lib/redirect"
+import { NearestEvents } from "@/features/events/components/NearestEvents"
 
 // `from`: the page to come back to, e.g. the event (B-012)
 const loginSearchParamsSchema = z.object({
@@ -55,6 +56,7 @@ function LoginPage() {
     <>
       <Seo title="Přihlášení" />
       <AuthLayout
+        aside={<NearestEvents />}
         title="Přihlášení"
         description={from ? "Po přihlášení tě vrátíme zpátky." : "Vítej zpátky v HobbyHubu."}
         footer={
