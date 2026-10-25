@@ -83,6 +83,20 @@ describe("ListPanel", () => {
     expect(onSnapChange).not.toHaveBeenCalled()
   })
 
+  it("a tap doesn't capture the pointer, so the browser sends its click to the card", () => {
+    const { sheet, card } = renderPanel("peek")
+    // jsdom sends the click wherever the test fires it; a browser sends the
+    // click after a captured press to the capturing sheet instead of the card
+    const capture = vi.fn()
+    sheet.setPointerCapture = capture
+
+    swipe(card, 600, 601, 80)
+    expect(capture).not.toHaveBeenCalled()
+
+    swipe(card, 600, 500, 100)
+    expect(capture).toHaveBeenCalledOnce()
+  })
+
   it("a drag that ends on a card doesn't open it; the next tap does", () => {
     const onOpen = vi.fn()
     render(

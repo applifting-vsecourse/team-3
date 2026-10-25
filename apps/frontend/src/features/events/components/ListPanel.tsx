@@ -191,7 +191,6 @@ export function ListPanel({
   const pointerHandlers = {
     onPointerDown: (e: ReactPointerEvent) => {
       if (e.pointerType === "mouse" && e.button !== 0) return
-      e.currentTarget.setPointerCapture?.(e.pointerId)
       drag.current = { y: e.clientY, time: performance.now(), from: restingOffset }
     },
     onPointerMove: (e: ReactPointerEvent) => {
@@ -199,6 +198,10 @@ export function ListPanel({
       if (!start) return
       const dy = e.clientY - start.y
       if (dragOffset !== null || Math.abs(dy) > TAP_PX) {
+        // Captured only once it is a drag: the browser sends the click after
+        // a captured press to the sheet, not to the card under the finger, so
+        // capturing on press made a tap on the lowered sheet's card do nothing.
+        if (dragOffset === null) e.currentTarget.setPointerCapture?.(e.pointerId)
         setDragOffset(Math.min(offsets.map + GIVE_PX, Math.max(-GIVE_PX, start.from + dy)))
       }
     },
