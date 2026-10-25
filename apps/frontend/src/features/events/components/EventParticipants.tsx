@@ -20,11 +20,9 @@ export function EventParticipants({
   signInFrom,
 }: EventParticipantsProps) {
   return (
-    <section className="flex flex-col gap-3">
-      <h2 className="text-lg font-semibold tracking-tight">
-        {/* not „Přihlášení“: next to the sign-in link it would read as signing in */}
-        Účastníci <span className="font-normal text-muted-foreground">{approvedCount}</span>
-      </h2>
+    <section className="flex flex-col gap-2">
+      {/* Figma A-05: „Přihlášení (4)“ */}
+      <h2 className="text-lg font-semibold tracking-tight">Přihlášení ({approvedCount})</h2>
       {approvedCount === 0 ? (
         <p className="text-muted-foreground">Zatím se nikdo nepřihlásil.</p>
       ) : participants ? (
@@ -43,7 +41,7 @@ export function EventParticipants({
             search={{ from: signInFrom }}
             className="font-medium text-foreground underline underline-offset-4"
           >
-            přihlášení k účtu
+            přihlášení
           </Link>
           .
         </p>

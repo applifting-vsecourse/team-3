@@ -75,13 +75,22 @@ export function ListPanel({
   // whose size is fixed), so new data, wrapped titles or a resize all re-measure.
   useLayoutEffect(() => {
     const panel = panelRef.current
+    const scroller = scrollRef.current
     const content = contentRef.current
-    if (isDesktop || !panel || !content) return
+    if (isDesktop || !panel || !scroller || !content) return
     const measure = () => {
       const top = panel.getBoundingClientRect().top
-      // both rects move with the transform, so their differences don't
+      // Where the content starts in the sheet when it isn't scrolled. Bottoms
+      // are measured from the content's own top, so a scrolled list doesn't
+      // move what peeks: after a back navigation the router restores the
+      // list's scroll, and the first card then sat above the sheet, which
+      // measured the lowered sheet as fully hidden.
+      // (All rects move with the transform, so their differences don't.)
+      const contentTop = scroller.getBoundingClientRect().top - top
       const bottomOf = (selector: string) =>
-        (content.querySelector(selector) ?? content).getBoundingClientRect().bottom - top
+        (content.querySelector(selector) ?? content).getBoundingClientRect().bottom -
+        content.getBoundingClientRect().top +
+        contentTop
       const height = panel.offsetHeight
       const peek = Math.max(0, height - bottomOf("[data-peek-end]") - PEEK_GAP_PX)
       const map = Math.max(peek, height - bottomOf("[data-peek-min]") - PEEK_GAP_PX)
@@ -105,6 +114,12 @@ export function ListPanel({
   useEffect(() => {
     scrollRef.current?.scrollTo?.({ top: 0 })
   }, [scrollResetKey])
+
+  // The lowered sheet shows the top of the list (the count and the first card).
+  const isLowered = !isDesktop && snap !== "list"
+  useEffect(() => {
+    if (isLowered) scrollRef.current?.scrollTo?.({ top: 0 })
+  }, [isLowered])
 
   const settle = (from: number, dy: number, ms: number) => {
     const at = from + dy
@@ -171,12 +186,11 @@ export function ListPanel({
   const offset = dragOffset ?? restingOffset
   // Lowered, the whole sheet is a drag surface; pulled up, only the handle is
   // (the rest scrolls).
-  const isSheetDraggable = !isDesktop && snap !== "list"
+  const isSheetDraggable = isLowered
 
   const pointerHandlers = {
     onPointerDown: (e: ReactPointerEvent) => {
       if (e.pointerType === "mouse" && e.button !== 0) return
-      e.currentTarget.setPointerCapture?.(e.pointerId)
       drag.current = { y: e.clientY, time: performance.now(), from: restingOffset }
     },
     onPointerMove: (e: ReactPointerEvent) => {
@@ -184,6 +198,10 @@ export function ListPanel({
       if (!start) return
       const dy = e.clientY - start.y
       if (dragOffset !== null || Math.abs(dy) > TAP_PX) {
+        // Captured only once it is a drag: the browser sends the click after
+        // a captured press to the sheet, not to the card under the finger, so
+        // capturing on press made a tap on the lowered sheet's card do nothing.
+        if (dragOffset === null) e.currentTarget.setPointerCapture?.(e.pointerId)
         setDragOffset(Math.min(offsets.map + GIVE_PX, Math.max(-GIVE_PX, start.from + dy)))
       }
     },
@@ -259,6 +277,17 @@ export function ListPanel({
       </button>
       <div
         ref={scrollRef}
+        // The router restores the list's scroll after a back navigation. On
+        // desktop that brings the user back to the card they opened; the
+        // mobile sheet always comes back lowered, where it would hide the
+        // count, so there it is undone.
+        onScroll={
+          isLowered
+            ? (e) => {
+                if (e.currentTarget.scrollTop !== 0) e.currentTarget.scrollTop = 0
+              }
+            : undefined
+        }
         className={cn(
           "min-h-0 flex-1 px-4",
           // only the pulled-up list scrolls (and leaves room for the „Mapa“ button)
