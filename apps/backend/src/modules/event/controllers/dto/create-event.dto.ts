@@ -1,3 +1,4 @@
+import { LAST_STORABLE_TIME } from '@/modules/event/domain/event-dates';
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { Transform } from 'class-transformer';
 import {
@@ -56,10 +57,6 @@ class EndsAfterStart implements ValidatorConstraintInterface {
     return 'endsAt must be after startsAt';
   }
 }
-
-// toISOString() after the year 9999 (UTC) is „+010000-…“, which comes back
-// from the database as a date nothing can read
-const LAST_STORABLE_TIME = Date.UTC(9999, 11, 31, 23, 59, 59, 999);
 
 /**
  * validator.js's ISO 8601 also takes week dates („2027-W10-3“) and a decimal
