@@ -67,8 +67,26 @@ export function ParticipationAction({
     )
   }
 
-  // a visitor isn't sent to sign in for a place there isn't (B-032: „Plno“)
-  if (!viewer && event.isFull) return <FullButton />
+  // A visitor isn't sent to sign in for a place there isn't (B-032: „Plno“);
+  // someone signed out who has a place or a request still gets back to it.
+  if (!viewer && event.isFull) {
+    return (
+      <Row>
+        <FullButton />
+        <p className="text-sm text-muted-foreground">
+          Máš tu místo nebo žádost?{" "}
+          <Link
+            to={ROUTES.login}
+            search={{ from: signInFrom }}
+            className="font-medium text-foreground underline underline-offset-4"
+          >
+            Přihlas se
+          </Link>
+          .
+        </p>
+      </Row>
+    )
+  }
   if (!viewer) {
     return (
       <Button
@@ -86,10 +104,11 @@ export function ParticipationAction({
     )
   }
   if (!viewer.emailVerified) {
+    // full: verifying wouldn't get a place either; the banner still asks to verify
     return (
       <Row>
         {manage}
-        <Note>Na akci se přihlásíš, až si ověříš e-mail.</Note>
+        {event.isFull ? <FullButton /> : <Note>Na akci se přihlásíš, až si ověříš e-mail.</Note>}
       </Row>
     )
   }
@@ -185,7 +204,6 @@ function FullButton() {
   return (
     <Button
       size="lg"
-      className="self-start"
       disabled
     >
       Plno

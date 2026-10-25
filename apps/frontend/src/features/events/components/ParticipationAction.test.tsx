@@ -84,6 +84,36 @@ describe("ParticipationAction", () => {
 
     expect(screen.getByRole("button", { name: "Plno" })).toBeDisabled()
     expect(screen.queryByRole("link", { name: "Přihlásit se na akci" })).not.toBeInTheDocument()
+    // who already has a place or a request still gets back to the event
+    expect(screen.getByRole("link", { name: "Přihlas se" }).getAttribute("href")).toMatch(
+      /^\/login\?from=/,
+    )
+  })
+
+  it("a cancelled or started event still wins over „Plno“ for a visitor", async () => {
+    const full = { isFull: true, freeSpots: 0, approvedCount: 12 }
+    await renderAction({ ...full, status: "cancelled" }, { viewer: null })
+    expect(screen.queryByRole("button")).not.toBeInTheDocument()
+    expect(screen.queryByRole("link")).not.toBeInTheDocument()
+  })
+
+  it("…and once it has started, a visitor is told so", async () => {
+    await renderAction(
+      { isFull: true, freeSpots: 0, approvedCount: 12 },
+      { viewer: null, now: new Date("2026-10-23T16:00:00.000Z") },
+    )
+    expect(screen.getByText("Akce už začala.")).toBeInTheDocument()
+    expect(screen.queryByRole("button", { name: "Plno" })).not.toBeInTheDocument()
+  })
+
+  it("an unverified user on a full event sees „Plno“, not a promise of a place after verifying", async () => {
+    await renderAction(
+      { isFull: true, freeSpots: 0, approvedCount: 12 },
+      { viewer: { id: "u9", emailVerified: false } },
+    )
+
+    expect(screen.getByRole("button", { name: "Plno" })).toBeDisabled()
+    expect(screen.queryByText(/až si ověříš e-mail/)).not.toBeInTheDocument()
   })
 
   it("a visitor is offered the sign-in that comes back to the event", async () => {
