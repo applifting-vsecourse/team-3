@@ -1,11 +1,12 @@
 import type { ReactNode } from "react"
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query"
 import { renderHook, waitFor } from "@testing-library/react"
-import { beforeEach, describe, expect, it, vi } from "vitest"
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest"
 
 import { api, HTTPError } from "@/lib/api-client"
 import type * as ApiClient from "@/lib/api-client"
 
+import { LIVE_REFRESH_MS } from "@/features/events/api/eventsQueryOptions"
 import { useEventDetail } from "@/features/events/hooks/useEventDetail"
 import { anEventDetail } from "@/features/events/test/anEvent"
 
@@ -29,12 +30,12 @@ const httpError = (status: number) =>
     {} as never,
   )
 
-const renderDetail = (viewerId: string | null | undefined) => {
+const renderDetail = (viewerId: string | null | undefined, options?: { isLive?: boolean }) => {
   const queryClient = new QueryClient({ defaultOptions: { queries: { retry: 0 } } })
   const wrapper = ({ children }: { children: ReactNode }) => (
     <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>
   )
-  return { queryClient, ...renderHook(() => useEventDetail("e1", viewerId), { wrapper }) }
+  return { queryClient, ...renderHook(() => useEventDetail("e1", viewerId, options), { wrapper }) }
 }
 
 describe("useEventDetail", () => {
@@ -80,5 +81,49 @@ describe("useEventDetail", () => {
     await waitFor(() => expect(result.current.event).toBeDefined())
     expect(queryClient.getQueryData(["events", "detail", "e1", "u9"])).toBeDefined()
     expect(queryClient.getQueryData(["events", "detail", "e1", null])).toBeUndefined()
+  })
+})
+
+// P-C-1: two windows side by side never lose sight, so focus alone refreshes nothing
+describe("useEventDetail – asking again while someone else decides (#53)", () => {
+  beforeEach(() => {
+    get.mockReset()
+    vi.useFakeTimers({ shouldAdvanceTime: true })
+  })
+  afterEach(() => vi.useRealTimers())
+
+  it("while the viewer's request waits, asks every 10 s, until the organizer decides", async () => {
+    get.mockReturnValue(asJson(anEventDetail({ myParticipation: "pending" })))
+    const { result } = renderDetail("u9")
+    await waitFor(() => expect(result.current.event?.myParticipation).toBe("pending"))
+
+    get.mockReturnValue(asJson(anEventDetail({ myParticipation: "approved" })))
+    await vi.advanceTimersByTimeAsync(LIVE_REFRESH_MS)
+
+    await waitFor(() => expect(result.current.event?.myParticipation).toBe("approved"))
+    expect(get).toHaveBeenCalledTimes(2)
+    // decided: nothing to wait for any more
+    await vi.advanceTimersByTimeAsync(3 * LIVE_REFRESH_MS)
+    expect(get).toHaveBeenCalledTimes(2)
+  })
+
+  it("with nothing waiting, the detail doesn't keep asking", async () => {
+    get.mockReturnValue(asJson(anEventDetail({ myParticipation: null })))
+    const { result } = renderDetail("u9")
+    await waitFor(() => expect(result.current.event).toBeDefined())
+
+    await vi.advanceTimersByTimeAsync(3 * LIVE_REFRESH_MS)
+
+    expect(get).toHaveBeenCalledTimes(1)
+  })
+
+  it("on the management page (isLive) it keeps asking, for the capacity", async () => {
+    get.mockReturnValue(asJson(anEventDetail({ myParticipation: null })))
+    const { result } = renderDetail("u1", { isLive: true })
+    await waitFor(() => expect(result.current.event).toBeDefined())
+
+    await vi.advanceTimersByTimeAsync(2 * LIVE_REFRESH_MS)
+
+    expect(get).toHaveBeenCalledTimes(3)
   })
 })

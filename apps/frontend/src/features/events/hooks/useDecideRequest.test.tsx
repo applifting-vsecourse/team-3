@@ -87,4 +87,34 @@ describe("useDecideRequest (#53)", () => {
     await waitFor(() => expect(result.current.isError).toBe(true))
     expect(invalidate).toHaveBeenCalledWith({ queryKey: ["events", "participants", "e1", "u1"] })
   })
+
+  it("the page's poll of the lists, still on its way, doesn't bring the decided request back", async () => {
+    vi.mocked(api.post).mockReturnValue({
+      json: () => Promise.resolve({ participants: [{ id: "u5", name: "Jakub" }], requests: [] }),
+    } as never)
+    const { queryClient, result } = setup()
+    let staleBack: (() => void) | undefined
+    // the management page asks every few seconds (P-C-1); this answer is from before the decision
+    const lists = new QueryObserver(queryClient, {
+      queryKey: ["events", "participants", "e1", "u1"],
+      queryFn: () =>
+        new Promise((resolve) => {
+          staleBack = () => resolve({ participants: [], requests: [{ id: "u5", name: "Jakub" }] })
+        }),
+    })
+    const unsubscribe = lists.subscribe(vi.fn())
+    await waitFor(() => expect(lists.getCurrentResult().fetchStatus).toBe("fetching"))
+
+    act(() => result.current.mutate({ userId: "u5", decision: "approve" }))
+    await waitFor(() => expect(result.current.isSuccess).toBe(true))
+    act(() => staleBack?.())
+    // let the stale answer land, if it were going to
+    await act(() => new Promise((resolve) => setTimeout(resolve, 0)))
+
+    expect(queryClient.getQueryData(["events", "participants", "e1", "u1"])).toEqual({
+      participants: [{ id: "u5", name: "Jakub" }],
+      requests: [],
+    })
+    unsubscribe()
+  })
 })

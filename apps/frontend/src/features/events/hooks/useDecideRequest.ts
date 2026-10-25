@@ -31,6 +31,9 @@ export function useDecideRequest(eventId: string, viewerId: string) {
           .json(),
       ),
     onSuccess: async (lists) => {
+      // the page asks for the lists every few seconds: an answer still on its
+      // way may be from before the decision and mustn't replace this one
+      await queryClient.cancelQueries({ queryKey: eventKeys.participants(eventId, viewerId) })
       queryClient.setQueryData(eventKeys.participants(eventId, viewerId), lists)
       await refreshEvent()
     },

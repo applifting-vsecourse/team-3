@@ -13,7 +13,10 @@ export function useCancelEvent(eventId: string, viewerId: string) {
       eventDetailSchema.parse(
         await api.post(`events/${encodeURIComponent(eventId)}/cancel`, { json: { reason } }).json(),
       ),
-    onSuccess: (event) => {
+    onSuccess: async (event) => {
+      // the management page asks for the detail every few seconds: an answer
+      // still on its way may be from before the cancelling
+      await queryClient.cancelQueries({ queryKey: eventKeys.detail(eventId, viewerId) })
       queryClient.setQueryData(eventKeys.detail(eventId, viewerId), event)
       void queryClient.invalidateQueries({ queryKey: eventKeys.lists() })
     },

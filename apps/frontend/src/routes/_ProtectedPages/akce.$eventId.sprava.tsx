@@ -41,7 +41,10 @@ function ManageEventPage() {
   const { eventId } = Route.useParams()
   const session = useSession()
   const viewerId = session.isPending ? undefined : (session.user?.id ?? null)
-  const { event, isPending, isNotFound, error, retry } = useEventDetail(eventId, viewerId)
+  // live: new requests, and the capacity when someone joins or leaves meanwhile (#53)
+  const { event, isPending, isNotFound, error, retry } = useEventDetail(eventId, viewerId, {
+    isLive: true,
+  })
   const isOrganizer = event !== undefined && event.organizer.id === session.user?.id
   const participants = useEventParticipants(eventId, viewerId, isOrganizer)
   const cancelEvent = useCancelEvent(eventId, session.user?.id ?? "")
