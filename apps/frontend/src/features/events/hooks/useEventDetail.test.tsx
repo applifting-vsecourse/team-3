@@ -126,4 +126,34 @@ describe("useEventDetail – asking again while someone else decides (#53)", () 
 
     expect(get).toHaveBeenCalledTimes(3)
   })
+
+  it("on someone else's management page (only „Akci spravuje jen její organizátor“) it doesn't", async () => {
+    get.mockReturnValue(asJson(anEventDetail({ myParticipation: null })))
+    const { result } = renderDetail("u9", { isLive: true })
+    await waitFor(() => expect(result.current.event).toBeDefined())
+
+    await vi.advanceTimersByTimeAsync(3 * LIVE_REFRESH_MS)
+
+    expect(get).toHaveBeenCalledTimes(1)
+  })
+
+  it("a request on a cancelled event waits for nothing: no asking", async () => {
+    get.mockReturnValue(asJson(anEventDetail({ myParticipation: "pending", status: "cancelled" })))
+    const { result } = renderDetail("u9")
+    await waitFor(() => expect(result.current.event?.status).toBe("cancelled"))
+
+    await vi.advanceTimersByTimeAsync(3 * LIVE_REFRESH_MS)
+
+    expect(get).toHaveBeenCalledTimes(1)
+  })
+
+  it("a missing event (404) isn't asked for again and again", async () => {
+    get.mockReturnValue(failing(httpError(404)))
+    const { result } = renderDetail("u1", { isLive: true })
+    await waitFor(() => expect(result.current.isNotFound).toBe(true))
+
+    await vi.advanceTimersByTimeAsync(3 * LIVE_REFRESH_MS)
+
+    expect(get).toHaveBeenCalledTimes(1)
+  })
 })
