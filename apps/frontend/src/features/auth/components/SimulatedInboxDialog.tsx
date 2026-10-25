@@ -62,7 +62,7 @@ export function SimulatedInboxDialog({ email, messages, onOpen }: SimulatedInbox
               title={latest.subject}
               srcDoc={linksInWholeTab(latest.html)}
               sandbox="allow-popups allow-popups-to-escape-sandbox allow-top-navigation-by-user-activation"
-              className="h-[50svh] w-full rounded-lg border border-border"
+              className="h-96 w-full rounded-lg border border-border"
             />
           </div>
         ) : (

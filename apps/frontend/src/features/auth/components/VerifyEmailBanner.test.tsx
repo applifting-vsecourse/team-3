@@ -27,7 +27,7 @@ vi.mock("@/lib/api-client", async (importOriginal) => ({
 const inboxHas = (messages: object[]) =>
   vi.mocked(api.get).mockReturnValue({ json: () => Promise.resolve({ messages }) } as never)
 
-// e-mails go out for real: the inbox is off (SIM-INBOX-CONTRACT.md)
+// e-mails go out for real: the inbox is off (404)
 const inboxOff = () =>
   vi.mocked(api.get).mockReturnValue({
     json: () =>
