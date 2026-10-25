@@ -5,6 +5,8 @@ import {
   EMAIL_VERIFICATION_TTL_SECONDS,
   emailFlowOptions,
   PASSWORD_RESET_TTL_SECONDS,
+  RESET_PASSWORD_SUBJECT,
+  VERIFY_EMAIL_SUBJECT,
   withEmailFlows,
 } from './email-flows';
 
@@ -48,6 +50,8 @@ describe('emailFlowOptions', () => {
     expect(emailAndPassword.resetPasswordTokenExpiresIn).toBe(
       PASSWORD_RESET_TTL_SECONDS,
     );
+    // the e-mail says „Platí hodinu.“ and /zapomenute-heslo „Odkaz platí 1 hodinu.“
+    expect(PASSWORD_RESET_TTL_SECONDS).toBe(3600);
     expect(emailAndPassword.revokeSessionsOnPasswordReset).toBe(true);
     await emailAndPassword.sendResetPassword!(
       { user, url: 'ignored', token: 't0k3n' },
@@ -55,7 +59,7 @@ describe('emailFlowOptions', () => {
     );
     expect(email.sendEmail).toHaveBeenCalledWith(
       'jakub@example.com',
-      expect.any(String),
+      RESET_PASSWORD_SUBJECT,
       expect.stringContaining(
         'https://hobbyhub.example/reset-password?token=t0k3n',
       ),
@@ -72,9 +76,14 @@ describe('emailFlowOptions', () => {
     );
     expect(email.sendEmail).toHaveBeenCalledWith(
       'jakub@example.com',
-      expect.any(String),
+      VERIFY_EMAIL_SUBJECT,
       expect.stringContaining('https://api.example/verify?token=abc'),
     );
+  });
+
+  it('the subjects are Czech, like the app (DESIGN.md › Copy)', () => {
+    expect(VERIFY_EMAIL_SUBJECT).toBe('Ověř si e-mail v HobbyHubu');
+    expect(RESET_PASSWORD_SUBJECT).toBe('Nové heslo do HobbyHubu');
   });
 });
 
