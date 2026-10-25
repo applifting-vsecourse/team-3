@@ -2,9 +2,12 @@ import { createFileRoute, useNavigate } from "@tanstack/react-router"
 import { toast } from "sonner"
 
 import { ROUTES } from "@/app/routes"
+import { BackLink } from "@/components/BackLink/BackLink"
 import { Seo } from "@/components/Seo"
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 import { useCatalog } from "@/hooks/useCatalog"
+import { FORM, PAGE } from "@/lib/pageLayout"
+import { cn } from "@/lib/utils"
 
 import { useSession } from "@/features/auth/hooks/useSession"
 import { EventForm } from "@/features/events/components/EventForm"
@@ -16,7 +19,7 @@ export const Route = createFileRoute("/_ProtectedPages/akce/nova")({
 })
 
 /**
- * Figma D-01 (B-022). Only for a signed-in user (the protected layout sends
+ * Figma D-01, D-01d (B-022). Only for a signed-in user (the protected layout sends
  * visitors to the login); without a verified e-mail the form gives way to
  * a note, as the API would refuse it anyway (B-011).
  */
@@ -29,33 +32,40 @@ function NewEventPage() {
   return (
     <>
       <Seo title="Nová akce" />
-      <div className="mx-auto flex w-full max-w-2xl flex-col gap-6 px-4 py-6 md:py-8">
-        <h1 className="text-3xl font-semibold tracking-tight">Nová akce</h1>
-        {user && !user.emailVerified ? (
-          <Alert>
-            <AlertTitle>Nejdřív si ověř e-mail</AlertTitle>
-            <AlertDescription>
-              Akci můžeš založit, až e-mail ověříš. Odkaz jsme poslali na {user.email}, nový si
-              pošli z pruhu nahoře.
-            </AlertDescription>
-          </Alert>
-        ) : catalog ? (
-          <EventForm
-            catalog={catalog}
-            isSubmitting={createEvent.isPending}
-            errorMessage={createEvent.error?.message}
-            onSubmit={(input) =>
-              createEvent.mutate(input, {
-                onSuccess: (event) => {
-                  toast.success("Akce je zveřejněná")
-                  void navigate({ to: ROUTES.eventDetail, params: { eventId: event.id } })
-                },
-              })
-            }
-          />
-        ) : (
-          <CatalogState queries={queries} />
-        )}
+      <div className={cn(PAGE, "gap-4")}>
+        <BackLink
+          to={ROUTES.events}
+          fallbackLabel="Akce"
+          label="Akce"
+        />
+        <div className={FORM}>
+          <h1 className="text-3xl font-semibold tracking-tight md:text-4xl">Nová akce</h1>
+          {user && !user.emailVerified ? (
+            <Alert>
+              <AlertTitle>Nejdřív si ověř e-mail</AlertTitle>
+              <AlertDescription>
+                Akci můžeš založit, až e-mail ověříš. Odkaz jsme poslali na {user.email}, nový si
+                pošli z pruhu nahoře.
+              </AlertDescription>
+            </Alert>
+          ) : catalog ? (
+            <EventForm
+              catalog={catalog}
+              isSubmitting={createEvent.isPending}
+              errorMessage={createEvent.error?.message}
+              onSubmit={(input) =>
+                createEvent.mutate(input, {
+                  onSuccess: (event) => {
+                    toast.success("Akce je zveřejněná")
+                    void navigate({ to: ROUTES.eventDetail, params: { eventId: event.id } })
+                  },
+                })
+              }
+            />
+          ) : (
+            <CatalogState queries={queries} />
+          )}
+        </div>
       </div>
     </>
   )

@@ -3,6 +3,8 @@ import {
   GroupFilters,
   GroupInput,
   GroupSummary,
+  MyGroup,
+  sortMyGroups,
 } from '@/modules/group/domain/group';
 import {
   decideJoin,
@@ -65,6 +67,11 @@ export class GroupsService {
   }
 
   /** `viewerId`: the signed-in viewer, whose own membership the page shows. */
+  /** „Moje skupiny“ (B-056): my waiting requests on top, then my groups, by name. */
+  async getMyGroups(userId: string): Promise<MyGroup[]> {
+    return sortMyGroups(await this.groupRepository.findMyGroups(userId));
+  }
+
   async getGroup(
     id: string,
     viewerId: string | null = null,

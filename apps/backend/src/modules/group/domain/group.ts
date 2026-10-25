@@ -53,3 +53,17 @@ export type GroupInput = {
   localityId: string;
   type: GroupType;
 };
+
+/** A group on „Moje“ (B-056): my own membership comes with it. */
+export type MyGroup = GroupSummary & {
+  membership: Membership & { status: 'active' | 'pending' };
+};
+
+/** „Moje“: my requests waiting for approval on top, then my groups, each by name. */
+export const sortMyGroups = (groups: MyGroup[]): MyGroup[] =>
+  [...groups].sort(
+    (a, b) =>
+      Number(b.membership.status === 'pending') -
+        Number(a.membership.status === 'pending') ||
+      a.name.localeCompare(b.name, 'cs'),
+  );

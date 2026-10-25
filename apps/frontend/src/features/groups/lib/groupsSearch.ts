@@ -11,9 +11,13 @@ import type { GroupFilters } from "@/features/groups/api/groupSchemas"
 
 /**
  * Filters of /skupiny in the URL, like /akce: `?lokalita=praha-9&kategorie=hry&aktivita=florbal`.
- * Activity + locality only (PO 19. 10.); no name search in sprint 2.
+ * Activity + locality only (PO 19. 10.); no name search in sprint 2. `?tab=moje` is
+ * the signed-in user's „Moje“ (B-056, Figma A-07m); without it the tab is Všechny.
  */
-export const groupsSearchSchema = z.object(catalogSearchShape)
+export const groupsSearchSchema = z.object({
+  ...catalogSearchShape,
+  tab: z.enum(["moje"]).optional().catch(undefined),
+})
 
 export type GroupsSearch = z.infer<typeof groupsSearchSchema>
 

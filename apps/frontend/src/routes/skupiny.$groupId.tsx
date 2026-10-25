@@ -9,6 +9,7 @@ import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 import { Button } from "@/components/ui/button"
 import { Skeleton } from "@/components/ui/skeleton"
 import { HTTPError } from "@/lib/api-client"
+import { PAGE } from "@/lib/pageLayout"
 import { cn } from "@/lib/utils"
 
 import { AppHeader } from "@/features/auth/components/AppHeader"
@@ -16,7 +17,6 @@ import { useSession } from "@/features/auth/hooks/useSession"
 import { encodeRedirectUri } from "@/features/auth/lib/redirect"
 import { groupQueryOptions } from "@/features/groups/api/groupsQueryOptions"
 import { GroupProfile } from "@/features/groups/components/GroupProfile"
-import { GROUPS_PAGE } from "@/features/groups/lib/pageLayout"
 
 export const Route = createFileRoute("/skupiny/$groupId")({
   component: GroupPage,
@@ -39,7 +39,7 @@ function GroupPage() {
     <>
       <Seo title={group?.name ?? (isNotFound ? "Skupina nenalezena" : "Skupina")} />
       <AppHeader />
-      <main className={cn(GROUPS_PAGE, "flex-1 gap-4")}>
+      <main className={cn(PAGE, "flex-1 gap-4")}>
         <BackLink
           to={ROUTES.groups}
           fallbackLabel="Všechny skupiny"

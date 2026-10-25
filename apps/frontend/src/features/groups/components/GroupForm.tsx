@@ -64,6 +64,12 @@ const TYPE_OPTIONS: { value: GroupType; title: string; hint: string }[] = [
   { value: "closed", title: "Neveřejná", hint: "O členství se žádá, žádosti schvaluješ ty." },
 ]
 
+// Mobile keeps the field order of D-06; on desktop the two columns of D-06d sit
+// side by side: „O skupině“ | „Kdo se přidá“. The columns are `contents` on
+// mobile, so `order` places their fields.
+const COLUMN = "contents md:flex md:flex-col md:gap-5"
+const COLUMN_HEADING = "hidden text-lg font-semibold tracking-tight md:block"
+
 type GroupFormProps = {
   catalog: Catalog
   /** Editing: the group's current values; founding: nothing is preselected. */
@@ -87,6 +93,8 @@ export function GroupForm({
   onSubmit,
 }: GroupFormProps) {
   const typeId = useId()
+  const aboutId = useId()
+  const whoId = useId()
   const form = useForm<FormValues>({
     resolver: zodResolver(schema),
     defaultValues: {
@@ -127,177 +135,207 @@ export function GroupForm({
           </Alert>
         ) : null}
 
-        <FormField
-          control={form.control}
-          name="name"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>Název skupiny *</FormLabel>
-              <FormControl>
-                <Input
-                  placeholder="např. Deskovky Holešovice"
-                  autoComplete="off"
-                  className="h-11"
-                  {...field}
-                />
-              </FormControl>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
+        <div className="flex flex-col gap-5 md:grid md:grid-cols-2 md:items-start md:gap-12">
+          <div
+            role="group"
+            aria-labelledby={aboutId}
+            className={COLUMN}
+          >
+            <h2
+              id={aboutId}
+              className={COLUMN_HEADING}
+            >
+              O skupině
+            </h2>
 
-        <FormField
-          control={form.control}
-          name="activityId"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>Aktivita *</FormLabel>
-              <Select
-                value={field.value}
-                onValueChange={field.onChange}
-              >
-                <FormControl>
-                  <SelectTrigger
-                    ref={field.ref}
-                    onBlur={field.onBlur}
-                    // same type size as the name input (Figma: 15 px in all fields)
-                    className="w-full text-base data-[size=default]:h-11 md:text-sm"
+            <FormField
+              control={form.control}
+              name="name"
+              render={({ field }) => (
+                <FormItem className="order-1 md:order-none">
+                  <FormLabel>Název skupiny *</FormLabel>
+                  <FormControl>
+                    <Input
+                      placeholder="např. Deskovky Holešovice"
+                      autoComplete="off"
+                      className="h-11"
+                      {...field}
+                    />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
+            <FormField
+              control={form.control}
+              name="activityId"
+              render={({ field }) => (
+                <FormItem className="order-2 md:order-none">
+                  <FormLabel>Aktivita *</FormLabel>
+                  <Select
+                    value={field.value}
+                    onValueChange={field.onChange}
                   >
-                    <SelectValue placeholder="Vyber aktivitu">
-                      {field.value ? activityLabel(field.value) : undefined}
-                    </SelectValue>
-                  </SelectTrigger>
-                </FormControl>
-                <SelectContent
-                  // under the field like a dropdown; item-aligned would cover the form
-                  position="popper"
-                  className="max-h-80"
-                >
-                  {catalog.categories.map((category) => (
-                    <SelectGroup key={category.id}>
-                      <SelectLabel>{category.name}</SelectLabel>
-                      {category.activities.map((activity) => (
+                    <FormControl>
+                      <SelectTrigger
+                        ref={field.ref}
+                        onBlur={field.onBlur}
+                        // same type size as the name input (Figma: 15 px in all fields)
+                        className="w-full text-base data-[size=default]:h-11 md:text-sm"
+                      >
+                        <SelectValue placeholder="Vyber aktivitu">
+                          {field.value ? activityLabel(field.value) : undefined}
+                        </SelectValue>
+                      </SelectTrigger>
+                    </FormControl>
+                    <SelectContent
+                      // under the field like a dropdown; item-aligned would cover the form
+                      position="popper"
+                      className="max-h-80"
+                    >
+                      {catalog.categories.map((category) => (
+                        <SelectGroup key={category.id}>
+                          <SelectLabel>{category.name}</SelectLabel>
+                          {category.activities.map((activity) => (
+                            <SelectItem
+                              key={activity.id}
+                              value={activity.id}
+                            >
+                              {activity.name}
+                            </SelectItem>
+                          ))}
+                        </SelectGroup>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
+            <FormField
+              control={form.control}
+              name="localityId"
+              render={({ field }) => (
+                <FormItem className="order-3 md:order-none">
+                  <FormLabel>Lokalita *</FormLabel>
+                  <Select
+                    value={field.value}
+                    onValueChange={field.onChange}
+                  >
+                    <FormControl>
+                      <SelectTrigger
+                        ref={field.ref}
+                        onBlur={field.onBlur}
+                        // same type size as the name input (Figma: 15 px in all fields)
+                        className="w-full text-base data-[size=default]:h-11 md:text-sm"
+                      >
+                        <SelectValue placeholder="Vyber lokalitu" />
+                      </SelectTrigger>
+                    </FormControl>
+                    <SelectContent
+                      // under the field like a dropdown; item-aligned would cover the form
+                      position="popper"
+                      className="max-h-80"
+                    >
+                      {localityOptions(catalog.localities).map((locality) => (
                         <SelectItem
-                          key={activity.id}
-                          value={activity.id}
+                          key={locality.id}
+                          value={locality.id}
+                          // districts indented under their city, like the locality filter
+                          className={cn(locality.isDistrict && "pl-6")}
                         >
-                          {activity.name}
+                          {locality.name}
                         </SelectItem>
                       ))}
-                    </SelectGroup>
-                  ))}
-                </SelectContent>
-              </Select>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
+                    </SelectContent>
+                  </Select>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
 
-        <FormField
-          control={form.control}
-          name="localityId"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>Lokalita *</FormLabel>
-              <Select
-                value={field.value}
-                onValueChange={field.onChange}
-              >
-                <FormControl>
-                  <SelectTrigger
-                    ref={field.ref}
-                    onBlur={field.onBlur}
-                    // same type size as the name input (Figma: 15 px in all fields)
-                    className="w-full text-base data-[size=default]:h-11 md:text-sm"
-                  >
-                    <SelectValue placeholder="Vyber lokalitu" />
-                  </SelectTrigger>
-                </FormControl>
-                <SelectContent
-                  // under the field like a dropdown; item-aligned would cover the form
-                  position="popper"
-                  className="max-h-80"
-                >
-                  {localityOptions(catalog.localities).map((locality) => (
-                    <SelectItem
-                      key={locality.id}
-                      value={locality.id}
-                      // districts indented under their city, like the locality filter
-                      className={cn(locality.isDistrict && "pl-6")}
+            <FormField
+              control={form.control}
+              name="description"
+              render={({ field }) => (
+                <FormItem className="order-5 md:order-none">
+                  <FormLabel>Popis</FormLabel>
+                  <FormControl>
+                    <Textarea
+                      placeholder="např. Pravidelné deskovky v klubovně, hlavně středně těžké hry."
+                      className="min-h-24"
+                      {...field}
+                    />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+          </div>
+
+          <div
+            role="group"
+            aria-labelledby={whoId}
+            className={COLUMN}
+          >
+            <h2
+              id={whoId}
+              className={COLUMN_HEADING}
+            >
+              Kdo se přidá
+            </h2>
+
+            <FormField
+              control={form.control}
+              name="type"
+              render={({ field }) => (
+                <FormItem className="order-4 md:order-none">
+                  <FormLabel>Typ skupiny *</FormLabel>
+                  <FormControl>
+                    <RadioGroup
+                      ref={field.ref}
+                      value={field.value ?? ""}
+                      onValueChange={field.onChange}
+                      className="gap-2"
                     >
-                      {locality.name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
+                      {TYPE_OPTIONS.map((option) => (
+                        <label
+                          key={option.value}
+                          htmlFor={`${typeId}-${option.value}`}
+                          className={cn(
+                            "flex cursor-pointer items-start gap-3 rounded-lg border border-border bg-card px-4 py-3 transition-colors hover:bg-accent",
+                            field.value === option.value && "border-foreground",
+                          )}
+                        >
+                          <RadioGroupItem
+                            id={`${typeId}-${option.value}`}
+                            value={option.value}
+                          />
+                          <span className="flex flex-col">
+                            <span className="text-sm font-semibold">{option.title}</span>
+                            <span className="text-sm text-muted-foreground">{option.hint}</span>
+                          </span>
+                        </label>
+                      ))}
+                    </RadioGroup>
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
 
-        <FormField
-          control={form.control}
-          name="type"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>Typ skupiny *</FormLabel>
-              <FormControl>
-                <RadioGroup
-                  ref={field.ref}
-                  value={field.value ?? ""}
-                  onValueChange={field.onChange}
-                  className="gap-2"
-                >
-                  {TYPE_OPTIONS.map((option) => (
-                    <label
-                      key={option.value}
-                      htmlFor={`${typeId}-${option.value}`}
-                      className={cn(
-                        "flex cursor-pointer items-start gap-3 rounded-lg border border-border bg-card px-4 py-3 transition-colors hover:bg-accent",
-                        field.value === option.value && "border-foreground",
-                      )}
-                    >
-                      <RadioGroupItem
-                        id={`${typeId}-${option.value}`}
-                        value={option.value}
-                      />
-                      <span className="flex flex-col">
-                        <span className="text-sm font-semibold">{option.title}</span>
-                        <span className="text-sm text-muted-foreground">{option.hint}</span>
-                      </span>
-                    </label>
-                  ))}
-                </RadioGroup>
-              </FormControl>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
-
-        <FormField
-          control={form.control}
-          name="description"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>Popis</FormLabel>
-              <FormControl>
-                <Textarea
-                  placeholder="např. Pravidelné deskovky v klubovně, hlavně středně těžké hry."
-                  className="min-h-24"
-                  {...field}
-                />
-              </FormControl>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
-
-        {note ? <p className="text-sm text-muted-foreground">{note}</p> : null}
+            {note ? (
+              <p className="order-6 text-sm text-muted-foreground md:order-none">{note}</p>
+            ) : null}
+          </div>
+        </div>
 
         <Button
           type="submit"
           size="lg"
-          // D-06d: as wide as its label on desktop
+          // D-06d: under both columns, as wide as its label on desktop
           className="h-11 w-full md:w-auto md:self-start"
           disabled={isSubmitting}
         >

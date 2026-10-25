@@ -34,14 +34,27 @@ describe("groupsSearchSchema", () => {
         obsazenost: "chybi",
         q: "fotbal",
       }),
-    ).toEqual({ lokalita: "praha-9", aktivita: "florbal" })
+    ).toEqual({ lokalita: "praha-9", aktivita: "florbal", tab: undefined })
   })
 
   it("drops a malformed value instead of failing the page", () => {
     expect(groupsSearchSchema.parse({ lokalita: "Praha 9!", kategorie: "hry" })).toEqual({
       lokalita: undefined,
       kategorie: "hry",
+      tab: undefined,
     })
+  })
+})
+
+describe("groupsSearchSchema › tab", () => {
+  it("?tab=moje is „Moje“, anything else falls back to Všechny", () => {
+    expect(groupsSearchSchema.parse({ tab: "moje" }).tab).toBe("moje")
+    expect(groupsSearchSchema.parse({ tab: "vsechny" }).tab).toBeUndefined()
+    expect(groupsSearchSchema.parse({}).tab).toBeUndefined()
+  })
+
+  it("the tab is not a filter", () => {
+    expect(hasActiveFilters({ tab: "moje" })).toBe(false)
   })
 })
 
