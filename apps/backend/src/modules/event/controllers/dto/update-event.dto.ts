@@ -12,6 +12,7 @@ import {
   Max,
   MaxLength,
   Min,
+  Validate,
   ValidateIf,
 } from 'class-validator';
 import {
@@ -19,6 +20,7 @@ import {
   EVENT_DESCRIPTION_MAX_LENGTH,
   EVENT_MAX_PARTICIPANTS,
   EVENT_TITLE_MAX_LENGTH,
+  ParsableDate,
 } from './create-event.dto';
 
 const trim = ({ value }: { value: unknown }): unknown =>
@@ -91,6 +93,7 @@ export class UpdateEventDto {
   @ApiPropertyOptional({ type: String, format: 'date-time' })
   @IsOptionalNotNull()
   @IsDateString({ strict: true })
+  @Validate(ParsableDate)
   startsAt?: string;
 
   @ApiPropertyOptional({ minimum: 1 })

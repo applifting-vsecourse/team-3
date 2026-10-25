@@ -20,6 +20,11 @@ describe('UpdateEventDto', () => {
     ).toEqual(['activityId', 'approvalMode']);
   });
 
+  it("a start a Date can't read (an ISO week date) is a 400, not a 500", () => {
+    expect(invalid({ startsAt: '2027-W10-3' })).toEqual(['startsAt']);
+    expect(invalid({ startsAt: '2026-11-02T17:00:00.000Z' })).toEqual([]);
+  });
+
   it('nor the organizer', () => {
     expect(invalid({ organizerUserId: 'someone-else' })).toEqual([
       'organizerUserId',

@@ -53,6 +53,22 @@ class EndsAfterStart implements ValidatorConstraintInterface {
 }
 
 /**
+ * validator.js's ISO 8601 also takes week dates („2027-W10-3“) and a decimal
+ * comma („…T18:00:00,5Z“), which `new Date` can't read: such a date reached
+ * the database as an Invalid Date and failed with a 500 instead of a 400.
+ */
+@ValidatorConstraint({ name: 'parsableDate' })
+export class ParsableDate implements ValidatorConstraintInterface {
+  validate(value: unknown): boolean {
+    return typeof value === 'string' && !Number.isNaN(Date.parse(value));
+  }
+
+  defaultMessage(args: ValidationArguments): string {
+    return `${args.property} must be a date and time like 2026-11-02T17:00:00Z`;
+  }
+}
+
+/**
  * POST /events (B-021). The organizer is never part of the body: it is the
  * signed-in user, and the controller's `forbidNonWhitelisted` turns an
  * `organizerUserId` here into a 400.
@@ -109,11 +125,13 @@ export class CreateEventDto {
     description: 'Must be in the future',
   })
   @IsDateString({ strict: true })
+  @Validate(ParsableDate)
   startsAt!: string;
 
   @ApiPropertyOptional({ type: String, format: 'date-time' })
   @IsOptional()
   @IsDateString({ strict: true })
+  @Validate(ParsableDate)
   @Validate(EndsAfterStart)
   endsAt?: string;
 

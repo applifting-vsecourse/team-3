@@ -60,6 +60,21 @@ describe('CreateEventDto', () => {
     ).toEqual([]);
   });
 
+  it("a start or end that ISO 8601 allows but a Date can't read is invalid, not a 500", () => {
+    // a week date and a decimal comma passed IsDateString and broke the insert
+    expect(invalid({ ...valid, startsAt: '2027-W10-3' })).toEqual(['startsAt']);
+    expect(invalid({ ...valid, startsAt: '2027-03-10T18:00:00,5Z' })).toEqual([
+      'startsAt',
+    ]);
+    expect(invalid({ ...valid, endsAt: '2026-11-02T19:00:00,5Z' })).toContain(
+      'endsAt',
+    );
+    // what the app sends (toISOString) and a plain offset are fine
+    expect(
+      invalid({ ...valid, startsAt: '2026-11-02T18:00:00+01:00' }),
+    ).toEqual([]);
+  });
+
   it('an end before the start is invalid', () => {
     expect(invalid({ ...valid, endsAt: '2026-11-02T16:00:00.000Z' })).toEqual([
       'endsAt',
