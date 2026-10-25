@@ -282,3 +282,104 @@ describe('EventRepository.findMyEvents', () => {
     expect(event).toMatchObject({ myParticipation: null, pendingRequests: 0 });
   });
 });
+
+describe('EventRepository.decideRequests (#53)', () => {
+  const now = new Date('2026-10-24T08:00:00.000Z');
+  const setup = (): ReturnType<typeof mockDeep<PrismaService>> => {
+    const prisma = mockDeep<PrismaService>();
+    prisma.$transaction.mockImplementation(((
+      run: (tx: PrismaService) => Promise<unknown>,
+    ) => run(prisma)) as never);
+    prisma.event.findUnique.mockResolvedValue({
+      status: 'published',
+      startsAt: new Date('2026-10-25T16:00:00.000Z'),
+      maxParticipants: 6,
+    } as never);
+    prisma.participation.findMany.mockResolvedValue([
+      { userId: 'u5', status: 'pending' },
+    ] as never);
+    prisma.participation.count.mockResolvedValue(5);
+    return prisma;
+  };
+
+  it('locks the event row before it counts the places; a missing request reads as none', async () => {
+    const prisma = setup();
+    const decide = jest.fn().mockReturnValue({ ok: true });
+
+    await new EventRepository(prisma).decideRequests(
+      'e1',
+      ['u5', 'u6'],
+      'approved',
+      decide,
+      now,
+    );
+
+    expect(prisma.$executeRaw.mock.invocationCallOrder[0]!).toBeLessThan(
+      prisma.participation.count.mock.invocationCallOrder[0]!,
+    );
+    expect(decide).toHaveBeenCalledWith(
+      expect.objectContaining({
+        approvedCount: 5,
+        maxParticipants: 6,
+        requestStatuses: ['pending', null],
+      }),
+    );
+  });
+
+  it('approves only waiting requests, with the time of approval', async () => {
+    const prisma = setup();
+
+    await new EventRepository(prisma).decideRequests(
+      'e1',
+      ['u5'],
+      'approved',
+      () => ({ ok: true }),
+      now,
+    );
+
+    expect(prisma.participation.updateMany).toHaveBeenCalledWith({
+      where: { eventId: 'e1', userId: { in: ['u5'] }, status: 'pending' },
+      data: { status: 'approved', approvedAt: now },
+    });
+  });
+
+  it('writes nothing when the rules refuse, e.g. the last place is gone', async () => {
+    const prisma = setup();
+
+    await expect(
+      new EventRepository(prisma).decideRequests(
+        'e1',
+        ['u5'],
+        'approved',
+        () => ({ ok: false, refusal: 'EVENT_FULL' }),
+        now,
+      ),
+    ).resolves.toEqual({ ok: false, refusal: 'EVENT_FULL' });
+    expect(prisma.participation.updateMany).not.toHaveBeenCalled();
+  });
+});
+
+describe('EventRepository.leave', () => {
+  it('takes the event lock before it reads the participation (#53)', async () => {
+    const prisma = mockDeep<PrismaService>();
+    prisma.$transaction.mockImplementation(((
+      run: (tx: PrismaService) => Promise<unknown>,
+    ) => run(prisma)) as never);
+    prisma.event.findUnique.mockResolvedValue({
+      startsAt: new Date('2026-10-25T16:00:00.000Z'),
+    } as never);
+    prisma.participation.findUnique.mockResolvedValue({
+      status: 'pending',
+    } as never);
+
+    await new EventRepository(prisma).leave('e1', 'u5', () => ({ ok: true }));
+
+    expect(prisma.$executeRaw.mock.invocationCallOrder[0]!).toBeLessThan(
+      prisma.participation.findUnique.mock.invocationCallOrder[0]!,
+    );
+    expect(prisma.participation.update).toHaveBeenCalledWith({
+      where: { eventId_userId: { eventId: 'e1', userId: 'u5' } },
+      data: { status: 'withdrawn', approvedAt: null },
+    });
+  });
+});

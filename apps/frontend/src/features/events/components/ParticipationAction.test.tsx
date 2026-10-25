@@ -61,10 +61,11 @@ describe("ParticipationAction", () => {
     expect(onLeave).not.toHaveBeenCalled()
   })
 
-  it("a full event: „Plno“, inactive", async () => {
+  it("a full event: „Plno“, inactive and muted (outline, not lime)", async () => {
     await renderAction({ isFull: true, freeSpots: 0, approvedCount: 12 })
 
     expect(screen.getByRole("button", { name: "Plno" })).toBeDisabled()
+    expect(screen.getByRole("button", { name: "Plno" })).toHaveAttribute("data-variant", "outline")
     expect(screen.queryByRole("button", { name: "Přijdu" })).not.toBeInTheDocument()
   })
 
@@ -77,6 +78,43 @@ describe("ParticipationAction", () => {
     )
     await userEvent.click(screen.getByRole("button", { name: "Přijdu" }))
     expect(onJoin).toHaveBeenCalledOnce()
+  })
+
+  it("a visitor sees „Plno“ on a full event, not a sign-in for a place there isn't", async () => {
+    await renderAction({ isFull: true, freeSpots: 0, approvedCount: 12 }, { viewer: null })
+
+    expect(screen.getByRole("button", { name: "Plno" })).toBeDisabled()
+    expect(screen.queryByRole("link", { name: "Přihlásit se na akci" })).not.toBeInTheDocument()
+    // who already has a place or a request still gets back to the event
+    expect(screen.getByRole("link", { name: "Přihlas se k účtu" }).getAttribute("href")).toMatch(
+      /^\/login\?from=/,
+    )
+  })
+
+  it("a cancelled event still wins over „Plno“ for a visitor", async () => {
+    const full = { isFull: true, freeSpots: 0, approvedCount: 12 }
+    await renderAction({ ...full, status: "cancelled" }, { viewer: null })
+    expect(screen.queryByRole("button")).not.toBeInTheDocument()
+    expect(screen.queryByRole("link")).not.toBeInTheDocument()
+  })
+
+  it("…and once it has started, a visitor is told so", async () => {
+    await renderAction(
+      { isFull: true, freeSpots: 0, approvedCount: 12 },
+      { viewer: null, now: new Date("2026-10-23T16:00:00.000Z") },
+    )
+    expect(screen.getByText("Akce už začala.")).toBeInTheDocument()
+    expect(screen.queryByRole("button", { name: "Plno" })).not.toBeInTheDocument()
+  })
+
+  it("an unverified user on a full event sees „Plno“, not a promise of a place after verifying", async () => {
+    await renderAction(
+      { isFull: true, freeSpots: 0, approvedCount: 12 },
+      { viewer: { id: "u9", emailVerified: false } },
+    )
+
+    expect(screen.getByRole("button", { name: "Plno" })).toBeDisabled()
+    expect(screen.queryByText(/až si ověříš e-mail/)).not.toBeInTheDocument()
   })
 
   it("a visitor is offered the sign-in that comes back to the event", async () => {
@@ -93,11 +131,38 @@ describe("ParticipationAction", () => {
     expect(screen.queryByRole("button")).not.toBeInTheDocument()
   })
 
-  it("with approval, a participant is told that (the request is #53)", async () => {
-    await renderAction({ approvalMode: "approval" })
+  it("with approval, „Poslat žádost“ asks first and then sends the request (A-05a, #53)", async () => {
+    const { onJoin } = await renderAction({ approvalMode: "approval" })
 
-    expect(screen.getByText(/schvaluje organizátor/)).toBeInTheDocument()
     expect(screen.queryByRole("button", { name: "Přijdu" })).not.toBeInTheDocument()
+    await userEvent.click(screen.getByRole("button", { name: "Poslat žádost" }))
+    const dialog = screen.getByRole("dialog", { name: "Poslat žádost o účast?" })
+    expect(onJoin).not.toHaveBeenCalled()
+    await userEvent.click(within(dialog).getByRole("button", { name: "Poslat žádost" }))
+    expect(onJoin).toHaveBeenCalledOnce()
+  })
+
+  it("a request can be called off before it's sent", async () => {
+    const { onJoin } = await renderAction({ approvalMode: "approval" })
+
+    await userEvent.click(screen.getByRole("button", { name: "Poslat žádost" }))
+    await userEvent.click(screen.getByRole("button", { name: "Zpět" }))
+
+    expect(onJoin).not.toHaveBeenCalled()
+  })
+
+  it("a full event with approval takes no request: „Plno“", async () => {
+    await renderAction({ approvalMode: "approval", isFull: true, freeSpots: 0, approvedCount: 12 })
+
+    expect(screen.getByRole("button", { name: "Plno" })).toBeDisabled()
+    expect(screen.queryByRole("button", { name: "Poslat žádost" })).not.toBeInTheDocument()
+  })
+
+  it("a rejected request is told so and can't be sent again", async () => {
+    await renderAction({ approvalMode: "approval", myParticipation: "rejected" })
+
+    expect(screen.getByText("Tvoje žádost o účast byla zamítnuta.")).toBeInTheDocument()
+    expect(screen.queryByRole("button", { name: "Poslat žádost" })).not.toBeInTheDocument()
   })
 
   it("a waiting request can be withdrawn", async () => {
@@ -123,10 +188,10 @@ describe("ParticipationAction", () => {
     expect(screen.getByRole("button", { name: "Odhlásit se" })).toBeDisabled()
   })
 
-  it("a removed participant is told so, not that they were rejected", async () => {
+  it("a removed participant is told the place is gone, not that a request was rejected", async () => {
     await renderAction({ myParticipation: "removed" })
 
-    expect(screen.getByText("Organizátor tě z akce odebral.")).toBeInTheDocument()
+    expect(screen.getByText("Na akci už nemáš místo.")).toBeInTheDocument()
   })
 
   it("a cancelled event shows no action (its label is #52)", async () => {

@@ -4,6 +4,7 @@ import { computeCapacity } from '@/modules/event/domain/capacity';
 import {
   EventDetail,
   EventParticipant,
+  EventRequest,
   MyEvent,
   MyEventsTab,
   NewEvent,
@@ -19,6 +20,7 @@ import {
   JoinState,
   ParticipationRefusal,
   ParticipationStatus,
+  RequestsState,
 } from '@/modules/event/domain/participation';
 import { Injectable } from '@nestjs/common';
 import { buildMyEventsWhere } from './my-events-where';
@@ -168,6 +170,22 @@ export class EventRepository {
     return participations.map((participation) => participation.user);
   }
 
+  /**
+   * Requests waiting for the organizer (#53), oldest first. A request after
+   * a withdrawal reuses the row, so its last change is when it was sent.
+   */
+  async findPendingRequests(eventId: string): Promise<EventRequest[]> {
+    const participations = await this.prisma.participation.findMany({
+      where: { eventId, status: 'pending' },
+      select: { updatedAt: true, user: { select: { id: true, name: true } } },
+      orderBy: [{ updatedAt: 'asc' }, { id: 'asc' }],
+    });
+    return participations.map(({ user, updatedAt }) => ({
+      ...user,
+      requestedAt: updatedAt,
+    }));
+  }
+
   /** Whether the activity and the locality an event refers to exist. */
   async catalogRefsExist(
     activityId: string,
@@ -278,6 +296,9 @@ export class EventRepository {
     { ok: true } | { ok: false; refusal: ParticipationRefusal } | null
   > {
     return this.prisma.$transaction(async (tx) => {
+      // the same lock as joining and deciding requests: a withdrawal and the
+      // organizer's approval of the same request can't overlap (#53)
+      await tx.$executeRaw`SELECT 1 FROM "event" WHERE "id" = ${eventId} FOR UPDATE`;
       const event = await tx.event.findUnique({
         where: { id: eventId },
         select: { startsAt: true },
@@ -295,6 +316,62 @@ export class EventRepository {
       await tx.participation.update({
         where: { eventId_userId: { eventId, userId } },
         data: { status: 'withdrawn', approvedAt: null },
+      });
+      return decision;
+    });
+  }
+
+  /**
+   * Approves or rejects requests under the same row lock as joining (#53):
+   * the approved count `decide` sees can't grow before the write, so two
+   * approvals can't both take the last place. All the requests or none.
+   * Null when the event doesn't exist.
+   */
+  async decideRequests(
+    eventId: string,
+    userIds: string[],
+    outcome: 'approved' | 'rejected',
+    decide: (
+      state: RequestsState,
+    ) => { ok: true } | { ok: false; refusal: ParticipationRefusal },
+    now: Date,
+  ): Promise<
+    { ok: true } | { ok: false; refusal: ParticipationRefusal } | null
+  > {
+    return this.prisma.$transaction(async (tx) => {
+      await tx.$executeRaw`SELECT 1 FROM "event" WHERE "id" = ${eventId} FOR UPDATE`;
+      const event = await tx.event.findUnique({
+        where: { id: eventId },
+        select: { status: true, startsAt: true, maxParticipants: true },
+      });
+      if (!event) return null;
+      const [participations, approvedCount] = await Promise.all([
+        tx.participation.findMany({
+          where: { eventId, userId: { in: userIds } },
+          select: { userId: true, status: true },
+        }),
+        tx.participation.count({ where: { eventId, status: 'approved' } }),
+      ]);
+      const statusOf = new Map(
+        participations.map((participation) => [
+          participation.userId,
+          participation.status,
+        ]),
+      );
+      const decision = decide({
+        eventStatus: event.status,
+        startsAt: event.startsAt,
+        maxParticipants: event.maxParticipants,
+        approvedCount,
+        requestStatuses: userIds.map((userId) => statusOf.get(userId) ?? null),
+      });
+      if (!decision.ok) return decision;
+      await tx.participation.updateMany({
+        where: { eventId, userId: { in: userIds }, status: 'pending' },
+        data: {
+          status: outcome,
+          approvedAt: outcome === 'approved' ? now : null,
+        },
       });
       return decision;
     });
