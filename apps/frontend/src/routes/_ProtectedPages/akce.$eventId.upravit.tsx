@@ -2,10 +2,13 @@ import { createFileRoute, useNavigate } from "@tanstack/react-router"
 import { toast } from "sonner"
 
 import { ROUTES } from "@/app/routes"
+import { BackLink } from "@/components/BackLink/BackLink"
 import { Seo } from "@/components/Seo"
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 import { Skeleton } from "@/components/ui/skeleton"
 import { useCatalog } from "@/hooks/useCatalog"
+import { FORM, PAGE } from "@/lib/pageLayout"
+import { cn } from "@/lib/utils"
 
 import { useSession } from "@/features/auth/hooks/useSession"
 import { EventForm } from "@/features/events/components/EventForm"
@@ -36,55 +39,64 @@ function EditEventPage() {
   return (
     <>
       <Seo title="Upravit akci" />
-      <div className="mx-auto flex w-full max-w-2xl flex-col gap-6 px-4 py-6 md:py-8">
-        <h1 className="text-3xl font-semibold tracking-tight">Upravit akci</h1>
-        {isNotFound ? (
-          <Alert>
-            <AlertTitle>Akce nenalezena</AlertTitle>
-          </Alert>
-        ) : error ? (
-          <Alert variant="destructive">
-            <AlertTitle>Akci se nepodařilo načíst</AlertTitle>
-            <AlertDescription>Zkontroluj připojení a zkus to znovu.</AlertDescription>
-          </Alert>
-        ) : isPending || !event ? (
-          <Skeleton className="h-96 w-full" />
-        ) : refusal ? (
-          <Alert>
-            <AlertTitle>{refusal}</AlertTitle>
-          </Alert>
-        ) : catalog ? (
-          <EventForm
-            mode="edit"
-            catalog={catalog}
-            approvedCount={event.approvedCount}
-            initialValues={{
-              title: event.title,
-              description: event.description,
-              activityId: event.activity.id,
-              localityId: event.locality.id,
-              lat: event.lat,
-              lng: event.lng,
-              address: event.address,
-              startsAt: event.startsAt.toISOString(),
-              minParticipants: event.minParticipants,
-              maxParticipants: event.maxParticipants,
-              approvalMode: event.approvalMode,
-            }}
-            isSubmitting={updateEvent.isPending}
-            errorMessage={updateEvent.error?.message}
-            onSubmit={({ activityId: _activity, approvalMode: _approval, ...changes }) =>
-              updateEvent.mutate(changes, {
-                onSuccess: () => {
-                  toast.success("Změny jsou uložené")
-                  void navigate({ to: ROUTES.eventDetail, params: { eventId } })
-                },
-              })
-            }
-          />
-        ) : (
-          <CatalogState queries={queries} />
-        )}
+      <div className={cn(PAGE, "gap-4")}>
+        <BackLink
+          to={ROUTES.manageEvent}
+          params={{ eventId }}
+          fallbackLabel="Správa akce"
+          label="Správa akce"
+        />
+        <div className={FORM}>
+          <h1 className="text-3xl font-semibold tracking-tight md:text-4xl">Upravit akci</h1>
+          {isNotFound ? (
+            <Alert>
+              <AlertTitle>Akce nenalezena</AlertTitle>
+            </Alert>
+          ) : error ? (
+            <Alert variant="destructive">
+              <AlertTitle>Akci se nepodařilo načíst</AlertTitle>
+              <AlertDescription>Zkontroluj připojení a zkus to znovu.</AlertDescription>
+            </Alert>
+          ) : isPending || !event ? (
+            <Skeleton className="h-96 w-full" />
+          ) : refusal ? (
+            <Alert>
+              <AlertTitle>{refusal}</AlertTitle>
+            </Alert>
+          ) : catalog ? (
+            <EventForm
+              mode="edit"
+              catalog={catalog}
+              approvedCount={event.approvedCount}
+              initialValues={{
+                title: event.title,
+                description: event.description,
+                activityId: event.activity.id,
+                localityId: event.locality.id,
+                lat: event.lat,
+                lng: event.lng,
+                address: event.address,
+                startsAt: event.startsAt.toISOString(),
+                endsAt: event.endsAt?.toISOString() ?? null,
+                minParticipants: event.minParticipants,
+                maxParticipants: event.maxParticipants,
+                approvalMode: event.approvalMode,
+              }}
+              isSubmitting={updateEvent.isPending}
+              errorMessage={updateEvent.error?.message}
+              onSubmit={({ activityId: _activity, approvalMode: _approval, ...changes }) =>
+                updateEvent.mutate(changes, {
+                  onSuccess: () => {
+                    toast.success("Změny jsou uložené")
+                    void navigate({ to: ROUTES.eventDetail, params: { eventId } })
+                  },
+                })
+              }
+            />
+          ) : (
+            <CatalogState queries={queries} />
+          )}
+        </div>
       </div>
     </>
   )

@@ -26,6 +26,7 @@ These are rules, not suggestions. When a rule and a "nicer looking" idea disagre
 - **A page is not a card.** Page content sits on `background` in a centred column (`max-w-2xl` for reading, `max-w-4xl` for wide layouts), not inside a floating panel.
 - **Every page keeps the app chrome.** The header is present on every route, including login and sign-up. Pages never render as standalone islands.
 - Forbidden by default: the centred-hero-plus-three-feature-cards layout, carousels, and any section whose only purpose is to look full.
+- **No big empty areas on desktop** (PO). Pages sit on the 1200 px grid (`PAGE` in `src/lib/pageLayout.ts`). Use the width for real content: a form gets two columns (D-01d: „Co a kdy“ | „Kde“ with the map, D-06d), sign-in and sign-up show the nearest events next to the form, lists go into three columns. A narrow column with half the screen blank is a bug, not whitespace.
 
 ## Spacing
 
@@ -83,7 +84,7 @@ The Figma page „Design system“ is the reference. Build these once in `src/co
 - **Status badge** (Figma: Status badge) — `rounded-full`, `text-xs font-semibold`, `px-2 py-0.5`. Chybí = `bg-primary text-primary-foreground` (the only highlighted one); Volná = `bg-secondary text-secondary-foreground`; Plno = `bg-muted text-muted-foreground`; Zrušeno = `bg-foreground text-background`. Labels: „Chybí X“, „Volná místa“, „Plno“, „Zrušeno“.
 - **Activity tag** (Figma: Tag/Activity) — the activity of an event or group: `rounded-full bg-secondary text-secondary-foreground text-xs font-semibold px-3 py-1`. Shows the activity name (second level), not the category.
 - **Activity tile** (Figma: Activity tile) — the category icon on an event card, one variant per category from B-002. An event card shows this icon, not a photo.
-- **Založit akci** — the primary action of a signed-in user. Desktop: a button in the header, before the user menu, on every page but the form itself. Mobile: a floating button over the page, above the bottom navigation. Never both on one screen.
+- **Založit akci** — the primary action of a signed-in user, always with the page's content, never in the header. Desktop: at the end of the filter bar on /akce, right of the title in Moje akce. Mobile: a floating button over the page, above the bottom navigation. Never both on one screen.
 - **Navigation** — desktop: header with logo, Akce, Skupiny (active item `bg-muted font-semibold`). Mobile: bottom navigation with icon + label, active item has a lime pill (`bg-primary rounded-full`) behind the icon; an inactive item has both icon and label in `muted-foreground`. The map is part of Akce, never its own item.
 
 ## When you are unsure

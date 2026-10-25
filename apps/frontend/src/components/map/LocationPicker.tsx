@@ -31,6 +31,8 @@ type LocationPickerProps = {
   describedBy?: string
   isInvalid?: boolean
   className?: string
+  /** For the map itself, e.g. a taller one where it has a column of its own. */
+  mapClassName?: string
 }
 
 const ZOOM = 14
@@ -48,6 +50,7 @@ export function LocationPicker({
   describedBy,
   isInvalid,
   className,
+  mapClassName,
 }: LocationPickerProps) {
   const mapRef = useRef<LeafletMap | null>(null)
   const icon = useMemo(() => {
@@ -70,6 +73,7 @@ export function LocationPicker({
         className={cn(
           "relative isolate z-0 h-64 overflow-hidden rounded-lg border border-border",
           isInvalid && "border-destructive",
+          mapClassName,
         )}
       >
         <MapContainer

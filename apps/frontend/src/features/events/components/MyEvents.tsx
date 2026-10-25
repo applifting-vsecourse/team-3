@@ -18,6 +18,9 @@ import {
   pendingRequestsSummary,
 } from "@/features/events/lib/myEvents"
 
+// Figma C-01d, C-02d: three columns on a wide desktop like Moje skupiny, one on mobile
+const GRID = "grid gap-3 md:grid-cols-2 md:gap-4 lg:grid-cols-3"
+
 /**
  * Přihlášen (Figma C-01): requests waiting for approval on top, then the
  * places I have, each soonest first. A card opens the detail, where the
@@ -73,7 +76,7 @@ function AttendingSection({ title, events }: { title: string; events: MyEvent[] 
       >
         {title}
       </h2>
-      <ul className="flex flex-col gap-3">
+      <ul className={GRID}>
         {events.map((event) => (
           <li key={event.id}>
             <EventCard
@@ -91,7 +94,7 @@ function AttendingSection({ title, events }: { title: string; events: MyEvent[] 
 function MyEventsLoading() {
   return (
     <div
-      className="flex flex-col gap-3"
+      className={GRID}
       aria-busy
       aria-label="Načítám akce"
     >
@@ -160,7 +163,7 @@ export function OrganizingEvents({ viewerId }: { viewerId: string }) {
               <AlertDescription>{summary.events}</AlertDescription>
             </Alert>
           ) : null}
-          <ul className="flex flex-col gap-3">
+          <ul className={GRID}>
             {events.map((event) => (
               <li key={event.id}>
                 <EventCard
@@ -175,7 +178,7 @@ export function OrganizingEvents({ viewerId }: { viewerId: string }) {
         </>
       )}
       {/* mobile: floats above the bottom navigation while the list scrolls, then
-          rests under it; on desktop „Založit akci“ is in the header (C-02d) */}
+          rests under it; on desktop „Založit akci“ is by the page title (C-02d) */}
       <div className="sticky bottom-20 flex justify-end md:hidden">
         <Button
           asChild

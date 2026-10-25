@@ -7,6 +7,7 @@ import { TabBar, TabBarItem } from "@/components/TabBar/TabBar"
 import { Button } from "@/components/ui/button"
 import { Tabs, TabsContent } from "@/components/ui/tabs"
 import { DESKTOP_QUERY, useMediaQuery } from "@/hooks/useMediaQuery"
+import { PAGE } from "@/lib/pageLayout"
 import { cn } from "@/lib/utils"
 
 import { AppHeader } from "@/features/auth/components/AppHeader"
@@ -17,7 +18,6 @@ import { GroupList } from "@/features/groups/components/GroupList"
 import { MyGroups } from "@/features/groups/components/MyGroups"
 import { useGroups } from "@/features/groups/hooks/useGroups"
 import { groupsSearchSchema, type GroupsSearch } from "@/features/groups/lib/groupsSearch"
-import { GROUPS_PAGE } from "@/features/groups/lib/pageLayout"
 
 export const Route = createFileRoute("/skupiny/")({
   component: GroupsPage,
@@ -74,7 +74,7 @@ function GroupsPage() {
       <AppHeader />
       <main
         className={cn(
-          GROUPS_PAGE,
+          PAGE,
           "flex-1 gap-6",
           // the floating „Založit skupinu“ must not cover the last card
           user && "pb-24",

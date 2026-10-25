@@ -70,7 +70,7 @@ function EventsPage() {
             "absolute inset-x-0 top-0 z-20",
             // pb-1: the bar reaches the sheet below it (top-16), no strip of map between
             isListExpanded && "border-b border-border bg-background pb-1",
-            "md:static md:border-b md:border-border md:bg-background",
+            "md:static md:flex md:items-center md:border-b md:border-border md:bg-background md:pr-8",
           )}
         >
           <EventFilters
@@ -82,8 +82,20 @@ function EventsPage() {
             // Chips scroll sideways on narrow screens without a visible scrollbar
             // (Figma A-02); a desktop scrollbar would also make the bar taller
             // and cover the top of the pulled-up list.
-            className="[scrollbar-width:none] overflow-x-auto px-4 py-3 md:px-8 [&::-webkit-scrollbar]:hidden"
+            className="[scrollbar-width:none] overflow-x-auto px-4 py-3 md:min-w-0 md:flex-1 md:px-8 [&::-webkit-scrollbar]:hidden"
           />
+          {/* desktop: at the end of the filter bar (Figma A-02d přihlášený); mobile floats below */}
+          {user ? (
+            <Button
+              asChild
+              className="hidden h-11 shrink-0 md:inline-flex"
+            >
+              <Link to={ROUTES.newEvent}>
+                <Plus />
+                Založit akci
+              </Link>
+            </Button>
+          ) : null}
         </div>
 
         <div className="flex flex-1 md:min-h-0 md:gap-8 md:px-8">
@@ -148,7 +160,7 @@ function EventsPage() {
         ) : null}
 
         {/* „Založit akci“ floats for a signed-in user only; a visitor doesn't see it (#40).
-            Mobile only: on desktop it is in the header (Figma: Header/App desktop). */}
+            Mobile only: on desktop it ends the filter bar above. */}
         {user ? (
           <Button
             asChild
