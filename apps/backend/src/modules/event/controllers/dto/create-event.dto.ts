@@ -42,12 +42,14 @@ class MaxNotBelowMin implements ValidatorConstraintInterface {
 
 @ValidatorConstraint({ name: 'endsAfterStart' })
 class EndsAfterStart implements ValidatorConstraintInterface {
-  validate(endsAt: string, args: ValidationArguments): boolean {
-    const { startsAt } = args.object as CreateEventDto;
+  validate(endsAt: unknown, args: ValidationArguments): boolean {
+    const { startsAt } = args.object as { startsAt?: unknown };
+    // a missing, non-string or unreadable date is IsDateString's and
+    // ParsableDate's to report (Date.parse of an object can even throw)
+    if (typeof startsAt !== 'string' || typeof endsAt !== 'string') return true;
     const start = Date.parse(startsAt);
     const end = Date.parse(endsAt);
-    // an unreadable date is ParsableDate's to report, not an order problem
-    return !startsAt || Number.isNaN(start) || Number.isNaN(end) || end > start;
+    return Number.isNaN(start) || Number.isNaN(end) || end > start;
   }
 
   defaultMessage(): string {

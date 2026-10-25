@@ -80,6 +80,19 @@ describe('CreateEventDto', () => {
     ).toEqual([]);
   });
 
+  it('an end that is no date gets the date error only, not „must be after startsAt“', () => {
+    // what staging answered before: both, though the order wasn't the problem
+    const errors = validateSync(
+      plainToInstance(CreateEventDto, { ...valid, endsAt: 'zítra večer' }),
+      { whitelist: true, forbidNonWhitelisted: true },
+    );
+
+    expect(errors.map((error) => error.property)).toEqual(['endsAt']);
+    expect(Object.keys(errors[0]?.constraints ?? {})).not.toContain(
+      'endsAfterStart',
+    );
+  });
+
   it('a date that is the year 10000 in UTC is invalid: it could not be read back', () => {
     expect(
       invalid({ ...valid, startsAt: '9999-12-31T23:30:00-01:00' }),
