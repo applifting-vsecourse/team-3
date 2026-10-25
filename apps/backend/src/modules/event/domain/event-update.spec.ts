@@ -60,6 +60,48 @@ describe('decideUpdate', () => {
       },
     });
   });
+
+  describe('an end the organizer sets', () => {
+    const state = aState();
+
+    it('is written as sent when it comes after the start', () => {
+      const endsAt = new Date(state.startsAt.getTime() + 3 * 3600_000);
+
+      expect(decideUpdate(state, { endsAt }, now)).toEqual({
+        ok: true,
+        data: { endsAt },
+      });
+    });
+
+    it('can be cleared', () => {
+      expect(decideUpdate(state, { endsAt: null }, now)).toEqual({
+        ok: true,
+        data: { endsAt: null },
+      });
+    });
+
+    it('is refused when it is not after the stored start', () => {
+      expect(decideUpdate(state, { endsAt: state.startsAt }, now)).toEqual({
+        ok: false,
+        refusal: { code: 'INVALID_END', problem: 'Konec musí být po začátku.' },
+      });
+    });
+
+    it('is checked against a start moved in the same change, and not shifted', () => {
+      const startsAt = new Date('2026-10-25T17:00:00.000Z');
+      const endsAt = new Date('2026-10-25T16:00:00.000Z');
+
+      expect(decideUpdate(state, { startsAt, endsAt }, now)).toEqual({
+        ok: false,
+        refusal: { code: 'INVALID_END', problem: 'Konec musí být po začátku.' },
+      });
+      const later = new Date('2026-10-25T21:00:00.000Z');
+      expect(decideUpdate(state, { startsAt, endsAt: later }, now)).toEqual({
+        ok: true,
+        data: { startsAt, endsAt: later },
+      });
+    });
+  });
 });
 
 describe('lifecycleRefusal', () => {

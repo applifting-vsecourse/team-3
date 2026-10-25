@@ -127,12 +127,11 @@ describe("OrganizingEvents", () => {
     expect(screen.queryByRole("status")).not.toBeInTheDocument()
   })
 
-  it("with nothing organized says so, and „Založit akci“ is there either way", async () => {
+  it("with nothing organized says so in one sentence", async () => {
     get.mockReturnValue(asJson([]))
 
     await renderWithQuery(<OrganizingEvents viewerId="u1" />)
 
     expect(await screen.findByText("Zatím nepořádáš žádnou akci.")).toBeInTheDocument()
-    expect(screen.getByRole("link", { name: "Založit akci" })).toHaveAttribute("href", "/akce/nova")
   })
 })

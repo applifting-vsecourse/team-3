@@ -12,6 +12,7 @@ type HeaderProps = {
   isSignedIn?: boolean
 }
 
+// „Založit akci“ is not here: it sits with the page's content (DESIGN.md › Založit akci).
 export function Header({ userMenu, isSignedIn = false }: HeaderProps) {
   return (
     <header className="sticky top-0 z-40 w-full border-b border-border bg-background/80 backdrop-blur">

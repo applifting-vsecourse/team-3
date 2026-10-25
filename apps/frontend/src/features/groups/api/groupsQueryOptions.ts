@@ -6,6 +6,7 @@ import {
   groupDetailSchema,
   groupMembersSchema,
   groupsSchema,
+  myGroupsSchema,
   type GroupFilters,
 } from "@/features/groups/api/groupSchemas"
 
@@ -13,6 +14,8 @@ export const groupKeys = {
   all: () => ["groups"] as const,
   lists: () => [...groupKeys.all(), "list"] as const,
   list: (filters: GroupFilters | undefined) => [...groupKeys.lists(), filters] as const,
+  // under lists(): joining, leaving and deciding requests refresh it with the other lists
+  mine: (viewerId: string) => [...groupKeys.lists(), "mine", viewerId] as const,
   details: () => [...groupKeys.all(), "detail"] as const,
   detail: (id: string) => [...groupKeys.details(), id] as const,
   members: (id: string) => [...groupKeys.detail(id), "members"] as const,
@@ -63,4 +66,11 @@ export const groupMembersQueryOptions = (id: string, { isEnabled = true } = {}) 
     queryFn: isEnabled
       ? async () => groupMembersSchema.parse(await api.get(`groups/${id}/members`).json())
       : skipToken,
+  })
+
+/** „Moje“ on /skupiny (B-056); the viewer is in the key, so another account doesn't see them. */
+export const myGroupsQueryOptions = (viewerId: string) =>
+  queryOptions({
+    queryKey: groupKeys.mine(viewerId),
+    queryFn: async () => myGroupsSchema.parse(await api.get("me/groups").json()),
   })
