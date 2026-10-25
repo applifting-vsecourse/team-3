@@ -38,10 +38,9 @@ const REFUSAL_MESSAGES: Record<ParticipationRefusal, string> = {
   EVENT_STARTED: 'Akce už začala.',
   EVENT_CANCELLED: 'Akce je zrušená.',
   // rejected or removed; neutral, as the organizer may be a woman
-  PARTICIPATION_REFUSED: 'Na tuhle akci se už přihlásit nemůžeš.',
+  PARTICIPATION_REFUSED: 'Na akci se už přihlásit nemůžeš.',
   NOT_JOINED: 'Na akci nemáš místo ani žádost.',
-  NOT_PENDING:
-    'Žádost už není aktuální: mezitím ji někdo vyřídil, nebo ji žadatel stáhl.',
+  NOT_PENDING: 'Žádost už není aktuální: mezitím byla vyřízená, nebo stažená.',
 };
 
 const refused = (refusal: ParticipationRefusal): ConflictException =>

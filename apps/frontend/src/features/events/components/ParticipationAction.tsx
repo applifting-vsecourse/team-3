@@ -74,13 +74,13 @@ export function ParticipationAction({
       <Row>
         <FullButton />
         <p className="text-sm text-muted-foreground">
-          Máš tu místo nebo žádost?{" "}
+          Máš na akci místo nebo žádost?{" "}
           <Link
             to={ROUTES.login}
             search={{ from: signInFrom }}
             className="font-medium text-foreground underline underline-offset-4"
           >
-            Přihlas se
+            Přihlas se k účtu
           </Link>
           .
         </p>

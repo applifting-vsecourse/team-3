@@ -61,10 +61,11 @@ describe("ParticipationAction", () => {
     expect(onLeave).not.toHaveBeenCalled()
   })
 
-  it("a full event: „Plno“, inactive", async () => {
+  it("a full event: „Plno“, inactive and muted (outline, not lime)", async () => {
     await renderAction({ isFull: true, freeSpots: 0, approvedCount: 12 })
 
     expect(screen.getByRole("button", { name: "Plno" })).toBeDisabled()
+    expect(screen.getByRole("button", { name: "Plno" })).toHaveAttribute("data-variant", "outline")
     expect(screen.queryByRole("button", { name: "Přijdu" })).not.toBeInTheDocument()
   })
 
@@ -85,12 +86,12 @@ describe("ParticipationAction", () => {
     expect(screen.getByRole("button", { name: "Plno" })).toBeDisabled()
     expect(screen.queryByRole("link", { name: "Přihlásit se na akci" })).not.toBeInTheDocument()
     // who already has a place or a request still gets back to the event
-    expect(screen.getByRole("link", { name: "Přihlas se" }).getAttribute("href")).toMatch(
+    expect(screen.getByRole("link", { name: "Přihlas se k účtu" }).getAttribute("href")).toMatch(
       /^\/login\?from=/,
     )
   })
 
-  it("a cancelled or started event still wins over „Plno“ for a visitor", async () => {
+  it("a cancelled event still wins over „Plno“ for a visitor", async () => {
     const full = { isFull: true, freeSpots: 0, approvedCount: 12 }
     await renderAction({ ...full, status: "cancelled" }, { viewer: null })
     expect(screen.queryByRole("button")).not.toBeInTheDocument()
@@ -187,7 +188,7 @@ describe("ParticipationAction", () => {
     expect(screen.getByRole("button", { name: "Odhlásit se" })).toBeDisabled()
   })
 
-  it("a removed participant is told so, not that they were rejected", async () => {
+  it("a removed participant is told the place is gone, not that a request was rejected", async () => {
     await renderAction({ myParticipation: "removed" })
 
     expect(screen.getByText("Na akci už nemáš místo.")).toBeInTheDocument()
