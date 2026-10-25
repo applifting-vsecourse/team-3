@@ -382,7 +382,7 @@ export function EventForm({
               )}
             />
 
-            <div className="order-7 grid grid-cols-2 gap-3 md:order-none">
+            <div className="order-7 grid grid-cols-2 items-start gap-3 md:order-none">
               <FormField
                 control={form.control}
                 name="start"
@@ -431,7 +431,7 @@ export function EventForm({
               >
                 Počet účastníků *
               </p>
-              <div className="grid grid-cols-2 gap-3">
+              <div className="grid grid-cols-2 items-start gap-3">
                 <FormField
                   control={form.control}
                   name="minParticipants"
