@@ -48,6 +48,15 @@ function ManageEventPage() {
   const decide = useDecideRequest(eventId, session.user?.id ?? "")
   const isDesktop = useMediaQuery(DESKTOP_QUERY)
   const canEdit = event !== undefined && editRefusal(event, session.user?.id) === null
+  // who is coming: alone in the right column, or next to the requests (#53)
+  const participantList = (isHeadingHidden: boolean) => (
+    <ManagedParticipants
+      participants={participants.participants}
+      error={participants.error}
+      onRetry={participants.retry}
+      isHeadingHidden={isHeadingHidden}
+    />
+  )
 
   return (
     <>
@@ -175,21 +184,10 @@ function ManageEventPage() {
                     }
                   />
                 )}
-                participantList={(isHeadingHidden) => (
-                  <ManagedParticipants
-                    participants={participants.participants}
-                    error={participants.error}
-                    onRetry={participants.retry}
-                    isHeadingHidden={isHeadingHidden}
-                  />
-                )}
+                participantList={participantList}
               />
             ) : (
-              <ManagedParticipants
-                participants={participants.participants}
-                error={participants.error}
-                onRetry={participants.retry}
-              />
+              participantList(false)
             )}
           </div>
         )}
