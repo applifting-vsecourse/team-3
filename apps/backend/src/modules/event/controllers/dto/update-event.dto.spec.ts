@@ -14,6 +14,12 @@ describe('UpdateEventDto', () => {
     expect(invalid({ title: 'Nový název', maxParticipants: 8 })).toEqual([]);
   });
 
+  it('the end is a date-time, and null clears it', () => {
+    expect(invalid({ endsAt: '2026-11-02T20:00:00.000Z' })).toEqual([]);
+    expect(invalid({ endsAt: null })).toEqual([]);
+    expect(invalid({ endsAt: 'zítra' })).toEqual(['endsAt']);
+  });
+
   it('the activity and the way of joining cannot be changed', () => {
     expect(
       invalid({ activityId: 'a1', approvalMode: 'approval' }).sort(),

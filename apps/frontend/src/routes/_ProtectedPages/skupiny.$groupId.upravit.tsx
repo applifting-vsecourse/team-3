@@ -5,6 +5,7 @@ import { toast } from "sonner"
 import { BackLink } from "@/components/BackLink/BackLink"
 import { Seo } from "@/components/Seo"
 import { useCatalog } from "@/hooks/useCatalog"
+import { FORM, PAGE } from "@/lib/pageLayout"
 import { cn } from "@/lib/utils"
 
 import { useSession } from "@/features/auth/hooks/useSession"
@@ -14,7 +15,6 @@ import { CatalogState } from "@/features/groups/components/CatalogState"
 import { GroupForm } from "@/features/groups/components/GroupForm"
 import { InactiveGroupNotice } from "@/features/groups/components/InactiveGroupNotice"
 import { useUpdateGroup } from "@/features/groups/hooks/useGroupMutations"
-import { GROUPS_FORM, GROUPS_PAGE } from "@/features/groups/lib/pageLayout"
 
 export const Route = createFileRoute("/_ProtectedPages/skupiny/$groupId/upravit")({
   component: EditGroupPage,
@@ -41,13 +41,13 @@ function EditGroupPage() {
   return (
     <>
       <Seo title="Upravit skupinu" />
-      <div className={cn(GROUPS_PAGE, "gap-4")}>
+      <div className={cn(PAGE, "gap-4")}>
         <BackLink
           to="/skupiny/$groupId/sprava"
           params={{ groupId }}
           fallbackLabel="Správa skupiny"
         />
-        <div className={GROUPS_FORM}>
+        <div className={FORM}>
           <h1 className="text-3xl font-semibold tracking-tight md:text-4xl">Upravit skupinu</h1>
           {group?.status === "inactive" ? (
             <InactiveGroupNotice />

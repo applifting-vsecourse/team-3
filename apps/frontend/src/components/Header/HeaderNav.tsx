@@ -9,9 +9,26 @@ export function HeaderNav({ isSignedIn }: { isSignedIn: boolean }) {
       aria-label="Hlavní navigace"
       className="hidden items-center gap-1 md:flex"
     >
-      <HeaderNavLink to={ROUTES.events}>Akce</HeaderNavLink>
-      <HeaderNavLink to={ROUTES.groups}>Skupiny</HeaderNavLink>
-      {isSignedIn ? <HeaderNavLink to={ROUTES.myEvents}>Moje akce</HeaderNavLink> : null}
+      <HeaderNavLink
+        to={ROUTES.events}
+        section="events"
+      >
+        Akce
+      </HeaderNavLink>
+      <HeaderNavLink
+        to={ROUTES.groups}
+        section="groups"
+      >
+        Skupiny
+      </HeaderNavLink>
+      {isSignedIn ? (
+        <HeaderNavLink
+          to={ROUTES.myEvents}
+          section="myEvents"
+        >
+          Moje akce
+        </HeaderNavLink>
+      ) : null}
     </nav>
   )
 }

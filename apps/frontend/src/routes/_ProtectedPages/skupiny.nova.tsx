@@ -5,12 +5,12 @@ import { ROUTES } from "@/app/routes"
 import { BackLink } from "@/components/BackLink/BackLink"
 import { Seo } from "@/components/Seo"
 import { useCatalog } from "@/hooks/useCatalog"
+import { FORM, PAGE } from "@/lib/pageLayout"
 import { cn } from "@/lib/utils"
 
 import { CatalogState } from "@/features/groups/components/CatalogState"
 import { GroupForm } from "@/features/groups/components/GroupForm"
 import { useCreateGroup } from "@/features/groups/hooks/useGroupMutations"
-import { GROUPS_FORM, GROUPS_PAGE } from "@/features/groups/lib/pageLayout"
 
 export const Route = createFileRoute("/_ProtectedPages/skupiny/nova")({
   component: NewGroupPage,
@@ -25,13 +25,13 @@ function NewGroupPage() {
   return (
     <>
       <Seo title="Nová skupina" />
-      <div className={cn(GROUPS_PAGE, "gap-4")}>
+      <div className={cn(PAGE, "gap-4")}>
         <BackLink
           to={ROUTES.groups}
           fallbackLabel="Skupiny"
           label="Skupiny"
         />
-        <div className={GROUPS_FORM}>
+        <div className={FORM}>
           <h1 className="text-3xl font-semibold tracking-tight md:text-4xl">Nová skupina</h1>
           {catalog ? (
             <GroupForm

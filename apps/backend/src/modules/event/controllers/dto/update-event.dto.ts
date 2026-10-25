@@ -96,6 +96,17 @@ export class UpdateEventDto {
   @Validate(ParsableDate)
   startsAt?: string;
 
+  @ApiPropertyOptional({
+    type: String,
+    format: 'date-time',
+    nullable: true,
+    description:
+      'null clears the end; after the start (the service checks it against the stored start)',
+  })
+  @IsOptional()
+  @IsDateString({ strict: true })
+  endsAt?: string | null;
+
   @ApiPropertyOptional({ minimum: 1 })
   @IsOptionalNotNull()
   @IsInt()

@@ -9,7 +9,8 @@ import { GroupCard } from "@/features/groups/components/GroupCard"
 import { groupCountLabel } from "@/features/groups/lib/formatGroup"
 
 // Figma A-07d: three columns on a wide desktop, one on mobile
-export const GROUP_GRID = "grid gap-3 md:grid-cols-2 md:gap-4 lg:grid-cols-3"
+// grid-cols-1 = minmax(0, 1fr): a long title truncates instead of widening the page on mobile
+export const GROUP_GRID = "grid grid-cols-1 gap-3 md:grid-cols-2 md:gap-4 lg:grid-cols-3"
 
 type GroupListProps = {
   groups: Group[]
