@@ -3,6 +3,7 @@ import { screen, waitFor, within } from "@testing-library/react"
 import userEvent from "@testing-library/user-event"
 import { beforeEach, describe, expect, it, vi } from "vitest"
 
+import { Header } from "@/components/Header/Header"
 import { api, HTTPError } from "@/lib/api-client"
 import type * as ApiClient from "@/lib/api-client"
 import { renderWithRouter } from "@/test/renderWithRouter"
@@ -59,6 +60,13 @@ const renderBanner = ({ url = "/", queryClient = new QueryClient() } = {}) =>
     { url },
   )
 
+/** The classes that set a row's width and its horizontal insets. */
+const insets = (row: Element | null) =>
+  (row?.className ?? "")
+    .split(" ")
+    .filter((name) => /^(md:)?(w-|max-w-|mx-|px-)/.test(name))
+    .sort()
+
 /** Sends a new link and returns where it leads after verifying. */
 async function resend() {
   vi.mocked(authClient.sendVerificationEmail).mockClear()
@@ -82,6 +90,19 @@ describe("VerifyEmailBanner", () => {
     expect(screen.getByRole("status")).toHaveTextContent(/Ověř si e-mail/)
     expect(screen.getByText("jakub.kral@example.com")).toBeInTheDocument()
     expect(screen.getByRole("status")).toHaveTextContent(/přihlásit na akci ani nic založit/)
+  })
+
+  it("lines up with the header below it: the same width and insets", async () => {
+    await renderWithRouter(
+      <QueryClientProvider client={new QueryClient()}>
+        <VerifyEmailBanner email="jakub.kral@example.com" />
+        <Header userMenu={null} />
+      </QueryClientProvider>,
+    )
+
+    const bannerRow = screen.getByRole("status").firstElementChild
+    const headerRow = screen.getByRole("banner").firstElementChild
+    expect(insets(bannerRow)).toEqual(insets(headerRow))
   })
 
   it("a new link leads back to the page it was asked for on, like the one from the sign-up", async () => {
