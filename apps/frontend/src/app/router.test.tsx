@@ -6,10 +6,12 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest"
 import { router } from "@/app/router"
 import { authKeys } from "@/lib/auth-keys"
 
-/** The app's own routes and pages on `url`, for a visitor (no session asked for). */
-async function renderApp(url: string) {
-  const queryClient = new QueryClient()
-  queryClient.setQueryData(authKeys.session(), null)
+const user = { id: "u1", email: "user@example.com", name: "Jana Nováková", emailVerified: true }
+
+/** The app's own routes and pages on `url`, for a visitor or a signed-in user. */
+async function renderApp(url: string, { isSignedIn = false } = {}) {
+  const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } })
+  queryClient.setQueryData(authKeys.session(), isSignedIn ? { user } : null)
   const app = createRouter({
     ...router.options,
     context: { queryClient },
@@ -51,5 +53,24 @@ describe("router", () => {
     )
     // the header's navigation (desktop) and the bottom one (mobile)
     expect(screen.getAllByRole("navigation", { name: "Hlavní navigace" })).toHaveLength(2)
+  })
+
+  // inside the signed-in layout the 404 would get that layout's header on top of its own
+  it("an unknown address under a signed-in page has the header once", async () => {
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(() =>
+        Promise.resolve(
+          new Response("[]", { status: 200, headers: { "content-type": "application/json" } }),
+        ),
+      ),
+    )
+    await renderApp("/moje-akce/neco", { isSignedIn: true })
+
+    expect(
+      await screen.findByRole("heading", { level: 1, name: "Stránka nenalezena" }),
+    ).toBeInTheDocument()
+    expect(screen.getAllByRole("banner")).toHaveLength(1)
+    expect(document.querySelectorAll("main")).toHaveLength(1)
   })
 })

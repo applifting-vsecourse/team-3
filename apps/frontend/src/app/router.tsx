@@ -28,6 +28,8 @@ export const router = createRouter({
   defaultPreload: "intent",
   defaultPreloadStaleTime: 0,
   scrollRestoration: true,
+  // always at the root: inside the signed-in layout the 404 would get a second header
+  notFoundMode: "root",
   defaultNotFoundComponent: NotFoundPage,
   // no header here: the error may come from the header (the session) itself
   defaultErrorComponent: ({ error }) => <RootErrorBoundary error={error} />,
