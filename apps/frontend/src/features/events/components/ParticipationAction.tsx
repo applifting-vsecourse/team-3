@@ -290,8 +290,12 @@ function FullButton() {
 }
 
 type ConfirmButtonProps = {
-  /** The one action of the detail is `default`; leaving and withdrawing are `outline`. */
-  variant?: "default" | "outline"
+  /**
+   * The one action of the detail is `default`. Leaving and withdrawing are
+   * `ghost`: once in, „Jdu“ / „Čeká na schválení“ is what the bar says, and a
+   * bordered full-width button would outweigh it (DESIGN.md › Colour).
+   */
+  variant?: "default" | "ghost"
   triggerRef?: Ref<HTMLButtonElement>
   label: string
   title: string
@@ -308,7 +312,7 @@ type ConfirmButtonProps = {
  * that may still fail.
  */
 function ConfirmButton({
-  variant = "outline",
+  variant = "ghost",
   triggerRef,
   label,
   title,

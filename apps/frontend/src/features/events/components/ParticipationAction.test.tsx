@@ -272,6 +272,28 @@ describe("ParticipationAction", () => {
     expect(screen.getByRole("button", { name: "Přijdu" })).toBeDisabled()
   })
 
+  it.each([
+    ["approved", "Jdu", "Odhlásit se"],
+    ["pending", "Čeká na schválení", "Stáhnout žádost"],
+  ] as const)(
+    "once %s, the state stands out and „%s“'s way back is quiet (ghost, not a bordered button)",
+    async (myParticipation, state, wayBack) => {
+      await renderAction({ approvalMode: "approval", myParticipation })
+
+      expect(screen.getByText(state)).toHaveClass("font-semibold")
+      expect(screen.getByRole("button", { name: wayBack })).toHaveAttribute("data-variant", "ghost")
+    },
+  )
+
+  it("sending a request is still the one primary action", async () => {
+    await renderAction({ approvalMode: "approval" })
+
+    expect(screen.getByRole("button", { name: "Poslat žádost" })).toHaveAttribute(
+      "data-variant",
+      "default",
+    )
+  })
+
   it("the organizer going to their own event isn't told where its changes show", async () => {
     await renderAction({ myParticipation: "approved" }, { viewer: organizer })
 
