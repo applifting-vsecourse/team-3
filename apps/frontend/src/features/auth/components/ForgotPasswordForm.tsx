@@ -57,6 +57,7 @@ export function ForgotPasswordForm({ isLoading, errorMessage, onSubmit }: Forgot
                   type="email"
                   placeholder="např. jana@example.com"
                   autoComplete="email"
+                  className="h-11"
                   {...field}
                 />
               </FormControl>
@@ -68,7 +69,7 @@ export function ForgotPasswordForm({ isLoading, errorMessage, onSubmit }: Forgot
         <Button
           type="submit"
           size="lg"
-          className="w-full"
+          className="h-11 w-full"
           disabled={isLoading}
         >
           {isLoading ? <Loader2 className="size-4 animate-spin" /> : null}

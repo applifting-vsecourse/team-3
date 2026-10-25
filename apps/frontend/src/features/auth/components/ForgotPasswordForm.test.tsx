@@ -46,4 +46,17 @@ describe("ForgotPasswordForm", () => {
 
     expect(screen.getByRole("button", { name: "Poslat odkaz" })).toBeDisabled()
   })
+
+  // as tall as the event form's (44 px, a comfortable tap), not the kit's 36/40 px
+  it("has fields and a button the size of the event form's", () => {
+    render(
+      <ForgotPasswordForm
+        isLoading={false}
+        onSubmit={vi.fn()}
+      />,
+    )
+
+    expect(screen.getByLabelText("E-mail")).toHaveClass("h-11")
+    expect(screen.getByRole("button", { name: "Poslat odkaz" })).toHaveClass("h-11")
+  })
 })

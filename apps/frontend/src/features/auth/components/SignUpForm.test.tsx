@@ -54,4 +54,14 @@ describe("SignUpForm (B-010)", () => {
       expect.anything(),
     )
   })
+
+  // as tall as the event form's (44 px, a comfortable tap), not the kit's 36/40 px
+  it("has fields and a button the size of the event form's", () => {
+    renderForm()
+
+    expect(screen.getByLabelText("Jméno")).toHaveClass("h-11")
+    expect(screen.getByLabelText("E-mail")).toHaveClass("h-11")
+    expect(screen.getByLabelText("Heslo")).toHaveClass("h-11")
+    expect(screen.getByRole("button", { name: "Zaregistrovat se" })).toHaveClass("h-11")
+  })
 })

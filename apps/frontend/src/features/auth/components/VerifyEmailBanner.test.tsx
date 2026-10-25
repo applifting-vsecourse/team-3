@@ -3,6 +3,7 @@ import { screen, waitFor, within } from "@testing-library/react"
 import userEvent from "@testing-library/user-event"
 import { beforeEach, describe, expect, it, vi } from "vitest"
 
+import { Header } from "@/components/Header/Header"
 import { api, HTTPError } from "@/lib/api-client"
 import type * as ApiClient from "@/lib/api-client"
 import { renderWithRouter } from "@/test/renderWithRouter"
@@ -11,6 +12,7 @@ import { simulatedInboxKeys } from "@/features/auth/api/simulatedInbox"
 import { VerifyEmailBanner } from "@/features/auth/components/VerifyEmailBanner"
 import { authClient } from "@/features/auth/lib/auth-client"
 import { safeRedirect } from "@/features/auth/lib/redirect"
+import { showVerifyEmailBanner } from "@/features/auth/lib/verify-email-banner"
 
 vi.mock("@/features/auth/lib/auth-client", () => ({
   authClient: {
@@ -59,6 +61,13 @@ const renderBanner = ({ url = "/", queryClient = new QueryClient() } = {}) =>
     { url },
   )
 
+/** The classes that set a row's width and its horizontal insets. */
+const insets = (row: Element | null) =>
+  (row?.className ?? "")
+    .split(" ")
+    .filter((name) => /^(md:)?(w-|max-w-|mx-|px-)/.test(name))
+    .sort()
+
 /** Sends a new link and returns where it leads after verifying. */
 async function resend() {
   vi.mocked(authClient.sendVerificationEmail).mockClear()
@@ -82,6 +91,32 @@ describe("VerifyEmailBanner", () => {
     expect(screen.getByRole("status")).toHaveTextContent(/Ověř si e-mail/)
     expect(screen.getByText("jakub.kral@example.com")).toBeInTheDocument()
     expect(screen.getByRole("status")).toHaveTextContent(/přihlásit na akci ani nic založit/)
+  })
+
+  it("lines up with the header below it: the same width and insets", async () => {
+    await renderWithRouter(
+      <QueryClientProvider client={new QueryClient()}>
+        <VerifyEmailBanner email="jakub.kral@example.com" />
+        <Header userMenu={null} />
+      </QueryClientProvider>,
+    )
+
+    const bannerRow = screen.getByRole("status").firstElementChild
+    const headerRow = screen.getByRole("banner").firstElementChild
+    expect(insets(bannerRow)).toEqual(insets(headerRow))
+  })
+
+  it("„Ověřit e-mail“ elsewhere on the page brings it into view, with the focus", async () => {
+    await renderBanner()
+    const banner = screen.getByRole("status")
+    const scrollIntoView = vi.spyOn(banner, "scrollIntoView")
+
+    showVerifyEmailBanner()
+
+    expect(scrollIntoView).toHaveBeenCalledWith({ block: "start" })
+    expect(banner).toHaveFocus()
+    // not a stop when tabbing through the page
+    expect(banner).toHaveAttribute("tabindex", "-1")
   })
 
   it("a new link leads back to the page it was asked for on, like the one from the sign-up", async () => {
