@@ -44,7 +44,10 @@ class MaxNotBelowMin implements ValidatorConstraintInterface {
 class EndsAfterStart implements ValidatorConstraintInterface {
   validate(endsAt: string, args: ValidationArguments): boolean {
     const { startsAt } = args.object as CreateEventDto;
-    return !startsAt || new Date(endsAt) > new Date(startsAt);
+    const start = Date.parse(startsAt);
+    const end = Date.parse(endsAt);
+    // an unreadable date is ParsableDate's to report, not an order problem
+    return !startsAt || Number.isNaN(start) || Number.isNaN(end) || end > start;
   }
 
   defaultMessage(): string {
@@ -52,15 +55,23 @@ class EndsAfterStart implements ValidatorConstraintInterface {
   }
 }
 
+// toISOString() after the year 9999 (UTC) is „+010000-…“, which comes back
+// from the database as a date nothing can read
+const LAST_STORABLE_TIME = Date.UTC(9999, 11, 31, 23, 59, 59, 999);
+
 /**
  * validator.js's ISO 8601 also takes week dates („2027-W10-3“) and a decimal
  * comma („…T18:00:00,5Z“), which `new Date` can't read: such a date reached
  * the database as an Invalid Date and failed with a 500 instead of a 400.
+ * `Date.parse` is the parser `new Date` uses. A start or end that is the year
+ * 10000 in UTC (e.g. „9999-12-31T23:30:00-01:00“) can't be stored either.
  */
 @ValidatorConstraint({ name: 'parsableDate' })
 export class ParsableDate implements ValidatorConstraintInterface {
   validate(value: unknown): boolean {
-    return typeof value === 'string' && !Number.isNaN(Date.parse(value));
+    if (typeof value !== 'string') return false;
+    const time = Date.parse(value);
+    return !Number.isNaN(time) && time <= LAST_STORABLE_TIME;
   }
 
   defaultMessage(args: ValidationArguments): string {
