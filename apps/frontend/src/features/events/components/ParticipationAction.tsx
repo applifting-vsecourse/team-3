@@ -67,6 +67,8 @@ export function ParticipationAction({
     )
   }
 
+  // a visitor isn't sent to sign in for a place there isn't (B-032: „Plno“)
+  if (!viewer && event.isFull) return <FullButton />
   if (!viewer) {
     return (
       <Button
@@ -153,16 +155,7 @@ function JoinControl({ event, isOrganizer, isPending, onJoin, onLeave }: JoinCon
       break
   }
 
-  if (event.isFull) {
-    return (
-      <Button
-        size="lg"
-        disabled
-      >
-        Plno
-      </Button>
-    )
-  }
+  if (event.isFull) return <FullButton />
   // the organizer joins at once even with approval (Q12); anyone else asks
   if (event.approvalMode === "approval" && !isOrganizer) {
     return (
@@ -184,6 +177,18 @@ function JoinControl({ event, isOrganizer, isPending, onJoin, onLeave }: JoinCon
     >
       {isPending ? <Loader2 className="size-4 animate-spin" /> : null}
       Přijdu
+    </Button>
+  )
+}
+
+function FullButton() {
+  return (
+    <Button
+      size="lg"
+      className="self-start"
+      disabled
+    >
+      Plno
     </Button>
   )
 }

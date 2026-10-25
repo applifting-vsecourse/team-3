@@ -79,6 +79,13 @@ describe("ParticipationAction", () => {
     expect(onJoin).toHaveBeenCalledOnce()
   })
 
+  it("a visitor sees „Plno“ on a full event, not a sign-in for a place there isn't", async () => {
+    await renderAction({ isFull: true, freeSpots: 0, approvedCount: 12 }, { viewer: null })
+
+    expect(screen.getByRole("button", { name: "Plno" })).toBeDisabled()
+    expect(screen.queryByRole("link", { name: "Přihlásit se na akci" })).not.toBeInTheDocument()
+  })
+
   it("a visitor is offered the sign-in that comes back to the event", async () => {
     await renderAction({}, { viewer: null })
 
