@@ -35,8 +35,9 @@ type ParticipationActionProps = {
 /**
  * The one action of the event detail (B-032, Figma A-05 · Stavy): „Přijdu“
  * → „Jdu“ + „Odhlásit se“, „Plno“, the sign-in for a visitor, and for the
- * organizer „Spravovat akci“ next to „Přijdu“. A request to an event with
- * approval is #53; until then such an event says so.
+ * organizer „Spravovat akci“ next to „Přijdu“. An event with approval takes
+ * a request instead (A-05a, #53), confirmed first and without a message
+ * (that is #60).
  */
 export function ParticipationAction({
   event,
@@ -66,6 +67,26 @@ export function ParticipationAction({
     )
   }
 
+  // A visitor isn't sent to sign in for a place there isn't (B-032: „Plno“);
+  // someone signed out who has a place or a request still gets back to it.
+  if (!viewer && event.isFull) {
+    return (
+      <Row>
+        <FullButton />
+        <p className="text-sm text-muted-foreground">
+          Máš na akci místo nebo žádost?{" "}
+          <Link
+            to={ROUTES.login}
+            search={{ from: signInFrom }}
+            className="font-medium text-foreground underline underline-offset-4"
+          >
+            Přihlas se k účtu
+          </Link>
+          .
+        </p>
+      </Row>
+    )
+  }
   if (!viewer) {
     return (
       <Button
@@ -83,10 +104,11 @@ export function ParticipationAction({
     )
   }
   if (!viewer.emailVerified) {
+    // full: verifying wouldn't get a place either; the banner still asks to verify
     return (
       <Row>
         {manage}
-        <Note>Na akci se přihlásíš, až si ověříš e-mail.</Note>
+        {event.isFull ? <FullButton /> : <Note>Na akci se přihlásíš, až si ověříš e-mail.</Note>}
       </Row>
     )
   }
@@ -122,7 +144,7 @@ function JoinControl({ event, isOrganizer, isPending, onJoin, onLeave }: JoinCon
             />
             Jdu
           </p>
-          <LeaveButton
+          <ConfirmButton
             label="Odhlásit se"
             title="Odhlásit se z akce?"
             description="Místo se uvolní pro další zájemce."
@@ -135,7 +157,7 @@ function JoinControl({ event, isOrganizer, isPending, onJoin, onLeave }: JoinCon
       return (
         <>
           <p className="font-semibold">Čeká na schválení</p>
-          <LeaveButton
+          <ConfirmButton
             label="Stáhnout žádost"
             title="Stáhnout žádost o účast?"
             description="Organizátor ji pak už neuvidí."
@@ -145,26 +167,27 @@ function JoinControl({ event, isOrganizer, isPending, onJoin, onLeave }: JoinCon
         </>
       )
     case "rejected":
-      return <Note>Organizátor tvoji účast zamítl.</Note>
+      // gender-neutral (DESIGN.md › Copy): the organizer may well be a woman
+      return <Note>Tvoje žádost o účast byla zamítnuta.</Note>
     case "removed":
-      return <Note>Organizátor tě z akce odebral.</Note>
+      return <Note>Na akci už nemáš místo.</Note>
     case null:
       break
   }
 
-  if (event.isFull) {
-    return (
-      <Button
-        size="lg"
-        disabled
-      >
-        Plno
-      </Button>
-    )
-  }
-  // the organizer joins at once even with approval (Q12); a request is #53
+  if (event.isFull) return <FullButton />
+  // the organizer joins at once even with approval (Q12); anyone else asks
   if (event.approvalMode === "approval" && !isOrganizer) {
-    return <Note>Přihlášky na tuto akci schvaluje organizátor. Poslat žádost půjde brzy.</Note>
+    return (
+      <ConfirmButton
+        variant="default"
+        label="Poslat žádost"
+        title="Poslat žádost o účast?"
+        description="Organizátor žádost schválí, nebo zamítne. Dokud nerozhodne, můžeš ji stáhnout."
+        isPending={isPending}
+        onConfirm={onJoin}
+      />
+    )
   }
   return (
     <Button
@@ -178,7 +201,23 @@ function JoinControl({ event, isOrganizer, isPending, onJoin, onLeave }: JoinCon
   )
 }
 
-type LeaveButtonProps = {
+// Muted, not lime: lime is for what you can do (DESIGN.md, „Plno“ is muted);
+// a disabled lime button reads as broken, in the dark theme especially.
+function FullButton() {
+  return (
+    <Button
+      variant="outline"
+      size="lg"
+      disabled
+    >
+      Plno
+    </Button>
+  )
+}
+
+type ConfirmButtonProps = {
+  /** The one action of the detail is `default`; leaving and withdrawing are `outline`. */
+  variant?: "default" | "outline"
   label: string
   title: string
   description: string
@@ -186,8 +225,18 @@ type LeaveButtonProps = {
   onConfirm: () => void
 }
 
-/** Figma A-05b: leaving is confirmed, so a stray tap doesn't give the place away. */
-function LeaveButton({ label, title, description, isPending, onConfirm }: LeaveButtonProps) {
+/**
+ * Figma A-05a / A-05b: a request, leaving and withdrawing are confirmed, so a
+ * stray tap doesn't send a request or give the place away.
+ */
+function ConfirmButton({
+  variant = "outline",
+  label,
+  title,
+  description,
+  isPending,
+  onConfirm,
+}: ConfirmButtonProps) {
   const [isOpen, setIsOpen] = useState(false)
   return (
     <Dialog
@@ -196,7 +245,7 @@ function LeaveButton({ label, title, description, isPending, onConfirm }: LeaveB
     >
       <DialogTrigger asChild>
         <Button
-          variant="outline"
+          variant={variant}
           size="lg"
           // a second confirmation while the first is on its way would only fail
           disabled={isPending}

@@ -40,7 +40,8 @@ function SignUpPage() {
     try {
       // signed in at once; the verification link leads back to `from` too
       await signUp.mutateAsync({ ...values, from })
-      await navigate({ href: safeRedirect(from, ROUTES.events) })
+      // replace: „Zpět“ on the page we return to mustn't lead back to the form
+      await navigate({ href: safeRedirect(from, ROUTES.events), replace: true })
     } catch (error) {
       setErrorMessage(
         error instanceof Error ? error.message : "Registrace se nepovedla. Zkus to prosím znovu.",
@@ -61,6 +62,8 @@ function SignUpPage() {
             <Link
               to={ROUTES.login}
               search={{ from }}
+              // switching between sign-in and sign-up doesn't pile up in the history
+              replace
               className="font-medium text-foreground underline underline-offset-4"
             >
               Přihlas se

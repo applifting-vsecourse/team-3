@@ -1,4 +1,4 @@
-import { createFileRoute, useNavigate } from "@tanstack/react-router"
+import { createFileRoute } from "@tanstack/react-router"
 import { toast } from "sonner"
 
 import { ROUTES } from "@/app/routes"
@@ -13,6 +13,7 @@ import { cn } from "@/lib/utils"
 import { useSession } from "@/features/auth/hooks/useSession"
 import { EventForm } from "@/features/events/components/EventForm"
 import { useEventDetail } from "@/features/events/hooks/useEventDetail"
+import { useLeaveEditForm } from "@/features/events/hooks/useLeaveEditForm"
 import { useUpdateEvent } from "@/features/events/hooks/useUpdateEvent"
 import { editRefusal } from "@/features/events/lib/editRefusal"
 import { CatalogState } from "@/features/groups/components/CatalogState"
@@ -27,12 +28,12 @@ export const Route = createFileRoute("/_ProtectedPages/akce/$eventId/upravit")({
  */
 function EditEventPage() {
   const { eventId } = Route.useParams()
-  const navigate = useNavigate()
   const session = useSession()
   const viewerId = session.isPending ? undefined : (session.user?.id ?? null)
   const { event, isPending, isNotFound, error } = useEventDetail(eventId, viewerId)
   const { catalog, queries } = useCatalog()
   const updateEvent = useUpdateEvent(eventId, session.user?.id ?? "")
+  const leaveForm = useLeaveEditForm(eventId)
 
   const refusal = event ? editRefusal(event, session.user?.id) : null
 
@@ -87,8 +88,9 @@ function EditEventPage() {
               onSubmit={({ activityId: _activity, approvalMode: _approval, ...changes }) =>
                 updateEvent.mutate(changes, {
                   onSuccess: () => {
-                    toast.success("Změny jsou uložené")
-                    void navigate({ to: ROUTES.eventDetail, params: { eventId } })
+                    toast.success("Změny jsou uložené.")
+                    // the detail and Správa akce read the saved event from the cache
+                    leaveForm()
                   },
                 })
               }

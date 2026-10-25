@@ -60,6 +60,46 @@ describe('CreateEventDto', () => {
     ).toEqual([]);
   });
 
+  it("a start or end that ISO 8601 allows but a Date can't read is invalid, not a 500", () => {
+    // a week date and a decimal comma passed IsDateString and broke the insert
+    expect(invalid({ ...valid, startsAt: '2027-W10-3' })).toEqual(['startsAt']);
+    expect(invalid({ ...valid, startsAt: '2027-03-10T18:00:00,5Z' })).toEqual([
+      'startsAt',
+    ]);
+    expect(invalid({ ...valid, endsAt: '2026-11-02T19:00:00,5Z' })).toEqual([
+      'endsAt',
+    ]);
+    // basic format and an ordinal date: ISO 8601, but not for a Date
+    expect(invalid({ ...valid, startsAt: '20270310T180000Z' })).toEqual([
+      'startsAt',
+    ]);
+    expect(invalid({ ...valid, startsAt: '2027-069' })).toEqual(['startsAt']);
+    // what the app sends (toISOString) and a plain offset are fine
+    expect(
+      invalid({ ...valid, startsAt: '2026-11-02T18:00:00+01:00' }),
+    ).toEqual([]);
+  });
+
+  it('an end that is no date gets the date error only, not „must be after startsAt“', () => {
+    // what staging answered before: both, though the order wasn't the problem
+    const errors = validateSync(
+      plainToInstance(CreateEventDto, { ...valid, endsAt: 'zítra večer' }),
+      { whitelist: true, forbidNonWhitelisted: true },
+    );
+
+    expect(errors.map((error) => error.property)).toEqual(['endsAt']);
+    expect(Object.keys(errors[0]?.constraints ?? {})).not.toContain(
+      'endsAfterStart',
+    );
+  });
+
+  it('a date that is the year 10000 in UTC is invalid: it could not be read back', () => {
+    expect(
+      invalid({ ...valid, startsAt: '9999-12-31T23:30:00-01:00' }),
+    ).toEqual(['startsAt']);
+    expect(invalid({ ...valid, startsAt: '9999-12-31T22:00:00Z' })).toEqual([]);
+  });
+
   it('an end before the start is invalid', () => {
     expect(invalid({ ...valid, endsAt: '2026-11-02T16:00:00.000Z' })).toEqual([
       'endsAt',
