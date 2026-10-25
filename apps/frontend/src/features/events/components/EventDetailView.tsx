@@ -242,10 +242,15 @@ function EventOrganizer({ event }: { event: EventDetail }) {
             description="Skupina"
           />
         ) : (
-          // creating an event takes a verified e-mail (VerifiedUserGuard)
+          // „Pořádá“ above already names the role, and every organizer has a
+          // verified e-mail (VerifiedUserGuard), so the second line says only
+          // what the viewer can't tell otherwise: who decides on a request.
+          // A verb, not „Organizátor“, so it fits any name (DESIGN.md › Copy).
           <PersonRow
             name={event.organizer.name}
-            description="Organizátor · ověřený e-mail"
+            description={
+              event.approvalMode === "approval" ? "Schvaluje žádosti o účast" : undefined
+            }
           />
         )}
       </div>

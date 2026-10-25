@@ -98,27 +98,33 @@ function EventDetailPage() {
                   isPending={join.isPending || leave.isPending}
                   onVerifyEmail={showVerifyEmailBanner}
                   onJoin={() =>
-                    join.mutate(undefined, {
-                      onSuccess: (updated) =>
+                    join.mutateAsync().then(
+                      (updated) =>
                         toast.success(
                           updated.myParticipation === "pending"
                             ? "Žádost je odeslaná."
                             : "Máš na akci místo.",
                         ),
                       // the API's 409 says why, in Czech (e.g. „Akce je plná.“)
-                      onError: (joinError) => toast.error(joinError.message),
-                    })
+                      (joinError: Error) => {
+                        toast.error(joinError.message)
+                        throw joinError
+                      },
+                    )
                   }
                   onLeave={() => {
                     // a withdrawn request never had a place to give up
                     const isWithdrawingRequest = event.myParticipation === "pending"
-                    leave.mutate(undefined, {
-                      onSuccess: () =>
+                    return leave.mutateAsync().then(
+                      () =>
                         toast.success(
                           isWithdrawingRequest ? "Žádost je stažená." : "Na akci už nejdeš.",
                         ),
-                      onError: (leaveError) => toast.error(leaveError.message),
-                    })
+                      (leaveError: Error) => {
+                        toast.error(leaveError.message)
+                        throw leaveError
+                      },
+                    )
                   }}
                 />
               ) : null

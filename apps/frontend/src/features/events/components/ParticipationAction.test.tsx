@@ -1,4 +1,5 @@
-import { screen, within } from "@testing-library/react"
+import { useState } from "react"
+import { act, screen, waitFor, within } from "@testing-library/react"
 import userEvent from "@testing-library/user-event"
 import { describe, expect, it, vi } from "vitest"
 
@@ -18,8 +19,8 @@ type RenderOptions = { viewer?: Viewer | null; isPending?: boolean; now?: Date }
 const renderAction = async (event: Partial<EventDetail> = {}, options: RenderOptions = {}) => {
   // a missing viewer is Jakub; an explicit null is a visitor
   const { viewer = jakub, isPending = false, now = before } = options
-  const onJoin = vi.fn()
-  const onLeave = vi.fn()
+  const onJoin = vi.fn().mockResolvedValue(undefined)
+  const onLeave = vi.fn().mockResolvedValue(undefined)
   const onVerifyEmail = vi.fn()
   await renderWithRouter(
     <ParticipationAction
@@ -36,6 +37,51 @@ const renderAction = async (event: Partial<EventDetail> = {}, options: RenderOpt
   return { onJoin, onLeave, onVerifyEmail }
 }
 
+/** A request the test answers when it wants to. */
+const aRequest = () => {
+  let resolve!: () => void
+  let reject!: (error: Error) => void
+  const promise = new Promise<void>((resolveRequest, rejectRequest) => {
+    resolve = resolveRequest
+    reject = rejectRequest
+  })
+  return { promise, resolve, reject }
+}
+
+/** The page around the action: pending while the request is out, then the detail as the API answers. */
+function Page({
+  event,
+  request,
+  answer,
+}: {
+  event: Partial<EventDetail>
+  request: () => Promise<void>
+  answer: EventDetail["myParticipation"]
+}) {
+  const [detail, setDetail] = useState(() => anEventDetail(event))
+  const [isPending, setIsPending] = useState(false)
+  const send = async () => {
+    setIsPending(true)
+    try {
+      await request()
+      setDetail((current) => ({ ...current, myParticipation: answer }))
+    } finally {
+      setIsPending(false)
+    }
+  }
+  return (
+    <ParticipationAction
+      event={detail}
+      viewer={jakub}
+      signInFrom={encodeURIComponent("/akce/e1")}
+      isPending={isPending}
+      onJoin={send}
+      onLeave={send}
+      now={before}
+    />
+  )
+}
+
 describe("ParticipationAction", () => {
   it("an event without approval: „Přijdu“ joins", async () => {
     const { onJoin } = await renderAction()
@@ -48,6 +94,10 @@ describe("ParticipationAction", () => {
     const { onLeave } = await renderAction({ myParticipation: "approved" })
 
     expect(screen.getByText("Jdu")).toBeInTheDocument()
+    // no e-mail comes with a change yet: say where it shows
+    expect(screen.getByText("Změny akce uvidíš tady a v Mých akcích.")).toBeInTheDocument()
+    // opening the page doesn't move the focus, only a change does
+    expect(document.body).toHaveFocus()
     await userEvent.click(screen.getByRole("button", { name: "Odhlásit se" }))
     const dialog = screen.getByRole("dialog", { name: "Odhlásit se z akce?" })
     expect(onLeave).not.toHaveBeenCalled()
@@ -174,10 +224,11 @@ describe("ParticipationAction", () => {
     expect(screen.queryByRole("button", { name: "Poslat žádost" })).not.toBeInTheDocument()
   })
 
-  it("a waiting request can be withdrawn", async () => {
+  it("a waiting request says where the decision shows, and can be withdrawn", async () => {
     await renderAction({ approvalMode: "approval", myParticipation: "pending" })
 
     expect(screen.getByText("Čeká na schválení")).toBeInTheDocument()
+    expect(screen.getByText("Rozhodnutí uvidíš tady a v Mých akcích.")).toBeInTheDocument()
     expect(screen.getByRole("button", { name: "Stáhnout žádost" })).toBeInTheDocument()
   })
 
@@ -228,5 +279,121 @@ describe("ParticipationAction", () => {
     await renderAction({}, { isPending: true })
 
     expect(screen.getByRole("button", { name: "Přijdu" })).toBeDisabled()
+  })
+
+  it.each([
+    ["approved", "Jdu", "Odhlásit se"],
+    ["pending", "Čeká na schválení", "Stáhnout žádost"],
+  ] as const)(
+    "once %s, the state stands out and „%s“'s way back is quiet (ghost, not a bordered button)",
+    async (myParticipation, state, wayBack) => {
+      await renderAction({ approvalMode: "approval", myParticipation })
+
+      expect(screen.getByText(state)).toHaveClass("font-semibold")
+      expect(screen.getByRole("button", { name: wayBack })).toHaveAttribute("data-variant", "ghost")
+    },
+  )
+
+  it("sending a request is still the one primary action", async () => {
+    await renderAction({ approvalMode: "approval" })
+
+    expect(screen.getByRole("button", { name: "Poslat žádost" })).toHaveAttribute(
+      "data-variant",
+      "default",
+    )
+  })
+
+  it("the organizer going to their own event isn't told where its changes show", async () => {
+    await renderAction({ myParticipation: "approved" }, { viewer: organizer })
+
+    expect(screen.getByText("Jdu")).toBeInTheDocument()
+    expect(screen.queryByText(/Změny akce uvidíš/)).not.toBeInTheDocument()
+  })
+
+  describe("while the request is on its way (as „Zrušit akci?“)", () => {
+    it("the dialog waits for the answer, then the new state takes the focus", async () => {
+      const request = aRequest()
+      await renderWithRouter(
+        <Page
+          event={{ approvalMode: "approval" }}
+          request={() => request.promise}
+          answer="pending"
+        />,
+      )
+
+      await userEvent.click(screen.getByRole("button", { name: "Poslat žádost" }))
+      const dialog = screen.getByRole("dialog", { name: "Poslat žádost o účast?" })
+      await userEvent.click(within(dialog).getByRole("button", { name: "Poslat žádost" }))
+      // still open, and the request can't go twice
+      expect(screen.getByRole("dialog", { name: "Poslat žádost o účast?" })).toBe(dialog)
+      expect(within(dialog).getByRole("button", { name: "Poslat žádost" })).toBeDisabled()
+
+      await act(async () => {
+        request.resolve()
+        await request.promise
+      })
+
+      expect(screen.queryByRole("dialog")).not.toBeInTheDocument()
+      // not left on <body>: the button used is gone, its result is read out
+      const state = screen.getByText("Čeká na schválení").parentElement!
+      expect(state).toHaveFocus()
+      expect(state).toHaveTextContent("Rozhodnutí uvidíš tady a v Mých akcích.")
+    })
+
+    it("a failed request keeps the dialog open to try again (the page's toast says why)", async () => {
+      const request = aRequest()
+      await renderWithRouter(
+        <Page
+          event={{ approvalMode: "approval" }}
+          request={() => request.promise}
+          answer="pending"
+        />,
+      )
+
+      await userEvent.click(screen.getByRole("button", { name: "Poslat žádost" }))
+      const dialog = screen.getByRole("dialog", { name: "Poslat žádost o účast?" })
+      await userEvent.click(within(dialog).getByRole("button", { name: "Poslat žádost" }))
+      await act(async () => {
+        request.reject(new Error("Akce je plná."))
+        await request.promise.catch(() => undefined)
+      })
+
+      expect(screen.getByRole("dialog", { name: "Poslat žádost o účast?" })).toBe(dialog)
+      expect(within(dialog).getByRole("button", { name: "Poslat žádost" })).toBeEnabled()
+      expect(screen.queryByText("Čeká na schválení")).not.toBeInTheDocument()
+    })
+
+    it("after „Přijdu“ the focus moves to „Jdu“, which says where changes show", async () => {
+      await renderWithRouter(
+        <Page
+          event={{}}
+          request={() => Promise.resolve()}
+          answer="approved"
+        />,
+      )
+
+      await userEvent.click(screen.getByRole("button", { name: "Přijdu" }))
+
+      const state = (await screen.findByText("Jdu")).parentElement!
+      await waitFor(() => expect(state).toHaveFocus())
+      expect(state).toHaveTextContent("Změny akce uvidíš tady a v Mých akcích.")
+    })
+
+    it("after leaving the focus moves back to „Přijdu“", async () => {
+      await renderWithRouter(
+        <Page
+          event={{ myParticipation: "approved" }}
+          request={() => Promise.resolve()}
+          answer={null}
+        />,
+      )
+
+      await userEvent.click(screen.getByRole("button", { name: "Odhlásit se" }))
+      const dialog = screen.getByRole("dialog", { name: "Odhlásit se z akce?" })
+      await userEvent.click(within(dialog).getByRole("button", { name: "Odhlásit se" }))
+
+      await waitFor(() => expect(screen.getByRole("button", { name: "Přijdu" })).toHaveFocus())
+      expect(screen.queryByRole("dialog")).not.toBeInTheDocument()
+    })
   })
 })

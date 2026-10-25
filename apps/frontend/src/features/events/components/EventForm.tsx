@@ -495,6 +495,11 @@ export function EventForm({
                       {...field}
                     />
                   </FormControl>
+                  {/* level, price and gear aren't fields yet: the description answers
+                      „is it for me?“ */}
+                  <FormDescription>
+                    Napiš, pro koho akce je, jaká úroveň stačí, kolik stojí a co si vzít s sebou.
+                  </FormDescription>
                   <FormMessage />
                 </FormItem>
               )}
