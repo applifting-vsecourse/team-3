@@ -78,4 +78,40 @@ describe("NearestEvents", () => {
       searchParams: new URLSearchParams({ localityId: "l-praha" }),
     })
   })
+
+  it("names the locality it shows, and with an unknown one falls back to all events without a name", async () => {
+    get.mockImplementation(((path: string) =>
+      path === "localities"
+        ? asJson([
+            { id: "l-praha", slug: "praha", name: "Praha", parentId: null, lat: 50, lng: 14 },
+          ])
+        : asJson([anEvent({ title: "Deskovky" })])) as never)
+
+    await renderNearest({ localitySlug: "atlantida" })
+
+    expect(await screen.findByRole("link", { name: "Deskovky" })).toBeInTheDocument()
+    expect(get).toHaveBeenCalledWith("events", { searchParams: new URLSearchParams() })
+    expect(screen.queryByText("Praha")).not.toBeInTheDocument()
+  })
+
+  it("when the localities fail, offers to try again and then loads the events", async () => {
+    get.mockImplementation(((path: string) =>
+      path === "localities"
+        ? ({ json: () => Promise.reject(new Error("offline")) } as never)
+        : asJson([anEvent({ title: "Deskovky" })])) as never)
+
+    await renderNearest({ localitySlug: "praha" })
+    const retry = await screen.findByRole("button", { name: "Zkusit znovu" })
+
+    get.mockImplementation(((path: string) =>
+      path === "localities"
+        ? asJson([
+            { id: "l-praha", slug: "praha", name: "Praha", parentId: null, lat: 50, lng: 14 },
+          ])
+        : asJson([anEvent({ title: "Deskovky" })])) as never)
+    await userEvent.click(retry)
+
+    expect(await screen.findByRole("link", { name: "Deskovky" })).toBeInTheDocument()
+    expect(screen.getByText("Praha")).toBeInTheDocument()
+  })
 })

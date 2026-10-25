@@ -1,5 +1,5 @@
 import { Link } from "@tanstack/react-router"
-import { ChevronRight, MapPin } from "lucide-react"
+import { ChevronRight } from "lucide-react"
 
 import { ROUTES } from "@/app/routes"
 import { Button } from "@/components/ui/button"
@@ -31,7 +31,7 @@ export function LandingView({ shouldInviteToSignUp }: LandingViewProps) {
     <main
       className={cn(
         PAGE,
-        "flex-1 gap-8 md:grid md:grid-cols-[minmax(0,1fr)_minmax(0,32.5rem)] md:content-start md:gap-x-16 md:gap-y-6 md:py-16",
+        "flex-1 gap-8 lg:grid lg:grid-cols-[minmax(0,1fr)_minmax(0,32.5rem)] lg:content-start lg:gap-x-16 lg:gap-y-6 lg:py-16",
       )}
     >
       <section className="flex flex-col gap-4 md:gap-6">
@@ -61,18 +61,9 @@ export function LandingView({ shouldInviteToSignUp }: LandingViewProps) {
         </div>
       </section>
 
-      <div className="md:col-start-2 md:row-span-2 md:row-start-1">
+      <div className="lg:col-start-2 lg:row-span-2 lg:row-start-1">
         <NearestEvents
           localitySlug={DEFAULT_LOCALITY_SLUG}
-          headingAside={
-            <span className="flex items-center gap-1 text-sm text-muted-foreground">
-              <MapPin
-                className="size-4"
-                aria-hidden
-              />
-              Praha
-            </span>
-          }
           footer={
             <Button
               asChild
@@ -98,16 +89,14 @@ export function LandingView({ shouldInviteToSignUp }: LandingViewProps) {
         >
           Jak to funguje
         </h2>
+        {/* The numbers stay readable: Safari drops list semantics with list-style: none. */}
         <ol className="flex flex-col gap-3">
           {STEPS.map((step, index) => (
             <li
               key={step}
               className="flex items-center gap-3"
             >
-              <span
-                className="flex size-7 shrink-0 items-center justify-center rounded-full bg-secondary text-sm font-semibold text-secondary-foreground"
-                aria-hidden
-              >
+              <span className="flex size-7 shrink-0 items-center justify-center rounded-full bg-secondary text-sm font-semibold text-secondary-foreground">
                 {index + 1}
               </span>
               {step}

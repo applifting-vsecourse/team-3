@@ -58,6 +58,7 @@ describe("LandingView", () => {
 
     expect(await screen.findByRole("link", { name: "Akce e1" })).toHaveAttribute("href", "/akce/e1")
     const nearest = screen.getByRole("region", { name: "Nejbližší akce" })
+    expect(within(nearest).getByText("Praha")).toBeInTheDocument()
     expect(within(nearest).getAllByRole("link", { name: /^Akce e/ })).toHaveLength(3)
     // Praha includes its districts; the API resolves that from the city's id
     expect(get).toHaveBeenCalledWith("events", {

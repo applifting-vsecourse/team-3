@@ -1,6 +1,6 @@
 import { useId, type ReactNode } from "react"
 import { useQuery } from "@tanstack/react-query"
-import { RefreshCw } from "lucide-react"
+import { MapPin, RefreshCw } from "lucide-react"
 
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 import { Button } from "@/components/ui/button"
@@ -22,8 +22,6 @@ type NearestEventsProps = {
    * "praha". Without it, the whole public list.
    */
   localitySlug?: string
-  /** Next to the heading, e.g. the locality the list is for. */
-  headingAside?: ReactNode
   /** Under the list, e.g. a link to all events. */
   footer?: ReactNode
 }
@@ -33,13 +31,17 @@ type NearestEventsProps = {
  * sign-up forms on desktop (Figma B-01d, B-03d), what the account is for,
  * and on the landing page (A-01, A-01d). A card opens the event's detail.
  */
-export function NearestEvents({ localitySlug, headingAside, footer }: NearestEventsProps) {
+export function NearestEvents({ localitySlug, footer }: NearestEventsProps) {
   const headingId = useId()
   const localitiesQuery = useQuery({
     ...localitiesQueryOptions(),
     enabled: localitySlug !== undefined,
   })
-  const filters = resolveFilters(localitySlug, localitiesQuery.data)
+  const locality =
+    localitySlug === undefined
+      ? undefined
+      : localitiesQuery.data?.find((l) => l.slug === localitySlug)
+  const filters = resolveFilters(localitySlug, localitiesQuery.data, locality)
   const eventsQuery = useQuery(eventsQueryOptions(filters))
   const events = filters ? eventsQuery.data?.slice(0, NEAREST_COUNT) : undefined
   const error = localitiesQuery.error ?? eventsQuery.error
@@ -56,7 +58,16 @@ export function NearestEvents({ localitySlug, headingAside, footer }: NearestEve
         >
           Nejbližší akce
         </h2>
-        {headingAside}
+        {/* From the resolved locality, so the label can't name a place the list isn't for. */}
+        {locality ? (
+          <span className="flex items-center gap-1 text-sm text-muted-foreground">
+            <MapPin
+              className="size-4"
+              aria-hidden
+            />
+            {locality.name}
+          </span>
+        ) : null}
       </div>
       {error ? (
         <Alert variant="destructive">
@@ -112,10 +123,10 @@ export function NearestEvents({ localitySlug, headingAside, footer }: NearestEve
  */
 function resolveFilters(
   localitySlug: string | undefined,
-  localities: { id: string; slug: string }[] | undefined,
+  localities: unknown[] | undefined,
+  locality: { id: string } | undefined,
 ): EventFilters | undefined {
   if (localitySlug === undefined) return NO_FILTERS
   if (!localities) return undefined
-  const locality = localities.find((l) => l.slug === localitySlug)
   return locality ? { ...NO_FILTERS, localityId: locality.id } : NO_FILTERS
 }
