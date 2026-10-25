@@ -1,9 +1,11 @@
+import { useLocation } from "@tanstack/react-router"
 import { Loader2 } from "lucide-react"
 import { toast } from "sonner"
 
 import { Button } from "@/components/ui/button"
 
 import { useResendVerificationEmail } from "@/features/auth/hooks/useResendVerificationEmail"
+import { resendFrom } from "@/features/auth/lib/callback-url"
 
 /**
  * For a signed-in user whose e-mail isn't verified yet (B-011): without it
@@ -12,6 +14,7 @@ import { useResendVerificationEmail } from "@/features/auth/hooks/useResendVerif
  */
 export function VerifyEmailBanner({ email }: { email: string }) {
   const resend = useResendVerificationEmail()
+  const location = useLocation()
 
   return (
     <div
@@ -28,13 +31,16 @@ export function VerifyEmailBanner({ email }: { email: string }) {
           size="sm"
           disabled={resend.isPending}
           onClick={() =>
-            resend.mutate(email, {
-              onSuccess: (result) =>
-                result === "already-verified"
-                  ? toast.success("E-mail už je ověřený.")
-                  : toast.success(`Nový odkaz je na cestě na ${email}. Platí 24 hodin.`),
-              onError: (error) => toast.error(error.message),
-            })
+            resend.mutate(
+              { email, from: resendFrom(location) },
+              {
+                onSuccess: (result) =>
+                  result === "already-verified"
+                    ? toast.success("E-mail už je ověřený.")
+                    : toast.success(`Nový odkaz je na cestě na ${email}. Platí 24 hodin.`),
+                onError: (error) => toast.error(error.message),
+              },
+            )
           }
         >
           {resend.isPending ? <Loader2 className="size-4 animate-spin" /> : null}
