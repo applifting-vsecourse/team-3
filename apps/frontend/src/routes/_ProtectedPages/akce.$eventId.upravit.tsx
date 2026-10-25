@@ -76,8 +76,9 @@ function EditEventPage() {
             onSubmit={({ activityId: _activity, approvalMode: _approval, ...changes }) =>
               updateEvent.mutate(changes, {
                 onSuccess: () => {
-                  toast.success("Změny jsou uložené")
-                  void navigate({ to: ROUTES.eventDetail, params: { eventId } })
+                  toast.success("Změny jsou uložené.")
+                  // replace: „Zpět“ from the detail mustn't reopen the form just saved
+                  void navigate({ to: ROUTES.eventDetail, params: { eventId }, replace: true })
                 },
               })
             }

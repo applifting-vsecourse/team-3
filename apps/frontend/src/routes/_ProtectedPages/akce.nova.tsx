@@ -47,8 +47,13 @@ function NewEventPage() {
             onSubmit={(input) =>
               createEvent.mutate(input, {
                 onSuccess: (event) => {
-                  toast.success("Akce je zveřejněná")
-                  void navigate({ to: ROUTES.eventDetail, params: { eventId: event.id } })
+                  toast.success("Akce je zveřejněná.")
+                  // replace: „Zpět“ from the new event goes where the user came from, not to an empty form
+                  void navigate({
+                    to: ROUTES.eventDetail,
+                    params: { eventId: event.id },
+                    replace: true,
+                  })
                 },
               })
             }

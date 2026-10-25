@@ -6,12 +6,14 @@ type RootErrorBoundaryProps = {
   error: Error
 }
 
-export function RootErrorBoundary({ error }: RootErrorBoundaryProps) {
+// The message of an unexpected error is technical (and English): it stays in
+// the console, where the router logs it; the user gets a way on.
+export function RootErrorBoundary(_props: RootErrorBoundaryProps) {
   return (
     <ErrorLayout
-      title="Something went wrong"
-      description={error.message || "An unexpected error occurred."}
-      action={<Button onClick={() => window.location.reload()}>Reload</Button>}
+      title="Něco se pokazilo"
+      description="Zkus stránku načíst znovu. Když to nepomůže, vrať se na úvod."
+      action={<Button onClick={() => window.location.reload()}>Načíst znovu</Button>}
     />
   )
 }

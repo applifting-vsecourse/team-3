@@ -40,7 +40,8 @@ function LoginPage() {
     try {
       await signIn.mutateAsync(values)
       // href, not to: the page may come with its search (the list's filters)
-      await navigate({ href: safeRedirect(from, ROUTES.events) })
+      // replace: „Zpět“ on the page we return to mustn't lead back to the login
+      await navigate({ href: safeRedirect(from, ROUTES.events), replace: true })
     } catch (error) {
       setErrorMessage(
         error instanceof Error ? error.message : "Přihlášení se nepovedlo. Zkus to prosím znovu.",
