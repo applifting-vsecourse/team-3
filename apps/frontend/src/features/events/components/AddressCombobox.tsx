@@ -133,6 +133,8 @@ export function AddressCombobox({
           />
         </PopoverAnchor>
         <PopoverContent
+          // Radix makes it a dialog; named, so it isn't an anonymous one around the list
+          aria-label="Návrhy adres"
           align="start"
           // the focus stays in the field, so typing goes on
           onOpenAutoFocus={(event) => event.preventDefault()}

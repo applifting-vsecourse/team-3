@@ -316,6 +316,27 @@ describe("EventForm", () => {
       expect(screen.queryByRole("listbox")).not.toBeInTheDocument()
     })
 
+    it("Enter with nothing highlighted sends the form, as in any text field", async () => {
+      answerAddresses(letenska)
+      const { onSubmit } = renderForm({
+        initialValues: {
+          activityId: "a-deskove-hry",
+          localityId: "l-praha-8",
+          startsAt: inThreeDays(),
+        },
+      })
+      await userEvent.click(screen.getByRole("button", { name: "Umístit špendlík do středu mapy" }))
+      await fillTheRest()
+
+      await userEvent.type(addressField(), "Letenská 15")
+      await screen.findByRole("listbox", { name: "Návrhy adres" })
+      await userEvent.keyboard("{Enter}")
+
+      await waitFor(() => expect(onSubmit).toHaveBeenCalledOnce())
+      expect(onSubmit.mock.calls[0]![0]).toMatchObject({ address: "Letenská 15" })
+      expect(screen.queryByRole("listbox")).not.toBeInTheDocument()
+    })
+
     it.each([
       ["offline", () => Promise.reject(new TypeError("Failed to fetch"))],
       ["the service is down", () => Promise.resolve(new Response("", { status: 503 }))],
