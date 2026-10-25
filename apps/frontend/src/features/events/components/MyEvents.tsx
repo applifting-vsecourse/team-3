@@ -1,6 +1,6 @@
 import { useId, type ReactNode } from "react"
 import { Link } from "@tanstack/react-router"
-import { Info, Plus, RefreshCw } from "lucide-react"
+import { Info, RefreshCw } from "lucide-react"
 
 import { ROUTES } from "@/app/routes"
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
@@ -135,7 +135,7 @@ function MyEventsEmpty({ children }: { children: ReactNode }) {
 /**
  * Pořádám (Figma C-02): the events I created, soonest first, cancelled ones
  * with their label. The strip on top sums up the requests to decide; a card
- * opens the event's management. „Založit akci“ floats at the end.
+ * opens the event's management. „Založit akci“ is the page's, in both tabs.
  */
 export function OrganizingEvents({ viewerId }: { viewerId: string }) {
   const { events, isPending, error, retry } = useMyEvents("organizing", viewerId)
@@ -177,19 +177,6 @@ export function OrganizingEvents({ viewerId }: { viewerId: string }) {
           </ul>
         </>
       )}
-      {/* mobile: floats above the bottom navigation while the list scrolls, then
-          rests under it; on desktop „Založit akci“ is by the page title (C-02d) */}
-      <div className="sticky bottom-20 flex justify-end md:hidden">
-        <Button
-          asChild
-          className="h-11 shadow-md"
-        >
-          <Link to={ROUTES.newEvent}>
-            <Plus />
-            Založit akci
-          </Link>
-        </Button>
-      </div>
     </div>
   )
 }

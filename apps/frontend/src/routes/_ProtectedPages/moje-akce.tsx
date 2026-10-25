@@ -30,14 +30,22 @@ function MyEventsPage() {
   return (
     <>
       <Seo title="Moje akce" />
-      <div className={cn(PAGE, "gap-6")}>
+      <div
+        className={cn(
+          PAGE,
+          "gap-6",
+          // the floating „Založit akci“ must not cover the last card
+          "pb-24",
+        )}
+      >
         <div className="flex items-center justify-between gap-4">
           <h1 className="text-3xl font-semibold tracking-tight md:text-4xl">Moje akce</h1>
-          {/* desktop: with the title, like „Založit skupinu“ (C-01d, A-07md);
-              mobile: it floats in Pořádám */}
+          {/* the page's primary in both tabs, like „Založit skupinu“ on Skupiny (C-01, C-01d) */}
           <Button
             asChild
-            className="hidden h-11 shrink-0 md:inline-flex"
+            size="lg"
+            // mobile: floats above the bottom navigation
+            className="fixed right-4 bottom-20 z-30 h-11 shadow-md md:static md:shadow-none"
           >
             <Link to={ROUTES.newEvent}>
               <Plus />
