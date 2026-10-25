@@ -1,18 +1,28 @@
 import type { ReactNode } from "react"
-import { Link, type LinkProps } from "@tanstack/react-router"
+import { Link, useLocation, type LinkProps } from "@tanstack/react-router"
 
+import { navSection, type NavSection } from "@/components/navSection"
 import { cn } from "@/lib/utils"
 
 type HeaderNavLinkProps = LinkProps & {
+  section: NavSection
   children: ReactNode
   className?: string
 }
 
-export function HeaderNavLink({ children, className, ...props }: HeaderNavLinkProps) {
+export function HeaderNavLink({ section, children, className, ...props }: HeaderNavLinkProps) {
+  const isActive = navSection(useLocation().pathname) === section
+
   return (
     <Link
       {...props}
-      // Active styling uses the router's data-status attribute rather than
+      // `navSection` decides what is active, not the router's prefix match:
+      // `exact` keeps the router from marking a page that belongs elsewhere,
+      // and the attributes it would set are set here instead.
+      activeOptions={{ exact: true }}
+      data-status={isActive ? "active" : undefined}
+      aria-current={isActive ? "page" : undefined}
+      // Active styling uses the data-status attribute rather than
       // `activeProps`: those classes would collide with the base ones and
       // Tailwind resolves such conflicts by stylesheet order, not by class order.
       className={cn(

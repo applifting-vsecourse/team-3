@@ -1,8 +1,9 @@
 import type { ReactNode } from "react"
-import { Link, type LinkProps } from "@tanstack/react-router"
+import { Link, useLocation, type LinkProps } from "@tanstack/react-router"
 import { Calendar, List, LogIn, User, Users } from "lucide-react"
 
 import { ROUTES } from "@/app/routes"
+import { navSection, type NavSection } from "@/components/navSection"
 
 type BottomNavProps = {
   // Passed in rather than read from the session so `components/` doesn't
@@ -26,12 +27,14 @@ export function BottomNav({ isSignedIn, isSessionPending }: BottomNavProps) {
     >
       <BottomNavLink
         to={ROUTES.events}
+        section="events"
         icon={<List className="size-5" />}
       >
         Akce
       </BottomNavLink>
       <BottomNavLink
         to={ROUTES.groups}
+        section="groups"
         icon={<Users className="size-5" />}
       >
         Skupiny
@@ -42,12 +45,14 @@ export function BottomNav({ isSignedIn, isSessionPending }: BottomNavProps) {
         <>
           <BottomNavLink
             to={ROUTES.myEvents}
+            section="myEvents"
             icon={<Calendar className="size-5" />}
           >
             Moje akce
           </BottomNavLink>
           <BottomNavLink
             to={ROUTES.profile}
+            section="profile"
             icon={<User className="size-5" />}
           >
             Profil
@@ -56,6 +61,7 @@ export function BottomNav({ isSignedIn, isSessionPending }: BottomNavProps) {
       ) : (
         <BottomNavLink
           to={ROUTES.login}
+          section="login"
           icon={<LogIn className="size-5" />}
         >
           Přihlásit
@@ -66,14 +72,21 @@ export function BottomNav({ isSignedIn, isSessionPending }: BottomNavProps) {
 }
 
 type BottomNavLinkProps = LinkProps & {
+  section: NavSection
   icon: ReactNode
   children: ReactNode
 }
 
-function BottomNavLink({ icon, children, ...props }: BottomNavLinkProps) {
+function BottomNavLink({ section, icon, children, ...props }: BottomNavLinkProps) {
+  const isActive = navSection(useLocation().pathname) === section
+
   return (
     <Link
       {...props}
+      // Active as decided by `navSection`, as in HeaderNavLink
+      activeOptions={{ exact: true }}
+      data-status={isActive ? "active" : undefined}
+      aria-current={isActive ? "page" : undefined}
       // Same data-status approach as HeaderNavLink: the indicator pill and the
       // label react to the router's active state via group-data variants. The
       // icon inherits this colour: inactive icon and label are both muted (Figma Nav/Bottom).
