@@ -51,4 +51,18 @@ describe("SignInForm", () => {
 
     expect(screen.getByRole("alert")).toHaveTextContent("Nesprávný e-mail nebo heslo.")
   })
+
+  // as tall as the event form's (44 px, a comfortable tap), not the kit's 36/40 px
+  it("has fields and a button the size of the event form's", () => {
+    render(
+      <SignInForm
+        isLoading={false}
+        onSubmit={vi.fn()}
+      />,
+    )
+
+    expect(screen.getByLabelText("E-mail")).toHaveClass("h-11")
+    expect(screen.getByLabelText("Heslo")).toHaveClass("h-11")
+    expect(screen.getByRole("button", { name: "Přihlásit se" })).toHaveClass("h-11")
+  })
 })

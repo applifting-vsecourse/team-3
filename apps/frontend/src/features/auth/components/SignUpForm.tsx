@@ -64,6 +64,7 @@ export function SignUpForm({ isLoading, errorMessage, onSubmit }: SignUpFormProp
               <FormControl>
                 <Input
                   autoComplete="name"
+                  className="h-11"
                   {...field}
                 />
               </FormControl>
@@ -84,6 +85,7 @@ export function SignUpForm({ isLoading, errorMessage, onSubmit }: SignUpFormProp
                   type="email"
                   placeholder="např. jana@example.com"
                   autoComplete="email"
+                  className="h-11"
                   {...field}
                 />
               </FormControl>
@@ -102,6 +104,7 @@ export function SignUpForm({ isLoading, errorMessage, onSubmit }: SignUpFormProp
                 <Input
                   type="password"
                   autoComplete="new-password"
+                  className="h-11"
                   {...field}
                 />
               </FormControl>
@@ -114,7 +117,7 @@ export function SignUpForm({ isLoading, errorMessage, onSubmit }: SignUpFormProp
         <Button
           type="submit"
           size="lg"
-          className="w-full"
+          className="h-11 w-full"
           disabled={isLoading}
         >
           {isLoading ? <Loader2 className="size-4 animate-spin" /> : null}
