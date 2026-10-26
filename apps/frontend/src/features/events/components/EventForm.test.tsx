@@ -87,6 +87,7 @@ const letenska = {
   properties: {
     type: "house",
     osm_key: "place",
+    countrycode: "CZ",
     housenumber: "525/15",
     street: "Letenská",
     district: "Malá Strana",
@@ -99,6 +100,7 @@ const krizikova = {
   properties: {
     type: "house",
     osm_key: "place",
+    countrycode: "CZ",
     housenumber: "53/52",
     street: "Křižíkova",
     locality: "Karlín",
@@ -353,6 +355,7 @@ describe("EventForm", () => {
         properties: {
           type: "house",
           osm_key: "place",
+          countrycode: "CZ",
           housenumber: "1330",
           street: "Lázeňská",
           city: "Ústí nad Orlicí",
