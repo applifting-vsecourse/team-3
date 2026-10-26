@@ -77,11 +77,12 @@ Data refreshes itself: refetch when the tab regains focus, and invalidate the qu
 
 The Figma page „Design system“ is the reference. Build these once in `src/components/` and reuse them — never restyle them per screen.
 
-- **Capacity bar** (Figma: Capacity bar) — the main brand element of an event. The bar is approved participants / maximum, the vertical tick is the minimum needed for the event to happen. Above it: the status on the left (`text-sm`), „6 z 10 · min. 8“ on the right (`text-xs text-muted-foreground`). Three states:
-  - **Chybí** (below the minimum): status semibold „Chybí ještě 2“, fill `bg-primary`, tick visible.
-  - **Volná místa** (minimum reached, spots left): status regular, fill `bg-primary`, tick visible.
-  - **Plno**: status and count `text-muted-foreground`, full fill `bg-muted-foreground`, no tick.
-  - Track `bg-muted`, height 8px, `rounded-full`; tick 2px wide, `bg-foreground` on the track and `bg-primary-foreground` once the fill is past it (in dark mode `foreground` is near white and vanishes on lime; at exactly the minimum half the tick is still on the track, so it stays `bg-foreground`). Widths are computed from the numbers, never hardcoded.
+- **Capacity bar** (Figma: Capacity bar) — the main brand element of an event. The fill is approved participants / maximum; a marker shows the minimum needed for the event to happen. Above the bar: the status on the left (`text-sm`), „6 z 10“ on the right (`text-xs text-muted-foreground`). Under the marker: „min. 8“ (`text-xs text-muted-foreground`), centred on it — within 10 % of an end it aligns to the marker instead, so it never leaves the bar. Three states:
+  - **Chybí** (below the minimum): status semibold „Chybí ještě 2“, the fill **hatched** (`capacity-hatch` — not confirmed yet), marker and label visible.
+  - **Volná místa** (minimum reached — from exactly the minimum — and spots left): status regular, the fill solid `bg-primary`, marker and label visible.
+  - **Plno**: status and count `text-muted-foreground`, full fill `bg-muted-foreground`, no marker, no label.
+  - Track `bg-muted`, height 8px, `rounded-full`. Hatch (`@utility capacity-hatch` in `global.css`): `repeating-linear-gradient(-45deg, var(--primary) 0 3px, color-mix(in srgb, var(--primary-foreground) 55%, var(--primary)) 3px 6px)` — tokens only, one definition for both modes; the dark stripe is at least 3:1 against the track and against lime (`tokens.test.ts`). Stripes never move.
+  - Marker 2px wide and 16px tall (4px past the track on each side), `rounded-full bg-foreground` with a 2px `ring-background` gap (a gap, not a shadow), drawn above the fill: one style that shows on the track, the hatch and lime in both modes. Widths and positions are computed from the numbers, never hardcoded.
 - **Status badge** (Figma: Status badge) — `rounded-full`, `text-xs font-semibold`, `px-2 py-0.5`. Chybí = `bg-primary text-primary-foreground` (the only highlighted one); Volná = `bg-secondary text-secondary-foreground`; Plno = `bg-muted text-muted-foreground`; Zrušeno = `bg-foreground text-background`. Labels: „Chybí X“, „Volná místa“, „Plno“, „Zrušeno“.
 - **Activity tag** (Figma: Tag/Activity) — the activity of an event or group: `rounded-full bg-secondary text-secondary-foreground text-xs font-semibold px-3 py-1`. Shows the activity name (second level), not the category.
 - **Activity tile** (Figma: Activity tile) — the category icon on an event card, one variant per category from B-002. An event card shows this icon, not a photo.
