@@ -1,5 +1,5 @@
 import type { Activity, ActivityCategory } from "@/lib/catalog/catalogSchemas"
-import { foldText } from "@/lib/catalog/textSearch"
+import { foldText, matchRank } from "@/lib/catalog/textSearch"
 
 /**
  * Selected activity types as slugs, the shape of ?kategorie= and ?aktivita=.
@@ -84,18 +84,42 @@ export function selectionLabel(
   return names.length === 1 ? names[0] : `${filterName} (${names.length})`
 }
 
-/** „Hledat aktivitu“: name or synonyms, ignoring case and diacritics („pinces“ finds stolní tenis). */
-export function searchActivities(
-  categories: ActivityCategory[],
-  query: string,
-): { category: ActivityCategory; activity: Activity }[] {
+/** Each category ends with „Jiný týmový sport“, „Jiná hra“, „Jiné tvoření“… for what the list lacks. */
+export const isOtherActivity = (name: string): boolean => /^jin[aey] /.test(foldText(name))
+
+export type ActivityMatch = {
+  category: ActivityCategory
+  activity: Activity
+  /** The synonym that matched, as the catalog writes it, when the name didn't („pilates“). */
+  matchedKeyword?: string
+}
+
+// A match in a synonym ranks after every match in a name (matchRank is 0–2).
+const KEYWORD_RANK = 3
+
+/**
+ * „Hledat aktivitu“: name or synonyms, ignoring case and diacritics („pinces“
+ * finds stolní tenis). Matches in the name first (its start, a word, inside),
+ * then in a synonym, then in the catalog's order; a synonym match says which
+ * synonym it was, so „judo“ showing Bojová umění isn't a riddle.
+ */
+export function searchActivities(categories: ActivityCategory[], query: string): ActivityMatch[] {
   const needle = foldText(query)
   if (!needle) return []
-  return categories.flatMap((category) =>
-    category.activities
-      .filter((activity) =>
-        [activity.name, ...activity.keywords].some((t) => foldText(t).includes(needle)),
-      )
-      .map((activity) => ({ category, activity })),
+  const ranked = categories.flatMap((category) =>
+    category.activities.flatMap((activity) => {
+      const nameRank = matchRank(foldText(activity.name), needle)
+      if (nameRank !== undefined) return [{ category, activity, rank: nameRank }]
+      const best = activity.keywords
+        .map((keyword) => ({ keyword, rank: matchRank(foldText(keyword), needle) }))
+        .filter((match): match is { keyword: string; rank: number } => match.rank !== undefined)
+        // stable: equally good synonyms keep the catalog's order
+        .sort((a, b) => a.rank - b.rank)[0]
+      return best
+        ? [{ category, activity, matchedKeyword: best.keyword, rank: KEYWORD_RANK + best.rank }]
+        : []
+    }),
   )
+  // stable: equally good matches keep the catalog's order
+  return ranked.sort((a, b) => a.rank - b.rank).map(({ rank: _rank, ...match }) => match)
 }

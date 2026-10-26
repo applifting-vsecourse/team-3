@@ -98,12 +98,13 @@ describe("ActivityCombobox", () => {
   })
 
   it.each([
-    ["závody", ["Atletika"]],
-    ["zavody", ["Atletika"]],
-    ["darts", ["Šipky a bowling"]],
+    // a synonym match says which synonym it was
+    ["závody", ["Atletika · závody"]],
+    ["zavody", ["Atletika · závody"]],
+    ["darts", ["Šipky a bowling · darts"]],
     ["SIPKY", ["Šipky a bowling"]],
     // „hokejbal“ is also among the other team sports
-    ["hokej", ["Lední hokej", "Jiný týmový sport"]],
+    ["hokej", ["Lední hokej", "Jiný týmový sport · hokejbal"]],
   ])("„%s“ finds %j by its name or synonyms", async (query, names) => {
     render(<Field />)
 

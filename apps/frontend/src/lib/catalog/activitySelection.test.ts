@@ -5,6 +5,7 @@ import type { ActivityCategory } from "@/lib/catalog/catalogSchemas"
 import {
   categoryState,
   isActivityChecked,
+  isOtherActivity,
   searchActivities,
   selectionLabel,
   toggleActivity,
@@ -148,5 +149,84 @@ describe("searchActivities", () => {
     expect(names("pinces")).toEqual(["Stolní tenis"])
     expect(names("nohec")).toEqual(["Nohejbal"])
     expect(names("  ")).toEqual([])
+  })
+})
+
+describe("searchActivities on the catalog's synonyms", () => {
+  // a slice of the seed's catalog (demo-data.ts)
+  const movement: ActivityCategory = {
+    id: "c-pohyb",
+    slug: "pohyb-a-tanec",
+    name: "Pohyb a tanec",
+    icon: "route",
+    activities: [
+      activity("joga", "Jóga", ["yoga", "protahování"]),
+      activity("pilates", "Pilates", ["reformer", "core", "zdravá záda"]),
+      activity("bojova-umeni", "Bojová umění", ["judo", "karate", "jiu-jitsu", "BJJ"]),
+      activity("box-a-kickbox", "Box a kickbox", ["box", "kickbox", "MMA"]),
+      activity("jiny-pohyb", "Jiná pohybová aktivita", ["parkour"]),
+    ],
+  }
+  const outdoor: ActivityCategory = {
+    id: "c-outdoor",
+    slug: "outdoor",
+    name: "Outdoor",
+    icon: "mountain",
+    activities: [
+      activity("cyklistika", "Cyklistika", ["kolo", "MTB", "horské kolo"]),
+      activity("via-ferrata", "Via ferrata", ["ferrata", "ferraty", "klettersteig"]),
+    ],
+  }
+  const team: ActivityCategory = {
+    ...teamSports,
+    activities: [
+      activity("ledni-hokej", "Lední hokej", ["hokej", "zimák"]),
+      activity("jiny-tymovy-sport", "Jiný týmový sport", ["hokejbal", "házená"]),
+    ],
+  }
+  const catalog = [team, movement, outdoor]
+  const found = (query: string) =>
+    searchActivities(catalog, query).map(({ activity, matchedKeyword }) =>
+      matchedKeyword ? `${activity.name} · ${matchedKeyword}` : activity.name,
+    )
+
+  it("pilates is its own activity now, not Jóga", () => {
+    expect(found("pilates")).toEqual(["Pilates"])
+  })
+
+  it("a synonym match says which synonym, as the catalog writes it", () => {
+    expect(found("judo")).toEqual(["Bojová umění · judo"])
+    expect(found("mtb")).toEqual(["Cyklistika · MTB"])
+    expect(searchActivities(catalog, "judo")[0]).toMatchObject({
+      category: { slug: "pohyb-a-tanec" },
+      activity: { slug: "bojova-umeni" },
+      matchedKeyword: "judo",
+    })
+  })
+
+  it("finds a name of more words, typed without diacritics", () => {
+    expect(found("via ferrata")).toEqual(["Via ferrata"])
+    expect(found("boj")).toEqual(["Bojová umění"])
+  })
+
+  it("matches in a name come before matches in a synonym", () => {
+    // „hokejbal“ starts with the query, but „Lední hokej“ has it in its name
+    expect(found("hokej")).toEqual(["Lední hokej", "Jiný týmový sport · hokejbal"])
+    // the start of a name before a word inside one, the catalog's order otherwise
+    expect(found("box")).toEqual(["Box a kickbox"])
+    expect(found("kolo")).toEqual(["Cyklistika · kolo"])
+  })
+
+  it("nothing for what the catalog doesn't know", () => {
+    expect(found("xyz")).toEqual([])
+  })
+})
+
+describe("isOtherActivity", () => {
+  it("is each category's „Jiný…“, „Jiná…“, „Jiné…“", () => {
+    expect(isOtherActivity("Jiný týmový sport")).toBe(true)
+    expect(isOtherActivity("Jiná hra")).toBe(true)
+    expect(isOtherActivity("Jiné tvoření")).toBe(true)
+    expect(isOtherActivity("Jóga")).toBe(false)
   })
 })

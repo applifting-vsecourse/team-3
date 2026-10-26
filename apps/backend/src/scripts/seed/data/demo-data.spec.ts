@@ -49,6 +49,36 @@ describe('demo data', () => {
     }
   });
 
+  it('numbers the activities of every category 1…n without gaps', () => {
+    // the catalog is upserted by slug on every start, so the order is what the seed says
+    for (const category of demoActivityCategories) {
+      const orders = demoActivities
+        .filter((a) => a.categorySlug === category.slug)
+        .map((a) => a.sortOrder)
+        .sort((a, b) => a - b);
+      expect(orders).toEqual(orders.map((_, index) => index + 1));
+    }
+  });
+
+  it('gives a search keyword to one activity only, never the name of another', () => {
+    // compared as the search compares them: case, diacritics and dashes aside
+    const owners = new Map<string, string>();
+    for (const activity of demoActivities) {
+      for (const keyword of new Set(activity.keywords.map(toSlug))) {
+        expect(`${keyword}: ${owners.get(keyword) ?? activity.slug}`).toBe(
+          `${keyword}: ${activity.slug}`,
+        );
+        owners.set(keyword, activity.slug);
+      }
+    }
+    for (const activity of demoActivities) {
+      const owner = owners.get(toSlug(activity.name));
+      expect(`${activity.name}: ${owner ?? activity.slug}`).toBe(
+        `${activity.name}: ${activity.slug}`,
+      );
+    }
+  });
+
   it('builds locality slugs from names unless a duplicate name needs a suffix', () => {
     // The slug migration backfills existing rows with the same rule, so a
     // hand-written slug that drifts from it would make the seed duplicate a row.

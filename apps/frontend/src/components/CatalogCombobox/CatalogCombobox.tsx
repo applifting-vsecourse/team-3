@@ -53,7 +53,11 @@ export type CatalogComboboxProps = Omit<
   renderMore?: (query: string, pick: (id: string) => void) => ReactNode
 }
 
-type SearchedItem = CatalogComboboxItem & { terms: string[] }
+type SearchedItem = CatalogComboboxItem & {
+  terms: string[]
+  /** The keyword that matched when the name didn't, shown beside it („Bojová umění · judo“). */
+  matchedKeyword?: string
+}
 type SearchedGroup = { heading?: string; items: SearchedItem[] }
 
 /** Matching items, best match first within each group; every item for an empty query. */
@@ -64,10 +68,14 @@ const search = (groups: SearchedGroup[], query: string): SearchedGroup[] => {
     .map((group) => ({
       ...group,
       items: group.items
-        .map((item) => ({
-          item,
-          rank: Math.min(...item.terms.map((term) => matchRank(term, needle) ?? Infinity)),
-        }))
+        .map((item) => {
+          const ranks = item.terms.map((term) => matchRank(term, needle) ?? Infinity)
+          const rank = Math.min(...ranks)
+          // terms are the name and then the keywords
+          const keyword =
+            ranks[0] === Infinity ? item.keywords?.[ranks.indexOf(rank) - 1] : undefined
+          return { item: keyword ? { ...item, matchedKeyword: keyword } : item, rank }
+        })
         .filter(({ rank }) => rank !== Infinity)
         // stable: equally good matches keep the catalog's order
         .sort((a, b) => a.rank - b.rank)
@@ -239,7 +247,7 @@ function CatalogSearch({
 
   useScrollToPicked(listRef)
 
-  const renderItem = (item: CatalogComboboxItem) => {
+  const renderItem = (item: CatalogComboboxItem & { matchedKeyword?: string }) => {
     const isPicked = item.id === value
     return (
       <CommandItem
@@ -253,7 +261,12 @@ function CatalogSearch({
           isPicked && "font-semibold",
         )}
       >
-        <span className="flex-1 truncate">{item.name}</span>
+        <span className="flex-1 truncate">
+          {item.name}
+          {item.matchedKeyword ? (
+            <span className="text-muted-foreground"> · {item.matchedKeyword}</span>
+          ) : null}
+        </span>
         {isPicked ? (
           <>
             <Check
