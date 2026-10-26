@@ -1,14 +1,8 @@
 import { useQuery } from "@tanstack/react-query"
-import { useLocation } from "@tanstack/react-router"
-import { Loader2 } from "lucide-react"
-import { toast } from "sonner"
-
-import { Button } from "@/components/ui/button"
 
 import { simulatedInboxQueryOptions } from "@/features/auth/api/simulatedInbox"
+import { ResendVerificationButton } from "@/features/auth/components/ResendVerificationButton"
 import { SimulatedInboxDialog } from "@/features/auth/components/SimulatedInboxDialog"
-import { useResendVerificationEmail } from "@/features/auth/hooks/useResendVerificationEmail"
-import { resendFrom } from "@/features/auth/lib/callback-url"
 import { VERIFY_EMAIL_BANNER_ID } from "@/features/auth/lib/verify-email-banner"
 
 /**
@@ -17,8 +11,6 @@ import { VERIFY_EMAIL_BANNER_ID } from "@/features/auth/lib/verify-email-banner"
  * on every page until the link is clicked; `showVerifyEmailBanner` leads here.
  */
 export function VerifyEmailBanner({ email }: { email: string }) {
-  const resend = useResendVerificationEmail()
-  const location = useLocation()
   const inbox = useQuery(simulatedInboxQueryOptions(email))
 
   return (
@@ -36,26 +28,11 @@ export function VerifyEmailBanner({ email }: { email: string }) {
           ověření se nejde přihlásit na akci ani nic založit.
         </p>
         <div className="flex flex-wrap gap-2">
-          <Button
+          <ResendVerificationButton
+            email={email}
             variant="outline"
             size="sm"
-            disabled={resend.isPending}
-            onClick={() =>
-              resend.mutate(
-                { email, from: resendFrom(location) },
-                {
-                  onSuccess: (result) =>
-                    result === "already-verified"
-                      ? toast.success("E-mail už je ověřený.")
-                      : toast.success(`Nový odkaz je na cestě na ${email}. Platí 24 hodin.`),
-                  onError: (error) => toast.error(error.message),
-                },
-              )
-            }
-          >
-            {resend.isPending ? <Loader2 className="size-4 animate-spin" /> : null}
-            Poslat odkaz znovu
-          </Button>
+          />
           {/* only where e-mails are simulated; real ones (404) or an error: nothing */}
           {inbox.data ? (
             <SimulatedInboxDialog

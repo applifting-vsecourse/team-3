@@ -6,6 +6,7 @@ import "@/styles/global.css"
 import { BottomNav } from "@/components/BottomNav/BottomNav"
 import { Toaster } from "@/components/ui/sonner"
 
+import { EmailVerifiedDialog } from "@/features/auth/components/EmailVerifiedDialog"
 import { VerifyEmailBanner } from "@/features/auth/components/VerifyEmailBanner"
 import { useSession } from "@/features/auth/hooks/useSession"
 
@@ -30,6 +31,8 @@ function RootComponent() {
         isSignedIn={Boolean(user)}
         isSessionPending={isPending}
       />
+      {/* what the link in the verification e-mail did, over any page (#155) */}
+      <EmailVerifiedDialog />
       <Toaster
         richColors
         position="top-right"
