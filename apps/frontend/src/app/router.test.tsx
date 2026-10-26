@@ -14,10 +14,14 @@ vi.mock("@/features/auth/lib/auth-client", () => ({
 
 const user = { id: "u1", email: "user@example.com", name: "Jana Nováková", emailVerified: true }
 
-/** The app's own routes and pages on `url`, for a visitor or a signed-in user. */
-async function renderApp(url: string, { isSignedIn = false } = {}) {
+/**
+ * The app's own routes and pages on `url`, for a visitor or a signed-in user.
+ * `cachedUser` is what the app already has of that user, e.g. still unverified
+ * right after the sign-up; the server then says `user`.
+ */
+async function renderApp(url: string, { isSignedIn = false, cachedUser = user } = {}) {
   const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } })
-  queryClient.setQueryData(authKeys.session(), isSignedIn ? { user } : null)
+  queryClient.setQueryData(authKeys.session(), isSignedIn ? { user: cachedUser } : null)
   // what the server says when the session is fetched anew
   vi.mocked(authClient.getSession).mockResolvedValue({
     data: isSignedIn ? { user, session: {} } : null,
@@ -97,14 +101,21 @@ describe("router", () => {
 
     it("leads back to the page the sign-up started from, with „E-mail je ověřený“ over it", async () => {
       stubApi()
-      const app = await renderApp(`/email-overen?from=${fromGroups}`, { isSignedIn: true })
+      // the app still has the session from before the link: unverified
+      const app = await renderApp(`/email-overen?from=${fromGroups}`, {
+        isSignedIn: true,
+        cachedUser: { ...user, emailVerified: false },
+      })
 
+      // the session was fetched anew before the dialog trusted it: success,
+      // never „not verified“ first, and the banner „Ověř si e-mail“ is gone
       expect(await screen.findByRole("dialog", { name: "E-mail je ověřený" })).toBeInTheDocument()
+      expect(screen.queryByText("E-mail zatím není ověřený")).not.toBeInTheDocument()
+      expect(screen.queryByText(/Ověř si e-mail/)).not.toBeInTheDocument()
+      expect(authClient.getSession).toHaveBeenCalled()
       // the page's own address, nothing added to it; „Zpět“ doesn't lead to /email-overen
       expect(app.state.location.href).toBe("/skupiny?q=volejbal")
       expect(app.history.length).toBe(1)
-      // the session was fetched anew before the dialog trusted it
-      expect(authClient.getSession).toHaveBeenCalled()
     })
 
     it("a link that didn't work: the dialog explains it, over the events without `from`", async () => {
