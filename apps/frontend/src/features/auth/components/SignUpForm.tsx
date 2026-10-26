@@ -1,7 +1,7 @@
-import type { ReactNode } from "react"
+import { useMemo, type ReactNode } from "react"
 import { zodResolver } from "@hookform/resolvers/zod"
 import { Loader2 } from "lucide-react"
-import { useForm, type Control } from "react-hook-form"
+import { useForm, useWatch, type Control } from "react-hook-form"
 import { z } from "zod"
 
 import { ROUTES } from "@/app/routes"
@@ -21,8 +21,9 @@ import {
 import { Input } from "@/components/ui/input"
 
 import { PasswordStrength } from "@/features/auth/components/PasswordStrength"
+import { preloadPasswordChecker } from "@/features/auth/lib/load-password-checker"
 import { nameSchema } from "@/features/auth/lib/name"
-import { passwordSchema } from "@/features/auth/lib/password"
+import { passwordSchema, passwordUserInputs } from "@/features/auth/lib/password"
 
 // B-010: name, e-mail and password; #153: the password twice and both consents
 const schema = z
@@ -72,6 +73,10 @@ export function SignUpForm({ isLoading, errorMessage, onSubmit }: SignUpFormProp
   })
 
   const submit = ({ passwordConfirmation: _repeated, ...values }: FormValues) => onSubmit(values)
+
+  // a password made of the name or the e-mail is weak (#153)
+  const [name, email] = useWatch({ control: form.control, name: ["name", "email"] })
+  const userInputs = useMemo(() => passwordUserInputs(name, email), [name, email])
 
   return (
     <Form {...form}>
@@ -140,9 +145,14 @@ export function SignUpForm({ isLoading, errorMessage, onSubmit }: SignUpFormProp
                   autoComplete="new-password"
                   className="h-11"
                   {...field}
+                  // the strength meter's dictionaries, ready by the time the rule is met
+                  onFocus={preloadPasswordChecker}
                 />
               </FormControl>
-              <PasswordStrength password={field.value} />
+              <PasswordStrength
+                password={field.value}
+                userInputs={userInputs}
+              />
               <FormDescription>Aspoň 10 znaků, písmeno a číslice.</FormDescription>
               <FormMessage />
             </FormItem>

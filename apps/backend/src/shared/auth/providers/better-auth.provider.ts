@@ -1,6 +1,7 @@
 import { EmailService } from '@/core/email/interfaces/email-service.interface';
 import { PrismaService } from '@/core/prisma/prisma.service';
 import { betterAuthCoreConfig } from '@/shared/auth/config/better-auth.config';
+import { breachedPasswordsPlugin } from '@/shared/auth/config/breached-passwords';
 import {
   emailFlowOptions,
   withEmailFlows,
@@ -35,7 +36,11 @@ const createAuth = (
     // Google, when GOOGLE_CLIENT_ID and GOOGLE_CLIENT_SECRET are set (#154)
     ...socialSignInOptions(config),
     rateLimit: rateLimitOptions,
-    plugins: [...(betterAuthCoreConfig.plugins ?? [])],
+    plugins: [
+      ...(betterAuthCoreConfig.plugins ?? []),
+      // passwords from data breaches are refused, in production (#153)
+      breachedPasswordsPlugin(config),
+    ],
   });
 
 export type BetterAuth = ReturnType<typeof createAuth>;
