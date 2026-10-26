@@ -16,11 +16,20 @@ const MESSAGES: Record<string, string> = {
     "Účet s tímto e-mailem už existuje. Přihlas se, nebo si obnov heslo.",
   // our own check (B-010), the API says why in Czech already
   WEAK_PASSWORD: "Heslo musí mít aspoň 10 znaků a obsahovat písmeno i číslici.",
+  // ours too (#153)
+  CONSENT_REQUIRED:
+    "K registraci je potřeba souhlas s podmínkami užívání a potvrzení, že bereš na vědomí zpracování osobních údajů.",
+  INVALID_NAME: "Jméno může obsahovat jen písmena, mezery, pomlčky, apostrofy a tečky.",
 }
+
+// Our own checks whose Czech message says more than the code: INVALID_NAME
+// names the character that doesn't belong in the name (#153).
+const API_SAYS_IT_IN_CZECH = new Set(["INVALID_NAME"])
 
 /** BetterAuth answers in English; the app shows Czech, per error code. */
 export function authErrorMessage(error: BetterAuthError, fallback: string): string {
   if (error.status === 429) return "Příliš mnoho pokusů. Zkus to prosím za minutu."
+  if (error.code && API_SAYS_IT_IN_CZECH.has(error.code) && error.message) return error.message
   return (error.code ? MESSAGES[error.code] : undefined) ?? fallback
 }
 
