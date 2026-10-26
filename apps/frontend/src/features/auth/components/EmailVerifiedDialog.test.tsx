@@ -100,10 +100,14 @@ describe("EmailVerifiedDialog", () => {
     expect(screen.getByRole("dialog", { name: "E-mail je ověřený" })).toBeInTheDocument()
   })
 
-  it("an old link opened again once the e-mail is verified: nothing to do, no failure", async () => {
+  it("an old link opened again once the e-mail is verified: says why, but no failure", async () => {
     await renderDialog({ result: { error: "TOKEN_EXPIRED" }, user: verified })
 
-    expect(screen.getByRole("dialog", { name: "E-mail je ověřený" })).toBeInTheDocument()
+    const dialog = screen.getByRole("dialog", { name: "E-mail je ověřený" })
+    expect(dialog).toHaveTextContent(
+      "Odkaz už vypršel. Nevadí, e-mail už máš ověřený. Teď se můžeš hlásit na akce",
+    )
+    expect(within(dialog).queryByRole("button", { name: "Poslat odkaz znovu" })).toBeNull()
   })
 
   it("an expired link, signed in: says so and sends a new one that leads back to this page", async () => {

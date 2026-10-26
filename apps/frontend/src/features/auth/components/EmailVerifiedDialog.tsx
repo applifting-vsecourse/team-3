@@ -96,6 +96,7 @@ function VerificationOutcome({ result, user, location, onDone }: VerificationOut
   // Signed in, the fresh session decides (an old link opened again after the
   // e-mail was verified needs nothing more); signed out, the link itself.
   const isVerified = user ? user.emailVerified : !result.error
+  const reason = result.error ? (REASONS[result.error] ?? "Odkaz je neplatný.") : null
 
   if (isVerified) {
     return (
@@ -103,6 +104,8 @@ function VerificationOutcome({ result, user, location, onDone }: VerificationOut
         <DialogHeader>
           <DialogTitle>E-mail je ověřený</DialogTitle>
           <DialogDescription>
+            {/* the link still gets its explanation, just not as a failure */}
+            {reason ? `${reason} Nevadí, e-mail už máš ověřený. ` : null}
             Teď se můžeš hlásit na akce a zakládat vlastní akce i skupiny.
           </DialogDescription>
         </DialogHeader>
@@ -115,7 +118,6 @@ function VerificationOutcome({ result, user, location, onDone }: VerificationOut
     )
   }
 
-  const reason = result.error ? (REASONS[result.error] ?? "Odkaz je neplatný.") : null
   return (
     <>
       <DialogHeader>
