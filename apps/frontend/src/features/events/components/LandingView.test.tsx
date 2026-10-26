@@ -24,22 +24,31 @@ const localities = [
   { id: "l-brno", slug: "brno", name: "Brno", parentId: null, lat: 49.2, lng: 16.6 },
 ]
 
-const renderLanding = (shouldInviteToSignUp: boolean) =>
+const renderLanding = (isVisitor: boolean) =>
   renderWithRouter(
     <QueryClientProvider client={new QueryClient({ defaultOptions: { queries: { retry: 0 } } })}>
-      <LandingView shouldInviteToSignUp={shouldInviteToSignUp} />
+      <LandingView isVisitor={isVisitor} />
     </QueryClientProvider>,
   )
+
+const isPopularRequest = (options: unknown) =>
+  (options as { searchParams?: { sort?: string } } | undefined)?.searchParams?.sort === "popular"
 
 describe("LandingView", () => {
   beforeEach(() => {
     get.mockReset()
-    get.mockImplementation(((path: string) =>
+    get.mockImplementation(((path: string, options: unknown) =>
       path === "localities"
         ? asJson(localities)
-        : asJson(
-            ["e1", "e2", "e3", "e4"].map((id) => anEvent({ id, title: `Akce ${id}` })),
-          )) as never)
+        : isPopularRequest(options)
+          ? asJson(
+              ["p1", "p2", "p3", "p4", "p5", "p6"].map((id) =>
+                anEvent({ id, title: `Oblíbená ${id}` }),
+              ),
+            )
+          : asJson(
+              ["e1", "e2", "e3", "e4"].map((id) => anEvent({ id, title: `Akce ${id}` })),
+            )) as never)
   })
 
   it("says in one sentence what HobbyHub is for", async () => {
@@ -69,11 +78,25 @@ describe("LandingView", () => {
   it("links to the whole list of events", async () => {
     await renderLanding(true)
 
-    expect(screen.getByRole("link", { name: "Zobrazit všechny akce" })).toHaveAttribute(
-      "href",
-      "/akce",
-    )
+    // under the nearest and under the popular events
+    const links = screen.getAllByRole("link", { name: "Zobrazit všechny akce" })
+    expect(links).toHaveLength(2)
+    for (const link of links) expect(link).toHaveAttribute("href", "/akce")
     expect(screen.getByRole("link", { name: "Prohlédnout akce" })).toHaveAttribute("href", "/akce")
+  })
+
+  it("shows a visitor six events from all of Czechia with the most interest, each a link to its detail", async () => {
+    await renderLanding(true)
+
+    const popular = screen.getByRole("region", { name: "O tyhle akce je zájem" })
+    expect(await within(popular).findByRole("link", { name: "Oblíbená p1" })).toHaveAttribute(
+      "href",
+      "/akce/p1",
+    )
+    expect(within(popular).getAllByRole("link", { name: /^Oblíbená/ })).toHaveLength(6)
+    expect(within(popular).getByText("Celé Česko")).toBeInTheDocument()
+    // no locality: the API ranks all of Czechia
+    expect(get).toHaveBeenCalledWith("events", { searchParams: { sort: "popular", limit: 6 } })
   })
 
   it("invites a visitor to sign up", async () => {
@@ -85,9 +108,13 @@ describe("LandingView", () => {
     )
   })
 
-  it("doesn't invite a signed-in user", async () => {
+  it("doesn't invite a signed-in user nor show them the popular events", async () => {
     await renderLanding(false)
 
     expect(screen.queryByRole("link", { name: "Zaregistrovat se" })).not.toBeInTheDocument()
+    expect(screen.queryByRole("region", { name: "O tyhle akce je zájem" })).not.toBeInTheDocument()
+    // the nearest events load, the popular ones aren't even asked for
+    expect(await screen.findByRole("link", { name: "Akce e1" })).toBeInTheDocument()
+    expect(get.mock.calls.some(([, options]) => isPopularRequest(options))).toBe(false)
   })
 })

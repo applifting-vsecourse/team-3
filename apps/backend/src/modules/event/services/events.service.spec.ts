@@ -13,10 +13,10 @@ import {
 } from '@nestjs/common';
 import { mock, MockProxy } from 'jest-mock-extended';
 import {
-  CAPACITY_SCAN_LIMIT,
   EventsService,
   MY_EVENTS_LIMIT,
   PUBLIC_EVENTS_LIMIT,
+  SCAN_LIMIT,
 } from './events.service';
 
 const now = new Date('2026-10-23T08:00:00.000Z');
@@ -56,7 +56,7 @@ describe('EventsService', () => {
     const service = new EventsService(repository);
     const filters = { localityId: 'l-praha', dateFrom: '2026-10-24' };
 
-    await expect(service.getPublicEvents(filters, now)).resolves.toEqual(
+    await expect(service.getPublicEvents(filters, {}, now)).resolves.toEqual(
       events,
     );
     expect(repository.findPublicEvents).toHaveBeenCalledWith({
@@ -76,7 +76,7 @@ describe('EventsService', () => {
     ]);
 
     const service = new EventsService(repository);
-    const result = await service.getPublicEvents({ capacity: 'missing' }, now);
+    const result = await service.getPublicEvents({ capacity: 'missing' }, {}, now);
 
     expect(result.map((event) => event.id)).toEqual([
       'missing-one',
@@ -94,7 +94,7 @@ describe('EventsService', () => {
     ]);
 
     const service = new EventsService(repository);
-    const result = await service.getPublicEvents({ capacity: 'free' }, now);
+    const result = await service.getPublicEvents({ capacity: 'free' }, {}, now);
 
     expect(result.map((event) => event.id)).toEqual([
       'missing-one',
@@ -114,15 +114,91 @@ describe('EventsService', () => {
     repository.findPublicEvents.mockResolvedValue([...complete, ...missing]);
 
     const service = new EventsService(repository);
-    const result = await service.getPublicEvents({ capacity: 'missing' }, now);
+    const result = await service.getPublicEvents({ capacity: 'missing' }, {}, now);
 
     expect(repository.findPublicEvents).toHaveBeenCalledWith({
       filters: { capacity: 'missing' },
       now,
-      limit: CAPACITY_SCAN_LIMIT,
+      limit: SCAN_LIMIT,
     });
     expect(result).toHaveLength(PUBLIC_EVENTS_LIMIT);
     expect(result.every((event) => event.id.startsWith('missing-'))).toBe(true);
+  });
+
+  it('a limit cuts the soonest events in the database and counts no interest', async () => {
+    const repository = mock<EventRepository>();
+    repository.findPublicEvents.mockResolvedValue([anEvent('e1', 2)]);
+
+    const service = new EventsService(repository);
+    await service.getPublicEvents({}, { limit: 6 }, now);
+
+    expect(repository.findPublicEvents).toHaveBeenCalledWith({
+      filters: {},
+      now,
+      limit: 6,
+    });
+    expect(repository.countInterest).not.toHaveBeenCalled();
+  });
+
+  describe('sort=popular (#156)', () => {
+    it('ranks every visible event by interest before the limit, so a later busy event is not cut off', async () => {
+      const repository = mock<EventRepository>();
+      // the repository answers soonest first
+      repository.findPublicEvents.mockResolvedValue(
+        ['e1', 'e2', 'e3', 'e4', 'e5'].map((id) => anEvent(id, 1)),
+      );
+      repository.countInterest.mockResolvedValue(
+        new Map([
+          ['e1', 1],
+          ['e3', 4],
+          ['e5', 9],
+        ]),
+      );
+      const filters = { localityId: 'l-praha' };
+
+      const service = new EventsService(repository);
+      const result = await service.getPublicEvents(
+        filters,
+        { sort: 'popular', limit: 3 },
+        now,
+      );
+
+      expect(result.map((event) => event.id)).toEqual(['e5', 'e3', 'e1']);
+      expect(repository.findPublicEvents).toHaveBeenCalledWith({
+        filters,
+        now,
+        limit: SCAN_LIMIT,
+      });
+      expect(repository.countInterest).toHaveBeenCalledWith(filters, now);
+    });
+
+    it('with a capacity filter ranks only the matching events', async () => {
+      const repository = mock<EventRepository>();
+      repository.findPublicEvents.mockResolvedValue([
+        anEvent('full', 6),
+        anEvent('one-place-left', 5),
+        anEvent('free', 2),
+      ]);
+      repository.countInterest.mockResolvedValue(
+        new Map([
+          ['full', 8],
+          ['one-place-left', 5],
+          ['free', 6],
+        ]),
+      );
+
+      const service = new EventsService(repository);
+      const result = await service.getPublicEvents(
+        { capacity: 'free' },
+        { sort: 'popular' },
+        now,
+      );
+
+      expect(result.map((event) => event.id)).toEqual([
+        'free',
+        'one-place-left',
+      ]);
+    });
   });
 });
 

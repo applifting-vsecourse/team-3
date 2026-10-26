@@ -15,6 +15,7 @@ import {
   UpdateDecision,
   UpdateState,
 } from '@/modules/event/domain/event-update';
+import { INTEREST_STATUSES } from '@/modules/event/domain/interest';
 import {
   JoinDecision,
   JoinState,
@@ -91,6 +92,26 @@ export class EventRepository {
       take: query.limit,
     });
     return events.map((event) => toPublicEvent(event, query.now));
+  }
+
+  /**
+   * Interest in the public events matching the filters (#156): people with a
+   * place plus requests waiting for the organizer, per event id, counted by
+   * the database in one query. An event nobody is interested in isn't there.
+   */
+  async countInterest(
+    filters: PublicEventFilters,
+    now: Date,
+  ): Promise<Map<string, number>> {
+    const counts = await this.prisma.participation.groupBy({
+      by: ['eventId'],
+      where: {
+        status: { in: INTEREST_STATUSES },
+        event: buildPublicEventsWhere(filters, now),
+      },
+      _count: { _all: true },
+    });
+    return new Map(counts.map((row) => [row.eventId, row._count._all]));
   }
 
   /**

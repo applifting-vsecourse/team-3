@@ -55,21 +55,24 @@ export class EventsController {
   @Get()
   @ApiOperation({
     summary:
-      'Upcoming public events, soonest first, at most 200 (list and map)',
+      'Upcoming public events, soonest first or the most interest first (sort=popular), at most 200 (list, map and landing page)',
   })
   @ApiResponse({ status: 200, type: [PublicEventResponseDto] })
   @ApiResponse({ status: 400, description: 'Invalid filter' })
   async list(
     @Query() query: ListEventsQueryDto,
   ): Promise<PublicEventResponseDto[]> {
-    const events = await this.eventsService.getPublicEvents({
-      localityId: query.localityId,
-      dateFrom: query.dateFrom,
-      dateTo: query.dateTo,
-      activityIds: query.activityId,
-      categoryIds: query.categoryId,
-      capacity: query.capacity,
-    });
+    const events = await this.eventsService.getPublicEvents(
+      {
+        localityId: query.localityId,
+        dateFrom: query.dateFrom,
+        dateTo: query.dateTo,
+        activityIds: query.activityId,
+        categoryIds: query.categoryId,
+        capacity: query.capacity,
+      },
+      { sort: query.sort, limit: query.limit },
+    );
     return events.map(PublicEventResponseDto.fromDomain);
   }
 

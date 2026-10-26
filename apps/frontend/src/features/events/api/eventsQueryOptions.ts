@@ -15,6 +15,7 @@ export const eventKeys = {
   all: () => ["events"] as const,
   lists: () => [...eventKeys.all(), "list"] as const,
   list: (filters: EventFilters | undefined) => [...eventKeys.lists(), filters] as const,
+  popular: (count: number) => [...eventKeys.lists(), "popular", count] as const,
   // under lists(), so joining, leaving, creating, editing and cancelling refresh it too
   mine: (tab: MyEventsTab, viewerId: string) =>
     [...eventKeys.lists(), "mine", tab, viewerId] as const,
@@ -52,6 +53,21 @@ export const eventsQueryOptions = (filters: EventFilters | undefined) =>
       : skipToken,
     // Keep the current list on screen while a changed filter loads.
     placeholderData: keepPreviousData,
+  })
+
+/**
+ * The `count` upcoming public events from all of Czechia with the most
+ * interest (#156): people with a place plus requests waiting for the
+ * organizer. The API ranks every event, so the order isn't one page of the
+ * soonest ones re-sorted here.
+ */
+export const popularEventsQueryOptions = (count: number) =>
+  queryOptions({
+    queryKey: eventKeys.popular(count),
+    queryFn: async () =>
+      publicEventsSchema.parse(
+        await api.get("events", { searchParams: { sort: "popular", limit: count } }).json(),
+      ),
   })
 
 /**
