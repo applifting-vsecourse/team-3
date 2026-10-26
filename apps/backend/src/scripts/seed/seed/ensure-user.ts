@@ -1,5 +1,6 @@
 import { PrismaService } from '@/core/prisma/prisma.service';
 import { User, UserRole } from '@/generated/prisma/client';
+import { SIGN_UP_CONSENT } from '@/shared/auth/domain/consent';
 import { BetterAuth } from '@/shared/auth/providers/better-auth.provider';
 
 type EnsureUserParams = {
@@ -55,6 +56,8 @@ export async function ensureUser(
         email,
         password: params.password,
         name: params.name,
+        // the sign-up refuses an account without it (#153), even from the server
+        ...SIGN_UP_CONSENT,
       },
     });
   }

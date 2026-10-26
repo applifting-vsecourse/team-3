@@ -6,6 +6,9 @@ import { seedCatalog } from './seed-catalog';
 import { seedCommunity } from './seed-community';
 import { seedDemo } from './seed-demo';
 
+/** Passes the sign-up's name rule (#153): no brackets, unlike the template's. */
+export const SUPERADMIN_NAME = 'Správce HobbyHubu';
+
 /**
  * Seed je opakovatelný: lokálně ho spouští každý `pnpm dev`, na stagingu každý start
  * kontejneru. Nic nemaže a nic, co už v databázi je, nezakládá znovu.
@@ -32,7 +35,7 @@ export const seedDatabase = async (
     const { created } = await ensureUser(prisma, betterAuth, {
       email: config.superadminEmail,
       password: config.superadminPassword,
-      name: 'Admin (Delete in Prod)',
+      name: SUPERADMIN_NAME,
       username: 'superadmin',
       role: 'admin',
       emailVerified: true,

@@ -1,11 +1,12 @@
 import { PrismaService } from '@/core/prisma/prisma.service';
+import { nameProblem } from '@/shared/auth/domain/name-policy';
 import { BetterAuth } from '@/shared/auth/providers/better-auth.provider';
 import { Config } from '@/shared/config/config.service';
 import { mock } from 'jest-mock-extended';
 import { ensureUser } from './ensure-user';
 import { seedCatalog } from './seed-catalog';
 import { seedCommunity } from './seed-community';
-import { seedDatabase } from './seed-database';
+import { seedDatabase, SUPERADMIN_NAME } from './seed-database';
 import { seedDemo } from './seed-demo';
 
 // Factories, so neither better-auth nor the demo and community data load under Jest.
@@ -42,6 +43,21 @@ describe('seedDatabase', () => {
       expect.stringContaining('Superadmin could not be created'),
       expect.any(Error),
     );
+  });
+
+  it("names the superadmin so that the sign-up's name rule lets it through (#153)", async () => {
+    jest
+      .mocked(ensureUser)
+      .mockResolvedValue({ user: {} as never, created: true });
+
+    await seedDatabase(prisma, config, auth);
+
+    expect(ensureUser).toHaveBeenCalledWith(
+      prisma,
+      auth,
+      expect.objectContaining({ name: SUPERADMIN_NAME, role: 'admin' }),
+    );
+    expect(nameProblem(SUPERADMIN_NAME)).toBeNull();
   });
 
   it('still skips the demo data with SEED_DEMO_DATA=false', async () => {

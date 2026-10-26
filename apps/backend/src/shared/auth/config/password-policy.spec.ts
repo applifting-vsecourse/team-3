@@ -1,17 +1,15 @@
 import { rejectWeakPasswords } from './password-policy';
 
-// better-auth is ESM-only, which Jest can't load: the middleware is the plain
-// handler here, and the error a plain class keeping what it was given.
+// better-auth is ESM-only, which Jest can't load: the error is a plain class
+// keeping what it was given.
 jest.mock('better-auth/api', () => ({
-  createAuthMiddleware: (handler: unknown): unknown => handler,
   APIError: {
     from: (status: string, body: { code: string; message: string }): Error =>
       Object.assign(new Error(body.message), { status, body }),
   },
 }));
 
-type Handler = (ctx: { path: string; body?: unknown }) => Promise<void>;
-const check = rejectWeakPasswords as unknown as Handler;
+const check = rejectWeakPasswords;
 
 describe('rejectWeakPasswords', () => {
   it('refuses a weak password at sign-up with 400 WEAK_PASSWORD', async () => {

@@ -120,7 +120,12 @@ describe('ensureUser', () => {
 
     expect(result.created).toBe(true);
     expect(auth.api.signUpEmail).toHaveBeenCalledWith({
-      body: expect.objectContaining({ email: 'admin@hobbyhub.cz' }),
+      body: expect.objectContaining({
+        email: 'admin@hobbyhub.cz',
+        // the sign-up refuses an account without the consent (#153)
+        termsAccepted: true,
+        privacyAcknowledged: true,
+      }),
     });
     expect(prisma.user.update).toHaveBeenCalledWith({
       where: { id: NEW_ID },
