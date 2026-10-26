@@ -54,9 +54,11 @@ describe("PopularEvents", () => {
 
     const region = await screen.findByRole("region", { name: "O tyhle akce je zájem" })
     await within(region).findByRole("link", { name: "Volejbal" })
-    expect(within(region).getAllByRole("heading", { level: 3 }).map((h) => h.textContent)).toEqual(
-      ["Volejbal", "Běh", "Deskovky"],
-    )
+    expect(
+      within(region)
+        .getAllByRole("heading", { level: 3 })
+        .map((h) => h.textContent),
+    ).toEqual(["Volejbal", "Běh", "Deskovky"])
     expect(within(region).getByRole("link", { name: "Volejbal" })).toHaveAttribute(
       "href",
       "/akce/busy",

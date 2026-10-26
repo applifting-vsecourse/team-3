@@ -76,7 +76,11 @@ describe('EventsService', () => {
     ]);
 
     const service = new EventsService(repository);
-    const result = await service.getPublicEvents({ capacity: 'missing' }, {}, now);
+    const result = await service.getPublicEvents(
+      { capacity: 'missing' },
+      {},
+      now,
+    );
 
     expect(result.map((event) => event.id)).toEqual([
       'missing-one',
@@ -114,7 +118,11 @@ describe('EventsService', () => {
     repository.findPublicEvents.mockResolvedValue([...complete, ...missing]);
 
     const service = new EventsService(repository);
-    const result = await service.getPublicEvents({ capacity: 'missing' }, {}, now);
+    const result = await service.getPublicEvents(
+      { capacity: 'missing' },
+      {},
+      now,
+    );
 
     expect(repository.findPublicEvents).toHaveBeenCalledWith({
       filters: { capacity: 'missing' },
