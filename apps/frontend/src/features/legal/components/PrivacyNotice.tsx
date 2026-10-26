@@ -28,6 +28,10 @@ export function PrivacyNotice() {
           <li>Akce a skupiny, které zakládáš nebo na které se hlásíš.</li>
           <li>Čas souhlasu s podmínkami užívání.</li>
           <li>
+            Když se přihlašuješ přes Google, jméno, e-mail a profilovou fotku z tvého účtu Google a
+            přihlašovací údaje, které nám k tomu Google předá. Heslo k Googlu nevidíme.
+          </li>
+          <li>
             Kvůli přihlášení přihlašovací cookie a u každého přihlášení IP adresu a typ prohlížeče.
           </li>
         </LegalList>
@@ -57,6 +61,10 @@ export function PrivacyNotice() {
           <li>
             Mapa a našeptávač míst se načítají ze služeb OpenStreetMap a Photon. Tvůj prohlížeč se k
             nim připojuje, takže vidí tvou IP adresu, ne tvůj účet.
+          </li>
+          <li>
+            Přihlášení přes Google probíhá u Googlu, takže Google ví, že se do HobbyHubu
+            přihlašuješ.
           </li>
           <li>Reklamní ani analytické cookies nepoužíváme.</li>
         </LegalList>
