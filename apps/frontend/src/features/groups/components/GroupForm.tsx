@@ -4,6 +4,8 @@ import { Loader2 } from "lucide-react"
 import { useForm } from "react-hook-form"
 import { z } from "zod"
 
+import { ActivityCombobox } from "@/components/CatalogCombobox/ActivityCombobox"
+import { LocalityCombobox } from "@/components/CatalogCombobox/LocalityCombobox"
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import { Button } from "@/components/ui/button"
 import {
@@ -16,18 +18,8 @@ import {
 } from "@/components/ui/form"
 import { Input } from "@/components/ui/input"
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
-import {
-  Select,
-  SelectContent,
-  SelectGroup,
-  SelectItem,
-  SelectLabel,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select"
 import { Textarea } from "@/components/ui/textarea"
 import type { Catalog } from "@/lib/catalog/catalogSearch"
-import { localityOptions } from "@/lib/catalog/localityOptions"
 import { cn } from "@/lib/utils"
 
 import {
@@ -106,14 +98,6 @@ export function GroupForm({
     },
   })
 
-  const activityLabel = (id: string) => {
-    for (const category of catalog.categories) {
-      const activity = category.activities.find((a) => a.id === id)
-      if (activity) return `${category.name} › ${activity.name}`
-    }
-    return undefined
-  }
-
   return (
     <Form {...form}>
       <form
@@ -173,42 +157,15 @@ export function GroupForm({
               render={({ field }) => (
                 <FormItem className="order-2 md:order-none">
                   <FormLabel>Aktivita *</FormLabel>
-                  <Select
-                    value={field.value}
-                    onValueChange={field.onChange}
-                  >
-                    <FormControl>
-                      <SelectTrigger
-                        ref={field.ref}
-                        onBlur={field.onBlur}
-                        // same type size as the name input (Figma: 15 px in all fields)
-                        className="w-full text-base data-[size=default]:h-11 md:text-sm"
-                      >
-                        <SelectValue placeholder="Vyber aktivitu">
-                          {field.value ? activityLabel(field.value) : undefined}
-                        </SelectValue>
-                      </SelectTrigger>
-                    </FormControl>
-                    <SelectContent
-                      // under the field like a dropdown; item-aligned would cover the form
-                      position="popper"
-                      className="max-h-80"
-                    >
-                      {catalog.categories.map((category) => (
-                        <SelectGroup key={category.id}>
-                          <SelectLabel>{category.name}</SelectLabel>
-                          {category.activities.map((activity) => (
-                            <SelectItem
-                              key={activity.id}
-                              value={activity.id}
-                            >
-                              {activity.name}
-                            </SelectItem>
-                          ))}
-                        </SelectGroup>
-                      ))}
-                    </SelectContent>
-                  </Select>
+                  <FormControl>
+                    <ActivityCombobox
+                      categories={catalog.categories}
+                      ref={field.ref}
+                      value={field.value}
+                      onChange={field.onChange}
+                      onBlur={field.onBlur}
+                    />
+                  </FormControl>
                   <FormMessage />
                 </FormItem>
               )}
@@ -220,37 +177,15 @@ export function GroupForm({
               render={({ field }) => (
                 <FormItem className="order-3 md:order-none">
                   <FormLabel>Lokalita *</FormLabel>
-                  <Select
-                    value={field.value}
-                    onValueChange={field.onChange}
-                  >
-                    <FormControl>
-                      <SelectTrigger
-                        ref={field.ref}
-                        onBlur={field.onBlur}
-                        // same type size as the name input (Figma: 15 px in all fields)
-                        className="w-full text-base data-[size=default]:h-11 md:text-sm"
-                      >
-                        <SelectValue placeholder="Vyber lokalitu" />
-                      </SelectTrigger>
-                    </FormControl>
-                    <SelectContent
-                      // under the field like a dropdown; item-aligned would cover the form
-                      position="popper"
-                      className="max-h-80"
-                    >
-                      {localityOptions(catalog.localities).map((locality) => (
-                        <SelectItem
-                          key={locality.id}
-                          value={locality.id}
-                          // districts indented under their city, like the locality filter
-                          className={cn(locality.isDistrict && "pl-6")}
-                        >
-                          {locality.name}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
+                  <FormControl>
+                    <LocalityCombobox
+                      localities={catalog.localities}
+                      ref={field.ref}
+                      value={field.value}
+                      onChange={field.onChange}
+                      onBlur={field.onBlur}
+                    />
+                  </FormControl>
                   <FormMessage />
                 </FormItem>
               )}

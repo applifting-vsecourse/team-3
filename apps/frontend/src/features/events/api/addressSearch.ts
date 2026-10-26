@@ -117,8 +117,9 @@ export const toAddressSuggestions = (response: unknown): AddressSuggestion[] => 
 /**
  * The catalog locality an address lies in, when it says more than the chosen
  * one: its Prague district („Praha 8“) or its town („Brno“). Undefined for a
- * town the catalog doesn't have (Kolín), and for an address that only knows
- * „Praha“ while a Prague district is chosen – a district isn't swapped for its city.
+ * town the catalog doesn't have, and for an address that only knows „Praha“
+ * while a Prague district is chosen – a district isn't swapped for its city.
+ * A town's part is no town: Zábřeh in Ostrava is Ostrava, not the town Zábřeh.
  */
 export const localityOfAddress = (
   { district, city }: Pick<AddressSuggestion, "district" | "city">,
@@ -126,8 +127,9 @@ export const localityOfAddress = (
   chosenId: string,
 ): Locality | undefined => {
   const found =
-    localities.find((l) => l.name === district) ??
-    localities.find((l) => l.parentId === null && l.name === city)
+    localities.find((l) => l.parentId !== null && l.name === district) ??
+    // without a city, OpenStreetMap's district is the town
+    localities.find((l) => l.parentId === null && l.name === (city ?? district))
   const chosen = localities.find((l) => l.id === chosenId)
   if (!found || found.id === chosen?.id || chosen?.parentId === found.id) return undefined
   return found

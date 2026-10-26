@@ -167,7 +167,10 @@ describe("localityOfAddress", () => {
   const praha = locality("praha", "Praha")
   const praha8 = locality("praha-8", "Praha 8", "praha")
   const brno = locality("brno", "Brno")
-  const localities = [praha, praha8, brno]
+  const ostrava = locality("ostrava", "Ostrava")
+  const zabreh = locality("zabreh", "Zábřeh")
+  const ustiNadOrlici = locality("usti-nad-orlici", "Ústí nad Orlicí")
+  const localities = [praha, praha8, brno, ostrava, zabreh, ustiNadOrlici]
 
   it("a Prague district in the address is more precise than „Praha“", () => {
     expect(localityOfAddress({ district: "Praha 8", city: "Praha" }, localities, "praha")).toBe(
@@ -191,6 +194,22 @@ describe("localityOfAddress", () => {
     expect(
       localityOfAddress({ district: "Kolín I", city: "Kolín" }, localities, "praha"),
     ).toBeUndefined()
+  })
+
+  it("any Czech town of the catalog counts, e.g. Ústí nad Orlicí (PO 26. 10.)", () => {
+    expect(
+      localityOfAddress({ district: "Hylváty", city: "Ústí nad Orlicí" }, localities, "praha"),
+    ).toBe(ustiNadOrlici)
+  })
+
+  it("a part of a town named like another town is still that town (Zábřeh in Ostrava)", () => {
+    expect(localityOfAddress({ district: "Zábřeh", city: "Ostrava" }, localities, "praha")).toBe(
+      ostrava,
+    )
+  })
+
+  it("without a city, the district is the town", () => {
+    expect(localityOfAddress({ district: "Zábřeh" }, localities, "praha")).toBe(zabreh)
   })
 
   it("the locality already chosen needs no change", () => {

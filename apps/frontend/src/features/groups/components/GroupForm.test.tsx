@@ -60,6 +60,32 @@ describe("GroupForm", () => {
     expect(onSubmit).not.toHaveBeenCalled()
   })
 
+  it("founding: the activity and the locality are found by typing", async () => {
+    const { onSubmit } = renderForm()
+
+    await userEvent.type(screen.getByLabelText("Název skupiny *"), "Deskovky Letná")
+    await userEvent.click(screen.getByRole("combobox", { name: "Aktivita *" }))
+    await userEvent.type(screen.getByRole("combobox", { name: "Hledat aktivitu" }), "deskov")
+    await userEvent.keyboard("{Enter}")
+    await userEvent.click(screen.getByRole("combobox", { name: "Lokalita *" }))
+    await userEvent.type(screen.getByRole("combobox", { name: "Hledat lokalitu" }), "praha 7")
+    await userEvent.keyboard("{Enter}")
+    await userEvent.click(screen.getByRole("radio", { name: /Veřejná/ }))
+    await userEvent.click(screen.getByRole("button", { name: "Založit skupinu" }))
+
+    expect(screen.getByRole("combobox", { name: "Aktivita *" })).toHaveTextContent(
+      "Hry › Deskové hry",
+    )
+    expect(screen.getByRole("combobox", { name: "Lokalita *" })).toHaveTextContent("Praha 7")
+    expect(onSubmit).toHaveBeenCalledWith({
+      name: "Deskovky Letná",
+      description: null,
+      activityId: "a-deskove-hry",
+      localityId: "l-praha-7",
+      type: "public",
+    })
+  })
+
   it("editing starts from the group's values and sends every field", async () => {
     const { onSubmit } = renderForm({ initialValues: existing, submitLabel: "Uložit změny" })
 
