@@ -169,7 +169,8 @@ function LocalitySearch({
         // is on its way to Česká Lípa, and Enter picks the first row.
         filter={(value, search, keywords) => {
           const needle = foldText(search)
-          if (![value, ...(keywords ?? [])].some((text) => foldText(text).includes(needle))) return 0
+          const texts = [value, ...(keywords ?? [])]
+          if (!texts.some((text) => foldText(text).includes(needle))) return 0
           return value === ALL_LOCALITIES_SLUG ? 0.5 : 1
         }}
       >

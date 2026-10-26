@@ -145,10 +145,11 @@ describe("LocalityFilter", () => {
     const panel = await openPanel("Lokalita: Praha")
 
     await userEvent.keyboard("česk")
-    expect(within(panel).getAllByRole("option").map((option) => option.textContent)).toEqual([
-      "Česká Lípa",
-      "Celé Česko",
-    ])
+    expect(
+      within(panel)
+        .getAllByRole("option")
+        .map((option) => option.textContent),
+    ).toEqual(["Česká Lípa", "Celé Česko"])
     await userEvent.keyboard("{Enter}")
     await userEvent.click(within(panel).getByRole("button", { name: "Zobrazit akce" }))
     expect(onChange).toHaveBeenCalledWith("ceska-lipa")
