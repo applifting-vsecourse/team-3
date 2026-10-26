@@ -31,6 +31,22 @@ describe('ListEventsQueryDto', () => {
     expect(parse({ capacity: 'true' }).invalid).toEqual(['capacity']);
   });
 
+  it('accepts sort date or popular and rejects anything else', () => {
+    expect(parse({ sort: 'popular' }).dto.sort).toBe('popular');
+    expect(parse({ sort: 'date' }).invalid).toEqual([]);
+    expect(parse({ sort: 'interest' }).invalid).toEqual(['sort']);
+    expect(parse({ sort: '' }).invalid).toEqual(['sort']);
+  });
+
+  it('turns limit into a whole number from 1 to 200', () => {
+    expect(parse({ limit: '6' }).dto.limit).toBe(6);
+    expect(parse({ limit: '1' }).invalid).toEqual([]);
+    expect(parse({ limit: '200' }).invalid).toEqual([]);
+    for (const limit of ['0', '201', '2.5', 'six', '', ['6', '7']]) {
+      expect(parse({ limit }).invalid).toEqual(['limit']);
+    }
+  });
+
   it('rejects a range that ends before it starts; a one-day range is fine', () => {
     expect(
       parse({ dateFrom: '2026-10-30', dateTo: '2026-10-24' }).invalid,

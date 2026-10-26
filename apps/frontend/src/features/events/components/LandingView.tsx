@@ -8,6 +8,7 @@ import { PAGE } from "@/lib/pageLayout"
 import { cn } from "@/lib/utils"
 
 import { NearestEvents } from "@/features/events/components/NearestEvents"
+import { PopularEvents } from "@/features/events/components/PopularEvents"
 
 const STEPS = [
   "Najdi akci podle místa, termínu a typu aktivity",
@@ -16,17 +17,34 @@ const STEPS = [
 ]
 
 type LandingViewProps = {
-  /** The invitation to sign up, for visitors only (#36). */
-  shouldInviteToSignUp: boolean
+  /**
+   * Signed out, once the session is known: the invitation to sign up (#36)
+   * and the events people are interested in (#156) are for visitors only.
+   */
+  isVisitor: boolean
 }
 
 /**
  * Landing page (US-01, #36; Figma A-01, A-01d). Desktop: the intro and the
- * steps on the left, the nearest events on the right. Mobile: intro, events,
- * steps. The locality is always Praha for now; guessing it from the IP and
- * changing it here is #55.
+ * steps on the left, the nearest events on the right, a visitor gets the
+ * popular events from all of Czechia over the whole width below. Mobile:
+ * intro, events, steps, popular events. The locality is always Praha for
+ * now; guessing it from the IP and changing it here is #55.
  */
-export function LandingView({ shouldInviteToSignUp }: LandingViewProps) {
+export function LandingView({ isVisitor }: LandingViewProps) {
+  const allEventsLink = (
+    <Button
+      asChild
+      variant="ghost"
+      className="self-start"
+    >
+      <Link to={ROUTES.events}>
+        <ChevronRight className="size-4" />
+        Zobrazit všechny akce
+      </Link>
+    </Button>
+  )
+
   return (
     <main
       className={cn(
@@ -49,7 +67,7 @@ export function LandingView({ shouldInviteToSignUp }: LandingViewProps) {
           >
             <Link to={ROUTES.events}>Prohlédnout akce</Link>
           </Button>
-          {shouldInviteToSignUp ? (
+          {isVisitor ? (
             <Button
               asChild
               size="lg"
@@ -64,18 +82,7 @@ export function LandingView({ shouldInviteToSignUp }: LandingViewProps) {
       <div className="lg:col-start-2 lg:row-span-2 lg:row-start-1">
         <NearestEvents
           localitySlug={DEFAULT_LOCALITY_SLUG}
-          footer={
-            <Button
-              asChild
-              variant="ghost"
-              className="self-start"
-            >
-              <Link to={ROUTES.events}>
-                <ChevronRight className="size-4" />
-                Zobrazit všechny akce
-              </Link>
-            </Button>
-          }
+          footer={allEventsLink}
         />
       </div>
 
@@ -104,6 +111,12 @@ export function LandingView({ shouldInviteToSignUp }: LandingViewProps) {
           ))}
         </ol>
       </section>
+
+      {isVisitor ? (
+        <div className="lg:col-span-2 lg:mt-6">
+          <PopularEvents footer={allEventsLink} />
+        </div>
+      ) : null}
     </main>
   )
 }
