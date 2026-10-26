@@ -1,4 +1,4 @@
-import { useId, useState } from "react"
+import { useId, useRef, useState, type RefObject } from "react"
 import { ChevronRight, Search } from "lucide-react"
 
 import { ActivityTile } from "@/components/ActivityTile/ActivityTile"
@@ -50,6 +50,7 @@ export function ActivityFilter({
   const [isOpen, setIsOpen] = useState(false)
   const [draft, setDraft] = useState(current)
   const [query, setQuery] = useState("")
+  const searchRef = useRef<HTMLInputElement>(null)
   // desktop: the category shown on the right; mobile: the opened second level
   const [shownSlug, setShownSlug] = useState<string | undefined>()
 
@@ -101,11 +102,13 @@ export function ActivityFilter({
       applyLabel={applyLabel}
       onApply={() => apply(draft)}
       popoverClassName="w-auto"
+      initialFocusRef={searchRef}
     >
       {isSecondLevel ? null : (
         <SearchField
           value={query}
           onChange={setQuery}
+          inputRef={searchRef}
         />
       )}
 
@@ -171,7 +174,15 @@ export function ActivityFilter({
 const checked = (state: CheckState) =>
   state === "on" ? true : state === "mixed" ? "indeterminate" : false
 
-function SearchField({ value, onChange }: { value: string; onChange: (value: string) => void }) {
+function SearchField({
+  value,
+  onChange,
+  inputRef,
+}: {
+  value: string
+  onChange: (value: string) => void
+  inputRef: RefObject<HTMLInputElement | null>
+}) {
   const id = useId()
   return (
     <div className="flex flex-col gap-2">
@@ -182,6 +193,7 @@ function SearchField({ value, onChange }: { value: string; onChange: (value: str
           className="pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2 text-muted-foreground"
         />
         <Input
+          ref={inputRef}
           id={id}
           type="search"
           value={value}

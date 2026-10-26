@@ -312,7 +312,9 @@ describe("EventFilters › Typ aktivity", () => {
 
     await userEvent.click(screen.getByRole("button", { name: "Typ aktivity" }))
     const panel = await screen.findByRole("dialog", { name: "Typ aktivity" })
-    await userEvent.type(within(panel).getByLabelText("Hledat aktivitu"), "sach")
+    // the search field has the focus on opening, typing goes there
+    expect(within(panel).getByLabelText("Hledat aktivitu")).toHaveFocus()
+    await userEvent.keyboard("sach")
     await userEvent.click(within(panel).getByRole("checkbox", { name: /Šachy/ }))
 
     await userEvent.click(within(panel).getByRole("button", { name: /^Zobrazit/ }))

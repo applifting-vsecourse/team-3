@@ -101,6 +101,15 @@ describe("LocalityFilter", () => {
     expect(within(panel).getByRole("button", { name: "Zrušit výběr" })).toBeDisabled()
   })
 
+  it("opens with the focus in the search field, so typing a town finds it", async () => {
+    renderFilter(undefined)
+    const panel = await openPanel("Lokalita: Praha")
+
+    expect(within(panel).getByRole("combobox", { name: "Hledat lokalitu" })).toHaveFocus()
+    await userEvent.keyboard("brunt")
+    expect(within(panel).getAllByRole("option")).toHaveLength(1)
+  })
+
   it("reopens on the picked town: its row is active, so Enter keeps it (not Praha)", async () => {
     const { onChange } = renderFilter("bruntal")
     const panel = await openPanel("Lokalita: Bruntál")
@@ -113,7 +122,7 @@ describe("LocalityFilter", () => {
       "false",
     )
 
-    await userEvent.click(within(panel).getByRole("combobox", { name: "Hledat lokalitu" }))
+    // the field has the focus already
     await userEvent.keyboard("{Enter}")
     await userEvent.click(within(panel).getByRole("button", { name: "Zobrazit akce" }))
     expect(onChange).toHaveBeenCalledWith("bruntal")

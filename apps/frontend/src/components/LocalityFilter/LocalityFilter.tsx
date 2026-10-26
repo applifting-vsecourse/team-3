@@ -1,4 +1,4 @@
-import { useMemo, useRef, useState } from "react"
+import { useMemo, useRef, useState, type RefObject } from "react"
 import { Check } from "lucide-react"
 
 import { FilterChip } from "@/components/FilterChip/FilterChip"
@@ -45,6 +45,7 @@ export function LocalityFilter({
   const current = value ?? DEFAULT_LOCALITY_SLUG
   const [isOpen, setIsOpen] = useState(false)
   const [draft, setDraft] = useState(current)
+  const searchRef = useRef<HTMLInputElement>(null)
 
   const currentName = localityName(current, localities)
   // follows what is picked: a district goes back to its city, anything else to Celé Česko
@@ -85,11 +86,13 @@ export function LocalityFilter({
       applyLabel={applyLabel}
       onApply={() => apply(draft)}
       popoverClassName="w-80"
+      initialFocusRef={searchRef}
     >
       <LocalitySearch
         localities={localities}
         draft={draft}
         onPick={updateDraft}
+        inputRef={searchRef}
       />
     </FilterPanel>
   )
@@ -100,10 +103,12 @@ function LocalitySearch({
   localities,
   draft,
   onPick,
+  inputRef,
 }: {
   localities: Locality[]
   draft: string
   onPick: (slug: string) => void
+  inputRef: RefObject<HTMLInputElement | null>
 }) {
   const listRef = useRef<HTMLDivElement>(null)
   const options = useMemo(() => localityOptions(localities), [localities])
@@ -154,8 +159,9 @@ function LocalitySearch({
         label="Hledat lokalitu"
         // the picked row is the active one, so Enter keeps it instead of picking Praha (t072)
         defaultValue={draft}
-        // Figma: Input/Search – a bordered field rather than cmdk's underline
-        className="gap-2 **:data-[slot=command-input-wrapper]:h-10 **:data-[slot=command-input-wrapper]:rounded-md **:data-[slot=command-input-wrapper]:border **:data-[slot=command-input-wrapper]:border-input"
+        // Figma: Input/Search – a bordered field rather than cmdk's underline, 44 px to tap,
+        // with the focus ring of the other fields (it has the focus on opening), not clipped
+        className="gap-2 overflow-visible **:data-[slot=command-input-wrapper]:h-11 **:data-[slot=command-input-wrapper]:rounded-md **:data-[slot=command-input-wrapper]:border **:data-[slot=command-input-wrapper]:border-input **:data-[slot=command-input-wrapper]:focus-within:border-ring **:data-[slot=command-input-wrapper]:focus-within:ring-[3px] **:data-[slot=command-input-wrapper]:focus-within:ring-ring/50"
         // Slug or name, without diacritics, so "plzen" finds Plzeň and
         // "usti nad orl" Ústí nad Orlicí.
         filter={(value, query, keywords) => {
@@ -165,7 +171,12 @@ function LocalitySearch({
             : 0
         }}
       >
-        <CommandInput placeholder="Např. Praha 8 nebo Brno" />
+        <CommandInput
+          ref={inputRef}
+          placeholder="Např. Praha 8 nebo Brno"
+          // 16 px on phones, or iOS zooms in on the field
+          className="text-base md:text-sm"
+        />
         <CommandList
           ref={listRef}
           className="max-h-72"
