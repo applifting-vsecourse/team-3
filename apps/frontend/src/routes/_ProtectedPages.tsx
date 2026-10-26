@@ -15,6 +15,9 @@ export const Route = createFileRoute("/_ProtectedPages")({
     throw redirect({
       to: ROUTES.login,
       search: { from: encodeRedirectUri(location) },
+      // what the page came with goes along, e.g. the result of verifying the
+      // e-mail (#155): its dialog then shows over the sign-in
+      state: true,
     })
   },
   component: Layout,
