@@ -119,7 +119,10 @@ describe('toSlug', () => {
     const setup = (
       named: Locality[],
       takenSlugs: string[] = [],
-    ): { repository: MockProxy<CatalogRepository>; service: CatalogService } => {
+    ): {
+      repository: MockProxy<CatalogRepository>;
+      service: CatalogService;
+    } => {
       const repository = mock<CatalogRepository>();
       repository.findLocalitiesNamed.mockResolvedValue(named);
       repository.isSlugTaken.mockImplementation((slug) =>
