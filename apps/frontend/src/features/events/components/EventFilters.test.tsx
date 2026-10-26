@@ -13,6 +13,14 @@ const localities: Locality[] = [
   { id: "l-brno", slug: "brno", name: "Brno", parentId: null, lat: 49.2, lng: 16.6 },
   { id: "l-praha", slug: "praha", name: "Praha", parentId: null, lat: 50.1, lng: 14.4 },
   { id: "l-praha-8", slug: "praha-8", name: "Praha 8", parentId: "l-praha", lat: 50.1, lng: 14.5 },
+  {
+    id: "l-usti-nad-orlici",
+    slug: "usti-nad-orlici",
+    name: "Ústí nad Orlicí",
+    parentId: null,
+    lat: 49.97,
+    lng: 16.39,
+  },
 ]
 const categories: ActivityCategory[] = []
 
@@ -129,6 +137,23 @@ describe("EventFilters", () => {
 
     await userEvent.click(within(panel).getByRole("button", { name: "Celá Praha" }))
     expect(onChange).toHaveBeenCalledWith({ lokalita: undefined })
+  })
+
+  it("a town's name typed without diacritics finds it („usti nad orl“)", async () => {
+    renderFilters()
+
+    await userEvent.click(screen.getByRole("button", { name: "Lokalita: Praha" }))
+    const panel = await screen.findByRole("dialog", { name: "Lokalita" })
+    await userEvent.type(
+      within(panel).getByRole("combobox", { name: "Hledat lokalitu" }),
+      "usti nad orl",
+    )
+
+    expect(
+      within(panel)
+        .getAllByRole("option")
+        .map((option) => option.textContent),
+    ).toEqual(["Ústí nad Orlicí"])
   })
 })
 

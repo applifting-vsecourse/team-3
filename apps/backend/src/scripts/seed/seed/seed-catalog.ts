@@ -1,4 +1,5 @@
 import { PrismaService } from '@/core/prisma/prisma.service';
+import { czechTowns } from '@/scripts/seed/data/czech-towns';
 import {
   demoActivities,
   demoActivityCategories,
@@ -46,8 +47,13 @@ export async function seedCatalog(prisma: PrismaService): Promise<void> {
 
   // Města jsou v seznamu před svými částmi, takže rodič už existuje.
   // Páruje se podle slugu: jméno lokality unikátní není (víc obcí „Nová Ves“).
+  // Za krajskými městy a Prahou s obvody následují ostatní města Česka.
+  const localities = [
+    ...demoLocalities,
+    ...czechTowns.map((town) => ({ ...town, parentSlug: null })),
+  ];
   const localityIds = new Map<string, string>();
-  for (const locality of demoLocalities) {
+  for (const locality of localities) {
     const parentId = locality.parentSlug
       ? localityIds.get(locality.parentSlug)
       : null;
@@ -70,6 +76,6 @@ export async function seedCatalog(prisma: PrismaService): Promise<void> {
 
   console.log(
     `Catalog: ${demoActivityCategories.length} categories, ` +
-      `${demoActivities.length} activities, ${demoLocalities.length} localities`,
+      `${demoActivities.length} activities, ${localities.length} localities`,
   );
 }

@@ -114,20 +114,60 @@ export const toAddressSuggestions = (response: unknown): AddressSuggestion[] => 
   return [...suggestions.values()]
 }
 
+/** Up to this far, the nearest catalog town stands in for a village the catalog doesn't have. */
+const NEAREST_TOWN_KM = 20
+/** A catalog town of the address's name counts only this close to it. */
+const SAME_TOWN_KM = 25
+
+// equirectangular distance: plenty at the scale of Czechia
+const distanceKm = (a: LatLng, b: LatLng): number => {
+  const toRad = Math.PI / 180
+  const x = (b.lng - a.lng) * toRad * Math.cos(((a.lat + b.lat) / 2) * toRad)
+  const y = (b.lat - a.lat) * toRad
+  return Math.hypot(x, y) * 6371
+}
+
+const nearestTown = (point: LatLng, localities: Locality[]): Locality | undefined => {
+  let nearest: Locality | undefined
+  let nearestKm = NEAREST_TOWN_KM
+  for (const locality of localities) {
+    if (locality.parentId !== null) continue
+    const km = distanceKm(point, locality)
+    if (km < nearestKm) {
+      nearest = locality
+      nearestKm = km
+    }
+  }
+  return nearest
+}
+
 /**
  * The catalog locality an address lies in, when it says more than the chosen
- * one: its Prague district („Praha 8“) or its town („Brno“). Undefined for a
- * town the catalog doesn't have (Kolín), and for an address that only knows
- * „Praha“ while a Prague district is chosen – a district isn't swapped for its city.
+ * one: its Prague district („Praha 8“) or its town („Brno“). A village the
+ * catalog doesn't have (Dolní Dobrouč) gets the nearest town within 20 km.
+ * Undefined for an address that only knows „Praha“ while a Prague district is
+ * chosen – a district isn't swapped for its city.
+ * A town's part is no town: Zábřeh in Ostrava is Ostrava, not the town Zábřeh.
  */
 export const localityOfAddress = (
-  { district, city }: Pick<AddressSuggestion, "district" | "city">,
+  {
+    district,
+    city,
+    lat,
+    lng,
+  }: Pick<AddressSuggestion, "district" | "city"> & Partial<Pick<AddressSuggestion, "lat" | "lng">>,
   localities: Locality[],
   chosenId: string,
 ): Locality | undefined => {
+  const point = lat !== undefined && lng !== undefined ? { lat, lng } : undefined
+  // a town of the same name far away is another place (Planá u Tachova is not
+  // Planá u Českých Budějovic); 25 km still covers the edge of Praha
+  const isNear = (locality: Locality) => !point || distanceKm(point, locality) <= SAME_TOWN_KM
   const found =
-    localities.find((l) => l.name === district) ??
-    localities.find((l) => l.parentId === null && l.name === city)
+    localities.find((l) => l.parentId !== null && l.name === district) ??
+    // without a city, OpenStreetMap's district is the town
+    localities.find((l) => l.parentId === null && l.name === (city ?? district) && isNear(l)) ??
+    (point ? nearestTown(point, localities) : undefined)
   const chosen = localities.find((l) => l.id === chosenId)
   if (!found || found.id === chosen?.id || chosen?.parentId === found.id) return undefined
   return found

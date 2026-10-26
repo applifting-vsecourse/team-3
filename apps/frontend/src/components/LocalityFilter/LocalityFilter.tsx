@@ -12,6 +12,7 @@ import {
 } from "@/components/ui/command"
 import type { Locality } from "@/lib/catalog/catalogSchemas"
 import { DEFAULT_LOCALITY_SLUG, localityOptions } from "@/lib/catalog/localityOptions"
+import { foldText } from "@/lib/catalog/textSearch"
 import { cn } from "@/lib/utils"
 
 type LocalityFilterProps = {
@@ -84,12 +85,11 @@ export function LocalityFilter({
         label="Hledat lokalitu"
         // Figma: Input/Search – a bordered field rather than cmdk's underline
         className="gap-2 **:data-[slot=command-input-wrapper]:h-10 **:data-[slot=command-input-wrapper]:rounded-md **:data-[slot=command-input-wrapper]:border **:data-[slot=command-input-wrapper]:border-input"
-        // Slug or name, so "plzen" finds Plzeň.
+        // Slug or name, without diacritics, so "plzen" finds Plzeň and
+        // "usti nad orl" Ústí nad Orlicí.
         filter={(value, query, keywords) => {
-          const needle = query.toLocaleLowerCase("cs")
-          return [value, ...(keywords ?? [])].some((text) =>
-            text.toLocaleLowerCase("cs").includes(needle),
-          )
+          const needle = foldText(query)
+          return [value, ...(keywords ?? [])].some((text) => foldText(text).includes(needle))
             ? 1
             : 0
         }}

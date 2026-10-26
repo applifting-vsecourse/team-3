@@ -1,4 +1,5 @@
 import type { Activity, ActivityCategory } from "@/lib/catalog/catalogSchemas"
+import { foldText } from "@/lib/catalog/textSearch"
 
 /**
  * Selected activity types as slugs, the shape of ?kategorie= and ?aktivita=.
@@ -83,23 +84,17 @@ export function selectionLabel(
   return names.length === 1 ? names[0] : `${filterName} (${names.length})`
 }
 
-const fold = (text: string) =>
-  text
-    .normalize("NFD")
-    .replace(/\p{Diacritic}/gu, "")
-    .toLocaleLowerCase("cs")
-
 /** „Hledat aktivitu“: name or synonyms, ignoring case and diacritics („pinces“ finds stolní tenis). */
 export function searchActivities(
   categories: ActivityCategory[],
   query: string,
 ): { category: ActivityCategory; activity: Activity }[] {
-  const needle = fold(query.trim())
+  const needle = foldText(query)
   if (!needle) return []
   return categories.flatMap((category) =>
     category.activities
       .filter((activity) =>
-        [activity.name, ...activity.keywords].some((t) => fold(t).includes(needle)),
+        [activity.name, ...activity.keywords].some((t) => foldText(t).includes(needle)),
       )
       .map((activity) => ({ category, activity })),
   )
