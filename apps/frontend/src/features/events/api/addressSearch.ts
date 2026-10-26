@@ -116,6 +116,8 @@ export const toAddressSuggestions = (response: unknown): AddressSuggestion[] => 
 
 /** Up to this far, the nearest catalog town stands in for a village the catalog doesn't have. */
 const NEAREST_TOWN_KM = 20
+/** A catalog town of the address's name counts only this close to it. */
+const SAME_TOWN_KM = 25
 
 // equirectangular distance: plenty at the scale of Czechia
 const distanceKm = (a: LatLng, b: LatLng): number => {
@@ -157,11 +159,15 @@ export const localityOfAddress = (
   localities: Locality[],
   chosenId: string,
 ): Locality | undefined => {
+  const point = lat !== undefined && lng !== undefined ? { lat, lng } : undefined
+  // a town of the same name far away is another place (Planá u Tachova is not
+  // Planá u Českých Budějovic); 25 km still covers the edge of Praha
+  const isNear = (locality: Locality) => !point || distanceKm(point, locality) <= SAME_TOWN_KM
   const found =
     localities.find((l) => l.parentId !== null && l.name === district) ??
     // without a city, OpenStreetMap's district is the town
-    localities.find((l) => l.parentId === null && l.name === (city ?? district)) ??
-    (lat !== undefined && lng !== undefined ? nearestTown({ lat, lng }, localities) : undefined)
+    localities.find((l) => l.parentId === null && l.name === (city ?? district) && isNear(l)) ??
+    (point ? nearestTown(point, localities) : undefined)
   const chosen = localities.find((l) => l.id === chosenId)
   if (!found || found.id === chosen?.id || chosen?.parentId === found.id) return undefined
   return found
