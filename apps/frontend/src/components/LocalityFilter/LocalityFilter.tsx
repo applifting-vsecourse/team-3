@@ -112,7 +112,9 @@ function LocalitySearch({
 }) {
   const listRef = useRef<HTMLDivElement>(null)
   const options = useMemo(() => localityOptions(localities), [localities])
-  useScrollToPicked(listRef)
+  // cmdk filters by itself; the query is kept only to scroll the list back up
+  const [query, setQuery] = useState("")
+  useScrollToPicked(listRef, query)
 
   const row = (slug: string, name: string, { isDistrict = false, keywords = [name] } = {}) => {
     const isPicked = slug === draft
@@ -163,16 +165,17 @@ function LocalitySearch({
         // with the focus ring of the other fields (it has the focus on opening), not clipped
         className="gap-2 overflow-visible **:data-[slot=command-input-wrapper]:h-11 **:data-[slot=command-input-wrapper]:rounded-md **:data-[slot=command-input-wrapper]:border **:data-[slot=command-input-wrapper]:border-input **:data-[slot=command-input-wrapper]:focus-within:border-ring **:data-[slot=command-input-wrapper]:focus-within:ring-[3px] **:data-[slot=command-input-wrapper]:focus-within:ring-ring/50"
         // Slug or name, without diacritics, so "plzen" finds Plzeň and
-        // "usti nad orl" Ústí nad Orlicí.
-        filter={(value, query, keywords) => {
-          const needle = foldText(query)
-          return [value, ...(keywords ?? [])].some((text) => foldText(text).includes(needle))
-            ? 1
-            : 0
+        // "usti nad orl" Ústí nad Orlicí. Celé Česko after the towns: „Česk“
+        // is on its way to Česká Lípa, and Enter picks the first row.
+        filter={(value, search, keywords) => {
+          const needle = foldText(search)
+          if (![value, ...(keywords ?? [])].some((text) => foldText(text).includes(needle))) return 0
+          return value === ALL_LOCALITIES_SLUG ? 0.5 : 1
         }}
       >
         <CommandInput
           ref={inputRef}
+          onValueChange={setQuery}
           placeholder="Např. Praha 8 nebo Brno"
           // 16 px on phones, or iOS zooms in on the field
           className="text-base md:text-sm"

@@ -19,6 +19,7 @@ const localities = [
   locality("praha-8", "Praha 8", "l-praha"),
   locality("brno", "Brno"),
   locality("bruntal", "Bruntál"),
+  locality("ceska-lipa", "Česká Lípa"),
 ]
 
 const renderFilter = (value: string | undefined) => {
@@ -126,5 +127,30 @@ describe("LocalityFilter", () => {
     await userEvent.keyboard("{Enter}")
     await userEvent.click(within(panel).getByRole("button", { name: "Zobrazit akce" }))
     expect(onChange).toHaveBeenCalledWith("bruntal")
+  })
+
+  it("typing goes back to the top of the list, where the row Enter picks is", async () => {
+    renderFilter("bruntal")
+    const panel = await openPanel("Lokalita: Bruntál")
+    // where opening scrolled the list to: the picked town, far down the alphabet
+    const list = within(panel).getByRole("listbox")
+    list.scrollTop = 800
+
+    await userEvent.keyboard("b")
+    expect(list.scrollTop).toBe(0)
+  })
+
+  it("a town comes before Celé Česko: „česk“ is on its way to Česká Lípa", async () => {
+    const { onChange } = renderFilter(undefined)
+    const panel = await openPanel("Lokalita: Praha")
+
+    await userEvent.keyboard("česk")
+    expect(within(panel).getAllByRole("option").map((option) => option.textContent)).toEqual([
+      "Česká Lípa",
+      "Celé Česko",
+    ])
+    await userEvent.keyboard("{Enter}")
+    await userEvent.click(within(panel).getByRole("button", { name: "Zobrazit akce" }))
+    expect(onChange).toHaveBeenCalledWith("ceska-lipa")
   })
 })

@@ -114,6 +114,18 @@ describe("ActivityCombobox", () => {
     expect(optionNames()).toEqual(names)
   })
 
+  it("typing goes back to the top of the list, where the row Enter picks is", async () => {
+    render(<Field initialValue="a-jina-hra" />)
+
+    await userEvent.click(field())
+    // where opening scrolled the list to: the picked activity, at its end
+    const list = screen.getByRole("listbox")
+    list.scrollTop = 800
+    await userEvent.type(searchField(), "h")
+
+    expect(list.scrollTop).toBe(0)
+  })
+
   it("Enter picks the highlighted match; the field shows it with its category", async () => {
     const onChange = vi.fn()
     render(<Field onChange={onChange} />)

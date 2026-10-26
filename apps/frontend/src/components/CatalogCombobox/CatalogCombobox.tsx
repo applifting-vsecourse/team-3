@@ -245,7 +245,7 @@ function CatalogSearch({
     [groups, query, value],
   )
 
-  useScrollToPicked(listRef)
+  useScrollToPicked(listRef, query)
 
   const renderItem = (item: CatalogComboboxItem & { matchedKeyword?: string }) => {
     const isPicked = item.id === value
