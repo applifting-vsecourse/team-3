@@ -1,4 +1,11 @@
-import { useLayoutEffect, useMemo, useRef, useState, type ComponentProps } from "react"
+import {
+  useLayoutEffect,
+  useMemo,
+  useRef,
+  useState,
+  type ComponentProps,
+  type ReactNode,
+} from "react"
 import { Check, ChevronDown } from "lucide-react"
 
 import { Button } from "@/components/ui/button"
@@ -48,6 +55,8 @@ export type CatalogComboboxProps = Omit<
   emptyMessage: string
   /** Offered under `emptyMessage`, e.g. the „Jiné…“ activities. */
   fallback?: CatalogComboboxItem[]
+  /** More choices for the typed text under the catalog's, e.g. places from an online search. */
+  renderMore?: (query: string, pick: (id: string) => void) => ReactNode
 }
 
 type SearchedItem = CatalogComboboxItem & { terms: string[] }
@@ -114,6 +123,7 @@ export function CatalogCombobox({
   listLabel,
   emptyMessage,
   fallback,
+  renderMore,
   className,
   ...buttonProps
 }: CatalogComboboxProps) {
@@ -191,6 +201,7 @@ export function CatalogCombobox({
           listLabel={listLabel}
           emptyMessage={emptyMessage}
           fallback={fallback}
+          renderMore={renderMore}
           onPick={(id) => {
             onChange(id)
             setIsOpen(false)
@@ -211,6 +222,7 @@ function CatalogSearch({
   listLabel,
   emptyMessage,
   fallback = [],
+  renderMore,
   onPick,
 }: {
   groups: SearchedGroup[]
@@ -221,6 +233,7 @@ function CatalogSearch({
   listLabel: string
   emptyMessage: string
   fallback?: CatalogComboboxItem[]
+  renderMore?: CatalogComboboxProps["renderMore"]
   onPick: (id: string) => void
 }) {
   const [query, setQuery] = useState(initialQuery)
@@ -308,6 +321,7 @@ function CatalogSearch({
             </CommandGroup>
           ))
         )}
+        {renderMore?.(query, onPick)}
       </CommandList>
       {hiddenCount > 0 ? (
         <p className="border-t border-border px-3 py-2 text-xs text-muted-foreground">

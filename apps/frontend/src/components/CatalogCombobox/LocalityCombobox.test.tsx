@@ -1,7 +1,8 @@
 import { useState } from "react"
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query"
 import { render, screen } from "@testing-library/react"
 import userEvent from "@testing-library/user-event"
-import { describe, expect, it, vi } from "vitest"
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest"
 
 import { LocalityCombobox } from "@/components/CatalogCombobox/LocalityCombobox"
 import type { Locality } from "@/lib/catalog/catalogSchemas"
@@ -41,8 +42,11 @@ function Field({
   catalog?: Locality[]
 }) {
   const [value, setValue] = useState(initialValue)
+  const [queryClient] = useState(
+    () => new QueryClient({ defaultOptions: { queries: { retry: false } } }),
+  )
   return (
-    <>
+    <QueryClientProvider client={queryClient}>
       <label htmlFor="lokalita">Lokalita *</label>
       <LocalityCombobox
         id="lokalita"
@@ -54,9 +58,55 @@ function Field({
         }}
         disabled={isDisabled}
       />
-    </>
+    </QueryClientProvider>
   )
 }
+
+/** OpenStreetMap (Photon) answering with these places, and the API saving a picked one. */
+const answerPlaces = (...features: object[]) => {
+  const fetchMock = vi.fn((input: RequestInfo | URL, init?: RequestInit) => {
+    const request = input instanceof Request ? input : new Request(String(input), init)
+    if (request.url.includes("photon.komoot.io")) {
+      return Promise.resolve(Response.json({ type: "FeatureCollection", features }))
+    }
+    // POST /localities: the place becomes a locality
+    return request
+      .json()
+      .then((place: { name: string; lat: number; lng: number }) =>
+        Response.json(
+          {
+            id: "l-privrat",
+            slug: "privrat",
+            name: place.name,
+            parentId: null,
+            lat: place.lat,
+            lng: place.lng,
+          },
+          { status: 201 },
+        ),
+      )
+  })
+  vi.stubGlobal("fetch", fetchMock)
+  return fetchMock
+}
+
+const privrat = {
+  type: "Feature",
+  geometry: { type: "Point", coordinates: [16.397, 49.9246] },
+  properties: {
+    name: "Přívrat",
+    osm_key: "place",
+    osm_value: "municipality",
+    county: "okres Ústí nad Orlicí",
+  },
+}
+
+beforeEach(() => {
+  answerPlaces()
+})
+afterEach(() => {
+  vi.unstubAllGlobals()
+})
 
 const field = () => screen.getByRole("combobox", { name: "Lokalita *" })
 const searchField = () => screen.getByRole("combobox", { name: "Hledat lokalitu" })
@@ -70,7 +120,7 @@ describe("LocalityCombobox", () => {
     await userEvent.click(field())
 
     expect(searchField()).toHaveFocus()
-    expect(searchField()).toHaveAttribute("placeholder", "Hledej město…")
+    expect(searchField()).toHaveAttribute("placeholder", "Hledej město nebo obec…")
     expect(screen.getByRole("listbox", { name: "Lokality" })).toBeInTheDocument()
     expect(optionNames()).toEqual([
       "Praha",
@@ -226,7 +276,7 @@ describe("LocalityCombobox", () => {
 
     expect(optionNames()).toEqual([])
     expect(screen.getByRole("status")).toHaveTextContent(
-      "Takové město v katalogu nemáme. Vyber nejbližší.",
+      "V našem seznamu není. Vyber obec z mapových podkladů níž.",
     )
   })
 
@@ -236,5 +286,25 @@ describe("LocalityCombobox", () => {
     expect(field()).toBeDisabled()
     await userEvent.click(field())
     expect(screen.queryByRole("listbox")).not.toBeInTheDocument()
+  })
+
+  it("a village the catalog doesn't have („přívrat“) is found online, saved and picked", async () => {
+    const fetchMock = answerPlaces(privrat)
+    const onChange = vi.fn()
+    render(<Field onChange={onChange} />)
+
+    await userEvent.click(field())
+    await userEvent.type(searchField(), "privrat")
+    const option = await screen.findByRole("option", { name: /Přívrat/ })
+    expect(option).toHaveTextContent("okres Ústí nad Orlicí")
+    expect(screen.getByText("Obce a místa (OpenStreetMap)")).toBeInTheDocument()
+
+    await userEvent.click(option)
+
+    await vi.waitFor(() => expect(onChange).toHaveBeenCalledWith("l-privrat"))
+    const saved = fetchMock.mock.calls
+      .map(([input, init]) => (input instanceof Request ? input : new Request(String(input), init)))
+      .find((request) => request.method === "POST")
+    expect(saved?.url).toMatch(/\/localities$/)
   })
 })
