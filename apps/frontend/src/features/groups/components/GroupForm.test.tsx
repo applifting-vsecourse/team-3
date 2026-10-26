@@ -1,6 +1,7 @@
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query"
 import { render, screen } from "@testing-library/react"
 import userEvent from "@testing-library/user-event"
-import { describe, expect, it, vi } from "vitest"
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest"
 
 import type { Catalog } from "@/lib/catalog/catalogSearch"
 
@@ -34,16 +35,32 @@ const existing: GroupInput = {
 const renderForm = (props: Partial<Parameters<typeof GroupForm>[0]> = {}) => {
   const onSubmit = vi.fn()
   render(
-    <GroupForm
-      catalog={catalog}
-      submitLabel="Založit skupinu"
-      isSubmitting={false}
-      onSubmit={onSubmit}
-      {...props}
-    />,
+    // Lokalita also searches places online (OpenStreetMap)
+    <QueryClientProvider
+      client={new QueryClient({ defaultOptions: { queries: { retry: false } } })}
+    >
+      <GroupForm
+        catalog={catalog}
+        submitLabel="Založit skupinu"
+        isSubmitting={false}
+        onSubmit={onSubmit}
+        {...props}
+      />
+    </QueryClientProvider>,
   )
   return { onSubmit }
 }
+
+beforeEach(() => {
+  // no test talks to the real place search
+  vi.stubGlobal(
+    "fetch",
+    vi.fn(() => Promise.resolve(Response.json({ type: "FeatureCollection", features: [] }))),
+  )
+})
+afterEach(() => {
+  vi.unstubAllGlobals()
+})
 
 describe("GroupForm", () => {
   it("an untouched form can be sent and says what is missing", async () => {

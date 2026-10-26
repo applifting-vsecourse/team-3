@@ -46,4 +46,55 @@ export class CatalogService {
         collator.compare(a.name, b.name),
     );
   }
+
+  /**
+   * A place from the online search as a locality: the one of that name within
+   * 10 km if the catalog has it, or a new one. A second place of the same name
+   * elsewhere gets its district in the name and the slug: „Lhota (Kladno)“.
+   */
+  async addPlace(place: {
+    name: string;
+    county?: string;
+    lat: number;
+    lng: number;
+  }): Promise<Locality> {
+    const name = place.name.trim();
+    const county = place.county?.replace(/^okres\s+/i, '').trim();
+    const named = await this.catalogRepository.findLocalitiesNamed(name);
+    const same = named.find(
+      (locality) =>
+        (locality.name === name ||
+          (county !== undefined && locality.name === `${name} (${county})`)) &&
+        distanceKm(locality, place) <= SAME_PLACE_KM,
+    );
+    if (same) return same;
+    const isNameTaken = named.some((locality) => locality.name === name);
+    const fullName = isNameTaken && county ? `${name} (${county})` : name;
+    const base = toSlug(fullName) || 'misto';
+    let slug = base;
+    for (let n = 2; await this.catalogRepository.isSlugTaken(slug); n++) {
+      slug = `${base}-${n}`;
+    }
+    return this.catalogRepository.createLocality({
+      slug,
+      name: fullName,
+      parentId: null,
+      lat: place.lat,
+      lng: place.lng,
+    });
+  }
 }
+
+/** Two places of the same name this close are one place. */
+const SAME_PLACE_KM = 10;
+
+// equirectangular distance: plenty at the scale of Czechia
+const distanceKm = (
+  a: { lat: number; lng: number },
+  b: { lat: number; lng: number },
+): number => {
+  const toRad = Math.PI / 180;
+  const x = (b.lng - a.lng) * toRad * Math.cos(((a.lat + b.lat) / 2) * toRad);
+  const y = (b.lat - a.lat) * toRad;
+  return Math.hypot(x, y) * 6371;
+};

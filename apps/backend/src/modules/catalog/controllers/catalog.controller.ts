@@ -1,13 +1,23 @@
 import { CatalogService } from '@/modules/catalog/services/catalog.service';
+import { AuthenticatedUserGuard } from '@/shared/auth/guards/authenticated-user.guard';
 import {
+  Body,
   Controller,
   Get,
+  Post,
   Query,
+  UseGuards,
   UsePipes,
   ValidationPipe,
 } from '@nestjs/common';
-import { ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger';
+import {
+  ApiCookieAuth,
+  ApiOperation,
+  ApiResponse,
+  ApiTags,
+} from '@nestjs/swagger';
 import { ActivityCategoryResponseDto } from './dto/activity-category.response.dto';
+import { CreateLocalityDto } from './dto/create-locality.dto';
 import { LocalityResponseDto } from './dto/locality.response.dto';
 import { SearchLocalitiesQueryDto } from './dto/search-localities.query.dto';
 
@@ -40,5 +50,25 @@ export class CatalogController {
   ): Promise<LocalityResponseDto[]> {
     const localities = await this.catalogService.searchLocalities(query.query);
     return localities.map(LocalityResponseDto.fromDomain);
+  }
+
+  @Post('localities')
+  @UseGuards(AuthenticatedUserGuard)
+  @ApiCookieAuth()
+  @ApiOperation({
+    summary:
+      'A place picked from the online search (OpenStreetMap) as a locality: the existing one of that name nearby, or a new one',
+  })
+  @ApiResponse({ status: 201, type: LocalityResponseDto })
+  @ApiResponse({
+    status: 400,
+    description: 'Invalid name or a place outside Czechia',
+  })
+  @ApiResponse({ status: 401, description: 'Not signed in' })
+  async addLocality(
+    @Body() body: CreateLocalityDto,
+  ): Promise<LocalityResponseDto> {
+    const locality = await this.catalogService.addPlace(body);
+    return LocalityResponseDto.fromDomain(locality);
   }
 }
