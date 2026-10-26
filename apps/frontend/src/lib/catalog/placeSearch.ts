@@ -80,6 +80,8 @@ const searchPlaces = async (text: string, signal: AbortSignal): Promise<OnlinePl
   url.searchParams.set("limit", "15")
   url.searchParams.set("bbox", CZECHIA_BBOX)
   url.searchParams.set("osm_tag", "place")
+  // foreign hits would take the slots before toOnlinePlaces drops them
+  url.searchParams.set("countrycode", "CZ")
   const controller = new AbortController()
   const timeout = setTimeout(() => controller.abort(), TIMEOUT_MS)
   const abort = () => controller.abort()

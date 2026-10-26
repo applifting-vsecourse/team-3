@@ -330,4 +330,17 @@ describe("LocalityCombobox", () => {
     )
     expect(screen.queryByRole("option", { name: /Prívrat/ })).not.toBeInTheDocument()
   })
+
+  it("asks OpenStreetMap only for places in Czechia", async () => {
+    const fetchMock = answerPlaces(privrat)
+    render(<Field />)
+
+    await userEvent.click(field())
+    await userEvent.type(searchField(), "privrat")
+    await screen.findByRole("option", { name: /Přívrat/ })
+
+    const [input, init] = fetchMock.mock.calls[0] ?? []
+    const request = input instanceof Request ? input : new Request(String(input), init)
+    expect(new URL(request.url).searchParams.get("countrycode")).toBe("CZ")
+  })
 })
