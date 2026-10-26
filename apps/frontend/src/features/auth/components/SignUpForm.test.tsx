@@ -1,10 +1,31 @@
-import { fireEvent, screen } from "@testing-library/react"
+import { fireEvent, screen, waitFor } from "@testing-library/react"
 import userEvent from "@testing-library/user-event"
-import { describe, expect, it, vi } from "vitest"
+import { beforeEach, describe, expect, it, vi } from "vitest"
 
 import { renderWithRouter } from "@/test/renderWithRouter"
 
 import { SignUpForm } from "@/features/auth/components/SignUpForm"
+import type { PasswordCheck } from "@/features/auth/lib/password"
+
+// The strength estimator stands in for the real one (its own tests use the
+// dictionaries): here it is about what the form shows, and when.
+const estimator = vi.hoisted(() => ({
+  checkPassword: vi.fn<(password: string, userInputs: string[]) => PasswordCheck>(),
+  load: vi.fn<() => void>(),
+}))
+vi.mock("@/features/auth/lib/load-password-checker", () => ({
+  loadPasswordChecker: () => {
+    estimator.load()
+    return Promise.resolve({ checkPassword: estimator.checkPassword })
+  },
+  preloadPasswordChecker: () => estimator.load(),
+}))
+
+beforeEach(() => {
+  estimator.checkPassword.mockReset()
+  estimator.checkPassword.mockReturnValue({ score: 4, warning: null, suggestions: [] })
+  estimator.load.mockClear()
+})
 
 // the consents' labels carry a link (#153), which needs a router
 const renderForm = async () => {
@@ -148,21 +169,90 @@ describe("SignUpForm (B-010, #153)", () => {
     expect(onSubmit).not.toHaveBeenCalled()
   })
 
-  it("says how strong the password is while it's typed, in words a screen reader hears", async () => {
-    await renderForm()
-    const status = screen.getByRole("status")
-    expect(status).toHaveAttribute("aria-live", "polite")
-    expect(status).toBeEmptyDOMElement()
+  describe("password strength (#153)", () => {
+    it("says what the password lacks for the rule after a pause in typing, in words a screen reader hears", async () => {
+      await renderForm()
+      const status = screen.getByRole("status")
+      expect(status).toHaveAttribute("aria-live", "polite")
+      expect(status).toBeEmptyDOMElement()
 
-    const password = screen.getByLabelText("Heslo")
-    await userEvent.type(password, "hobbyhub")
-    expect(status).toHaveTextContent("Síla hesla: slabé")
+      await userEvent.type(screen.getByLabelText("Heslo"), "heslo")
+      // not at every key: a screen reader would hear each one
+      expect(status).toBeEmptyDOMElement()
 
-    await userEvent.type(password, "26")
-    expect(status).toHaveTextContent("Síla hesla: dobré")
+      await waitFor(() =>
+        expect(status).toHaveTextContent("Síla hesla: slabé. Ještě 5 znaků. Přidej číslici."),
+      )
+      // the rule is checked without the estimator
+      expect(estimator.checkPassword).not.toHaveBeenCalled()
+    })
 
-    await userEvent.type(password, "-Pankrác")
-    expect(status).toHaveTextContent("Síla hesla: silné")
+    it("once the rule is met, the level is the estimator's, with advice while it isn't strong", async () => {
+      await renderForm()
+      const status = screen.getByRole("status")
+      const password = screen.getByLabelText("Heslo")
+
+      estimator.checkPassword.mockReturnValue({
+        score: 1,
+        warning: "Tohle je běžné heslo.",
+        suggestions: ["Přidej další, méně běžné slovo.", "Vynech řady jako „abc“ nebo „123“."],
+      })
+      await userEvent.type(password, "heslo12345")
+      await waitFor(() =>
+        expect(status).toHaveTextContent(
+          "Síla hesla: slabé. Tohle je běžné heslo. Přidej další, méně běžné slovo.",
+        ),
+      )
+
+      estimator.checkPassword.mockReturnValue({ score: 3, warning: null, suggestions: [] })
+      await userEvent.type(password, "kolo")
+      await waitFor(() =>
+        expect(status).toHaveTextContent("Síla hesla: dobré. Silnější bude s dalším slovem."),
+      )
+
+      estimator.checkPassword.mockReturnValue({ score: 4, warning: null, suggestions: [] })
+      await userEvent.type(password, " jede po silnici")
+      await waitFor(() => expect(status).toHaveTextContent(/^Síla hesla: silné\.$/))
+    })
+
+    it("knows the name and the e-mail, so a password made of them is weak", async () => {
+      await renderForm()
+
+      await userEvent.type(screen.getByLabelText("Jméno"), "Jana Nováková")
+      await userEvent.type(screen.getByLabelText("E-mail"), "jana.novakova@example.com")
+      await userEvent.type(screen.getByLabelText("Heslo"), "novakova2026")
+
+      await waitFor(() =>
+        expect(estimator.checkPassword).toHaveBeenCalledWith(
+          "novakova2026",
+          expect.arrayContaining(["jana", "nováková", "novakova", "jana.novakova", "hobbyhub"]),
+        ),
+      )
+    })
+
+    it("starts loading the estimator when the field gets focus", async () => {
+      await renderForm()
+      expect(estimator.load).not.toHaveBeenCalled()
+
+      await userEvent.click(screen.getByLabelText("Heslo"))
+
+      expect(estimator.load).toHaveBeenCalled()
+    })
+
+    it("goes away at once when the password is deleted", async () => {
+      await renderForm()
+      const status = screen.getByRole("status")
+      const password = screen.getByLabelText("Heslo")
+
+      await userEvent.type(password, "heslo")
+      await waitFor(() => expect(status).toHaveTextContent("Síla hesla: slabé."))
+
+      await userEvent.clear(password)
+      expect(status).toBeEmptyDOMElement()
+      // and doesn't come back with the next password's first character
+      await userEvent.type(password, "x")
+      expect(status).toBeEmptyDOMElement()
+    })
   })
 
   it("sends the name, the e-mail, the password and the consents, not the repeated password", async () => {

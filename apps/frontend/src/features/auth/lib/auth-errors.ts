@@ -16,6 +16,9 @@ const MESSAGES: Record<string, string> = {
     "Účet s tímto e-mailem už existuje. Přihlas se, nebo si obnov heslo.",
   // our own check (B-010), the API says why in Czech already
   WEAK_PASSWORD: "Heslo musí mít aspoň 10 znaků a obsahovat písmeno i číslici.",
+  // the password is among leaked ones (Have I Been Pwned): sign-up, change and reset (#153)
+  PASSWORD_COMPROMISED:
+    "Tohle heslo se objevilo mezi uniklými hesly z jiných webů a útočníci ho zkoušejí jako první. Zvol prosím jiné.",
   // ours too (#153)
   CONSENT_REQUIRED:
     "K registraci je potřeba souhlas s podmínkami užívání a potvrzení, že bereš na vědomí zpracování osobních údajů.",

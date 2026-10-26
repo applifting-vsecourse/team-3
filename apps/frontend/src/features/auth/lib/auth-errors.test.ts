@@ -27,6 +27,21 @@ describe("authErrorMessage", () => {
     )
   })
 
+  it("a leaked password says why it can't be used (#153)", () => {
+    expect(
+      authErrorMessage(
+        {
+          code: "PASSWORD_COMPROMISED",
+          status: 400,
+          message: "The password you entered has been compromised.",
+        },
+        "x",
+      ),
+    ).toBe(
+      "Tohle heslo se objevilo mezi uniklými hesly z jiných webů a útočníci ho zkoušejí jako první. Zvol prosím jiné.",
+    )
+  })
+
   it("a name the API refuses says which character doesn't belong (#153)", () => {
     expect(
       authErrorMessage(

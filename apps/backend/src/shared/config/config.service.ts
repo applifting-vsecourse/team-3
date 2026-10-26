@@ -2,6 +2,7 @@ import { Env } from '@applifting-io/nestjs-decorated-config';
 import { Injectable } from '@nestjs/common';
 import {
   IsBoolean,
+  IsIn,
   IsNotEmpty,
   IsOptional,
   IsSemVer,
@@ -106,4 +107,13 @@ export class Config {
   @Env('GOOGLE_CLIENT_SECRET')
   @IsOptional()
   readonly googleClientSecret?: string;
+
+  // Refusing passwords from data breaches (#153, Have I Been Pwned): "true" or
+  // "false"; unset or empty = on in production, off elsewhere
+  // (breached-passwords.ts). A string, not a boolean: @Env turns a missing
+  // boolean into false, which would switch it off in production too.
+  @Env('PWNED_PASSWORDS_CHECK', { expose: true })
+  @IsOptional()
+  @IsIn(['', 'true', 'false'])
+  readonly pwnedPasswordsCheck?: string;
 }
