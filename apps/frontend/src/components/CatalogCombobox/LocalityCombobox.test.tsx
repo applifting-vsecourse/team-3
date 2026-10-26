@@ -70,21 +70,19 @@ const answerPlaces = (...features: object[]) => {
       return Promise.resolve(Response.json({ type: "FeatureCollection", features }))
     }
     // POST /localities: the place becomes a locality
-    return request
-      .json()
-      .then((place: { name: string; lat: number; lng: number }) =>
-        Response.json(
-          {
-            id: "l-privrat",
-            slug: "privrat",
-            name: place.name,
-            parentId: null,
-            lat: place.lat,
-            lng: place.lng,
-          },
-          { status: 201 },
-        ),
-      )
+    return request.json().then((place: { name: string; lat: number; lng: number }) =>
+      Response.json(
+        {
+          id: "l-privrat",
+          slug: "privrat",
+          name: place.name,
+          parentId: null,
+          lat: place.lat,
+          lng: place.lng,
+        },
+        { status: 201 },
+      ),
+    )
   })
   vi.stubGlobal("fetch", fetchMock)
   return fetchMock
