@@ -686,7 +686,7 @@ export const communityUsers: CommunityUser[] = [
   person(
     'Věra Šmídová',
     'teplice',
-    ['jiny-pohyb', 'turistika', 'ctenarsky-klub'],
+    ['nordic-walking', 'turistika', 'ctenarsky-klub'],
     'Nordic walking jsem začala chodit po operaci kolene. Zámecká zahrada je na to ideální.',
   ),
   person(
@@ -2241,7 +2241,7 @@ export const communityEventPlans: CommunityEventPlan[] = [
     title: 'Nordic walking v Zámecké zahradě',
     description:
       'Naučím vás správnou techniku chůze s holemi a projdeme zahradu i park. Pro seniory a lidi po zranění. Zdarma, hole dvě půjčím.',
-    activitySlug: 'jiny-pohyb',
+    activitySlug: 'nordic-walking',
     localitySlug: 'teplice',
     address: 'Zámecká zahrada, Teplice',
     days: 4,
