@@ -128,6 +128,9 @@ export function SignUpForm({ isLoading, errorMessage, onSubmit }: SignUpFormProp
         <FormField
           control={form.control}
           name="password"
+          // once the form has been sent, a changed password checks the repeated one
+          // again, so „Hesla se neshodují“ goes away when they match
+          rules={{ deps: "passwordConfirmation" }}
           render={({ field }) => (
             <FormItem>
               <FormLabel>Heslo</FormLabel>
@@ -212,6 +215,8 @@ function ConsentField({ control, name, children }: ConsentFieldProps) {
             <Checkbox
               ref={field.ref}
               name={field.name}
+              // a screen reader says the consent is required (aria-required)
+              required
               checked={field.value}
               onCheckedChange={(checked) => field.onChange(checked === true)}
               onBlur={field.onBlur}

@@ -53,6 +53,9 @@ describe("SignUpForm (B-010, #153)", () => {
     expect(screen.getByLabelText("Heslo znovu")).toHaveAttribute("type", "password")
     expect(terms()).not.toBeChecked()
     expect(privacy()).not.toBeChecked()
+    // a screen reader says both are required
+    expect(terms()).toBeRequired()
+    expect(privacy()).toBeRequired()
   })
 
   it("links the consents to their pages, opening in a new tab", async () => {
@@ -98,6 +101,20 @@ describe("SignUpForm (B-010, #153)", () => {
 
     expect(await screen.findByText("Hesla se neshodují")).toBeInTheDocument()
     expect(onSubmit).not.toHaveBeenCalled()
+  })
+
+  it("„Hesla se neshodují“ goes away once the first password is changed to match", async () => {
+    await renderForm()
+
+    await fill({ password: "hobbyhub2026", repeated: "hobbyhub2027" })
+    await submit()
+    expect(await screen.findByText("Hesla se neshodují")).toBeInTheDocument()
+
+    const password = screen.getByLabelText("Heslo")
+    await userEvent.clear(password)
+    await userEvent.type(password, "hobbyhub2027")
+
+    expect(screen.queryByText("Hesla se neshodují")).not.toBeInTheDocument()
   })
 
   it("doesn't send without both consents, saying what's missing", async () => {
