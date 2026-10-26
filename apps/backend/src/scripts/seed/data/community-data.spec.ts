@@ -286,6 +286,20 @@ describe('community data', () => {
     },
   );
 
+  it.each(seedMoments)(
+    'keeps Prague board games more than 8 days after a seed at %s, so L1 stays the first card under Deskové hry (#47 demo)',
+    (now) => {
+      for (const event of communityEvents) {
+        if (!isPrague(event.localitySlug)) continue;
+        if (event.activitySlug !== 'deskove-hry') continue;
+        const row = toEventRow(event, now);
+        expect(
+          `${event.key} ${row.startsAt.getTime() - now.getTime() > 8 * DAY_IN_MS}`,
+        ).toBe(`${event.key} true`);
+      }
+    },
+  );
+
   it('converts to database rows', () => {
     const now = new Date('2026-10-26T12:00:00+01:00');
     for (const group of communityGroups) {

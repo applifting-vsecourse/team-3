@@ -803,7 +803,9 @@ export const communityEventPlans: CommunityEventPlan[] = [
     activitySlug: 'deskove-hry',
     localitySlug: 'praha-7',
     address: 'Vnitroblock, Tusarova 31, Praha 7',
-    days: 2,
+    // after L1 („Deskovky v Holešovicích – menší stůl“): the demo opens the
+    // first card under Hry › Deskové hry in Praha
+    days: 9,
     time: '18:30',
     durationMinutes: 180,
     min: 3,
