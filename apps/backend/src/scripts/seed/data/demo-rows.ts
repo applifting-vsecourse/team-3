@@ -1,9 +1,4 @@
-import {
-  DemoEvent,
-  DemoGroup,
-  resolveEndsAt,
-  resolveStartsAt,
-} from './demo-data';
+import { DemoEvent, DemoGroup, resolveStartsAt } from './demo-data';
 
 const MINUTE_IN_MS = 60 * 1000;
 const DAY_IN_MS = 24 * 60 * MINUTE_IN_MS;
@@ -13,6 +8,19 @@ const DAY_IN_MS = 24 * 60 * MINUTE_IN_MS;
  * aby šla otestovat a aby seed jen vkládal hotové hodnoty. Odkazy na aktivitu,
  * lokalitu a uživatele zůstávají jako slug / název / klíč, na id je převede seed.
  */
+
+/**
+ * Skupina nebo akce z demo-data.ts nebo z community-data.ts. Komunitní data
+ * leží i v ostatních městech katalogu (czech-towns.ts), proto je lokalita
+ * obecný slug, ne jen jedna z `demoLocalities`.
+ */
+export type GroupSource = Omit<DemoGroup, 'localitySlug'> & {
+  localitySlug: string;
+};
+export type EventSource = Omit<
+  DemoEvent,
+  'localitySlug' | 'scenario' | 'demoCase'
+> & { localitySlug: string };
 
 export type DemoGroupRow = {
   key: string;
@@ -61,7 +69,7 @@ export type DemoEventRow = {
   }[];
 };
 
-export const toGroupRow = (group: DemoGroup, now: Date): DemoGroupRow => ({
+export const toGroupRow = (group: GroupSource, now: Date): DemoGroupRow => ({
   key: group.key,
   name: group.name,
   description: group.description,
@@ -81,15 +89,16 @@ export const toGroupRow = (group: DemoGroup, now: Date): DemoGroupRow => ({
   })),
 });
 
-export const toEventRow = (event: DemoEvent, now: Date): DemoEventRow => {
+export const toEventRow = (event: EventSource, now: Date): DemoEventRow => {
   const count = event.participations.length;
+  const startsAt = resolveStartsAt(event.schedule, now);
   return {
     key: event.key,
     title: event.title,
     description: event.description ?? null,
     activitySlug: event.activitySlug,
-    startsAt: resolveStartsAt(event.schedule, now),
-    endsAt: resolveEndsAt(event, now),
+    startsAt,
+    endsAt: new Date(startsAt.getTime() + event.durationMinutes * MINUTE_IN_MS),
     lat: event.lat,
     lng: event.lng,
     address: event.address,

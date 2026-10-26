@@ -168,7 +168,8 @@ export async function seedDemo(
   );
 }
 
-function lookup<T extends { id: string }>(
+/** Id podle slugu / klíče; neznámý klíč je chyba v datech nebo nenaseedovaný katalog. */
+export function lookup<T extends { id: string }>(
   rows: T[],
   keyOf: (row: T) => string,
   label: string,

@@ -4,13 +4,15 @@ import { Config } from '@/shared/config/config.service';
 import { mock } from 'jest-mock-extended';
 import { ensureUser } from './ensure-user';
 import { seedCatalog } from './seed-catalog';
+import { seedCommunity } from './seed-community';
 import { seedDatabase } from './seed-database';
 import { seedDemo } from './seed-demo';
 
-// Factories, so neither better-auth nor the demo data load under Jest.
+// Factories, so neither better-auth nor the demo and community data load under Jest.
 jest.mock('./ensure-user', () => ({ ensureUser: jest.fn() }));
 jest.mock('./seed-catalog', () => ({ seedCatalog: jest.fn() }));
 jest.mock('./seed-demo', () => ({ seedDemo: jest.fn() }));
+jest.mock('./seed-community', () => ({ seedCommunity: jest.fn() }));
 
 const config = {
   superadminEmail: 'admin@example.com',
@@ -35,6 +37,7 @@ describe('seedDatabase', () => {
 
     expect(seedCatalog).toHaveBeenCalled();
     expect(seedDemo).toHaveBeenCalledWith(prisma, auth);
+    expect(seedCommunity).toHaveBeenCalledWith(prisma, auth);
     expect(console.error).toHaveBeenCalledWith(
       expect.stringContaining('Superadmin could not be created'),
       expect.any(Error),
@@ -50,5 +53,19 @@ describe('seedDatabase', () => {
     await seedDatabase(prisma, config, auth);
 
     expect(seedDemo).not.toHaveBeenCalled();
+    expect(seedCommunity).not.toHaveBeenCalled();
+  });
+
+  it('adds the community after the demo data, not before', async () => {
+    jest
+      .mocked(ensureUser)
+      .mockResolvedValue({ user: {} as never, created: false });
+
+    await seedDatabase(prisma, config, auth);
+
+    // the demo seed only fills an empty database: the community must come second
+    expect(jest.mocked(seedDemo).mock.invocationCallOrder[0]).toBeLessThan(
+      jest.mocked(seedCommunity).mock.invocationCallOrder[0],
+    );
   });
 });
