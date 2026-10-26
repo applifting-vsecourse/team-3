@@ -1,9 +1,10 @@
-import { useState } from "react"
+import { useRef, useState } from "react"
 import { render, screen, within } from "@testing-library/react"
 import userEvent from "@testing-library/user-event"
 import { afterEach, describe, expect, it, vi } from "vitest"
 
 import { FilterPanel } from "@/components/FilterPanel/FilterPanel"
+import { DESKTOP_QUERY, FINE_POINTER_QUERY } from "@/hooks/useMediaQuery"
 
 const showAs = (isDesktop: boolean) =>
   vi.stubGlobal("matchMedia", (query: string) => ({
@@ -77,5 +78,90 @@ describe("FilterPanel", () => {
 
     expect(panel).toHaveClass("flex", "flex-col")
     expectButtonsUnderScrollingContent(panel)
+  })
+})
+
+/** A panel with a search field, like Lokalita and Typ aktivity. */
+function SearchFilter() {
+  const [isOpen, setIsOpen] = useState(false)
+  const searchRef = useRef<HTMLInputElement>(null)
+  return (
+    <FilterPanel
+      title="Lokalita"
+      isOpen={isOpen}
+      onOpenChange={setIsOpen}
+      trigger={<button type="button">Lokalita</button>}
+      resetLabel="Zrušit výběr"
+      onReset={vi.fn()}
+      applyLabel="Zobrazit 3 akce"
+      onApply={vi.fn()}
+      initialFocusRef={searchRef}
+    >
+      {/* the field is focused even when something else comes first */}
+      <button type="button">Nápověda</button>
+      <label htmlFor="hledat">Hledat lokalitu</label>
+      <input
+        id="hledat"
+        ref={searchRef}
+      />
+    </FilterPanel>
+  )
+}
+
+const showOn = ({ isDesktop, hasFinePointer }: { isDesktop: boolean; hasFinePointer: boolean }) =>
+  vi.stubGlobal("matchMedia", (query: string) => ({
+    matches:
+      query === DESKTOP_QUERY ? isDesktop : query === FINE_POINTER_QUERY ? hasFinePointer : false,
+    media: query,
+    addEventListener: vi.fn(),
+    removeEventListener: vi.fn(),
+  }))
+
+const openSearch = async () => {
+  render(<SearchFilter />)
+  await userEvent.click(screen.getByRole("button", { name: "Lokalita" }))
+  return screen.findByRole("dialog", { name: "Lokalita" })
+}
+
+describe("FilterPanel › focus on opening", () => {
+  afterEach(() => vi.unstubAllGlobals())
+
+  it("desktop: the search field has the focus, so typing goes there; Esc returns to the chip", async () => {
+    showOn({ isDesktop: true, hasFinePointer: true })
+    const panel = await openSearch()
+
+    expect(within(panel).getByLabelText("Hledat lokalitu")).toHaveFocus()
+    await userEvent.keyboard("Brno")
+    expect(within(panel).getByLabelText("Hledat lokalitu")).toHaveValue("Brno")
+
+    await userEvent.keyboard("{Escape}")
+    expect(screen.queryByRole("dialog", { name: "Lokalita" })).not.toBeInTheDocument()
+    expect(screen.getByRole("button", { name: "Lokalita" })).toHaveFocus()
+  })
+
+  it("desktop: Tab goes from the field to the panel's buttons", async () => {
+    showOn({ isDesktop: true, hasFinePointer: true })
+    const panel = await openSearch()
+
+    await userEvent.tab()
+    expect(within(panel).getByRole("button", { name: "Zrušit výběr" })).toHaveFocus()
+    await userEvent.tab()
+    expect(within(panel).getByRole("button", { name: "Zobrazit 3 akce" })).toHaveFocus()
+  })
+
+  it("a narrow window with a mouse: the bottom panel focuses the field too", async () => {
+    showOn({ isDesktop: false, hasFinePointer: true })
+    const panel = await openSearch()
+
+    expect(within(panel).getByLabelText("Hledat lokalitu")).toHaveFocus()
+  })
+
+  it("a phone: no keyboard pops up over the list, the focus starts in the panel at its title", async () => {
+    showOn({ isDesktop: false, hasFinePointer: false })
+    const panel = await openSearch()
+
+    expect(within(panel).getByLabelText("Hledat lokalitu")).not.toHaveFocus()
+    expect(within(panel).getByRole("heading", { name: "Lokalita" })).toHaveFocus()
+    expect(panel).toContainElement(document.activeElement as HTMLElement)
   })
 })

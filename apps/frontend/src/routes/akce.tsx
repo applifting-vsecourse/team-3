@@ -5,10 +5,12 @@ import { Map as MapIcon } from "lucide-react"
 import { Seo } from "@/components/Seo"
 import { Button } from "@/components/ui/button"
 import { DESKTOP_QUERY, useMediaQuery } from "@/hooks/useMediaQuery"
-import { DEFAULT_LOCALITY_SLUG } from "@/lib/catalog/localityOptions"
+import { ALL_LOCALITIES_SLUG, DEFAULT_LOCALITY_SLUG } from "@/lib/catalog/localityOptions"
 import { cn } from "@/lib/utils"
 
 import { AppHeader } from "@/features/auth/components/AppHeader"
+import { useSession } from "@/features/auth/hooks/useSession"
+import { EmptyEvents } from "@/features/events/components/EmptyEvents"
 import { EventFilters } from "@/features/events/components/EventFilters"
 import { EventList } from "@/features/events/components/EventList"
 import { EventsMap } from "@/features/events/components/EventsMap"
@@ -22,6 +24,8 @@ import {
 
 // Praha, until the catalog has loaded
 const FALLBACK_CENTER = { lat: 50.0755, lng: 14.4378 }
+// Celé Česko without events: the whole country in view
+const CZECHIA_CENTER = { lat: 49.8, lng: 15.5, zoom: 7 }
 
 export const Route = createFileRoute("/akce")({
   component: EventsPage,
@@ -37,6 +41,7 @@ function EventsPage() {
   const search = Route.useSearch()
   const navigate = Route.useNavigate()
   const { events, catalog, isPending, error, retry } = useEvents(search)
+  const session = useSession()
   const isDesktop = useMediaQuery(DESKTOP_QUERY)
   const [panelSnap, setPanelSnap] = useState<PanelSnap>("peek")
   const isListExpanded = panelSnap === "list"
@@ -100,6 +105,14 @@ function EventsPage() {
               highlightedId={highlightedId}
               onHighlight={setHighlightedId}
               onClearFilters={hasActiveFilters(search) ? clearFilters : undefined}
+              empty={
+                <EmptyEvents
+                  search={search}
+                  catalog={catalog}
+                  isVisitor={!session.user && !session.isPending}
+                  onSearchChange={setSearch}
+                />
+              }
               // lowered sheet: what is below its edge is out of the Tab order
               inertAfter={isDesktop || isListExpanded ? undefined : panelSnap === "map" ? 0 : 1}
             />
@@ -125,7 +138,11 @@ function EventsPage() {
               <EventsMap
                 events={events ?? []}
                 highlightedId={highlightedId}
-                center={locality ?? FALLBACK_CENTER}
+                center={
+                  search.lokalita === ALL_LOCALITIES_SLUG
+                    ? CZECHIA_CENTER
+                    : (locality ?? FALLBACK_CENTER)
+                }
                 hasZoomControl={isDesktop}
               />
             </div>

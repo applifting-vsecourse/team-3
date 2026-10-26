@@ -1,7 +1,7 @@
 import { useNavigate } from "@tanstack/react-router"
 
 import { ROUTES } from "@/app/routes"
-import { MapView, type MapPinData } from "@/components/map/MapView"
+import { MapView, type MapCenter, type MapPinData } from "@/components/map/MapView"
 
 import type { PublicEvent } from "@/features/events/api/eventSchemas"
 
@@ -24,7 +24,7 @@ export const toPin = (event: PublicEvent): MapPinData => ({
 type EventsMapProps = {
   events: PublicEvent[]
   highlightedId?: string
-  center: { lat: number; lng: number }
+  center: MapCenter
   hasZoomControl?: boolean
   className?: string
 }

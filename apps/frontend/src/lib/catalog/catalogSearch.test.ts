@@ -52,6 +52,8 @@ describe("hasCatalogFilters", () => {
     expect(hasCatalogFilters({})).toBe(false)
     expect(hasCatalogFilters({ lokalita: "praha" })).toBe(false)
     expect(hasCatalogFilters({ lokalita: "brno" })).toBe(true)
+    // the whole of Czechia instead of the default Praha is a filter too
+    expect(hasCatalogFilters({ lokalita: "cele-cesko" })).toBe(true)
     expect(hasCatalogFilters({ kategorie: "hry" })).toBe(true)
     expect(hasCatalogFilters({ aktivita: "sachy" })).toBe(true)
   })
@@ -74,5 +76,13 @@ describe("toCatalogFilters", () => {
       ),
     ).toEqual({ localityId: "l-brno", activityIds: ["a-sachy"], categoryIds: ["c-hry"] })
     expect(toCatalogFilters({ lokalita: "atlantida" }, catalog).localityId).toBeUndefined()
+  })
+
+  it("Celé Česko asks for no locality at all", () => {
+    expect(toCatalogFilters({ lokalita: "cele-cesko", kategorie: "hry" }, catalog)).toEqual({
+      localityId: undefined,
+      activityIds: [],
+      categoryIds: ["c-hry"],
+    })
   })
 })
