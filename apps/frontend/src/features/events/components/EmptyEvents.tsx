@@ -9,6 +9,7 @@ import {
   DEFAULT_LOCALITY_SLUG,
   localityName,
 } from "@/lib/catalog/localityOptions"
+import { cn } from "@/lib/utils"
 
 import { occupancyLabel } from "@/features/events/components/OccupancyFilter"
 import { useEvents } from "@/features/events/hooks/useEvents"
@@ -61,7 +62,7 @@ export function EmptyEvents({ search, catalog, isVisitor, onSearchChange }: Empt
     { ...search, lokalita: ALL_LOCALITIES_SLUG },
     { isEnabled: !isEverywhere },
   )
-  // nothing until the count is known, so the buttons don't swap under a finger
+  // no buttons until the count is known, so none swaps under a finger
   const isCounting = !isEverywhere && (everywhere.isPending || everywhere.isPlaceholderData)
   const everywhereCount = isEverywhere || isCounting ? undefined : everywhere.events?.length
 
@@ -96,7 +97,12 @@ export function EmptyEvents({ search, catalog, isVisitor, onSearchChange }: Empt
         <p className="text-sm text-muted-foreground">Žádná nadcházející akce neodpovídá filtrům:</p>
         <p className="text-sm font-semibold">{activeFiltersLabel(search, catalog)}</p>
       </div>
-      <div className="flex flex-wrap justify-center gap-3">
+      {/* hidden, not left out, while counting: „Založit akci“ would show alone as the main
+          button and then move aside; the space stays, so the mobile list doesn't jump */}
+      <div
+        aria-hidden={isCounting || undefined}
+        className={cn("flex flex-wrap justify-center gap-3", isCounting && "invisible")}
+      >
         {widen}
         {/* the closed mobile list shows the block down to its last button */}
         <Button

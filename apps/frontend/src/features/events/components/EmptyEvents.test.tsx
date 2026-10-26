@@ -27,12 +27,15 @@ const catalog = { localities, categories }
 
 // How many events all of Czechia has for the same filters; a locality has none.
 let everywhere = 5
+// When set, holds the count of all of Czechia back, as a slow network does.
+let countGate: Promise<void> | undefined
 const get = vi.fn((path: string, options?: { searchParams?: URLSearchParams }) => ({
   json: () => {
     if (path === "localities") return Promise.resolve(localities)
     if (path === "activities") return Promise.resolve(categories)
     if (options?.searchParams?.has("localityId")) return Promise.resolve([])
-    return Promise.resolve(Array.from({ length: everywhere }, (_, i) => anEvent({ id: `e${i}` })))
+    const events = () => Array.from({ length: everywhere }, (_, i) => anEvent({ id: `e${i}` }))
+    return countGate ? countGate.then(events) : Promise.resolve(events())
   },
 }))
 vi.mock("@/lib/api-client", () => ({
@@ -82,6 +85,7 @@ describe("activeFiltersLabel", () => {
 describe("EmptyEvents", () => {
   beforeEach(() => {
     everywhere = 5
+    countGate = undefined
     get.mockClear()
   })
 
@@ -136,17 +140,36 @@ describe("EmptyEvents", () => {
     expect(get.mock.calls.filter(([path]) => path === "events")).toHaveLength(0)
   })
 
+  it("no button until the count is known, so none moves under a finger", async () => {
+    const { promise, resolve: release } = Promise.withResolvers<void>()
+    countGate = promise
+    await renderEmpty({ lokalita: "bruntal", aktivita: "sipky-a-bowling" })
+
+    expect(screen.getByText("Bruntál · Šipky a bowling")).toBeInTheDocument()
+    // „Založit akci“ alone would be the main button, then move aside for the count's
+    expect(screen.queryByRole("link", { name: "Založit akci" })).not.toBeInTheDocument()
+
+    release()
+    expect(
+      await screen.findByRole("button", { name: "Zobrazit 5 akcí v celém Česku" }),
+    ).toBeInTheDocument()
+    expect(screen.getByRole("link", { name: "Založit akci" })).toBeInTheDocument()
+  })
+
   it("„Založit akci“: a signed-in user goes to the form", async () => {
     await renderEmpty({ lokalita: "bruntal" })
 
-    expect(screen.getByRole("link", { name: "Založit akci" })).toHaveAttribute("href", "/akce/nova")
+    expect(await screen.findByRole("link", { name: "Založit akci" })).toHaveAttribute(
+      "href",
+      "/akce/nova",
+    )
   })
 
   it("„Založit akci“: a visitor signs up first and comes back to the form", async () => {
     await renderEmpty({ lokalita: "bruntal" }, { isVisitor: true })
 
     // encoded once by the router, not %252F
-    expect(screen.getByRole("link", { name: "Založit akci" })).toHaveAttribute(
+    expect(await screen.findByRole("link", { name: "Založit akci" })).toHaveAttribute(
       "href",
       "/signup?from=%2Fakce%2Fnova",
     )
