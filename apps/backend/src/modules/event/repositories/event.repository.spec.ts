@@ -1,6 +1,7 @@
 import { PrismaService } from '@/core/prisma/prisma.service';
 import { mockDeep } from 'jest-mock-extended';
 import { EventRepository } from './event.repository';
+import { buildPublicEventsWhere } from './public-events-where';
 
 describe('EventRepository', () => {
   describe('isActiveGroupMember', () => {
@@ -48,6 +49,44 @@ describe('EventRepository', () => {
           select: { user: { select: { id: true, name: true } } },
         }),
       );
+    });
+  });
+});
+
+describe('EventRepository.countInterest', () => {
+  const now = new Date('2026-10-26T08:00:00.000Z');
+
+  it('counts places and waiting requests of the visible events in the database, per event', async () => {
+    const prisma = mockDeep<PrismaService>();
+    // groupBy's generic overloads are too deep for jest-mock-extended's types
+    const groupBy = prisma.participation.groupBy as unknown as jest.Mock;
+    groupBy.mockResolvedValue([
+      { eventId: 'e1', _count: { _all: 7 } },
+      { eventId: 'e2', _count: { _all: 2 } },
+    ]);
+    const filters = { localityId: 'l-praha' };
+
+    const interest = await new EventRepository(prisma).countInterest(
+      filters,
+      now,
+    );
+
+    expect(interest).toEqual(
+      new Map([
+        ['e1', 7],
+        ['e2', 2],
+      ]),
+    );
+    // one grouped query, not one per event; withdrawn, rejected and removed
+    // don't count, and only events the public list may show
+    expect(groupBy).toHaveBeenCalledTimes(1);
+    expect(groupBy).toHaveBeenCalledWith({
+      by: ['eventId'],
+      where: {
+        status: { in: ['approved', 'pending'] },
+        event: buildPublicEventsWhere(filters, now),
+      },
+      _count: { _all: true },
     });
   });
 });

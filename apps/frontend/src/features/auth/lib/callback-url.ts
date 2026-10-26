@@ -6,22 +6,25 @@ import { encodeRedirectUri, safeRedirect } from "@/features/auth/lib/redirect"
 
 /**
  * Where the link in the verification e-mail leads once it has checked the
- * token: the page that says whether it worked (BetterAuth adds `?error=` when
- * it didn't). Absolute: the link goes through the backend first, and without
- * it BetterAuth would send the user to the backend's own „/“.
+ * token (BetterAuth adds `?error=` when it didn't work): /email-overen, which
+ * sends the user on to `from` with a dialog saying how it went (#155).
+ * Absolute: the link goes through the backend first, and without it
+ * BetterAuth would send the user to the backend's own „/“.
  */
 export const afterVerificationUrl = (from?: string) => {
   const url = new URL(ROUTES.emailVerified, window.location.origin)
-  // „Pokračovat“ there leads back where the sign-up started, e.g. the event (B-012)
+  // back where the sign-up started, e.g. the event (B-012)
   if (from) url.searchParams.set("from", from)
   return url.toString()
 }
 
 /**
- * The `from` of a link sent again from the banner (#58): the page it was asked
- * for on. On the page an expired link led to, that page's own `from`, so the
- * new link doesn't lead back to the error. The password pages are no place to
- * come back to (and /reset-password carries a token).
+ * The `from` of a link sent again from the banner or the dialog after an
+ * expired link (#58, #155): the page it was asked for on. /email-overen only
+ * passes through to its own `from`, but the banner is up there while the
+ * session refreshes: that `from` then, so the new link doesn't lead back to
+ * the error. The password pages are no place to come back to (and
+ * /reset-password carries a token).
  */
 export const resendFrom = (location: ParsedLocation): string | undefined => {
   if (location.pathname === ROUTES.emailVerified) {

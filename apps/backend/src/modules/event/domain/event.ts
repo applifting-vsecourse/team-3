@@ -15,6 +15,13 @@ export type PublicEventFilters = {
   capacity?: CapacityFilter;
 };
 
+/**
+ * Order of the public event list (B-023): `date` soonest first, the default;
+ * `popular` the most interest first (#156, `rankByInterest`).
+ */
+export const PUBLIC_EVENT_SORTS = ['date', 'popular'] as const;
+export type PublicEventSort = (typeof PUBLIC_EVENT_SORTS)[number];
+
 /** An event as listed publicly, on the list and on the map. */
 export type PublicEvent = {
   id: string;

@@ -37,6 +37,9 @@ type FilterPanelProps = {
  * A filter's editor (Figma: Popover – termín, Spodní panel – termín):
  * a popover under the chip on desktop, a bottom panel on mobile. The choice
  * applies only on „Zobrazit…“, so the button can preview the result.
+ *
+ * Neither is taller than the window: the content scrolls and the buttons stay
+ * in view under it, however long the list (#157).
  */
 export function FilterPanel({
   title,
@@ -63,10 +66,17 @@ export function FilterPanel({
         <PopoverTrigger asChild>{trigger}</PopoverTrigger>
         <PopoverContent
           align="start"
+          // at most the height left under the chip, 16 px short of the window's edge
+          collisionPadding={16}
           aria-label={title}
-          className={cn("flex flex-col p-0", popoverClassName)}
+          className={cn(
+            "flex max-h-(--radix-popover-content-available-height) flex-col p-0",
+            popoverClassName,
+          )}
         >
-          <div className="p-4">{children}</div>
+          {/* min-h-0 lets the column shrink it below its content, so it scrolls;
+              overscroll-contain keeps the page behind still at its end */}
+          <div className="min-h-0 overflow-y-auto overscroll-contain p-4">{children}</div>
           <div className="flex justify-end gap-3 border-t border-border px-4 py-3">
             <Button
               variant="ghost"

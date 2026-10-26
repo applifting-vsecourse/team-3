@@ -138,6 +138,19 @@ describe("toAddressSuggestions", () => {
     ])
   })
 
+  it("leaves out addresses over the border", () => {
+    const cieszyn = {
+      ...feature({ type: "street", name: "Głęboka", city: "Cieszyn" }, [18.63, 49.75]),
+    }
+    cieszyn.properties = { ...cieszyn.properties, country: "Polska", countrycode: "PL" }
+
+    const suggestions = toAddressSuggestions({
+      features: [cieszyn, feature({ type: "street", name: "Hlavní třída", city: "Český Těšín" })],
+    })
+
+    expect(suggestions.map((s) => s.address)).toEqual(["Hlavní třída, Český Těšín"])
+  })
+
   it("refuses an answer that isn't Photon's", () => {
     expect(() => toAddressSuggestions({ error: "Bad request" })).toThrow()
   })
@@ -205,6 +218,7 @@ describe("addressSearchUrl", () => {
     expect(url.searchParams.get("lat")).toBe("50.1100")
     expect(url.searchParams.get("lon")).toBe("14.4700")
     expect(url.searchParams.get("bbox")).toBe("12.09,48.55,18.86,51.06")
+    expect(url.searchParams.get("countrycode")).toBe("CZ")
   })
 })
 
