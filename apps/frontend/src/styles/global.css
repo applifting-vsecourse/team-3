@@ -113,6 +113,18 @@
   --ring: #b6f24a;
 }
 
+/* DESIGN.md › Capacity bar: below the minimum the fill is hatched — not confirmed yet.
+   Not a Figma token. primary and primary-foreground are the same in both modes, so one
+   mix serves light and dark; the dark stripe is ≥3:1 against the track and against lime
+   (tokens.test.ts). No bg- prefix, or tailwind-merge would drop it next to a bg-* colour. */
+@utility capacity-hatch {
+  background-image: repeating-linear-gradient(
+    -45deg,
+    var(--primary) 0 3px,
+    color-mix(in srgb, var(--primary-foreground) 55%, var(--primary)) 3px 6px
+  );
+}
+
 @layer base {
   * {
     @apply border-border outline-ring/50;

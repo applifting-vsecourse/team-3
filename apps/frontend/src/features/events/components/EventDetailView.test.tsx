@@ -36,7 +36,8 @@ describe("EventDetailView", () => {
     // without approval there is nothing for them to decide
     expect(screen.queryByText("Schvaluje žádosti o účast")).not.toBeInTheDocument()
     expect(screen.getByText("Chybí ještě 1")).toBeInTheDocument()
-    expect(screen.getByText("3 z 12 · min. 4")).toBeInTheDocument()
+    expect(screen.getByText("3 z 12")).toBeInTheDocument()
+    expect(screen.getByText("min. 4")).toBeInTheDocument()
     // „Kdo jde“ as the viewer's „Jdu“, not „Přihlášení“ next to „Přihlásit se“
     expect(screen.getByRole("heading", { name: "Kdo jde (3)" })).toBeInTheDocument()
     // the facts are a valid <dl> (Kdy, Kde, Přihlašování)
@@ -140,7 +141,8 @@ describe("EventDetailView", () => {
     expect(screen.getByText("Zrušeno")).toBeInTheDocument()
     expect(screen.getByText("Akce je zrušená")).toBeInTheDocument()
     expect(screen.getByText("Herna má zavřeno.")).toBeInTheDocument()
-    expect(screen.queryByText("4 z 12 · min. 4")).not.toBeInTheDocument()
+    expect(screen.queryByText("4 z 12")).not.toBeInTheDocument()
+    expect(screen.queryByText("min. 4")).not.toBeInTheDocument()
   })
 
   it("shows the organizer's actions the page passes in", async () => {
