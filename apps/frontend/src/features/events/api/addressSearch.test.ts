@@ -143,6 +143,47 @@ describe("toAddressSuggestions", () => {
   })
 })
 
+describe("localityOfAddress – a village the catalog doesn't have", () => {
+  const town = (id: string, name: string, lat: number, lng: number): Locality => ({
+    id,
+    slug: id,
+    name,
+    parentId: null,
+    lat,
+    lng,
+  })
+  const ustiNadOrlici = town("usti-nad-orlici", "Ústí nad Orlicí", 49.9738, 16.3942)
+  const letohrad = town("letohrad", "Letohrad", 50.0357, 16.4988)
+  const pardubice = town("pardubice", "Pardubice", 50.0343, 15.7812)
+  const localities = [pardubice, ustiNadOrlici, letohrad]
+
+  it("gets the nearest town: Dolní Dobrouč → Letohrad", () => {
+    expect(
+      localityOfAddress(
+        { city: "Dolní Dobrouč", lat: 49.993, lng: 16.497 },
+        localities,
+        "pardubice",
+      ),
+    ).toBe(letohrad)
+  })
+
+  it("a town of the catalog wins over a nearer one by name", () => {
+    expect(
+      localityOfAddress(
+        { city: "Ústí nad Orlicí", lat: 50.03, lng: 16.49 },
+        localities,
+        "pardubice",
+      ),
+    ).toBe(ustiNadOrlici)
+  })
+
+  it("nothing within 20 km leaves the choice alone", () => {
+    expect(
+      localityOfAddress({ city: "Horní Lomná", lat: 49.52, lng: 18.64 }, localities, "pardubice"),
+    ).toBeUndefined()
+  })
+})
+
 describe("addressSearchUrl", () => {
   it("asks for addresses in Czechia, near the given point", () => {
     const url = new URL(addressSearchUrl("Letenská 15", { lat: 50.11, lng: 14.47 }))

@@ -199,6 +199,25 @@ describe("LocalityCombobox", () => {
     expect(screen.queryByText(/Další najdeš/)).not.toBeInTheDocument()
   })
 
+  it("keeps the picked town in the list even past the first 100 (editing an event in Zlín)", async () => {
+    const villages = Array.from({ length: 150 }, (_, i) =>
+      locality(`obec-${i}`, `Obec ${String(i).padStart(3, "0")}`),
+    )
+    render(
+      <Field
+        catalog={[...villages, locality("zlin", "Zlín")]}
+        initialValue="l-zlin"
+      />,
+    )
+
+    await userEvent.click(field())
+
+    const zlin = [...screen.getByRole("listbox").querySelectorAll("[role=option]")].find((row) =>
+      row.textContent?.includes("Zlín"),
+    )
+    expect(zlin).toBeDefined()
+  })
+
   it("says what to do when no town matches", async () => {
     render(<Field />)
 

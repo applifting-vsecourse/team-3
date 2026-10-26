@@ -79,18 +79,23 @@ const search = (groups: SearchedGroup[], query: string): SearchedGroup[] => {
  */
 const MAX_ROWS = 100
 
-/** The first `MAX_ROWS` items, and how many are left out. */
-const firstRows = (groups: SearchedGroup[]) => {
+/**
+ * The first `MAX_ROWS` items, and how many are left out. The picked one stays
+ * in view even past the cut-off (editing an event in Zlín).
+ */
+const firstRows = (groups: SearchedGroup[], pickedId: string) => {
   let left = MAX_ROWS
   const shown = groups
     .map((group) => {
       const items = group.items.slice(0, left)
       left -= items.length
-      return { ...group, items }
+      const picked = group.items.find((item) => item.id === pickedId)
+      return { ...group, items: picked && !items.includes(picked) ? [...items, picked] : items }
     })
     .filter((group) => group.items.length > 0)
   const total = groups.reduce((sum, group) => sum + group.items.length, 0)
-  return { shown, hiddenCount: Math.max(0, total - MAX_ROWS) }
+  const shownCount = shown.reduce((sum, group) => sum + group.items.length, 0)
+  return { shown, hiddenCount: Math.max(0, total - shownCount) }
 }
 
 /**
@@ -220,7 +225,10 @@ function CatalogSearch({
 }) {
   const [query, setQuery] = useState(initialQuery)
   const listRef = useRef<HTMLDivElement>(null)
-  const { shown, hiddenCount } = useMemo(() => firstRows(search(groups, query)), [groups, query])
+  const { shown, hiddenCount } = useMemo(
+    () => firstRows(search(groups, query), value),
+    [groups, query, value],
+  )
 
   // the picked town may be far down the alphabet: the list opens on it
   useLayoutEffect(() => {
