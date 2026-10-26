@@ -25,12 +25,14 @@ export type MapPinData = {
   label: string
 }
 
+export type MapCenter = { lat: number; lng: number; zoom?: number }
+
 type MapViewProps = {
   pins: MapPinData[]
   /** Pin to raise and label, e.g. the event card under the mouse. */
   highlightedId?: string
-  /** Where the map looks when there are no pins (e.g. the chosen locality). */
-  center: { lat: number; lng: number }
+  /** Where the map looks when there are no pins (e.g. the chosen locality); `zoom` for more than a city. */
+  center: MapCenter
   /** Zoom buttons bottom right; on touch screens pinch zoom is enough. */
   hasZoomControl?: boolean
   /** Makes the pins clickable, e.g. to open the event's detail. */
@@ -73,7 +75,7 @@ export function MapView({
     >
       <MapContainer
         center={[center.lat, center.lng]}
-        zoom={DEFAULT_ZOOM}
+        zoom={center.zoom ?? DEFAULT_ZOOM}
         zoomControl={false}
         attributionControl={false}
         dragging={!isStatic}
@@ -145,20 +147,20 @@ function Pin({ pin, isHighlighted, onClick }: PinProps) {
  * Fits the view to the pins when the set of pins changes (another filter),
  * not on every render — so opening the list panel keeps the map where it is.
  */
-function FitToPins({ pins, center }: { pins: MapPinData[]; center: { lat: number; lng: number } }) {
+function FitToPins({ pins, center }: { pins: MapPinData[]; center: MapCenter }) {
   const map = useMap()
   const key = pins.map((pin) => pin.id).join(",")
 
   useEffect(() => {
     if (pins.length === 0) {
-      map.setView([center.lat, center.lng], DEFAULT_ZOOM)
+      map.setView([center.lat, center.lng], center.zoom ?? DEFAULT_ZOOM)
       return
     }
     const bounds = latLngBounds(pins.map((pin) => [pin.lat, pin.lng]))
     map.fitBounds(bounds, { padding: [48, 48], maxZoom: FIT_MAX_ZOOM })
     // `key` stands for `pins`: refit only when the set of events changes
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [key, map, center.lat, center.lng])
+  }, [key, map, center.lat, center.lng, center.zoom])
 
   return null
 }

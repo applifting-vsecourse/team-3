@@ -24,6 +24,8 @@ type FilterPanelProps = {
   children: ReactNode
   resetLabel: string
   onReset: () => void
+  /** Nothing to reset, e.g. Celé Česko in Lokalita. */
+  isResetDisabled?: boolean
   applyLabel: string
   onApply: () => void
   /** Width of the desktop popover, e.g. "w-80". */
@@ -49,6 +51,7 @@ export function FilterPanel({
   children,
   resetLabel,
   onReset,
+  isResetDisabled,
   applyLabel,
   onApply,
   popoverClassName,
@@ -81,6 +84,7 @@ export function FilterPanel({
             <Button
               variant="ghost"
               className="h-11"
+              disabled={isResetDisabled}
               onClick={onReset}
             >
               {resetLabel}
@@ -131,6 +135,7 @@ export function FilterPanel({
           <Button
             variant="outline"
             className="h-11"
+            disabled={isResetDisabled}
             onClick={onReset}
           >
             {resetLabel}

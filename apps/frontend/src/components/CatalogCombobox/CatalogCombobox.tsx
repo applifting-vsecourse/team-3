@@ -1,11 +1,4 @@
-import {
-  useLayoutEffect,
-  useMemo,
-  useRef,
-  useState,
-  type ComponentProps,
-  type ReactNode,
-} from "react"
+import { useMemo, useRef, useState, type ComponentProps, type ReactNode } from "react"
 import { Check, ChevronDown } from "lucide-react"
 
 import { Button } from "@/components/ui/button"
@@ -17,6 +10,7 @@ import {
   CommandList,
 } from "@/components/ui/command"
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
+import { useScrollToPicked } from "@/hooks/useScrollToPicked"
 import { foldText, matchRank } from "@/lib/catalog/textSearch"
 import { cn } from "@/lib/utils"
 
@@ -243,14 +237,7 @@ function CatalogSearch({
     [groups, query, value],
   )
 
-  // the picked town may be far down the alphabet: the list opens on it
-  useLayoutEffect(() => {
-    const list = listRef.current
-    const picked = list?.querySelector("[data-picked]")
-    if (!list || !picked) return
-    list.scrollTop +=
-      picked.getBoundingClientRect().top - list.getBoundingClientRect().top - list.clientHeight / 2
-  }, [])
+  useScrollToPicked(listRef)
 
   const renderItem = (item: CatalogComboboxItem) => {
     const isPicked = item.id === value

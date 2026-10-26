@@ -135,8 +135,19 @@ describe("EventFilters", () => {
     await userEvent.type(within(panel).getByRole("combobox", { name: "Hledat lokalitu" }), "prah")
     expect(within(panel).queryByRole("option", { name: "Brno" })).not.toBeInTheDocument()
 
-    await userEvent.click(within(panel).getByRole("button", { name: "Celá Praha" }))
+    await userEvent.click(within(panel).getByRole("option", { name: "Praha" }))
+    await userEvent.click(await within(panel).findByRole("button", { name: "Zobrazit 2 akce" }))
     expect(onChange).toHaveBeenCalledWith({ lokalita: undefined })
+  })
+
+  it("„Zrušit výběr“ in a town shows events from all of Czechia", async () => {
+    const { onChange } = renderFilters({ search: { lokalita: "brno" } })
+
+    await userEvent.click(screen.getByRole("button", { name: "Lokalita: Brno" }))
+    const panel = await screen.findByRole("dialog", { name: "Lokalita" })
+    expect(within(panel).queryByRole("button", { name: "Celá Praha" })).not.toBeInTheDocument()
+    await userEvent.click(within(panel).getByRole("button", { name: "Zrušit výběr" }))
+    expect(onChange).toHaveBeenCalledWith({ lokalita: "cele-cesko" })
   })
 
   it("a town's name typed without diacritics finds it („usti nad orl“)", async () => {

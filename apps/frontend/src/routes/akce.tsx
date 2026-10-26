@@ -5,7 +5,7 @@ import { Map as MapIcon } from "lucide-react"
 import { Seo } from "@/components/Seo"
 import { Button } from "@/components/ui/button"
 import { DESKTOP_QUERY, useMediaQuery } from "@/hooks/useMediaQuery"
-import { DEFAULT_LOCALITY_SLUG } from "@/lib/catalog/localityOptions"
+import { ALL_LOCALITIES_SLUG, DEFAULT_LOCALITY_SLUG } from "@/lib/catalog/localityOptions"
 import { cn } from "@/lib/utils"
 
 import { AppHeader } from "@/features/auth/components/AppHeader"
@@ -22,6 +22,8 @@ import {
 
 // Praha, until the catalog has loaded
 const FALLBACK_CENTER = { lat: 50.0755, lng: 14.4378 }
+// Celé Česko without events: the whole country in view
+const CZECHIA_CENTER = { lat: 49.8, lng: 15.5, zoom: 7 }
 
 export const Route = createFileRoute("/akce")({
   component: EventsPage,
@@ -125,7 +127,11 @@ function EventsPage() {
               <EventsMap
                 events={events ?? []}
                 highlightedId={highlightedId}
-                center={locality ?? FALLBACK_CENTER}
+                center={
+                  search.lokalita === ALL_LOCALITIES_SLUG
+                    ? CZECHIA_CENTER
+                    : (locality ?? FALLBACK_CENTER)
+                }
                 hasZoomControl={isDesktop}
               />
             </div>
