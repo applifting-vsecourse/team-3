@@ -36,6 +36,7 @@ const photonResponseSchema = z.object({
         county: z.string().optional(),
         type: z.string().optional(),
         osm_key: z.string().optional(),
+        countrycode: z.string().optional(),
       }),
     }),
   ),
@@ -94,6 +95,8 @@ export const toAddressSuggestions = (response: unknown): AddressSuggestion[] => 
   const { features } = photonResponseSchema.parse(response)
   const suggestions = new Map<string, AddressSuggestion>()
   for (const feature of features) {
+    // the box reaches over the border (Cieszyn, Zittau…): events are in Czechia
+    if (feature.properties.countrycode !== "CZ") continue
     const title = titleOf(feature)
     if (!title) continue
     const area = areaOf(feature)
@@ -181,6 +184,8 @@ export const addressSearchUrl = (text: string, near: LatLng): string => {
   url.searchParams.set("lat", near.lat.toFixed(4))
   url.searchParams.set("lon", near.lng.toFixed(4))
   url.searchParams.set("bbox", CZECHIA_BBOX)
+  // foreign hits would take the slots before toAddressSuggestions drops them
+  url.searchParams.set("countrycode", "CZ")
   return url.toString()
 }
 
