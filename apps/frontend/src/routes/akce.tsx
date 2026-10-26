@@ -9,6 +9,8 @@ import { ALL_LOCALITIES_SLUG, DEFAULT_LOCALITY_SLUG } from "@/lib/catalog/locali
 import { cn } from "@/lib/utils"
 
 import { AppHeader } from "@/features/auth/components/AppHeader"
+import { useSession } from "@/features/auth/hooks/useSession"
+import { EmptyEvents } from "@/features/events/components/EmptyEvents"
 import { EventFilters } from "@/features/events/components/EventFilters"
 import { EventList } from "@/features/events/components/EventList"
 import { EventsMap } from "@/features/events/components/EventsMap"
@@ -39,6 +41,7 @@ function EventsPage() {
   const search = Route.useSearch()
   const navigate = Route.useNavigate()
   const { events, catalog, isPending, error, retry } = useEvents(search)
+  const session = useSession()
   const isDesktop = useMediaQuery(DESKTOP_QUERY)
   const [panelSnap, setPanelSnap] = useState<PanelSnap>("peek")
   const isListExpanded = panelSnap === "list"
@@ -102,6 +105,14 @@ function EventsPage() {
               highlightedId={highlightedId}
               onHighlight={setHighlightedId}
               onClearFilters={hasActiveFilters(search) ? clearFilters : undefined}
+              empty={
+                <EmptyEvents
+                  search={search}
+                  catalog={catalog}
+                  isVisitor={!session.user && !session.isPending}
+                  onSearchChange={setSearch}
+                />
+              }
               // lowered sheet: what is below its edge is out of the Tab order
               inertAfter={isDesktop || isListExpanded ? undefined : panelSnap === "map" ? 0 : 1}
             />
