@@ -22,6 +22,24 @@ describe("authErrorMessage", () => {
     )
   })
 
+  it("a name the API refuses says which character doesn't belong (#153)", () => {
+    expect(
+      authErrorMessage(
+        { code: "INVALID_NAME", message: "Znak „<“ do jména nepatří. Jméno může obsahovat…" },
+        "x",
+      ),
+    ).toBe("Znak „<“ do jména nepatří. Jméno může obsahovat…")
+    expect(authErrorMessage({ code: "INVALID_NAME" }, "x")).toBe(
+      "Jméno může obsahovat jen písmena, mezery, pomlčky, apostrofy a tečky.",
+    )
+  })
+
+  it("a sign-up without the consents says both are needed (#153)", () => {
+    expect(authErrorMessage({ code: "CONSENT_REQUIRED", message: "…" }, "x")).toMatch(
+      /^K registraci je potřeba souhlas s podmínkami užívání/,
+    )
+  })
+
   it("a rate limit (429) asks to wait, whatever the code", () => {
     expect(authErrorMessage({ status: 429, message: "Too many requests" }, "x")).toBe(
       "Příliš mnoho pokusů. Zkus to prosím za minutu.",

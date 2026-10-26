@@ -1,4 +1,5 @@
 import { toSlug } from '@/modules/catalog/services/catalog.service';
+import { nameProblem } from '@/shared/auth/domain/name-policy';
 import {
   demoActivities,
   demoActivityCategories,
@@ -31,6 +32,11 @@ describe('demo data', () => {
     expect(unique(demoActivities.map((a) => a.slug))).toBe(true);
     expect(unique(demoActivityCategories.map((c) => c.slug))).toBe(true);
     expect(unique(demoLocalities.map((l) => l.slug))).toBe(true);
+  });
+
+  // the seed signs the users up through BetterAuth, which checks the name (#153)
+  it("gives every user a name the sign-up's name rule lets through", () => {
+    for (const user of demoUsers) expect(nameProblem(user.name)).toBeNull();
   });
 
   it('ends every category with an "other" activity (B-002)', () => {

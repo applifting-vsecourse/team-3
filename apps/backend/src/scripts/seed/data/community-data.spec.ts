@@ -1,3 +1,4 @@
+import { nameProblem } from '@/shared/auth/domain/name-policy';
 import {
   communityEventPlans,
   communityEvents,
@@ -86,6 +87,12 @@ describe('community data', () => {
       expect(user.username).toMatch(/^[a-z0-9.]{3,30}$/);
       expect(user.email).toBe(`${user.username}@example.com`);
     }
+  });
+
+  // the seed signs the users up through BetterAuth, which checks the name (#153)
+  it("gives every user a name the sign-up's name rule lets through", () => {
+    for (const user of communityUsers)
+      expect(nameProblem(user.name)).toBeNull();
   });
 
   it('has a few unverified newcomers and some users asking for more', () => {

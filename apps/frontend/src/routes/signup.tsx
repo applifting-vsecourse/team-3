@@ -7,7 +7,7 @@ import { AuthLayout } from "@/components/AuthLayout"
 import { Seo } from "@/components/Seo"
 
 import { authSessionQueryOptions } from "@/features/auth/api/authSessionQueryOptions"
-import { SignUpForm } from "@/features/auth/components/SignUpForm"
+import { SignUpForm, type SignUpValues } from "@/features/auth/components/SignUpForm"
 import { useSignUp } from "@/features/auth/hooks/useSignUp"
 import { safeRedirect } from "@/features/auth/lib/redirect"
 import { NearestEvents } from "@/features/events/components/NearestEvents"
@@ -35,7 +35,7 @@ function SignUpPage() {
   const signUp = useSignUp()
   const [errorMessage, setErrorMessage] = useState<string | null>(null)
 
-  const handleSubmit = async (values: { name: string; email: string; password: string }) => {
+  const handleSubmit = async (values: SignUpValues) => {
     setErrorMessage(null)
     try {
       // signed in at once; the verification link leads back to `from` too
