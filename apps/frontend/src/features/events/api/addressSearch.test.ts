@@ -143,6 +143,59 @@ describe("toAddressSuggestions", () => {
   })
 })
 
+describe("localityOfAddress – a village the catalog doesn't have", () => {
+  const town = (id: string, name: string, lat: number, lng: number): Locality => ({
+    id,
+    slug: id,
+    name,
+    parentId: null,
+    lat,
+    lng,
+  })
+  const ustiNadOrlici = town("usti-nad-orlici", "Ústí nad Orlicí", 49.9738, 16.3942)
+  const letohrad = town("letohrad", "Letohrad", 50.0357, 16.4988)
+  const pardubice = town("pardubice", "Pardubice", 50.0343, 15.7812)
+  const localities = [pardubice, ustiNadOrlici, letohrad]
+
+  it("gets the nearest town: Dolní Dobrouč → Letohrad", () => {
+    expect(
+      localityOfAddress(
+        { city: "Dolní Dobrouč", lat: 49.993, lng: 16.497 },
+        localities,
+        "pardubice",
+      ),
+    ).toBe(letohrad)
+  })
+
+  it("a town of the catalog wins over a nearer one by name", () => {
+    expect(
+      localityOfAddress(
+        { city: "Ústí nad Orlicí", lat: 50.03, lng: 16.49 },
+        localities,
+        "pardubice",
+      ),
+    ).toBe(ustiNadOrlici)
+  })
+
+  it("a town of the same name far away is another place: Planá u Českých Budějovic isn't Planá u Tachova", () => {
+    const planaTachov = town("plana", "Planá", 49.8682, 12.7438)
+    const ceskeBudejovice = town("ceske-budejovice", "České Budějovice", 48.9745, 14.4743)
+    expect(
+      localityOfAddress(
+        { city: "Planá", lat: 48.948, lng: 14.433 },
+        [planaTachov, ceskeBudejovice],
+        "",
+      ),
+    ).toBe(ceskeBudejovice)
+  })
+
+  it("nothing within 20 km leaves the choice alone", () => {
+    expect(
+      localityOfAddress({ city: "Horní Lomná", lat: 49.52, lng: 18.64 }, localities, "pardubice"),
+    ).toBeUndefined()
+  })
+})
+
 describe("addressSearchUrl", () => {
   it("asks for addresses in Czechia, near the given point", () => {
     const url = new URL(addressSearchUrl("Letenská 15", { lat: 50.11, lng: 14.47 }))
@@ -167,7 +220,10 @@ describe("localityOfAddress", () => {
   const praha = locality("praha", "Praha")
   const praha8 = locality("praha-8", "Praha 8", "praha")
   const brno = locality("brno", "Brno")
-  const localities = [praha, praha8, brno]
+  const ostrava = locality("ostrava", "Ostrava")
+  const zabreh = locality("zabreh", "Zábřeh")
+  const ustiNadOrlici = locality("usti-nad-orlici", "Ústí nad Orlicí")
+  const localities = [praha, praha8, brno, ostrava, zabreh, ustiNadOrlici]
 
   it("a Prague district in the address is more precise than „Praha“", () => {
     expect(localityOfAddress({ district: "Praha 8", city: "Praha" }, localities, "praha")).toBe(
@@ -191,6 +247,22 @@ describe("localityOfAddress", () => {
     expect(
       localityOfAddress({ district: "Kolín I", city: "Kolín" }, localities, "praha"),
     ).toBeUndefined()
+  })
+
+  it("any Czech town of the catalog counts, e.g. Ústí nad Orlicí (PO 26. 10.)", () => {
+    expect(
+      localityOfAddress({ district: "Hylváty", city: "Ústí nad Orlicí" }, localities, "praha"),
+    ).toBe(ustiNadOrlici)
+  })
+
+  it("a part of a town named like another town is still that town (Zábřeh in Ostrava)", () => {
+    expect(localityOfAddress({ district: "Zábřeh", city: "Ostrava" }, localities, "praha")).toBe(
+      ostrava,
+    )
+  })
+
+  it("without a city, the district is the town", () => {
+    expect(localityOfAddress({ district: "Zábřeh" }, localities, "praha")).toBe(zabreh)
   })
 
   it("the locality already chosen needs no change", () => {

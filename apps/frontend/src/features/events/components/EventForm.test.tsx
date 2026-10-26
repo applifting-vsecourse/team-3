@@ -19,8 +19,25 @@ const catalog: Catalog = {
       lat: 50.11,
       lng: 14.47,
     },
+    {
+      id: "l-usti-nad-orlici",
+      slug: "usti-nad-orlici",
+      name: "Ústí nad Orlicí",
+      parentId: null,
+      lat: 49.9739,
+      lng: 16.3936,
+    },
   ],
   categories: [
+    {
+      id: "c-pohyb",
+      slug: "pohyb-a-tanec",
+      name: "Pohyb a tanec",
+      icon: "route",
+      activities: [
+        { id: "a-atletika", slug: "atletika", name: "Atletika", keywords: ["závody", "sprint"] },
+      ],
+    },
     {
       id: "c-hry",
       slug: "hry",
@@ -47,6 +64,13 @@ const renderForm = (props: Partial<Parameters<typeof EventForm>[0]> = {}) => {
 }
 
 const submit = () => userEvent.click(screen.getByRole("button", { name: "Zveřejnit akci" }))
+
+/** Opens a catalog field („Aktivita *“), types into its search and picks the best match. */
+const pick = async (field: string, search: string, query: string) => {
+  await userEvent.click(screen.getByRole("combobox", { name: field }))
+  await userEvent.type(screen.getByRole("combobox", { name: search }), query)
+  await userEvent.keyboard("{Enter}")
+}
 
 /** The address service (Photon) answering with these places. */
 const answerAddresses = (...features: object[]) => {
@@ -193,6 +217,34 @@ describe("EventForm", () => {
     expect(input.lng).toBeCloseTo(14.47, 3)
   })
 
+  it("athletics races in Ústí nad Orlicí (PO): activity and town are typed, the map moves there", async () => {
+    const { onSubmit } = renderForm({
+      initialValues: { startsAt: new Date(Date.now() + 3 * 86_400_000).toISOString() },
+    })
+
+    await pick("Aktivita *", "Hledat aktivitu", "zavody")
+    expect(screen.getByRole("combobox", { name: "Aktivita *" })).toHaveTextContent(
+      "Pohyb a tanec › Atletika",
+    )
+    await pick("Lokalita *", "Hledat lokalitu", "usti nad orl")
+    expect(screen.getByRole("combobox", { name: "Lokalita *" })).toHaveTextContent(
+      "Ústí nad Orlicí",
+    )
+    await userEvent.type(screen.getByLabelText("Název akce *"), "Atletické závody")
+    // the map looks at the chosen town; its middle is the place
+    await userEvent.click(screen.getByRole("button", { name: "Umístit špendlík do středu mapy" }))
+    await userEvent.type(screen.getByLabelText("Adresa *"), "Městský stadion")
+    await userEvent.type(screen.getByLabelText("Minimum"), "6")
+    await userEvent.type(screen.getByLabelText("Maximum"), "30")
+    await submit()
+
+    expect(onSubmit).toHaveBeenCalledOnce()
+    const input = onSubmit.mock.calls[0]![0] as Record<string, unknown>
+    expect(input).toMatchObject({ activityId: "a-atletika", localityId: "l-usti-nad-orlici" })
+    expect(input.lat).toBeCloseTo(49.9739, 3)
+    expect(input.lng).toBeCloseTo(16.3936, 3)
+  })
+
   it("an end equal to the start is refused; the end is optional", async () => {
     const start = new Date(Date.now() + 2 * 86_400_000)
     const [, time = ""] = toPragueWallTime(start).split("T")
@@ -291,6 +343,44 @@ describe("EventForm", () => {
       expect(onSubmit.mock.calls[0]![0]).toMatchObject({
         address: "Křižíkova 53/52, Praha 8 – Karlín",
         localityId: "l-praha-8",
+      })
+    })
+
+    it("an address in another town of the catalog sets that town (Ústí nad Orlicí)", async () => {
+      answerAddresses({
+        type: "Feature",
+        geometry: { type: "Point", coordinates: [16.3893, 49.9702] },
+        properties: {
+          type: "house",
+          osm_key: "place",
+          housenumber: "1330",
+          street: "Lázeňská",
+          city: "Ústí nad Orlicí",
+          county: "okres Ústí nad Orlicí",
+        },
+      })
+      const { onSubmit } = renderForm({
+        initialValues: {
+          activityId: "a-atletika",
+          localityId: "l-praha",
+          startsAt: inThreeDays(),
+        },
+      })
+
+      await userEvent.type(addressField(), "Lázeňská 1330")
+      await userEvent.click(await screen.findByRole("option", { name: /Lázeňská 1330/ }))
+      expect(screen.getByRole("combobox", { name: "Lokalita *" })).toHaveTextContent(
+        "Ústí nad Orlicí",
+      )
+      await fillTheRest()
+      await submit()
+
+      expect(onSubmit).toHaveBeenCalledOnce()
+      expect(onSubmit.mock.calls[0]![0]).toMatchObject({
+        address: "Lázeňská 1330, Ústí nad Orlicí",
+        localityId: "l-usti-nad-orlici",
+        lat: 49.9702,
+        lng: 16.3893,
       })
     })
 
