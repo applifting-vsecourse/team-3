@@ -1,4 +1,4 @@
-import { nameProblem } from './name-policy';
+import { FALLBACK_NAME, nameProblem, toValidName } from './name-policy';
 
 describe('nameProblem (#153)', () => {
   it('accepts names with diacritics, a hyphen, an apostrophe and a dot', () => {
@@ -54,5 +54,27 @@ describe('nameProblem (#153)', () => {
     expect(nameProblem(". '")).toBe(
       'Jméno musí obsahovat aspoň jedno písmeno.',
     );
+  });
+});
+
+describe('toValidName (#154)', () => {
+  it('keeps a name that passes as it is', () => {
+    expect(toValidName('Žofie Řeháková-Štěpánková')).toBe(
+      'Žofie Řeháková-Štěpánková',
+    );
+  });
+
+  it("leaves out what doesn't belong in a name and cuts it to 60 characters", () => {
+    expect(toValidName('Jan Novák 2')).toBe('Jan Novák');
+    expect(toValidName('Jana 😀 Malá')).toBe('Jana Malá');
+    expect(toValidName(`${'a'.repeat(59)} Novák`)).toBe('a'.repeat(59));
+    expect(nameProblem(toValidName('<b>Petr</b>'))).toBeNull();
+  });
+
+  it('falls back to „Bez jména“ when nothing usable is left', () => {
+    expect(toValidName('12345')).toBe(FALLBACK_NAME);
+    expect(toValidName('😀')).toBe(FALLBACK_NAME);
+    expect(toValidName(undefined)).toBe(FALLBACK_NAME);
+    expect(nameProblem(FALLBACK_NAME)).toBeNull();
   });
 });

@@ -3,6 +3,7 @@ import { Module } from '@nestjs/common';
 import { CatalogModule } from './modules/catalog/catalog.module';
 import { EventModule } from './modules/event/event.module';
 import { GroupModule } from './modules/group/group.module';
+import { SignInProvidersModule } from './modules/sign-in-providers/sign-in-providers.module';
 import { SimulatedInboxModule } from './modules/simulated-inbox/simulated-inbox.module';
 import { WelcomeModule } from './modules/welcome/welcome.module';
 import { AuthModule } from './shared/auth/auth.module';
@@ -16,6 +17,7 @@ const imports = [
   EventModule,
   GroupModule,
   SimulatedInboxModule,
+  SignInProvidersModule,
 ];
 
 @Module({

@@ -6,6 +6,7 @@ import {
   withEmailFlows,
 } from '@/shared/auth/config/email-flows';
 import { rateLimitOptions } from '@/shared/auth/config/rate-limit';
+import { socialSignInOptions } from '@/shared/auth/config/social-sign-in';
 import { Config } from '@/shared/config/config.service';
 import { Inject, Provider } from '@nestjs/common';
 import { betterAuth } from 'better-auth';
@@ -31,6 +32,8 @@ const createAuth = (
       provider: 'postgresql',
     }),
     trustedOrigins: [config.frontendUrl],
+    // Google, when GOOGLE_CLIENT_ID and GOOGLE_CLIENT_SECRET are set (#154)
+    ...socialSignInOptions(config),
     rateLimit: rateLimitOptions,
     plugins: [...(betterAuthCoreConfig.plugins ?? [])],
   });

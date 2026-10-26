@@ -63,6 +63,13 @@ describe('stampConsent (#153)', () => {
     expect(stamped!.getTime()).toBeLessThanOrEqual(Date.now());
   });
 
+  it('writes it for an account from a sign-up with Google too (#154)', async () => {
+    for (const path of ['/callback/:id', '/sign-in/social']) {
+      const result = await stampConsent({}, { path });
+      expect(result?.data.termsAcceptedAt).toBeInstanceOf(Date);
+    }
+  });
+
   it('writes nothing for an account created any other way', async () => {
     await expect(
       stampConsent({}, { path: '/some-other-endpoint' }),
