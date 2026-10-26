@@ -91,6 +91,22 @@ export function describePasswordStrength(
   return { level, hint: hint || null }
 }
 
+/** The meter's bar: 4 parts, like Bitwarden's and the zxcvbn demo's. */
+export const STRENGTH_BARS = 4
+
+/**
+ * #153: how many of the bar's 4 parts to fill — zxcvbn's score, so the bar
+ * grows with every step even inside „slabé“ (score 1 → 2), and a password
+ * that fails B-010 fills one. Null while there is no verdict (as in
+ * describePasswordStrength).
+ */
+export function strengthBars(password: string, check: PasswordCheck | null): number | null {
+  if (!password) return null
+  if (missingForRule(password)) return 1
+  if (!check) return null
+  return Math.max(1, check.score)
+}
+
 const SITE_WORDS = ["hobbyhub", "hobby", "hub", "akce"]
 
 const withoutDiacritics = (text: string) => text.normalize("NFD").replace(/\p{M}/gu, "")

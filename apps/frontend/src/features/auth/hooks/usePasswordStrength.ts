@@ -7,6 +7,7 @@ import {
 import {
   describePasswordStrength,
   missingForRule,
+  strengthBars,
   type PasswordStrengthResult,
 } from "@/features/auth/lib/password"
 
@@ -23,7 +24,7 @@ const DEBOUNCE_MS = 300
 export function usePasswordStrength(
   password: string,
   userInputs: string[],
-): PasswordStrengthResult | null {
+): (PasswordStrengthResult & { bars: number }) | null {
   const inputsKey = userInputs.join("\n")
   // what was typed at the last pause
   const [settled, setSettled] = useState({ password: "", inputsKey: "" })
@@ -62,7 +63,9 @@ export function usePasswordStrength(
     // verdict is what's missing
     const isEstimated = checker !== null && typed !== "" && missingForRule(typed) === null
     const check = isEstimated ? checker.checkPassword(typed, words ? words.split("\n") : []) : null
-    return describePasswordStrength(typed, check)
+    const verdict = describePasswordStrength(typed, check)
+    const bars = strengthBars(typed, check)
+    return verdict && bars ? { ...verdict, bars } : null
   }, [settled, checker])
 
   return password ? result : null

@@ -6,7 +6,9 @@ import {
   PASSWORD_RULE,
   passwordSchema,
   passwordUserInputs,
+  strengthBars,
   strengthLevel,
+  type PasswordCheck,
   type PasswordScore,
 } from "@/features/auth/lib/password"
 
@@ -160,5 +162,23 @@ describe("passwordUserInputs (#153)", () => {
 
   it("still has the site's words before anything is filled in", () => {
     expect(passwordUserInputs("", "")).toEqual(["hobbyhub", "hobby", "hub", "akce"])
+  })
+})
+
+describe("strengthBars (#153)", () => {
+  const check = (score: PasswordScore): PasswordCheck => ({ score, warning: null, suggestions: [] })
+
+  it("follows zxcvbn's score, so a better weak password fills more of the bar", () => {
+    expect(strengthBars("heslo12345", check(0))).toBe(1)
+    expect(strengthBars("heslo12345", check(1))).toBe(1)
+    expect(strengthBars("Martin1990!#", check(2))).toBe(2)
+    expect(strengthBars("kolo2026jede", check(3))).toBe(3)
+    expect(strengthBars("kolo2026jede!", check(4))).toBe(4)
+  })
+
+  it("one part for a password the API would refuse, nothing for an empty field or no verdict yet", () => {
+    expect(strengthBars("correct horse battery staple", check(4))).toBe(1)
+    expect(strengthBars("", check(4))).toBeNull()
+    expect(strengthBars("heslo12345", null)).toBeNull()
   })
 })

@@ -52,12 +52,16 @@ const zxcvbn = new ZxcvbnFactory({
   translations: { ...czech, warnings, suggestions },
 })
 
+const MAX_CHECKED_LENGTH = 100
+
 /**
  * How many guesses the password would take (zxcvbn's score 0–4), knowing the
  * common and Czech dictionaries, names, keyboard rows, dates, repeats, l33t
  * and the user's own words (`userInputs`), with feedback when it is weak.
  */
 export function checkPassword(password: string, userInputs: string[]): PasswordCheck {
-  const { score, feedback } = zxcvbn.check(password, userInputs)
+  // only the first 100 characters: a long pasted password would freeze the
+  // page for seconds (zxcvbn's README suggests the same)
+  const { score, feedback } = zxcvbn.check(password.slice(0, MAX_CHECKED_LENGTH), userInputs)
   return { score, warning: feedback.warning, suggestions: feedback.suggestions }
 }

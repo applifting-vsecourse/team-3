@@ -1,12 +1,7 @@
 import { cn } from "@/lib/utils"
 
 import { usePasswordStrength } from "@/features/auth/hooks/usePasswordStrength"
-import {
-  PASSWORD_STRENGTH_LABELS,
-  type PasswordStrength as Strength,
-} from "@/features/auth/lib/password"
-
-const FILLED: Record<Strength, number> = { weak: 1, good: 2, strong: 3 }
+import { PASSWORD_STRENGTH_LABELS, STRENGTH_BARS } from "@/features/auth/lib/password"
 
 type PasswordStrengthProps = {
   password: string
@@ -16,8 +11,8 @@ type PasswordStrengthProps = {
 
 /**
  * #153: the strength of the password being typed and one piece of advice. The
- * word says it, so it reads without colour; the bar of three parts only
- * repeats it. A screen reader hears the word and the advice together after a
+ * word says it, so it reads without colour; the bar of four parts follows
+ * zxcvbn's score, so it grows with each better step, inside „slabé“ too. A screen reader hears the word and the advice together after a
  * pause in typing (a polite live region, present even while empty, or the
  * first change isn't announced).
  */
@@ -29,14 +24,15 @@ export function PasswordStrength({ password, userInputs }: PasswordStrengthProps
       {strength ? (
         <div
           aria-hidden
-          className="grid grid-cols-3 gap-1"
+          data-slot="password-strength-bar"
+          className="grid grid-cols-4 gap-1"
         >
-          {[1, 2, 3].map((part) => (
+          {Array.from({ length: STRENGTH_BARS }, (_, index) => index + 1).map((part) => (
             <span
               key={part}
               className={cn(
                 "h-1 rounded-full",
-                part <= FILLED[strength.level] ? "bg-foreground" : "bg-muted",
+                part <= strength.bars ? "bg-foreground" : "bg-muted",
               )}
             />
           ))}
