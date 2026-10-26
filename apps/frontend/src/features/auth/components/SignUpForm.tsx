@@ -1,11 +1,11 @@
 import type { ReactNode } from "react"
 import { zodResolver } from "@hookform/resolvers/zod"
-import { Link } from "@tanstack/react-router"
 import { Loader2 } from "lucide-react"
 import { useForm, type Control } from "react-hook-form"
 import { z } from "zod"
 
 import { ROUTES } from "@/app/routes"
+import { LegalLink } from "@/components/LegalLink"
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import { Button } from "@/components/ui/button"
 import { Checkbox } from "@/components/ui/checkbox"
@@ -173,13 +173,13 @@ export function SignUpForm({ isLoading, errorMessage, onSubmit }: SignUpFormProp
             control={form.control}
             name="termsAccepted"
           >
-            Souhlasím s <NewTabLink to={ROUTES.terms}>podmínkami užívání</NewTabLink>
+            Souhlasím s <LegalLink to={ROUTES.terms}>podmínkami užívání</LegalLink>
           </ConsentField>
           <ConsentField
             control={form.control}
             name="privacyAcknowledged"
           >
-            Beru na vědomí <NewTabLink to={ROUTES.privacy}>zpracování osobních údajů</NewTabLink>
+            Beru na vědomí <LegalLink to={ROUTES.privacy}>zpracování osobních údajů</LegalLink>
           </ConsentField>
         </div>
 
@@ -228,28 +228,5 @@ function ConsentField({ control, name, children }: ConsentFieldProps) {
         </FormItem>
       )}
     />
-  )
-}
-
-/**
- * Opens the page in a new tab, so what's typed in the form stays. It sits in
- * the label, but clicking it only follows the link; the checkbox stays as it is.
- */
-function NewTabLink({
-  to,
-  children,
-}: {
-  to: typeof ROUTES.terms | typeof ROUTES.privacy
-  children: ReactNode
-}) {
-  return (
-    <Link
-      to={to}
-      target="_blank"
-      className="font-medium text-foreground underline underline-offset-4"
-    >
-      {children}
-      <span className="sr-only"> (otevře se v novém panelu)</span>
-    </Link>
   )
 }

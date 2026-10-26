@@ -33,3 +33,22 @@ export const nameProblem = (name: string): string | null => {
   if (!LETTER.test(name)) return 'Jméno musí obsahovat aspoň jedno písmeno.';
   return null;
 };
+
+/** #154: the name an account gets when its own one can't be made to pass. */
+export const FALLBACK_NAME = 'Bez jména';
+
+/**
+ * A name that comes from elsewhere (a Google profile, #154) made to pass the
+ * rule instead of refusing the sign-in: the characters that don't belong are
+ * left out and the rest cut to 60 characters. One that still doesn't pass
+ * (only digits or emoji) becomes FALLBACK_NAME, which can be changed later.
+ */
+export const toValidName = (name: string | undefined): string => {
+  const kept = [...(name ?? '')]
+    .filter((character) => ALLOWED.test(character))
+    .join('')
+    .replace(/ {2,}/g, ' ')
+    .trim();
+  const cut = [...kept].slice(0, NAME_MAX_LENGTH).join('').trim();
+  return nameProblem(cut) === null ? cut : FALLBACK_NAME;
+};

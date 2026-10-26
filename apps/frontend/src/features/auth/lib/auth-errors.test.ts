@@ -1,6 +1,11 @@
 import { describe, expect, it } from "vitest"
 
-import { authErrorMessage, toAuthRequestError } from "@/features/auth/lib/auth-errors"
+import {
+  authErrorMessage,
+  GOOGLE_SIGN_IN_FAILED,
+  googleSignInErrorMessage,
+  toAuthRequestError,
+} from "@/features/auth/lib/auth-errors"
 
 describe("authErrorMessage", () => {
   it("turns BetterAuth's codes into Czech", () => {
@@ -56,5 +61,22 @@ describe("authErrorMessage", () => {
     const error = toAuthRequestError({ code: "TOKEN_EXPIRED" }, "x")
     expect(error.message).toBe("Odkaz už vypršel. Pošli si prosím nový.")
     expect(error.code).toBe("TOKEN_EXPIRED")
+  })
+})
+
+describe("googleSignInErrorMessage (#154)", () => {
+  it("says in Czech why Google didn't sign the user in", () => {
+    expect(googleSignInErrorMessage("access_denied")).toBe(
+      "Přihlášení přes Google je zrušené. Zkus to znovu, nebo se přihlas e-mailem.",
+    )
+    expect(googleSignInErrorMessage("account_not_linked")).toMatch(
+      /^Účet s tímto e-mailem už v HobbyHubu máš/,
+    )
+  })
+
+  it("anything else gets one Czech sentence, never the code from the URL", () => {
+    for (const code of ["invalid_code", "unable_to_link_account", "<script>"]) {
+      expect(googleSignInErrorMessage(code)).toBe(GOOGLE_SIGN_IN_FAILED)
+    }
   })
 })

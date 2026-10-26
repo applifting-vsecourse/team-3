@@ -7,6 +7,7 @@ import { AuthLayout } from "@/components/AuthLayout"
 import { Seo } from "@/components/Seo"
 
 import { authSessionQueryOptions } from "@/features/auth/api/authSessionQueryOptions"
+import { GoogleSignIn } from "@/features/auth/components/GoogleSignIn"
 import { SignUpForm, type SignUpValues } from "@/features/auth/components/SignUpForm"
 import { useSignUp } from "@/features/auth/hooks/useSignUp"
 import { safeRedirect } from "@/features/auth/lib/redirect"
@@ -76,6 +77,7 @@ function SignUpPage() {
           errorMessage={errorMessage}
           onSubmit={handleSubmit}
         />
+        <GoogleSignIn from={from} />
       </AuthLayout>
     </>
   )

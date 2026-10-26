@@ -11,6 +11,7 @@ Rozcestník podkladů k projektu. Agent i lidé začínají tady.
 | [zapis-planning-sprint2.md](zapis-planning-sprint2.md)       | Zápis z planningu s PO 13. 10. 2026 a změny ze standupu 19. 10.: happy path a scope sprintu 2 |
 | [design-rozhodnuti.md](design-rozhodnuti.md)                 | Kde se design vědomě liší od wireframů a proč                                                 |
 | [datovy-model.md](datovy-model.md)                           | Datový model MVP: ER diagram, přehled tabulek a pravidla, která hlídá backend                 |
+| [prihlaseni-pres-google.md](prihlaseni-pres-google.md)       | Jak zapnout přihlášení přes Google: OAuth klient v Google Cloud Console a proměnné v Coolify  |
 | Feature breakdown v3.4                                       | `HobbyHub_Feature_Breakdown_FINAL_sablona.xlsx` ve sdílené složce „Agilni vyvoj“ (čísla F-xx) |
 
 ## Odkazy

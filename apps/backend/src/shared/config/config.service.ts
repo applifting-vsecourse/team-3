@@ -96,4 +96,14 @@ export class Config {
   @Env('SMTP_PASSWORD')
   @IsOptional()
   readonly smtpPassword?: string;
+
+  // Sign-in with Google (#154): only with both set, otherwise the app offers
+  // e-mail and password alone. Setup: docs/prihlaseni-pres-google.md.
+  @Env('GOOGLE_CLIENT_ID', { expose: true })
+  @IsOptional()
+  readonly googleClientId?: string;
+
+  @Env('GOOGLE_CLIENT_SECRET')
+  @IsOptional()
+  readonly googleClientSecret?: string;
 }

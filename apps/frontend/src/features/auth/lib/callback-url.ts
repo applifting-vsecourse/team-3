@@ -2,7 +2,7 @@ import type { ParsedLocation } from "@tanstack/react-router"
 
 import { ROUTES } from "@/app/routes"
 
-import { encodeRedirectUri } from "@/features/auth/lib/redirect"
+import { encodeRedirectUri, safeRedirect } from "@/features/auth/lib/redirect"
 
 /**
  * Where the link in the verification e-mail leads once it has checked the
@@ -35,4 +35,19 @@ export const resendFrom = (location: ParsedLocation): string | undefined => {
     return undefined
   }
   return encodeRedirectUri(location)
+}
+
+/**
+ * #154: where Google sends the user back, through the backend — so absolute,
+ * like afterVerificationUrl. Signed in: `from`, only a path in this app, as
+ * after signing in with the password. Not signed in: the sign-in page with
+ * BetterAuth's `?error=`, keeping `from` for the next attempt.
+ */
+export const googleCallbackUrls = (from?: string) => {
+  const errorCallbackURL = new URL(ROUTES.login, window.location.origin)
+  if (from) errorCallbackURL.searchParams.set("from", from)
+  return {
+    callbackURL: new URL(safeRedirect(from, ROUTES.events), window.location.origin).toString(),
+    errorCallbackURL: errorCallbackURL.toString(),
+  }
 }

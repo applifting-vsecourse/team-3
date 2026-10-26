@@ -46,3 +46,20 @@ export class AuthRequestError extends Error {
 
 export const toAuthRequestError = (error: BetterAuthError, fallback: string) =>
   new AuthRequestError(authErrorMessage(error, fallback), error.code)
+
+export const GOOGLE_SIGN_IN_FAILED = "Přihlášení přes Google se nepovedlo. Zkus to prosím znovu."
+
+// What BetterAuth (or Google) puts in `?error=` when it sends the user back
+// without signing in (#154). Only these are told apart; the code is never shown.
+const GOOGLE_ERRORS: Record<string, string> = {
+  // cancelled on Google's page
+  access_denied: "Přihlášení přes Google je zrušené. Zkus to znovu, nebo se přihlas e-mailem.",
+  // an account with the e-mail exists, but its e-mail isn't verified, so it isn't linked
+  account_not_linked:
+    "Účet s tímto e-mailem už v HobbyHubu máš, jen v něm zatím není ověřený e-mail. Přihlas se heslem a ověř si e-mail, pak půjde i Google.",
+  email_not_found: "Google nám neposlal tvůj e-mail a bez něj se přihlásit nejde.",
+}
+
+/** #154: the Czech message for /login?error=… after Google. */
+export const googleSignInErrorMessage = (code: string): string =>
+  GOOGLE_ERRORS[code] ?? GOOGLE_SIGN_IN_FAILED
