@@ -140,6 +140,22 @@ describe("EmailVerifiedDialog", () => {
     expect(within(dialog).queryByRole("button", { name: "Poslat odkaz znovu" })).toBeNull()
   })
 
+  it("a link that didn't work, over the sign-in of a page that needs it: „Přihlásit se“ leaves that sign-in as it is", async () => {
+    const { router } = await renderDialog({
+      url: "/login?from=%252Fmoje-akce",
+      result: { error: "TOKEN_EXPIRED" },
+      user: null,
+    })
+
+    const dialog = screen.getByRole("dialog", { name: "E-mail se nepodařilo ověřit" })
+    // not a link to /login again: its `from` would be the sign-in, and that leads nowhere
+    expect(within(dialog).queryByRole("link", { name: "Přihlásit se" })).toBeNull()
+    await userEvent.click(within(dialog).getByRole("button", { name: "Přihlásit se" }))
+
+    await waitFor(() => expect(screen.queryByRole("dialog")).not.toBeInTheDocument())
+    expect(router.state.location.href).toBe("/login?from=%252Fmoje-akce")
+  })
+
   it("an unknown code still says the link didn't work", async () => {
     await renderDialog({ result: { error: "SOMETHING_NEW" }, user: null })
 

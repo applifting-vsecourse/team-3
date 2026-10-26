@@ -141,6 +141,12 @@ function VerificationOutcome({ result, user, location, onDone }: VerificationOut
             email={user.email}
             onDone={onDone}
           />
+        ) : location.pathname === ROUTES.login ? (
+          // the sign-in is right under the dialog (a page that needs it): a
+          // link to it again would lose where it leads afterwards
+          <DialogClose asChild>
+            <Button>Přihlásit se</Button>
+          </DialogClose>
         ) : (
           <Button asChild>
             <Link
