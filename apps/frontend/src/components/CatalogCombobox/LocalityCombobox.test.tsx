@@ -96,6 +96,18 @@ const privrat = {
     osm_key: "place",
     osm_value: "municipality",
     county: "okres Ústí nad Orlicí",
+    countrycode: "CZ",
+  },
+}
+const slovakPrivrat = {
+  type: "Feature",
+  geometry: { type: "Point", coordinates: [18.2, 48.62] },
+  properties: {
+    name: "Prívrat",
+    osm_key: "place",
+    osm_value: "village",
+    county: "okres Topoľčany",
+    countrycode: "SK",
   },
 }
 
@@ -304,5 +316,31 @@ describe("LocalityCombobox", () => {
       .map(([input, init]) => (input instanceof Request ? input : new Request(String(input), init)))
       .find((request) => request.method === "POST")
     expect(saved?.url).toMatch(/\/localities$/)
+  })
+
+  it("offers only Czech places, not a village over the border", async () => {
+    answerPlaces(slovakPrivrat, privrat)
+    render(<Field />)
+
+    await userEvent.click(field())
+    await userEvent.type(searchField(), "privrat")
+
+    expect(await screen.findByRole("option", { name: /Přívrat/ })).toHaveTextContent(
+      "okres Ústí nad Orlicí",
+    )
+    expect(screen.queryByRole("option", { name: /Prívrat/ })).not.toBeInTheDocument()
+  })
+
+  it("asks OpenStreetMap only for places in Czechia", async () => {
+    const fetchMock = answerPlaces(privrat)
+    render(<Field />)
+
+    await userEvent.click(field())
+    await userEvent.type(searchField(), "privrat")
+    await screen.findByRole("option", { name: /Přívrat/ })
+
+    const [input, init] = fetchMock.mock.calls[0] ?? []
+    const request = input instanceof Request ? input : new Request(String(input), init)
+    expect(new URL(request.url).searchParams.get("countrycode")).toBe("CZ")
   })
 })

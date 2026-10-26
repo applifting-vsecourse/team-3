@@ -12,7 +12,7 @@ import { foldText } from "@/lib/catalog/textSearch"
  * works: picking one saves it as a locality (POST /localities).
  */
 const PHOTON_URL = "https://photon.komoot.io/api/"
-/** Czechia and a little around it, `minLon,minLat,maxLon,maxLat`. */
+/** Czechia and a little around it, `minLon,minLat,maxLon,maxLat`; places outside Czechia are dropped. */
 const CZECHIA_BBOX = "12.09,48.55,18.86,51.06"
 export const PLACE_SEARCH_MIN_LENGTH = 2
 const MAX_PLACES = 6
@@ -40,6 +40,7 @@ const photonPlacesSchema = z.object({
         county: z.string().optional(),
         city: z.string().optional(),
         state: z.string().optional(),
+        countrycode: z.string().optional(),
       }),
     }),
   ),
@@ -59,7 +60,8 @@ export type OnlinePlace = {
 export const toOnlinePlaces = (response: unknown): OnlinePlace[] => {
   const places = new Map<string, OnlinePlace>()
   for (const { geometry, properties: p } of photonPlacesSchema.parse(response).features) {
-    if (!p.name || !PLACE_KINDS.has(p.osm_value ?? "")) continue
+    // the box reaches into Slovakia, Poland, Germany and Austria: a locality is a Czech place
+    if (!p.name || !PLACE_KINDS.has(p.osm_value ?? "") || p.countrycode !== "CZ") continue
     const [lng = 0, lat = 0] = geometry.coordinates
     const area = [p.city && p.city !== p.name ? p.city : undefined, p.county ?? p.state]
       .filter(Boolean)
@@ -78,6 +80,8 @@ const searchPlaces = async (text: string, signal: AbortSignal): Promise<OnlinePl
   url.searchParams.set("limit", "15")
   url.searchParams.set("bbox", CZECHIA_BBOX)
   url.searchParams.set("osm_tag", "place")
+  // foreign hits would take the slots before toOnlinePlaces drops them
+  url.searchParams.set("countrycode", "CZ")
   const controller = new AbortController()
   const timeout = setTimeout(() => controller.abort(), TIMEOUT_MS)
   const abort = () => controller.abort()
