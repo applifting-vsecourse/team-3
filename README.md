@@ -19,10 +19,10 @@ HobbyHub helps people find others for their hobbies: organizers post an event (a
 
 ## How we work
 
-- **Every change goes through a branch and a pull request** — nobody pushes to `main`. Branch from `main` and name the branch after the issue: `feat/<issue>-<slug>`, `fix/<issue>-<slug>`, `docs/<slug>`.
+- **Every change goes through a branch and a pull request** — nobody pushes to `main`. Branch from `main` and name the branch `<type>/<issue>-<slug>`, where the type is `feat`, `fix`, `polish` or `docs` and the issue number is there when the change has an issue (`feat/39-detail-akce`, `fix/address-czech-only`). `main` is protected by a ruleset: no direct pushes or force pushes.
 - **Every PR needs an approval from a teammate** before it is merged, and CI (`pnpm check-all`) has to pass. The author doesn't approve their own PR.
 - Before merging, run the agent review in Claude Code: `/review-branch` (or `/review-branch <PR number>`). It checks the branch against `main`, [CLAUDE.md](CLAUDE.md) and the story, and doesn't change code. The prompt is in [.claude/commands/review-branch.md](.claude/commands/review-branch.md).
-- The PR description follows the [template](.github/pull_request_template.md) and links the issue with `Refs #<number>`, not `Closes` — the PO closes the issue after accepting it on staging.
+- The PR description follows the [template](.github/pull_request_template.md) and links the story or issue with `Refs #<number>`, not `Closes` — the PO closes the issue after accepting it on staging. A PR without an issue says in one sentence why it is needed. (Applies to every PR after #171.)
 - Merged to `main` = deployed to staging.
 - What "ready" and "done" mean: [Definition of Ready & Done](docs/definition-of-ready-a-done.md).
 
