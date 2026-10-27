@@ -21,6 +21,7 @@ HobbyHub helps people find others for their hobbies: organizers post an event (a
 
 - **Every change goes through a branch and a pull request** — nobody pushes to `main`. Branch from `main` and name the branch after the issue: `feat/<issue>-<slug>`, `fix/<issue>-<slug>`, `docs/<slug>`.
 - **Every PR needs an approval from a teammate** before it is merged, and CI (`pnpm check-all`) has to pass. The author doesn't approve their own PR.
+- Before merging, run the agent review in Claude Code: `/review-branch` (or `/review-branch <PR number>`). It checks the branch against `main`, [CLAUDE.md](CLAUDE.md) and the story, and doesn't change code. The prompt is in [.claude/commands/review-branch.md](.claude/commands/review-branch.md).
 - The PR description follows the [template](.github/pull_request_template.md) and links the issue with `Refs #<number>`, not `Closes` — the PO closes the issue after accepting it on staging.
 - Merged to `main` = deployed to staging.
 - What "ready" and "done" mean: [Definition of Ready & Done](docs/definition-of-ready-a-done.md).
