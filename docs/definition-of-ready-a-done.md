@@ -15,7 +15,7 @@ Story, která splňuje všechny body, dostane label `ready` a může do Sprint B
 
 ## Před otevřením pull requestu
 
-Vývojář projde checklist dřív, než otevře PR. Do PR jde jen to, co je otestované. Checklist je i v šabloně PR (`.github/pull_request_template.md`), takže se u každého PR zobrazí sám.
+Vývojář projde checklist dřív, než otevře PR. Do PR jde jen to, co je otestované. Stejný checklist je zkráceně v šabloně PR (`.github/pull_request_template.md`), takže se u každého PR zobrazí sám, a navíc: autor si sám přečte celé Files changed a umí vysvětlit každou změnu. Agentní review se spouští příkazem `/review-branch`.
 
 - [ ] Prošel/a jsem v issue všechna akceptační kritéria a ověřil/a je v běžící aplikaci.
 - [ ] Splněné jsou i body „Hotovo, když“ u příslušných B-xxx v BACKLOG.md, včetně požadovaných testů.
@@ -23,7 +23,7 @@ Vývojář projde checklist dřív, než otevře PR. Do PR jde jen to, co je ote
 - [ ] `pnpm check-all` prošel lokálně bez chyb.
 - [ ] Ručně jsem prošel/a hlavní scénář (u UI na desktopu i mobilu) a odpovídá Figmě a DESIGN.md.
 - [ ] Kód zkontroloval nezávislý AI agent proti akceptačním kritériím a jeho připomínky jsou opravené.
-- [ ] PR řeší jen tuto issue a v popisu je `Refs #číslo`.
+- [ ] PR řeší jen tuto issue a v popisu je `Refs #číslo` (story nebo issue; PR bez issue jednou větou vysvětlí, proč je potřeba).
 - [ ] Issue jsem na boardu sprintu posunul/a z **In Progress** do **Ready for Code Review**.
 
 PR odkazuje na issue přes `Refs #číslo`, ne `Closes`. Issue se mergem nezavírá, zavírá ji PO po akceptaci na stagingu.
