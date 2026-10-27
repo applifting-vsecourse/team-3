@@ -28,5 +28,5 @@ Rozcestník podkladů k projektu. Agent i lidé začínají tady.
 
 1. User story = issue se štítkem `user story`, úkoly B-0xx jsou její sub-issues.
 2. Úkol bere ten, kdo si ho přiřadí (Assignee) a přesune do In progress.
-3. Jeden úkol = jeden PR s `Closes #číslo` v popisu; PR projde review nezávislým agentem.
+3. Jeden úkol = jeden PR s `Refs #číslo` v popisu, ne `Closes` (issue zavírá PO po akceptaci na stagingu); PR projde review nezávislým agentem (`/review-branch`) a schválí ho spoluhráč.
 4. Hotové se nasazuje na staging průběžně, ne až před demem.
