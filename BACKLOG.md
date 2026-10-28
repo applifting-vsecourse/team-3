@@ -71,7 +71,7 @@ Zdroj: `HobbyHub_User_Stories_MVP.md` (US-01 až US-19, odvozené z Feature brea
 | B-055                          | Akce skupiny                                                  | US-18               | FS     | M    | B-053, B-022, B-034 |
 | B-056                          | Moje skupiny                                                  | US-17               | FS     | S    | B-053               |
 | **Fáze 6 – Důvěra**            |                                                               |                     |        |      |                     |
-| B-060                          | Hodnocení akce a organizátora                                 | US-09               | FS     | M    | B-031, B-043        |
+| B-060                          | Hodnocení akce, organizátora a účastníka                      | US-09               | FS     | M    | B-031, B-043        |
 | B-061                          | Nahlášení uživatele, akce, skupiny, hodnocení                 | US-10               | FS     | S    | B-060, B-052        |
 | B-062                          | Administrace – přístup a fronta nahlášení                     | US-19               | FS     | M    | B-061               |
 | B-063                          | Zásahy superadmina a jejich historie                          | US-19               | FS     | M    | B-062               |
@@ -236,8 +236,9 @@ Staging a CI/CD (F-59, F-60) už v repu jsou (`.github/workflows/ci.yml`, `deplo
 **Cíl:** Uživatel vyplní profil, domovská lokalita je výchozí ve filtrech.
 
 - `GET/PATCH /api/me/profile`: jméno, fotka (URL, viz otevřené otázky), bio (max 500 znaků), zájmy (aktivity), domovská lokalita.
-- `GET /api/users/:id` – veřejný profil (respektuje B-014).
-- FE: stránka `/profil` (úprava) a `/uzivatele/:id` (zobrazení). Po prvním přihlášení se nevyplněný profil nabídne (onboarding: zájmy + lokalita, jde přeskočit).
+- `GET /api/users/:id` – veřejný profil: jen jméno, průměrné hodnocení (B-060) a zájmy. E-mail, historii akcí ani skupiny nevrací, ty vidí jen uživatel sám (PO 28. 10., #179). Víc údajů až s přátelstvím (B-014).
+- FE: stránka `/profil` (úprava a přehled mých akcí, skupin a hodnocení, #178) a `/uzivatele/:id` (zobrazení, #179). Po prvním přihlášení se nevyplněný profil nabídne (onboarding: zájmy + lokalita, jde přeskočit).
+- Sprint 3 (#178): jméno, domovská lokalita a zájmy; fotka a bio zůstávají v #64.
 
 **Hotovo, když:**
 
@@ -251,6 +252,8 @@ Staging a CI/CD (F-59, F-60) už v repu jsou (`.github/workflows/ci.yml`, `deplo
 `US-05` · FS · S · závisí na: B-013
 
 **Cíl:** Uživatel rozhoduje, kdo vidí fotku, bio a navštívené akce.
+
+> Odloženo (PO 28. 10.): nastavení viditelnosti přijde až s přátelstvím. Do té doby veřejný profil ukazuje jen jméno, hodnocení a zájmy (B-013).
 
 - U každého z polí `photo`, `bio`, `pastEvents` volba: `everyone` / `organizers` (jen organizátoři akcí, na které se hlásím) / `nobody`. Výchozí `everyone`.
 - Filtrování dělá **backend** v `GET /api/users/:id`. Jméno vidí organizátor akce, na kterou se uživatel hlásí, vždy.
@@ -409,16 +412,18 @@ Doménová logika (čistá funkce + testy): `approvedCount`, `missingToMin = max
 
 **Cíl:** Doplňky stránky `/akce`, které nejsou ve sprintu 2 (sprint 3).
 
-- Klepnutí na špendlík otevře náhled (název, termín, kolik chybí) s proklikem na detail (A-03a).
+- Klepnutí na špendlík otevře náhled (název, termín, kolik chybí, krátký popisek) s proklikem na detail (A-03a, #56).
 - Blízké akce se shlukují do bubliny s počtem (klepnutí přiblíží), např. Leaflet.markercluster.
 - Po posunu mapy tlačítko „Hledat v této oblasti“ (parametr `bbox`).
-- Hledání podle názvu (`q`) není hlavní prvek: desktop vpravo v liště filtrů, mobil lupa v hlavičce.
-- Řazení podle vzdálenosti od středu zvolené lokality.
+- Hledání (`q`) podle názvu i klíčových slov aktivity (`Activity.keywords`) není hlavní prvek: desktop vpravo v liště filtrů, mobil lupa v hlavičce (#57).
+- Okolí zvolené lokality +10 / 25 / 50 km (bounding box / vzdálenost ze souřadnic katalogu, BE rozšíří where-builder z B-023).
+- Řazení podle vzdálenosti od středu zvolené lokality; vzdálenost na kartě akce.
 
 **Hotovo, když:**
 
 - [ ] Při 500 bodech je mapa čitelná díky shlukům.
-- [ ] Hledání najde akci bez ohledu na velikost písmen a diakritiku.
+- [ ] Hledání najde akci podle názvu i klíčového slova aktivity bez ohledu na velikost písmen a diakritiku.
+- [ ] Testy where-builderu pro okolí.
 
 ---
 
@@ -442,13 +447,14 @@ Doménová logika (čistá funkce + testy): `approvedCount`, `missingToMin = max
 
 `US-01` · FS · M · závisí na: B-023, B-026
 
-- `GET /api/geo/locality` – odhad lokality podle IP (viz otevřené otázky). IP ani výsledek se **neukládají** (ani do logů). Když nejde zjistit → Praha.
+- Výchozí lokalita na `/`, `/akce` a `/skupiny` (tým 28. 10., #55): domovská lokalita z profilu → jinak odhad podle IP → když selže, **celé Česko** (ne Praha). „Zrušit vše“ zruší všechny filtry včetně lokality a vrátí výchozí.
+- `GET /api/geo/locality` – odhad lokality podle IP (viz otevřené otázky). IP ani výsledek se **neukládají** (ani do logů). Když nejde zjistit → celé Česko.
 - Stránka `/`: jedna věta, co HobbyHub dělá; náhled nadcházejících akcí v lokalitě (3 akce, řazení podle termínu – otevřená otázka F-68); ruční změna lokality bez registrace (uloží se jen v prohlížeči); proklik na detail a na celý přehled `/akce`.
 - Nepoužívej layout hero + tři karty (DESIGN.md).
 
 **Hotovo, když:**
 
-- [ ] Test: služba při chybě geolokace vrátí Prahu.
+- [ ] Test: služba při chybě geolokace vrátí celé Česko; přihlášený s domovskou lokalitou dostane ji.
 
 ---
 
@@ -719,13 +725,14 @@ Doménová logika (čistá funkce + testy): `approvedCount`, `missingToMin = max
 
 # Fáze 6 – Důvěra
 
-### B-060 Hodnocení akce a organizátora
+### B-060 Hodnocení akce, organizátora a účastníka
 
 `US-09` · FS · M · závisí na: B-031, B-043
 
 - Model `Rating`: `eventId`, `userId`, `eventStars` 1–5, `comment?`, `organizerStars` 1–5. Jedno hodnocení na uživatele a akci.
+- Hodnocení účastníka organizátorem (PO 28. 10.): 1–5 hvězdiček, jedno na účastníka a akci, jen u proběhlé akce a jen `approved` účastníka. Model a výpočet průměrů ve sprintu 3 (#180), dávání hodnocení ve sprintu 4 (#66).
 - Hodnotit smí jen ten, kdo byl na akci `approved`, a až po skončení akce. Potvrzená docházka podmínkou není.
-- Hodnocení organizátora se počítá k osobě, u akce skupiny ke skupině. Průměr u profilu / stránky skupiny.
+- Hodnocení organizátora se počítá k osobě, u akce skupiny ke skupině. Průměr jako organizátor a jako účastník (čistá funkce) je u profilu (B-013) / stránky skupiny.
 - Organizátor vidí hodnocení a komentáře svých akcí (ve správě akce).
 - FE: stránka `/akce/:id/hodnoceni` (sem vede odkaz z e-mailu).
 
@@ -905,7 +912,7 @@ Dokud tým nebo PO nerozhodne jinak, agent použije výchozí volbu.
 | #   | Otázka                                                                            | Výchozí volba                                                                              | Kdo rozhodne |
 | --- | --------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------ | ------------ |
 | Q1  | Mapa a našeptávač míst (poznámky zmiňují Google Maps)                             | Leaflet + OSM, místo klikem do mapy + textová adresa, lokality z vlastního číselníku       | Tým          |
-| Q2  | Služba pro odhad lokality z IP                                                    | Jednoduchá offline databáze (např. GeoLite2 City), při chybě Praha                         | Tým          |
+| Q2  | Služba pro odhad lokality z IP                                                    | Jednoduchá offline databáze (např. GeoLite2 City), při chybě celé Česko (tým 28. 10.)      | Tým          |
 | Q3  | Nahrávání fotek (profil, skupina)                                                 | V MVP jen URL obrázku                                                                      | Tým          |
 | Q4  | Podle čeho vybírat akce na úvodní stránce (F-68)                                  | Nejbližší termín v lokalitě, topované první                                                | PO           |
 | Q5  | Text obchodních podmínek a zásad ochrany údajů (F-65)                             | Placeholder                                                                                | PO           |

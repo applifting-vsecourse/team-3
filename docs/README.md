@@ -9,6 +9,7 @@ Rozcestník podkladů k projektu. Agent i lidé začínají tady.
 | [HobbyHub_User_Stories_MVP.md](HobbyHub_User_Stories_MVP.md) | User stories US-01 až US-19 s akceptačními kritérii (zdroj pro issues `user story`)           |
 | [../BACKLOG.md](../BACKLOG.md)                               | Rozpad stories na úkoly B-0xx pro agenta, pořadí a závislosti                                 |
 | [zapis-planning-sprint2.md](zapis-planning-sprint2.md)       | Zápis z planningu s PO 13. 10. 2026 a změny ze standupu 19. 10.: happy path a scope sprintu 2 |
+| [zapis-planning-sprint3.md](zapis-planning-sprint3.md)       | Zápis z planningu s PO 28. 10. 2026: životní cyklus akce, scope a rozhodnutí sprintu 3        |
 | [design-rozhodnuti.md](design-rozhodnuti.md)                 | Kde se design vědomě liší od wireframů a proč                                                 |
 | [datovy-model.md](datovy-model.md)                           | Datový model MVP: ER diagram, přehled tabulek a pravidla, která hlídá backend                 |
 | [prihlaseni-pres-google.md](prihlaseni-pres-google.md)       | Jak zapnout přihlášení přes Google: OAuth klient v Google Cloud Console a proměnné v Coolify  |

@@ -141,6 +141,8 @@ PO teď nechce řešit hodnocení a funkce kolem, rozšiřovaly by scope bez vli
 
 ## K prokonzultování na příštím standupu
 
+> Otevřené otázky z tohoto seznamu rozhodl tým (PO 24. 10.). Nové věci jsou v [zápisu z planningu sprintu 3](zapis-planning-sprint3.md).
+
 1. **Filtr „Chybí lidé“:** tým ho přidal do designu i do sprintu 2 (hlavní hodnota produktu, ve wireframech nebyl). Odsouhlasit.
 2. **Zapomenuté heslo:** má být ve scopu sprintu 2 i zapomenuté heslo? máme to teď jako jednu issue dohromady s ověřením emailu.
 3. **Mobil – výchozí pohled /akce (US-02):** mapa přes celou obrazovku a seznam ve vysouvacím panelu místo „výchozí je seznam, na mapu se přepíná“. Odpovídá na otázku z wireframu A-03. Odsouhlasit.
