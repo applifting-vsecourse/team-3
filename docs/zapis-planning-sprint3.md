@@ -28,6 +28,7 @@ Co nejdřív uděláme **bezpečnostní audit** a **UX audit** (PO).
 |                                  | U akce skupiny vidí jména i členové skupiny                                                                                                                                                                  | tým                           |                   |
 | Zpráva k žádosti                 | Nepovinná zpráva k žádosti o účast na akci i o členství ve skupině                                                                                                                                           | Veronika, PO souhlasí         | #175              |
 | Akce skupin                      | Propojit skupiny s akcemi (soukromé i veřejné akce skupiny); člen vidí, jaké akce skupina pořádala v minulosti                                                                                               | PO                            | #70               |
+| Oznámení ve skupině              | Správce pošle oznámení všem členům skupiny, přijde e-mail                                                                                                                                                    | tým                           | #194              |
 | Zprávy organizátora a upozornění | Organizátor pošle účastníkům zprávu, přijde e-mail / notifikace                                                                                                                                              | PO                            | #176, #177        |
 |                                  | Zpráva je i na detailu akce; seznam upozornění (schválení, zamítnutí, změna, zrušení, nová žádost, odhlášení)                                                                                                | tým                           |                   |
 | Můj profil                       | Základní informace, změna hesla, akce, které jsem pořádal, na kterých jsem byl a na které jsem přihlášený, moje skupiny, hodnocení, které jsem dostal, a kolik mám hvězdiček; hodnocení zatím jen z databáze | PO                            | #178 (z #64)      |
@@ -37,7 +38,7 @@ Co nejdřív uděláme **bezpečnostní audit** a **UX audit** (PO).
 | Testovací data                   | Verze dat, oblasti mimo Prahu                                                                                                                                                                                | Veronika                      | #181              |
 |                                  | Víc proběhlých akcí, data pro nové funkce (hodnocení, akce skupin)                                                                                                                                           | tým                           |                   |
 | Hodnocení v datovém modelu       | Hodnotit jde účastníka a akci (PO), dávání hodnocení je další sprint                                                                                                                                         | PO                            | #180              |
-| Registrace                       | Skutečné ověřovací e-maily místo simulace, Google na stagingu, potvrzení 18+                                                                                                                                 | tým                           | #165, #154, #107  |
+| Registrace                       | Skutečné ověřovací e-maily místo simulace, Google na stagingu                                                                                                                                                | tým                           | #165, #154        |
 | Úvodní stránka                   | Další sekce akcí: v okolí, tento víkend, chybí lidé, podle mých zájmů, od dobře hodnocených organizátorů                                                                                                     | tým                           | #182              |
 | Chyby z testu se 100 testery     | Jasné chyby z #167 jako bugy                                                                                                                                                                                 | tým                           | #183–#192         |
 
@@ -49,6 +50,14 @@ Co nejdřív uděláme **bezpečnostní audit** a **UX audit** (PO).
 - **Výchozí lokalita (tým):** z profilu, bez profilu podle IP, jinak celé Česko. Nahrazuje „vždy Praha“ (#38, #170).
 - **Organizátor na vlastní akci (tým):** se může přihlásit, platí Q12.
 
+## Pořadí ve sprintu (tým)
+
+Issues mají label s prioritou:
+
+- **P1: nejdřív** – audity, verze dat a datový model: #172, #173, #181, #180.
+- **P2: jádro sprintu** – životní cyklus akce a nejčastější chyby. E-mailovou službu (#177) a Kdo jde (#174) udělat dřív než zprávy (#175, #176).
+- **P3: když zbude čas** – hodnota navíc a bugy, které se při ověření neprojevily.
+
 ## Mimo scope sprintu 3
 
 | Co                                                                                                                                       | Proč                                    |
@@ -57,6 +66,7 @@ Co nejdřív uděláme **bezpečnostní audit** a **UX audit** (PO).
 | Dávání hodnocení (#66)                                                                                                                   | PO: další sprint (bonus jsme nevzali)   |
 | Přátelství a víc údajů ve veřejném profilu                                                                                               | PO: budoucí sprinty                     |
 | Nastavení viditelnosti, fotka a bio, export a smazání účtu (#64)                                                                         | Tým: s přátelstvím / backlog            |
+| Potvrzení věku 18+ (#107)                                                                                                                | Tým: po rozdělení priorit, backlog      |
 | Odebrání a blokace člena (#63), další správci (#62, #100), odebrání účastníka a hromadné schválení (#60), plánované e-maily (B-043, #65) | Na standupu nezazněly                   |
 
 ## Dohody (PO)
