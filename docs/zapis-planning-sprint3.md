@@ -52,11 +52,11 @@ Co nejdřív uděláme **bezpečnostní audit** a **UX audit** (PO).
 
 ## Pořadí ve sprintu (tým)
 
-Issues mají label s prioritou:
+Všechno níže je ve sprintu 3, priorita určuje jen pořadí. Issues mají label:
 
 - **P1: nejdřív** – audity, verze dat a datový model: #172, #173, #181, #180.
 - **P2: jádro sprintu** – životní cyklus akce a nejčastější chyby. E-mailovou službu (#177) a Kdo jde (#174) udělat dřív než zprávy (#175, #176).
-- **P3: když zbude čas** – hodnota navíc a bugy, které se při ověření neprojevily.
+- **P3: po P1 a P2** – veřejný profil, úvodní stránka, proběhlé akce, Google, oznámení ve skupině a menší bugy; u #184, #191 a #192 nejdřív ověřit, jestli ještě platí.
 
 ## Mimo scope sprintu 3
 
