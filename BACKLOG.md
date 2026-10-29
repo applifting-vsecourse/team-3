@@ -697,7 +697,7 @@ Doménová logika (čistá funkce + testy): `approvedCount`, `missingToMin = max
 
 `US-18, US-12, US-13` · FS · M · závisí na: B-053, B-022, B-034
 
-- Založení akce s `groupId` smí kterýkoli správce; aktivita předvyplněná a zamčená podle skupiny. Volba viditelnosti **jen pro členy** / **veřejná**.
+- Založení akce s `groupId` smí kterýkoli správce; aktivita předvyplněná a zamčená podle skupiny. Volba viditelnosti **veřejná** (`public`) / **soukromá** (`members`, vidí a hlásí se jen členové; PO 29. 10.: skupiny pořádají soukromé i veřejné akce).
 - U akce je jako organizátor uvedena skupina s proklikem.
 - Oprávnění správy akce (úprava, zrušení, účastníci, zprávy, docházka, topování) rozšiř na **všechny správce skupiny** – jedna sdílená funkce `canManageEvent(user, event)` použitá všude.
 - Členové dostanou e-mail o nové akci a hlásí se sami.
