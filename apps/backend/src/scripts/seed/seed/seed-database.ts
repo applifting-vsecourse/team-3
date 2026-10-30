@@ -3,7 +3,11 @@ import { BetterAuth } from '@/shared/auth/providers/better-auth.provider';
 import { Config } from '@/shared/config/config.service';
 import { ensureUser } from './ensure-user';
 import { seedCatalog } from './seed-catalog';
+import { seedCommunity } from './seed-community';
 import { seedDemo } from './seed-demo';
+
+/** Passes the sign-up's name rule (#153): no brackets, unlike the template's. */
+export const SUPERADMIN_NAME = 'Správce HobbyHubu';
 
 /**
  * Seed je opakovatelný: lokálně ho spouští každý `pnpm dev`, na stagingu každý start
@@ -13,6 +17,8 @@ import { seedDemo } from './seed-demo';
  * 2. Superadmin z SUPERADMIN_EMAIL / SUPERADMIN_PASSWORD – když chybí.
  * 3. Testovací data #47 – vypnout jde proměnnou SEED_DEMO_DATA=false
  *    (např. v produkci, která zatím není).
+ * 4. Komunita (100 uživatelů s akcemi a skupinami po Česku) – pod stejným
+ *    přepínačem, vkládá se jednou i do databáze, která už data má.
  */
 export const seedDatabase = async (
   prisma: PrismaService,
@@ -29,7 +35,7 @@ export const seedDatabase = async (
     const { created } = await ensureUser(prisma, betterAuth, {
       email: config.superadminEmail,
       password: config.superadminPassword,
-      name: 'Admin (Delete in Prod)',
+      name: SUPERADMIN_NAME,
       username: 'superadmin',
       role: 'admin',
       emailVerified: true,
@@ -48,4 +54,5 @@ export const seedDatabase = async (
   }
 
   await seedDemo(prisma, betterAuth);
+  await seedCommunity(prisma, betterAuth);
 };

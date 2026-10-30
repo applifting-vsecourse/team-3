@@ -5,6 +5,8 @@ import { cs } from "react-day-picker/locale"
 import { useForm, useWatch } from "react-hook-form"
 import { z } from "zod"
 
+import { ActivityCombobox } from "@/components/CatalogCombobox/ActivityCombobox"
+import { LocalityCombobox } from "@/components/CatalogCombobox/LocalityCombobox"
 import { LocationPicker } from "@/components/map/LocationPicker"
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import { Button } from "@/components/ui/button"
@@ -21,20 +23,12 @@ import {
 import { Input } from "@/components/ui/input"
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
-import {
-  Select,
-  SelectContent,
-  SelectGroup,
-  SelectItem,
-  SelectLabel,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select"
 import { Textarea } from "@/components/ui/textarea"
 import type { Catalog } from "@/lib/catalog/catalogSearch"
-import { DEFAULT_LOCALITY_SLUG, localityOptions } from "@/lib/catalog/localityOptions"
+import { DEFAULT_LOCALITY_SLUG } from "@/lib/catalog/localityOptions"
 import { cn } from "@/lib/utils"
 
+import { localityOfAddress } from "@/features/events/api/addressSearch"
 import {
   EVENT_ADDRESS_MAX_LENGTH,
   EVENT_DESCRIPTION_MAX_LENGTH,
@@ -42,6 +36,7 @@ import {
   EVENT_TITLE_MAX_LENGTH,
   type EventInput,
 } from "@/features/events/api/eventSchemas"
+import { AddressCombobox } from "@/features/events/components/AddressCombobox"
 import { dateToDay, dayToDate, pragueToday } from "@/features/events/lib/dateRange"
 import { formatDay } from "@/features/events/lib/formatEvent"
 import { eventTimes, toPragueWallTime } from "@/features/events/lib/pragueTime"
@@ -205,17 +200,10 @@ export function EventForm({
   })
 
   const localityId = useWatch({ control: form.control, name: "localityId" })
+  const place = useWatch({ control: form.control, name: "place" })
   const mapCenter = catalog.localities.find((l) => l.id === localityId) ??
     catalog.localities.find((l) => l.slug === DEFAULT_LOCALITY_SLUG) ??
     catalog.localities[0] ?? { lat: 50.0755, lng: 14.4378 }
-
-  const activityLabel = (id: string) => {
-    for (const category of catalog.categories) {
-      const activity = category.activities.find((a) => a.id === id)
-      if (activity) return `${category.name} › ${activity.name}`
-    }
-    return undefined
-  }
 
   return (
     <Form {...form}>
@@ -285,41 +273,16 @@ export function EventForm({
               render={({ field }) => (
                 <FormItem className="order-2 md:order-none">
                   <FormLabel>Aktivita *</FormLabel>
-                  <Select
-                    value={field.value}
-                    onValueChange={field.onChange}
-                    disabled={isEdit}
-                  >
-                    <FormControl>
-                      <SelectTrigger
-                        ref={field.ref}
-                        onBlur={field.onBlur}
-                        className="w-full text-base data-[size=default]:h-11 md:text-sm"
-                      >
-                        <SelectValue placeholder="Vyber aktivitu">
-                          {field.value ? activityLabel(field.value) : undefined}
-                        </SelectValue>
-                      </SelectTrigger>
-                    </FormControl>
-                    <SelectContent
-                      position="popper"
-                      className="max-h-80"
-                    >
-                      {catalog.categories.map((category) => (
-                        <SelectGroup key={category.id}>
-                          <SelectLabel>{category.name}</SelectLabel>
-                          {category.activities.map((activity) => (
-                            <SelectItem
-                              key={activity.id}
-                              value={activity.id}
-                            >
-                              {activity.name}
-                            </SelectItem>
-                          ))}
-                        </SelectGroup>
-                      ))}
-                    </SelectContent>
-                  </Select>
+                  <FormControl>
+                    <ActivityCombobox
+                      categories={catalog.categories}
+                      ref={field.ref}
+                      value={field.value}
+                      onChange={field.onChange}
+                      onBlur={field.onBlur}
+                      disabled={isEdit}
+                    />
+                  </FormControl>
                   {isEdit ? (
                     <p className="text-sm text-muted-foreground">
                       Aktivitu po založení změnit nejde.
@@ -495,6 +458,11 @@ export function EventForm({
                       {...field}
                     />
                   </FormControl>
+                  {/* level, price and gear aren't fields yet: the description answers
+                      „is it for me?“ */}
+                  <FormDescription>
+                    Napiš, pro koho akce je, jaká úroveň stačí, kolik stojí a co si vzít s sebou.
+                  </FormDescription>
                   <FormMessage />
                 </FormItem>
               )}
@@ -566,34 +534,15 @@ export function EventForm({
               render={({ field }) => (
                 <FormItem className="order-3 md:order-none">
                   <FormLabel>Lokalita *</FormLabel>
-                  <Select
-                    value={field.value}
-                    onValueChange={field.onChange}
-                  >
-                    <FormControl>
-                      <SelectTrigger
-                        ref={field.ref}
-                        onBlur={field.onBlur}
-                        className="w-full text-base data-[size=default]:h-11 md:text-sm"
-                      >
-                        <SelectValue placeholder="Vyber lokalitu" />
-                      </SelectTrigger>
-                    </FormControl>
-                    <SelectContent
-                      position="popper"
-                      className="max-h-80"
-                    >
-                      {localityOptions(catalog.localities).map((locality) => (
-                        <SelectItem
-                          key={locality.id}
-                          value={locality.id}
-                          className={cn(locality.isDistrict && "pl-6")}
-                        >
-                          {locality.name}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
+                  <FormControl>
+                    <LocalityCombobox
+                      localities={catalog.localities}
+                      ref={field.ref}
+                      value={field.value}
+                      onChange={field.onChange}
+                      onBlur={field.onBlur}
+                    />
+                  </FormControl>
                   <FormMessage />
                 </FormItem>
               )}
@@ -636,11 +585,32 @@ export function EventForm({
                 <FormItem className="order-5 md:order-none">
                   <FormLabel>Adresa *</FormLabel>
                   <FormControl>
-                    <Input
+                    <AddressCombobox
                       placeholder="např. Herna Karlín, Křižíkova 52, Praha 8"
                       autoComplete="off"
                       className="h-11"
                       {...field}
+                      near={place ?? mapCenter}
+                      // a picked address also moves the pin, and sets the locality
+                      // when the catalog has a more precise one for it
+                      onPick={(suggestion) => {
+                        const options = {
+                          shouldDirty: true,
+                          shouldValidate: form.formState.isSubmitted,
+                        }
+                        field.onChange(suggestion.address)
+                        form.setValue(
+                          "place",
+                          { lat: suggestion.lat, lng: suggestion.lng },
+                          options,
+                        )
+                        const locality = localityOfAddress(
+                          suggestion,
+                          catalog.localities,
+                          form.getValues("localityId"),
+                        )
+                        if (locality) form.setValue("localityId", locality.id, options)
+                      }}
                     />
                   </FormControl>
                   <FormMessage />

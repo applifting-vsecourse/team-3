@@ -2,18 +2,26 @@ import {
   CAPACITY_FILTERS,
   CapacityFilter,
 } from '@/modules/event/domain/capacity';
+import {
+  PUBLIC_EVENT_SORTS,
+  PublicEventSort,
+} from '@/modules/event/domain/event';
+import { PUBLIC_EVENTS_LIMIT } from '@/modules/event/services/events.service';
 import { ApiPropertyOptional } from '@nestjs/swagger';
-import { Transform, TransformFnParams } from 'class-transformer';
+import { Transform, TransformFnParams, Type } from 'class-transformer';
 import {
   ArrayMaxSize,
   IsArray,
   IsDateString,
   IsIn,
+  IsInt,
   IsNotEmpty,
   IsOptional,
   IsString,
   Matches,
+  Max,
   MaxLength,
+  Min,
   Validate,
   ValidationArguments,
   ValidatorConstraint,
@@ -105,4 +113,27 @@ export class ListEventsQueryDto {
   @IsOptional()
   @IsIn(CAPACITY_FILTERS)
   capacity?: CapacityFilter;
+
+  @ApiPropertyOptional({
+    enum: PUBLIC_EVENT_SORTS,
+    default: 'date',
+    description:
+      'date: soonest first; popular: the most interest first – people with a place plus requests waiting for the organizer – and equal interest soonest first (#156)',
+  })
+  @IsOptional()
+  @IsIn(PUBLIC_EVENT_SORTS)
+  sort?: PublicEventSort;
+
+  @ApiPropertyOptional({
+    minimum: 1,
+    maximum: PUBLIC_EVENTS_LIMIT,
+    default: PUBLIC_EVENTS_LIMIT,
+    description: 'At most this many events, e.g. 6 for the landing page',
+  })
+  @IsOptional()
+  @Type(() => Number)
+  @IsInt()
+  @Min(1)
+  @Max(PUBLIC_EVENTS_LIMIT)
+  limit?: number;
 }

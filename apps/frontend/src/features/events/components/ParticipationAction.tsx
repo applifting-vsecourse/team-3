@@ -1,4 +1,4 @@
-import { useState, type ReactNode } from "react"
+import { useCallback, useEffect, useRef, useState, type ReactNode, type Ref } from "react"
 import { Link } from "@tanstack/react-router"
 import { Check, Loader2 } from "lucide-react"
 
@@ -26,8 +26,14 @@ type ParticipationActionProps = {
   /** Login's `from`, so signing in comes back to this event. */
   signInFrom: string
   isPending: boolean
-  onJoin: () => void
-  onLeave: () => void
+  /**
+   * Resolve once the place or the request is saved, and reject when it
+   * isn't: the page says why, a confirmation dialog stays open to try again.
+   */
+  onJoin: () => Promise<unknown>
+  onLeave: () => Promise<unknown>
+  /** Leads an unverified user to the banner that sends or opens the link. */
+  onVerifyEmail?: () => void
   /** For tests; the event has started once `startsAt` is past it. */
   now?: Date
 }
@@ -46,6 +52,7 @@ export function ParticipationAction({
   isPending,
   onJoin,
   onLeave,
+  onVerifyEmail,
   now = new Date(),
 }: ParticipationActionProps) {
   const isOrganizer = viewer !== null && event.organizer.id === viewer.id
@@ -113,7 +120,23 @@ export function ParticipationAction({
     return (
       <Row>
         {manage}
-        {event.isFull ? <FullButton /> : <Note>Na akci se přihlásíš, až si ověříš e-mail.</Note>}
+        {event.isFull ? (
+          <FullButton />
+        ) : (
+          <>
+            {/* the next step right here: on a phone the banner has scrolled away */}
+            {onVerifyEmail ? (
+              <Button
+                variant="outline"
+                size="lg"
+                onClick={onVerifyEmail}
+              >
+                Ověřit e-mail
+              </Button>
+            ) : null}
+            <Note>Na akci se přihlásíš, až si ověříš e-mail.</Note>
+          </>
+        )}
       </Row>
     )
   }
@@ -138,36 +161,69 @@ type JoinControlProps = Pick<
 > & { isOrganizer: boolean }
 
 function JoinControl({ event, isOrganizer, isPending, onJoin, onLeave }: JoinControlProps) {
+  // The control just used goes away with the change („Poslat žádost“ →
+  // „Čeká na schválení“), so focus moves to what replaced it instead of
+  // falling to <body>: the new state, or the button to come back.
+  const shouldFocusNewState = useRef(false)
+  const newState = useRef<HTMLElement | null>(null)
+  const focusTarget = useCallback((node: HTMLElement | null) => {
+    newState.current = node
+  }, [])
+  useEffect(() => {
+    if (!shouldFocusNewState.current) return
+    shouldFocusNewState.current = false
+    newState.current?.focus()
+  }, [event.myParticipation])
+  const change = (action: () => Promise<unknown>) => async () => {
+    shouldFocusNewState.current = true
+    try {
+      await action()
+    } catch (error) {
+      shouldFocusNewState.current = false
+      throw error
+    }
+  }
+
   switch (event.myParticipation) {
     case "approved":
       return (
         <>
-          <p className="inline-flex items-center gap-2 font-semibold">
+          <Status
+            ref={focusTarget}
+            // the organizer makes the changes, nobody needs to tell them
+            note={isOrganizer ? undefined : "Změny akce uvidíš tady a v Mých akcích."}
+          >
             <Check
               aria-hidden
               className="size-5"
             />
             Jdu
-          </p>
+          </Status>
           <ConfirmButton
             label="Odhlásit se"
             title="Odhlásit se z akce?"
             description="Místo se uvolní pro další zájemce."
             isPending={isPending}
-            onConfirm={onLeave}
+            onConfirm={change(onLeave)}
           />
         </>
       )
     case "pending":
       return (
         <>
-          <p className="font-semibold">Čeká na schválení</p>
+          {/* no e-mail tells the decision yet (US-08), so say where it shows */}
+          <Status
+            ref={focusTarget}
+            note="Rozhodnutí uvidíš tady a v Mých akcích."
+          >
+            Čeká na schválení
+          </Status>
           <ConfirmButton
             label="Stáhnout žádost"
             title="Stáhnout žádost o účast?"
             description="Organizátor ji pak už neuvidí."
             isPending={isPending}
-            onConfirm={onLeave}
+            onConfirm={change(onLeave)}
           />
         </>
       )
@@ -187,26 +243,54 @@ function JoinControl({ event, isOrganizer, isPending, onJoin, onLeave }: JoinCon
       <>
         <ConfirmButton
           variant="default"
+          triggerRef={focusTarget}
           label="Poslat žádost"
           title="Poslat žádost o účast?"
           description="Organizátor žádost schválí, nebo zamítne. Dokud nerozhodne, můžeš ji stáhnout."
           isPending={isPending}
-          onConfirm={onJoin}
+          onConfirm={change(onJoin)}
         />
         {/* Figma A-05, under the button in the bar */}
         <Note>Organizátor žádost schválí, nebo zamítne. Do začátku akce ji můžeš stáhnout.</Note>
       </>
     )
   }
+  const join = change(onJoin)
   return (
     <Button
+      ref={focusTarget}
       size="lg"
       disabled={isPending}
-      onClick={onJoin}
+      // a refusal is the page's toast; the button stays to try again
+      onClick={() => join().catch(() => undefined)}
     >
       {isPending ? <Loader2 className="size-4 animate-spin" /> : null}
       Přijdu
     </Button>
+  )
+}
+
+/** Where the viewer stands („Jdu“, „Čeká na schválení“) and what comes next. */
+function Status({
+  ref,
+  note,
+  children,
+}: {
+  ref: Ref<HTMLDivElement>
+  note?: string
+  children: ReactNode
+}) {
+  return (
+    // focused from code only (after a change), never a Tab stop; the
+    // browser's focus outline stays, a little off the text
+    <div
+      ref={ref}
+      tabIndex={-1}
+      className="flex flex-col gap-1 rounded-md outline-offset-4"
+    >
+      <p className="inline-flex items-center gap-2 font-semibold">{children}</p>
+      {note ? <Note>{note}</Note> : null}
+    </div>
   )
 }
 
@@ -225,21 +309,30 @@ function FullButton() {
 }
 
 type ConfirmButtonProps = {
-  /** The one action of the detail is `default`; leaving and withdrawing are `outline`. */
-  variant?: "default" | "outline"
+  /**
+   * The one action of the detail is `default`. Leaving and withdrawing are
+   * `ghost`: once in, „Jdu“ / „Čeká na schválení“ is what the bar says, and a
+   * bordered full-width button would outweigh it (DESIGN.md › Colour).
+   */
+  variant?: "default" | "ghost"
+  triggerRef?: Ref<HTMLButtonElement>
   label: string
   title: string
   description: string
   isPending: boolean
-  onConfirm: () => void
+  /** Resolves once done, and the dialog closes; rejects, and it stays open to try again. */
+  onConfirm: () => Promise<unknown>
 }
 
 /**
  * Figma A-05a / A-05b: a request, leaving and withdrawing are confirmed, so a
- * stray tap doesn't send a request or give the place away.
+ * stray tap doesn't send a request or give the place away. Like „Zrušit
+ * akci?“, the dialog waits for the answer: it doesn't close on a request
+ * that may still fail.
  */
 function ConfirmButton({
-  variant = "outline",
+  variant = "ghost",
+  triggerRef,
   label,
   title,
   description,
@@ -254,6 +347,7 @@ function ConfirmButton({
     >
       <DialogTrigger asChild>
         <Button
+          ref={triggerRef}
           variant={variant}
           size="lg"
           // a second confirmation while the first is on its way would only fail
@@ -273,11 +367,16 @@ function ConfirmButton({
           </DialogClose>
           <Button
             disabled={isPending}
-            onClick={() => {
-              onConfirm()
-              setIsOpen(false)
+            onClick={async () => {
+              try {
+                await onConfirm()
+                setIsOpen(false)
+              } catch {
+                // the page's toast says why; the dialog stays to try again
+              }
             }}
           >
+            {isPending ? <Loader2 className="size-4 animate-spin" /> : null}
             {label}
           </Button>
         </DialogFooter>

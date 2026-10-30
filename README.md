@@ -1,16 +1,30 @@
 # HobbyHub
 
-**Projektová dokumentace – rozcestník (user stories, zápis z planningu, design atd.): [docs/](docs/README.md)**
+HobbyHub helps people find others for their hobbies: organizers post an event (a match, a hike, a board-game night) with how many people are still missing, and anyone nearby can find it on a list or map and sign up.
 
-**Staging:** https://team-3.vsepractical.applifting.dev (nasazuje se automaticky z `main`, demo účty viz [Seeded users](#seeded-users))
+**Live (staging):** https://team-3.vsepractical.applifting.dev — deployed automatically from `main`; demo accounts are under [Seeded users](#seeded-users).
 
-#full-stack starter template
+**Project docs** (user stories, planning notes, design decisions): [docs/](docs/README.md)
 
-Starter template for [4IT580](https://4it580.vse.cz) team projects: a minimal, working full-stack app you fork and grow into your own product.
+**Stack:** React + Vite + TanStack Router/Query + Tailwind/shadcn (frontend) · NestJS + Prisma + PostgreSQL + BetterAuth (backend) · pnpm workspaces. Built on the [4IT580](https://4it580.vse.cz) full-stack starter template.
 
-**Stack:** React + Vite + TanStack Router/Query + Tailwind/shadcn (frontend) · NestJS + Prisma + PostgreSQL + BetterAuth (backend) · pnpm workspaces.
+## Team
 
-What's included: working login/signup (BetterAuth — you use it, you don't build it), one worked-example feature (the event list on `/akce` with filters and a map — copy its pattern), seeded demo data, example tests, CI. The full demo app this template was trimmed from lives on the `reference/full-app` branch.
+| Name                 | GitHub                                           |
+| -------------------- | ------------------------------------------------ |
+| Veronika Seyfriedová | [@seyvv](https://github.com/seyvv)               |
+| Martin Bartoň        | [@BarrySagBrig](https://github.com/BarrySagBrig) |
+| Eliška Hřebíčková    | [@hree01](https://github.com/hree01)             |
+| Adéla Mitrová        | [@adela111](https://github.com/adela111)         |
+
+## How we work
+
+- **Every change goes through a branch and a pull request** — nobody pushes to `main`. Branch from `main` and name the branch `<type>/<issue>-<slug>`, where the type is `feat`, `fix`, `polish` or `docs` and the issue number is there when the change has an issue (`feat/39-detail-akce`, `fix/address-czech-only`). `main` is protected by a ruleset: no direct pushes or force pushes.
+- **Every PR needs an approval from a teammate** before it is merged, and CI (`pnpm check-all`) has to pass. The author doesn't approve their own PR.
+- Before merging, run the agent review in Claude Code: `/review-branch` (or `/review-branch <PR number>`). It checks the branch against `main`, [CLAUDE.md](CLAUDE.md) and the story, and doesn't change code. The prompt is in [.claude/commands/review-branch.md](.claude/commands/review-branch.md).
+- The PR description follows the [template](.github/pull_request_template.md) and links the story or issue with `Refs #<number>`, not `Closes` — the PO closes the issue after accepting it on staging. A PR without an issue says in one sentence why it is needed. (Applies to every PR after #171.)
+- Merged to `main` = deployed to staging.
+- What "ready" and "done" mean: [Definition of Ready & Done](docs/definition-of-ready-a-done.md).
 
 ## Prerequisites
 

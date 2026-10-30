@@ -59,4 +59,28 @@ export class CatalogRepository {
       lng: locality.lng,
     }));
   }
+
+  async findLocalitiesNamed(name: string): Promise<Locality[]> {
+    const localities = await this.prisma.locality.findMany({
+      where: { name: { startsWith: name } },
+    });
+    return localities.map(toLocality);
+  }
+
+  async isSlugTaken(slug: string): Promise<boolean> {
+    return (await this.prisma.locality.count({ where: { slug } })) > 0;
+  }
+
+  async createLocality(locality: Omit<Locality, 'id'>): Promise<Locality> {
+    return toLocality(await this.prisma.locality.create({ data: locality }));
+  }
 }
+
+const toLocality = (locality: Locality): Locality => ({
+  id: locality.id,
+  slug: locality.slug,
+  name: locality.name,
+  parentId: locality.parentId,
+  lat: locality.lat,
+  lng: locality.lng,
+});

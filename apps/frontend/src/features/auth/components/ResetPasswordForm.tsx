@@ -65,6 +65,7 @@ export function ResetPasswordForm({ isLoading, errorMessage, onSubmit }: ResetPa
                 <Input
                   type="password"
                   autoComplete="new-password"
+                  className="h-11"
                   {...field}
                 />
               </FormControl>
@@ -83,6 +84,7 @@ export function ResetPasswordForm({ isLoading, errorMessage, onSubmit }: ResetPa
                 <Input
                   type="password"
                   autoComplete="new-password"
+                  className="h-11"
                   {...field}
                 />
               </FormControl>
@@ -94,7 +96,7 @@ export function ResetPasswordForm({ isLoading, errorMessage, onSubmit }: ResetPa
         <Button
           type="submit"
           size="lg"
-          className="w-full"
+          className="h-11 w-full"
           disabled={isLoading}
         >
           {isLoading ? <Loader2 className="size-4 animate-spin" /> : null}

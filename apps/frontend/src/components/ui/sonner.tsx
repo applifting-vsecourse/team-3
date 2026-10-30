@@ -15,6 +15,8 @@ const Toaster = ({ ...props }: ToasterProps) => {
   return (
     <Sonner
       theme={theme as ToasterProps["theme"]}
+      // the toast region's name for screen readers; sonner's default is English
+      containerAriaLabel="Oznámení"
       className="toaster group"
       icons={{
         success: <CircleCheckIcon className="size-4" />,

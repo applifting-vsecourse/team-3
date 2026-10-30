@@ -78,4 +78,32 @@ describe.each([
   it("the checkbox edge (muted-foreground) is at least 3:1 against the page", () => {
     expect(contrast(tokens["muted-foreground"]!, tokens.background!)).toBeGreaterThanOrEqual(3)
   })
+
+  // DESIGN.md › Capacity bar: the dark stripe of the hatch below the minimum
+  const [, hatchShare = ""] =
+    /@utility capacity-hatch[\s\S]*?color-mix\(in srgb, var\(--primary-foreground\) (\d+)%, var\(--primary\)\)/.exec(
+      css,
+    ) ?? []
+  const stripe = mix(tokens["primary-foreground"]!, tokens.primary!, Number(hatchShare) / 100)
+
+  // it has to read as a pattern on the track and as stripes against its own lime,
+  // or „Chybí“ looks like „Volná místa“
+  it("the capacity hatch stripe is at least 3:1 against the track and against lime", () => {
+    expect(contrast(stripe, tokens.muted!)).toBeGreaterThanOrEqual(3)
+    expect(contrast(stripe, tokens.primary!)).toBeGreaterThanOrEqual(3)
+  })
+
+  // #166: the minimum marker (foreground, with a background-coloured gap around it) must
+  // show wherever it sits: on the track, on either stripe of the hatch and on lime. In dark
+  // mode the marker itself vanishes on lime, so there the gap has to carry it.
+  it.each([
+    ["the track", "muted"],
+    ["lime", "primary"],
+    ["the hatch stripe", "stripe"],
+  ])("the minimum marker or its gap is at least 3:1 against %s", (_, under) => {
+    const surface = under === "stripe" ? stripe : tokens[under]!
+    expect(
+      Math.max(contrast(tokens.foreground!, surface), contrast(tokens.background!, surface)),
+    ).toBeGreaterThanOrEqual(3)
+  })
 })

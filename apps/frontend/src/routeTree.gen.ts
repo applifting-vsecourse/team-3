@@ -14,6 +14,8 @@ import { Route as ProtectedPagesRouteImport } from './routes/_ProtectedPages'
 import { Route as AkceRouteImport } from './routes/akce'
 import { Route as EmailOverenRouteImport } from './routes/email-overen'
 import { Route as LoginRouteImport } from './routes/login'
+import { Route as OchranaOsobnichUdajuRouteImport } from './routes/ochrana-osobnich-udaju'
+import { Route as PodminkyRouteImport } from './routes/podminky'
 import { Route as ResetPasswordRouteImport } from './routes/reset-password'
 import { Route as SignupRouteImport } from './routes/signup'
 import { Route as ZapomenuteHesloRouteImport } from './routes/zapomenute-heslo'
@@ -51,6 +53,16 @@ const EmailOverenRoute = EmailOverenRouteImport.update({
 const LoginRoute = LoginRouteImport.update({
   id: '/login',
   path: '/login',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const OchranaOsobnichUdajuRoute = OchranaOsobnichUdajuRouteImport.update({
+  id: '/ochrana-osobnich-udaju',
+  path: '/ochrana-osobnich-udaju',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const PodminkyRoute = PodminkyRouteImport.update({
+  id: '/podminky',
+  path: '/podminky',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ResetPasswordRoute = ResetPasswordRouteImport.update({
@@ -134,6 +146,8 @@ export interface FileRoutesByFullPath {
   '/akce': typeof AkceRoute
   '/email-overen': typeof EmailOverenRoute
   '/login': typeof LoginRoute
+  '/ochrana-osobnich-udaju': typeof OchranaOsobnichUdajuRoute
+  '/podminky': typeof PodminkyRoute
   '/reset-password': typeof ResetPasswordRoute
   '/signup': typeof SignupRoute
   '/zapomenute-heslo': typeof ZapomenuteHesloRoute
@@ -154,6 +168,8 @@ export interface FileRoutesByTo {
   '/akce': typeof AkceRoute
   '/email-overen': typeof EmailOverenRoute
   '/login': typeof LoginRoute
+  '/ochrana-osobnich-udaju': typeof OchranaOsobnichUdajuRoute
+  '/podminky': typeof PodminkyRoute
   '/reset-password': typeof ResetPasswordRoute
   '/signup': typeof SignupRoute
   '/zapomenute-heslo': typeof ZapomenuteHesloRoute
@@ -176,6 +192,8 @@ export interface FileRoutesById {
   '/akce': typeof AkceRoute
   '/email-overen': typeof EmailOverenRoute
   '/login': typeof LoginRoute
+  '/ochrana-osobnich-udaju': typeof OchranaOsobnichUdajuRoute
+  '/podminky': typeof PodminkyRoute
   '/reset-password': typeof ResetPasswordRoute
   '/signup': typeof SignupRoute
   '/zapomenute-heslo': typeof ZapomenuteHesloRoute
@@ -198,6 +216,8 @@ export interface FileRouteTypes {
     | '/akce'
     | '/email-overen'
     | '/login'
+    | '/ochrana-osobnich-udaju'
+    | '/podminky'
     | '/reset-password'
     | '/signup'
     | '/zapomenute-heslo'
@@ -218,6 +238,8 @@ export interface FileRouteTypes {
     | '/akce'
     | '/email-overen'
     | '/login'
+    | '/ochrana-osobnich-udaju'
+    | '/podminky'
     | '/reset-password'
     | '/signup'
     | '/zapomenute-heslo'
@@ -239,6 +261,8 @@ export interface FileRouteTypes {
     | '/akce'
     | '/email-overen'
     | '/login'
+    | '/ochrana-osobnich-udaju'
+    | '/podminky'
     | '/reset-password'
     | '/signup'
     | '/zapomenute-heslo'
@@ -261,6 +285,8 @@ export interface RootRouteChildren {
   AkceRoute: typeof AkceRoute
   EmailOverenRoute: typeof EmailOverenRoute
   LoginRoute: typeof LoginRoute
+  OchranaOsobnichUdajuRoute: typeof OchranaOsobnichUdajuRoute
+  PodminkyRoute: typeof PodminkyRoute
   ResetPasswordRoute: typeof ResetPasswordRoute
   SignupRoute: typeof SignupRoute
   ZapomenuteHesloRoute: typeof ZapomenuteHesloRoute
@@ -304,6 +330,20 @@ declare module '@tanstack/react-router' {
       path: '/login'
       fullPath: '/login'
       preLoaderRoute: typeof LoginRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/ochrana-osobnich-udaju': {
+      id: '/ochrana-osobnich-udaju'
+      path: '/ochrana-osobnich-udaju'
+      fullPath: '/ochrana-osobnich-udaju'
+      preLoaderRoute: typeof OchranaOsobnichUdajuRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/podminky': {
+      id: '/podminky'
+      path: '/podminky'
+      fullPath: '/podminky'
+      preLoaderRoute: typeof PodminkyRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/reset-password': {
@@ -441,6 +481,8 @@ const rootRouteChildren: RootRouteChildren = {
   AkceRoute: AkceRoute,
   EmailOverenRoute: EmailOverenRoute,
   LoginRoute: LoginRoute,
+  OchranaOsobnichUdajuRoute: OchranaOsobnichUdajuRoute,
+  PodminkyRoute: PodminkyRoute,
   ResetPasswordRoute: ResetPasswordRoute,
   SignupRoute: SignupRoute,
   ZapomenuteHesloRoute: ZapomenuteHesloRoute,

@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef } from "react"
+import { useEffect, useMemo, useRef, type RefObject } from "react"
 import { divIcon, type Map as LeafletMap } from "leaflet"
 import { Plus } from "lucide-react"
 import {
@@ -36,6 +36,11 @@ type LocationPickerProps = {
 }
 
 const ZOOM = 14
+/** Close enough to check the spot of a found address. */
+const PLACE_ZOOM = 16
+
+const isSamePoint = (a: LatLng | null, b: LatLng | null) =>
+  a !== null && b !== null && a.lat === b.lat && a.lng === b.lng
 
 /**
  * Leaflet + OpenStreetMap, the picking mode (B-004): a tap on the map puts the
@@ -53,6 +58,12 @@ export function LocationPicker({
   mapClassName,
 }: LocationPickerProps) {
   const mapRef = useRef<LeafletMap | null>(null)
+  // the place the map already shows: the one it opened on, or one picked on it
+  const shownRef = useRef(value)
+  const pick = (point: LatLng) => {
+    shownRef.current = point
+    onChange(point)
+  }
   const icon = useMemo(() => {
     const { width, height } = pinSize("default")
     return divIcon({
@@ -91,10 +102,14 @@ export function LocationPicker({
             attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
             url="https://tile.openstreetmap.org/{z}/{x}/{y}.png"
           />
-          <PickOnClick onPick={onChange} />
+          <PickOnClick onPick={pick} />
           <FollowCenter
             center={center}
             hasPoint={value !== null}
+          />
+          <ShowPlace
+            value={value}
+            shownRef={shownRef}
           />
           {value ? (
             <Marker
@@ -118,7 +133,7 @@ export function LocationPicker({
         className="self-start"
         onClick={() => {
           const middle = mapRef.current?.getCenter()
-          if (middle) onChange({ lat: middle.lat, lng: middle.lng })
+          if (middle) pick({ lat: middle.lat, lng: middle.lng })
         }}
       >
         Umístit špendlík do středu mapy
@@ -142,5 +157,27 @@ function FollowCenter({ center, hasPoint }: { center: LatLng; hasPoint: boolean 
     // only a new locality moves the map; picking a place doesn't
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [center.lat, center.lng, map])
+  return null
+}
+
+/**
+ * A place set from outside the map, e.g. a picked address, is brought into
+ * view; one picked on the map stays where the user put it, the map doesn't move.
+ */
+function ShowPlace({
+  value,
+  shownRef,
+}: {
+  value: LatLng | null
+  shownRef: RefObject<LatLng | null>
+}) {
+  const map = useMap()
+  useEffect(() => {
+    if (!value || isSamePoint(value, shownRef.current)) return
+    shownRef.current = value
+    map.setView([value.lat, value.lng], Math.max(map.getZoom(), PLACE_ZOOM))
+    // only a new place moves the map
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [value?.lat, value?.lng, map])
   return null
 }

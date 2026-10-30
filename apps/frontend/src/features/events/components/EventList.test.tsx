@@ -110,6 +110,21 @@ describe("EventList", () => {
     ).toBeInTheDocument()
   })
 
+  it("an empty list shows the page's own empty state when it has one", () => {
+    render(
+      <EventList
+        events={[]}
+        empty={<p data-peek-end>Žádná nadcházející akce neodpovídá filtrům:</p>}
+      />,
+    )
+
+    expect(screen.getByText("0 akcí")).toBeInTheDocument()
+    expect(screen.getByText("Žádná nadcházející akce neodpovídá filtrům:")).toBeInTheDocument()
+    expect(
+      screen.queryByText("Pro zvolené filtry teď nejsou žádné nadcházející akce."),
+    ).not.toBeInTheDocument()
+  })
+
   it("shows an error with a working retry button", async () => {
     const onRetry = vi.fn()
     render(

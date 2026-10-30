@@ -2,7 +2,7 @@ import { z } from "zod"
 
 import type { ActivitySelection } from "@/lib/catalog/activitySelection"
 import type { ActivityCategory, Locality } from "@/lib/catalog/catalogSchemas"
-import { DEFAULT_LOCALITY_SLUG } from "@/lib/catalog/localityOptions"
+import { ALL_LOCALITIES_SLUG, DEFAULT_LOCALITY_SLUG } from "@/lib/catalog/localityOptions"
 
 const SLUG = /^[a-z0-9-]+$/
 const SLUG_LIST = /^[a-z0-9-]+(,[a-z0-9-]+)*$/
@@ -46,7 +46,7 @@ export const toActivitySearch = (
   aktivita: joinSlugs(selection.activities),
 })
 
-/** Whether any catalog filter is set. Praha is the default, not a filter. */
+/** Whether any catalog filter is set. Praha is the default, not a filter; Celé Česko is one. */
 export const hasCatalogFilters = (search: CatalogSearch): boolean =>
   (search.lokalita !== undefined && search.lokalita !== DEFAULT_LOCALITY_SLUG) ||
   search.kategorie !== undefined ||
@@ -54,14 +54,18 @@ export const hasCatalogFilters = (search: CatalogSearch): boolean =>
 
 /**
  * Turns the URL's slugs into the API's ids. Slugs the catalog doesn't know
- * (an old link, a typo) are left out instead of matching nothing.
+ * (an old link, a typo) are left out instead of matching nothing. Celé Česko
+ * is no locality filter at all.
  */
 export function toCatalogFilters(
   search: CatalogSearch,
   catalog: Catalog,
 ): { localityId?: string; activityIds: string[]; categoryIds: string[] } {
   const localitySlug = search.lokalita ?? DEFAULT_LOCALITY_SLUG
-  const locality = catalog.localities.find((l) => l.slug === localitySlug)
+  const locality =
+    localitySlug === ALL_LOCALITIES_SLUG
+      ? undefined
+      : catalog.localities.find((l) => l.slug === localitySlug)
 
   const categorySlugs = new Set(splitSlugs(search.kategorie))
   const activitySlugs = new Set(splitSlugs(search.aktivita))

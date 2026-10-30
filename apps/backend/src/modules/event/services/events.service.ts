@@ -9,12 +9,14 @@ import {
   NewEvent,
   PublicEvent,
   PublicEventFilters,
+  PublicEventSort,
 } from '@/modules/event/domain/event';
 import {
   decideUpdate,
   lifecycleRefusal,
   UpdateRefusal,
 } from '@/modules/event/domain/event-update';
+import { rankByInterest } from '@/modules/event/domain/interest';
 import {
   decideJoin,
   decideLeave,
@@ -65,40 +67,51 @@ const updateRefused = (refusal: UpdateRefusal): HttpException => {
 // One endpoint serves both the list and the map in sprint 2, without paging
 // (deviation from B-023, which has paging and a separate /events/map).
 export const PUBLIC_EVENTS_LIMIT = 200;
-// Safety cap for the capacity filter, which has to load events before
-// filtering. The endpoint is public, so the query must stay bounded however
-// many events exist.
-export const CAPACITY_SCAN_LIMIT = 2000;
+// Safety cap for the capacity filter and the popular order, which have to load
+// events before filtering or ranking them. The endpoint is public, so the
+// query must stay bounded however many events exist.
+export const SCAN_LIMIT = 2000;
 export const MY_EVENTS_LIMIT = 200;
 
 @Injectable()
 export class EventsService {
   constructor(private readonly eventRepository: EventRepository) {}
 
-  /** Upcoming public events matching the filters, soonest first, at most PUBLIC_EVENTS_LIMIT. */
+  /**
+   * Upcoming public events matching the filters, at most `limit`: soonest
+   * first, or with `popular` the most interest first (#156).
+   */
   async getPublicEvents(
     filters: PublicEventFilters,
+    {
+      sort = 'date',
+      limit = PUBLIC_EVENTS_LIMIT,
+    }: { sort?: PublicEventSort; limit?: number } = {},
     now: Date = new Date(),
   ): Promise<PublicEvent[]> {
     const { capacity } = filters;
-    if (!capacity) {
-      return this.eventRepository.findPublicEvents({
-        filters,
-        now,
-        limit: PUBLIC_EVENTS_LIMIT,
-      });
+    if (!capacity && sort === 'date') {
+      return this.eventRepository.findPublicEvents({ filters, now, limit });
     }
     // The capacity filter compares approved participations with the minimum and
-    // maximum, which the database query can't do. Filter first, then cut, or
-    // matching events could fall behind the limit.
-    const events = await this.eventRepository.findPublicEvents({
-      filters,
-      now,
-      limit: CAPACITY_SCAN_LIMIT,
-    });
-    return events
-      .filter((event) => matchesCapacity(event.capacity, capacity))
-      .slice(0, PUBLIC_EVENTS_LIMIT);
+    // maximum, and interest counts waiting requests too; the event query can do
+    // neither. Filter and rank first, then cut, or matching and popular events
+    // could fall behind the limit.
+    const [events, interest] = await Promise.all([
+      this.eventRepository.findPublicEvents({
+        filters,
+        now,
+        limit: SCAN_LIMIT,
+      }),
+      sort === 'popular'
+        ? this.eventRepository.countInterest(filters, now)
+        : null,
+    ]);
+    const matching = capacity
+      ? events.filter((event) => matchesCapacity(event.capacity, capacity))
+      : events;
+    const ordered = interest ? rankByInterest(matching, interest) : matching;
+    return ordered.slice(0, limit);
   }
 
   /**

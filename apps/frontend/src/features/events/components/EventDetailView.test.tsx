@@ -30,10 +30,16 @@ describe("EventDetailView", () => {
     expect(screen.getByLabelText("Místo akce na mapě")).toBeInTheDocument()
     expect(screen.getByText("Bez schválení")).toBeInTheDocument()
     expect(screen.getByText("Petra")).toBeInTheDocument()
-    expect(screen.getByText("Organizátor · ověřený e-mail")).toBeInTheDocument()
+    // „Pořádá“ names the role; no „Organizátor“ under a woman's name, no
+    // „ověřený e-mail“ every organizer has
+    expect(screen.queryByText(/Organizátor|ověřený e-mail/)).not.toBeInTheDocument()
+    // without approval there is nothing for them to decide
+    expect(screen.queryByText("Schvaluje žádosti o účast")).not.toBeInTheDocument()
     expect(screen.getByText("Chybí ještě 1")).toBeInTheDocument()
-    expect(screen.getByText("3 z 12 · min. 4")).toBeInTheDocument()
-    expect(screen.getByRole("heading", { name: "Přihlášení (3)" })).toBeInTheDocument()
+    expect(screen.getByText("3 z 12")).toBeInTheDocument()
+    expect(screen.getByText("min. 4")).toBeInTheDocument()
+    // „Kdo jde“ as the viewer's „Jdu“, not „Přihlášení“ next to „Přihlásit se“
+    expect(screen.getByRole("heading", { name: "Kdo jde (3)" })).toBeInTheDocument()
     // the facts are a valid <dl> (Kdy, Kde, Přihlašování)
     expectValidDescriptionList(screen.getByText("Kdy").closest("dl")!)
   })
@@ -74,7 +80,7 @@ describe("EventDetailView", () => {
       />,
     )
 
-    expect(screen.getByRole("heading", { name: "Přihlášení (4)" })).toBeInTheDocument()
+    expect(screen.getByRole("heading", { name: "Kdo jde (4)" })).toBeInTheDocument()
     expect(screen.queryByText("Jana Svobodová")).not.toBeInTheDocument()
     expect(screen.queryByRole("list")).not.toBeInTheDocument()
     const signIn = screen.getByRole("link", { name: "přihlášení" })
@@ -119,6 +125,8 @@ describe("EventDetailView", () => {
     )
 
     expect(screen.getByText("Se schválením organizátora")).toBeInTheDocument()
+    // and who decides, under the organizer's name
+    expect(screen.getByText("Schvaluje žádosti o účast")).toBeInTheDocument()
     expect(screen.queryByRole("heading", { name: "O akci" })).not.toBeInTheDocument()
   })
 
@@ -133,7 +141,8 @@ describe("EventDetailView", () => {
     expect(screen.getByText("Zrušeno")).toBeInTheDocument()
     expect(screen.getByText("Akce je zrušená")).toBeInTheDocument()
     expect(screen.getByText("Herna má zavřeno.")).toBeInTheDocument()
-    expect(screen.queryByText("4 z 12 · min. 4")).not.toBeInTheDocument()
+    expect(screen.queryByText("4 z 12")).not.toBeInTheDocument()
+    expect(screen.queryByText("min. 4")).not.toBeInTheDocument()
   })
 
   it("shows the organizer's actions the page passes in", async () => {
@@ -190,8 +199,8 @@ describe("EventDetailView", () => {
           within(panel).getByRole("button", { name: "Upravit" }),
         ),
       ).toBe(true)
-      // on the left: O akci → Přihlášení → Pořádá
-      const left = ["O akci", "Přihlášení (3)", "Pořádá"].map((name) =>
+      // on the left: O akci → Kdo jde → Pořádá
+      const left = ["O akci", "Kdo jde (3)", "Pořádá"].map((name) =>
         screen.getByRole("heading", { name }),
       )
       left.forEach((heading) => expect(panel).not.toContainElement(heading))
@@ -209,7 +218,7 @@ describe("EventDetailView", () => {
           within(panel).getByLabelText("Místo akce na mapě"),
           screen.getByRole("heading", { name: "Pořádá" }),
           screen.getByRole("heading", { name: "O akci" }),
-          screen.getByRole("heading", { name: "Přihlášení (3)" }),
+          screen.getByRole("heading", { name: "Kdo jde (3)" }),
           screen.getByRole("button", { name: "Přijdu" }),
         ),
       ).toBe(true)

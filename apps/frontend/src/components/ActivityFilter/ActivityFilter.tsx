@@ -1,4 +1,4 @@
-import { useId, useState } from "react"
+import { useId, useRef, useState, type RefObject } from "react"
 import { ChevronRight, Search } from "lucide-react"
 
 import { ActivityTile } from "@/components/ActivityTile/ActivityTile"
@@ -11,10 +11,12 @@ import { DESKTOP_QUERY, useMediaQuery } from "@/hooks/useMediaQuery"
 import {
   categoryState,
   isActivityChecked,
+  isOtherActivity,
   searchActivities,
   selectionLabel,
   toggleActivity,
   toggleCategory,
+  type ActivityMatch,
   type ActivitySelection,
   type CheckState,
 } from "@/lib/catalog/activitySelection"
@@ -50,6 +52,7 @@ export function ActivityFilter({
   const [isOpen, setIsOpen] = useState(false)
   const [draft, setDraft] = useState(current)
   const [query, setQuery] = useState("")
+  const searchRef = useRef<HTMLInputElement>(null)
   // desktop: the category shown on the right; mobile: the opened second level
   const [shownSlug, setShownSlug] = useState<string | undefined>()
 
@@ -101,11 +104,13 @@ export function ActivityFilter({
       applyLabel={applyLabel}
       onApply={() => apply(draft)}
       popoverClassName="w-auto"
+      initialFocusRef={searchRef}
     >
       {isSecondLevel ? null : (
         <SearchField
           value={query}
           onChange={setQuery}
+          inputRef={searchRef}
         />
       )}
 
@@ -171,7 +176,15 @@ export function ActivityFilter({
 const checked = (state: CheckState) =>
   state === "on" ? true : state === "mixed" ? "indeterminate" : false
 
-function SearchField({ value, onChange }: { value: string; onChange: (value: string) => void }) {
+function SearchField({
+  value,
+  onChange,
+  inputRef,
+}: {
+  value: string
+  onChange: (value: string) => void
+  inputRef: RefObject<HTMLInputElement | null>
+}) {
   const id = useId()
   return (
     <div className="flex flex-col gap-2">
@@ -182,6 +195,7 @@ function SearchField({ value, onChange }: { value: string; onChange: (value: str
           className="pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2 text-muted-foreground"
         />
         <Input
+          ref={inputRef}
           id={id}
           type="search"
           value={value}
@@ -304,16 +318,64 @@ function SearchResults({
 }) {
   const results = searchActivities(categories, query)
   if (results.length === 0) {
+    // not a dead end: the form offers the same (ActivityCombobox)
+    const others = categories.flatMap((category) =>
+      category.activities
+        .filter((activity) => isOtherActivity(activity.name))
+        .map((activity) => ({ category, activity })),
+    )
     return (
-      <p className="py-6 text-center text-sm text-muted-foreground">Takovou aktivitu neznáme.</p>
+      <div className="mt-2 flex flex-col md:w-80">
+        <p
+          role="status"
+          className="px-4 py-3 text-sm text-muted-foreground"
+        >
+          Takovou aktivitu v katalogu nemáme. Vyber, kam nejvíc patří:
+        </p>
+        <ActivityRows
+          rows={others}
+          selection={selection}
+          onChange={onChange}
+          label="Jiné aktivity"
+        />
+      </div>
     )
   }
   return (
-    <ul className="mt-2 flex flex-col md:w-80">
-      {results.map(({ category, activity }) => (
+    <ActivityRows
+      rows={results}
+      selection={selection}
+      onChange={onChange}
+      label="Nalezené aktivity"
+      className="mt-2 md:w-80"
+    />
+  )
+}
+
+/** Search results or the „Jiné…“: each activity with its category on the right. */
+function ActivityRows({
+  rows,
+  selection,
+  onChange,
+  label,
+  className,
+}: {
+  rows: ActivityMatch[]
+  selection: ActivitySelection
+  onChange: (selection: ActivitySelection) => void
+  label: string
+  className?: string
+}) {
+  return (
+    <ul
+      aria-label={label}
+      className={cn("flex flex-col", className)}
+    >
+      {rows.map(({ category, activity, matchedKeyword }) => (
         <li key={activity.id}>
           <ActivityRow
             name={activity.name}
+            matchedKeyword={matchedKeyword}
             hint={category.name}
             isChecked={isActivityChecked(selection, category, activity)}
             onToggle={() => onChange(toggleActivity(selection, category, activity))}
@@ -324,14 +386,16 @@ function SearchResults({
   )
 }
 
-/** Figma: Picker row/Activity */
+/** Figma: Picker row/Activity; „Jóga · pilates“ when a synonym found it. */
 function ActivityRow({
   name,
+  matchedKeyword,
   hint,
   isChecked,
   onToggle,
 }: {
   name: string
+  matchedKeyword?: string
   hint?: string
   isChecked: boolean
   onToggle: () => void
@@ -342,7 +406,10 @@ function ActivityRow({
         checked={isChecked}
         onCheckedChange={onToggle}
       />
-      <span className="flex-1 text-base">{name}</span>
+      <span className="flex-1 text-base">
+        {name}
+        {matchedKeyword ? <span className="text-muted-foreground"> · {matchedKeyword}</span> : null}
+      </span>
       {hint ? <span className="text-sm text-muted-foreground">{hint}</span> : null}
     </label>
   )

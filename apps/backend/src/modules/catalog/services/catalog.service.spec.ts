@@ -1,7 +1,7 @@
 import { ActivityCategory } from '@/modules/catalog/domain/activity';
 import { Locality } from '@/modules/catalog/domain/locality';
 import { CatalogRepository } from '@/modules/catalog/repositories/catalog.repository';
-import { mock } from 'jest-mock-extended';
+import { mock, MockProxy } from 'jest-mock-extended';
 import { CatalogService, toSlug } from './catalog.service';
 
 const aLocality = (overrides: Partial<Locality> = {}): Locality => ({
@@ -113,5 +113,92 @@ describe('toSlug', () => {
     expect(toSlug('Ústí nad Labem')).toBe('usti-nad-labem');
     expect(toSlug('České Budějovice')).toBe('ceske-budejovice');
     expect(toSlug('Ľubovňa')).toBe('lubovna');
+  });
+
+  describe('addPlace (a place from the online search)', () => {
+    const setup = (
+      named: Locality[],
+      takenSlugs: string[] = [],
+    ): {
+      repository: MockProxy<CatalogRepository>;
+      service: CatalogService;
+    } => {
+      const repository = mock<CatalogRepository>();
+      repository.findLocalitiesNamed.mockResolvedValue(named);
+      repository.isSlugTaken.mockImplementation((slug) =>
+        Promise.resolve(takenSlugs.includes(slug)),
+      );
+      repository.createLocality.mockImplementation((locality) =>
+        Promise.resolve({ id: 'l-new', ...locality }),
+      );
+      return { repository, service: new CatalogService(repository) };
+    };
+    const privrat = {
+      name: 'Přívrat',
+      county: 'okres Ústí nad Orlicí',
+      lat: 49.9246,
+      lng: 16.397,
+    };
+
+    it('a village the catalog does not have becomes a locality', async () => {
+      const { service, repository } = setup([]);
+
+      const locality = await service.addPlace(privrat);
+
+      expect(locality).toEqual({
+        id: 'l-new',
+        slug: 'privrat',
+        name: 'Přívrat',
+        parentId: null,
+        lat: 49.9246,
+        lng: 16.397,
+      });
+      expect(repository.createLocality).toHaveBeenCalledTimes(1);
+    });
+
+    it('the same place again is the same locality, nothing new', async () => {
+      const existing = aLocality({
+        id: 'l-privrat',
+        slug: 'privrat',
+        name: 'Přívrat',
+        lat: 49.925,
+        lng: 16.398,
+      });
+      const { service, repository } = setup([existing]);
+
+      expect(await service.addPlace(privrat)).toBe(existing);
+      expect(repository.createLocality).not.toHaveBeenCalled();
+    });
+
+    it('a place of the same name elsewhere gets its district: „Lhota (Kladno)“', async () => {
+      const lhotaPrahaVychod = aLocality({
+        id: 'l-lhota',
+        slug: 'lhota',
+        name: 'Lhota',
+        lat: 50.2432,
+        lng: 14.6564,
+      });
+      const { service } = setup([lhotaPrahaVychod], ['lhota']);
+
+      const locality = await service.addPlace({
+        name: 'Lhota',
+        county: 'okres Kladno',
+        lat: 50.0886,
+        lng: 14.0118,
+      });
+
+      expect(locality).toMatchObject({
+        slug: 'lhota-kladno',
+        name: 'Lhota (Kladno)',
+      });
+    });
+
+    it('a taken slug gets a number', async () => {
+      const { service } = setup([], ['privrat']);
+
+      expect(await service.addPlace(privrat)).toMatchObject({
+        slug: 'privrat-2',
+      });
+    });
   });
 });

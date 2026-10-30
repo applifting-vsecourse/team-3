@@ -7,9 +7,14 @@ import { eventDetailQueryOptions } from "@/features/events/api/eventsQueryOption
 /**
  * One event for its detail page, in the variant for the viewer: pass the
  * signed-in user's id, null for a visitor, undefined while the session loads.
+ * `isLive` keeps it fresh while the page is open (the management page).
  */
-export function useEventDetail(eventId: string, viewerId: string | null | undefined) {
-  const query = useQuery(eventDetailQueryOptions(eventId, viewerId))
+export function useEventDetail(
+  eventId: string,
+  viewerId: string | null | undefined,
+  options: { isLive?: boolean } = {},
+) {
+  const query = useQuery(eventDetailQueryOptions(eventId, viewerId, options))
   const isNotFound = query.error instanceof HTTPError && query.error.response.status === 404
   return {
     event: query.data,

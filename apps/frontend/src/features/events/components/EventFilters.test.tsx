@@ -13,6 +13,14 @@ const localities: Locality[] = [
   { id: "l-brno", slug: "brno", name: "Brno", parentId: null, lat: 49.2, lng: 16.6 },
   { id: "l-praha", slug: "praha", name: "Praha", parentId: null, lat: 50.1, lng: 14.4 },
   { id: "l-praha-8", slug: "praha-8", name: "Praha 8", parentId: "l-praha", lat: 50.1, lng: 14.5 },
+  {
+    id: "l-usti-nad-orlici",
+    slug: "usti-nad-orlici",
+    name: "Ústí nad Orlicí",
+    parentId: null,
+    lat: 49.97,
+    lng: 16.39,
+  },
 ]
 const categories: ActivityCategory[] = []
 
@@ -127,8 +135,36 @@ describe("EventFilters", () => {
     await userEvent.type(within(panel).getByRole("combobox", { name: "Hledat lokalitu" }), "prah")
     expect(within(panel).queryByRole("option", { name: "Brno" })).not.toBeInTheDocument()
 
-    await userEvent.click(within(panel).getByRole("button", { name: "Celá Praha" }))
+    await userEvent.click(within(panel).getByRole("option", { name: "Praha" }))
+    await userEvent.click(await within(panel).findByRole("button", { name: "Zobrazit 2 akce" }))
     expect(onChange).toHaveBeenCalledWith({ lokalita: undefined })
+  })
+
+  it("„Zrušit výběr“ in a town shows events from all of Czechia", async () => {
+    const { onChange } = renderFilters({ search: { lokalita: "brno" } })
+
+    await userEvent.click(screen.getByRole("button", { name: "Lokalita: Brno" }))
+    const panel = await screen.findByRole("dialog", { name: "Lokalita" })
+    expect(within(panel).queryByRole("button", { name: "Celá Praha" })).not.toBeInTheDocument()
+    await userEvent.click(within(panel).getByRole("button", { name: "Zrušit výběr" }))
+    expect(onChange).toHaveBeenCalledWith({ lokalita: "cele-cesko" })
+  })
+
+  it("a town's name typed without diacritics finds it („usti nad orl“)", async () => {
+    renderFilters()
+
+    await userEvent.click(screen.getByRole("button", { name: "Lokalita: Praha" }))
+    const panel = await screen.findByRole("dialog", { name: "Lokalita" })
+    await userEvent.type(
+      within(panel).getByRole("combobox", { name: "Hledat lokalitu" }),
+      "usti nad orl",
+    )
+
+    expect(
+      within(panel)
+        .getAllByRole("option")
+        .map((option) => option.textContent),
+    ).toEqual(["Ústí nad Orlicí"])
   })
 })
 
@@ -276,7 +312,9 @@ describe("EventFilters › Typ aktivity", () => {
 
     await userEvent.click(screen.getByRole("button", { name: "Typ aktivity" }))
     const panel = await screen.findByRole("dialog", { name: "Typ aktivity" })
-    await userEvent.type(within(panel).getByLabelText("Hledat aktivitu"), "sach")
+    // the search field has the focus on opening, typing goes there
+    expect(within(panel).getByLabelText("Hledat aktivitu")).toHaveFocus()
+    await userEvent.keyboard("sach")
     await userEvent.click(within(panel).getByRole("checkbox", { name: /Šachy/ }))
 
     await userEvent.click(within(panel).getByRole("button", { name: /^Zobrazit/ }))

@@ -7,15 +7,19 @@ import { AuthLayout } from "@/components/AuthLayout"
 import { Seo } from "@/components/Seo"
 
 import { authSessionQueryOptions } from "@/features/auth/api/authSessionQueryOptions"
+import { GoogleSignIn } from "@/features/auth/components/GoogleSignIn"
 import { SignInForm } from "@/features/auth/components/SignInForm"
 import { useSignIn } from "@/features/auth/hooks/useSignIn"
+import { googleSignInErrorMessage } from "@/features/auth/lib/auth-errors"
 import { safeRedirect } from "@/features/auth/lib/redirect"
 import { NearestEvents } from "@/features/events/components/NearestEvents"
 
-// `from`: the page to come back to, e.g. the event (B-012)
+// `from`: the page to come back to, e.g. the event (B-012); `error`: why
+// Google sent the user back here without signing in (#154)
 const loginSearchParamsSchema = z.object({
   // TanStack parses `?from=123` into a number: such a `from` is dropped, not an error page
   from: z.string().optional().catch(undefined),
+  error: z.string().optional().catch(undefined),
 })
 
 export const Route = createFileRoute("/login")({
@@ -31,10 +35,12 @@ export const Route = createFileRoute("/login")({
 })
 
 function LoginPage() {
-  const { from } = Route.useSearch()
+  const { from, error } = Route.useSearch()
   const navigate = useNavigate()
   const signIn = useSignIn()
-  const [errorMessage, setErrorMessage] = useState<string | null>(null)
+  const [errorMessage, setErrorMessage] = useState<string | null>(
+    error ? googleSignInErrorMessage(error) : null,
+  )
 
   const handleSubmit = async (values: { email: string; password: string }) => {
     setErrorMessage(null)
@@ -87,6 +93,7 @@ function LoginPage() {
             Zapomenuté heslo?
           </Link>
         </p>
+        <GoogleSignIn from={from} />
       </AuthLayout>
     </>
   )

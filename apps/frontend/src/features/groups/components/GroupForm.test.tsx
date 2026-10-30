@@ -1,6 +1,7 @@
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query"
 import { render, screen } from "@testing-library/react"
 import userEvent from "@testing-library/user-event"
-import { describe, expect, it, vi } from "vitest"
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest"
 
 import type { Catalog } from "@/lib/catalog/catalogSearch"
 
@@ -34,16 +35,32 @@ const existing: GroupInput = {
 const renderForm = (props: Partial<Parameters<typeof GroupForm>[0]> = {}) => {
   const onSubmit = vi.fn()
   render(
-    <GroupForm
-      catalog={catalog}
-      submitLabel="Založit skupinu"
-      isSubmitting={false}
-      onSubmit={onSubmit}
-      {...props}
-    />,
+    // Lokalita also searches places online (OpenStreetMap)
+    <QueryClientProvider
+      client={new QueryClient({ defaultOptions: { queries: { retry: false } } })}
+    >
+      <GroupForm
+        catalog={catalog}
+        submitLabel="Založit skupinu"
+        isSubmitting={false}
+        onSubmit={onSubmit}
+        {...props}
+      />
+    </QueryClientProvider>,
   )
   return { onSubmit }
 }
+
+beforeEach(() => {
+  // no test talks to the real place search
+  vi.stubGlobal(
+    "fetch",
+    vi.fn(() => Promise.resolve(Response.json({ type: "FeatureCollection", features: [] }))),
+  )
+})
+afterEach(() => {
+  vi.unstubAllGlobals()
+})
 
 describe("GroupForm", () => {
   it("an untouched form can be sent and says what is missing", async () => {
@@ -58,6 +75,32 @@ describe("GroupForm", () => {
     expect(screen.getByText("Skupina potřebuje právě jednu lokalitu")).toBeInTheDocument()
     expect(screen.getByText("Vyber typ skupiny")).toBeInTheDocument()
     expect(onSubmit).not.toHaveBeenCalled()
+  })
+
+  it("founding: the activity and the locality are found by typing", async () => {
+    const { onSubmit } = renderForm()
+
+    await userEvent.type(screen.getByLabelText("Název skupiny *"), "Deskovky Letná")
+    await userEvent.click(screen.getByRole("combobox", { name: "Aktivita *" }))
+    await userEvent.type(screen.getByRole("combobox", { name: "Hledat aktivitu" }), "deskov")
+    await userEvent.keyboard("{Enter}")
+    await userEvent.click(screen.getByRole("combobox", { name: "Lokalita *" }))
+    await userEvent.type(screen.getByRole("combobox", { name: "Hledat lokalitu" }), "praha 7")
+    await userEvent.keyboard("{Enter}")
+    await userEvent.click(screen.getByRole("radio", { name: /Veřejná/ }))
+    await userEvent.click(screen.getByRole("button", { name: "Založit skupinu" }))
+
+    expect(screen.getByRole("combobox", { name: "Aktivita *" })).toHaveTextContent(
+      "Hry › Deskové hry",
+    )
+    expect(screen.getByRole("combobox", { name: "Lokalita *" })).toHaveTextContent("Praha 7")
+    expect(onSubmit).toHaveBeenCalledWith({
+      name: "Deskovky Letná",
+      description: null,
+      activityId: "a-deskove-hry",
+      localityId: "l-praha-7",
+      type: "public",
+    })
   })
 
   it("editing starts from the group's values and sends every field", async () => {

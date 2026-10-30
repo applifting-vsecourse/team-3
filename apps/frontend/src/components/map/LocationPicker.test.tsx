@@ -46,6 +46,29 @@ describe("LocationPicker", () => {
     expect(container.querySelectorAll(".leaflet-marker-icon")).toHaveLength(1)
   })
 
+  it("brings a place set from outside, e.g. a found address, into view", async () => {
+    const letna = { lat: 50.0965, lng: 14.4237 }
+    const { rerender, onChange } = renderPicker(null)
+
+    rerender(
+      <>
+        <p id="map-label">Místo na mapě</p>
+        <LocationPicker
+          value={letna}
+          onChange={onChange}
+          center={karlin}
+          labelledBy="map-label"
+        />
+      </>,
+    )
+    // the middle of the map is now the found place
+    await userEvent.click(screen.getByRole("button", { name: "Umístit špendlík do středu mapy" }))
+
+    const point = onChange.mock.calls[0]![0] as { lat: number; lng: number }
+    expect(point.lat).toBeCloseTo(letna.lat, 3)
+    expect(point.lng).toBeCloseTo(letna.lng, 3)
+  })
+
   it("opens on an already picked place, not on the locality (editing an event)", async () => {
     const letnany = { lat: 50.1333, lng: 14.5167 }
     const { onChange } = renderPicker(letnany)

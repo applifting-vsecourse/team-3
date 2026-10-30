@@ -10,3 +10,10 @@ export const passwordProblem = (password: string): string | null =>
   !/\d/.test(password)
     ? RULE
     : null;
+
+/**
+ * #153: why a password from a known data breach (Have I Been Pwned) is
+ * refused — attackers try those first, whatever the rule above says.
+ */
+export const PASSWORD_COMPROMISED_MESSAGE =
+  'Tohle heslo se objevilo mezi uniklými hesly z jiných webů a útočníci ho zkoušejí jako první. Zvol prosím jiné.';

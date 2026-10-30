@@ -1,3 +1,4 @@
+import type { ReactNode } from "react"
 import { RefreshCw } from "lucide-react"
 
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
@@ -26,6 +27,11 @@ type EventListProps = {
    * position (on desktop „Zrušit vše“ is in the filter bar). Pass only with an active filter.
    */
   onClearFilters?: () => void
+  /**
+   * What an empty list says and offers instead of the plain sentence, e.g.
+   * the filters and ways on (/akce). Marks its own `data-peek-end`.
+   */
+  empty?: ReactNode
 }
 
 export function EventList({
@@ -37,6 +43,7 @@ export function EventList({
   onHighlight,
   inertAfter,
   onClearFilters,
+  empty,
 }: EventListProps) {
   if (error) {
     return (
@@ -113,12 +120,14 @@ export function EventList({
       </div>
 
       {events.length === 0 ? (
-        <p
-          data-peek-end
-          className="py-8 text-center text-sm text-muted-foreground"
-        >
-          Pro zvolené filtry teď nejsou žádné nadcházející akce.
-        </p>
+        (empty ?? (
+          <p
+            data-peek-end
+            className="py-8 text-center text-sm text-muted-foreground"
+          >
+            Pro zvolené filtry teď nejsou žádné nadcházející akce.
+          </p>
+        ))
       ) : (
         <ul className="flex flex-col gap-3">
           {events.map((event, index) => (

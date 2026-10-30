@@ -15,4 +15,7 @@ export const ROUTES = {
   emailVerified: "/email-overen",
   // must match the backend's FRONTEND_RESET_PASSWORD_ROUTE, the link in the e-mail
   resetPassword: "/reset-password",
+  // linked from the sign-up's consents (#153)
+  terms: "/podminky",
+  privacy: "/ochrana-osobnich-udaju",
 } as const
