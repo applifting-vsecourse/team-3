@@ -30,8 +30,8 @@ Co nejdřív uděláme **bezpečnostní audit** a **UX audit** (PO). Aktualizace
 | Kdo jde na akci                  | Kdo není schválený účastník, vidí jen, jestli je plno a jestli se může přihlásit                                                                                                                             | PO                            | #174 (bug)        |
 |                                  | U akce skupiny vidí jména i členové skupiny                                                                                                                                                                  | tým                           |                   |
 | Zpráva k žádosti                 | Nepovinná zpráva k žádosti o účast na akci i o členství ve skupině                                                                                                                                           | Veronika, PO souhlasí         | #175              |
-| Akce skupin                      | Propojit skupiny s akcemi (soukromé i veřejné akce skupiny); člen vidí, jaké akce skupina pořádala v minulosti                                                                                               | PO                            | #70               |
-|                                  | Skupina pořádá veřejné i soukromé akce: veřejnou najde a přihlásí se na ni kdokoli, soukromou vidí a přihlásí se na ni jen členové skupiny                                                                   | PO 29. 10.                    |                   |
+| Akce skupin                      | Propojit skupiny s akcemi (veřejné akce i akce jen pro členy, PO říká „soukromé“); člen vidí, jaké akce skupina pořádala v minulosti                                                                         | PO                            | #70               |
+|                                  | Skupina pořádá veřejné akce i akce jen pro členy: veřejnou najde a přihlásí se na ni kdokoli, akci jen pro členy vidí a přihlásí se na ni jen členové skupiny                                                | PO 29. 10.                    |                   |
 | Oznámení ve skupině              | Správce pošle oznámení všem členům skupiny, přijde e-mail                                                                                                                                                    | tým                           | #194              |
 | Zprávy organizátora a upozornění | Organizátor pošle účastníkům zprávu, přijde e-mail / notifikace                                                                                                                                              | PO                            | #176, #177        |
 |                                  | Zpráva je i na detailu akce; seznam upozornění (schválení, zamítnutí, změna, zrušení, nová žádost, odhlášení)                                                                                                | tým                           |                   |
@@ -54,7 +54,7 @@ Co nejdřív uděláme **bezpečnostní audit** a **UX audit** (PO). Aktualizace
 - **Kdo jde (PO):** jména až pro schváleného účastníka, ostatní jen indikátory obsazenosti (inspirace u druhého týmu).
 - **Výchozí lokalita (tým):** z profilu, bez profilu podle IP, jinak celé Česko. Nahrazuje „vždy Praha“ (#38, #170).
 - **Organizátor na vlastní akci (tým):** se může přihlásit, platí Q12.
-- **Akce skupin (PO 29. 10.):** skupina pořádá veřejné i soukromé akce. Tým: soukromá akce skupiny je v datech `members` (jen pro členy), v hledání, na mapě ani na úvodní stránce se neukáže; veřejná se chová jako každá jiná akce.
+- **Akce skupin (PO 29. 10.):** skupina pořádá veřejné i soukromé akce. Tým: v backlogu a issues jim říkáme **jen pro členy** (`members`), protože soukromá je v B-026 akce dostupná přes odkaz. Akce jen pro členy v hledání, na mapě ani na úvodní stránce se neukáže; veřejná se chová jako každá jiná akce.
 - **UX (PO 29. 10.):** do sprintu patří i implementace schválených návrhů, ne jen audit a návrhy.
 
 ## Pořadí ve sprintu (tým)
@@ -62,8 +62,8 @@ Co nejdřív uděláme **bezpečnostní audit** a **UX audit** (PO). Aktualizace
 Všechno níže je ve sprintu 3, priorita určuje jen pořadí. Issues mají label:
 
 - **P1: nejdřív** – audity, verze dat a datový model: #172, #173, #181, #180. Z #172 jako první aktualizace Node.js a balíčků (Brotli).
-- **P2: jádro sprintu** – životní cyklus akce, zapracování schválených UX návrhů (#195), e-maily na stagingu (#165) a nejčastější chyby. E-mailovou službu (#177) a Kdo jde (#174) udělat dřív než zprávy (#175, #176).
-- **P3: po P1 a P2** – veřejný profil, úvodní stránka, proběhlé akce, Google, oznámení ve skupině a menší bugy; u #184, #191 a #192 nejdřív ověřit, jestli ještě platí.
+- **P2: jádro sprintu** – životní cyklus akce, zapracování schválených UX návrhů (#195), e-maily na stagingu (#165), úvodní stránka (#182) a nejčastější chyby. E-mailovou službu (#177) a Kdo jde (#174) udělat dřív než zprávy (#175, #176).
+- **P3: po P1 a P2** – veřejný profil, proběhlé akce, Google, oznámení ve skupině a menší bugy; u #184, #191 a #192 nejdřív ověřit, jestli ještě platí.
 
 ## Mimo scope sprintu 3
 

@@ -80,7 +80,7 @@ Každá role umí i všechno, co přihlášený uživatel. Správce skupiny ří
 
 - [ ] Detail ukazuje název, aktivitu, popis, místo na mapě, termín, cenu, úroveň, organizátora (osobu nebo skupinu), způsob přihlášení, počet přihlášených a kolik chybí.
 - [ ] Odkaz na akci se otevře přímo na detailu, bez přihlašovací obrazovky.
-- [ ] Návštěvník vidí jen počet přihlášených; přihlášený uživatel vidí i jména.
+- [ ] Jména přihlášených vidí organizátor, schválený účastník a u akce skupiny její členové a správci (#174); ostatní vidí jen obsazenost.
 - [ ] Zrušená akce má štítek „Zrušeno“ s důvodem.
 
 ---
@@ -92,7 +92,7 @@ Každá role umí i všechno, co přihlášený uživatel. Správce skupiny ří
 **Jako** návštěvník, který se chce přihlásit na akci, **chci** rychle založit účet nebo se přihlásit a vrátit se na tu samou akci, **abych** ji nemusel hledat znovu.
 
 - [ ] Klepnutí na „Přihlásit se na akci“ nepřihlášeného nabídne přihlášení nebo registraci; po dokončení se vrátím na akci.
-- [ ] Registrace e-mailem a heslem (přihlášení přes Google v MVP není): jméno, e-mail, silné heslo (validace na frontendu i backendu), potvrzení věku 18+, souhlas s podmínkami a GDPR.
+- [ ] Registrace e-mailem a heslem (přihlášení přes Google doplnilo #154): jméno, e-mail, silné heslo (validace na frontendu i backendu), potvrzení věku 18+, souhlas s podmínkami a GDPR.
 - [ ] Ověřovací odkaz platí 24 h; bez ověřeného e-mailu se nejde hlásit na akce ani je zakládat.
 - [ ] Přihlášení e-mailem a heslem; „Zapomenuté heslo“ pošle odkaz s omezenou platností.
 - [ ] Jeden účet slouží k účasti i pořádání.

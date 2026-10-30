@@ -15,7 +15,7 @@ Zdroj: `HobbyHub_User_Stories_MVP.md` (US-01 až US-19, odvozené z Feature brea
 7. **Testy jsou součást úkolu.** Každý BE úkol má unit testy service vrstvy (vzor `events.service.spec.ts`), pravidla kapacity, stavů a oprávnění pokrytá testem. Před PR projdi `pnpm check-all`.
 8. **Po změně schématu** vytvoř migraci `pnpm backend prisma:migrations:run` a rozšiř seed.
 9. **Narazíš na otevřenou otázku** (sekce na konci)? Nevymýšlej řešení, použij výchozí volbu z tabulky a zapiš to do PR.
-10. **Mimo rozsah znamená mimo rozsah.** Co v úkolu není, nedělej (chat, Google přihlášení, QR docházka, GPS, reklamy…).
+10. **Mimo rozsah znamená mimo rozsah.** Co v úkolu není, nedělej (chat, QR docházka, GPS, reklamy…).
 
 **Velikost:** S = do půl dne, M = cca den, L = víc dní (zvaž rozdělení).
 **Vrstva:** BE = backend, FE = frontend, FS = obojí.
@@ -432,14 +432,14 @@ Doménová logika (čistá funkce + testy): `approvedCount`, `missingToMin = max
 `US-03` · FS · M · závisí na: B-023
 
 - `GET /api/events/:id` bez přihlášení. Vrací i soukromé akce (soukromá = dostupná přes odkaz). Members-only akci vrací jen členům skupiny (jinak 404). Zrušenou akci vrací se štítkem a důvodem; `hidden`/`deleted` vrací 404.
-- Seznam jmen přihlášených jen pro přihlášeného uživatele; návštěvník dostane jen počet.
+- Jména přihlášených vrací API jen organizátorovi, uživateli se schválenou účastí a u akce skupiny členům a správcům skupiny (PO 28. 10., #174). Ostatní, včetně přihlášeného bez účasti a čekajícího žadatele, vidí jen obsazenost.
 - FE stránka `/akce/:id`: název, aktivita, popis, mapa (jeden bod), termín, cena, úroveň, organizátor (osoba nebo skupina, proklik), způsob přihlášení, počet přihlášených, „Chybí ještě X“ / „Volná místa: Y“ / „Plno“, štítek „Zrušeno“ s důvodem, tlačítko „Sdílet odkaz“.
 - Open Graph meta (titulek, termín) pro hezký náhled ve WhatsAppu.
 - Odkaz se otevře rovnou na detailu, bez přihlašovací obrazovky.
 
 **Hotovo, když:**
 
-- [ ] Testy BE: návštěvník nedostane jména, přihlášený ano; members-only cizímu = 404.
+- [ ] Testy BE pro každou roli: jména dostane organizátor, schválený účastník a u akce skupiny členové a správci; návštěvník, přihlášený bez účasti ani čekající žadatel ne; members-only cizímu = 404.
 
 ---
 
@@ -697,7 +697,7 @@ Doménová logika (čistá funkce + testy): `approvedCount`, `missingToMin = max
 
 `US-18, US-12, US-13` · FS · M · závisí na: B-053, B-022, B-034
 
-- Založení akce s `groupId` smí kterýkoli správce; aktivita předvyplněná a zamčená podle skupiny. Volba viditelnosti **veřejná** (`public`) / **soukromá** (`members`, vidí a hlásí se jen členové; PO 29. 10.: skupiny pořádají soukromé i veřejné akce).
+- Založení akce s `groupId` smí kterýkoli správce; aktivita předvyplněná a zamčená podle skupiny. Volba viditelnosti **veřejná** (`public`) / **jen pro členy** (`members`, vidí a hlásí se jen členové; PO 29. 10. jim říká „soukromé“, ale soukromá je v B-026 akce dostupná přes odkaz).
 - U akce je jako organizátor uvedena skupina s proklikem.
 - Oprávnění správy akce (úprava, zrušení, účastníci, zprávy, docházka, topování) rozšiř na **všechny správce skupiny** – jedna sdílená funkce `canManageEvent(user, event)` použitá všude.
 - Členové dostanou e-mail o nové akci a hlásí se sami.
@@ -927,4 +927,4 @@ Dokud tým nebo PO nerozhodne jinak, agent použije výchozí volbu.
 
 ## Mimo MVP (agent nedělá)
 
-Přihlášení přes Google, chat a soukromé zprávy, upozornění v aplikaci (zvonek), QR docházka, poloha zařízení (GPS), náhradníci, oblíbené akce, opakované akce, doporučení, kalendářní pohled, přidání do Google Kalendáře, párování (swipe), akce z vnějších zdrojů, promování akce, reklamy, prémium pro uživatele, mapa skupin.
+Chat a soukromé zprávy, upozornění v aplikaci (zvonek), QR docházka, poloha zařízení (GPS), náhradníci, oblíbené akce, opakované akce, doporučení, kalendářní pohled, přidání do Google Kalendáře, párování (swipe), akce z vnějších zdrojů, promování akce, reklamy, prémium pro uživatele, mapa skupin.
