@@ -28,7 +28,7 @@ HobbyHub helps people find others for their hobbies: organizers post an event (a
 
 ## Prerequisites
 
-- Node.js 24 — the version in [`.nvmrc`](.nvmrc). With nvm or fnm, `nvm use` picks it up from anywhere in the repo (they search parent directories), and every `package.json` declares it too, so pnpm warns if you are on an older one.
+- Node.js 24.22.1 or newer on the 24 line — [`.nvmrc`](.nvmrc) pins 24.22.2. Older versions have the Brotli decoder hole CVE-2026-111497, so check `node -v` and update if needed. With nvm or fnm, `nvm install` picks the version up from anywhere in the repo (they search parent directories), and every `package.json` declares the range too, so pnpm warns if you are outside it.
 - pnpm — `corepack enable` picks the version from `package.json`
 - Docker (for the database)
 

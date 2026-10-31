@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button"
 import { ErrorLayout } from "./ErrorLayout"
 
 type RootErrorBoundaryProps = {
-  error: Error
+  error: unknown
 }
 
 // The message of an unexpected error is technical (and English): it stays in
