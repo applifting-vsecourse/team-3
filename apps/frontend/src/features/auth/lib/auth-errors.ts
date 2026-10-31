@@ -57,9 +57,9 @@ export const GOOGLE_SIGN_IN_FAILED = "Přihlášení přes Google se nepovedlo. 
 const GOOGLE_ERRORS: Record<string, string> = {
   // cancelled on Google's page
   access_denied: "Přihlášení přes Google je zrušené. Zkus to znovu, nebo se přihlas e-mailem.",
-  // an account with the e-mail exists, but its e-mail isn't verified, so it isn't linked
+  // an account with the e-mail exists and isn't linked: e-mail not verified, or linking off (simulated inbox)
   account_not_linked:
-    "Účet s tímto e-mailem už v HobbyHubu máš, jen v něm zatím není ověřený e-mail. Přihlas se heslem a ověř si e-mail, pak půjde i Google.",
+    "Účet s tímto e-mailem už v HobbyHubu máš, ale Google k němu teď připojit nejde. Přihlas se heslem.",
   email_not_found: "Google nám neposlal tvůj e-mail a bez něj se přihlásit nejde.",
 }
 

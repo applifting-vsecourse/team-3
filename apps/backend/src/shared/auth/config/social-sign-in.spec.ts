@@ -40,7 +40,7 @@ describe('sign-in with Google (#154)', () => {
   });
 
   it('gives BetterAuth the Google client and links an account with the same e-mail', () => {
-    const options = socialSignInOptions(both);
+    const options = socialSignInOptions({ ...both, resendApiKey: 're_123' });
 
     expect(options.socialProviders?.google).toMatchObject({
       clientId: both.googleClientId,
@@ -55,6 +55,12 @@ describe('sign-in with Google (#154)', () => {
     expect(options.account?.accountLinking).not.toHaveProperty(
       'requireLocalEmailVerified',
     );
+  });
+
+  it('links no accounts while the simulated inbox can verify any address', () => {
+    const options = socialSignInOptions({ ...both, simulatedInbox: 'true' });
+
+    expect(options.account?.accountLinking?.enabled).toBe(false);
   });
 
   it('makes the name from Google pass the name rule (#153) rather than refusing it', async () => {
