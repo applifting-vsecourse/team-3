@@ -23,7 +23,7 @@ jobs:
           echo "slug=$SLUG" >> "$GITHUB_OUTPUT"
           echo "url=https://$SLUG.$COURSE_DOMAIN" >> "$GITHUB_OUTPUT"
       - name: Login to registry
-        uses: docker/login-action@v3
+        uses: docker/login-action@v4
         with:
           registry: registry.vsepractical.applifting.dev
           username: ${{ secrets.REGISTRY_USER }}
