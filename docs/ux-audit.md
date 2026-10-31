@@ -37,12 +37,12 @@ Co jsme zvažovali a zamítli:
 | 13  | **Logo jako příběh:** prázdná čtvrtá tečka loga se doplní, když se přihlásíš – ten chybějící jsi ty. Okamžik „Máš místo“, načítání aplikace, hlavička e-mailu o schválení                                                                                       | Logo/Mark/Plná parta; A-05c, X-01, E-01a         |
 | 14  | **„Máš místo“ jako vlastní blok**, ne šedý Alert s ikonou ⓘ: světle zelená plocha, logo s plnou partou, bez dovětku o změnách                                                                                                                                   | A-05c mobil i desktop                            |
 | 15  | **„Sešlo se N“** místo „účast N“ u proběhlých akcí (karta, detail A-05h, stav tlačítka)                                                                                                                                                                         | A-02h, A-02hd, A-05h, A-08e                      |
-| 16  | **Náhled sdíleného odkazu** (og:image): „Chybí 1 – třeba ty?“ s pruhem. Party se plní přes chaty, je to nejviditelnější místo značky mimo aplikaci. Překrývá se s #102 (Obrázek akce ke sdílení, nice to have) – PO rozhodne, jestli ho vytáhnout do sprintu 3  | A-05s, #102                                      |
+| 16  | **Náhled sdíleného odkazu** (og:image): „Chybí 1 – třeba ty?“ s pruhem. Party se plní přes chaty, je to nejviditelnější místo značky mimo aplikaci. **Mimo sprint 3** – patří do #102 (Obrázek akce ke sdílení, backlog); návrh zůstává ve Figmě                | A-05s, #102                                      |
 | 17  | **Naléhavost v panelu „Teď chybí jeden“:** relativní termín „(za 2 dny)“ a věta s čísly „5 z 10 už jde, do minima chybí 1. Přijď a hraje se.“                                                                                                                   | A-01, A-01d, A-01p, A-01pd                       |
 | 18  | **Moje akce › Přihlášen:** u akce pod minimem „chybí N“ v údajích karty – štítek tam ukazuje vlastní účast, a jestli se akce bude konat, je pro účastníka nejdůležitější                                                                                        | C-01 (popis)                                     |
 | 19  | **E-mail „Koná se“** organizátorovi i účastníkům, když akce dosáhne minima                                                                                                                                                                                      | E-01 · Texty upozornění, typ 9                   |
 
-Rozhodnutí 13–19 vzešla z nezávislé kontroly auditu (níže) a tým je schválil 31. 10.; stejně jako 1–12 je ukážeme PO.
+Rozhodnutí 13–19 vzešla z nezávislé kontroly auditu (níže) a tým je schválil 31. 10.; stejně jako 1–12 je ukážeme PO. Rozhodnutí 16 (náhled odkazu) do sprintu 3 nepatří, je v backlogu u #102.
 
 ### B3 Hlas aplikace
 
@@ -139,33 +139,33 @@ Druhý pohled na audit, Figmu a dokumenty před ukázkou PO. Všechno níže je 
 
 ## Figma – co je nového (31. 10.)
 
-| Obrazovka                                             | Mobil                                                               | Desktop                       | Issue              |
-| ----------------------------------------------------- | ------------------------------------------------------------------- | ----------------------------- | ------------------ |
-| Úvodní stránka – návštěvník                           | A-01                                                                | A-01d                         | #173, #182         |
-| Úvodní stránka – přihlášený (Podle tvých zájmů)       | A-01p                                                               | A-01pd                        | #173, #182         |
-| Detail akce: Koná se, Kdo jde, Zprávy od organizátora | A-05, A-05c                                                         | A-05d, A-05c                  | #173, #174, #176   |
-| Žádost o účast se zprávou                             | A-05a                                                               | A-05ad                        | #175               |
-| Náhled akce po klepnutí na špendlík                   | A-03a                                                               | A-03ad                        | #56                |
-| Lokalita s okolím, výchozí lokalita, vzdálenost       | A-02g                                                               | A-02gd                        | #55, #57           |
-| Proběhlé akce                                         | A-02h                                                               | A-02hd                        | #61                |
-| Správa akce: zpráva u žádosti, „Napsat účastníkům“    | D-03                                                                | D-03d                         | #175, #176         |
-| Napsat účastníkům (dialog)                            | D-04                                                                | D-04d                         | #176               |
-| Založení akce skupiny                                 | D-01g                                                               | D-01gd                        | #70                |
-| Detail akce skupiny (pořádá skupina, jen pro členy)   | A-05g                                                               | A-05gd                        | #70, #174          |
-| Stránka skupiny pro člena: akce skupiny, oznámení     | A-08e                                                               | A-08ed                        | #70, #194          |
-| Požádat o členství se zprávou                         | A-08a                                                               | A-08ad                        | #175               |
-| Správa skupiny: zpráva u žádosti, „Napsat členům“     | D-07                                                                | D-07d                         | #175, #194         |
-| Napsat členům (dialog)                                | D-08                                                                | D-08d                         | #194               |
-| Skupiny – nic nenalezeno                              | A-07e                                                               | A-07ed                        | #173               |
-| Můj profil                                            | B-05                                                                | B-05d                         | #178               |
-| Upravit profil                                        | B-06                                                                | B-06d                         | #178               |
-| Veřejný profil                                        | B-07                                                                | B-07d                         | #179               |
-| E-maily upozornění                                    | E-01 (jedna šablona, přizpůsobí se šířce) + E-01 · Texty upozornění |                               | #177, #176, #194   |
-| Detail proběhlé akce                                  | A-05h                                                               | A-05h desktop                 | #61                |
-| Akce jen pro členy (nečlen)                           | A-05i                                                               | A-05i desktop                 | #70                |
-| Veřejná skupina (nečlen)                              | A-08f                                                               | A-08fd                        | #70                |
-| Panel „Teď chybí jeden“ bez akcí                      | A-01 · Panel – bez akce                                             | (stejný)                      | #173               |
-| Náhled sdíleného odkazu                               | A-05s (og:image)                                                    |                               | #173, návrh        |
-| Načítání aplikace                                     | X-01                                                                | (stejné)                      | #173, návrh        |
-| Dialogy na desktopu                                   | –                                                                   | A-05bd, B-02d, D-02ad, D-07ad | sprint 2, doplněno |
-| Tmavý režim – komponenty sprintu 3                    | stránka Tmavý režim › Sprint 3                                      |                               | #173               |
+| Obrazovka                                             | Mobil                                                               | Desktop                       | Issue               |
+| ----------------------------------------------------- | ------------------------------------------------------------------- | ----------------------------- | ------------------- |
+| Úvodní stránka – návštěvník                           | A-01                                                                | A-01d                         | #173, #182          |
+| Úvodní stránka – přihlášený (Podle tvých zájmů)       | A-01p                                                               | A-01pd                        | #173, #182          |
+| Detail akce: Koná se, Kdo jde, Zprávy od organizátora | A-05, A-05c                                                         | A-05d, A-05c                  | #173, #174, #176    |
+| Žádost o účast se zprávou                             | A-05a                                                               | A-05ad                        | #175                |
+| Náhled akce po klepnutí na špendlík                   | A-03a                                                               | A-03ad                        | #56                 |
+| Lokalita s okolím, výchozí lokalita, vzdálenost       | A-02g                                                               | A-02gd                        | #55, #57            |
+| Proběhlé akce                                         | A-02h                                                               | A-02hd                        | #61                 |
+| Správa akce: zpráva u žádosti, „Napsat účastníkům“    | D-03                                                                | D-03d                         | #175, #176          |
+| Napsat účastníkům (dialog)                            | D-04                                                                | D-04d                         | #176                |
+| Založení akce skupiny                                 | D-01g                                                               | D-01gd                        | #70                 |
+| Detail akce skupiny (pořádá skupina, jen pro členy)   | A-05g                                                               | A-05gd                        | #70, #174           |
+| Stránka skupiny pro člena: akce skupiny, oznámení     | A-08e                                                               | A-08ed                        | #70, #194           |
+| Požádat o členství se zprávou                         | A-08a                                                               | A-08ad                        | #175                |
+| Správa skupiny: zpráva u žádosti, „Napsat členům“     | D-07                                                                | D-07d                         | #175, #194          |
+| Napsat členům (dialog)                                | D-08                                                                | D-08d                         | #194                |
+| Skupiny – nic nenalezeno                              | A-07e                                                               | A-07ed                        | #173                |
+| Můj profil                                            | B-05                                                                | B-05d                         | #178                |
+| Upravit profil                                        | B-06                                                                | B-06d                         | #178                |
+| Veřejný profil                                        | B-07                                                                | B-07d                         | #179                |
+| E-maily upozornění                                    | E-01 (jedna šablona, přizpůsobí se šířce) + E-01 · Texty upozornění |                               | #177, #176, #194    |
+| Detail proběhlé akce                                  | A-05h                                                               | A-05h desktop                 | #61                 |
+| Akce jen pro členy (nečlen)                           | A-05i                                                               | A-05i desktop                 | #70                 |
+| Veřejná skupina (nečlen)                              | A-08f                                                               | A-08fd                        | #70                 |
+| Panel „Teď chybí jeden“ bez akcí                      | A-01 · Panel – bez akce                                             | (stejný)                      | #173                |
+| Náhled sdíleného odkazu                               | A-05s (og:image)                                                    |                               | #102, mimo sprint 3 |
+| Načítání aplikace                                     | X-01                                                                | (stejné)                      | #173, návrh         |
+| Dialogy na desktopu                                   | –                                                                   | A-05bd, B-02d, D-02ad, D-07ad | sprint 2, doplněno  |
+| Tmavý režim – komponenty sprintu 3                    | stránka Tmavý režim › Sprint 3                                      |                               | #173                |
