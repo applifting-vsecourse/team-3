@@ -29,14 +29,14 @@ jobs:
           username: ${{ secrets.REGISTRY_USER }}
           password: ${{ secrets.REGISTRY_PASSWORD }}
       - name: Build & push backend
-        uses: docker/build-push-action@v6
+        uses: docker/build-push-action@v7
         with:
           context: .
           file: apps/backend/Dockerfile.deploy
           push: true
           tags: ${{ env.REGISTRY }}/${{ steps.slug.outputs.slug }}-backend:latest
       - name: Build & push frontend
-        uses: docker/build-push-action@v6
+        uses: docker/build-push-action@v7
         with:
           context: .
           file: apps/frontend/Dockerfile.deploy
