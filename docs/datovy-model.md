@@ -269,6 +269,6 @@ Seed (`apps/backend/src/scripts/seed/`) je opakovatelný a běží lokálně př
 
 1. **Číselník aktivit a lokalit** vždy, srovná se s `demo-data.ts` (nic nemaže).
 2. **Superadmin** z `SUPERADMIN_EMAIL` / `SUPERADMIN_PASSWORD`, když chybí.
-3. **Testovací data #47** (41 uživatelů, 10 skupin, 59 akcí, 204 účastí), jen do databáze bez akcí a skupin. Vypnout jde `SEED_DEMO_DATA=false`.
+3. **Testovací data #47** (41 uživatelů, 10 skupin, 59 akcí, 204 účastí), jen do databáze bez akcí a skupin. V produkci jen se `SEED_DEMO_DATA=true`, které má staging v `Dockerfile.deploy`; jinde vypnout jde `SEED_DEMO_DATA=false`.
 
 Demo účty jsou v [README](../README.md#seeded-users).

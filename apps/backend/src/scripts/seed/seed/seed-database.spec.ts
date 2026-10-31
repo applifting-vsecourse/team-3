@@ -6,7 +6,11 @@ import { mock } from 'jest-mock-extended';
 import { ensureUser } from './ensure-user';
 import { seedCatalog } from './seed-catalog';
 import { seedCommunity } from './seed-community';
-import { seedDatabase, SUPERADMIN_NAME } from './seed-database';
+import {
+  demoDataEnabled,
+  seedDatabase,
+  SUPERADMIN_NAME,
+} from './seed-database';
 import { seedDemo } from './seed-demo';
 
 // Factories, so neither better-auth nor the demo and community data load under Jest.
@@ -19,6 +23,20 @@ const config = {
   superadminEmail: 'admin@example.com',
   superadminPassword: 'short',
 } as Config;
+
+describe('demoDataEnabled', () => {
+  it('is on outside production unless switched off', () => {
+    expect(demoDataEnabled({})).toBe(true);
+    expect(demoDataEnabled({ SEED_DEMO_DATA: 'false' })).toBe(false);
+  });
+
+  it('in production needs SEED_DEMO_DATA=true: the passwords are in the repo', () => {
+    expect(demoDataEnabled({ NODE_ENV: 'production' })).toBe(false);
+    expect(
+      demoDataEnabled({ NODE_ENV: 'production', SEED_DEMO_DATA: 'true' }),
+    ).toBe(true);
+  });
+});
 
 describe('seedDatabase', () => {
   const prisma = mock<PrismaService>();

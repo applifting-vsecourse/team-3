@@ -67,6 +67,8 @@ ENV CI_COMMIT_SHA=$CI_COMMIT_SHA
 
 # This image runs on staging, which has no e-mail service. Delete for real production.
 ENV SIMULATED_INBOX=true
+# Staging's demo accounts, their passwords are in the repo. Delete for real production.
+ENV SEED_DEMO_DATA=true
 
 USER node
 WORKDIR /app/apps/backend
