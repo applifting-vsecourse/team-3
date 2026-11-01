@@ -1,5 +1,5 @@
 import { CatalogService } from '@/modules/catalog/services/catalog.service';
-import { AuthenticatedUserGuard } from '@/shared/auth/guards/authenticated-user.guard';
+import { VerifiedUserGuard } from '@/shared/auth/guards/verified-user.guard';
 import {
   Body,
   Controller,
@@ -20,6 +20,7 @@ import { ActivityCategoryResponseDto } from './dto/activity-category.response.dt
 import { CreateLocalityDto } from './dto/create-locality.dto';
 import { LocalityResponseDto } from './dto/locality.response.dto';
 import { SearchLocalitiesQueryDto } from './dto/search-localities.query.dto';
+import { LocalityThrottlerGuard } from './locality-throttler.guard';
 
 // Public on purpose: visitors filter events by activity and locality without an account (US-02).
 @ApiTags('catalog')
@@ -53,7 +54,7 @@ export class CatalogController {
   }
 
   @Post('localities')
-  @UseGuards(AuthenticatedUserGuard)
+  @UseGuards(VerifiedUserGuard, LocalityThrottlerGuard)
   @ApiCookieAuth()
   @ApiOperation({
     summary:
@@ -65,6 +66,14 @@ export class CatalogController {
     description: 'Invalid name or a place outside Czechia',
   })
   @ApiResponse({ status: 401, description: 'Not signed in' })
+  @ApiResponse({
+    status: 403,
+    description: 'EMAIL_NOT_VERIFIED, or USER_BLOCKED',
+  })
+  @ApiResponse({
+    status: 429,
+    description: 'Over the hourly limit of the user',
+  })
   async addLocality(
     @Body() body: CreateLocalityDto,
   ): Promise<LocalityResponseDto> {
