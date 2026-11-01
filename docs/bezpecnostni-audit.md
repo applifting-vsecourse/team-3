@@ -140,19 +140,19 @@ Z kódu nejde zjistit a tým nemá přístup do Coolify. Je potřeba to předat 
 
 Nálezy S-1 až S-5 pocházejí z nočního testování před Sprint Review 2. Jejich report není v repu ani v issues, seznam dodal Martin.
 
-| ID  | Nález                                                 | Stav                                                            |
-| --- | ----------------------------------------------------- | --------------------------------------------------------------- |
-| S-1 | Neplatné datum při založení a úpravě akce vracelo 500 | Opraveno v #137                                                 |
-| S-2 | `GET /api/events?dateTo=9999-12-31` vrací 500         | Otevřený, nízká závažnost; viz níže; na stagingu ověřeno 1. 11. |
-| S-3 | Souběh při vyřizování žádostí o členství ve skupině   | Otevřený, nízká závažnost; viz níže                             |
-| S-4 | Zápisy do API z aplikací jiných týmů (CSRF)           | Opraveno v #140                                                 |
-| S-5 | Do skupiny se jde přidat i bez ověřeného e-mailu      | Není chyba, otázka na PO; viz níže                              |
+| ID  | Nález                                                 | Závažnost | Stav                                       |
+| --- | ----------------------------------------------------- | --------- | ------------------------------------------ |
+| S-1 | Neplatné datum při založení a úpravě akce vracelo 500 | nízká     | Opraveno v #137                            |
+| S-2 | `GET /api/events?dateTo=9999-12-31` vrací 500         | nízká     | Otevřený, na stagingu ověřeno 1. 11.; níže |
+| S-3 | Souběh při vyřizování žádostí o členství ve skupině   | nízká     | Otevřený; viz níže                         |
+| S-4 | Zápisy do API z aplikací jiných týmů (CSRF)           | vysoká    | Opraveno v #140; stejný nález jako N-1     |
+| S-5 | Do skupiny se jde přidat i bez ověřeného e-mailu      | žádná     | Není chyba, otázka na PO; viz níže         |
 
 **S-2:** běžná nesmyslná data už dostanou 400, ale `9999-12-31` projde validací. `startOfNextPragueDay` z něj počítá následující den v roce 10000 a ten neumí zpracovat. Oprava: omezit rok v `ListEventsQueryDto`.
 
 **S-5:** založení skupiny ověřený e-mail vyžaduje, žádost o členství a vstup do skupiny jen přihlášení. V #46 to tak bylo zvoleno záměrně, Figma A-08 ale stav „neověřený e-mail“ má. Rozhodne PO.
 
-**S-3** je chyba ve skupinách, ne bezpečnostní díra: data neunikají. V kódu je dál, našli jsme ji čtením kódu, ne novým pokusem:
+**S-3** je chyba ve skupinách, ne bezpečnostní díra: data neunikají. Odhalilo ji noční testování. Čtením kódu jsme ověřili, že tam pořád je, znovu jsme ji nevyvolávali:
 
 - **Schválení a zamítnutí naráz:** service ověří, že žádost čeká, ale samotný zápis v `group.repository.ts` stav už nekontroluje. Když jeden správce žádost schválí a druhý ji skoro naráz zamítne, může se smazat člověk, kterého ten první právě schválil.
 - **Dvě rychlá kliknutí na „Přidat se“:** druhý zápis narazí na unikátní klíč člena skupiny a skončí chybou 500.
