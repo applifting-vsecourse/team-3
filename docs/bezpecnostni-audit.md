@@ -16,6 +16,7 @@ Analýza vychází z `main` (`1f264ab`), stav oprav k 1. 11. 2026 (`main` `6298a
 - [ ] Založit issue na opravu S-2 a S-3 (viz [Dřívější audit](#dřívější-audit)).
 - [ ] Rozhodnout s PO, zda má být pro členství ve skupině potřeba ověřený e-mail (S-5).
 - [ ] Vyřešit `js-yaml`, oprava už existuje (viz [Závislosti](#závislosti)).
+- [ ] Ověřit `BETTER_AUTH_SECRET` a ostatní nastavení na stagingu, ověří Tomáš Klíma (viz [Ke kontrole na stagingu](#ke-kontrole-na-stagingu)).
 - [ ] Před vznikem administrace (B-063) ověřit heslo superadmina na stagingu (viz [Ke kontrole na stagingu](#ke-kontrole-na-stagingu)).
 
 ## Jak audit proběhl
@@ -118,7 +119,7 @@ Přidat lokalitu teď může jen ověřený uživatel a nejvýš 20krát za hodi
 
 ### Ke kontrole na stagingu
 
-Z kódu nejde zjistit a tým nemá přístup do Coolify. Je potřeba to předat tomu, kdo staging spravuje:
+Z kódu nejde zjistit a tým nemá přístup do Coolify. Ověří to Tomáš Klíma:
 
 - `BETTER_AUTH_SECRET` a `SUPERADMIN_PASSWORD` nesmí mít hodnoty z `.env.example`.
 - Backend nesmí být dostupný přímo mimo proxy.
