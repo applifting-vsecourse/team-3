@@ -16,7 +16,7 @@ import {
 import type { SessionUser } from "@/features/auth/api/authSessionQueryOptions"
 import { ResendVerificationButton } from "@/features/auth/components/ResendVerificationButton"
 import { useSession } from "@/features/auth/hooks/useSession"
-import { encodeRedirectUri } from "@/features/auth/lib/redirect"
+import { redirectFrom } from "@/features/auth/lib/redirect"
 import type { VerificationResult } from "@/features/auth/lib/verification-result"
 
 /** BetterAuth's codes on a link that didn't work, said shortly. */
@@ -151,7 +151,7 @@ function VerificationOutcome({ result, user, location, onDone }: VerificationOut
           <Button asChild>
             <Link
               to={ROUTES.login}
-              search={{ from: encodeRedirectUri(location) }}
+              search={{ from: redirectFrom(location) }}
             >
               Přihlásit se
             </Link>

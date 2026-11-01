@@ -84,7 +84,7 @@ describe("GoogleSignIn (#154)", () => {
 
   it("goes to Google, back to `from` once signed in and to /login when not", async () => {
     providers(true)
-    await renderGoogle(encodeURIComponent("/akce/e1"))
+    await renderGoogle("/akce/e1")
 
     await userEvent.click(await button())
 
@@ -92,13 +92,13 @@ describe("GoogleSignIn (#154)", () => {
     expect(social).toHaveBeenCalledWith({
       provider: "google",
       callbackURL: `${origin}/akce/e1`,
-      errorCallbackURL: `${origin}/login?from=%252Fakce%252Fe1`,
+      errorCallbackURL: `${origin}/login?from=%2Fakce%2Fe1`,
     })
   })
 
   it("keeps the user in the app whatever `from` says", async () => {
     providers(true)
-    await renderGoogle(encodeURIComponent("https://evil.example"))
+    await renderGoogle("https://evil.example")
 
     await userEvent.click(await button())
 

@@ -8,7 +8,7 @@ import { renderWithRouter } from "@/test/renderWithRouter"
 import { EventDetailView } from "@/features/events/components/EventDetailView"
 import { anEventDetail } from "@/features/events/test/anEvent"
 
-const signInFrom = encodeURIComponent("/akce/e1")
+const signInFrom = "/akce/e1"
 
 describe("EventDetailView", () => {
   it("shows what, when, where, who organizes it and how many are coming", async () => {
@@ -84,12 +84,11 @@ describe("EventDetailView", () => {
     expect(screen.queryByText("Jana Svobodová")).not.toBeInTheDocument()
     expect(screen.queryByRole("list")).not.toBeInTheDocument()
     const signIn = screen.getByRole("link", { name: "přihlášení" })
-    expect(signIn.getAttribute("href")).toMatch(/^\/login\?from=/)
-    expect(
-      decodeURIComponent(
-        new URL(signIn.getAttribute("href")!, "http://x").searchParams.get("from")!,
-      ),
-    ).toBe("/akce/e1")
+    // encoded once (#186): one decode, by URLSearchParams, gives the path back
+    expect(signIn).toHaveAttribute("href", "/login?from=%2Fakce%2Fe1")
+    expect(new URL(signIn.getAttribute("href")!, "http://x").searchParams.get("from")).toBe(
+      "/akce/e1",
+    )
   })
 
   it("says when nobody has joined yet", async () => {

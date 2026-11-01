@@ -6,9 +6,10 @@ const origin = window.location.origin
 
 describe("googleCallbackUrls (#154)", () => {
   it("comes back to `from` once signed in, and to /login with it when not", () => {
-    expect(googleCallbackUrls(encodeURIComponent("/akce/e1?tab=info"))).toEqual({
+    // `from` as the sign-in page read it from the URL: already decoded (#186)
+    expect(googleCallbackUrls("/akce/e1?tab=info")).toEqual({
       callbackURL: `${origin}/akce/e1?tab=info`,
-      errorCallbackURL: `${origin}/login?from=%252Fakce%252Fe1%253Ftab%253Dinfo`,
+      errorCallbackURL: `${origin}/login?from=%2Fakce%2Fe1%3Ftab%3Dinfo`,
     })
   })
 
@@ -21,7 +22,7 @@ describe("googleCallbackUrls (#154)", () => {
 
   it("never leaves the app: a crafted `from` falls back to the events", () => {
     for (const from of ["https://evil.example", "//evil.example", "/login"]) {
-      expect(googleCallbackUrls(encodeURIComponent(from)).callbackURL).toBe(`${origin}/akce`)
+      expect(googleCallbackUrls(from).callbackURL).toBe(`${origin}/akce`)
     }
   })
 })

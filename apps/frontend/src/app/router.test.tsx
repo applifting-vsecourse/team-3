@@ -96,27 +96,34 @@ describe("router", () => {
 
   // #155: the result in a dialog over that page, not on an empty page of its own
   describe("the link in the verification e-mail (/email-overen, old links too)", () => {
-    // where the sign-up started, as the link carries it (encoded twice)
-    const fromGroups = encodeURIComponent(encodeURIComponent("/skupiny?q=volejbal"))
+    // where the sign-up started, as the link carries it: encoded once since #186,
+    // twice in links sent before it (still valid for 24 h)
+    const fromGroups = "/skupiny?q=volejbal"
 
-    it("leads back to the page the sign-up started from, with „E-mail je ověřený“ over it", async () => {
-      stubApi()
-      // the app still has the session from before the link: unverified
-      const app = await renderApp(`/email-overen?from=${fromGroups}`, {
-        isSignedIn: true,
-        cachedUser: { ...user, emailVerified: false },
-      })
+    it.each([
+      ["encoded once", encodeURIComponent(fromGroups)],
+      ["encoded twice, the old format", encodeURIComponent(encodeURIComponent(fromGroups))],
+    ])(
+      "leads back to the page the sign-up started from, with „E-mail je ověřený“ over it (%s)",
+      async (_, from) => {
+        stubApi()
+        // the app still has the session from before the link: unverified
+        const app = await renderApp(`/email-overen?from=${from}`, {
+          isSignedIn: true,
+          cachedUser: { ...user, emailVerified: false },
+        })
 
-      // the session was fetched anew before the dialog trusted it: success,
-      // never „not verified“ first, and the banner „Ověř si e-mail“ is gone
-      expect(await screen.findByRole("dialog", { name: "E-mail je ověřený" })).toBeInTheDocument()
-      expect(screen.queryByText("E-mail zatím není ověřený")).not.toBeInTheDocument()
-      expect(screen.queryByText(/Ověř si e-mail/)).not.toBeInTheDocument()
-      expect(authClient.getSession).toHaveBeenCalled()
-      // the page's own address, nothing added to it; „Zpět“ doesn't lead to /email-overen
-      expect(app.state.location.href).toBe("/skupiny?q=volejbal")
-      expect(app.history.length).toBe(1)
-    })
+        // the session was fetched anew before the dialog trusted it: success,
+        // never „not verified“ first, and the banner „Ověř si e-mail“ is gone
+        expect(await screen.findByRole("dialog", { name: "E-mail je ověřený" })).toBeInTheDocument()
+        expect(screen.queryByText("E-mail zatím není ověřený")).not.toBeInTheDocument()
+        expect(screen.queryByText(/Ověř si e-mail/)).not.toBeInTheDocument()
+        expect(authClient.getSession).toHaveBeenCalled()
+        // the page's own address, nothing added to it; „Zpět“ doesn't lead to /email-overen
+        expect(app.state.location.href).toBe("/skupiny?q=volejbal")
+        expect(app.history.length).toBe(1)
+      },
+    )
 
     it("a link that didn't work: the dialog explains it, over the events without `from`", async () => {
       stubApi()
@@ -129,6 +136,14 @@ describe("router", () => {
     })
 
     it("from a page that needs signing in, signed out: the sign-in leads there, with the dialog over it", async () => {
+      stubApi()
+      const app = await renderApp(`/email-overen?from=${encodeURIComponent("/moje-akce")}`)
+
+      expect(await screen.findByRole("dialog", { name: "E-mail je ověřený" })).toBeInTheDocument()
+      expect(app.state.location.href).toBe("/login?from=%2Fmoje-akce")
+    })
+
+    it("the same with an old link, `from` encoded twice", async () => {
       stubApi()
       const from = encodeURIComponent(encodeURIComponent("/moje-akce"))
       const app = await renderApp(`/email-overen?from=${from}`)

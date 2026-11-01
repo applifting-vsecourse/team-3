@@ -14,7 +14,7 @@ import { cn } from "@/lib/utils"
 
 import { AppHeader } from "@/features/auth/components/AppHeader"
 import { useSession } from "@/features/auth/hooks/useSession"
-import { encodeRedirectUri } from "@/features/auth/lib/redirect"
+import { redirectFrom } from "@/features/auth/lib/redirect"
 import { groupQueryOptions } from "@/features/groups/api/groupsQueryOptions"
 import { GroupProfile } from "@/features/groups/components/GroupProfile"
 
@@ -50,7 +50,7 @@ function GroupPage() {
           <GroupProfile
             group={group}
             isSignedIn={Boolean(user)}
-            signInFrom={encodeRedirectUri(location)}
+            signInFrom={redirectFrom(location)}
           />
         ) : groupQuery.error ? (
           <GroupError

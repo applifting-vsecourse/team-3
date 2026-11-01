@@ -26,7 +26,7 @@ const renderAction = async (event: Partial<EventDetail> = {}, options: RenderOpt
     <ParticipationAction
       event={anEventDetail(event)}
       viewer={viewer}
-      signInFrom={encodeURIComponent("/akce/e1")}
+      signInFrom="/akce/e1"
       isPending={isPending}
       onJoin={onJoin}
       onLeave={onLeave}
@@ -73,7 +73,7 @@ function Page({
     <ParticipationAction
       event={detail}
       viewer={jakub}
-      signInFrom={encodeURIComponent("/akce/e1")}
+      signInFrom="/akce/e1"
       isPending={isPending}
       onJoin={send}
       onLeave={send}
@@ -138,8 +138,9 @@ describe("ParticipationAction", () => {
     expect(screen.getByRole("button", { name: "Plno" })).toBeDisabled()
     expect(screen.queryByRole("link", { name: "Přihlásit se na akci" })).not.toBeInTheDocument()
     // who already has a place or a request still gets back to the event
-    expect(screen.getByRole("link", { name: "Přihlas se k účtu" }).getAttribute("href")).toMatch(
-      /^\/login\?from=/,
+    expect(screen.getByRole("link", { name: "Přihlas se k účtu" })).toHaveAttribute(
+      "href",
+      "/login?from=%2Fakce%2Fe1",
     )
   })
 
@@ -174,7 +175,7 @@ describe("ParticipationAction", () => {
     await renderAction({}, { viewer: null })
 
     const link = screen.getByRole("link", { name: "Přihlásit se na akci" })
-    expect(link.getAttribute("href")).toMatch(/^\/login\?from=/)
+    expect(link).toHaveAttribute("href", "/login?from=%2Fakce%2Fe1")
   })
 
   it("an unverified user is told to verify first and gets there from the bar, not „Přijdu“", async () => {
