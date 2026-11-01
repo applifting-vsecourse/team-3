@@ -84,7 +84,6 @@ function EventDetailPage() {
             isNotFound={isNotFound}
             error={error}
             onRetry={retry}
-            signInFrom={signInFrom}
             participation={
               event ? (
                 <ParticipationAction
