@@ -6,6 +6,9 @@ updates:
       interval: weekly
     # Security fixes open their own PRs; routine bumps are grouped to keep the board readable.
     groups:
+      # NestJS packages only work on the same major, so they move together, majors included.
+      nestjs:
+        patterns: ['@nestjs/*']
       minor-and-patch:
         update-types: [minor, patch]
     open-pull-requests-limit: 5
@@ -16,8 +19,18 @@ updates:
       - /apps/frontend
     schedule:
       interval: weekly
+    # A new Node major also means .nvmrc, engines and everyone's local Node — a planned change, not a bump.
+    ignore:
+      - dependency-name: node
+        update-types: [version-update:semver-major]
+    groups:
+      docker:
+        patterns: ['*']
 
   - package-ecosystem: github-actions
     directory: /
     schedule:
       interval: weekly
+    groups:
+      github-actions:
+        patterns: ['*']
