@@ -18,6 +18,10 @@ import {
 } from '@/modules/event/domain/event-update';
 import { rankByInterest } from '@/modules/event/domain/interest';
 import {
+  canSeeParticipants,
+  ParticipantsViewer,
+} from '@/modules/event/domain/participant-visibility';
+import {
   decideJoin,
   decideLeave,
   decideRequests,
@@ -136,6 +140,11 @@ export class EventsService {
    * opens without signing in. Unknown, hidden and deleted events, and a
    * members-only event for anyone outside the group, are all 404, so the
    * response doesn't reveal that such an event exists.
+   *
+   * The names of who is coming go only to the organizer, an approved
+   * participant and the group's members and admins (#174); everyone else
+   * gets `participants: null` and sees the occupancy. `viewerId` is always
+   * the session's user, never something from the request.
    */
   async getEventDetail(
     id: string,
@@ -143,17 +152,20 @@ export class EventsService {
     now: Date = new Date(),
   ): Promise<EventDetailView> {
     const event = await this.eventRepository.findEventDetail(id, now);
-    if (!event || !(await this.canView(event, viewerId))) {
+    // a cancelled event stays reachable, with its reason (#52)
+    if (!event || event.status === 'hidden' || event.status === 'deleted') {
       throw new NotFoundException('Akce neexistuje.');
     }
-    if (!viewerId)
-      return { ...event, participants: null, myParticipation: null };
-    const [participants, mine] = await Promise.all([
-      this.eventRepository.findApprovedParticipants(event.id),
-      this.eventRepository.findParticipationStatus(event.id, viewerId),
-    ]);
+    const viewer = viewerId ? await this.viewerOf(event, viewerId) : null;
+    if (!this.canView(event, viewer)) {
+      throw new NotFoundException('Akce neexistuje.');
+    }
+    const participants = canSeeParticipants(viewer)
+      ? await this.eventRepository.findApprovedParticipants(event.id)
+      : null;
     // someone who withdrew is simply not in
-    const myParticipation = !mine || mine === 'withdrawn' ? null : mine;
+    const mine = viewer?.participation ?? null;
+    const myParticipation = mine === 'withdrawn' ? null : mine;
     return { ...event, participants, myParticipation };
   }
 
@@ -368,19 +380,25 @@ export class EventsService {
     return this.getEventDetail(eventId, userId, now);
   }
 
-  private async canView(
+  /** What the server knows about a signed-in viewer of the event. */
+  private async viewerOf(
     event: EventDetail,
-    viewerId: string | null,
-  ): Promise<boolean> {
-    // a cancelled event stays reachable, with its reason (#52)
-    if (event.status === 'hidden' || event.status === 'deleted') return false;
+    viewerId: string,
+  ): Promise<NonNullable<ParticipantsViewer>> {
+    const isOrganizer = event.organizer.id === viewerId;
+    const [participation, isGroupMember] = await Promise.all([
+      this.eventRepository.findParticipationStatus(event.id, viewerId),
+      // admins are active members too; pending and blocked ones are not
+      event.group && !isOrganizer
+        ? this.eventRepository.isActiveGroupMember(event.group.id, viewerId)
+        : false,
+    ]);
+    return { isOrganizer, participation, isGroupMember };
+  }
+
+  private canView(event: EventDetail, viewer: ParticipantsViewer): boolean {
     // a private event is reachable by anyone with the link
     if (event.visibility !== 'members') return true;
-    if (!viewerId) return false;
-    if (event.organizer.id === viewerId) return true;
-    return (
-      event.group !== null &&
-      this.eventRepository.isActiveGroupMember(event.group.id, viewerId)
-    );
+    return viewer !== null && (viewer.isOrganizer || viewer.isGroupMember);
   }
 }

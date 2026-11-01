@@ -34,7 +34,7 @@ export class EventDetailResponseDto extends PublicEventResponseDto {
     type: [EventParticipantDto],
     nullable: true,
     description:
-      'Approved participants for a signed-in user; null for a visitor, who gets only approvedCount',
+      "Approved participants, only for the organizer, an approved participant and, for a group event, the group's active members and admins (#174); null for anyone else (a visitor, a waiting applicant, someone who left or was removed), who sees only `capacity`",
   })
   participants!: EventParticipantDto[] | null;
 

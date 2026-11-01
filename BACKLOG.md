@@ -432,14 +432,14 @@ Doménová logika (čistá funkce + testy): `approvedCount`, `missingToMin = max
 `US-03` · FS · M · závisí na: B-023
 
 - `GET /api/events/:id` bez přihlášení. Vrací i soukromé akce (soukromá = dostupná přes odkaz). Members-only akci vrací jen členům skupiny (jinak 404). Zrušenou akci vrací se štítkem a důvodem; `hidden`/`deleted` vrací 404.
-- Jména přihlášených vrací API jen organizátorovi, uživateli se schválenou účastí a u akce skupiny členům a správcům skupiny (PO 28. 10., #174). Ostatní, včetně přihlášeného bez účasti a čekajícího žadatele, vidí jen obsazenost.
+- Jména přihlášených (`participants`) vrací API jen organizátorovi, uživateli se schválenou účastí a u akce skupiny aktivním členům a správcům skupiny (PO 28. 10., #174). Rozhoduje server podle session, nikdy podle požadavku. Ostatní dostanou `participants: null` a vidí jen obsazenost („Chybí ještě X“ / „Volná místa: Y“ / „Plno“): návštěvník, přihlášený bez účasti, čekající žadatel, kdo se odhlásil nebo byl odebrán či zamítnut, a čekající nebo zablokovaný člen skupiny. Detail jim sekci „Kdo jde“ vůbec neukáže.
 - FE stránka `/akce/:id`: název, aktivita, popis, mapa (jeden bod), termín, cena, úroveň, organizátor (osoba nebo skupina, proklik), způsob přihlášení, počet přihlášených, „Chybí ještě X“ / „Volná místa: Y“ / „Plno“, štítek „Zrušeno“ s důvodem, tlačítko „Sdílet odkaz“.
 - Open Graph meta (titulek, termín) pro hezký náhled ve WhatsAppu.
 - Odkaz se otevře rovnou na detailu, bez přihlašovací obrazovky.
 
 **Hotovo, když:**
 
-- [ ] Testy BE pro každou roli: jména dostane organizátor, schválený účastník a u akce skupiny členové a správci; návštěvník, přihlášený bez účasti ani čekající žadatel ne; members-only cizímu = 404.
+- [ ] Testy BE pro každou roli: jména dostane organizátor, schválený účastník a u akce skupiny členové a správci; návštěvník, přihlášený bez účasti, čekající žadatel, odhlášený, odebraný ani čekající člen skupiny ne; members-only cizímu = 404.
 
 ---
 

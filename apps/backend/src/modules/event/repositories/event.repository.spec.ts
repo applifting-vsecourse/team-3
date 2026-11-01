@@ -23,6 +23,25 @@ describe('EventRepository', () => {
       );
     });
 
+    it.each([
+      ['admin', 'active', true],
+      ['admin', 'pending', false],
+      ['member', 'active', true],
+    ] as const)(
+      'an %s with status %s → %s; the role does not matter (#174)',
+      async (role, status, expected) => {
+        const prisma = mockDeep<PrismaService>();
+        prisma.groupMember.findUnique.mockResolvedValue({
+          role,
+          status,
+        } as never);
+
+        await expect(
+          new EventRepository(prisma).isActiveGroupMember('g1', 'u1'),
+        ).resolves.toBe(expected);
+      },
+    );
+
     it('not a member at all → false', async () => {
       const prisma = mockDeep<PrismaService>();
       prisma.groupMember.findUnique.mockResolvedValue(null);
