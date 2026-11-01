@@ -3280,7 +3280,7 @@ const pragueOffsetMinutes = (date: Date): number => {
 };
 
 /** Pražské datum (kalendářní den) okamžiku `now`. */
-const pragueDate = (
+export const pragueDate = (
   now: Date,
 ): { y: number; m: number; d: number; weekday: number } => {
   const local = new Date(now.getTime() + pragueOffsetMinutes(now) * 60000);
@@ -3293,7 +3293,7 @@ const pragueDate = (
 };
 
 /** Převede pražský místní čas na Date (UTC okamžik). */
-const fromPragueLocal = (
+export const fromPragueLocal = (
   y: number,
   m: number,
   d: number,

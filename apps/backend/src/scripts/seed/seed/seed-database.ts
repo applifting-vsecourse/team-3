@@ -5,6 +5,7 @@ import { ensureUser } from './ensure-user';
 import { seedCatalog } from './seed-catalog';
 import { seedCommunity } from './seed-community';
 import { seedDemo } from './seed-demo';
+import { seedRatings } from './seed-ratings';
 
 /** Passes the sign-up's name rule (#153): no brackets, unlike the template's. */
 export const SUPERADMIN_NAME = 'Správce HobbyHubu';
@@ -26,6 +27,8 @@ export const demoDataEnabled = (env: NodeJS.ProcessEnv): boolean => {
  *    jde proměnnou SEED_DEMO_DATA=false.
  * 4. Komunita (100 uživatelů s akcemi a skupinami po Česku) – pod stejným
  *    přepínačem, vkládá se jednou i do databáze, která už data má.
+ * 5. Proběhlé akce a hodnocení (#180) – pod stejným přepínačem, jednou i do
+ *    databáze, která už data má, aby byly hvězdičky vidět i na stagingu.
  */
 export const seedDatabase = async (
   prisma: PrismaService,
@@ -62,4 +65,5 @@ export const seedDatabase = async (
 
   await seedDemo(prisma, betterAuth);
   await seedCommunity(prisma, betterAuth);
+  await seedRatings(prisma);
 };
