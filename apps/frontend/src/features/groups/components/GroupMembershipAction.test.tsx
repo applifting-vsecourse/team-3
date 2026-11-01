@@ -39,7 +39,7 @@ const render = (
       <GroupMembershipAction
         group={{ ...group, ...overrides }}
         isSignedIn={isSignedIn}
-        signInFrom="%2Fskupiny%2Fg-florbal"
+        signInFrom="/skupiny/g-florbal"
       />,
     ),
   )
@@ -56,7 +56,7 @@ describe("GroupMembershipAction", () => {
     await render({}, { isSignedIn: false })
     expect(screen.getByRole("link", { name: "Přidat se" })).toHaveAttribute(
       "href",
-      "/login?from=%252Fskupiny%252Fg-florbal",
+      "/login?from=%2Fskupiny%2Fg-florbal",
     )
   })
 

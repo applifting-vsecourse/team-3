@@ -128,13 +128,19 @@ describe("VerifyEmailBanner", () => {
     })
   })
 
-  it("asked for after an expired link: leads where that link would have, not back to the error", async () => {
-    // what the expired link from a sign-up on /akce/e1 led to
-    const from = encodeURIComponent(encodeURIComponent("/akce/e1"))
-    await renderBanner({ url: `/email-overen?error=TOKEN_EXPIRED&from=${from}` })
+  it.each([
+    // what the expired link from a sign-up on /akce/e1 led to: `from` encoded
+    // once since #186, twice in links sent before it
+    ["encoded once", encodeURIComponent("/akce/e1")],
+    ["encoded twice, the old format", encodeURIComponent(encodeURIComponent("/akce/e1"))],
+  ])(
+    "asked for after an expired link: leads where that link would have, not back to the error (%s)",
+    async (_, from) => {
+      await renderBanner({ url: `/email-overen?error=TOKEN_EXPIRED&from=${from}` })
 
-    expect((await resend()).continueTo).toBe("/akce/e1")
-  })
+      expect((await resend()).continueTo).toBe("/akce/e1")
+    },
+  )
 
   it("asked for on a password page: leads to the events, not back there", async () => {
     await renderBanner({ url: "/reset-password?token=abc" })

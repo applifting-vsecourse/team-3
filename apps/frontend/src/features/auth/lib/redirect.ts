@@ -22,6 +22,7 @@ const isAuthPage = (path: string) => /^\/(login|signup)(?:[/?#]|$)/.test(path)
  * still read `%2Fakce…`; verification e-mails sent then still carry it. A
  * path starts with "/", so only such a leftover is decoded once more — a
  * real path is used as it is, or its own `%26` in a filter would turn into `&`.
+ * Remove once those links have expired: they are valid for 24 hours.
  */
 const fromLegacyEncoding = (from: string) => {
   if (from.startsWith("/")) return from
