@@ -23,7 +23,7 @@ ENV VITE_BETTER_AUTH_URL=$VITE_BETTER_AUTH_URL
 RUN pnpm --filter frontend build
 
 
-FROM nginx:1.30-alpine
+FROM nginx:1.31-alpine
 
 COPY --from=builder /app/apps/frontend/build /usr/share/nginx/html
 
