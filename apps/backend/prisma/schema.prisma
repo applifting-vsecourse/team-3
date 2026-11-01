@@ -246,9 +246,9 @@ model User {
   displayUsername String? @db.VarChar(50)
 
   // Profil (B-003, B-013)
-  bio            String?   @db.VarChar(500)
+  bio            String?        @db.VarChar(500)
   homeLocalityId String?
-  homeLocality   Locality? @relation(fields: [homeLocalityId], references: [id], onDelete: SetNull)
+  homeLocality   Locality?      @relation(fields: [homeLocalityId], references: [id], onDelete: SetNull)
   interests      UserInterest[]
 
   // Viditelnost údajů v profilu (B-014)
@@ -263,19 +263,19 @@ model User {
   blockedReason   String?   @db.Text
   deletedAt       DateTime?
 
-  organizedEvents         Event[]            @relation("EventOrganizer")
-  participations          Participation[]
-  groupMemberships        GroupMember[]
-  ratings                 Rating[]
-  reports                 Report[]           @relation("ReportReporter")
-  resolvedReports         Report[]           @relation("ReportResolver")
-  moderationActions       ModerationAction[] @relation("ModerationAdmin")
-  revertedModerations     ModerationAction[] @relation("ModerationReverter")
-  payments                Payment[]          @relation("PaymentPayer")
-  confirmedPayments       Payment[]          @relation("PaymentConfirmer")
-  subscription            Subscription?
-  sentEventMessages       EventMessage[]
-  notificationLogs        NotificationLog[]
+  organizedEvents     Event[]            @relation("EventOrganizer")
+  participations      Participation[]
+  groupMemberships    GroupMember[]
+  ratings             Rating[]
+  reports             Report[]           @relation("ReportReporter")
+  resolvedReports     Report[]           @relation("ReportResolver")
+  moderationActions   ModerationAction[] @relation("ModerationAdmin")
+  revertedModerations ModerationAction[] @relation("ModerationReverter")
+  payments            Payment[]          @relation("PaymentPayer")
+  confirmedPayments   Payment[]          @relation("PaymentConfirmer")
+  subscription        Subscription?
+  sentEventMessages   EventMessage[]
+  notificationLogs    NotificationLog[]
 
   @@unique([email])
   @@unique([username])
@@ -389,11 +389,12 @@ model Event {
   createdAt       DateTime        @default(now())
   updatedAt       DateTime        @default(now()) @updatedAt
 
-  participations Participation[]
-  ratings        Rating[]
-  payments       Payment[]
-  messages       EventMessage[]
-  notifications  NotificationLog[]
+  participations     Participation[]
+  ratings            Rating[]
+  participantRatings ParticipantRating[]
+  payments           Payment[]
+  messages           EventMessage[]
+  notifications      NotificationLog[]
 
   @@index([status, visibility, startsAt])
   @@index([activityId])
@@ -418,6 +419,8 @@ model Participation {
   attendedAt DateTime?
   createdAt  DateTime            @default(now())
   updatedAt  DateTime            @default(now()) @updatedAt
+  /// Hodnocení účastníka organizátorem (#180), nanejvýš jedno
+  rating     ParticipantRating?
 
   @@unique([eventId, userId])
   @@index([userId])
@@ -506,7 +509,7 @@ model GroupMember {
 // Důvěra a administrace (B-060 až B-063)
 // ---------------------------------------------------------------------------
 
-/// Hodnocení akce a organizátora, hvězdičky 1–5 (validace v aplikaci). U akce skupiny se
+/// Hodnocení akce a organizátora od účastníka, hvězdičky 1–5 (validace v aplikaci). U akce skupiny se
 /// hodnocení organizátora počítá ke skupině. `deletedAt` = smazáno superadminem (jde vrátit, B-063).
 model Rating {
   id             String    @id @default(cuid())
@@ -524,6 +527,27 @@ model Rating {
   @@unique([eventId, userId])
   @@index([userId])
   @@map("rating")
+}
+
+/// Hodnocení účastníka organizátorem akce (#180, B-060), hvězdičky 1–5. Jedno na účastníka
+/// a akci, jen po skončení akce a jen u `approved` účasti; hodnotí jen organizátor akce, ne
+/// sám sebe (hlídá aplikace, decideParticipantRating). Složený cizí klíč na účast zaručuje,
+/// že hodnocený byl na akci přihlášený. `stars` 1–5 hlídá i databáze: CHECK v migraci,
+/// Prisma ho ve schématu neumí zapsat. `deletedAt` = smazáno superadminem (jde vrátit, B-063).
+model ParticipantRating {
+  id            String        @id @default(cuid())
+  eventId       String
+  event         Event         @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  participantId String
+  participation Participation @relation(fields: [eventId, participantId], references: [eventId, userId], onDelete: Cascade)
+  stars         Int
+  deletedAt     DateTime?
+  createdAt     DateTime      @default(now())
+  updatedAt     DateTime      @default(now()) @updatedAt
+
+  @@unique([eventId, participantId])
+  @@index([participantId])
+  @@map("participant_rating")
 }
 
 /// Nahlášení. Cíl je polymorfní (`targetType` + `targetId`), proto bez cizího klíče.
