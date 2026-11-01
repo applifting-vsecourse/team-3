@@ -5,6 +5,7 @@ import * as cookieParser from 'cookie-parser';
 import * as express from 'express';
 import { AppModule } from './app.module';
 import { sameOriginWrites } from './core/security/same-origin-writes';
+import { securityHeaders } from './core/security/security-headers';
 import { BetterAuth } from './shared/auth/providers/better-auth.provider';
 import { Config } from './shared/config/config.service';
 
@@ -24,6 +25,9 @@ async function main(): Promise<void> {
     origin: [config.backendUrl, config.frontendUrl],
     credentials: true,
   });
+
+  // Before every route, BetterAuth's and the Swagger UI's included
+  app.use(securityHeaders());
 
   // Setup cookie parser middleware
   app.use(cookieParser());

@@ -9,16 +9,15 @@ import {
   SIMULATED_INBOX,
   SimulatedInbox,
 } from './simulated-inbox/simulated-inbox';
-
-const usesConsoleMailer = (config: Config): boolean =>
-  !config.resendApiKey &&
-  !(config.smtpHost && config.smtpUsername && config.smtpPassword);
+import { simulatedInboxEnabled } from './simulated-inbox/simulated-inbox-enabled';
 
 // Only the verification e-mail is kept (#58), never the password reset.
 const simulatedInboxProvider: Provider = {
   provide: SIMULATED_INBOX,
   useFactory: (config: Config): SimulatedInbox | null =>
-    usesConsoleMailer(config) ? new SimulatedInbox(VERIFY_EMAIL_SUBJECT) : null,
+    simulatedInboxEnabled(config)
+      ? new SimulatedInbox(VERIFY_EMAIL_SUBJECT)
+      : null,
   inject: [Config],
 };
 
@@ -28,7 +27,7 @@ const simulatedInboxProvider: Provider = {
  *   SMTP_HOST + USERNAME + PASS  → SMTP
  *   otherwise                    → Console (logs emails to stdout, dev only;
  *                                  the verification e-mail also goes to the
- *                                  simulated inbox, `SIMULATED_INBOX`)
+ *                                  simulated inbox, simulatedInboxEnabled)
  *
  * Import this module whenever you need to inject `'EmailService'`.
  * The single shared `EmailService` instance is provided here so every

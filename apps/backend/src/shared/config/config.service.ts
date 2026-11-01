@@ -98,6 +98,13 @@ export class Config {
   @IsOptional()
   readonly smtpPassword?: string;
 
+  // The simulated inbox (#58): "true" or "false"; unset or empty = off in
+  // production, on elsewhere (simulated-inbox-enabled.ts). Never with real mail.
+  @Env('SIMULATED_INBOX', { expose: true })
+  @IsOptional()
+  @IsIn(['', 'true', 'false'])
+  readonly simulatedInbox?: string;
+
   // Sign-in with Google (#154): only with both set, otherwise the app offers
   // e-mail and password alone. Setup: docs/prihlaseni-pres-google.md.
   @Env('GOOGLE_CLIENT_ID', { expose: true })

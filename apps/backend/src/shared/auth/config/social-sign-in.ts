@@ -1,3 +1,4 @@
+import { simulatedInboxEnabled } from '@/core/email/simulated-inbox/simulated-inbox-enabled';
 import { toValidName } from '@/shared/auth/domain/name-policy';
 import type { Config } from '@/shared/config/config.service';
 import type { BetterAuthOptions } from 'better-auth/types';
@@ -33,12 +34,13 @@ export const signInProviders = (config: GoogleEnv): SignInProviders => ({
  *   being made (trustedProviders). BetterAuth links only an account whose own
  *   e-mail is verified already: otherwise whoever signed up with somebody
  *   else's address (and a password they know) would get into that person's
- *   account once they sign in with Google.
+ *   account once they sign in with Google. With the simulated inbox on, a
+ *   verified e-mail proves nothing, so accounts aren't linked at all.
  * - The name from Google gets our name rule (#153) applied rather than
  *   refusing the sign-in over a digit or an emoji in it.
  */
 export const socialSignInOptions = (
-  config: GoogleEnv,
+  config: GoogleEnv & Parameters<typeof simulatedInboxEnabled>[0],
 ): Pick<BetterAuthOptions, 'socialProviders' | 'account'> => {
   const google = googleCredentials(config);
   if (!google) return {};
@@ -52,7 +54,10 @@ export const socialSignInOptions = (
       },
     },
     account: {
-      accountLinking: { enabled: true, trustedProviders: ['google'] },
+      accountLinking: {
+        enabled: !simulatedInboxEnabled(config),
+        trustedProviders: ['google'],
+      },
     },
   };
 };

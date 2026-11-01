@@ -54,6 +54,13 @@ describe('MailModule', () => {
     ).toEqual(['Ověř si e-mail v HobbyHubu']);
   });
 
+  it('in production a missing mail key alone does not turn the inbox on', async () => {
+    const { email, inbox } = await compile({ nodeEnv: 'production' });
+
+    expect(email).toBeInstanceOf(ConsoleMailerAdapter);
+    expect(inbox).toBeNull();
+  });
+
   it('with Resend or SMTP there is no simulated inbox', async () => {
     for (const config of [
       { resendApiKey: 're_123', emailFrom: 'x@example.com' },
