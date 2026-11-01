@@ -276,7 +276,7 @@ describe('EventsService.getEventDetail', () => {
       );
     });
 
-    it('not a signed-in user without a place, who sees only the occupancy', async () => {
+    it('a signed-in user without a place does not get them', async () => {
       const { repository, service } = setup(aDetail());
 
       const result = await service.getEventDetail('e1', 'u9', now);

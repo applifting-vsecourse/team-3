@@ -156,6 +156,8 @@ export class EventsService {
     if (!event || event.status === 'hidden' || event.status === 'deleted') {
       throw new NotFoundException('Akce neexistuje.');
     }
+    // Who the viewer is comes first, before the 404 decision: one membership
+    // lookup serves both canView and the names. Keep the two together.
     const viewer = viewerId ? await this.viewerOf(event, viewerId) : null;
     if (!this.canView(event, viewer)) {
       throw new NotFoundException('Akce neexistuje.');

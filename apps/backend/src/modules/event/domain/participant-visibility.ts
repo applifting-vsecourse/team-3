@@ -8,7 +8,11 @@ export type ParticipantsViewer = {
   isOrganizer: boolean;
   /** The viewer's own participation in the event, null when there's none. */
   participation: ParticipationStatus | null;
-  /** An active member or admin of the event's group; false without a group. */
+  /**
+   * An active member or admin of the event's group. False without a group,
+   * and for the organizer, for whom it isn't looked up (they see the names
+   * anyway).
+   */
   isGroupMember: boolean;
 } | null;
 
