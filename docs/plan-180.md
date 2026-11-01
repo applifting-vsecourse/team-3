@@ -155,9 +155,9 @@ Testy (`participant-rating.spec.ts`): akce před koncem a po konci (s `endsAt` i
 
 Demo data dnes nemají žádnou proběhlou akci, takže hodnocení není k čemu přidat.
 
-1. **Proběhlé akce:** do `DemoSchedule` přidat `{ daysAgo: n; time }`. Posun do budoucna, který seed dělá u ostatních termínů, se na něj nevztahuje. Stačí 4–5 akcí v posledních dvou týdnech, z toho jedna akce skupiny, s `approved` účastmi.
-2. **`Rating`:** účastníci hodnotí akci a organizátora, aby měl profil co ukázat. Aspoň jeden demo účet bude mít víc hodnocení jako organizátor a jeden jako účastník. Přidám i jedno smazané (`deletedAt`), na kterém je vidět, že se nepočítá, a hodnocení akce skupiny, které se osobě nepočítá.
-3. **`ParticipantRating`:** organizátoři hodnotí některé `approved` účastníky.
+1. **Proběhlé akce:** vlastní soubor `rating-data.ts` s `daysAgo` a vlastním převodem na řádky. `DemoSchedule` se nemění: jeho `resolveStartsAt` posouvá termíny do budoucna a `toEventRow` dává `approvedAt` těsně před seedem, což by u proběhlé akce bylo až po ní. 4 akce v posledních dvou týdnech s `approved` účastmi. Akce skupiny v datech není: aplikace je zatím zakládat neumí, pravidlo hlídají testy `rating-summary.spec.ts`.
+2. **`Rating`:** účastníci hodnotí akci a organizátora, aby měl profil co ukázat: Petra jako organizátorka 4,5 ze 6 hodnocení, jedno smazané se nepočítá.
+3. **`ParticipantRating`:** organizátoři hodnotí některé `approved` účastníky: Jakub jako účastník 4,3 ze 4 hodnocení, jako organizátor zatím bez hodnocení.
 4. **Kontrola v `demo-data.spec.ts`:** hvězdičky 1–5, jedno hodnocení na dvojici, hodnotí jen `approved` účastník proběhlé akce a účastníka jen organizátor (přes `decideParticipantRating`), organizátor nehodnotí sám sebe.
 5. **Staging (R10):** demo akce se dnes vkládají jen do databáze bez akcí, takže na staging by se nové proběhlé akce ani hodnocení nedostaly. Proto samostatný krok seedu „proběhlé akce a hodnocení“: proběhne, když v databázi ještě žádné hodnocení účastníka není, v jedné transakci. Na stagingu tak hvězdičky budou k vidění na sprint review.
 
