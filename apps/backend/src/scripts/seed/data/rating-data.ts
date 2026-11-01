@@ -141,7 +141,7 @@ export const pastEvents: PastEvent[] = [
     localitySlug: 'praha-9',
     lat: 50.1045,
     lng: 14.4936,
-    minParticipants: 6,
+    minParticipants: 4,
     maxParticipants: 12,
     organizerKey: 'spravce',
     participantKeys: ['organizator', 'uzivatel', 'u08', 'u09'],

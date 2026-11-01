@@ -46,6 +46,17 @@ describe('past events and ratings (#180)', () => {
     }
   });
 
+  it('took place: enough approved participants for the minimum, not more than the maximum', () => {
+    for (const event of pastEvents) {
+      expect(event.participantKeys.length).toBeGreaterThanOrEqual(
+        event.minParticipants,
+      );
+      expect(event.participantKeys.length).toBeLessThanOrEqual(
+        event.maxParticipants,
+      );
+    }
+  });
+
   it('approves the participants before the event', () => {
     for (const row of rows) {
       for (const participation of row.participations) {

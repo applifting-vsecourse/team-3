@@ -13,7 +13,12 @@ const RATINGS_SEED_LOCK = 4_702_028;
  * aby byly hvězdičky vidět i na stagingu. Značka „už vloženo“: jakékoli
  * hodnocení účastníka. Tabulka je nová (#180) a do #66 do ní nic jiného nepíše.
  * Proběhlá akce značkou být nemůže: demo akce #47 na stagingu mezitím proběhly.
+ * Až #66 začne ukládat skutečná hodnocení, značku je potřeba přehodnotit:
+ * hodnocení od uživatelů by pak seed přeskočilo i v databázi bez těchto akcí.
  *
+ * - Dvě hodnocení (jedno Rating, jedno ParticipantRating) jsou smazaná
+ *   superadminem (`deletedAt`), ale bez záznamu ModerationAction: zásahy
+ *   superadmina přijdou s B-063, i se záznamem do seedu.
  * - Potřebuje demo účty (seed-demo.ts běží před ním). Když nějaký chybí,
  *   nevloží nic.
  * - Akce, účasti a obě hodnocení jdou v jedné transakci pod advisory lockem.
