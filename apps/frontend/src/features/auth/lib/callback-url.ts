@@ -2,7 +2,7 @@ import type { ParsedLocation } from "@tanstack/react-router"
 
 import { ROUTES } from "@/app/routes"
 
-import { encodeRedirectUri, safeRedirect } from "@/features/auth/lib/redirect"
+import { redirectFrom, safeRedirect } from "@/features/auth/lib/redirect"
 
 /**
  * Where the link in the verification e-mail leads once it has checked the
@@ -34,7 +34,7 @@ export const resendFrom = (location: ParsedLocation): string | undefined => {
   if (location.pathname === ROUTES.forgotPassword || location.pathname === ROUTES.resetPassword) {
     return undefined
   }
-  return encodeRedirectUri(location)
+  return redirectFrom(location)
 }
 
 /**

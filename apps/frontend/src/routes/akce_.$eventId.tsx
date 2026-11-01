@@ -14,7 +14,7 @@ import { cn } from "@/lib/utils"
 
 import { AppHeader } from "@/features/auth/components/AppHeader"
 import { useSession } from "@/features/auth/hooks/useSession"
-import { encodeRedirectUri } from "@/features/auth/lib/redirect"
+import { redirectFrom } from "@/features/auth/lib/redirect"
 import { showVerifyEmailBanner } from "@/features/auth/lib/verify-email-banner"
 import { CancelEventDialog } from "@/features/events/components/CancelEventDialog"
 import { EventDetailView } from "@/features/events/components/EventDetailView"
@@ -42,7 +42,7 @@ function EventDetailPage() {
   const queryClient = useQueryClient()
   const join = useJoinEvent(eventId, session.user?.id ?? "")
   const leave = useLeaveEvent(eventId, session.user?.id ?? "")
-  const signInFrom = encodeRedirectUri(location)
+  const signInFrom = redirectFrom(location)
   const cancelEvent = useCancelEvent(eventId, session.user?.id ?? "")
   // only the organizer, and only while the event can still be edited or cancelled
   const canManage = event !== undefined && editRefusal(event, session.user?.id) === null

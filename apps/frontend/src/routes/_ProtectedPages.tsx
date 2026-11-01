@@ -5,7 +5,7 @@ import { Seo } from "@/components/Seo"
 
 import { authSessionQueryOptions } from "@/features/auth/api/authSessionQueryOptions"
 import { AppHeader } from "@/features/auth/components/AppHeader"
-import { encodeRedirectUri } from "@/features/auth/lib/redirect"
+import { redirectFrom } from "@/features/auth/lib/redirect"
 
 export const Route = createFileRoute("/_ProtectedPages")({
   loader: async ({ context, location }) => {
@@ -14,7 +14,7 @@ export const Route = createFileRoute("/_ProtectedPages")({
     context.queryClient.clear()
     throw redirect({
       to: ROUTES.login,
-      search: { from: encodeRedirectUri(location) },
+      search: { from: redirectFrom(location) },
       // what the page came with goes along, e.g. the result of verifying the
       // e-mail (#155): its dialog then shows over the sign-in
       state: true,
