@@ -2,6 +2,8 @@
 
 Analýza vychází z `main` (`1f264ab`), stav oprav k 1. 11. 2026 (`main` `6298a49`). Issue: #172.
 
+Kdo nález opraví, změní ve stejném PR i jeho stav v tomto reportu.
+
 ## Shrnutí
 
 - **Node.js:** aplikace běžela na `node:24-alpine` bez pevné verze, takže nebylo jisté, zda obsahuje opravu CVE-2026-111497 (Brotli). Verze je teď pevně 24.22.2 (#196).
@@ -13,7 +15,6 @@ Analýza vychází z `main` (`1f264ab`), stav oprav k 1. 11. 2026 (`main` `6298a
 
 - [ ] Potvrdit s PO přijetí rizika N-3 na stagingu (schůzka 3. 11.).
 - [ ] Potvrdit s PO, že pro verzi Node na stagingu stačí nepřímé ověření (viz [Node.js](#nodejs-a-cve-2026-111497)).
-- [ ] Založit issue na opravu S-2 a S-3 (viz [Dřívější audit](#dřívější-audit)).
 - [ ] Rozhodnout s PO, zda má být pro členství ve skupině potřeba ověřený e-mail (S-5).
 - [ ] Vyřešit `js-yaml`, oprava už existuje (viz [Závislosti](#závislosti)).
 - [ ] Ověřit `BETTER_AUTH_SECRET` a ostatní nastavení na stagingu, ověří Tomáš Klíma (viz [Ke kontrole na stagingu](#ke-kontrole-na-stagingu)).
@@ -31,7 +32,7 @@ Analýza vychází z `main` (`1f264ab`), stav oprav k 1. 11. 2026 (`main` `6298a
 
 Semgrep našel 7 upozornění, všechna stejného typu: akce v GitHub Actions nejsou připnuté na commit (viz N-12).
 
-CodeQL má na `main` 3 otevřená upozornění. Dvě hlásí chybějící `permissions` ve workflow (viz N-12). Třetí je planý poplach: kontrola `includes("photon.komoot.io")` je v testovacím mocku (`LocalityCombobox.test.tsx`), ne v kódu aplikace.
+CodeQL má na `main` 3 otevřená upozornění. Dvě hlásí chybějící `permissions` v `ci.yml` a `deploy.yml` (viz N-12). Třetí je planý poplach: kontrola `includes("photon.komoot.io")` je v testovacím mocku (`LocalityCombobox.test.tsx`), ne v kódu aplikace.
 
 ## Node.js a CVE-2026-111497
 
@@ -91,7 +92,7 @@ Stav: **opraveno** = sloučeno do `main`, **částečně** = opravená jen čás
 | N-9  | Swagger a referenční stránka BetterAuth jsou v produkci veřejné, referenční stránka načítá nepřipnutý skript z CDN                             | nízká     | otevřený        | Zapínat jen mimo produkci                                        |
 | N-10 | Každý přihlášený vidí jména účastníků akcí a může je hromadně stáhnout                                                                         | nízká     | otevřený        | Produktové a GDPR rozhodnutí, navazuje na #94                    |
 | N-11 | Přes registraci a kontrolu uživatelského jména lze zjistit, zda účet existuje                                                                  | nízká     | přijaté         | Kompromis kvůli UX; limit přihlášení hromadné zkoušení zpomaluje |
-| N-12 | Workflow nemají `permissions` a akce nejsou připnuté na commit; `COOLIFY_TOKEN` je dostupný celému jobu                                        | nízká     | otevřený        | Přidat `permissions`, připnout akce, token jen pro krok nasazení |
+| N-12 | `ci.yml` a `deploy.yml` nemají `permissions` (`codeql.yml` je má), akce nejsou připnuté na commit; `COOLIFY_TOKEN` je dostupný celému jobu     | nízká     | otevřený        | Přidat `permissions`, připnout akce, token jen pro krok nasazení |
 | N-13 | Frontendový kontejner běží jako root, nasazuje se jen tag `latest`                                                                             | nízká     | otevřený        | `nginx-unprivileged`, tagovat i podle commitu                    |
 
 **CSP u N-4:** frontend omezuje skripty na vlastní doménu a zakazuje vložení do rámce. Obrázky, styly a spojení záměrně neomezuje kvůli mapě, stylům Leafletu a hledání adres. Backend omezuje jen rámce, aby fungoval Swagger.
@@ -106,6 +107,8 @@ V produkci se simulovaná schránka ani demo účty nezapnou samy. Staging je m�
 - Smazat z `Dockerfile.deploy` řádek `SIMULATED_INBOX=true`.
 - Účtům ověřeným simulací zrušit ověření, nebo vynulovat databázi stagingu.
 
+**Klíče na stagingu:** proměnné v Coolify nastavují vyučující, takže vlastní klíče (Google, Resend, SMTP) se na staging dostanou jen při sestavení image: GitHub secret, build-arg v `deploy.yml` a `ENV` v `Dockerfile.deploy`. Hodnoty pak jsou uvnitř image a přečte je každý, kdo k image má přístup. Proto pro staging použít samostatné klíče jen pro staging (u Resendu klíč jen s právem odesílat, u Googlu samostatného OAuth klienta), aby šly při úniku zneplatnit bez dopadu jinam. Klíče nepatří do repa, ani jako výchozí hodnota v `Dockerfile.deploy`.
+
 Dokud je schránka zapnutá, jde na stagingu ověřit cizí adresu. Google se ale k existujícímu účtu nepřipojí, takže účet takhle převzít nejde.
 
 **N-3:** tým navrhuje na stagingu přijmout jako vědomé riziko, potvrzení s PO je na schůzce 3. 11. Staging má jen testovací data bez skutečných uživatelů. Před skutečnou produkcí je potřeba smazat řádek `SEED_DEMO_DATA=true`.
@@ -117,7 +120,7 @@ Přidat lokalitu teď může jen ověřený uživatel a nejvýš 20krát za hodi
 - **Rate limit na zbytek `/api`:** ověřený uživatel může dál hromadně zakládat akce a skupiny. Limit podle IP jsme záměrně nepřidali: celá učebna na jedné Wi-Fi je jedna IP (viz #141) a backend nemá nastavené `trust proxy`, takže by mohl počítat všechny uživatele dohromady.
 - **Mazání lokalit:** už přidané lokality jde odstranit jen přímo v databázi, patří to k administraci (B-063).
 
-### Ke kontrole na stagingu
+## Ke kontrole na stagingu
 
 Z kódu nejde zjistit a tým nemá přístup do Coolify. Ověří to Tomáš Klíma:
 
@@ -128,7 +131,7 @@ Z kódu nejde zjistit a tým nemá přístup do Coolify. Ověří to Tomáš Kl�
 
 **Superadmin:** účet superadmina dnes nemá žádná práva navíc, protože administrace (B-063) ještě neexistuje. Slabé heslo proto zatím nic zvláštního neotevírá. Než v aplikaci vznikne prostředí a speciální práva pro superadmina, je potřeba ověřit, že `SUPERADMIN_PASSWORD` na stagingu nemá hodnotu z veřejného `.env.example`, a případně ho změnit.
 
-### Co je v pořádku
+## Co je v pořádku
 
 - **Oprávnění:** všechny controllery prošly kontrolou. Uživatel se bere ze session a akce i skupiny hlídají organizátora a správce.
 - **Osobní údaje:** API o lidech vrací jen `id` a jméno, e-mail vidí jen jeho majitel.
@@ -144,8 +147,8 @@ Nálezy S-1 až S-5 pocházejí z nočního testování před Sprint Review 2. J
 | ID  | Nález                                                 | Závažnost | Stav                                       |
 | --- | ----------------------------------------------------- | --------- | ------------------------------------------ |
 | S-1 | Neplatné datum při založení a úpravě akce vracelo 500 | nízká     | Opraveno v #137                            |
-| S-2 | `GET /api/events?dateTo=9999-12-31` vrací 500         | nízká     | Otevřený, na stagingu ověřeno 1. 11.; níže |
-| S-3 | Souběh při vyřizování žádostí o členství ve skupině   | nízká     | Otevřený; viz níže                         |
+| S-2 | `GET /api/events?dateTo=9999-12-31` vrací 500         | nízká     | Otevřený, #225; na stagingu ověřeno 1. 11. |
+| S-3 | Souběh při vyřizování žádostí o členství ve skupině   | nízká     | Otevřený, #226; viz níže                   |
 | S-4 | Zápisy do API z aplikací jiných týmů (CSRF)           | vysoká    | Opraveno v #140; stejný nález jako N-1     |
 | S-5 | Do skupiny se jde přidat i bez ověřeného e-mailu      | žádná     | Není chyba, otázka na PO; viz níže         |
 
