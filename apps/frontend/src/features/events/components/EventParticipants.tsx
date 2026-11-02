@@ -4,14 +4,11 @@ import type { EventDetail } from "@/features/events/api/eventSchemas"
 
 type EventParticipantsProps = {
   approvedCount: number
-  /** Sent only to those taking part (#174); the detail leaves this out otherwise. */
+  /** Who gets them is the backend's `canSeeParticipants`; without them the detail leaves this out. */
   participants: NonNullable<EventDetail["participants"]>
 }
 
-/**
- * Who is coming, by name (B-026). Only the organizer, an approved participant
- * and the group's members get the names; everyone else sees just the occupancy.
- */
+/** Who is coming, by name (B-026); see the backend's `canSeeParticipants` for who gets them. */
 export function EventParticipants({ approvedCount, participants }: EventParticipantsProps) {
   return (
     <section className="flex flex-col gap-2">

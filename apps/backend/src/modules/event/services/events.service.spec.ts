@@ -244,6 +244,7 @@ describe('EventsService.getEventDetail', () => {
 
     expect(result.capacity.approvedCount).toBe(2);
     expect(result.participants).toBeNull();
+    expect(result.viewerSignedIn).toBe(false);
     expect(repository.findApprovedParticipants).not.toHaveBeenCalled();
     expect(repository.findEventDetail).toHaveBeenCalledWith('e1', now);
   });
@@ -282,6 +283,8 @@ describe('EventsService.getEventDetail', () => {
       const result = await service.getEventDetail('e1', 'u9', now);
 
       expect(result.participants).toBeNull();
+      // still told apart from a visitor, so the app doesn't take it for an expired session
+      expect(result.viewerSignedIn).toBe(true);
       expect(result.capacity.approvedCount).toBe(2);
       expect(result.capacity.missingToMin).toBe(1);
       expect(repository.findApprovedParticipants).not.toHaveBeenCalled();

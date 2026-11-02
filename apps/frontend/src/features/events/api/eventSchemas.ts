@@ -49,6 +49,8 @@ export const eventDetailSchema = publicEventSchema.extend({
   participants: z.array(eventParticipantSchema).nullable(),
   /** The signed-in user's own participation; null for a visitor or someone not in. */
   myParticipation: z.enum(["pending", "approved", "rejected", "removed"]).nullable(),
+  /** Whether the API saw a valid session; false with a cached user = the session expired. */
+  viewerSignedIn: z.boolean(),
 })
 
 export type EventDetail = z.infer<typeof eventDetailSchema>

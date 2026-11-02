@@ -76,6 +76,11 @@ export type EventDetailView = EventDetail & {
   participants: EventParticipant[] | null;
   /** The signed-in viewer's own participation; null for a visitor or someone not in. */
   myParticipation: 'pending' | 'approved' | 'rejected' | 'removed' | null;
+  /**
+   * Whether the server saw a signed-in viewer. Lets the app tell an expired
+   * session from a signed-in user who just doesn't get the names (#174).
+   */
+  viewerSignedIn: boolean;
 };
 
 /**

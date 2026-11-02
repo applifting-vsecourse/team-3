@@ -30,6 +30,7 @@ const aView = (overrides: Partial<EventDetailView> = {}): EventDetailView => ({
   cancelReason: null,
   participants: null,
   myParticipation: null,
+  viewerSignedIn: false,
   ...overrides,
 });
 
@@ -49,6 +50,16 @@ describe('EventDetailResponseDto.fromDomain', () => {
     expect(
       EventDetailResponseDto.fromDomain(aView({ participants })).participants,
     ).toEqual(participants);
+  });
+
+  it('says whether the API saw a signed-in viewer (#174)', () => {
+    expect(EventDetailResponseDto.fromDomain(aView()).viewerSignedIn).toBe(
+      false,
+    );
+    expect(
+      EventDetailResponseDto.fromDomain(aView({ viewerSignedIn: true }))
+        .viewerSignedIn,
+    ).toBe(true);
   });
 
   it('does not send the visibility', () => {

@@ -168,7 +168,12 @@ export class EventsService {
     // someone who withdrew is simply not in
     const mine = viewer?.participation ?? null;
     const myParticipation = mine === 'withdrawn' ? null : mine;
-    return { ...event, participants, myParticipation };
+    return {
+      ...event,
+      participants,
+      myParticipation,
+      viewerSignedIn: viewer !== null,
+    };
   }
 
   /**

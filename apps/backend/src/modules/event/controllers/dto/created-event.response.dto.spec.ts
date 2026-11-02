@@ -30,6 +30,7 @@ const created: EventDetailView = {
   cancelReason: null,
   participants: [],
   myParticipation: null,
+  viewerSignedIn: true,
 };
 
 describe('CreatedEventResponseDto', () => {

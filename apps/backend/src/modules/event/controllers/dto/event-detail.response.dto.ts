@@ -46,6 +46,12 @@ export class EventDetailResponseDto extends PublicEventResponseDto {
   })
   myParticipation!: 'pending' | 'approved' | 'rejected' | 'removed' | null;
 
+  @ApiProperty({
+    description:
+      'Whether the request came with a valid session. The app uses it to spot an expired session: participants is null for many signed-in users too (#174).',
+  })
+  viewerSignedIn!: boolean;
+
   static fromDomain(event: EventDetailView): EventDetailResponseDto {
     if (event.status === 'hidden' || event.status === 'deleted') {
       // the service answers 404 for these; this guards the response shape
@@ -59,6 +65,7 @@ export class EventDetailResponseDto extends PublicEventResponseDto {
       cancelReason: event.cancelReason,
       participants: event.participants,
       myParticipation: event.myParticipation,
+      viewerSignedIn: event.viewerSignedIn,
     };
   }
 }
