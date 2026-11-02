@@ -12,12 +12,14 @@ import {
   SUPERADMIN_NAME,
 } from './seed-database';
 import { seedDemo } from './seed-demo';
+import { seedRatings } from './seed-ratings';
 
 // Factories, so neither better-auth nor the demo and community data load under Jest.
 jest.mock('./ensure-user', () => ({ ensureUser: jest.fn() }));
 jest.mock('./seed-catalog', () => ({ seedCatalog: jest.fn() }));
 jest.mock('./seed-demo', () => ({ seedDemo: jest.fn() }));
 jest.mock('./seed-community', () => ({ seedCommunity: jest.fn() }));
+jest.mock('./seed-ratings', () => ({ seedRatings: jest.fn() }));
 
 const config = {
   superadminEmail: 'admin@example.com',
@@ -88,6 +90,25 @@ describe('seedDatabase', () => {
 
     expect(seedDemo).not.toHaveBeenCalled();
     expect(seedCommunity).not.toHaveBeenCalled();
+    expect(seedRatings).not.toHaveBeenCalled();
+  });
+
+  it('in production without SEED_DEMO_DATA=true seeds no demo data, the ratings (#180) included', async () => {
+    const nodeEnv = process.env.NODE_ENV;
+    process.env.NODE_ENV = 'production';
+    jest
+      .mocked(ensureUser)
+      .mockResolvedValue({ user: {} as never, created: false });
+
+    try {
+      await seedDatabase(prisma, config, auth);
+    } finally {
+      process.env.NODE_ENV = nodeEnv;
+    }
+
+    expect(seedDemo).not.toHaveBeenCalled();
+    expect(seedCommunity).not.toHaveBeenCalled();
+    expect(seedRatings).not.toHaveBeenCalled();
   });
 
   it('adds the community after the demo data, not before', async () => {
@@ -100,6 +121,19 @@ describe('seedDatabase', () => {
     // the demo seed only fills an empty database: the community must come second
     expect(jest.mocked(seedDemo).mock.invocationCallOrder[0]).toBeLessThan(
       jest.mocked(seedCommunity).mock.invocationCallOrder[0],
+    );
+  });
+
+  it('adds the past events and ratings (#180) last: they need the demo users', async () => {
+    jest
+      .mocked(ensureUser)
+      .mockResolvedValue({ user: {} as never, created: false });
+
+    await seedDatabase(prisma, config, auth);
+
+    expect(seedRatings).toHaveBeenCalledWith(prisma);
+    expect(jest.mocked(seedDemo).mock.invocationCallOrder[0]).toBeLessThan(
+      jest.mocked(seedRatings).mock.invocationCallOrder[0],
     );
   });
 });
