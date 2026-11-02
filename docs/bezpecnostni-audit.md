@@ -18,7 +18,7 @@ Kdo nález opraví, změní ve stejném PR i jeho stav v tomto reportu.
 - [ ] Rozhodnout s PO, zda má být pro členství ve skupině potřeba ověřený e-mail (S-5).
 - [ ] Vyřešit `js-yaml`, oprava už existuje (viz [Závislosti](#závislosti)).
 - [ ] Ověřit `BETTER_AUTH_SECRET` a ostatní nastavení na stagingu, ověří Tomáš Klíma (viz [Ke kontrole na stagingu](#ke-kontrole-na-stagingu)).
-- [ ] Před vznikem administrace (B-063) ověřit heslo superadmina na stagingu (viz [Ke kontrole na stagingu](#ke-kontrole-na-stagingu)).
+- [ ] Před vznikem administrace (B-063) nastavit na stagingu superadmina se silným heslem (viz [Ke kontrole na stagingu](#ke-kontrole-na-stagingu)).
 
 ## Jak audit proběhl
 
@@ -124,12 +124,12 @@ Přidat lokalitu teď může jen ověřený uživatel a nejvýš 20krát za hodi
 
 Z kódu nejde zjistit a tým nemá přístup do Coolify. Ověří to Tomáš Klíma:
 
-- `BETTER_AUTH_SECRET` a `SUPERADMIN_PASSWORD` nesmí mít hodnoty z `.env.example`.
+- `BETTER_AUTH_SECRET` nastavuje Coolify, nesmí mít hodnotu z `.env.example`.
 - Backend nesmí být dostupný přímo mimo proxy.
 - Proxy musí přepisovat hlavičku `X-Forwarded-For`, jinak nemusí správně fungovat rate limit přihlášení.
 - `FRONTEND_URL` a `BACKEND_URL` musí odpovídat skutečným adresám, jinak ochrana z #140 odmítne všechny zápisy.
 
-**Superadmin:** účet superadmina dnes nemá žádná práva navíc, protože administrace (B-063) ještě neexistuje. Slabé heslo proto zatím nic zvláštního neotevírá. Než v aplikaci vznikne prostředí a speciální práva pro superadmina, je potřeba ověřit, že `SUPERADMIN_PASSWORD` na stagingu nemá hodnotu z veřejného `.env.example`, a případně ho změnit.
+**Superadmin:** na stagingu není nastavený `SUPERADMIN_EMAIL` ani `SUPERADMIN_PASSWORD`, takže se superadmin nezaložil (seed to hlásí v logu, ověřeno 2. 11.). Výchozí heslo z `.env.example` tam proto nehrozí. Účet superadmina by dnes ani neměl práva navíc, protože administrace (B-063) ještě neexistuje. Než v aplikaci vznikne prostředí a speciální práva pro superadmina, je potřeba ho na stagingu nastavit se silným heslem, které není v repu.
 
 ## Co je v pořádku
 
