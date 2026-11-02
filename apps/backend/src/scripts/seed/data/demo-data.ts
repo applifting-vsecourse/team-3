@@ -24,7 +24,7 @@
  * - Skupiny g-florbal-pokrocili a g-badminton (správce Tomáš) mají čekající žádost Jakuba.
  * - g-volejbal je veřejná a Jakub v ní není (Přidat se), z g-turistika může odejít.
  *
- * Seed soubor načítá (seed/seed-catalog.ts a seed/seed-demo.ts, převod na řádky v demo-rows.ts).
+ * Seed soubor načítá (seed/seed-catalog.ts a seed/seed-content.ts, převod na řádky v demo-rows.ts).
  * Pole `key`, `scenario` a `demoCase` se do databáze neukládají. Kontroly dat jsou v demo-data.spec.ts.
  * Datový model a ER diagram: docs/datovy-model.md.
  *
@@ -2282,7 +2282,8 @@ export const demoEvents: DemoEvent[] = [
     key: 'e23',
     scenario: 'chybi',
     title: 'Badminton v Nuslích – čtyřhra',
-    description: 'Kurt zamluvený, košíčky zajistím. Do čtyřhry chybí dva lidé.',
+    description:
+      'Kurt zamluvený, košíčky zajistím. Hrajeme čtyřhru, přijď sám nebo s parťákem.',
     activitySlug: 'badminton',
     schedule: { daysFromNow: 8, time: '19:00' },
     durationMinutes: 60,
@@ -2290,8 +2291,8 @@ export const demoEvents: DemoEvent[] = [
     localitySlug: 'praha-4',
     lat: 50.0655,
     lng: 14.4385,
-    minParticipants: 3,
-    maxParticipants: 3,
+    minParticipants: 4,
+    maxParticipants: 4,
     price: 150,
     level: 'all',
     equipment: 'Raketa, sálová obuv',
@@ -3143,8 +3144,8 @@ export const demoEvents: DemoEvent[] = [
     localitySlug: 'praha-11',
     lat: 50.0325,
     lng: 14.4865,
-    minParticipants: 3,
-    maxParticipants: 3,
+    minParticipants: 4,
+    maxParticipants: 4,
     price: 220,
     level: 'all',
     equipment: 'Sálová obuv',

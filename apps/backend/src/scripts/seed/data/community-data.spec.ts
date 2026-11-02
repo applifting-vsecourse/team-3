@@ -130,6 +130,27 @@ describe('community data', () => {
     }
   });
 
+  // profil (#178, #179) ukazuje zájmy a domovskou lokalitu u každého účtu (#181)
+  it('gives every account, demo ones included, interests and a home locality', () => {
+    for (const user of [...demoUsers, ...communityUsers]) {
+      expect(`${user.key} ${localitySlugs.has(user.homeLocalitySlug)}`).toBe(
+        `${user.key} true`,
+      );
+      expect(`${user.key} ${user.interestSlugs.length > 0}`).toBe(
+        `${user.key} true`,
+      );
+      expect(unique(user.interestSlugs)).toBe(true);
+    }
+  });
+
+  // #167: dvě „Běžci ze Stromovky“ v Praze 7 vedle sebe na první obrazovce Skupin
+  it('names groups uniquely within a locality, demo and community together', () => {
+    const names = [...demoGroups, ...communityGroups].map(
+      (g) => `${g.localitySlug} ${g.name.toLowerCase()}`,
+    );
+    expect(names.filter((name, i) => names.indexOf(name) !== i)).toEqual([]);
+  });
+
   it('places every event near its town', () => {
     for (const event of communityEvents) {
       const town = coordinates.get(event.localitySlug)!;

@@ -191,6 +191,15 @@ describe('demo data', () => {
       );
     }
   });
+
+  // #167: „Padel na Chodově – čtyřhra“ měl kapacitu 3
+  it('has room for four at every doubles event', () => {
+    for (const event of demoEvents.filter((e) => /čtyřhr/i.test(e.title))) {
+      expect(`${event.key} ${event.maxParticipants >= 4}`).toBe(
+        `${event.key} true`,
+      );
+    }
+  });
 });
 
 describe('demo rows', () => {
