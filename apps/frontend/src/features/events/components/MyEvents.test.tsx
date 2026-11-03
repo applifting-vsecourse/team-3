@@ -49,10 +49,20 @@ describe("AttendingEvents", () => {
     )
     expect(within(waiting).getByText("Čeká na schválení")).toBeInTheDocument()
 
-    const confirmed = screen.getByRole("region", { name: "Potvrzené (2)" })
-    const [florbal, volejbal] = within(confirmed).getAllByRole("listitem")
+    const confirmed = screen.getByRole("region", { name: "Potvrzené (1)" })
+    const [florbal] = within(confirmed).getAllByRole("listitem")
     expect(within(florbal!).getByText("Jdu")).toBeInTheDocument()
+
+    // a cancelled event is not a confirmed place (#183): its own section, last
+    const cancelled = screen.getByRole("region", { name: "Zrušené (1)" })
+    const [volejbal] = within(cancelled).getAllByRole("listitem")
+    expect(within(volejbal!).getByRole("link", { name: "Volejbal" })).toBeInTheDocument()
     expect(within(volejbal!).getByText("Zrušeno")).toBeInTheDocument()
+    expect(screen.getAllByRole("heading", { level: 2 }).map((h) => h.textContent)).toEqual([
+      "Čeká na schválení (1)",
+      "Potvrzené (1)",
+      "Zrušené (1)",
+    ])
 
     expect(get).toHaveBeenCalledWith("me/events", { searchParams: { tab: "attending" } })
   })
@@ -64,6 +74,7 @@ describe("AttendingEvents", () => {
 
     expect(await screen.findByRole("heading", { name: "Potvrzené (1)" })).toBeInTheDocument()
     expect(screen.queryByRole("heading", { name: /Čeká na schválení/ })).not.toBeInTheDocument()
+    expect(screen.queryByRole("heading", { name: /Zrušené/ })).not.toBeInTheDocument()
   })
 
   it("says in one sentence that I go nowhere yet, with the way to the events", async () => {
