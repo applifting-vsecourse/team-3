@@ -169,7 +169,8 @@ function ManageEventPage() {
                     error={participants.error}
                     onRetry={participants.retry}
                     isHeadingHidden={isHeadingHidden}
-                    canDecide={event.status === "published" && event.startsAt > new Date()}
+                    // a cancelled event never gets here (showsRequests), only a started one
+                    canDecide={event.startsAt > new Date()}
                     isFull={event.isFull}
                     isDeciding={decide.isPending}
                     onDecide={(request, decision) =>

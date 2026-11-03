@@ -23,9 +23,10 @@ import {
 const GRID = "grid grid-cols-1 gap-3 md:grid-cols-2 md:gap-4 lg:grid-cols-3"
 
 /**
- * Přihlášen (Figma C-01): requests waiting for approval on top, then the
- * places I have, then cancelled events (#183), each soonest first. A card opens the detail, where the
- * request can be withdrawn or the place given up.
+ * Přihlášen (Figma C-01): three sections, each soonest first — requests
+ * waiting for approval on top, then the places I have, then cancelled
+ * events (#183). A card opens the detail, where the request can be
+ * withdrawn or the place given up.
  */
 export function AttendingEvents({ viewerId }: { viewerId: string }) {
   const { events, isPending, error, retry } = useMyEvents("attending", viewerId)
