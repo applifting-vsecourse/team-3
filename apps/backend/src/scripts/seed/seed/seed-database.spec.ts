@@ -5,21 +5,17 @@ import { Config } from '@/shared/config/config.service';
 import { mock } from 'jest-mock-extended';
 import { ensureUser } from './ensure-user';
 import { seedCatalog } from './seed-catalog';
-import { seedCommunity } from './seed-community';
+import { seedContent } from './seed-content';
 import {
   demoDataEnabled,
   seedDatabase,
   SUPERADMIN_NAME,
 } from './seed-database';
-import { seedDemo } from './seed-demo';
-import { seedRatings } from './seed-ratings';
 
-// Factories, so neither better-auth nor the demo and community data load under Jest.
+// Factories, so neither better-auth nor the test data load under Jest.
 jest.mock('./ensure-user', () => ({ ensureUser: jest.fn() }));
 jest.mock('./seed-catalog', () => ({ seedCatalog: jest.fn() }));
-jest.mock('./seed-demo', () => ({ seedDemo: jest.fn() }));
-jest.mock('./seed-community', () => ({ seedCommunity: jest.fn() }));
-jest.mock('./seed-ratings', () => ({ seedRatings: jest.fn() }));
+jest.mock('./seed-content', () => ({ seedContent: jest.fn() }));
 
 const config = {
   superadminEmail: 'admin@example.com',
@@ -57,8 +53,7 @@ describe('seedDatabase', () => {
     await expect(seedDatabase(prisma, config, auth)).resolves.toBeUndefined();
 
     expect(seedCatalog).toHaveBeenCalled();
-    expect(seedDemo).toHaveBeenCalledWith(prisma, auth);
-    expect(seedCommunity).toHaveBeenCalledWith(prisma, auth);
+    expect(seedContent).toHaveBeenCalledWith(prisma, auth);
     expect(console.error).toHaveBeenCalledWith(
       expect.stringContaining('Superadmin could not be created'),
       expect.any(Error),
@@ -88,12 +83,10 @@ describe('seedDatabase', () => {
 
     await seedDatabase(prisma, config, auth);
 
-    expect(seedDemo).not.toHaveBeenCalled();
-    expect(seedCommunity).not.toHaveBeenCalled();
-    expect(seedRatings).not.toHaveBeenCalled();
+    expect(seedContent).not.toHaveBeenCalled();
   });
 
-  it('in production without SEED_DEMO_DATA=true seeds no demo data, the ratings (#180) included', async () => {
+  it('in production without SEED_DEMO_DATA=true seeds no test data', async () => {
     const nodeEnv = process.env.NODE_ENV;
     process.env.NODE_ENV = 'production';
     jest
@@ -106,34 +99,18 @@ describe('seedDatabase', () => {
       process.env.NODE_ENV = nodeEnv;
     }
 
-    expect(seedDemo).not.toHaveBeenCalled();
-    expect(seedCommunity).not.toHaveBeenCalled();
-    expect(seedRatings).not.toHaveBeenCalled();
+    expect(seedContent).not.toHaveBeenCalled();
   });
 
-  it('adds the community after the demo data, not before', async () => {
+  it('seeds the test data after the catalog: it needs the activities and localities', async () => {
     jest
       .mocked(ensureUser)
       .mockResolvedValue({ user: {} as never, created: false });
 
     await seedDatabase(prisma, config, auth);
 
-    // the demo seed only fills an empty database: the community must come second
-    expect(jest.mocked(seedDemo).mock.invocationCallOrder[0]).toBeLessThan(
-      jest.mocked(seedCommunity).mock.invocationCallOrder[0],
-    );
-  });
-
-  it('adds the past events and ratings (#180) last: they need the demo users', async () => {
-    jest
-      .mocked(ensureUser)
-      .mockResolvedValue({ user: {} as never, created: false });
-
-    await seedDatabase(prisma, config, auth);
-
-    expect(seedRatings).toHaveBeenCalledWith(prisma);
-    expect(jest.mocked(seedDemo).mock.invocationCallOrder[0]).toBeLessThan(
-      jest.mocked(seedRatings).mock.invocationCallOrder[0],
+    expect(jest.mocked(seedCatalog).mock.invocationCallOrder[0]).toBeLessThan(
+      jest.mocked(seedContent).mock.invocationCallOrder[0],
     );
   });
 });

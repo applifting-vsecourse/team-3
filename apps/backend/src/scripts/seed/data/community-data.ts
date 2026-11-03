@@ -10,7 +10,7 @@ import {
  * Komunita HobbyHubu: 100 uživatelů po celém Česku, jejich akce a skupiny.
  * Aplikace má vypadat jako produkt, který už lidé používají – ne jako školní
  * ukázka se čtyřmi demo účty. Data #47 (demo-data.ts) zůstávají beze změny;
- * tohle je samostatná vrstva, kterou seed vloží jednou (seed/seed-community.ts).
+ * tohle je samostatná vrstva, seed ji vkládá spolu s nimi (seed/seed-content.ts).
  *
  * Pravidla, která chrání živé demo (#47) a hlídá community-data.spec.ts:
  * - Komunitní uživatelé se účastní jen komunitních akcí a skupin, nikdy těch z demo-data.ts.
@@ -2375,7 +2375,7 @@ export type CommunityGroupPlan = {
 export const communityGroupPlans: CommunityGroupPlan[] = [
   {
     key: 'kg-bezci-stromovka',
-    name: 'Běžci ze Stromovky',
+    name: 'Holešovičtí běžci',
     description:
       'Běháme v úterý a ve čtvrtek v 7:00 od vchodu do Stromovky u Výstaviště. Tempo kolem 6 min/km, okruh 7 km, nikoho nenecháme vzadu.',
     activitySlug: 'beh',

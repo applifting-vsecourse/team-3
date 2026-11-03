@@ -3,9 +3,7 @@ import { BetterAuth } from '@/shared/auth/providers/better-auth.provider';
 import { Config } from '@/shared/config/config.service';
 import { ensureUser } from './ensure-user';
 import { seedCatalog } from './seed-catalog';
-import { seedCommunity } from './seed-community';
-import { seedDemo } from './seed-demo';
-import { seedRatings } from './seed-ratings';
+import { seedContent } from './seed-content';
 
 /** Passes the sign-up's name rule (#153): no brackets, unlike the template's. */
 export const SUPERADMIN_NAME = 'Správce HobbyHubu';
@@ -18,17 +16,15 @@ export const demoDataEnabled = (env: NodeJS.ProcessEnv): boolean => {
 
 /**
  * Seed je opakovatelný: lokálně ho spouští každý `pnpm dev`, na stagingu každý start
- * kontejneru. Nic nemaže a nic, co už v databázi je, nezakládá znovu.
+ * kontejneru. Katalog a účty jen doplní, testovací data vymění jen při nové verzi.
  *
  * 1. Číselník aktivit a lokalit – vždy (aplikace bez něj nefunguje).
  * 2. Superadmin z SUPERADMIN_EMAIL / SUPERADMIN_PASSWORD – když chybí.
- * 3. Testovací data #47 – jejich hesla jsou v repu, takže v produkci jen se
- *    SEED_DEMO_DATA=true (staging ho má v Dockerfile.deploy). Jinde vypnout
- *    jde proměnnou SEED_DEMO_DATA=false.
- * 4. Komunita (100 uživatelů s akcemi a skupinami po Česku) – pod stejným
- *    přepínačem, vkládá se jednou i do databáze, která už data má.
- * 5. Proběhlé akce a hodnocení (#180) – pod stejným přepínačem, jednou i do
- *    databáze, která už data má, aby byly hvězdičky vidět i na stagingu.
+ * 3. Testovací data: demo účty #47, komunita #150, proběhlé akce a hodnocení
+ *    #180 (seed-content.ts). Mají verzi a při její změně se vymění (#181).
+ *    Jejich hesla jsou v repu, takže v produkci jen se SEED_DEMO_DATA=true
+ *    (staging ho má v Dockerfile.deploy). Jinde vypnout jde proměnnou
+ *    SEED_DEMO_DATA=false.
  */
 export const seedDatabase = async (
   prisma: PrismaService,
@@ -63,7 +59,5 @@ export const seedDatabase = async (
     return;
   }
 
-  await seedDemo(prisma, betterAuth);
-  await seedCommunity(prisma, betterAuth);
-  await seedRatings(prisma);
+  await seedContent(prisma, betterAuth);
 };

@@ -25,6 +25,7 @@ Schéma vzniklo v rámci #47 (testovací data), protože bez něj nešla data na
 | `ModerationAction`  | `moderation_action`  | Zásah superadmina a jeho vrácení                                                         | B-063               | ne       |
 | `Payment`           | `payment`            | Simulovaná platba (předplatné, topování)                                                 | B-070               | ne       |
 | `Subscription`      | `subscription`       | Předplatné organizátora (evidence docházky)                                              | B-071               | ne       |
+| `SeedState`         | `seed_state`         | Verze testovacích dat v databázi, podle ní seed pozná, že má data vyměnit                | #181                | –        |
 
 Tabulky `session`, `account` a `verification` spravuje BetterAuth (přihlášení, ověření e-mailu, obnova hesla).
 
@@ -283,8 +284,11 @@ Seed (`apps/backend/src/scripts/seed/`) je opakovatelný a běží lokálně př
 
 1. **Číselník aktivit a lokalit** vždy, srovná se s `demo-data.ts` (nic nemaže).
 2. **Superadmin** z `SUPERADMIN_EMAIL` / `SUPERADMIN_PASSWORD`, když chybí.
-3. **Testovací data #47** (41 uživatelů, 10 skupin, 59 akcí, 204 účastí), jen do databáze bez akcí a skupin. V produkci jen se `SEED_DEMO_DATA=true`, které má staging v `Dockerfile.deploy`; jinde vypnout jde `SEED_DEMO_DATA=false`.
-4. **Komunita** (100 uživatelů, 16 skupin, 80 akcí po Česku), pod stejným přepínačem, jednou i do databáze, která už data má.
-5. **Proběhlé akce a hodnocení (#180)** (4 akce demo uživatelů, 11 hodnocení akce a organizátora, 12 hodnocení účastníků), pod stejným přepínačem, jednou i do databáze, která už data má, takže i na staging. Data a jejich průměry jsou v [`rating-data.ts`](../apps/backend/src/scripts/seed/data/rating-data.ts).
+3. **Testovací data**, v produkci jen se `SEED_DEMO_DATA=true`, které má staging v `Dockerfile.deploy`; jinde vypnout jde `SEED_DEMO_DATA=false`:
+   - demo data #47 (41 uživatelů, 10 skupin, 59 akcí v Praze),
+   - komunita #150 (100 uživatelů, 16 skupin, 80 akcí po Česku),
+   - proběhlé akce a hodnocení #180 (4 akce demo uživatelů, 11 hodnocení akce a organizátora, 12 hodnocení účastníků; data a průměry v [`rating-data.ts`](../apps/backend/src/scripts/seed/data/rating-data.ts)).
+
+   Účty se jen doplní. Ostatní data mají verzi (#181): `SEED_DATA_VERSION` v [`seed-content.ts`](../apps/backend/src/scripts/seed/seed/seed-content.ts) proti řádku v `seed_state`. Při rozdílu seed v jedné transakci smaže akce a skupiny, které vložil předchozí seed (jejich id jsou v `seed_state.eventIds` a `groupIds`; data před #181 pozná podle obsahu), vrátí profily seedových účtů podle dat, vloží všechno znovu s čerstvými termíny a zapíše verzi i s id nových řádků. Co založili testeři, i pod demo účty, zůstane. Postup pro novou verzi je v [README](../README.md#test-data-versions-181).
 
 Demo účty jsou v [README](../README.md#seeded-users).
