@@ -80,7 +80,7 @@ export const seedDatabase = async (
   const password = demoPassword(process.env);
   if (!password) {
     console.error(
-      'Skipping demo data: in production SEED_DEMO_PASSWORD must be set, differ from the password in the repo and meet the password rule (min. 10 characters, a letter and a digit).',
+      "Skipping demo data: SEED_DEMO_PASSWORD is missing (production), the repo's password (production) or breaks the password rule (min. 10 characters, a letter and a digit).",
     );
     return;
   }
