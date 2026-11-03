@@ -61,6 +61,15 @@ describe('generated past events (#181)', () => {
     }
   });
 
+  // review PR #233: proběhlá akce pod minimem s hodnocením v historii profilu nedává smysl
+  it('cancel every event that would not have reached its minimum', () => {
+    for (const event of generatedPastEvents.filter((e) => !e.cancelReason)) {
+      expect(
+        `${event.key} ${event.participantKeys.length >= event.minParticipants}`,
+      ).toBe(`${event.key} true`);
+    }
+  });
+
   it('rate only with participants, 1–5 stars, and never a cancelled event', () => {
     for (const event of generatedPastEvents) {
       const participants = new Set(event.participantKeys);

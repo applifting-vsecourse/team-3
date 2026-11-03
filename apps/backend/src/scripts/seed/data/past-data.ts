@@ -17,6 +17,8 @@ import { stableHash } from './stable-hash';
  * - Krajská města a Praha: akce, které se tam konají, proběhly i dřív (stejný
  *   název, místo a organizátor), každá desátá je zrušená.
  * - Skupiny: veřejná a členská proběhlá akce každé aktivní skupiny.
+ * - Akce, na kterou by se nesešlo minimum lidí, je zrušená („sešlo se nás málo“),
+ *   ne proběhlá s hodnocením.
  * - Hodnocení: většina účastníků hodnotí akci a organizátora, organizátor
  *   většinu účastníků. Většina hvězdiček je 4–5, pár organizátorů a skupin
  *   má výrazně horší průměr (sekce „od dobře hodnocených organizátorů“, #182).
@@ -50,6 +52,18 @@ const cancelReasons = [
   'Hala nám zrušila rezervaci, náhradní termín dám vědět.',
   'Kvůli počasí ruším, venku by to nebylo bezpečné.',
 ];
+const tooFewReason = 'Sešlo se nás málo, akci ruším. Příště to snad vyjde.';
+
+/** Zrušená (`reason`) akce hodnocení nemá; proběhlou hodnotí účastníci i organizátor. */
+const outcome = (
+  key: string,
+  participantKeys: string[],
+  weak: boolean,
+  reason: string | undefined,
+): Pick<PastEventSource, 'ratings' | 'participantRatings' | 'cancelReason'> =>
+  reason
+    ? { cancelReason: reason, ratings: [], participantRatings: [] }
+    : rate(key, participantKeys, weak);
 
 const pick = <T>(pool: T[], seed: string): T =>
   pool[stableHash(seed) % pool.length];
@@ -135,7 +149,12 @@ const buildPastEvents = (): PastEventSource[] => {
         .slice(0, wanted)
         .map((user) => user.key);
       markBusy([plan.organizerKey, ...participantKeys], daysAgo);
-      const cancelled = stableHash(`${key} cancel`) % 10 === 0;
+      const reason =
+        participantKeys.length < plan.min
+          ? tooFewReason
+          : stableHash(`${key} cancel`) % 10 === 0
+            ? pick(cancelReasons, key)
+            : undefined;
       events.push({
         key,
         title: plan.title,
@@ -151,13 +170,7 @@ const buildPastEvents = (): PastEventSource[] => {
         maxParticipants: plan.max,
         organizerKey: plan.organizerKey,
         participantKeys,
-        ...(cancelled
-          ? {
-              cancelReason: pick(cancelReasons, key),
-              ratings: [],
-              participantRatings: [],
-            }
-          : rate(key, participantKeys, isWeak(plan.organizerKey))),
+        ...outcome(key, participantKeys, isWeak(plan.organizerKey), reason),
       });
     }
   }
@@ -198,7 +211,12 @@ const buildPastEvents = (): PastEventSource[] => {
         participantKeys,
         groupKey: recipe.groupKey,
         visibility: index === 2 ? 'public' : 'members',
-        ...rate(key, participantKeys, isWeak(recipe.groupKey)),
+        ...outcome(
+          key,
+          participantKeys,
+          isWeak(recipe.groupKey),
+          participantKeys.length < recipe.min ? tooFewReason : undefined,
+        ),
       });
     }
   }

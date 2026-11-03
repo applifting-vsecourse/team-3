@@ -20,9 +20,9 @@ export const demoDataEnabled = (env: NodeJS.ProcessEnv): boolean => {
  *
  * 1. Číselník aktivit a lokalit – vždy (aplikace bez něj nefunguje).
  * 2. Superadmin z SUPERADMIN_EMAIL / SUPERADMIN_PASSWORD – když chybí.
- * 3. Testovací data: demo účty #47, komunita #150, proběhlé akce a hodnocení
- *    #180 (seed-content.ts). Mají verzi a při její změně se vymění (#181).
- *    Jejich hesla jsou v repu, takže v produkci jen se SEED_DEMO_DATA=true
+ * 3. Testovací data: demo účty #47, komunita #150 s akcemi krajských měst,
+ *    akce skupin, proběhlé akce a hodnocení #180 a #181 (seed-content.ts).
+ *    Mají verzi a při její změně se vymění (#181). Jejich hesla jsou v repu, takže v produkci jen se SEED_DEMO_DATA=true
  *    (staging ho má v Dockerfile.deploy). Jinde vypnout jde proměnnou
  *    SEED_DEMO_DATA=false.
  */

@@ -24,8 +24,8 @@ export const SEED_STATE_KEY = 'demo';
 const CONTENT_SEED_LOCK = 4_702_026;
 
 /**
- * Obsah seedu: demo účty #47 a komunita #150, jejich skupiny, akce, účasti
- * a hodnocení (#180). Řídí se verzí v `SeedState`:
+ * Obsah seedu: demo účty #47 a komunita #150, jejich skupiny, akce (i krajských
+ * měst a skupin, #181), účasti a hodnocení (#180, #181). Řídí se verzí v `SeedState`:
  *
  * - Účty se zakládají vždy, jen když ještě neexistují (ensureUser).
  * - Má-li databáze verzi SEED_DATA_VERSION, nic dalšího se neděje: další starty

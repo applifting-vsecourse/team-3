@@ -553,6 +553,26 @@ export type GroupEvent = Omit<CommunityEvent, 'schedule'> & {
   groupKey: string;
 };
 
+/** Jen termín je potřeba, aby šly spočítat dny akce (`eventDays`). */
+const probe: EventSource = {
+  key: 'probe',
+  title: '',
+  activitySlug: 'beh',
+  schedule: { daysFromNow: 1, time: '12:00' },
+  durationMinutes: 60,
+  address: '',
+  localitySlug: 'praha',
+  lat: 0,
+  lng: 0,
+  minParticipants: 1,
+  maxParticipants: 1,
+  approvalMode: 'open',
+  visibility: 'public',
+  organizerKey: '',
+  status: 'published',
+  participations: [],
+};
+
 const buildGroupEvents = (): GroupEvent[] => {
   const busy = busyDays([...(demoEvents as DemoEvent[]), ...communityEvents]);
   const events: GroupEvent[] = [];
@@ -628,26 +648,6 @@ const buildGroupEvents = (): GroupEvent[] => {
     }
   }
   return events;
-};
-
-/** Jen termín je potřeba, aby šly spočítat dny akce (`eventDays`). */
-const probe: EventSource = {
-  key: 'probe',
-  title: '',
-  activitySlug: 'beh',
-  schedule: { daysFromNow: 1, time: '12:00' },
-  durationMinutes: 60,
-  address: '',
-  localitySlug: 'praha',
-  lat: 0,
-  lng: 0,
-  minParticipants: 1,
-  maxParticipants: 1,
-  approvalMode: 'open',
-  visibility: 'public',
-  organizerKey: '',
-  status: 'published',
-  participations: [],
 };
 
 export const groupEvents: GroupEvent[] = buildGroupEvents();

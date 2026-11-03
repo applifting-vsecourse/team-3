@@ -3255,18 +3255,24 @@ const PRAGUE_TZ = 'Europe/Prague';
 /** Akce nesmí začít dřív než hodinu po seedu, jinak se posune. */
 const MIN_LEAD_MS = 60 * 60000;
 
+/**
+ * Formátovač pražského času. Vytváří se jednou: nový `Intl.DateTimeFormat` na každý
+ * převod stál při načtení dat skupin (#181, tisíce termínů) několik sekund.
+ */
+const pragueFormat = new Intl.DateTimeFormat('en-US', {
+  timeZone: PRAGUE_TZ,
+  // hour12 místo hourCycle: backend kompiluje s lib ES2017, kde hourCycle v typech chybí
+  hour12: false,
+  year: 'numeric',
+  month: '2-digit',
+  day: '2-digit',
+  hour: '2-digit',
+  minute: '2-digit',
+});
+
 /** Posun časové zóny Prahy vůči UTC v minutách pro daný okamžik (řeší letní/zimní čas). */
 const pragueOffsetMinutes = (date: Date): number => {
-  const parts = new Intl.DateTimeFormat('en-US', {
-    timeZone: PRAGUE_TZ,
-    // hour12 místo hourCycle: backend kompiluje s lib ES2017, kde hourCycle v typech chybí
-    hour12: false,
-    year: 'numeric',
-    month: '2-digit',
-    day: '2-digit',
-    hour: '2-digit',
-    minute: '2-digit',
-  }).formatToParts(date);
+  const parts = pragueFormat.formatToParts(date);
   const get = (type: string): number =>
     Number(parts.find((p) => p.type === type)?.value);
   // některé prostředí vrací při hour12: false o půlnoci „24“
