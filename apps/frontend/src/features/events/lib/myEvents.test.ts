@@ -20,6 +20,23 @@ describe("attendingSections", () => {
     expect(attendingSections([first, waiting, second])).toEqual({
       pending: [waiting],
       approved: [first, second],
+      cancelled: [],
+    })
+  })
+
+  it("puts a cancelled event at the end, apart from places and requests (#183)", () => {
+    const place = aMyEvent({ id: "e1" })
+    const cancelledPlace = aMyEvent({ id: "e2", status: "cancelled" })
+    const cancelledRequest = aMyEvent({
+      id: "e3",
+      status: "cancelled",
+      myParticipation: "pending",
+    })
+
+    expect(attendingSections([place, cancelledPlace, cancelledRequest])).toEqual({
+      pending: [],
+      approved: [place],
+      cancelled: [cancelledPlace, cancelledRequest],
     })
   })
 })

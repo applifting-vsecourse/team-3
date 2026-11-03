@@ -106,6 +106,35 @@ export async function ensureUser(
   return { user, created: !existing };
 }
 
+/**
+ * N-3 (bezpečnostní audit #172): demo účet, který má pořád heslo `from` (to
+ * zveřejněné v repu), dostane heslo `to` a přijde o všechna přihlášení, ať je
+ * nikdo nepoužívá se starým heslem dál. Účet, jehož heslo si tester mezitím
+ * změnil, zůstane, jak je. Vrací, zda se heslo změnilo.
+ */
+export async function replaceSeedPassword(
+  prisma: PrismaService,
+  auth: BetterAuth,
+  userId: string,
+  from: string,
+  to: string,
+): Promise<boolean> {
+  if (from === to) return false;
+  if (!(await hasSeedPassword(prisma, auth, userId, from))) return false;
+  const context = await auth.$context;
+  const hash = await context.password.hash(to);
+  // Together: with a new password but the old sessions kept, the next seed
+  // no longer sees the repo's password and would never end them.
+  await prisma.$transaction([
+    prisma.account.updateMany({
+      where: { userId, providerId: 'credential' },
+      data: { password: hash },
+    }),
+    prisma.session.deleteMany({ where: { userId } }),
+  ]);
+  return true;
+}
+
 /** Whether the account's sign-in password is the one the seed uses for it. */
 async function hasSeedPassword(
   prisma: PrismaService,

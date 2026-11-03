@@ -26,6 +26,7 @@ import { useEventDetail } from "@/features/events/hooks/useEventDetail"
 import { useEventParticipants } from "@/features/events/hooks/useEventParticipants"
 import { editRefusal } from "@/features/events/lib/editRefusal"
 import { formatEventTime } from "@/features/events/lib/formatEvent"
+import { showsRequests } from "@/features/events/lib/manageEvent"
 
 export const Route = createFileRoute("/_ProtectedPages/akce/$eventId/sprava")({
   component: ManageEventPage,
@@ -58,6 +59,7 @@ function ManageEventPage() {
       error={participants.error}
       onRetry={participants.retry}
       isHeadingHidden={isHeadingHidden}
+      isCancelled={event?.status === "cancelled"}
     />
   )
 
@@ -155,8 +157,9 @@ function ManageEventPage() {
                 </div>
               ) : null}
             </section>
-            {/* the right column (D-03d): an event with approval adds the requests (#53) */}
-            {event.approvalMode === "approval" ? (
+            {/* the right column (D-03d): an event with approval adds the requests (#53),
+                unless it's cancelled — then only who was coming, read-only (#183) */}
+            {showsRequests(event) ? (
               <RequestsAndParticipants
                 isDesktop={isDesktop}
                 participants={participants.participants?.length}
@@ -167,6 +170,8 @@ function ManageEventPage() {
                     error={participants.error}
                     onRetry={participants.retry}
                     isHeadingHidden={isHeadingHidden}
+                    // showsRequests already hides the requests of a cancelled event; the
+                    // status check stays as a safety net (the API refuses with EVENT_CANCELLED)
                     canDecide={event.status === "published" && event.startsAt > new Date()}
                     isFull={event.isFull}
                     isDeciding={decide.isPending}

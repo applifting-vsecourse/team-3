@@ -61,12 +61,10 @@ describe("ManagedRequests (#53)", () => {
     for (const button of screen.getAllByRole("button")) expect(button).toBeDisabled()
   })
 
-  it("a cancelled or started event lists the requests without buttons, saying why", () => {
+  it("a started event lists the requests without buttons, saying why", () => {
     renderRequests({ canDecide: false })
 
-    expect(
-      screen.getByText("Akce je zrušená nebo už začala, žádosti už vyřídit nejde."),
-    ).toBeInTheDocument()
+    expect(screen.getByText("Akce už začala, žádosti už vyřídit nejde.")).toBeInTheDocument()
     expect(screen.getByText("Jakub Král")).toBeInTheDocument()
     expect(screen.queryByRole("button")).not.toBeInTheDocument()
   })
