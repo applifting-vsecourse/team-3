@@ -16,7 +16,7 @@ Kdo nález opraví, změní ve stejném PR i jeho stav v tomto reportu.
 - [ ] Potvrdit s PO přijetí rizika N-3 na stagingu (schůzka 3. 11.).
 - [ ] Potvrdit s PO, že pro verzi Node na stagingu stačí nepřímé ověření (viz [Node.js](#nodejs-a-cve-2026-111497)).
 - [ ] Rozhodnout s PO, zda má být pro členství ve skupině potřeba ověřený e-mail (S-5).
-- [ ] Vyřešit `js-yaml`, oprava už existuje (viz [Závislosti](#závislosti)).
+- [ ] Vyřešit `js-yaml`, oprava už existuje, řeší #231 (viz [Závislosti](#závislosti)).
 - [ ] Ověřit `BETTER_AUTH_SECRET` a ostatní nastavení na stagingu, ověří Tomáš Klíma (viz [Ke kontrole na stagingu](#ke-kontrole-na-stagingu)).
 - [ ] Před vznikem administrace (B-063) nastavit na stagingu superadmina se silným heslem (viz [Ke kontrole na stagingu](#ke-kontrole-na-stagingu)).
 
@@ -68,12 +68,12 @@ Přes `pnpm.overrides` jsou vynucené `next` a `multer`, protože je jinak drž�
 
 `pnpm audit` počítá výskyty, proto 6 moderate znamená tři balíčky. Po první aktualizaci hlásil jen `js-yaml`, `minimatch` a `glob` přibyly s novými upozorněními v registru.
 
-| Co zůstává                                                                                   | Závažnost | Důvod                                                                                                    |
-| -------------------------------------------------------------------------------------------- | --------- | -------------------------------------------------------------------------------------------------------- |
-| `js-yaml` 5.3.0 ([GHSA-r3ph-w7gj-g6xm](https://github.com/advisories/GHSA-r3ph-w7gj-g6xm))   | moderate  | Přichází přes `@nestjs/swagger` 11. Opravená verze 5.4.1 existuje, jde vynutit přes override (neověřeno) |
-| `minimatch` ([GHSA-g3hv-75wg-m249](https://github.com/advisories/GHSA-g3hv-75wg-m249))       | moderate  | Přichází přes `react-email`, `@nestjs/cli`, `jest` a `npm-run-all`; oprava je až v nové hlavní verzi     |
-| `glob` ([GHSA-3g3m-2fjr-6pw4](https://github.com/advisories/GHSA-3g3m-2fjr-6pw4))            | moderate  | Přichází přes `react-email`, `@nestjs/cli` a `jest`; oprava je až v nové hlavní verzi                    |
-| `deepmerge` 4.3.1 ([GHSA-gcqx-w48m-w2h4](https://github.com/advisories/GHSA-gcqx-w48m-w2h4)) | low       | Opravená verze neexistuje; jen vývojový nástroj `@nestjs/cli`                                            |
+| Co zůstává                                                                                   | Závažnost | Důvod                                                                                                                                    |
+| -------------------------------------------------------------------------------------------- | --------- | ---------------------------------------------------------------------------------------------------------------------------------------- |
+| `js-yaml` 5.3.0 ([GHSA-r3ph-w7gj-g6xm](https://github.com/advisories/GHSA-r3ph-w7gj-g6xm))   | moderate  | Přichází přes `@nestjs/swagger` 11. Řeší #231: `@nestjs/swagger` 12 ho povýší na 5.5.0 (opraveno od 5.4.1), záložně override (neověřeno) |
+| `minimatch` ([GHSA-g3hv-75wg-m249](https://github.com/advisories/GHSA-g3hv-75wg-m249))       | moderate  | Přichází přes `react-email`, `@nestjs/cli`, `jest` a `npm-run-all`; oprava je až v nové hlavní verzi                                     |
+| `glob` ([GHSA-3g3m-2fjr-6pw4](https://github.com/advisories/GHSA-3g3m-2fjr-6pw4))            | moderate  | Přichází přes `react-email`, `@nestjs/cli` a `jest`; oprava je až v nové hlavní verzi                                                    |
+| `deepmerge` 4.3.1 ([GHSA-gcqx-w48m-w2h4](https://github.com/advisories/GHSA-gcqx-w48m-w2h4)) | low       | Opravená verze neexistuje; jen vývojový nástroj `@nestjs/cli`                                                                            |
 
 ## Nálezy v kódu
 
