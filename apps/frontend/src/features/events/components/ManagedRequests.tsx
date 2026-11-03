@@ -17,7 +17,7 @@ type ManagedRequestsProps = {
   onRetry: () => void
   /** Inside a tab the tab names the list: the heading stays for screen readers only. */
   isHeadingHidden?: boolean
-  /** False once the event is cancelled or has started: nothing can be decided any more. */
+  /** False once the event has started: nothing can be decided any more. */
   canDecide: boolean
   /** No place left: approving waits until someone leaves; rejecting still works. */
   isFull: boolean
@@ -94,7 +94,7 @@ export function ManagedRequests({
         <>
           {!canDecide ? (
             <p className="text-sm text-muted-foreground">
-              Akce je zrušená nebo už začala, žádosti už vyřídit nejde.
+              Akce už začala, žádosti už vyřídit nejde.
             </p>
           ) : isFull ? (
             <p className="text-sm text-muted-foreground">

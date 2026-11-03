@@ -37,6 +37,20 @@ describe("ManagedParticipants", () => {
     expect(screen.getByText("Až se někdo přihlásí, uvidíš ho tady.")).toBeInTheDocument()
   })
 
+  it("on a cancelled event says nobody was in, not that someone may still come (#183)", () => {
+    render(
+      <ManagedParticipants
+        participants={[]}
+        error={undefined}
+        onRetry={vi.fn()}
+        isCancelled
+      />,
+    )
+
+    expect(screen.getByText("Na akci nikdo nebyl přihlášený.")).toBeInTheDocument()
+    expect(screen.queryByText("Až se někdo přihlásí, uvidíš ho tady.")).not.toBeInTheDocument()
+  })
+
   it("shows that it is loading", () => {
     render(
       <ManagedParticipants
