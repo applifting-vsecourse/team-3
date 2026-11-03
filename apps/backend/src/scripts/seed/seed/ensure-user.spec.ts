@@ -5,8 +5,7 @@ import { ensureUser, replaceSeedPassword } from './ensure-user';
 
 // a factory, so better-auth doesn't load under Jest
 jest.mock('better-auth/crypto', () => ({
-  hashPassword: async (password: string): Promise<string> =>
-    `hash:${password}`,
+  hashPassword: async (password: string): Promise<string> => `hash:${password}`,
 }));
 
 const params = {
