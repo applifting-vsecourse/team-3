@@ -145,6 +145,32 @@ describe('replaceSeedPassword (N-3)', () => {
     expect(prisma.session.deleteMany).not.toHaveBeenCalled();
   });
 
+  it("fails without writing when BetterAuth's verify rejects the new hash", async () => {
+    const { prisma, auth } = setup([
+      {
+        id: 'u1',
+        email: 'petra@x.cz',
+        username: 'petra',
+        password: 'stare-heslo-1',
+      },
+    ]);
+    // an own `password.verify` that knows the old hash but not the default one
+    Object.assign(auth, {
+      $context: Promise.resolve({
+        password: {
+          verify: async ({ hash }: { hash: string }) =>
+            hash === 'hash:stare-heslo-1',
+        },
+      }),
+    });
+
+    await expect(
+      replaceSeedPassword(prisma, auth, 'u1', 'stare-heslo-1', 'nove-heslo-2'),
+    ).rejects.toThrow("doesn't pass BetterAuth's verify");
+
+    expect(prisma.$transaction).not.toHaveBeenCalled();
+  });
+
   it('does nothing when the password stays the same', async () => {
     const { prisma, auth } = setup([
       {

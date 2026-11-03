@@ -127,6 +127,15 @@ export async function replaceSeedPassword(
   // endpoint context, which the seed doesn't have. The password comes from a
   // secret, not from a user, so it isn't checked against breaches.
   const hash = await hashPassword(to);
+  // Sign-in checks with `context.password.verify`. Should it ever stop
+  // accepting the default hash (an own `password.hash`/`verify`), fail here
+  // rather than write a password nobody can sign in with.
+  const { password } = await auth.$context;
+  if (!(await password.verify({ hash, password: to }))) {
+    throw new Error(
+      `Seed password hash for ${userId} doesn't pass BetterAuth's verify`,
+    );
+  }
   // Together: with a new password but the old sessions kept, the next seed
   // no longer sees the repo's password and would never end them.
   await prisma.$transaction([
