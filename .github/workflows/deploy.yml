@@ -35,6 +35,7 @@ jobs:
           file: apps/backend/Dockerfile.deploy
           push: true
           build-args: |
+            CI_COMMIT_SHA=${{ github.sha }}
             SEED_DEMO_PASSWORD=${{ secrets.SEED_DEMO_PASSWORD }}
           tags: ${{ env.REGISTRY }}/${{ steps.slug.outputs.slug }}-backend:latest
       - name: Build & push frontend
