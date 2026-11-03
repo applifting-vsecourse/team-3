@@ -68,6 +68,10 @@ async function main(): Promise<void> {
   // Start the application
   await app.listen(config.port);
   console.log(`Application is running on: ${config.backendUrl}`);
+  // Na stagingu se verze Node ověřuje z logu (CVE-2026-111497, audit #172)
+  console.log(
+    `Node ${process.version}, commit ${config.gitCommitSha || 'unknown'}`,
+  );
 }
 
 // Execute the main function
