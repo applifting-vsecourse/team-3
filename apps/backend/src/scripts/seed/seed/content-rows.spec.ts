@@ -10,7 +10,12 @@ import {
   demoLocalities,
 } from '@/scripts/seed/data/demo-data';
 import { pastEvents } from '@/scripts/seed/data/rating-data';
-import { buildContentRows, ContentRows, seedAccounts } from './content-rows';
+import {
+  buildContentRows,
+  ContentRows,
+  legacySeedContentWhere,
+  seedAccounts,
+} from './content-rows';
 
 // Odkazy z dat na id: neznámý klíč nebo slug spadne tady, ne při seedu na stagingu.
 const resolver =
@@ -104,5 +109,47 @@ describe('buildContentRows', () => {
         (r) => r.deletedAt === now,
       ),
     ).toHaveLength(deleted.length);
+  });
+});
+
+describe('legacySeedContentWhere', () => {
+  const where = legacySeedContentWhere(
+    {
+      userId: (key) => `u-${key}`,
+      localityId: (slug) => `l-${slug}`,
+    },
+    ['u-a'],
+  );
+
+  it('matches every event of the data by its organizer and title', () => {
+    const events = where.events.OR as {
+      organizerUserId: string;
+      title: string;
+    }[];
+
+    expect(events).toHaveLength(
+      demoEvents.length + communityEvents.length + pastEvents.length,
+    );
+    expect(events).toContainEqual({
+      organizerUserId: `u-${demoEvents[0].organizerKey}`,
+      title: demoEvents[0].title,
+    });
+    // a tester's event under a demo account has a title of its own
+    expect(events.some((e) => e.title.startsWith('TEST'))).toBe(false);
+  });
+
+  it('matches the groups by their name before #181, administered by a seed account', () => {
+    const groups = where.groups.OR as { name: string; localityId: string }[];
+
+    expect(groups).toHaveLength(demoGroups.length + communityGroups.length);
+    // the community group renamed in #181 still had the duplicate name
+    expect(
+      groups.filter(
+        (g) => g.name === 'Běžci ze Stromovky' && g.localityId === 'l-praha-7',
+      ),
+    ).toHaveLength(2);
+    expect(where.groups.members).toEqual({
+      some: { userId: { in: ['u-a'] }, role: 'admin' },
+    });
   });
 });

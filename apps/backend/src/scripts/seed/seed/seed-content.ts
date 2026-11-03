@@ -3,7 +3,11 @@ import { PrismaService } from '@/core/prisma/prisma.service';
 import { Prisma } from '@/generated/prisma/client';
 import { DEMO_PASSWORD } from '@/scripts/seed/data/demo-data';
 import { BetterAuth } from '@/shared/auth/providers/better-auth.provider';
-import { buildContentRows, seedAccounts } from './content-rows';
+import {
+  buildContentRows,
+  legacySeedContentWhere,
+  seedAccounts,
+} from './content-rows';
 import { ensureUser } from './ensure-user';
 
 /**
@@ -26,10 +30,11 @@ const CONTENT_SEED_LOCK = 4_702_026;
  * - Má-li databáze verzi SEED_DATA_VERSION, nic dalšího se neděje: další starty
  *   kontejneru data neposunou. Bez řádku `SeedState` (nová databáze, data před
  *   #181) je verze 0.
- * - Jinak se v jedné transakci pod advisory lockem smaže obsah seedových účtů
- *   (deleteSeedContent), jejich profily se nastaví podle dat, všechno se vloží
- *   znovu s termíny relativními k teď a zapíše se nová verze. Akce a účty
- *   testerů zůstanou, hesla seedových účtů seed nemění.
+ * - Jinak se v jedné transakci pod advisory lockem smažou akce a skupiny, které
+ *   vložil předchozí seed (deleteSeedContent), profily seedových účtů se nastaví
+ *   podle dat, všechno se vloží znovu s termíny relativními k teď a zapíše se
+ *   nová verze i s id vložených akcí a skupin. Co testeři založili, i pod demo
+ *   účty (QA na stagingu), zůstane; hesla seedových účtů seed nemění.
  */
 export async function seedContent(
   prisma: PrismaService,
@@ -69,7 +74,7 @@ export async function seedContent(
     'seed account',
   );
 
-  const current = await seedVersion(prisma);
+  const current = (await seedState(prisma))?.version ?? 0;
   if (current === SEED_DATA_VERSION) {
     console.log(`Seed data v${current} already in place — skipping.`);
     return;
@@ -90,9 +95,17 @@ export async function seedContent(
       // A seed started at the same time waits here and then sees the version
       // the first one wrote (Postgres' default READ COMMITTED).
       await tx.$executeRaw`SELECT pg_advisory_xact_lock(${CONTENT_SEED_LOCK})`;
-      if ((await seedVersion(tx)) === SEED_DATA_VERSION) return false;
+      const state = await seedState(tx);
+      if (state?.version === SEED_DATA_VERSION) return false;
 
-      await deleteSeedContent(tx, accountIds);
+      // Data před #181 id svých řádků nemají: poznají se podle obsahu.
+      const previous = state
+        ? { eventIds: state.eventIds, groupIds: state.groupIds }
+        : await findLegacySeedContent(
+            tx,
+            legacySeedContentWhere({ userId, localityId }, accountIds),
+          );
+      await deleteSeedContent(tx, previous, accountIds);
       for (const account of seedAccounts) {
         await tx.user.update({
           where: { id: userId(account.key) },
@@ -123,10 +136,15 @@ export async function seedContent(
       await tx.rating.createMany({ data: rows.ratings });
       await tx.participantRating.createMany({ data: rows.participantRatings });
 
+      const inserted = {
+        version: SEED_DATA_VERSION,
+        eventIds: rows.events.map((event) => event.id!),
+        groupIds: rows.groups.map((group) => group.id!),
+      };
       await tx.seedState.upsert({
         where: { key: SEED_STATE_KEY },
-        create: { key: SEED_STATE_KEY, version: SEED_DATA_VERSION },
-        update: { version: SEED_DATA_VERSION, appliedAt: now },
+        create: { key: SEED_STATE_KEY, ...inserted },
+        update: { ...inserted, appliedAt: now },
       });
       return true;
     },
@@ -145,37 +163,60 @@ export async function seedContent(
   );
 }
 
-/** Verze dat v databázi; 0, když ji seed ještě nezapsal. */
-async function seedVersion(
+/** Řádek s verzí dat; `null`, když ho seed ještě nezapsal. */
+async function seedState(
   prisma: Pick<PrismaService, 'seedState'>,
-): Promise<number> {
-  const state = await prisma.seedState.findUnique({
-    where: { key: SEED_STATE_KEY },
-  });
-  return state?.version ?? 0;
+): Promise<{ version: number; eventIds: string[]; groupIds: string[] } | null> {
+  return prisma.seedState.findUnique({ where: { key: SEED_STATE_KEY } });
+}
+
+export type SeededIds = { eventIds: string[]; groupIds: string[] };
+
+/** Id akcí a skupin seedu v databázi z doby před #181 (legacySeedContentWhere). */
+export async function findLegacySeedContent(
+  tx: Prisma.TransactionClient,
+  where: ReturnType<typeof legacySeedContentWhere>,
+): Promise<SeededIds> {
+  const [events, groups] = await Promise.all([
+    tx.event.findMany({ where: where.events, select: { id: true } }),
+    tx.group.findMany({ where: where.groups, select: { id: true } }),
+  ]);
+  return {
+    eventIds: events.map((event) => event.id),
+    groupIds: groups.map((group) => group.id),
+  };
 }
 
 /**
- * Smaže, co patří seedovým účtům: jejich akce a skupiny, kde je některý z nich
- * správcem. Akce v těch skupinách jdou pryč i od testerů, jinak by smazání
- * skupiny zastavil `onDelete: Restrict`. Účasti, členství, obě hodnocení, zprávy
- * a záznamy upozornění zmizí kaskádou, u plateb se `eventId` vynuluje.
+ * Smaže akce a skupiny, které vložil předchozí seed; účasti, členství, obě
+ * hodnocení, zprávy a záznamy upozornění zmizí kaskádou, u plateb se `eventId`
+ * vynuluje. Cizí akci v seedové skupině (tester po #70) nesmaže, jen ji od
+ * skupiny odpojí, jinak by smazání skupiny zastavil `onDelete: Restrict`.
+ * Do logu jde, co zmizí a co ze seedových účtů zůstává, ať je to na stagingu vidět.
  */
 export async function deleteSeedContent(
   tx: Prisma.TransactionClient,
+  seeded: SeededIds,
   accountIds: string[],
 ): Promise<void> {
-  const seedGroups: Prisma.GroupWhereInput = {
-    members: { some: { userId: { in: accountIds }, role: 'admin' } },
-  };
-  const events = await tx.event.deleteMany({
-    where: {
-      OR: [{ organizerUserId: { in: accountIds } }, { group: seedGroups }],
-    },
+  const notSeeded = { id: { notIn: seeded.eventIds } };
+  const detached = await tx.event.updateMany({
+    where: { groupId: { in: seeded.groupIds }, ...notSeeded },
+    data: { groupId: null },
   });
-  const groups = await tx.group.deleteMany({ where: seedGroups });
+  const kept = await tx.event.count({
+    where: { organizerUserId: { in: accountIds }, ...notSeeded },
+  });
+  const events = await tx.event.deleteMany({
+    where: { id: { in: seeded.eventIds } },
+  });
+  const groups = await tx.group.deleteMany({
+    where: { id: { in: seeded.groupIds } },
+  });
   console.log(
-    `Removed the previous seed data: ${events.count} events, ${groups.count} groups`,
+    `Removed the previous seed data: ${events.count} events, ${groups.count} groups. ` +
+      `Kept ${kept} events that testers created under seed accounts; ` +
+      `${detached.count} testers' events detached from the removed groups.`,
   );
 }
 

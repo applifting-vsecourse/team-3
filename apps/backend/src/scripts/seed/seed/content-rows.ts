@@ -163,3 +163,40 @@ export function buildContentRows(refs: ContentRefs): ContentRows {
 
   return rows;
 }
+
+/** Skupiny, které se v datech před #181 jmenovaly jinak (klíč → tehdejší název). */
+const LEGACY_GROUP_NAMES: Record<string, string> = {
+  // #167: druhá „Běžci ze Stromovky“ v Praze 7
+  'kg-bezci-stromovka': 'Běžci ze Stromovky',
+};
+
+/**
+ * Jak poznat obsah seedu v databázi z doby před #181, kdy seed id svých řádků
+ * neukládal (`SeedState.eventIds`, `groupIds`). Akce: seedový organizátor
+ * a název z dat. Skupina: název a lokalita z dat a seedový správce. Akce
+ * a skupiny, které pod demo účty založili testeři (třeba „TEST…“ z QA), se
+ * tím nechytí. Platí jen pro tento jeden přechod: další verze už mažou podle id.
+ */
+export function legacySeedContentWhere(
+  refs: Pick<ContentRefs, 'userId' | 'localityId'>,
+  accountIds: string[],
+): { events: Prisma.EventWhereInput; groups: Prisma.GroupWhereInput } {
+  const { userId, localityId } = refs;
+  const events = [...demoEvents, ...communityEvents, ...pastEvents].map(
+    (event) => ({
+      organizerUserId: userId(event.organizerKey),
+      title: event.title,
+    }),
+  );
+  const groups = [...demoGroups, ...communityGroups].map((group) => ({
+    name: LEGACY_GROUP_NAMES[group.key] ?? group.name,
+    localityId: localityId(group.localitySlug),
+  }));
+  return {
+    events: { OR: events },
+    groups: {
+      OR: groups,
+      members: { some: { userId: { in: accountIds }, role: 'admin' } },
+    },
+  };
+}

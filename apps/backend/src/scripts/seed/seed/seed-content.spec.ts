@@ -31,14 +31,26 @@ const setup = (versions: {
       slug: l.slug,
     })) as never,
   );
+  // a stored version remembers what that seed inserted
   const state = (version: number | null): object | null =>
-    version === null ? null : { key: SEED_STATE_KEY, version };
+    version === null
+      ? null
+      : {
+          key: SEED_STATE_KEY,
+          version,
+          eventIds: ['seeded-e1', 'seeded-e2'],
+          groupIds: ['seeded-g1'],
+        };
   // the version before the transaction, then the one inside it
   prisma.seedState.findUnique
     .mockResolvedValueOnce(state(versions.before) as never)
     .mockResolvedValue(state(versions.inTransaction) as never);
   prisma.event.deleteMany.mockResolvedValue({ count: 3 });
   prisma.group.deleteMany.mockResolvedValue({ count: 1 });
+  prisma.event.updateMany.mockResolvedValue({ count: 0 });
+  // data from before #181, found by their content
+  prisma.event.findMany.mockResolvedValue([{ id: 'legacy-e1' }] as never);
+  prisma.group.findMany.mockResolvedValue([{ id: 'legacy-g1' }] as never);
   // the transaction client is the same mock
   prisma.$transaction.mockImplementation(((
     run: (tx: PrismaService) => Promise<unknown>,
@@ -81,10 +93,27 @@ describe('seedContent (#181)', () => {
     ]) {
       expect(table.createMany).toHaveBeenCalledTimes(1);
     }
+    // only what the previous seed inserted goes, as its stored ids say
+    expect(prisma.event.deleteMany).toHaveBeenCalledWith({
+      where: { id: { in: ['seeded-e1', 'seeded-e2'] } },
+    });
+    expect(prisma.group.deleteMany).toHaveBeenCalledWith({
+      where: { id: { in: ['seeded-g1'] } },
+    });
+    expect(prisma.event.findMany).not.toHaveBeenCalled();
+    // and the new version remembers what this seed inserted
+    const [{ data: events }] = prisma.event.createMany.mock
+      .calls[0] as unknown as [{ data: { id: string }[] }];
+    const [{ data: groups }] = prisma.group.createMany.mock
+      .calls[0] as unknown as [{ data: { id: string }[] }];
     expect(prisma.seedState.upsert).toHaveBeenCalledWith(
       expect.objectContaining({
         where: { key: SEED_STATE_KEY },
-        update: expect.objectContaining({ version: SEED_DATA_VERSION }),
+        update: expect.objectContaining({
+          version: SEED_DATA_VERSION,
+          eventIds: events.map((e) => e.id),
+          groupIds: groups.map((g) => g.id),
+        }),
       }),
     );
   });
@@ -118,11 +147,25 @@ describe('seedContent (#181)', () => {
     });
   });
 
-  it('seeds a database without a version (new, or from before #181)', async () => {
+  it('recognises the data from before #181 by their content, not by who organizes them', async () => {
     const prisma = setup({ before: null, inTransaction: null });
 
     await seedContent(prisma, mockDeep<BetterAuth>());
 
+    expect(prisma.event.findMany).toHaveBeenCalledWith({
+      where: {
+        OR: expect.arrayContaining([
+          expect.objectContaining({ title: expect.any(String) }),
+        ]),
+      },
+      select: { id: true },
+    });
+    expect(prisma.event.deleteMany).toHaveBeenCalledWith({
+      where: { id: { in: ['legacy-e1'] } },
+    });
+    expect(prisma.group.deleteMany).toHaveBeenCalledWith({
+      where: { id: { in: ['legacy-g1'] } },
+    });
     expect(prisma.event.createMany).toHaveBeenCalled();
     expect(prisma.seedState.upsert).toHaveBeenCalled();
   });
@@ -154,28 +197,55 @@ describe('seedContent (#181)', () => {
 
 describe('deleteSeedContent', () => {
   beforeEach(() => {
+    jest.clearAllMocks();
     jest.spyOn(console, 'log').mockImplementation(() => undefined);
   });
 
-  it("removes the seed accounts' events and groups, and the events in those groups, nothing else", async () => {
-    const prisma = setup({ before: null, inTransaction: null });
-    const seedGroups = {
-      members: { some: { userId: { in: ['u1', 'u2'] }, role: 'admin' } },
-    };
+  const seeded = { eventIds: ['e1', 'e2'], groupIds: ['g1'] };
 
-    await deleteSeedContent(prisma, ['u1', 'u2']);
+  it('removes only the events and groups the seed inserted', async () => {
+    const prisma = setup({ before: null, inTransaction: null });
+
+    await deleteSeedContent(prisma, seeded, ['u1']);
 
     expect(prisma.event.deleteMany).toHaveBeenCalledWith({
-      where: {
-        OR: [{ organizerUserId: { in: ['u1', 'u2'] } }, { group: seedGroups }],
-      },
+      where: { id: { in: ['e1', 'e2'] } },
     });
     expect(prisma.group.deleteMany).toHaveBeenCalledWith({
-      where: seedGroups,
+      where: { id: { in: ['g1'] } },
     });
-    // events first: a group with events cannot be deleted (onDelete: Restrict)
+  });
+
+  // QA on staging creates events under demo accounts (migration 20261025190000)
+  it("detaches testers' events from the removed groups instead of deleting them, before the groups go", async () => {
+    const prisma = setup({ before: null, inTransaction: null });
+
+    await deleteSeedContent(prisma, seeded, ['u1']);
+
+    expect(prisma.event.updateMany).toHaveBeenCalledWith({
+      where: { groupId: { in: ['g1'] }, id: { notIn: ['e1', 'e2'] } },
+      data: { groupId: null },
+    });
+    // a group with events cannot be deleted (onDelete: Restrict)
+    expect(prisma.event.updateMany.mock.invocationCallOrder[0]).toBeLessThan(
+      prisma.group.deleteMany.mock.invocationCallOrder[0],
+    );
     expect(prisma.event.deleteMany.mock.invocationCallOrder[0]).toBeLessThan(
       prisma.group.deleteMany.mock.invocationCallOrder[0],
+    );
+  });
+
+  it('logs what goes and how many events of seed accounts stay', async () => {
+    const prisma = setup({ before: null, inTransaction: null });
+    prisma.event.count.mockResolvedValue(4);
+
+    await deleteSeedContent(prisma, seeded, ['u1']);
+
+    expect(prisma.event.count).toHaveBeenCalledWith({
+      where: { organizerUserId: { in: ['u1'] }, id: { notIn: ['e1', 'e2'] } },
+    });
+    expect(console.log).toHaveBeenCalledWith(
+      expect.stringMatching(/3 events, 1 groups.*Kept 4 events/),
     );
   });
 });

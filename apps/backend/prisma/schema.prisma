@@ -636,10 +636,14 @@ model Subscription {
 // ---------------------------------------------------------------------------
 
 /// Verze testovacích dat v databázi, jeden řádek na sadu dat (`key` = "demo"). Seed ji
-/// porovná se SEED_DATA_VERSION v kódu a při rozdílu obsah seedu smaže a vloží znovu.
+/// porovná se SEED_DATA_VERSION v kódu a při rozdílu data vymění. Smaže přitom jen akce
+/// a skupiny, které sám vložil (`eventIds`, `groupIds`); co pod demo účty založili
+/// testeři, zůstane. Bez cizích klíčů: řádky mezitím mohl smazat někdo jiný.
 model SeedState {
   key       String   @id
   version   Int
+  eventIds  String[] @default([])
+  groupIds  String[] @default([])
   appliedAt DateTime @default(now())
 
   @@map("seed_state")

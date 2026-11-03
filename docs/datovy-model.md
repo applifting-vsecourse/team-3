@@ -289,6 +289,6 @@ Seed (`apps/backend/src/scripts/seed/`) je opakovatelný a běží lokálně př
    - komunita #150 (100 uživatelů, 16 skupin, 80 akcí po Česku),
    - proběhlé akce a hodnocení #180 (4 akce demo uživatelů, 11 hodnocení akce a organizátora, 12 hodnocení účastníků; data a průměry v [`rating-data.ts`](../apps/backend/src/scripts/seed/data/rating-data.ts)).
 
-   Účty se jen doplní. Ostatní data mají verzi (#181): `SEED_DATA_VERSION` v [`seed-content.ts`](../apps/backend/src/scripts/seed/seed/seed-content.ts) proti řádku v `seed_state`. Při rozdílu seed v jedné transakci smaže akce seedových účtů a skupiny, které spravují, vrátí jejich profily podle dat, vloží všechno znovu s čerstvými termíny a zapíše verzi. Akce a účty testerů zůstanou. Postup pro novou verzi je v [README](../README.md#test-data-versions-181).
+   Účty se jen doplní. Ostatní data mají verzi (#181): `SEED_DATA_VERSION` v [`seed-content.ts`](../apps/backend/src/scripts/seed/seed/seed-content.ts) proti řádku v `seed_state`. Při rozdílu seed v jedné transakci smaže akce a skupiny, které vložil předchozí seed (jejich id jsou v `seed_state.eventIds` a `groupIds`; data před #181 pozná podle obsahu), vrátí profily seedových účtů podle dat, vloží všechno znovu s čerstvými termíny a zapíše verzi i s id nových řádků. Co založili testeři, i pod demo účty, zůstane. Postup pro novou verzi je v [README](../README.md#test-data-versions-181).
 
 Demo účty jsou v [README](../README.md#seeded-users).
