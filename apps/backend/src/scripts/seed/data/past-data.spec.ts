@@ -1,17 +1,19 @@
+import { decideParticipantRating } from '@/modules/rating/domain/participant-rating';
 import {
   organizerRatingSummary,
   participantRatingSummary,
+  RatingSummary,
 } from '@/modules/rating/domain/rating-summary';
 import { communityUsers } from './community-data';
 import { demoUsers } from './demo-data';
 import { generatedPastEvents, PROFILE_SHOWCASE } from './past-data';
-import { pastEvents, toPastEventRow } from './rating-data';
+import { pastEvents, PastEventSource, toPastEventRow } from './rating-data';
 import { REGIONAL_CITIES } from './regional-data';
 
 // Kontroly proběhlých akcí (#181, AK 3 a 4): je jich dost po celém Česku,
 // hodnocení dávají smysl a ukázky profilu z rating-data.ts (#180) platí dál.
 
-const allPast = [...pastEvents, ...generatedPastEvents];
+const allPast: PastEventSource[] = [...pastEvents, ...generatedPastEvents];
 const verified = new Set(
   [...demoUsers, ...communityUsers]
     .filter((u) => u.emailVerified)
@@ -118,25 +120,72 @@ describe('generated past events (#181)', () => {
     expect(averages.some((a) => a < 3.5)).toBe(true);
   });
 
-  // Petra (organizator) a Jakub (uzivatel): průměry popsané v rating-data.ts
-  it('leave the profile examples from rating-data.ts as they are', () => {
+  // Pravidla #180 a #66 pro hodnocení účastníka: kdyby se změnila, seed to má poznat
+  // (review PR #233). Stejná kontrola jako v rating-data.spec.ts, nad všemi akcemi.
+  it('pass every participant rating through decideParticipantRating', () => {
+    const now = new Date('2026-11-02T12:00:00+01:00');
+    for (const event of allPast) {
+      const row = toPastEventRow(event, now);
+      for (const rating of event.participantRatings) {
+        expect(
+          decideParticipantRating(
+            {
+              eventStatus: event.cancelReason ? 'cancelled' : 'published',
+              startsAt: row.startsAt,
+              endsAt: row.endsAt,
+              organizerUserId: event.organizerKey,
+              raterId: event.organizerKey,
+              participantId: rating.userKey,
+              participationStatus: event.participantKeys.includes(
+                rating.userKey,
+              )
+                ? 'approved'
+                : 'pending',
+            },
+            now,
+          ),
+        ).toEqual({ ok: true });
+      }
+    }
+  });
+
+  // Petra (organizator) a Jakub (uzivatel): průměry z README a rating-data.ts,
+  // přepočítané přes všechny proběhlé akce, akce skupin se `groupId`
+  it('leave the profile averages from rating-data.ts as they are', () => {
+    const now = new Date();
+    const asOrganizer = (key: string): RatingSummary =>
+      organizerRatingSummary(
+        allPast
+          .filter((event) => event.organizerKey === key)
+          .flatMap((event) =>
+            event.ratings.map((rating) => ({
+              organizerStars: rating.organizerStars,
+              deletedAt: rating.deleted ? now : null,
+              event: { groupId: event.groupKey ?? null },
+            })),
+          ),
+      );
+    const asParticipant = (key: string): RatingSummary =>
+      participantRatingSummary(
+        allPast.flatMap((event) =>
+          event.participantRatings
+            .filter((rating) => rating.userKey === key)
+            .map((rating) => ({
+              stars: rating.stars,
+              deletedAt: rating.deleted ? now : null,
+            })),
+        ),
+      );
+
+    expect(asOrganizer('organizator')).toEqual({ average: 4.5, count: 6 });
+    expect(asParticipant('uzivatel')).toEqual({ average: 4.3, count: 4 });
+    expect(asOrganizer('uzivatel')).toEqual({ average: null, count: 0 });
+    expect(asParticipant('organizator')).toEqual({ average: 5, count: 1 });
     for (const event of generatedPastEvents) {
       for (const rating of event.participantRatings) {
         expect(PROFILE_SHOWCASE.has(rating.userKey)).toBe(false);
       }
-      if (PROFILE_SHOWCASE.has(event.organizerKey)) {
-        expect(event.groupKey).toBeDefined();
-      }
     }
-    const jakub = allPast.flatMap((e) =>
-      e.participantRatings
-        .filter((r) => r.userKey === 'uzivatel')
-        .map((r) => ({
-          stars: r.stars,
-          deletedAt: r.deleted ? new Date() : null,
-        })),
-    );
-    expect(participantRatingSummary(jakub)).toEqual({ average: 4.3, count: 4 });
   });
 
   it('has nobody at two past events on the same day', () => {
