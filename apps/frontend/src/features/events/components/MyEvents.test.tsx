@@ -86,6 +86,20 @@ describe("AttendingEvents", () => {
     expect(screen.getByRole("link", { name: "Projít akce" })).toHaveAttribute("href", "/akce")
   })
 
+  it("with only cancelled events still says I go nowhere, above them (#183)", async () => {
+    get.mockReturnValue(asJson([aMyEvent({ title: "Volejbal", status: "cancelled" })]))
+
+    await renderWithQuery(<AttendingEvents viewerId="u1" />)
+
+    const empty = await screen.findByText("Zatím nejdeš na žádnou akci.")
+    expect(screen.getByRole("link", { name: "Projít akce" })).toHaveAttribute("href", "/akce")
+    const cancelled = screen.getByRole("region", { name: "Zrušené (1)" })
+    expect(within(cancelled).getByRole("link", { name: "Volejbal" })).toBeInTheDocument()
+    // the empty state comes first, the cancelled section after it
+    expect(empty.compareDocumentPosition(cancelled) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
+    expect(screen.queryByRole("heading", { name: /Potvrzené/ })).not.toBeInTheDocument()
+  })
+
   it("on an error offers to try again", async () => {
     get.mockReturnValueOnce({ json: () => Promise.reject(new Error("offline")) } as never)
     get.mockReturnValueOnce(asJson([]))

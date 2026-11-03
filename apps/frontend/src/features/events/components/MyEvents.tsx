@@ -32,23 +32,22 @@ export function AttendingEvents({ viewerId }: { viewerId: string }) {
   const { events, isPending, error, retry } = useMyEvents("attending", viewerId)
   if (error) return <MyEventsError onRetry={retry} />
   if (isPending || !events) return <MyEventsLoading />
-  if (events.length === 0) {
-    return (
-      <MyEventsEmpty>
-        <p>Zatím nejdeš na žádnou akci.</p>
-        <Button
-          asChild
-          variant="outline"
-        >
-          <Link to={ROUTES.events}>Projít akce</Link>
-        </Button>
-      </MyEventsEmpty>
-    )
-  }
 
   const { pending, approved, cancelled } = attendingSections(events)
   return (
     <div className="flex flex-col gap-6">
+      {/* nothing to go to, even when cancelled events are left below (#183) */}
+      {pending.length + approved.length === 0 ? (
+        <MyEventsEmpty>
+          <p>Zatím nejdeš na žádnou akci.</p>
+          <Button
+            asChild
+            variant="outline"
+          >
+            <Link to={ROUTES.events}>Projít akce</Link>
+          </Button>
+        </MyEventsEmpty>
+      ) : null}
       {pending.length > 0 ? (
         <AttendingSection
           title={`Čeká na schválení (${pending.length})`}

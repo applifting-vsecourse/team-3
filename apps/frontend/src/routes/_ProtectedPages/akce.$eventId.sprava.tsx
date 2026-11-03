@@ -59,6 +59,7 @@ function ManageEventPage() {
       error={participants.error}
       onRetry={participants.retry}
       isHeadingHidden={isHeadingHidden}
+      isCancelled={event?.status === "cancelled"}
     />
   )
 
@@ -169,8 +170,9 @@ function ManageEventPage() {
                     error={participants.error}
                     onRetry={participants.retry}
                     isHeadingHidden={isHeadingHidden}
-                    // a cancelled event never gets here (showsRequests), only a started one
-                    canDecide={event.startsAt > new Date()}
+                    // showsRequests already hides the requests of a cancelled event; the
+                    // status check stays as a safety net (the API refuses with EVENT_CANCELLED)
+                    canDecide={event.status === "published" && event.startsAt > new Date()}
                     isFull={event.isFull}
                     isDeciding={decide.isPending}
                     onDecide={(request, decision) =>
