@@ -3,6 +3,12 @@ import { BetterAuth } from '@/shared/auth/providers/better-auth.provider';
 import { DeepMockProxy, mockDeep } from 'jest-mock-extended';
 import { ensureUser, replaceSeedPassword } from './ensure-user';
 
+// a factory, so better-auth doesn't load under Jest
+jest.mock('better-auth/crypto', () => ({
+  hashPassword: async (password: string): Promise<string> =>
+    `hash:${password}`,
+}));
+
 const params = {
   email: ' Admin@HobbyHub.cz ',
   password: 'adminpassword',
@@ -88,7 +94,8 @@ const setup = (
           hash: string;
           password: string;
         }) => hash === `hash:${password}`,
-        hash: async (password: string) => `hash:${password}`,
+        // no `hash`: with Have I Been Pwned on, it throws outside a request
+        // (staging, N-3), so the seed must not use it
       },
     }),
   });
