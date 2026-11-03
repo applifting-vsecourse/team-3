@@ -42,6 +42,7 @@ export const anEventDetail = (overrides: Partial<EventDetail> = {}): EventDetail
     { id: "u5", name: "Marek Novák" },
   ],
   myParticipation: null,
+  viewerSignedIn: true,
   ...overrides,
 })
 

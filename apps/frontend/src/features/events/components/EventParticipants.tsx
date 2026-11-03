@@ -1,24 +1,15 @@
-import { Link } from "@tanstack/react-router"
-
-import { ROUTES } from "@/app/routes"
 import { PersonRow } from "@/components/PersonRow/PersonRow"
 
 import type { EventDetail } from "@/features/events/api/eventSchemas"
 
 type EventParticipantsProps = {
   approvedCount: number
-  /** null for a visitor: the API sends only the count. */
-  participants: EventDetail["participants"]
-  /** Login's `from`, so signing in comes back to this event. */
-  signInFrom: string
+  /** Who gets them is the backend's `canSeeParticipants`; without them the detail leaves this out. */
+  participants: NonNullable<EventDetail["participants"]>
 }
 
-/** Who is coming: names for a signed-in user, the count for a visitor (B-026). */
-export function EventParticipants({
-  approvedCount,
-  participants,
-  signInFrom,
-}: EventParticipantsProps) {
+/** Who is coming, by name (B-026); see the backend's `canSeeParticipants` for who gets them. */
+export function EventParticipants({ approvedCount, participants }: EventParticipantsProps) {
   return (
     <section className="flex flex-col gap-2">
       {/* Figma A-05 has „Přihlášení (4)“, which on a page with „Přihlásit se“
@@ -26,7 +17,7 @@ export function EventParticipants({
       <h2 className="text-lg font-semibold tracking-tight">Kdo jde ({approvedCount})</h2>
       {approvedCount === 0 ? (
         <p className="text-muted-foreground">Zatím se nikdo nepřihlásil.</p>
-      ) : participants ? (
+      ) : (
         <ul className="flex flex-col gap-3">
           {participants.map((participant) => (
             <li key={participant.id}>
@@ -34,18 +25,6 @@ export function EventParticipants({
             </li>
           ))}
         </ul>
-      ) : (
-        <p className="text-muted-foreground">
-          Jména přihlášených uvidíš po{" "}
-          <Link
-            to={ROUTES.login}
-            search={{ from: signInFrom }}
-            className="font-medium text-foreground underline underline-offset-4"
-          >
-            přihlášení
-          </Link>
-          .
-        </p>
       )}
     </section>
   )

@@ -232,6 +232,7 @@ describe('EventsService.getEventDetail', () => {
     const repository = mock<EventRepository>();
     repository.findEventDetail.mockResolvedValue(detail);
     repository.findApprovedParticipants.mockResolvedValue(participants);
+    repository.findParticipationStatus.mockResolvedValue(null);
     repository.isActiveGroupMember.mockResolvedValue(false);
     return { repository, service: new EventsService(repository) };
   };
@@ -243,17 +244,122 @@ describe('EventsService.getEventDetail', () => {
 
     expect(result.capacity.approvedCount).toBe(2);
     expect(result.participants).toBeNull();
+    expect(result.viewerSignedIn).toBe(false);
     expect(repository.findApprovedParticipants).not.toHaveBeenCalled();
     expect(repository.findEventDetail).toHaveBeenCalledWith('e1', now);
   });
 
-  it('a signed-in user also gets the names of approved participants', async () => {
-    const { repository, service } = setup(aDetail());
+  describe('who gets the names (#174)', () => {
+    const groupEvent = (): EventDetail =>
+      aDetail({ group: { id: 'g1', name: 'Deskovkáři Karlín' } });
 
-    const result = await service.getEventDetail('e1', 'u9', now);
+    it('the organizer, without a place of their own', async () => {
+      const { repository, service } = setup(aDetail());
 
-    expect(result.participants).toEqual(participants);
-    expect(repository.findApprovedParticipants).toHaveBeenCalledWith('e1');
+      const result = await service.getEventDetail('e1', 'u1', now);
+
+      expect(result.participants).toEqual(participants);
+      expect(result.capacity.approvedCount).toBe(2);
+      expect(repository.findApprovedParticipants).toHaveBeenCalledWith('e1');
+    });
+
+    it('an approved participant', async () => {
+      const { repository, service } = setup(aDetail());
+      repository.findParticipationStatus.mockResolvedValue('approved');
+
+      const result = await service.getEventDetail('e1', 'u9', now);
+
+      expect(result.participants).toEqual(participants);
+      expect(result.myParticipation).toBe('approved');
+      expect(repository.findParticipationStatus).toHaveBeenCalledWith(
+        'e1',
+        'u9',
+      );
+    });
+
+    it('a signed-in user without a place does not get them', async () => {
+      const { repository, service } = setup(aDetail());
+
+      const result = await service.getEventDetail('e1', 'u9', now);
+
+      expect(result.participants).toBeNull();
+      // still told apart from a visitor, so the app doesn't take it for an expired session
+      expect(result.viewerSignedIn).toBe(true);
+      expect(result.capacity.approvedCount).toBe(2);
+      expect(result.capacity.missingToMin).toBe(1);
+      expect(repository.findApprovedParticipants).not.toHaveBeenCalled();
+    });
+
+    it('not a waiting applicant', async () => {
+      const { repository, service } = setup(aDetail());
+      repository.findParticipationStatus.mockResolvedValue('pending');
+
+      const result = await service.getEventDetail('e1', 'u9', now);
+
+      expect(result.participants).toBeNull();
+      expect(result.myParticipation).toBe('pending');
+      expect(repository.findApprovedParticipants).not.toHaveBeenCalled();
+    });
+
+    it.each(['withdrawn', 'removed', 'rejected'] as const)(
+      'not a %s participant',
+      async (status) => {
+        const { repository, service } = setup(aDetail());
+        repository.findParticipationStatus.mockResolvedValue(status);
+
+        const result = await service.getEventDetail('e1', 'u9', now);
+
+        expect(result.participants).toBeNull();
+        expect(repository.findApprovedParticipants).not.toHaveBeenCalled();
+      },
+    );
+
+    it("an active member or admin of the event's group, without a place", async () => {
+      // admins are active members with another role; the check is the same
+      const { repository, service } = setup(groupEvent());
+      repository.isActiveGroupMember.mockResolvedValue(true);
+
+      const result = await service.getEventDetail('e1', 'u9', now);
+
+      expect(result.participants).toEqual(participants);
+      expect(repository.isActiveGroupMember).toHaveBeenCalledWith('g1', 'u9');
+    });
+
+    it("not a pending, blocked or former member of the event's group", async () => {
+      const { repository, service } = setup(groupEvent());
+      repository.isActiveGroupMember.mockResolvedValue(false);
+
+      const result = await service.getEventDetail('e1', 'u9', now);
+
+      expect(result.participants).toBeNull();
+      expect(repository.findApprovedParticipants).not.toHaveBeenCalled();
+    });
+
+    it('not a visitor of a group event, and the group is not looked up', async () => {
+      const { repository, service } = setup(groupEvent());
+
+      const result = await service.getEventDetail('e1', null, now);
+
+      expect(result.participants).toBeNull();
+      expect(repository.isActiveGroupMember).not.toHaveBeenCalled();
+      expect(repository.findParticipationStatus).not.toHaveBeenCalled();
+    });
+
+    it('a full event shows a visitor it is full, without the names', async () => {
+      const { service } = setup(
+        aDetail({
+          capacity: computeCapacity(
+            { minParticipants: 3, maxParticipants: 6 },
+            6,
+          ),
+        }),
+      );
+
+      const result = await service.getEventDetail('e1', null, now);
+
+      expect(result.participants).toBeNull();
+      expect(result.capacity).toMatchObject({ approvedCount: 6, isFull: true });
+    });
   });
 
   it('an unknown event is 404', async () => {

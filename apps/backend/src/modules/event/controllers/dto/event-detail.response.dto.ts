@@ -34,7 +34,7 @@ export class EventDetailResponseDto extends PublicEventResponseDto {
     type: [EventParticipantDto],
     nullable: true,
     description:
-      'Approved participants for a signed-in user; null for a visitor, who gets only approvedCount',
+      "Approved participants, only for the organizer, an approved participant and, for a group event, the group's active members and admins (#174); null for anyone else (a visitor, a waiting applicant, someone who left or was removed), who sees only `capacity`",
   })
   participants!: EventParticipantDto[] | null;
 
@@ -45,6 +45,12 @@ export class EventDetailResponseDto extends PublicEventResponseDto {
       "The signed-in user's own participation; null for a visitor or someone not in",
   })
   myParticipation!: 'pending' | 'approved' | 'rejected' | 'removed' | null;
+
+  @ApiProperty({
+    description:
+      'Whether the request came with a valid session. The app uses it to spot an expired session: participants is null for many signed-in users too (#174).',
+  })
+  viewerSignedIn!: boolean;
 
   static fromDomain(event: EventDetailView): EventDetailResponseDto {
     if (event.status === 'hidden' || event.status === 'deleted') {
@@ -59,6 +65,7 @@ export class EventDetailResponseDto extends PublicEventResponseDto {
       cancelReason: event.cancelReason,
       participants: event.participants,
       myParticipation: event.myParticipation,
+      viewerSignedIn: event.viewerSignedIn,
     };
   }
 }
