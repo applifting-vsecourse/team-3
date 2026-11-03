@@ -1,10 +1,14 @@
 import { PrismaService } from '@/core/prisma/prisma.service';
 import { czechTowns } from '@/scripts/seed/data/czech-towns';
-import { demoActivities, demoLocalities } from '@/scripts/seed/data/demo-data';
+import {
+  DEMO_PASSWORD,
+  demoActivities,
+  demoLocalities,
+} from '@/scripts/seed/data/demo-data';
 import { BetterAuth } from '@/shared/auth/providers/better-auth.provider';
 import { DeepMockProxy, mockDeep } from 'jest-mock-extended';
 import { seedAccounts } from './content-rows';
-import { ensureUser } from './ensure-user';
+import { ensureUser, replaceSeedPassword } from './ensure-user';
 import {
   deleteSeedContent,
   SEED_DATA_VERSION,
@@ -13,7 +17,10 @@ import {
 } from './seed-content';
 
 // a factory, so better-auth doesn't load under Jest
-jest.mock('./ensure-user', () => ({ ensureUser: jest.fn() }));
+jest.mock('./ensure-user', () => ({
+  ensureUser: jest.fn(),
+  replaceSeedPassword: jest.fn(),
+}));
 
 const accountIds = seedAccounts.map((a) => `u-${a.email}`);
 
@@ -57,6 +64,55 @@ const setup = (versions: {
   ) => run(prisma)) as never);
   return prisma;
 };
+
+describe('seedContent: demo password (N-3)', () => {
+  beforeEach(() => {
+    jest.clearAllMocks();
+    jest.spyOn(console, 'log').mockImplementation(() => undefined);
+    jest
+      .mocked(ensureUser)
+      .mockImplementation(async (_prisma, _auth, { email }) => ({
+        user: { id: `u-${email}` } as never,
+        created: false,
+      }));
+    jest.mocked(replaceSeedPassword).mockResolvedValue(true);
+  });
+
+  it('signs accounts up with the given password and moves existing ones off the one from the repo', async () => {
+    const prisma = setup({ before: SEED_DATA_VERSION, inTransaction: null });
+    const auth = mockDeep<BetterAuth>();
+
+    await seedContent(prisma, auth, 'staging-heslo-2026');
+
+    expect(ensureUser).toHaveBeenCalledWith(
+      prisma,
+      auth,
+      expect.objectContaining({ password: 'staging-heslo-2026' }),
+    );
+    expect(replaceSeedPassword).toHaveBeenCalledTimes(seedAccounts.length);
+    expect(replaceSeedPassword).toHaveBeenCalledWith(
+      prisma,
+      auth,
+      accountIds[0],
+      DEMO_PASSWORD,
+      'staging-heslo-2026',
+    );
+  });
+
+  it('does not touch the password of an account it just created', async () => {
+    jest
+      .mocked(ensureUser)
+      .mockImplementation(async (_prisma, _auth, { email }) => ({
+        user: { id: `u-${email}` } as never,
+        created: true,
+      }));
+    const prisma = setup({ before: SEED_DATA_VERSION, inTransaction: null });
+
+    await seedContent(prisma, mockDeep<BetterAuth>(), 'staging-heslo-2026');
+
+    expect(replaceSeedPassword).not.toHaveBeenCalled();
+  });
+});
 
 describe('seedContent (#181)', () => {
   beforeEach(() => {

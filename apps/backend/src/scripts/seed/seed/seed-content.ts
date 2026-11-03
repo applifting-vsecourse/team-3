@@ -8,7 +8,7 @@ import {
   legacySeedContentWhere,
   seedAccounts,
 } from './content-rows';
-import { ensureUser } from './ensure-user';
+import { ensureUser, replaceSeedPassword } from './ensure-user';
 
 /**
  * Verze testovacích dat (#181). PR, který změní data v `data/`, číslo zvedne a staging
@@ -34,11 +34,14 @@ const CONTENT_SEED_LOCK = 4_702_026;
  *   vložil předchozí seed (deleteSeedContent), profily seedových účtů se nastaví
  *   podle dat, všechno se vloží znovu s termíny relativními k teď a zapíše se
  *   nová verze i s id vložených akcí a skupin. Co testeři založili, i pod demo
- *   účty (QA na stagingu), zůstane; hesla seedových účtů seed nemění.
+ *   účty (QA na stagingu), zůstane.
+ * - Hesla seedových účtů seed nemění, s jednou výjimkou (N-3): účet, který má
+ *   pořád heslo z repa (DEMO_PASSWORD), dostane `password`, když je jiné.
  */
 export async function seedContent(
   prisma: PrismaService,
   auth: BetterAuth,
+  password: string = DEMO_PASSWORD,
 ): Promise<void> {
   const activities = await prisma.activity.findMany({
     select: { id: true, slug: true },
@@ -51,10 +54,11 @@ export async function seedContent(
 
   const userIds = new Map<string, string>();
   let createdUsers = 0;
+  let rotatedPasswords = 0;
   for (const account of seedAccounts) {
     const { user, created } = await ensureUser(prisma, auth, {
       email: account.email,
-      password: DEMO_PASSWORD,
+      password,
       name: account.name,
       username: account.username,
       emailVerified: account.emailVerified,
@@ -64,10 +68,20 @@ export async function seedContent(
     });
     userIds.set(account.key, user.id);
     if (created) createdUsers++;
+    else if (
+      await replaceSeedPassword(prisma, auth, user.id, DEMO_PASSWORD, password)
+    ) {
+      rotatedPasswords++;
+    }
   }
   console.log(
     `Seed accounts: ${createdUsers} created, ${seedAccounts.length - createdUsers} already existed`,
   );
+  if (rotatedPasswords > 0) {
+    console.log(
+      `Seed accounts: ${rotatedPasswords} moved off the password from the repo (N-3), their sessions ended`,
+    );
+  }
   const userId = lookup(
     [...userIds].map(([key, id]) => ({ key, id })),
     (u) => u.key,
