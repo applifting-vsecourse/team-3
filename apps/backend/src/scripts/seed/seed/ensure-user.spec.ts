@@ -3,6 +3,11 @@ import { BetterAuth } from '@/shared/auth/providers/better-auth.provider';
 import { DeepMockProxy, mockDeep } from 'jest-mock-extended';
 import { ensureUser, replaceSeedPassword } from './ensure-user';
 
+// a factory, so better-auth doesn't load under Jest
+jest.mock('better-auth/crypto', () => ({
+  hashPassword: async (password: string): Promise<string> => `hash:${password}`,
+}));
+
 const params = {
   email: ' Admin@HobbyHub.cz ',
   password: 'adminpassword',
@@ -88,7 +93,8 @@ const setup = (
           hash: string;
           password: string;
         }) => hash === `hash:${password}`,
-        hash: async (password: string) => `hash:${password}`,
+        // no `hash`: with Have I Been Pwned on, it throws outside a request
+        // (staging, N-3), so the seed must not use it
       },
     }),
   });
@@ -137,6 +143,32 @@ describe('replaceSeedPassword (N-3)', () => {
 
     expect(prisma.account.updateMany).not.toHaveBeenCalled();
     expect(prisma.session.deleteMany).not.toHaveBeenCalled();
+  });
+
+  it("fails without writing when BetterAuth's verify rejects the new hash", async () => {
+    const { prisma, auth } = setup([
+      {
+        id: 'u1',
+        email: 'petra@x.cz',
+        username: 'petra',
+        password: 'stare-heslo-1',
+      },
+    ]);
+    // an own `password.verify` that knows the old hash but not the default one
+    Object.assign(auth, {
+      $context: Promise.resolve({
+        password: {
+          verify: async ({ hash }: { hash: string }) =>
+            hash === 'hash:stare-heslo-1',
+        },
+      }),
+    });
+
+    await expect(
+      replaceSeedPassword(prisma, auth, 'u1', 'stare-heslo-1', 'nove-heslo-2'),
+    ).rejects.toThrow("doesn't pass BetterAuth's verify");
+
+    expect(prisma.$transaction).not.toHaveBeenCalled();
   });
 
   it('does nothing when the password stays the same', async () => {
