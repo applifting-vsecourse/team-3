@@ -11,6 +11,7 @@ import { seedAccounts } from './content-rows';
 import { ensureUser, replaceSeedPassword } from './ensure-user';
 import {
   deleteSeedContent,
+  REPO_PASSWORD_REPLACED_KEY,
   SEED_DATA_VERSION,
   SEED_STATE_KEY,
   seedContent,
@@ -27,6 +28,8 @@ const accountIds = seedAccounts.map((a) => `u-${a.email}`);
 const setup = (versions: {
   before: number | null;
   inTransaction: number | null;
+  /** whether an earlier seed already moved the accounts off the repo's password */
+  passwordReplaced?: boolean;
 }): DeepMockProxy<PrismaService> => {
   const prisma = mockDeep<PrismaService>();
   prisma.activity.findMany.mockResolvedValue(
@@ -49,9 +52,24 @@ const setup = (versions: {
           groupIds: ['seeded-g1'],
         };
   // the version before the transaction, then the one inside it
-  prisma.seedState.findUnique
-    .mockResolvedValueOnce(state(versions.before) as never)
-    .mockResolvedValue(state(versions.inTransaction) as never);
+  let dataReads = 0;
+  prisma.seedState.findUnique.mockImplementation((({
+    where,
+  }: {
+    where: { key: string };
+  }) => {
+    if (where.key === REPO_PASSWORD_REPLACED_KEY) {
+      return Promise.resolve(
+        versions.passwordReplaced
+          ? { key: REPO_PASSWORD_REPLACED_KEY, version: 1 }
+          : null,
+      );
+    }
+    dataReads++;
+    return Promise.resolve(
+      state(dataReads === 1 ? versions.before : versions.inTransaction),
+    );
+  }) as never);
   prisma.event.deleteMany.mockResolvedValue({ count: 3 });
   prisma.group.deleteMany.mockResolvedValue({ count: 1 });
   prisma.event.updateMany.mockResolvedValue({ count: 0 });
@@ -97,6 +115,33 @@ describe('seedContent: demo password (N-3)', () => {
       DEMO_PASSWORD,
       'staging-heslo-2026',
     );
+    expect(prisma.seedState.upsert).toHaveBeenCalledWith({
+      where: { key: REPO_PASSWORD_REPLACED_KEY },
+      create: { key: REPO_PASSWORD_REPLACED_KEY, version: 1 },
+      update: {},
+    });
+  });
+
+  it('checks the passwords only once: skips them when an earlier seed replaced them', async () => {
+    const prisma = setup({
+      before: SEED_DATA_VERSION,
+      inTransaction: null,
+      passwordReplaced: true,
+    });
+
+    await seedContent(prisma, mockDeep<BetterAuth>(), 'staging-heslo-2026');
+
+    expect(replaceSeedPassword).not.toHaveBeenCalled();
+    expect(prisma.seedState.upsert).not.toHaveBeenCalled();
+  });
+
+  it('with the password from the repo neither checks the passwords nor marks them', async () => {
+    const prisma = setup({ before: SEED_DATA_VERSION, inTransaction: null });
+
+    await seedContent(prisma, mockDeep<BetterAuth>(), DEMO_PASSWORD);
+
+    expect(replaceSeedPassword).not.toHaveBeenCalled();
+    expect(prisma.seedState.upsert).not.toHaveBeenCalled();
   });
 
   it('does not touch the password of an account it just created', async () => {

@@ -19,6 +19,12 @@ export const SEED_DATA_VERSION = 2;
 /** Řádek `SeedState` s verzí testovacích dat. */
 export const SEED_STATE_KEY = 'demo';
 
+/**
+ * Řádek `SeedState`, že účty z doby před N-3 už heslo z repa nemají. Ověření
+ * hesla (scrypt) stojí asi 70 ms na účet, a tak se po první výměně nedělá.
+ */
+export const REPO_PASSWORD_REPLACED_KEY = 'repo-password-replaced';
+
 /** Advisory lock key for replacing the seed's content; any constant unique to it. */
 const CONTENT_SEED_LOCK = 4_702_026;
 
@@ -36,7 +42,9 @@ const CONTENT_SEED_LOCK = 4_702_026;
  *   nová verze i s id vložených akcí a skupin. Co testeři založili, i pod demo
  *   účty (QA na stagingu), zůstane.
  * - Hesla seedových účtů seed nemění, s jednou výjimkou (N-3): účet, který má
- *   pořád heslo z repa (DEMO_PASSWORD), dostane `password`, když je jiné.
+ *   pořád heslo z repa (DEMO_PASSWORD), dostane `password`, když je jiné. Jen
+ *   jednou, pak to hlídá řádek REPO_PASSWORD_REPLACED_KEY: účty založené potom
+ *   už heslo z repa nedostanou.
  */
 export async function seedContent(
   prisma: PrismaService,
@@ -52,6 +60,11 @@ export async function seedContent(
   const activityId = lookup(activities, (a) => a.slug, 'activity');
   const localityId = lookup(localities, (l) => l.slug, 'locality');
 
+  const replacePassword =
+    password !== DEMO_PASSWORD &&
+    !(await prisma.seedState.findUnique({
+      where: { key: REPO_PASSWORD_REPLACED_KEY },
+    }));
   const userIds = new Map<string, string>();
   let createdUsers = 0;
   let rotatedPasswords = 0;
@@ -69,10 +82,19 @@ export async function seedContent(
     userIds.set(account.key, user.id);
     if (created) createdUsers++;
     else if (
-      await replaceSeedPassword(prisma, auth, user.id, DEMO_PASSWORD, password)
+      replacePassword &&
+      (await replaceSeedPassword(prisma, auth, user.id, DEMO_PASSWORD, password))
     ) {
       rotatedPasswords++;
     }
+  }
+  if (replacePassword) {
+    // upsert: a seed started at the same time may have written it already
+    await prisma.seedState.upsert({
+      where: { key: REPO_PASSWORD_REPLACED_KEY },
+      create: { key: REPO_PASSWORD_REPLACED_KEY, version: 1 },
+      update: {},
+    });
   }
   console.log(
     `Seed accounts: ${createdUsers} created, ${seedAccounts.length - createdUsers} already existed`,
