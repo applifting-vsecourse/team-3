@@ -83,7 +83,13 @@ export async function seedContent(
     if (created) createdUsers++;
     else if (
       replacePassword &&
-      (await replaceSeedPassword(prisma, auth, user.id, DEMO_PASSWORD, password))
+      (await replaceSeedPassword(
+        prisma,
+        auth,
+        user.id,
+        DEMO_PASSWORD,
+        password,
+      ))
     ) {
       rotatedPasswords++;
     }
