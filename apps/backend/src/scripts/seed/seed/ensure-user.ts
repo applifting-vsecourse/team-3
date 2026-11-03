@@ -123,11 +123,15 @@ export async function replaceSeedPassword(
   if (!(await hasSeedPassword(prisma, auth, userId, from))) return false;
   const context = await auth.$context;
   const hash = await context.password.hash(to);
-  await prisma.account.updateMany({
-    where: { userId, providerId: 'credential' },
-    data: { password: hash },
-  });
-  await prisma.session.deleteMany({ where: { userId } });
+  // Together: with a new password but the old sessions kept, the next seed
+  // no longer sees the repo's password and would never end them.
+  await prisma.$transaction([
+    prisma.account.updateMany({
+      where: { userId, providerId: 'credential' },
+      data: { password: hash },
+    }),
+    prisma.session.deleteMany({ where: { userId } }),
+  ]);
   return true;
 }
 

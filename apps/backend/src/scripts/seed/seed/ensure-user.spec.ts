@@ -117,6 +117,8 @@ describe('replaceSeedPassword (N-3)', () => {
     expect(prisma.session.deleteMany).toHaveBeenCalledWith({
       where: { userId: 'u1' },
     });
+    // both in one transaction, so a crash can't keep the old sessions
+    expect(prisma.$transaction).toHaveBeenCalledTimes(1);
   });
 
   it('leaves an account whose password a tester changed', async () => {
