@@ -10,6 +10,8 @@ import {
   demoUsers,
 } from '@/scripts/seed/data/demo-data';
 import { toEventRow, toGroupRow } from '@/scripts/seed/data/demo-rows';
+import { groupEvents } from '@/scripts/seed/data/group-events-data';
+import { generatedPastEvents } from '@/scripts/seed/data/past-data';
 import { pastEvents, toPastEventRow } from '@/scripts/seed/data/rating-data';
 
 /** Účty seedu: demo #47 a komunita #150. Superadmin mezi nimi není. */
@@ -34,8 +36,8 @@ export type ContentRows = {
 };
 
 /**
- * Celý obsah seedu (demo #47, komunita #150, proběhlé akce a hodnocení #180) jako
- * řádky po tabulkách. Id si seed vygeneruje sám, takže vazby (člen → skupina,
+ * Celý obsah seedu (demo #47, komunita #150 s krajskými městy #181, akce skupin,
+ * proběhlé akce a hodnocení #180 a #181) jako řádky po tabulkách. Id si seed vygeneruje sám, takže vazby (člen → skupina,
  * účast → akce) jsou hotové předem a každá tabulka jde vložit jedním `createMany`.
  * Čistá funkce bez Prismy, aby šla otestovat.
  */
@@ -50,10 +52,19 @@ export function buildContentRows(refs: ContentRefs): ContentRows {
     participantRatings: [],
   };
 
+  const groupIds = new Map<string, string>();
+  const groupId = (key: string | null | undefined): string | null => {
+    if (!key) return null;
+    const id = groupIds.get(key);
+    if (!id) throw new Error(`Unknown group ${key}`);
+    return id;
+  };
+
   for (const group of [...demoGroups, ...communityGroups].map((g) =>
     toGroupRow(g, now),
   )) {
     const groupId = newId();
+    groupIds.set(group.key, groupId);
     rows.groups.push({
       id: groupId,
       name: group.name,
@@ -75,8 +86,8 @@ export function buildContentRows(refs: ContentRefs): ContentRows {
     );
   }
 
-  for (const event of [...demoEvents, ...communityEvents].map((e) =>
-    toEventRow(e, now),
+  for (const event of [...demoEvents, ...communityEvents, ...groupEvents].map(
+    (e) => toEventRow(e, now),
   )) {
     const eventId = newId();
     rows.events.push({
@@ -98,6 +109,7 @@ export function buildContentRows(refs: ContentRefs): ContentRows {
       approvalMode: event.approvalMode,
       visibility: event.visibility,
       organizerUserId: userId(event.organizerKey),
+      groupId: groupId(event.groupKey),
       status: event.status,
       cancelReason: event.cancelReason,
       cancelledAt: event.cancelledAt,
@@ -113,7 +125,9 @@ export function buildContentRows(refs: ContentRefs): ContentRows {
     );
   }
 
-  for (const event of pastEvents.map((e) => toPastEventRow(e, now))) {
+  for (const event of [...pastEvents, ...generatedPastEvents].map((e) =>
+    toPastEventRow(e, now),
+  )) {
     const eventId = newId();
     rows.events.push({
       id: eventId,
@@ -129,9 +143,19 @@ export function buildContentRows(refs: ContentRefs): ContentRows {
       minParticipants: event.minParticipants,
       maxParticipants: event.maxParticipants,
       approvalMode: 'open',
-      visibility: 'public',
+      visibility: event.visibility ?? 'public',
       organizerUserId: userId(event.organizerKey),
-      status: 'published',
+      groupId: groupId(event.groupKey),
+      ...(event.cancelReason
+        ? {
+            status: 'cancelled' as const,
+            cancelReason: event.cancelReason,
+            // zrušeno den před začátkem
+            cancelledAt: new Date(
+              event.startsAt.getTime() - 24 * 60 * 60 * 1000,
+            ),
+          }
+        : { status: 'published' as const }),
     });
     rows.participations.push(
       ...event.participations.map((participation) => ({
