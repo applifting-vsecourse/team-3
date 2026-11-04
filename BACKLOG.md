@@ -204,8 +204,9 @@ Staging a CI/CD (F-59, F-60) už v repu jsou (`.github/workflows/ci.yml`, `deplo
 **Cíl:** Do aplikace se přihlásí jen uživatel s ověřeným e-mailem (PO 4. 11.), takže na akce i do skupin se vždy hlásí ověřený uživatel. Řeší S-5 (#236).
 
 - BetterAuth: ověřovací odkaz s platností 24 h (`EMAIL_VERIFICATION_TTL_SECONDS`, šablona `verify-email.tsx` už existuje), `requireEmailVerification: true` – neověřený se nepřihlásí (chyba `EMAIL_NOT_VERIFIED`, žádná session), po registraci se session nezakládá. Po kliknutí na odkaz je uživatel ověřený a rovnou přihlášený (`autoSignInAfterVerification`) a vrátí se přes `redirect` (B-012).
-- FE: po registraci i při pokusu o přihlášení s neověřeným e-mailem obrazovka „Ověř si e-mail“ (Figma B-01a, desktop dialog B-01ad) s „Poslat odkaz znovu“ (s limitem) a „Zpět na přihlášení“. Pruh „Ověř si e-mail“ (`VerifyEmailBanner`) a stavy „neověřený“ na detailu akce a ve formuláři akce se dál nestaví ani nerozšiřují; hotové zůstávají jen jako pojistka pro session z doby před změnou.
-- `VerifiedUserGuard` (vedle `authenticated-user.guard.ts`) zůstává jako pojistka: 403 `EMAIL_NOT_VERIFIED`, když `emailVerified = false` (kdo se přihlásil neověřený před změnou, má session dál, proto guard dostane i `POST /api/groups/:id/join`), a dál odmítá zablokovaného uživatele (`blockedAt`). Přihlášení přes Google: e-mail ověřil Google.
+- Kdo je přihlášený, je ověřený: e-mail se ověřuje při registraci a jinak session nevznikne. Při nasazení se smažou session všech uživatelů s `emailVerified = false` (migrace nebo skript v nasazení), takže neověřená session nezůstane ani z doby před změnou.
+- FE: po registraci i při pokusu o přihlášení s neověřeným e-mailem obrazovka „Ověř si e-mail“ (Figma B-01a, desktop dialog B-01ad) s „Poslat odkaz znovu“ (s limitem) a „Zpět na přihlášení“. Pruh „Ověř si e-mail“ (`VerifyEmailBanner`) a stavy „neověřený“ na detailu akce a ve formuláři akce se odstraní – přihlášený neověřený uživatel nenastane.
+- `VerifiedUserGuard` (vedle `authenticated-user.guard.ts`) zůstává jen jako obrana do hloubky: 403 `EMAIL_NOT_VERIFIED`, když `emailVerified = false`, a dál odmítá zablokovaného uživatele (`blockedAt`). Nové endpointy na něm nestojí – ověření zajišťuje přihlášení. Přihlášení přes Google: e-mail ověřil Google.
 - Seed: demo účet Eva (`emailVerified: false`) se nepřihlásí a ukazuje obrazovku B-01a.
 
 **Hotovo, když:**
@@ -213,6 +214,7 @@ Staging a CI/CD (F-59, F-60) už v repu jsou (`.github/workflows/ci.yml`, `deplo
 - [ ] Test guardu: neověřený → 403, zablokovaný → 403, ověřený → projde.
 - [ ] Test přihlášení: neověřený e-mailem a heslem se nepřihlásí a nedostane session, ověřený ano; po ověření odkazem je přihlášený.
 - [ ] Test registrace: po registraci uživatel není přihlášený a dostane ověřovací e-mail.
+- [ ] Test nasazení: po smazání neověřených session nemá žádný uživatel s `emailVerified = false` platnou session.
 - [ ] Test FE: po registraci i po odmítnutém přihlášení neověřeného obrazovka „Ověř si e-mail“ s novým odesláním odkazu.
 
 ---
@@ -343,7 +345,7 @@ Doménová logika (čistá funkce + testy): `approvedCount`, `missingToMin = max
 - Stránka `/akce/nova`: povinná a nepovinná pole podle US-11, výběr místa mapou (B-004, režim výběru) + textová adresa, volba způsobu přihlašování (výchozí „Bez schválení“) a viditelnosti s krátkým vysvětlením.
 - Klientská validace stejná jako na BE, chyby pod polem, tlačítko s pending stavem (DESIGN.md › Forms).
 - Po zveřejnění přesměruj na detail a nabídni „Sdílet odkaz“ (kopírování do schránky + Web Share API na mobilu).
-- Neověřený uživatel vidí místo formuláře výzvu k ověření e-mailu. Od PO 4. 11. jen pojistka pro session z doby před změnou (B-011): neověřený se nepřihlásí, nový stav se nestaví.
+- Stav „neověřený“ ve formuláři se odstraní (PO 4. 11., B-011): neověřený se nepřihlásí a neověřené session se při nasazení smažou.
 
 **Hotovo, když:**
 
@@ -438,7 +440,7 @@ Doménová logika (čistá funkce + testy): `approvedCount`, `missingToMin = max
 
 `US-03` · FS · M · závisí na: B-023
 
-- `GET /api/events/:id` bez přihlášení. Vrací i soukromé akce (soukromá = dostupná přes odkaz). Members-only akci nečlenovi vrací 403 `MEMBERS_ONLY` jen s údaji o skupině (id, název, lokalita, počet členů, typ) – bez názvu, času, místa a účastníků akce; FE ukáže stránku s cestou do skupiny (A-05i, rozhodnuto 4. 11.). Zrušenou akci vrací se štítkem a důvodem; `hidden`/`deleted` vrací 404.
+- `GET /api/events/:id` bez přihlášení. Vrací i soukromé akce (soukromá = dostupná přes odkaz). Members-only akce (rozhodnuto 4. 11., upřesněno v review #215): nepřihlášenému vrací 401 `UNAUTHENTICATED` a FE ho pošle na přihlášení s návratem na akci (B-012); přihlášenému nečlenovi 403 `MEMBERS_ONLY` jen s `groupId` – žádný údaj o akci (název, čas, místo, účastníci) ani o skupině navíc; FE si skupinu načte z `GET /api/groups/:id` (B-052, ten je veřejný) a ukáže stránku s cestou do skupiny (A-05i). Zrušenou akci vrací se štítkem a důvodem; `hidden`/`deleted` vrací 404.
 - Jména přihlášených (`participants`) vrací API jen organizátorovi, uživateli se schválenou účastí a u akce skupiny aktivním členům a správcům skupiny (PO 28. 10., #174). Rozhoduje server podle session, nikdy podle požadavku. Ostatní dostanou `participants: null` a vidí jen obsazenost („Chybí ještě X“ / „N volných míst“ / „Plno“): návštěvník, přihlášený bez účasti, čekající žadatel, kdo se odhlásil nebo byl odebrán či zamítnut, a čekající nebo zablokovaný člen skupiny. Detail jim sekci „Kdo jde“ vůbec neukáže.
 - FE stránka `/akce/:id`: název, aktivita, popis, mapa (jeden bod), termín, cena, úroveň, organizátor (osoba nebo skupina, proklik), způsob přihlášení, počet přihlášených, „Chybí ještě X“ / „N volných míst“ / „Plno“, štítek „Zrušeno“ s důvodem, tlačítko „Sdílet odkaz“.
 - Open Graph meta (titulek, termín) pro hezký náhled ve WhatsAppu.
@@ -446,7 +448,7 @@ Doménová logika (čistá funkce + testy): `approvedCount`, `missingToMin = max
 
 **Hotovo, když:**
 
-- [ ] Testy BE pro každou roli: jména dostane organizátor, schválený účastník a u akce skupiny členové a správci; návštěvník, přihlášený bez účasti, čekající žadatel, odhlášený, odebraný ani čekající člen skupiny ne; members-only nečlenovi = 403 jen s údaji o skupině.
+- [ ] Testy BE pro každou roli: jména dostane organizátor, schválený účastník a u akce skupiny členové a správci; návštěvník, přihlášený bez účasti, čekající žadatel, odhlášený, odebraný ani čekající člen skupiny ne; members-only nepřihlášenému = 401, přihlášenému nečlenovi = 403 jen s `groupId`.
 
 ---
 
@@ -525,7 +527,7 @@ Doménová logika (čistá funkce + testy): `approvedCount`, `missingToMin = max
 
 - V detailu akce jedno primární tlačítko podle stavu:
   - nepřihlášený: „Přihlásit se na akci“ → login/registrace s `redirect` zpět
-  - neověřený: výzva k ověření e-mailu (od PO 4. 11. jen pojistka pro session z doby před změnou, B-011)
+  - neověřený: stav se odstraní (B-011 – neověřený se nepřihlásí, neověřené session se při nasazení smažou)
   - akce se schvalováním: „Poslat žádost“ (dialog s nepovinnou zprávou) → „Čeká na schválení“ + „Stáhnout žádost“
   - akce bez schvalování: „Přijdu“ → „Jdu“ + „Odhlásit se“
   - plno: „Plno“ (disabled)
