@@ -203,15 +203,20 @@ Staging a CI/CD (F-59, F-60) už v repu jsou (`.github/workflows/ci.yml`, `deplo
 
 **Cíl:** Bez ověřeného e-mailu se nejde hlásit na akce ani zakládat akce a skupiny.
 
-> Změna (PO 4. 11.): **přihlásit se jde jen s ověřeným e-mailem** (BetterAuth `requireEmailVerification`). Každá přihláška na akci i do skupiny je pak od ověřeného uživatele, řeší S-5 (#236). Registrace nepřihlásí, ukáže „Zkontroluj e-mail“; přihlášení neověřeného odmítne s možností poslat odkaz znovu. Pruh „Ověř e-mail“ a stavy „neověřený“ na detailu akce a skupiny pak odpadnou. `VerifiedUserGuard` zůstává kvůli zablokovaným (`blockedAt`) a jako pojistka: kdo se přihlásil neověřený před touto změnou, má session dál, proto guard dostane i `POST /api/groups/:id/join`. Přihlášení přes Google má e-mail ověřený od Googlu.
+> Změna (PO 4. 11.): **přihlásit se jde jen s ověřeným e-mailem** (BetterAuth `requireEmailVerification`). Každá přihláška na akci i do skupiny je pak od ověřeného uživatele, řeší S-5 (#236). Registrace nepřihlásí, ukáže „Zkontroluj e-mail“; přihlášení neověřeného odmítne s možností poslat odkaz znovu. Pruh „Ověř si e-mail“ a stavy „neověřený“ na detailu akce a ve formuláři akce se dál nestaví ani nerozšiřují; ty hotové zůstávají jen jako pojistka pro session z doby před změnou. `VerifiedUserGuard` zůstává kvůli zablokovaným (`blockedAt`) a jako pojistka: kdo se přihlásil neověřený před touto změnou, má session dál, proto guard dostane i `POST /api/groups/:id/join`. Přihlášení přes Google má e-mail ověřený od Googlu.
 
 - BetterAuth: ověřovací odkaz s platností 24 h (šablona `verify-email.tsx` už existuje).
 - Nový guard `VerifiedUserGuard` (vedle `authenticated-user.guard.ts`): 403 s kódem `EMAIL_NOT_VERIFIED`, když `emailVerified = false`. Guard zároveň odmítne zablokovaného uživatele (`blockedAt`).
-- FE: přihlášený neověřený uživatel vidí pruh „Ověřte e-mail“ s tlačítkem pro nové odeslání odkazu.
+- BetterAuth `requireEmailVerification`: přihlášení e-mailem a heslem bez ověřeného e-mailu odmítne, registrace nevytvoří session.
+- FE: registrace skončí výzvou „Zkontroluj e-mail“; odmítnuté přihlášení neověřeného řekne proč a nabídne poslat odkaz znovu. Pruh „Ověř si e-mail“ (`VerifyEmailBanner`) zůstává jen jako pojistka pro session z doby před změnou.
+- Demo účet s neověřeným e-mailem (seed) se po změně nepřihlásí: na demu ukazuje odmítnuté přihlášení, ne pruh a stavy „neověřený“.
 
 **Hotovo, když:**
 
 - [ ] Test guardu: neověřený → 403, zablokovaný → 403, ověřený → projde.
+- [ ] Test přihlášení: neověřený e-mailem a heslem se nepřihlásí, ověřený ano.
+- [ ] Test registrace: po registraci uživatel není přihlášený a dostane ověřovací e-mail.
+- [ ] Test FE: po registraci výzva „Zkontroluj e-mail“, po odmítnutém přihlášení neověřeného hláška s novým odesláním odkazu.
 
 ---
 
@@ -341,7 +346,7 @@ Doménová logika (čistá funkce + testy): `approvedCount`, `missingToMin = max
 - Stránka `/akce/nova`: povinná a nepovinná pole podle US-11, výběr místa mapou (B-004, režim výběru) + textová adresa, volba způsobu přihlašování (výchozí „Bez schválení“) a viditelnosti s krátkým vysvětlením.
 - Klientská validace stejná jako na BE, chyby pod polem, tlačítko s pending stavem (DESIGN.md › Forms).
 - Po zveřejnění přesměruj na detail a nabídni „Sdílet odkaz“ (kopírování do schránky + Web Share API na mobilu).
-- Neověřený uživatel vidí místo formuláře výzvu k ověření e-mailu.
+- Neověřený uživatel vidí místo formuláře výzvu k ověření e-mailu. Od PO 4. 11. jen pojistka pro session z doby před změnou (B-011): neověřený se nepřihlásí, nový stav se nestaví.
 
 **Hotovo, když:**
 
@@ -516,7 +521,7 @@ Doménová logika (čistá funkce + testy): `approvedCount`, `missingToMin = max
 
 - V detailu akce jedno primární tlačítko podle stavu:
   - nepřihlášený: „Přihlásit se na akci“ → login/registrace s `redirect` zpět
-  - neověřený: výzva k ověření e-mailu
+  - neověřený: výzva k ověření e-mailu (od PO 4. 11. jen pojistka pro session z doby před změnou, B-011)
   - akce se schvalováním: „Poslat žádost“ (dialog s nepovinnou zprávou) → „Čeká na schválení“ + „Stáhnout žádost“
   - akce bez schvalování: „Přijdu“ → „Jdu“ + „Odhlásit se“
   - plno: „Plno“ (disabled)
