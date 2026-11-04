@@ -3,7 +3,7 @@ import { SimulatedInbox } from '@/core/email/simulated-inbox/simulated-inbox';
 import { ConsoleMailerAdapter } from './services/console-mailer-adapter';
 
 export class ConsoleMailerAdapterFactory {
-  static create(inbox?: SimulatedInbox): EmailService {
-    return new ConsoleMailerAdapter(inbox);
+  static create(inbox?: SimulatedInbox, nodeEnv?: string): EmailService {
+    return new ConsoleMailerAdapter(inbox, nodeEnv);
   }
 }
