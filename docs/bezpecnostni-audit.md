@@ -1,21 +1,19 @@
 # Bezpečnostní audit HobbyHubu
 
-Analýza vychází z `main` (`1f264ab`), stav oprav k 1. 11. 2026 (`main` `6298a49`). Issue: #172.
+Analýza vychází z `main` (`1f264ab`), stav oprav k 4. 11. 2026 (`main` `3fe174c`). Issue: #172. Zveřejnění reportu i s otevřenými nálezy schválil PO 3. 11.
 
 Kdo nález opraví, změní ve stejném PR i jeho stav v tomto reportu.
 
 ## Shrnutí
 
-- **Node.js:** aplikace běžela na `node:24-alpine` bez pevné verze, takže nebylo jisté, zda obsahuje opravu CVE-2026-111497 (Brotli). Verze je teď pevně 24.22.2 (#196).
-- **Balíčky:** `pnpm audit` hlásil 10 critical a 55 high. Po aktualizaci (#196) je 0 critical a 0 high, zbývá 6 moderate a 1 low.
-- **Kód:** nezávislá analýza nenašla žádný kritický nález, přístup k cizím datům (IDOR) ani SQL injection. Našla 1 vysoký, 4 střední a 8 nízkých nálezů. Vysoký nález (CSRF) je opravený v #140. Čtyři střední řešil #216: N-4 je opravený, u N-2, N-3 a N-5 zbývá část popsaná níže.
+- **Node.js:** aplikace běžela na `node:24-alpine` bez pevné verze, takže nebylo jisté, zda obsahuje opravu CVE-2026-111497 (Brotli). Verze je teď pevně 24.22.2 (#196) a na stagingu je ověřená z logu backendu.
+- **Balíčky:** `pnpm audit` hlásil 10 critical a 55 high. Po aktualizaci (#196) je 0 critical a 0 high, zbývá 5 moderate a 1 low.
+- **Kód:** nezávislá analýza nenašla žádný kritický nález, přístup k cizím datům (IDOR) ani SQL injection. Našla 1 vysoký, 4 střední a 8 nízkých nálezů. Vysoký nález (CSRF) je opravený v #140. Ze čtyř středních jsou N-3 a N-4 opravené, u N-2 a N-5 zbývá část popsaná níže.
+- **Dřívější nálezy:** S-1 a S-4 jsou opravené, S-2, S-3 a S-5 mají issue (#225, #226, #236).
 - **Průběžná kontrola:** přibyl Dependabot a CodeQL (#196).
 
 ## Co ještě chybí
 
-- [ ] Potvrdit s PO přijetí rizika N-3 na stagingu (schůzka 3. 11.).
-- [ ] Potvrdit s PO, že pro verzi Node na stagingu stačí nepřímé ověření (viz [Node.js](#nodejs-a-cve-2026-111497)).
-- [ ] Rozhodnout s PO, zda má být pro členství ve skupině potřeba ověřený e-mail (S-5).
 - [ ] Vyřešit `js-yaml`, oprava už existuje, řeší #231 (viz [Závislosti](#závislosti)).
 - [ ] Ověřit `BETTER_AUTH_SECRET` a ostatní nastavení na stagingu, ověří Tomáš Klíma (viz [Ke kontrole na stagingu](#ke-kontrole-na-stagingu)).
 - [ ] Před vznikem administrace (B-063) nastavit na stagingu superadmina se silným heslem (viz [Ke kontrole na stagingu](#ke-kontrole-na-stagingu)).
@@ -46,11 +44,9 @@ Zranitelnost zápisu mimo paměť v dekodéru Brotli (závažnost high). Proces,
 
 Na `node:24.22.2-alpine` jsme přešli, protože jde o nejnovější verzi řady 24 a obsahuje opravu z 24.22.1. Frontendový image navíc přešel z `nginx:1.27-alpine` na `nginx:1.30-alpine`.
 
-**Ověření na stagingu:** přímo ověřit nejde, tým nemá přístup do Coolify. Nepřímé důkazy:
+**Ověření na stagingu:** backend od #234 po startu vypíše do logu verzi Node a commit. Na stagingu je v logu `Node v24.22.2, commit 3fe174c` (ověřeno 4. 11. v Dozzle). Další důkazy:
 
-- Nasazení commitu `cb3b2f4` s pevnou verzí skončilo úspěšně.
 - Staging vrací hlavičku `Server: nginx/1.30.6`, tedy verzi nginx, kterou přidal stejný PR #196.
-- `docker build` obou `Dockerfile.deploy` proběhl a backend v image běží na v24.22.2.
 - CI běží na Node z `.nvmrc`.
 
 ## Závislosti
@@ -59,14 +55,14 @@ Na `node:24.22.2-alpine` jsme přešli, protože jde o nejnovější verzi řady
 | --------- | ---- | --- |
 | critical  | 10   | 0   |
 | high      | 55   | 0   |
-| moderate  | 61   | 6   |
+| moderate  | 61   | 5   |
 | low       | 14   | 1   |
 
 Nejzávažnější opravené položky: `better-auth` (přihlášení za jiného uživatele), `next` (spuštění kódu; v aplikaci se nepoužívá, do stromu se dostal jen jako volitelná závislost `better-auth`), `proxy-addr`, `handlebars`, `shell-quote`, `multer`, `nodemailer`.
 
 Přes `pnpm.overrides` jsou vynucené `next` a `multer`, protože je jinak drží starší verze závislostí. Až to `@nestjs/platform-express` a `better-auth` vyřeší samy, je možné override odebrat.
 
-`pnpm audit` počítá výskyty, proto 6 moderate znamená tři balíčky. Po první aktualizaci hlásil jen `js-yaml`, `minimatch` a `glob` přibyly s novými upozorněními v registru.
+`pnpm audit` počítá výskyty, proto 5 moderate znamená tři balíčky. Po první aktualizaci hlásil jen `js-yaml`, `minimatch` a `glob` přibyly s novými upozorněními v registru. Od 4. 11. registr nehlásí `minimatch` 3.1.5, proto 5 místo 6; lockfile se nezměnil.
 
 | Co zůstává                                                                                   | Závažnost | Důvod                                                                                                                                    |
 | -------------------------------------------------------------------------------------------- | --------- | ---------------------------------------------------------------------------------------------------------------------------------------- |
@@ -79,21 +75,21 @@ Přes `pnpm.overrides` jsou vynucené `next` a `multer`, protože je jinak drž�
 
 Stav: **opraveno** = sloučeno do `main`, **částečně** = opravená jen část, zbytek je popsaný, **otevřený** = zatím se neřeší, **přijaté** = návrh ponechat tak, jak je.
 
-| ID   | Nález                                                                                                                                          | Závažnost | Stav                         | Oprava nebo doporučení                                           |
-| ---- | ---------------------------------------------------------------------------------------------------------------------------------------------- | --------- | ---------------------------- | ---------------------------------------------------------------- |
-| N-1  | Zápisy do `/api` nekontrolovaly původ požadavku, aplikace jiného týmu na společné doméně je mohla vyvolat                                      | vysoká    | opraveno v #140              | Stejný problém jako S-4; na stagingu ověřeno                     |
-| N-2  | Simulovaná schránka se zapínala sama, když chyběla e-mailová služba, takže jde ověřit cizí adresu; po zapnutí Googlu (#165) hrozí sdílení účtu | střední   | částečně v #216              | Viz [Zbývá u N-2 a N-3](#zbývá-u-n-2-a-n-3)                      |
-| N-3  | Demo účty s heslem zveřejněným v repu se zakládaly při každém startu, pokud se to výslovně nevyplo                                             | střední   | částečně v #216              | Viz [Zbývá u N-2 a N-3](#zbývá-u-n-2-a-n-3)                      |
-| N-4  | Chyběly bezpečnostní hlavičky (CSP, `frame-ancestors`, HSTS, `nosniff`), stránku šlo vložit do cizího rámce; #140 to neřeší                    | střední   | opraveno v #216              | Hlavičky v `nginx`, `helmet` v backendu; CSP viz níže            |
-| N-5  | Neověřený účet mohl bez omezení přidávat lokality do veřejného katalogu; `/api` nemá rate limit                                                | střední   | částečně v #216, zbytek #230 | Viz [Zbývá u N-5](#zbývá-u-n-5)                                  |
-| N-6  | Bez e-mailové služby se odkazy pro obnovu hesla a ověření vypisují do logu i v produkci                                                        | nízká     | otevřený, #229               | V produkci logovat jen příjemce a předmět                        |
-| N-7  | Zablokovaného uživatele zastaví jen některé cesty; projeví se až s blokací (B-063)                                                             | nízká     | otevřený                     | Odmítat blokované při přihlášení a rušit jejich session          |
-| N-8  | Cookie session nemá prefix `__Host-`, jiná aplikace na doméně může podstrčit vlastní cookie                                                    | nízká     | otevřený                     | Samostatná doména pro každý tým, nebo prefix `__Host-`           |
-| N-9  | Swagger a referenční stránka BetterAuth jsou v produkci veřejné, referenční stránka načítá nepřipnutý skript z CDN                             | nízká     | otevřený, #229               | Zapínat jen mimo produkci                                        |
-| N-10 | Každý přihlášený vidí jména účastníků akcí a může je hromadně stáhnout                                                                         | nízká     | otevřený, #174 a #224        | Produktové a GDPR rozhodnutí, navazuje na #94                    |
-| N-11 | Přes registraci a kontrolu uživatelského jména lze zjistit, zda účet existuje                                                                  | nízká     | přijaté                      | Kompromis kvůli UX; limit přihlášení hromadné zkoušení zpomaluje |
-| N-12 | `ci.yml` a `deploy.yml` nemají `permissions` (`codeql.yml` je má), akce nejsou připnuté na commit; `COOLIFY_TOKEN` je dostupný celému jobu     | nízká     | otevřený, #228               | Přidat `permissions`, připnout akce, token jen pro krok nasazení |
-| N-13 | Frontendový kontejner běží jako root, nasazuje se jen tag `latest`                                                                             | nízká     | otevřený, #228               | `nginx-unprivileged`, tagovat i podle commitu                    |
+| ID   | Nález                                                                                                                                          | Závažnost | Stav                         | Oprava nebo doporučení                                                                                                            |
+| ---- | ---------------------------------------------------------------------------------------------------------------------------------------------- | --------- | ---------------------------- | --------------------------------------------------------------------------------------------------------------------------------- |
+| N-1  | Zápisy do `/api` nekontrolovaly původ požadavku, aplikace jiného týmu na společné doméně je mohla vyvolat                                      | vysoká    | opraveno v #140              | Stejný problém jako S-4; na stagingu ověřeno                                                                                      |
+| N-2  | Simulovaná schránka se zapínala sama, když chyběla e-mailová služba, takže jde ověřit cizí adresu; po zapnutí Googlu (#165) hrozí sdílení účtu | střední   | částečně v #216              | Viz [Zbývá u N-2 a N-3](#zbývá-u-n-2-a-n-3)                                                                                       |
+| N-3  | Demo účty s heslem zveřejněným v repu se zakládaly při každém startu, pokud se to výslovně nevyplo                                             | střední   | opraveno v #216, #234 a #235 | Viz [Zbývá u N-2 a N-3](#zbývá-u-n-2-a-n-3)                                                                                       |
+| N-4  | Chyběly bezpečnostní hlavičky (CSP, `frame-ancestors`, HSTS, `nosniff`), stránku šlo vložit do cizího rámce; #140 to neřeší                    | střední   | opraveno v #216              | Hlavičky v `nginx`, `helmet` v backendu; CSP viz níže                                                                             |
+| N-5  | Neověřený účet mohl bez omezení přidávat lokality do veřejného katalogu; `/api` nemá rate limit                                                | střední   | částečně v #216, zbytek #230 | Viz [Zbývá u N-5](#zbývá-u-n-5)                                                                                                   |
+| N-6  | Bez e-mailové služby se odkazy pro obnovu hesla a ověření vypisují do logu i v produkci                                                        | nízká     | otevřený, #229               | V produkci logovat jen příjemce a předmět                                                                                         |
+| N-7  | Zablokovaného uživatele zastaví jen některé cesty; projeví se až s blokací (B-063)                                                             | nízká     | otevřený                     | Odmítat blokované při přihlášení a rušit jejich session                                                                           |
+| N-8  | Cookie session nemá prefix `__Host-`, jiná aplikace na doméně může podstrčit vlastní cookie                                                    | nízká     | otevřený                     | Samostatná doména pro každý tým, nebo prefix `__Host-`                                                                            |
+| N-9  | Swagger a referenční stránka BetterAuth jsou v produkci veřejné, referenční stránka načítá nepřipnutý skript z CDN                             | nízká     | otevřený, #229               | Zapínat jen mimo produkci                                                                                                         |
+| N-10 | Každý přihlášený vidí jména účastníků akcí a může je hromadně stáhnout                                                                         | nízká     | částečně v #222, zbytek #224 | Jména účastníků v detailu akce už vidí jen organizátor, schválený účastník a u akce skupiny její aktivní členové; navazuje na #94 |
+| N-11 | Přes registraci a kontrolu uživatelského jména lze zjistit, zda účet existuje                                                                  | nízká     | přijaté                      | Kompromis kvůli UX; limit přihlášení hromadné zkoušení zpomaluje                                                                  |
+| N-12 | `ci.yml` a `deploy.yml` nemají `permissions` (`codeql.yml` je má), akce nejsou připnuté na commit; `COOLIFY_TOKEN` je dostupný celému jobu     | nízká     | otevřený, #228               | Přidat `permissions`, připnout akce, token jen pro krok nasazení                                                                  |
+| N-13 | Frontendový kontejner běží jako root, nasazuje se jen tag `latest`                                                                             | nízká     | otevřený, #228               | `nginx-unprivileged`, tagovat i podle commitu                                                                                     |
 
 **CSP u N-4:** frontend omezuje skripty na vlastní doménu a zakazuje vložení do rámce. Obrázky, styly a spojení záměrně neomezuje kvůli mapě, stylům Leafletu a hledání adres. Backend omezuje jen rámce, aby fungoval Swagger.
 
@@ -111,7 +107,7 @@ V produkci se simulovaná schránka ani demo účty nezapnou samy. Staging je m�
 
 Dokud je schránka zapnutá, jde na stagingu ověřit cizí adresu. Google se ale k existujícímu účtu nepřipojí, takže účet takhle převzít nejde.
 
-**N-3:** tým navrhuje na stagingu přijmout jako vědomé riziko, potvrzení s PO je na schůzce 3. 11. Staging má jen testovací data bez skutečných uživatelů. Před skutečnou produkcí je potřeba smazat řádek `SEED_DEMO_DATA=true`.
+**N-3** je opravené v #234 a #235: v produkci seed založí demo účty jen s heslem z GitHub secretu `SEED_DEMO_PASSWORD`, ne s heslem z repa. Účtům, které heslo z repa ještě měly, ho seed vyměnil a ukončil jejich session. Na stagingu ověřeno 4. 11.: heslo z repa se nepřihlásí. Heslo ze secretu je uvnitř image stejně jako ostatní klíče (viz výše), proto platí jen pro staging. Před skutečnou produkcí je potřeba smazat řádek `SEED_DEMO_DATA=true`.
 
 ### Zbývá u N-5
 
@@ -147,14 +143,14 @@ Nálezy S-1 až S-5 pocházejí z nočního testování před Sprint Review 2. J
 | ID  | Nález                                                 | Závažnost | Stav                                       |
 | --- | ----------------------------------------------------- | --------- | ------------------------------------------ |
 | S-1 | Neplatné datum při založení a úpravě akce vracelo 500 | nízká     | Opraveno v #137                            |
-| S-2 | `GET /api/events?dateTo=9999-12-31` vrací 500         | nízká     | Otevřený, #225; na stagingu ověřeno 1. 11. |
+| S-2 | `GET /api/events?dateTo=9999-12-31` vrací 500         | nízká     | Otevřený, #225; na stagingu ověřeno 4. 11. |
 | S-3 | Souběh při vyřizování žádostí o členství ve skupině   | nízká     | Otevřený, #226; viz níže                   |
 | S-4 | Zápisy do API z aplikací jiných týmů (CSRF)           | vysoká    | Opraveno v #140; stejný nález jako N-1     |
-| S-5 | Do skupiny se jde přidat i bez ověřeného e-mailu      | žádná     | Není chyba, otázka na PO; viz níže         |
+| S-5 | Do skupiny se jde přidat i bez ověřeného e-mailu      | nízká     | Otevřený, #236; viz níže                   |
 
 **S-2:** běžná nesmyslná data už dostanou 400, ale `9999-12-31` projde validací. `startOfNextPragueDay` z něj počítá následující den v roce 10000 a ten neumí zpracovat. Oprava: omezit rok v `ListEventsQueryDto`.
 
-**S-5:** založení skupiny ověřený e-mail vyžaduje, žádost o členství a vstup do skupiny jen přihlášení. V #46 to tak bylo zvoleno záměrně, Figma A-08 ale stav „neověřený e-mail“ má. Rozhodne PO.
+**S-5:** založení skupiny ověřený e-mail vyžaduje, žádost o členství a vstup do skupiny jen přihlášení. V #46 to tak bylo zvoleno záměrně, Figma A-08 ale stav „neověřený e-mail“ má. Tým 3. 11. rozhodl, že před podáním žádosti o členství musí být e-mail ověřený. Řeší #236.
 
 **S-3** je chyba ve skupinách, ne bezpečnostní díra: data neunikají. Odhalilo ji noční testování. Čtením kódu jsme ověřili, že tam pořád je, znovu jsme ji nevyvolávali:
 
