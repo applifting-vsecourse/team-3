@@ -57,6 +57,14 @@ Co nejdřív uděláme **bezpečnostní audit** a **UX audit** (PO). Aktualizace
 - **Akce skupin (PO 29. 10.):** skupina pořádá veřejné i soukromé akce. Tým: v backlogu a issues jim říkáme **jen pro členy** (`members`), protože soukromá je v B-026 akce dostupná přes odkaz. Akce jen pro členy v hledání, na mapě ani na úvodní stránce se neukáže; veřejná se chová jako každá jiná akce.
 - **UX (PO 29. 10.):** do sprintu patří i implementace schválených návrhů, ne jen audit a návrhy.
 
+### Odpovědi PO 4. 11.
+
+- **Bezpečnostní a UX report (PO):** připravit oba. Je v pořádku, že máme opravené hlavní věci; méně kritické nálezy dáme do backlogu na příště. Tým: každý neopravený nález má v reportu issue.
+- **Úvodní stránka (PO):** neukazovat akce skupin, ale výpis skupin, které se potkávají a hledají členy, „tyto skupiny rozšiřují svou základnu“. Tým (návrh): aktivní skupina, do které se dá přidat nebo požádat (`public` i `closed`), s nadcházející akcí; #182.
+- **Hodnocení (PO):** akce se hodnotí zvlášť, organizátor zvlášť a účastník zvlášť. Organizátor má rychlé hodnocení: všem 5★ a komentář, pak jednotlivým účastníkům upraví hvězdičky a komentář. Hodnocení účastníka tedy **má komentář** (mění „bez komentáře“ z #180). Tým: rychlé hodnocení založí hodnocení každému vybranému účastníkovi zvlášť, výchozí hodnota se neukládá; kdo nepřišel, jde před uložením odškrtnout (docházka se nepotvrzuje). Komentář max. 500 znaků, stejně u hodnocení akce.
+- **Veřejný profil (PO, mění 28. 10.):** ukazuje hodnocení, které uživatel dostal jako účastník, hodnocení jako organizátor, průměrné hodnocení akcí, které pořádal, a když pořádal veřejné akce, i jejich historii s hodnocením každé akce. Tým: jen veřejné akce, ne jen pro členy ani soukromé; akce skupin se osobě nepočítají (hodnocení jde skupině, #180); komentáře k hodnocení účastníka jsou veřejné, proto musí jít nahlásit (B-061). Mění B-013 a #179.
+- **Ověření e-mailu (PO):** přihlásit se jde jen s ověřeným e-mailem. Tím je každá přihláška na akci i do skupiny od ověřeného uživatele. Řeší S-5 (#236) včetně vstupu do veřejné skupiny. Mění B-011: dnes se neověřený přihlásí a blokují ho až jednotlivé akce.
+
 ## Pořadí ve sprintu (tým)
 
 Všechno níže je ve sprintu 3, priorita určuje jen pořadí. Issues mají label:
