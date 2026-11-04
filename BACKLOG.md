@@ -458,7 +458,7 @@ Doménová logika (čistá funkce + testy): `approvedCount`, `missingToMin = max
 - `GET /api/geo/locality` – odhad lokality podle IP (viz otevřené otázky). IP ani výsledek se **neukládají** (ani do logů). Když nejde zjistit → celé Česko.
 - Stránka `/`: jedna věta, co HobbyHub dělá; náhled nadcházejících akcí v lokalitě (3 akce, řazení podle termínu – otevřená otázka F-68); ruční změna lokality bez registrace (uloží se jen v prohlížeči); proklik na detail a na celý přehled `/akce`.
 - Nepoužívej layout hero + tři karty (DESIGN.md).
-- Sekce skupin (PO 4. 11.): ne akce skupin, ale skupiny, které se potkávají a hledají členy, „tyto skupiny rozšiřují svou základnu“. Návrh týmu: aktivní skupina (`public` i `closed`) s nadcházející akcí, v lokalitě stránky; #182.
+- Sekce skupin (PO 4. 11.): ne akce skupin, ale skupiny, které se potkávají a hledají členy, „tyto skupiny rozšiřují svou základnu“. Tým: aktivní skupiny v okolí s nadcházející akcí, do kterých se dá přidat (veřejné) nebo požádat o členství (neveřejné), řazené podle nejbližší akce skupiny; #182.
 
 **Hotovo, když:**
 
@@ -741,7 +741,7 @@ Doménová logika (čistá funkce + testy): `approvedCount`, `missingToMin = max
 - Hodnocení účastníka organizátorem (PO 28. 10.): model `ParticipantRating`: `eventId`, `participantId` (s `eventId` cizí klíč na účast), `stars` 1–5 (i `CHECK` v databázi), `deletedAt`. Jedno na účastníka a akci, hodnotí jen organizátor akce (ne sám sebe), jen u proběhlé akce (`endsAt`, když chybí, `startsAt`) a jen `approved` účastníka: `decideParticipantRating` v `modules/rating/domain/participant-rating.ts`. Nepovinný `comment` (PO 4. 11., dřív bez komentáře), max. 500 znaků jako `Rating.comment`. Po smazání superadminem jde hodnocení jen vrátit, ne dát znovu. Model a výpočet průměrů ve sprintu 3 (#180), dávání hodnocení ve sprintu 4 (#66).
 - Hodnotit smí jen ten, kdo byl na akci `approved`, a až po skončení akce. Potvrzená docházka podmínkou není.
 - Hodnocení organizátora se počítá k osobě, u akce skupiny ke skupině. Průměr jako organizátor (`organizerRatingSummary`, z `Rating.organizerStars`, bez akcí skupin) a jako účastník (`participantRatingSummary`, z `ParticipantRating.stars`) jsou čisté funkce v `modules/rating/domain/rating-summary.ts` (#180) pro profil (B-013, #178, #179): zaokrouhlené na jedno desetinné místo, vždy s počtem, bez hodnocení `null`, smazaná hodnocení se nepočítají. Průměr skupiny zatím není.
-- Rychlé hodnocení účastníků (PO 4. 11.): organizátor dá všem najednou hvězdičky a komentář (předvyplněno 5★), pak jednotlivcům upraví hvězdičky i komentář. Kdo nepřišel, jde před uložením odškrtnout. Uloží se hodnocení každého účastníka zvlášť, výchozí hodnota pro akci se neukládá. Jeden zápis v transakci; `decideParticipantRating` platí pro každého.
+- Rychlé hodnocení účastníků (PO 4. 11.): organizátor dá všem najednou hvězdičky a komentář (předvyplněno 5★), pak jednotlivcům upraví hvězdičky i komentář. Odškrtnout, kdo nepřišel, půjde až v dalších sprintech. Uloží se hodnocení každého účastníka zvlášť, výchozí hodnota pro akci se neukládá. Jeden zápis v transakci; `decideParticipantRating` platí pro každého.
 - Organizátor vidí hodnocení a komentáře svých akcí (ve správě akce).
 - Hodnocení účastníka i s komentářem je vidět na jeho veřejném profilu (B-013).
 - FE: stránka `/akce/:id/hodnoceni` (sem vede odkaz z e-mailu).
