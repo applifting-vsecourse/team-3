@@ -1,5 +1,3 @@
-import { useEffect } from "react"
-import { useQueryClient } from "@tanstack/react-query"
 import { createFileRoute, Link, useLocation } from "@tanstack/react-router"
 import { toast } from "sonner"
 
@@ -8,7 +6,6 @@ import { BackLink } from "@/components/BackLink/BackLink"
 import { Seo } from "@/components/Seo"
 import { Button } from "@/components/ui/button"
 import { DESKTOP_QUERY, useMediaQuery } from "@/hooks/useMediaQuery"
-import { authKeys } from "@/lib/auth-keys"
 import { PAGE } from "@/lib/pageLayout"
 import { cn } from "@/lib/utils"
 
@@ -23,6 +20,7 @@ import { ShareEventButton } from "@/features/events/components/ShareEventButton"
 import { useCancelEvent } from "@/features/events/hooks/useCancelEvent"
 import { useEventDetail } from "@/features/events/hooks/useEventDetail"
 import { useJoinEvent, useLeaveEvent } from "@/features/events/hooks/useParticipation"
+import { useRefreshExpiredSession } from "@/features/events/hooks/useRefreshExpiredSession"
 import { editRefusal } from "@/features/events/lib/editRefusal"
 
 // `akce_`: not nested in /akce, whose page has no outlet. Public on purpose:
@@ -39,7 +37,6 @@ function EventDetailPage() {
   const { event, isPending, isNotFound, error, retry } = useEventDetail(eventId, viewerId)
   const location = useLocation()
   const isDesktop = useMediaQuery(DESKTOP_QUERY)
-  const queryClient = useQueryClient()
   const join = useJoinEvent(eventId, session.user?.id ?? "")
   const leave = useLeaveEvent(eventId, session.user?.id ?? "")
   const signInFrom = redirectFrom(location)
@@ -47,14 +44,7 @@ function EventDetailPage() {
   // only the organizer, and only while the event can still be edited or cancelled
   const canManage = event !== undefined && editRefusal(event, session.user?.id) === null
 
-  // The cached session says signed in, yet the API answered as to a visitor:
-  // the cookie has expired. Refresh the session so the header and the login
-  // link (which would otherwise bounce to /akce) agree with the page.
-  useEffect(() => {
-    if (viewerId && event?.participants === null) {
-      void queryClient.invalidateQueries({ queryKey: authKeys.session() })
-    }
-  }, [viewerId, event, queryClient])
+  useRefreshExpiredSession(viewerId, event)
 
   return (
     <>
@@ -84,7 +74,6 @@ function EventDetailPage() {
             isNotFound={isNotFound}
             error={error}
             onRetry={retry}
-            signInFrom={signInFrom}
             participation={
               event ? (
                 <ParticipationAction

@@ -5,11 +5,21 @@ import type { BadgeStatus } from "@/components/StatusBadge/StatusBadge"
 import type { MyEvent } from "@/features/events/api/eventSchemas"
 import { capacityStatus, eventFacts } from "@/features/events/lib/formatEvent"
 
-/** Přihlášen (C-01): requests waiting for approval on top, apart from the places I have. */
-export function attendingSections(events: MyEvent[]): { pending: MyEvent[]; approved: MyEvent[] } {
+/**
+ * Přihlášen (C-01): requests waiting for approval on top, apart from the
+ * places I have. A cancelled event is neither (#183): it goes to its own
+ * section at the end, whether I had a place or only asked for one.
+ */
+export function attendingSections(events: MyEvent[]): {
+  pending: MyEvent[]
+  approved: MyEvent[]
+  cancelled: MyEvent[]
+} {
+  const happening = events.filter((event) => event.status !== "cancelled")
   return {
-    pending: events.filter((event) => event.myParticipation === "pending"),
-    approved: events.filter((event) => event.myParticipation === "approved"),
+    pending: happening.filter((event) => event.myParticipation === "pending"),
+    approved: happening.filter((event) => event.myParticipation === "approved"),
+    cancelled: events.filter((event) => event.status === "cancelled"),
   }
 }
 

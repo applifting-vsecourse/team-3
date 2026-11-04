@@ -432,14 +432,14 @@ Doménová logika (čistá funkce + testy): `approvedCount`, `missingToMin = max
 `US-03` · FS · M · závisí na: B-023
 
 - `GET /api/events/:id` bez přihlášení. Vrací i soukromé akce (soukromá = dostupná přes odkaz). Members-only akci vrací jen členům skupiny (jinak 404). Zrušenou akci vrací se štítkem a důvodem; `hidden`/`deleted` vrací 404.
-- Jména přihlášených vrací API jen organizátorovi, uživateli se schválenou účastí a u akce skupiny členům a správcům skupiny (PO 28. 10., #174). Ostatní, včetně přihlášeného bez účasti a čekajícího žadatele, vidí jen obsazenost.
+- Jména přihlášených (`participants`) vrací API jen organizátorovi, uživateli se schválenou účastí a u akce skupiny aktivním členům a správcům skupiny (PO 28. 10., #174). Rozhoduje server podle session, nikdy podle požadavku. Ostatní dostanou `participants: null` a vidí jen obsazenost („Chybí ještě X“ / „Volná místa: Y“ / „Plno“): návštěvník, přihlášený bez účasti, čekající žadatel, kdo se odhlásil nebo byl odebrán či zamítnut, a čekající nebo zablokovaný člen skupiny. Detail jim sekci „Kdo jde“ vůbec neukáže.
 - FE stránka `/akce/:id`: název, aktivita, popis, mapa (jeden bod), termín, cena, úroveň, organizátor (osoba nebo skupina, proklik), způsob přihlášení, počet přihlášených, „Chybí ještě X“ / „Volná místa: Y“ / „Plno“, štítek „Zrušeno“ s důvodem, tlačítko „Sdílet odkaz“.
 - Open Graph meta (titulek, termín) pro hezký náhled ve WhatsAppu.
 - Odkaz se otevře rovnou na detailu, bez přihlašovací obrazovky.
 
 **Hotovo, když:**
 
-- [ ] Testy BE pro každou roli: jména dostane organizátor, schválený účastník a u akce skupiny členové a správci; návštěvník, přihlášený bez účasti ani čekající žadatel ne; members-only cizímu = 404.
+- [ ] Testy BE pro každou roli: jména dostane organizátor, schválený účastník a u akce skupiny členové a správci; návštěvník, přihlášený bez účasti, čekající žadatel, odhlášený, odebraný ani čekající člen skupiny ne; members-only cizímu = 404.
 
 ---
 
@@ -730,15 +730,16 @@ Doménová logika (čistá funkce + testy): `approvedCount`, `missingToMin = max
 `US-09` · FS · M · závisí na: B-031, B-043
 
 - Model `Rating`: `eventId`, `userId`, `eventStars` 1–5, `comment?`, `organizerStars` 1–5. Jedno hodnocení na uživatele a akci.
-- Hodnocení účastníka organizátorem (PO 28. 10.): 1–5 hvězdiček, jedno na účastníka a akci, jen u proběhlé akce a jen `approved` účastníka. Model a výpočet průměrů ve sprintu 3 (#180), dávání hodnocení ve sprintu 4 (#66).
+- Hodnocení účastníka organizátorem (PO 28. 10.): model `ParticipantRating`: `eventId`, `participantId` (s `eventId` cizí klíč na účast), `stars` 1–5 (i `CHECK` v databázi), `deletedAt`. Jedno na účastníka a akci, hodnotí jen organizátor akce (ne sám sebe), jen u proběhlé akce (`endsAt`, když chybí, `startsAt`) a jen `approved` účastníka: `decideParticipantRating` v `modules/rating/domain/participant-rating.ts`. Bez komentáře. Po smazání superadminem jde hodnocení jen vrátit, ne dát znovu. Model a výpočet průměrů ve sprintu 3 (#180), dávání hodnocení ve sprintu 4 (#66).
 - Hodnotit smí jen ten, kdo byl na akci `approved`, a až po skončení akce. Potvrzená docházka podmínkou není.
-- Hodnocení organizátora se počítá k osobě, u akce skupiny ke skupině. Průměr jako organizátor a jako účastník (čistá funkce) je u profilu (B-013) / stránky skupiny.
+- Hodnocení organizátora se počítá k osobě, u akce skupiny ke skupině. Průměr jako organizátor (`organizerRatingSummary`, z `Rating.organizerStars`, bez akcí skupin) a jako účastník (`participantRatingSummary`, z `ParticipantRating.stars`) jsou čisté funkce v `modules/rating/domain/rating-summary.ts` (#180) pro profil (B-013, #178, #179): zaokrouhlené na jedno desetinné místo, vždy s počtem, bez hodnocení `null`, smazaná hodnocení se nepočítají. Průměr skupiny zatím není.
 - Organizátor vidí hodnocení a komentáře svých akcí (ve správě akce).
 - FE: stránka `/akce/:id/hodnoceni` (sem vede odkaz z e-mailu).
 
 **Hotovo, když:**
 
-- [ ] Testy oprávnění k hodnocení a výpočtu průměru.
+- [x] Testy výpočtu průměru a oprávnění k hodnocení účastníka (#180).
+- [ ] Testy oprávnění k hodnocení akce a organizátora a API (#66).
 
 ---
 

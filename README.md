@@ -53,16 +53,24 @@ The ports are deliberately odd — 3050, 4050, and Postgres on 5433 rather than 
 
 ### Seeded users
 
-The seed loads the HobbyHub test data from issue #47 ([`demo-data.ts`](apps/backend/src/scripts/seed/data/demo-data.ts)): the activity and locality catalog, 41 users, 10 groups and 59 upcoming events in Prague. Event dates are relative to the moment of seeding. The same data is seeded on staging.
+The seed loads the HobbyHub test data from issue #47 ([`demo-data.ts`](apps/backend/src/scripts/seed/data/demo-data.ts)): the activity and locality catalog, 41 users, 10 groups and 59 upcoming events in Prague, plus 4 past events with ratings ([`rating-data.ts`](apps/backend/src/scripts/seed/data/rating-data.ts), #180), so profiles have averages to show: Petra as an organizer, Jakub as a participant. On top of that, a community of 100 users with events and groups all over Czechia ([`community-data.ts`](apps/backend/src/scripts/seed/data/community-data.ts), #150). Event dates are relative to the moment of seeding. The same data is seeded on staging.
 
-Demo accounts for walking through the app (all demo accounts share one password):
+#### Test data versions (#181)
+
+The test data have a version: `SEED_DATA_VERSION` in [`seed-content.ts`](apps/backend/src/scripts/seed/seed/seed-content.ts), and the version a database holds is in the `seed_state` table. When the two differ, the seed replaces the data; when they match, it leaves them alone, so restarts never move the dates.
+
+**To release new test data:** change the files in `apps/backend/src/scripts/seed/data/`, raise `SEED_DATA_VERSION` by one in the same PR, merge. Staging replaces its data on the next container start, with nobody touching the database. Locally, the next `pnpm dev` or `pnpm backend seed` does the same.
+
+What a new version replaces: only the events and groups the previous seed inserted (their ids are stored in `seed_state`), with their participations, memberships and ratings; and the seed accounts' profiles (name, bio, home locality, interests, verified e-mail) go back to what the data say. What stays: everything testers created, also under demo accounts (QA on staging signs in as Petra or Tomáš), the catalog, the superadmin and the seed accounts' passwords. Testers' requests to join seed events and their memberships in seed groups go with those events and groups; an event a tester created in a seed group stays, detached from the group. The seed log says how many events and groups it removed and how many events of seed accounts it kept. Data seeded before #181 have no stored ids, so for that one change the seed recognises them by their content (organizer and title, group name and locality). If a tester changed a demo account's password, reset it through "Forgot password": the reset e-mail goes to the backend log (Dozzle on staging), never to the simulated inbox, which keeps verification e-mails only.
+
+Demo accounts for walking through the app (all demo accounts share one password). Locally the password is `hobbyhub-demo-2026` (`DEMO_PASSWORD` in `demo-data.ts`). On staging it is different: it comes from the GitHub secret `SEED_DEMO_PASSWORD` and the team shares it privately, never in the repo, an issue or a PR (N-3 in the security audit, #172). Staging accounts still on the repo password get the new one on the next start, and their sessions end.
 
 | Role                        | Name           | Email                        | Password                       |
 | --------------------------- | -------------- | ---------------------------- | ------------------------------ |
-| Seeker (looking for events) | Jakub Král     | `jakub.kral@example.com`     | `hobbyhub-demo-2026`           |
-| Organizer                   | Petra Nováková | `petra.novakova@example.com` | `hobbyhub-demo-2026`           |
-| Group admin                 | Tomáš Dvořák   | `tomas.dvorak@example.com`   | `hobbyhub-demo-2026`           |
-| Unverified email            | Eva Malá       | `eva.mala@example.com`       | `hobbyhub-demo-2026`           |
+| Seeker (looking for events) | Jakub Král     | `jakub.kral@example.com`     | demo password                  |
+| Organizer                   | Petra Nováková | `petra.novakova@example.com` | demo password                  |
+| Group admin                 | Tomáš Dvořák   | `tomas.dvorak@example.com`   | demo password                  |
+| Unverified email            | Eva Malá       | `eva.mala@example.com`       | demo password                  |
 | Superadmin (`role = admin`) | –              | `SUPERADMIN_EMAIL` from env  | `SUPERADMIN_PASSWORD` from env |
 
 Locally the superadmin is `admin@example.com` / `adminpassword26` (from `apps/backend/.env.example`; passwords need 10 characters with a letter and a digit, B-010). A database seeded before that keeps `adminpassword`. On staging it uses the values set in the deployment environment. The prepared demo cases (an approval event with one free spot, events missing one person, pending group requests) are described in the header of `demo-data.ts`.
@@ -77,7 +85,7 @@ pnpm backend test                  # backend unit tests (jest)
 pnpm frontend test:ci              # frontend component tests (vitest)
 pnpm backend prisma:migrations:run # create + apply a migration after schema changes
 pnpm backend prisma:studio         # browse/edit the database
-pnpm backend seed                  # re-seed the database
+pnpm backend seed                  # add missing accounts, replace test data of an older version
 pnpm dev:down                      # stop the database container
 ```
 
@@ -96,20 +104,20 @@ Two things worth knowing:
 
 - **You set exactly two URLs**, `BACKEND_URL` and `FRONTEND_URL`. The backend uses them for CORS, BetterAuth trusted origins and password-reset links; the frontend's API URL is derived from `BACKEND_URL`. Point them at the real domains or the backend rejects the browser.
 - **The frontend bakes its API URL in at build time** (`VITE_*` are build args, not runtime env), so changing `BACKEND_URL` needs a rebuild, not just a restart.
-- **The container migrates and seeds on every start** — it runs `prisma migrate deploy`, then the seed, then the app. The seed is repeatable: it syncs the activity/locality catalog, creates the superadmin and demo accounts only if they are missing (and finishes one an earlier seed left half-created, recognised by having no username and the seed's password), and inserts the demo groups and events only into a database with no events and no groups, so a redeploy never duplicates or moves them. The demo accounts' passwords are in this repo, so with `NODE_ENV=production` the demo data needs `SEED_DEMO_DATA=true`, which `apps/backend/Dockerfile.deploy` sets for staging; `SEED_DEMO_DATA=false` skips the demo data anywhere (the catalog is always seeded). **Before real production, delete both `SEED_DEMO_DATA=true` and `SIMULATED_INBOX=true` from that file:** the simulated inbox lets anyone verify any address. If the superadmin can't be created (check `SUPERADMIN_EMAIL` and a `SUPERADMIN_PASSWORD` of at least 10 characters with a letter and a digit), the seed logs why and carries on with the demo data. Any other failed seed is logged and the app starts anyway.
+- **The container migrates and seeds on every start** — it runs `prisma migrate deploy`, then the seed, then the app. The seed is repeatable: it syncs the activity/locality catalog, creates the superadmin and demo accounts only if they are missing (and finishes one an earlier seed left half-created, recognised by having no username and the seed's password), and replaces the test data only when their version changes (see [Test data versions](#test-data-versions-181)), so a redeploy never duplicates or moves them. With `NODE_ENV=production` the demo data needs `SEED_DEMO_DATA=true`, which `apps/backend/Dockerfile.deploy` sets for staging, and a `SEED_DEMO_PASSWORD` other than the one in the repo (the GitHub secret, passed in by `deploy.yml`); without it the seed logs why and skips the demo data. `SEED_DEMO_DATA=false` skips the demo data anywhere (the catalog is always seeded). **Before real production, delete both `SEED_DEMO_DATA=true` and `SIMULATED_INBOX=true` from that file:** the simulated inbox lets anyone verify any address. If the superadmin can't be created (check `SUPERADMIN_EMAIL` and a `SUPERADMIN_PASSWORD` of at least 10 characters with a letter and a digit), the seed logs why and carries on with the demo data. Any other failed seed is logged and the app starts anyway.
 
 ## When something goes wrong
 
-| Symptom                                                  | Cause / fix                                                                                                                                                                      |
-| -------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `pnpm dev` fails immediately, Docker errors              | Docker Desktop isn't running. Start it and retry.                                                                                                                                |
-| `Port 3050 is already in use`                            | Another app has it. Stop it — the port is pinned on purpose, because the API only accepts requests from `http://localhost:3050`.                                                 |
-| Page loads but login fails, console shows a CORS error   | The frontend is on a different port than the API expects. See above.                                                                                                             |
-| `EADDRINUSE :::4050`                                     | An old backend is still running: `lsof -i :4050` then kill the process.                                                                                                          |
-| Prisma: "column does not exist" after editing the schema | You changed `schema.prisma` without migrating: `pnpm backend prisma:migrations:run`.                                                                                             |
-| Want the demo data back / a clean database               | `pnpm backend db:reset` — it replays the migrations and re-runs the seed with fresh dates. (Plain `pnpm backend seed` does **not** wipe anything; it only adds what is missing.) |
-| A commit is blocked by lint or formatting                | The pre-commit hook auto-fixes what it can; fix the rest, or `git commit --no-verify` to bypass it once.                                                                         |
-| Browser shows a red error overlay while typing           | That's the type/lint checker, not a crash. Read the message — the app is still running.                                                                                          |
+| Symptom                                                  | Cause / fix                                                                                                                                                                                                                       |
+| -------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `pnpm dev` fails immediately, Docker errors              | Docker Desktop isn't running. Start it and retry.                                                                                                                                                                                 |
+| `Port 3050 is already in use`                            | Another app has it. Stop it — the port is pinned on purpose, because the API only accepts requests from `http://localhost:3050`.                                                                                                  |
+| Page loads but login fails, console shows a CORS error   | The frontend is on a different port than the API expects. See above.                                                                                                                                                              |
+| `EADDRINUSE :::4050`                                     | An old backend is still running: `lsof -i :4050` then kill the process.                                                                                                                                                           |
+| Prisma: "column does not exist" after editing the schema | You changed `schema.prisma` without migrating: `pnpm backend prisma:migrations:run`.                                                                                                                                              |
+| Want the demo data back / a clean database               | `pnpm backend db:reset` — it replays the migrations and re-runs the seed with fresh dates. (Plain `pnpm backend seed` only replaces the test data when their version changed, see [Test data versions](#test-data-versions-181).) |
+| A commit is blocked by lint or formatting                | The pre-commit hook auto-fixes what it can; fix the rest, or `git commit --no-verify` to bypass it once.                                                                                                                          |
+| Browser shows a red error overlay while typing           | That's the type/lint checker, not a crash. Read the message — the app is still running.                                                                                                                                           |
 
 ## Layout
 

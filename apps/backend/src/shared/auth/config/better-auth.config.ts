@@ -7,6 +7,9 @@ import { rejectInvalidNames } from './name-policy';
 import { rejectWeakPasswords } from './password-policy';
 
 export const betterAuthCoreConfig: BetterAuthOptions = {
+  // No own `password.hash`: the seed writes demo passwords with BetterAuth's
+  // default one (replaceSeedPassword, N-3). Changing it means changing the seed;
+  // the seed fails loudly if `verify` no longer accepts that hash.
   emailAndPassword: {
     enabled: true,
     minPasswordLength: PASSWORD_MIN_LENGTH,

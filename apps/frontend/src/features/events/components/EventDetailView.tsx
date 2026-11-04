@@ -26,8 +26,6 @@ type EventDetailViewProps = {
   isNotFound?: boolean
   error?: Error
   onRetry?: () => void
-  /** Login's `from`, so a visitor who signs in to see the names comes back here. */
-  signInFrom: string
   /** The join / leave action (B-032): in the panel on desktop, in the bar above the navigation on a phone; the page builds it. */
   participation?: ReactNode
   /** The organizer's own actions, e.g. „Zrušit akci“ (#52); the page builds them. */
@@ -48,7 +46,6 @@ export function EventDetailView({
   isNotFound,
   error,
   onRetry,
-  signInFrom,
   participation,
   organizerActions,
 }: EventDetailViewProps) {
@@ -161,13 +158,13 @@ export function EventDetailView({
       <p className="whitespace-pre-line">{event.description}</p>
     </section>
   ) : null
-  const participants = (
+  // without the names (#174) the occupancy above is all there is to show
+  const participants = event.participants ? (
     <EventParticipants
       approvedCount={event.approvedCount}
       participants={event.participants}
-      signInFrom={signInFrom}
     />
-  )
+  ) : null
 
   // Figma lays the two out differently (as the group page, A-08 / A-08d), so
   // each gets its own order rather than one order bent by the grid.

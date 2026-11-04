@@ -8,15 +8,10 @@ import { renderWithRouter } from "@/test/renderWithRouter"
 import { EventDetailView } from "@/features/events/components/EventDetailView"
 import { anEventDetail } from "@/features/events/test/anEvent"
 
-const signInFrom = "/akce/e1"
-
 describe("EventDetailView", () => {
   it("shows what, when, where, who organizes it and how many are coming", async () => {
     await renderWithRouter(
-      <EventDetailView
-        event={anEventDetail({ approvedCount: 3, missingToMin: 1 })}
-        signInFrom={signInFrom}
-      />,
+      <EventDetailView event={anEventDetail({ approvedCount: 3, missingToMin: 1 })} />,
     )
 
     expect(
@@ -48,54 +43,43 @@ describe("EventDetailView", () => {
     [{ approvedCount: 4, missingToMin: 0, freeSpots: 8 }, "Volná místa: 8"],
     [{ approvedCount: 12, missingToMin: 0, freeSpots: 0, isFull: true }, "Plno"],
   ])("shows the occupancy %o as „%s“", async (capacity, label) => {
-    await renderWithRouter(
-      <EventDetailView
-        event={anEventDetail(capacity)}
-        signInFrom={signInFrom}
-      />,
-    )
+    await renderWithRouter(<EventDetailView event={anEventDetail(capacity)} />)
 
     expect(screen.getByText(label)).toBeInTheDocument()
   })
 
-  it("lists the participants when the API sends their names (signed-in variant)", async () => {
-    await renderWithRouter(
-      <EventDetailView
-        event={anEventDetail()}
-        signInFrom={signInFrom}
-      />,
-    )
+  it("lists the participants when the API sends their names (someone taking part, #174)", async () => {
+    await renderWithRouter(<EventDetailView event={anEventDetail()} />)
 
+    expect(screen.getByRole("heading", { name: "Kdo jde (4)" })).toBeInTheDocument()
     const list = screen.getByRole("list")
     expect(within(list).getAllByRole("listitem")).toHaveLength(4)
     expect(within(list).getByText("Jana Svobodová")).toBeInTheDocument()
-    expect(screen.queryByRole("link", { name: "přihlášení" })).not.toBeInTheDocument()
   })
 
-  it("shows only the count when the API sends no names (visitor variant), with a sign-in link back here", async () => {
-    await renderWithRouter(
-      <EventDetailView
-        event={anEventDetail({ participants: null })}
-        signInFrom={signInFrom}
-      />,
-    )
+  it.each([
+    [{ approvedCount: 4, missingToMin: 0, freeSpots: 8 }, "Volná místa: 8"],
+    [{ approvedCount: 2, missingToMin: 2, freeSpots: 10 }, "Chybí ještě 2"],
+    [{ approvedCount: 12, missingToMin: 0, freeSpots: 0, isFull: true }, "Plno"],
+  ])(
+    "without the names (#174) shows only the occupancy %o as „%s“, no „Kdo jde“",
+    async (capacity, label) => {
+      await renderWithRouter(
+        <EventDetailView event={anEventDetail({ ...capacity, participants: null })} />,
+      )
 
-    expect(screen.getByRole("heading", { name: "Kdo jde (4)" })).toBeInTheDocument()
-    expect(screen.queryByText("Jana Svobodová")).not.toBeInTheDocument()
-    expect(screen.queryByRole("list")).not.toBeInTheDocument()
-    const signIn = screen.getByRole("link", { name: "přihlášení" })
-    // encoded once (#186): one decode, by URLSearchParams, gives the path back
-    expect(signIn).toHaveAttribute("href", "/login?from=%2Fakce%2Fe1")
-    expect(new URL(signIn.getAttribute("href")!, "http://x").searchParams.get("from")).toBe(
-      "/akce/e1",
-    )
-  })
+      expect(screen.getByText(label)).toBeInTheDocument()
+      expect(screen.queryByRole("heading", { name: /Kdo jde/ })).not.toBeInTheDocument()
+      expect(screen.queryByText("Jana Svobodová")).not.toBeInTheDocument()
+      // signing in alone no longer shows the names, so no hint to do it
+      expect(screen.queryByText(/Jména přihlášených/)).not.toBeInTheDocument()
+    },
+  )
 
   it("says when nobody has joined yet", async () => {
     await renderWithRouter(
       <EventDetailView
         event={anEventDetail({ approvedCount: 0, missingToMin: 4, participants: [] })}
-        signInFrom={signInFrom}
       />,
     )
 
@@ -104,10 +88,7 @@ describe("EventDetailView", () => {
 
   it("a group's event is organized by the group", async () => {
     await renderWithRouter(
-      <EventDetailView
-        event={anEventDetail({ group: { id: "g1", name: "Tandem Praha" } })}
-        signInFrom={signInFrom}
-      />,
+      <EventDetailView event={anEventDetail({ group: { id: "g1", name: "Tandem Praha" } })} />,
     )
 
     expect(screen.getByText("Tandem Praha")).toBeInTheDocument()
@@ -117,10 +98,7 @@ describe("EventDetailView", () => {
 
   it("names the approval when the organizer approves, and leaves out an empty description", async () => {
     await renderWithRouter(
-      <EventDetailView
-        event={anEventDetail({ approvalMode: "approval", description: null })}
-        signInFrom={signInFrom}
-      />,
+      <EventDetailView event={anEventDetail({ approvalMode: "approval", description: null })} />,
     )
 
     expect(screen.getByText("Se schválením organizátora")).toBeInTheDocument()
@@ -133,7 +111,6 @@ describe("EventDetailView", () => {
     await renderWithRouter(
       <EventDetailView
         event={anEventDetail({ status: "cancelled", cancelReason: "Herna má zavřeno." })}
-        signInFrom={signInFrom}
       />,
     )
 
@@ -148,7 +125,6 @@ describe("EventDetailView", () => {
     await renderWithRouter(
       <EventDetailView
         event={anEventDetail()}
-        signInFrom={signInFrom}
         organizerActions={<button type="button">Zrušit akci</button>}
       />,
     )
@@ -177,7 +153,6 @@ describe("EventDetailView", () => {
       await renderWithRouter(
         <EventDetailView
           event={anEventDetail({ approvedCount: 3, missingToMin: 1 })}
-          signInFrom={signInFrom}
           participation={<button type="button">Přijdu</button>}
           organizerActions={<button type="button">Upravit</button>}
         />,
@@ -232,24 +207,14 @@ describe("EventDetailView", () => {
   })
 
   it("shows a skeleton while loading", async () => {
-    await renderWithRouter(
-      <EventDetailView
-        isLoading
-        signInFrom={signInFrom}
-      />,
-    )
+    await renderWithRouter(<EventDetailView isLoading />)
 
     expect(screen.getByLabelText("Načítám akci")).toBeInTheDocument()
     expect(screen.getByRole("heading", { level: 1, name: "Detail akce" })).toBeInTheDocument()
   })
 
   it("renders „not found“ with a way to the list (the 404 detection is in useEventDetail)", async () => {
-    await renderWithRouter(
-      <EventDetailView
-        isNotFound
-        signInFrom={signInFrom}
-      />,
-    )
+    await renderWithRouter(<EventDetailView isNotFound />)
 
     expect(screen.getByRole("heading", { level: 1, name: "Akce nenalezena" })).toBeInTheDocument()
     expect(screen.getByRole("link", { name: "Prohlédnout akce" })).toHaveAttribute("href", "/akce")
@@ -261,7 +226,6 @@ describe("EventDetailView", () => {
       <EventDetailView
         error={new Error("Server neodpovídá")}
         onRetry={onRetry}
-        signInFrom={signInFrom}
       />,
     )
 

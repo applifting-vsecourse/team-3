@@ -70,11 +70,17 @@ export type EventDetail = PublicEvent & {
   cancelReason: string | null;
 };
 
-/** The detail and, for a signed-in viewer, who is coming; a visitor gets only the count. */
+/** The detail and, for those taking part, who is coming (#174, `canSeeParticipants`). */
 export type EventDetailView = EventDetail & {
+  /** Null for anyone who may not see the names; they get only `capacity`. */
   participants: EventParticipant[] | null;
   /** The signed-in viewer's own participation; null for a visitor or someone not in. */
   myParticipation: 'pending' | 'approved' | 'rejected' | 'removed' | null;
+  /**
+   * Whether the server saw a signed-in viewer. Lets the app tell an expired
+   * session from a signed-in user who just doesn't get the names (#174).
+   */
+  viewerSignedIn: boolean;
 };
 
 /**

@@ -123,9 +123,11 @@ export class EventsController {
   @UseGuards(OptionalUserGuard)
   @ApiOperation({
     summary:
-      'One event for its detail page; public, a signed-in user also gets the participants',
+      'One event for its detail page; public, the names of participants only for those taking part',
     description:
-      'Private events are returned (reachable through their link). Cancelled events are returned with their reason.',
+      'Private events are returned (reachable through their link). Cancelled events are returned with their reason. ' +
+      '`participants` (names) goes only to the organizer, a user with an approved place and, for a group event, ' +
+      "the group's active members and admins, decided from the session (#174); everyone else gets null and the occupancy in `capacity`.",
   })
   @ApiResponse({ status: 200, type: EventDetailResponseDto })
   @ApiResponse({

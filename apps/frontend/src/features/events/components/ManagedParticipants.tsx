@@ -16,6 +16,8 @@ type ManagedParticipantsProps = {
   onRetry: () => void
   /** Inside a tab the tab names the list: the heading stays for screen readers only. */
   isHeadingHidden?: boolean
+  /** A cancelled event gets nobody new: an empty list says nobody was in (#183). */
+  isCancelled?: boolean
 }
 
 /**
@@ -28,6 +30,7 @@ export function ManagedParticipants({
   error,
   onRetry,
   isHeadingHidden = false,
+  isCancelled = false,
 }: ManagedParticipantsProps) {
   const headingId = useId()
   return (
@@ -77,7 +80,11 @@ export function ManagedParticipants({
           ))}
         </div>
       ) : participants.length === 0 ? (
-        <p className="text-muted-foreground">Až se někdo přihlásí, uvidíš ho tady.</p>
+        <p className="text-muted-foreground">
+          {isCancelled
+            ? "Na akci nikdo nebyl přihlášený."
+            : "Až se někdo přihlásí, uvidíš ho tady."}
+        </p>
       ) : (
         <ul className="flex flex-col gap-3">
           {participants.map((participant) => (

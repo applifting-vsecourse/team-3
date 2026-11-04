@@ -45,10 +45,12 @@ export const eventDetailSchema = publicEventSchema.extend({
   approvalMode: z.enum(["open", "approval"]),
   status: z.enum(["published", "cancelled"]),
   cancelReason: z.string().nullable(),
-  /** Approved participants; null for a visitor, who gets only `approvedCount`. */
+  /** Approved participants, only for those taking part (#174); null for anyone else, who gets only the occupancy. */
   participants: z.array(eventParticipantSchema).nullable(),
   /** The signed-in user's own participation; null for a visitor or someone not in. */
   myParticipation: z.enum(["pending", "approved", "rejected", "removed"]).nullable(),
+  /** Whether the API saw a valid session; false with a cached user = the session expired. */
+  viewerSignedIn: z.boolean(),
 })
 
 export type EventDetail = z.infer<typeof eventDetailSchema>

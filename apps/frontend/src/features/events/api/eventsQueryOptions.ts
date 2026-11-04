@@ -20,8 +20,10 @@ export const eventKeys = {
   mine: (tab: MyEventsTab, viewerId: string) =>
     [...eventKeys.lists(), "mine", tab, viewerId] as const,
   details: () => [...eventKeys.all(), "detail"] as const,
-  // The viewer is part of the key: a signed-in user gets the participants'
-  // names, a visitor only their count.
+  // The viewer is part of the key, and it must stay the user, not just
+  // signed-in vs. visitor: whether the names come depends on the viewer's
+  // role in this event (organizer, approved, group member; #174), so two
+  // signed-in users can get different answers for the same event.
   detail: (eventId: string, viewerId: string | null) =>
     [...eventKeys.details(), eventId, viewerId] as const,
   // the organizer's list (#43); with the viewer, so nobody else gets it from the cache
