@@ -78,7 +78,7 @@ Rozhodnutí PO ze 4. 11. a pravidla týmu:
 ## Hodnocení (PO 4. 11.)
 
 - Akce se hodnotí zvlášť a zvlášť organizátor (účastník) nebo účastník (organizátor).
-- **Rychlé hodnocení organizátora:** „Všem stejně“ – hvězdičky (výchozí 5) a jeden komentář, „Použít pro všechny“ je předvyplní; pak jednotlivcům změní hvězdičky. Uloží se najednou. Komentář dostane každý účastník k svému hodnocení. **Model `ParticipantRating` proto potřebuje `comment`** (dnes ho nemá, BACKLOG B-060 „bez komentáře“).
+- **Rychlé hodnocení organizátora:** „Všem stejně“ – hvězdičky (výchozí 5) a jeden komentář, „Použít pro všechny“ je předvyplní; pak jednotlivcům dá individuální hodnocení – změní hvězdičky i komentář. Uloží se najednou. Kdo individuální komentář nedostane, má u svého hodnocení ten společný. Figma D-05 zatím ukazuje u jednotlivce jen hvězdičky – doplnit pole pro komentář. `ParticipantRating.comment` je na `main` od #180 (#239).
 - Hodnotit jde jen po skončení akce a do 14 dnů, do té doby jde hodnocení změnit. Hvězdičky 1–5 povinné, komentář nepovinný. Organizátor nehodnotí sám sebe. Smazané superadminem jde jen vrátit, ne dát znovu.
 - **Průměr** se ukazuje od prvního hodnocení i s počtem („★ 4,5 (6 hodnocení)“), bez hodnocení „zatím bez hodnocení“.
 - **Veřejný profil:** hodnocení jako organizátor, průměr jeho akcí, hodnocení jako účastník a historie pořádaných veřejných akcí, u každé počet lidí a průměr hodnocení akce. Akce skupin se počítají skupině a v historii osoby nejsou.
