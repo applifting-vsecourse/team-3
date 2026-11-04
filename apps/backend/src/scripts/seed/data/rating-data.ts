@@ -22,8 +22,9 @@ const MIN_PAST_MS = 60 * MINUTE_IN_MS;
  *   nahoru); jako organizátor zatím bez hodnocení.
  * - Petra jako účastnice 5,0 z florbalu, který pořádal Tomáš (spravce).
  *
- * Akce skupin v datech nejsou: aplikace je zatím zakládat neumí. Že se osobě
- * nepočítají, hlídají testy rating-summary.spec.ts.
+ * Další proběhlé akce, i akce skupin, generuje past-data.ts (#181); Petře
+ * a Jakubovi tam hodnocení nepřibudou. Že se akce skupin osobě nepočítají,
+ * hlídají testy rating-summary.spec.ts.
  */
 export interface PastEvent {
   key: string;
@@ -204,8 +205,21 @@ export const resolvePastStartsAt = (
   return start;
 };
 
+/**
+ * Proběhlá akce z rating-data.ts nebo vygenerovaná (past-data.ts, #181): ta leží
+ * i mimo krajská města, může patřit skupině a může být zrušená.
+ */
+export type PastEventSource = Omit<PastEvent, 'localitySlug'> & {
+  localitySlug: string;
+  /** Akce skupiny: klíč skupiny z dat. */
+  groupKey?: string;
+  visibility?: 'public' | 'members';
+  /** Zrušená akce: důvod; hodnocení nemá. */
+  cancelReason?: string;
+};
+
 export type PastEventRow = Omit<
-  PastEvent,
+  PastEventSource,
   'daysAgo' | 'time' | 'durationMinutes' | 'participantKeys'
 > & {
   startsAt: Date;
@@ -215,7 +229,10 @@ export type PastEventRow = Omit<
 };
 
 /** A past event as rows for the database, without Prisma, so it can be tested. */
-export const toPastEventRow = (event: PastEvent, now: Date): PastEventRow => {
+export const toPastEventRow = (
+  event: PastEventSource,
+  now: Date,
+): PastEventRow => {
   const startsAt = resolvePastStartsAt(event, now);
   return {
     key: event.key,
@@ -229,6 +246,9 @@ export const toPastEventRow = (event: PastEvent, now: Date): PastEventRow => {
     minParticipants: event.minParticipants,
     maxParticipants: event.maxParticipants,
     organizerKey: event.organizerKey,
+    groupKey: event.groupKey,
+    visibility: event.visibility,
+    cancelReason: event.cancelReason,
     ratings: event.ratings,
     participantRatings: event.participantRatings,
     startsAt,

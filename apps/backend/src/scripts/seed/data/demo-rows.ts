@@ -20,7 +20,11 @@ export type GroupSource = Omit<DemoGroup, 'localitySlug'> & {
 export type EventSource = Omit<
   DemoEvent,
   'localitySlug' | 'scenario' | 'demoCase'
-> & { localitySlug: string };
+> & {
+  localitySlug: string;
+  /** Akce skupiny (#181, group-events-data.ts): klíč skupiny z dat. */
+  groupKey?: string;
+};
 
 export type DemoGroupRow = {
   key: string;
@@ -58,6 +62,7 @@ export type DemoEventRow = {
   approvalMode: DemoEvent['approvalMode'];
   visibility: DemoEvent['visibility'];
   organizerKey: string;
+  groupKey: string | null;
   status: DemoEvent['status'];
   cancelReason: string | null;
   cancelledAt: Date | null;
@@ -111,6 +116,7 @@ export const toEventRow = (event: EventSource, now: Date): DemoEventRow => {
     approvalMode: event.approvalMode,
     visibility: event.visibility,
     organizerKey: event.organizerKey,
+    groupKey: event.groupKey ?? null,
     status: event.status,
     cancelReason: event.cancelReason ?? null,
     cancelledAt: event.status === 'cancelled' ? now : null,
