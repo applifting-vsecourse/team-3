@@ -5,4 +5,4 @@
 ALTER TYPE "report_target_type" ADD VALUE 'participant_rating';
 
 -- AlterTable
-ALTER TABLE "participant_rating" ADD COLUMN     "comment" TEXT;
+ALTER TABLE "participant_rating" ADD COLUMN     "comment" VARCHAR(500);

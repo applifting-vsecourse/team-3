@@ -210,7 +210,8 @@ describe('generated past events (#181)', () => {
       ...e.ratings.map((r) => r.comment),
       ...e.participantRatings.map((r) => r.comment),
     ]);
-    const onParticipants = allPast.flatMap((e) =>
+    // jen vygenerované: ručně psané hodnocení v rating-data.ts by prošlo i bez generátoru
+    const onParticipants = generatedPastEvents.flatMap((e) =>
       e.participantRatings.filter((r) => r.comment),
     );
 

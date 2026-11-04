@@ -120,7 +120,7 @@ const rate = (
           stableHash(`${key} ${userKey} pc`) % 5 === 0
             ? pick(
                 stars >= 4 ? participantPraise : participantCriticism,
-                `${key} ${userKey} pc`,
+                `${key} ${userKey} pick`,
               )
             : undefined,
       };
