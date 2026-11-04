@@ -203,7 +203,7 @@ Staging a CI/CD (F-59, F-60) už v repu jsou (`.github/workflows/ci.yml`, `deplo
 
 **Cíl:** Bez ověřeného e-mailu se nejde hlásit na akce ani zakládat akce a skupiny.
 
-> Změna (PO 4. 11.): **přihlásit se jde jen s ověřeným e-mailem** (BetterAuth `requireEmailVerification`). Každá přihláška na akci i do skupiny je pak od ověřeného uživatele, řeší S-5 (#236). Registrace nepřihlásí, ukáže „Zkontroluj e-mail“; přihlášení neověřeného odmítne s možností poslat odkaz znovu. Pruh „Ověř e-mail“ a stavy „neověřený“ na detailu akce a skupiny pak odpadnou. `VerifiedUserGuard` zůstává kvůli zablokovaným (`blockedAt`) a jako pojistka. Přihlášení přes Google má e-mail ověřený od Googlu.
+> Změna (PO 4. 11.): **přihlásit se jde jen s ověřeným e-mailem** (BetterAuth `requireEmailVerification`). Každá přihláška na akci i do skupiny je pak od ověřeného uživatele, řeší S-5 (#236). Registrace nepřihlásí, ukáže „Zkontroluj e-mail“; přihlášení neověřeného odmítne s možností poslat odkaz znovu. Pruh „Ověř e-mail“ a stavy „neověřený“ na detailu akce a skupiny pak odpadnou. `VerifiedUserGuard` zůstává kvůli zablokovaným (`blockedAt`) a jako pojistka: kdo se přihlásil neověřený před touto změnou, má session dál, proto guard dostane i `POST /api/groups/:id/join`. Přihlášení přes Google má e-mail ověřený od Googlu.
 
 - BetterAuth: ověřovací odkaz s platností 24 h (šablona `verify-email.tsx` už existuje).
 - Nový guard `VerifiedUserGuard` (vedle `authenticated-user.guard.ts`): 403 s kódem `EMAIL_NOT_VERIFIED`, když `emailVerified = false`. Guard zároveň odmítne zablokovaného uživatele (`blockedAt`).
