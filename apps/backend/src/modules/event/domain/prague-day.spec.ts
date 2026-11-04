@@ -44,9 +44,9 @@ describe('startOfNextPragueDay', () => {
 
   it('the last day the filter accepts: the next one is in year 10000', () => {
     // was a 500 on GET /api/events?dateTo=9999-12-31
-    expect(startOfNextPragueDay('9999-12-31').getUTCFullYear()).toBe(9999);
-    expect(startOfNextPragueDay('9999-12-31').getTime()).toBeGreaterThan(
-      startOfPragueDay('9999-12-31').getTime(),
+    // midnight of 10000-01-01 in Prague, winter time
+    expect(startOfNextPragueDay('9999-12-31').toISOString()).toBe(
+      '9999-12-31T23:00:00.000Z',
     );
   });
 });
