@@ -203,13 +203,20 @@ Staging a CI/CD (F-59, F-60) už v repu jsou (`.github/workflows/ci.yml`, `deplo
 
 **Cíl:** Bez ověřeného e-mailu se nejde hlásit na akce ani zakládat akce a skupiny.
 
+> Změna (PO 4. 11.): **přihlásit se jde jen s ověřeným e-mailem** (BetterAuth `requireEmailVerification`). Každá přihláška na akci i do skupiny je pak od ověřeného uživatele, řeší S-5 (#236). Registrace nepřihlásí, ukáže „Zkontroluj e-mail“; přihlášení neověřeného odmítne s možností poslat odkaz znovu. Pruh „Ověř si e-mail“ a stavy „neověřený“ na detailu akce a ve formuláři akce se dál nestaví ani nerozšiřují; ty hotové zůstávají jen jako pojistka pro session z doby před změnou. `VerifiedUserGuard` zůstává kvůli zablokovaným (`blockedAt`) a jako pojistka: kdo se přihlásil neověřený před touto změnou, má session dál, proto guard dostane i `POST /api/groups/:id/join`. Přihlášení přes Google má e-mail ověřený od Googlu.
+
 - BetterAuth: ověřovací odkaz s platností 24 h (šablona `verify-email.tsx` už existuje).
 - Nový guard `VerifiedUserGuard` (vedle `authenticated-user.guard.ts`): 403 s kódem `EMAIL_NOT_VERIFIED`, když `emailVerified = false`. Guard zároveň odmítne zablokovaného uživatele (`blockedAt`).
-- FE: přihlášený neověřený uživatel vidí pruh „Ověřte e-mail“ s tlačítkem pro nové odeslání odkazu.
+- BetterAuth `requireEmailVerification`: přihlášení e-mailem a heslem bez ověřeného e-mailu odmítne, registrace nevytvoří session.
+- FE: registrace skončí výzvou „Zkontroluj e-mail“; odmítnuté přihlášení neověřeného řekne proč a nabídne poslat odkaz znovu. Pruh „Ověř si e-mail“ (`VerifyEmailBanner`) zůstává jen jako pojistka pro session z doby před změnou.
+- Demo účet s neověřeným e-mailem (seed) se po změně nepřihlásí: na demu ukazuje odmítnuté přihlášení, ne pruh a stavy „neověřený“.
 
 **Hotovo, když:**
 
 - [ ] Test guardu: neověřený → 403, zablokovaný → 403, ověřený → projde.
+- [ ] Test přihlášení: neověřený e-mailem a heslem se nepřihlásí, ověřený ano.
+- [ ] Test registrace: po registraci uživatel není přihlášený a dostane ověřovací e-mail.
+- [ ] Test FE: po registraci výzva „Zkontroluj e-mail“, po odmítnutém přihlášení neověřeného hláška s novým odesláním odkazu.
 
 ---
 
@@ -236,7 +243,7 @@ Staging a CI/CD (F-59, F-60) už v repu jsou (`.github/workflows/ci.yml`, `deplo
 **Cíl:** Uživatel vyplní profil, domovská lokalita je výchozí ve filtrech.
 
 - `GET/PATCH /api/me/profile`: jméno, fotka (URL, viz otevřené otázky), bio (max 500 znaků), zájmy (aktivity), domovská lokalita.
-- `GET /api/users/:id` – veřejný profil: jen jméno, průměrné hodnocení (B-060) a zájmy. E-mail, historii akcí ani skupiny nevrací, ty vidí jen uživatel sám (PO 28. 10., #179). Víc údajů až s přátelstvím (B-014).
+- `GET /api/users/:id` – veřejný profil (PO 4. 11., mění 28. 10.): jméno, zájmy a hodnocení (B-060): jak ho hodnotili organizátoři jako účastníka (průměr a hodnocení s komentáři), průměr jako organizátor a průměrné hodnocení akcí, které pořádal. Když pořádal veřejné akce, i jejich historie s hodnocením každé akce. Jen veřejné akce, ne jen pro členy ani soukromé; akce skupin se osobě nepočítají. E-mail, akce, kterých se účastnil, ani skupiny nevrací, ty vidí jen uživatel sám (#179). Víc údajů až s přátelstvím (B-014).
 - FE: stránka `/profil` (úprava a přehled mých akcí, skupin a hodnocení, #178) a `/uzivatele/:id` (zobrazení, #179). Po prvním přihlášení se nevyplněný profil nabídne (onboarding: zájmy + lokalita, jde přeskočit).
 - Sprint 3 (#178): jméno, domovská lokalita a zájmy; fotka a bio zůstávají v #64.
 
@@ -253,7 +260,7 @@ Staging a CI/CD (F-59, F-60) už v repu jsou (`.github/workflows/ci.yml`, `deplo
 
 **Cíl:** Uživatel rozhoduje, kdo vidí fotku, bio a navštívené akce.
 
-> Odloženo (PO 28. 10.): nastavení viditelnosti přijde až s přátelstvím. Do té doby veřejný profil ukazuje jen jméno, hodnocení a zájmy (B-013).
+> Odloženo (PO 28. 10.): nastavení viditelnosti přijde až s přátelstvím. Do té doby veřejný profil ukazuje jméno, zájmy, hodnocení a historii pořádaných veřejných akcí (B-013, PO 4. 11.).
 
 - U každého z polí `photo`, `bio`, `pastEvents` volba: `everyone` / `organizers` (jen organizátoři akcí, na které se hlásím) / `nobody`. Výchozí `everyone`.
 - Filtrování dělá **backend** v `GET /api/users/:id`. Jméno vidí organizátor akce, na kterou se uživatel hlásí, vždy.
@@ -339,7 +346,7 @@ Doménová logika (čistá funkce + testy): `approvedCount`, `missingToMin = max
 - Stránka `/akce/nova`: povinná a nepovinná pole podle US-11, výběr místa mapou (B-004, režim výběru) + textová adresa, volba způsobu přihlašování (výchozí „Bez schválení“) a viditelnosti s krátkým vysvětlením.
 - Klientská validace stejná jako na BE, chyby pod polem, tlačítko s pending stavem (DESIGN.md › Forms).
 - Po zveřejnění přesměruj na detail a nabídni „Sdílet odkaz“ (kopírování do schránky + Web Share API na mobilu).
-- Neověřený uživatel vidí místo formuláře výzvu k ověření e-mailu.
+- Neověřený uživatel vidí místo formuláře výzvu k ověření e-mailu. Od PO 4. 11. jen pojistka pro session z doby před změnou (B-011): neověřený se nepřihlásí, nový stav se nestaví.
 
 **Hotovo, když:**
 
@@ -459,6 +466,7 @@ Doménová logika (čistá funkce + testy): `approvedCount`, `missingToMin = max
   - „Tyhle skupiny rozšiřují partu“ (PO 4. 11.): aktivní skupiny v okolí s nadcházející akcí, do kterých se dá přidat (veřejné) nebo požádat o členství (neveřejné), řazené podle nejbližší akce skupiny;
   - „Podle tvých zájmů“ jen pro přihlášeného: podle akcí, na kterých byl, nebo zájmů v profilu, jinak náhodný výběr.
 - Nepoužívej layout hero + tři karty (DESIGN.md).
+- Sekce skupin (PO 4. 11.): ne akce skupin, ale skupiny, které se potkávají a hledají členy, „tyto skupiny rozšiřují svou základnu“. Tým: aktivní skupiny v okolí s nadcházející akcí, do kterých se dá přidat (veřejné) nebo požádat o členství (neveřejné), řazené podle nejbližší akce skupiny; #182.
 
 **Hotovo, když:**
 
@@ -521,7 +529,7 @@ Doménová logika (čistá funkce + testy): `approvedCount`, `missingToMin = max
 
 - V detailu akce jedno primární tlačítko podle stavu:
   - nepřihlášený: „Přihlásit se na akci“ → login/registrace s `redirect` zpět
-  - neověřený: výzva k ověření e-mailu
+  - neověřený: výzva k ověření e-mailu (od PO 4. 11. jen pojistka pro session z doby před změnou, B-011)
   - akce se schvalováním: „Poslat žádost“ (dialog s nepovinnou zprávou) → „Čeká na schválení“ + „Stáhnout žádost“
   - akce bez schvalování: „Přijdu“ → „Jdu“ + „Odhlásit se“
   - plno: „Plno“ (disabled)
@@ -738,10 +746,12 @@ Doménová logika (čistá funkce + testy): `approvedCount`, `missingToMin = max
 `US-09` · FS · M · závisí na: B-031, B-043
 
 - Model `Rating`: `eventId`, `userId`, `eventStars` 1–5, `comment?`, `organizerStars` 1–5. Jedno hodnocení na uživatele a akci.
-- Hodnocení účastníka organizátorem (PO 28. 10.): model `ParticipantRating`: `eventId`, `participantId` (s `eventId` cizí klíč na účast), `stars` 1–5 (i `CHECK` v databázi), `deletedAt`. Jedno na účastníka a akci, hodnotí jen organizátor akce (ne sám sebe), jen u proběhlé akce (`endsAt`, když chybí, `startsAt`) a jen `approved` účastníka: `decideParticipantRating` v `modules/rating/domain/participant-rating.ts`. Bez komentáře. Po smazání superadminem jde hodnocení jen vrátit, ne dát znovu. Model a výpočet průměrů ve sprintu 3 (#180), dávání hodnocení ve sprintu 4 (#66).
+- Hodnocení účastníka organizátorem (PO 28. 10.): model `ParticipantRating`: `eventId`, `participantId` (s `eventId` cizí klíč na účast), `stars` 1–5 (i `CHECK` v databázi), `deletedAt`. Jedno na účastníka a akci, hodnotí jen organizátor akce (ne sám sebe), jen u proběhlé akce (`endsAt`, když chybí, `startsAt`) a jen `approved` účastníka: `decideParticipantRating` v `modules/rating/domain/participant-rating.ts`. Nepovinný `comment` (PO 4. 11., dřív bez komentáře), max. 500 znaků jako `Rating.comment`. Po smazání superadminem jde hodnocení jen vrátit, ne dát znovu. Model a výpočet průměrů ve sprintu 3 (#180), dávání hodnocení ve sprintu 4 (#66).
 - Hodnotit smí jen ten, kdo byl na akci `approved`, a až po skončení akce. Potvrzená docházka podmínkou není.
 - Hodnocení organizátora se počítá k osobě, u akce skupiny ke skupině. Průměr jako organizátor (`organizerRatingSummary`, z `Rating.organizerStars`, bez akcí skupin) a jako účastník (`participantRatingSummary`, z `ParticipantRating.stars`) jsou čisté funkce v `modules/rating/domain/rating-summary.ts` (#180) pro profil (B-013, #178, #179): zaokrouhlené na jedno desetinné místo, vždy s počtem, bez hodnocení `null`, smazaná hodnocení se nepočítají. Průměr skupiny zatím není.
+- Rychlé hodnocení účastníků (PO 4. 11.): organizátor dá všem najednou hvězdičky a komentář (předvyplněno 5★), pak jednotlivcům upraví hvězdičky i komentář. Odškrtnout, kdo nepřišel, půjde až v dalších sprintech. Uloží se hodnocení každého účastníka zvlášť, výchozí hodnota pro akci se neukládá. Jeden zápis v transakci; `decideParticipantRating` platí pro každého.
 - Organizátor vidí hodnocení a komentáře svých akcí (ve správě akce).
+- Hodnocení účastníka i s komentářem je vidět na jeho veřejném profilu (B-013).
 - FE: stránka `/akce/:id/hodnoceni` (sem vede odkaz z e-mailu).
 
 **Hotovo, když:**
@@ -755,9 +765,10 @@ Doménová logika (čistá funkce + testy): `approvedCount`, `missingToMin = max
 
 `US-10` · FS · S · závisí na: B-060, B-052
 
-- Model `Report`: `targetType` (`user` / `event` / `group` / `rating`), `targetId`, `reason` (`spam` / `fraud` / `inappropriate` / `other`), `comment?`, `reporterId`, `status` (`open` / `rejected` / `resolved`).
+- Model `Report`: `targetType` (`user` / `event` / `group` / `rating` / `participant_rating`), `targetId`, `reason` (`spam` / `fraud` / `inappropriate` / `other`), `comment?`, `reporterId`, `status` (`open` / `rejected` / `resolved`).
 - `POST /api/reports` jen přihlášený. Nahlášení samo nic neskryje. Nahlášený se nedozví, kdo ho nahlásil (`reporterId` nikdy nejde ven mimo admin API).
 - FE: „Nahlásit“ (menu ⋯) u akce, profilu, skupiny a hodnocení, dialog s důvodem.
+- Hodnocení účastníka má vlastní typ `participant_rating` (PO 4. 11.): je s komentářem na veřejném profilu a `targetId` bez cizího klíče by z `rating` nepoznal tabulku. Hotové nejpozději s komentáři na profilu.
 
 ---
 

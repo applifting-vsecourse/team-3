@@ -163,6 +163,7 @@ Každá role umí i všechno, co přihlášený uživatel. Správce skupiny ří
 - [ ] Hodnotit mohu jen akci, na které jsem byl přihlášený.
 - [ ] Akce: 1–5 hvězdiček + nepovinný komentář. Organizátor (osoba nebo skupina): 1–5 hvězdiček.
 - [ ] Organizátor vidí hodnocení a komentáře své akce; průměr je u jeho profilu / u skupiny.
+- [ ] Organizátor hodnotí účastníky: všem najednou (hvězdičky + komentář), pak jednotlivce upraví (PO 4. 11.). Hodnocení účastníka i s komentářem je na jeho veřejném profilu.
 - [ ] Potvrzená docházka není podmínkou hodnocení.
 
 ---
