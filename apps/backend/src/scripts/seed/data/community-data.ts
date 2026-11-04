@@ -2,12 +2,16 @@ import { czechTowns } from './czech-towns';
 import {
   DemoActivitySlug,
   DemoEvent,
+  demoEvents,
   DemoGroup,
   demoLocalities,
 } from './demo-data';
+import { buildRegionalPlans } from './regional-data';
+import { stableHash } from './stable-hash';
 
 /**
- * Komunita HobbyHubu: 100 uživatelů po celém Česku, jejich akce a skupiny.
+ * Komunita HobbyHubu: 133 uživatelů po celém Česku, jejich akce a skupiny.
+ * Od #181 i akce krajských měst (regional-data.ts) a víc lidí v krajských městech.
  * Aplikace má vypadat jako produkt, který už lidé používají – ne jako školní
  * ukázka se čtyřmi demo účty. Data #47 (demo-data.ts) zůstávají beze změny;
  * tohle je samostatná vrstva, seed ji vkládá spolu s nimi (seed/seed-content.ts).
@@ -721,6 +725,206 @@ export const communityUsers: CommunityUser[] = [
     ['turistika', 'spolecne-vareni', 'fotografie'],
     'Vinařka ze Znojma. Procházky vinicemi končí ochutnávkou, kdo chce.',
   ),
+
+  // Krajská města, aby měla každá aspoň 6 ověřených lidí na běžné aktivity (#181, 33)
+  person(
+    'Radek Mikulec',
+    'ostrava',
+    ['fotbal', 'badminton', 'plavani'],
+    'Strojař z Poruby. Malá kopaná ve středu je pro mě povinnost, v zimě chodím na badminton.',
+  ),
+  person(
+    'Hana Šimková',
+    'plzen',
+    ['joga', 'plavani', 'beh'],
+    'Fyzioterapeutka z Bor. Jógu vedu pro kolegy z nemocnice, ráno plavu na Slovanech.',
+  ),
+  person(
+    'Vojtěch Kroupa',
+    'plzen',
+    ['florbal', 'fotbal', 'stolni-tenis'],
+    'Studuju na ZČU a florbal hraju od základky. Pingpong je moje přestávka mezi přednáškami.',
+  ),
+  person(
+    'Ivana Rybářová',
+    'plzen',
+    ['deskove-hry', 'turistika', 'volejbal'],
+    'Účetní z Doubravky. O víkendu Šumava, přes týden deskovky s partou z práce.',
+  ),
+  person(
+    'Filip Stejskal',
+    'olomouc',
+    ['volejbal', 'florbal', 'badminton'],
+    'Učitel tělocviku. Po práci mě to táhne zase do haly, tentokrát na druhé straně sítě.',
+  ),
+  person(
+    'Marta Holubová',
+    'olomouc',
+    ['joga', 'turistika', 'plavani'],
+    'Knihovnice z centra. Jóga v parku a výlety do Jeseníků jsou moje rovnováha.',
+  ),
+  person(
+    'Patrik Moravec',
+    'liberec',
+    ['beh', 'fotbal', 'stolni-tenis'],
+    'Běhám kolem Harcovské přehrady, v neděli kopu za firemní tým. Uvítal bych víc lidí na pingpong.',
+  ),
+  person(
+    'Simona Kadlecová',
+    'liberec',
+    ['joga', 'deskove-hry', 'plavani'],
+    'Grafička z Ruprechtic. Ráno jóga, večer deskovky, mezi tím bazén na Tržním náměstí.',
+  ),
+  person(
+    'Ondřej Paur',
+    'liberec',
+    ['volejbal', 'badminton', 'florbal'],
+    'Elektrikář, volejbal hraju dvacet let. Hledám partu, která nebere výsledek moc vážně.',
+  ),
+  person(
+    'Lucie Hájková',
+    'hradec-kralove',
+    ['beh', 'joga', 'turistika'],
+    'Sestra z fakultní nemocnice. Běhám po směnách podél Labe, nejradši s někým.',
+  ),
+  person(
+    'Michal Brož',
+    'hradec-kralove',
+    ['fotbal', 'florbal', 'badminton'],
+    'Obchodník z Malšovic. Hraju všechno s míčkem, kde je potřeba doplnit lidi.',
+  ),
+  person(
+    'Eliška Tůmová',
+    'hradec-kralove',
+    ['deskove-hry', 'plavani', 'stolni-tenis'],
+    'Studentka farmacie. Deskovky učím spolubydlící a pingpong hraju na koleji.',
+  ),
+  person(
+    'Jiří Vacek',
+    'pardubice',
+    ['beh', 'fotbal', 'stolni-tenis'],
+    'Chemik z Polabin. Běhám kolem Bažantnice, v zimě pingpong v klubovně.',
+  ),
+  person(
+    'Romana Kubíčková',
+    'pardubice',
+    ['joga', 'turistika', 'deskove-hry'],
+    'Pracuju v knihkupectví. Víkendy trávím v Železných horách, večery u her.',
+  ),
+  person(
+    'Aleš Doležal',
+    'pardubice',
+    ['volejbal', 'badminton', 'plavani'],
+    'IT podpora, volejbal hraju od střední. Uvítal bych pravidelný termín i v létě.',
+  ),
+  person(
+    'Gabriela Šťastná',
+    'ceske-budejovice',
+    ['joga', 'plavani', 'badminton'],
+    'Učitelka angličtiny. Jóga mi pomáhá po dni ve třídě, v pátek badminton s kamarádkami.',
+  ),
+  person(
+    'Petr Kolář',
+    'ceske-budejovice',
+    ['fotbal', 'volejbal', 'stolni-tenis'],
+    'Stavař ze Suchého Vrbného. Kopanou hraju na umělce u Malše, kdo chce, přidá se.',
+  ),
+  person(
+    'Natálie Fialová',
+    'ceske-budejovice',
+    ['deskove-hry', 'turistika', 'beh'],
+    'Studentka Jihočeské univerzity. Deskovky, Blanský les a běh podél Vltavy.',
+  ),
+  person(
+    'Josef Kučera',
+    'usti-nad-labem',
+    ['turistika', 'beh', 'fotbal'],
+    'Na Střekov chodím od dětství a pořád objevuju nové cesty po Českém středohoří.',
+  ),
+  person(
+    'Monika Vlčková',
+    'usti-nad-labem',
+    ['joga', 'plavani', 'deskove-hry'],
+    'Sociální pracovnice. Po práci potřebuju klid, proto jóga a bazén.',
+  ),
+  person(
+    'Daniel Pokorný',
+    'usti-nad-labem',
+    ['volejbal', 'florbal', 'badminton'],
+    'Logistik z Klíše. Florbal hraju za amatérský tým, volejbal jen tak pro radost.',
+  ),
+  person(
+    'Klára Novotná',
+    'usti-nad-labem',
+    ['stolni-tenis', 'badminton', 'beh'],
+    'Laborantka. Pingpong mě chytil na vysoké a od té doby hledám soupeře.',
+  ),
+  person(
+    'Stanislav Hruška',
+    'zlin',
+    ['fotbal', 'florbal', 'beh'],
+    'Konstruktér z Malenovic. Kopaná na Vršavě je moje středeční jistota.',
+  ),
+  person(
+    'Veronika Zedníková',
+    'zlin',
+    ['joga', 'plavani', 'turistika'],
+    'Designérka obuvi. Ráno jóga, o víkendu Hostýnské vrchy.',
+  ),
+  person(
+    'Tadeáš Bartoň',
+    'zlin',
+    ['volejbal', 'badminton', 'stolni-tenis'],
+    'Student UTB. Volejbal a badminton hraju, kdykoli se najde volná hala.',
+  ),
+  person(
+    'Alena Pospíšilová',
+    'jihlava',
+    ['joga', 'turistika', 'deskove-hry'],
+    'Úřednice z krajského úřadu. Na Vysočině mám nachozené stovky kilometrů.',
+  ),
+  person(
+    'Marek Dvořáček',
+    'jihlava',
+    ['fotbal', 'volejbal', 'beh'],
+    'Mechanik. Fotbal hraju za okresní přebor, volejbal jen v létě na písku.',
+  ),
+  person(
+    'Kristýna Šebestová',
+    'jihlava',
+    ['badminton', 'plavani', 'stolni-tenis'],
+    'Zdravotní laborantka. Badminton dvakrát týdně, mezi tím bazén na Evropské.',
+  ),
+  person(
+    'Lubomír Havlík',
+    'jihlava',
+    ['florbal', 'beh', 'deskove-hry'],
+    'Učitel na základce, florbal trénuju s dětmi. Sám si rád zahraju s dospělými.',
+  ),
+  person(
+    'Jitka Charvátová',
+    'karlovy-vary',
+    ['joga', 'plavani', 'turistika'],
+    'Lázeňská terapeutka. Jóga a procházky po lázeňských lesích jsou moje práce i koníček.',
+  ),
+  person(
+    'Roman Kos',
+    'karlovy-vary',
+    ['fotbal', 'florbal', 'beh'],
+    'Číšník z hotelu u Vřídla. Ráno běhám k Dianě, odpoledne kopu s kolegy.',
+  ),
+  person(
+    'Pavla Zahradníková',
+    'karlovy-vary',
+    ['deskove-hry', 'badminton', 'stolni-tenis'],
+    'Recepční. Deskovky a pingpong mě baví hlavně proto, že se u nich lidi poznají.',
+  ),
+  person(
+    'Viktor Matoušek',
+    'karlovy-vary',
+    ['volejbal', 'badminton', 'fotbal'],
+    'Elektrotechnik. Volejbal hraju v Doubí, uvítal bych víc lidí na pravidelné hraní.',
+  ),
 ];
 
 // ---------------------------------------------------------------------------
@@ -753,7 +957,7 @@ export type CommunityEventPlan = {
   wide?: true;
 };
 
-export const communityEventPlans: CommunityEventPlan[] = [
+const handWrittenEventPlans: CommunityEventPlan[] = [
   // Praha – akce v prvních 8 dnech mají vždy aspoň minimum (viz hlavička)
   {
     key: 'k-beh-stromovka',
@@ -2352,6 +2556,105 @@ export const communityEventPlans: CommunityEventPlan[] = [
     organizerKey: 'lenka.vintrova',
     approved: 5,
   },
+
+  // Aktivity z nálezů #167 mimo běžné (#181): nohejbal nesmí mít jen plnou akci,
+  // hledač z Plzně hledal šipky, další kulečník, bruslení a rybaření.
+  {
+    key: 'k-nohejbal-brno',
+    title: 'Nohejbal na Kraví hoře',
+    description:
+      'Hrajeme trojice na venkovním kurtu, míč i síť mám. Pravidla vysvětlím každému, kdo hraje poprvé.',
+    activitySlug: 'nohejbal',
+    localitySlug: 'brno',
+    address: 'Venkovní kurty Kraví hora, Brno',
+    days: 13,
+    time: '17:00',
+    durationMinutes: 120,
+    min: 4,
+    max: 6,
+    level: 'all',
+    equipment: 'Sportovní obuv',
+    approvalMode: 'open',
+    organizerKey: 'tomas.mares',
+    approved: 4,
+  },
+  {
+    key: 'k-sipky-plzen',
+    title: 'Šipky a bowling na Slovanech',
+    description:
+      'Nejdřív dvě hry bowlingu, pak šipky do zavírací doby. Dráhu platíme společně, šipky jsou zdarma.',
+    activitySlug: 'sipky-a-bowling',
+    localitySlug: 'plzen',
+    address: 'Bowling a šipky, Slovanská alej, Plzeň',
+    days: 11,
+    time: '19:00',
+    durationMinutes: 180,
+    min: 3,
+    max: 8,
+    price: 120,
+    level: 'all',
+    approvalMode: 'open',
+    organizerKey: 'ivana.rybarova',
+    approved: 3,
+  },
+  {
+    key: 'k-kulecnik-ostrava',
+    title: 'Kulečník v Porubě',
+    description:
+      'Pool na čtyřech stolech, hrajeme osmičku. Začátečníci jsou vítaní, tága lze půjčit.',
+    activitySlug: 'kulecnik',
+    localitySlug: 'ostrava',
+    address: 'Herna kulečníku, Hlavní třída, Ostrava-Poruba',
+    days: 16,
+    time: '19:00',
+    durationMinutes: 150,
+    min: 2,
+    max: 8,
+    price: 80,
+    level: 'all',
+    approvalMode: 'open',
+    organizerKey: 'radek.mikulec',
+    approved: 3,
+  },
+  {
+    key: 'k-brusleni-hk',
+    title: 'Veřejné bruslení na zimáku',
+    description:
+      'Hodina veřejného bruslení, kdo neumí, toho podržíme. Brusle lze půjčit u pokladny.',
+    activitySlug: 'brusleni',
+    localitySlug: 'hradec-kralove',
+    address: 'Zimní stadion, Hradec Králové',
+    days: 19,
+    time: '17:00',
+    durationMinutes: 60,
+    min: 2,
+    max: 10,
+    price: 70,
+    level: 'beginner',
+    equipment: 'Brusle, rukavice',
+    approvalMode: 'open',
+    organizerKey: 'michal.broz',
+    approved: 3,
+  },
+  {
+    key: 'k-rybareni-cb',
+    title: 'Rybaření na Vltavě',
+    description:
+      'Ranní lov na plavanou pod jezem, rybářský lístek je nutný. Kdo začíná, ukážu mu montáž.',
+    activitySlug: 'rybareni',
+    localitySlug: 'ceske-budejovice',
+    address: 'Jez Dlouhá louka, České Budějovice',
+    days: 22,
+    time: '06:00',
+    durationMinutes: 240,
+    min: 1,
+    max: 5,
+    level: 'all',
+    equipment: 'Prut, rybářský lístek',
+    approvalMode: 'open',
+    organizerKey: 'petr.kolar',
+    approved: 2,
+  },
 ];
 
 // ---------------------------------------------------------------------------
@@ -2620,18 +2923,14 @@ export const isPrague = (localitySlug: string): boolean =>
   localitySlug === 'praha' || localitySlug.startsWith('praha-');
 
 const cityOf = (slug: string): string => (isPrague(slug) ? 'praha' : slug);
-const regionOf = (slug: string): string =>
+export const regionOf = (slug: string): string =>
   isPrague(slug) ? 'praha' : (REGION[slug] ?? slug);
 
-/** FNV-1a: stabilní „náhodné“ pořadí bez generátoru náhody. */
-const hash = (text: string): number => {
-  let h = 2166136261;
-  for (let i = 0; i < text.length; i++) {
-    h ^= text.charCodeAt(i);
-    h = Math.imul(h, 16777619);
-  }
-  return h >>> 0;
-};
+/** Kraj lokality a sousední kraje: odkud se na pravidelnou akci jezdí. */
+export const nearRegions = (slug: string): string[] => [
+  regionOf(slug),
+  ...(NEIGHBOURS[regionOf(slug)] ?? []),
+];
 
 const verifiedUsers = communityUsers.filter((user) => user.emailVerified);
 
@@ -2639,7 +2938,7 @@ const verifiedUsers = communityUsers.filter((user) => user.emailVerified);
  * Kandidáti seřazení podle blízkosti a zájmu: město > kraj > sousední kraj, se zájmem
  * o aktivitu napřed. Lidé ze vzdálených krajů jen u akcí `wide` (závody).
  */
-const rankCandidates = (
+export const rankCandidates = (
   place: {
     key: string;
     localitySlug: string;
@@ -2670,7 +2969,7 @@ const rankCandidates = (
         user,
         near,
         score: near + interested,
-        tie: hash(place.key + user.key),
+        tie: stableHash(place.key + user.key),
       };
     })
     .filter(({ near }) => near > 0 || place.wide)
@@ -2693,7 +2992,7 @@ const groupRequestMessages = [
 ];
 
 const pickMessage = <T>(pool: T[], seed: string): T =>
-  pool[hash(seed) % pool.length];
+  pool[stableHash(seed) % pool.length];
 
 /** Souřadnice měst z katalogu (krajská města a Praha z demo-data.ts, ostatní z czech-towns.ts). */
 const townCoordinates = new Map<string, { lat: number; lng: number }>(
@@ -2704,13 +3003,13 @@ const townCoordinates = new Map<string, { lat: number; lng: number }>(
 );
 
 /** Souřadnice místa akce: střed města z katalogu ± do ~1 km, stabilně podle klíče. */
-const nearTown = (
+export const nearTown = (
   localitySlug: string,
   key: string,
 ): { lat: number; lng: number } => {
   const town = townCoordinates.get(localitySlug);
   if (!town) return { lat: 0, lng: 0 }; // spec to odhalí: lokalita mimo katalog
-  const h = hash(key);
+  const h = stableHash(key);
   const round = (value: number): number => Math.round(value * 10_000) / 10_000;
   return {
     lat: round(town.lat + ((h % 1000) / 1000 - 0.5) * 0.016),
@@ -2821,6 +3120,39 @@ const buildGroups = (plans: CommunityGroupPlan[]): CommunityGroup[] =>
       ],
     };
   });
+
+/** Kdo který den (dny od seedu) pořádá ručně psanou akci. */
+const organizerDays = (
+  plans: CommunityEventPlan[],
+): Map<string, Set<number>> => {
+  const days = new Map<string, Set<number>>();
+  for (const plan of plans) {
+    days.set(
+      plan.organizerKey,
+      (days.get(plan.organizerKey) ?? new Set()).add(plan.days),
+    );
+  }
+  return days;
+};
+
+/**
+ * Ručně psané akce a k nim akce, které krajským městům chyběly u běžných
+ * aktivit (#181, regional-data.ts). Demo akce #47 se počítají do pokrytí Prahy.
+ */
+export const communityEventPlans: CommunityEventPlan[] = [
+  ...handWrittenEventPlans,
+  ...buildRegionalPlans(
+    communityUsers,
+    [
+      ...demoEvents.filter(
+        (e) => e.status === 'published' && e.visibility === 'public',
+      ),
+      ...handWrittenEventPlans,
+    ],
+    organizerDays(handWrittenEventPlans),
+    { of: regionOf, near: nearRegions },
+  ),
+];
 
 export const communityEvents: CommunityEvent[] =
   buildEvents(communityEventPlans);

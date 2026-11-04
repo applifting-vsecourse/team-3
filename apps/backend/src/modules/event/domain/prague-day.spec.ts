@@ -41,4 +41,22 @@ describe('startOfNextPragueDay', () => {
       '2026-12-31T23:00:00.000Z',
     );
   });
+
+  it('the last day the filter accepts: the next one is in year 10000', () => {
+    // was a 500 on GET /api/events?dateTo=9999-12-31
+    // midnight of 10000-01-01 in Prague, winter time
+    expect(startOfNextPragueDay('9999-12-31').toISOString()).toBe(
+      '9999-12-31T23:00:00.000Z',
+    );
+  });
+});
+
+describe('years 0–99', () => {
+  it('stay in the first century, not in 1900–1999', () => {
+    expect(startOfPragueDay('0099-06-01').getUTCFullYear()).toBe(99);
+    expect(startOfNextPragueDay('0001-01-01').getUTCFullYear()).toBe(1);
+    expect(startOfPragueDay('0000-06-01').toISOString()).toBe(
+      '0000-05-31T23:03:00.000Z',
+    );
+  });
 });

@@ -120,12 +120,14 @@ enum GroupMemberStatus {
   @@map("group_member_status")
 }
 
-/// B-061
+/// B-061. `rating` = hodnocení akce a organizátora, `participant_rating` = hodnocení účastníka
+/// (PO 4. 11.: jeho komentář je na veřejném profilu).
 enum ReportTargetType {
   user
   event
   group
   rating
+  participant_rating
 
   @@map("report_target_type")
 }
@@ -534,6 +536,8 @@ model Rating {
 /// sám sebe (hlídá aplikace, decideParticipantRating). Složený cizí klíč na účast zaručuje,
 /// že hodnocený byl na akci přihlášený. `stars` 1–5 hlídá i databáze: CHECK v migraci,
 /// Prisma ho ve schématu neumí zapsat. `deletedAt` = smazáno superadminem (jde vrátit, B-063).
+/// `comment` nepovinný, max. 500 znaků jako u `Rating` (PO 4. 11.); je na veřejném profilu,
+/// proto délku hlídá i databáze (`VarChar(500)` jako `bio`).
 model ParticipantRating {
   id            String        @id @default(cuid())
   eventId       String
@@ -541,6 +545,7 @@ model ParticipantRating {
   participantId String
   participation Participation @relation(fields: [eventId, participantId], references: [eventId, userId], onDelete: Cascade)
   stars         Int
+  comment       String?       @db.VarChar(500)
   deletedAt     DateTime?
   createdAt     DateTime      @default(now())
   updatedAt     DateTime      @default(now()) @updatedAt

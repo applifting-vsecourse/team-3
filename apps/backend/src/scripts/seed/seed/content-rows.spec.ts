@@ -9,6 +9,8 @@ import {
   demoGroups,
   demoLocalities,
 } from '@/scripts/seed/data/demo-data';
+import { groupEvents } from '@/scripts/seed/data/group-events-data';
+import { generatedPastEvents } from '@/scripts/seed/data/past-data';
 import { pastEvents } from '@/scripts/seed/data/rating-data';
 import {
   buildContentRows,
@@ -55,7 +57,11 @@ describe('buildContentRows', () => {
       demoGroups.length + communityGroups.length,
     );
     expect(rows.events).toHaveLength(
-      demoEvents.length + communityEvents.length + pastEvents.length,
+      demoEvents.length +
+        communityEvents.length +
+        groupEvents.length +
+        pastEvents.length +
+        generatedPastEvents.length,
     );
     const ids = [...rows.groups, ...rows.events].map((row) => row.id);
     expect(new Set(ids).size).toBe(ids.length);
@@ -66,6 +72,10 @@ describe('buildContentRows', () => {
     const groupIds = new Set(rows.groups.map((g) => g.id));
     const eventIds = new Set(rows.events.map((e) => e.id));
 
+    // akce skupin (#181) míří na skupinu ze stejného sestavení
+    const groupEventRows = rows.events.filter((e) => e.groupId);
+    expect(groupEventRows.length).toBeGreaterThan(0);
+    groupEventRows.forEach((e) => expect(groupIds.has(e.groupId!)).toBe(true));
     rows.groupMembers.forEach((m) =>
       expect(groupIds.has(m.groupId)).toBe(true),
     );
@@ -99,7 +109,7 @@ describe('buildContentRows', () => {
 
   it('stamps the ratings deleted by the superadmin with the seed time', () => {
     const rows = build();
-    const deleted = pastEvents.flatMap((e) => [
+    const deleted = [...pastEvents, ...generatedPastEvents].flatMap((e) => [
       ...e.ratings.filter((r) => r.deleted),
       ...e.participantRatings.filter((r) => r.deleted),
     ]);
@@ -109,6 +119,26 @@ describe('buildContentRows', () => {
         (r) => r.deletedAt === now,
       ),
     ).toHaveLength(deleted.length);
+  });
+
+  it("keeps the organizer's comments on participants (PO 4. 11.)", () => {
+    const rows = build();
+    const comments = [...pastEvents, ...generatedPastEvents].flatMap((e) =>
+      e.participantRatings.flatMap((r) =>
+        r.comment
+          ? [{ participantId: `u-${r.userKey}`, comment: r.comment }]
+          : [],
+      ),
+    );
+
+    expect(comments.length).toBeGreaterThan(0);
+    expect(
+      rows.participantRatings.flatMap((r) =>
+        r.comment
+          ? [{ participantId: r.participantId, comment: r.comment }]
+          : [],
+      ),
+    ).toEqual(comments);
   });
 });
 

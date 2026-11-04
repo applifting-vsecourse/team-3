@@ -206,11 +206,12 @@ erDiagram
         string eventId FK
         string participantId FK "s eventId cizí klíč na účast"
         int stars "1–5, CHECK v databázi"
+        string comment "nepovinný, na veřejném profilu"
         datetime deletedAt "smazáno superadminem"
     }
     Report {
         string id PK
-        report_target_type targetType "user / event / group / rating"
+        report_target_type targetType "user / event / group / rating / participant_rating"
         string targetId "bez cizího klíče"
         report_reason reason "spam / fraud / inappropriate / other"
         string comment
@@ -255,7 +256,7 @@ Databáze vynucuje cizí klíče, unikátnost a enumy, k tomu jediný `CHECK`: h
 - **Kapacita (B-020, B-030):** `approvedCount`, `missingToMin`, `freeSpots`, `isFull` se počítají jen ze schválených účastí. Organizátor do kapacity patří, jen když je sám přihlášený (Q12). Kontrola kapacity a zápis účasti v jedné transakci (B-031).
 - **Jedna přihláška na akci a jedno členství ve skupině:** v databázi unikátní dvojice `eventId + userId` a `groupId + userId`. Opakovaná žádost proto mění stav existujícího záznamu, nevytváří nový.
 - **Hodnocení akce a organizátora (`Rating`) 1–5 hvězd** a jen po skončení akce, kde byl uživatel schválený (B-060).
-- **Hodnocení účastníka (`ParticipantRating`, #180):** jen organizátor akce, jen `approved` účastníka, jen po skončení akce (`endsAt`, když chybí, `startsAt`), ne zrušené a ne sám sebe. Čistá funkce `decideParticipantRating` v [`modules/rating/domain/participant-rating.ts`](../apps/backend/src/modules/rating/domain/participant-rating.ts). Jedno na účastníka a akci a hvězdičky 1–5 hlídá databáze.
+- **Hodnocení účastníka (`ParticipantRating`, #180):** jen organizátor akce, jen `approved` účastníka, jen po skončení akce (`endsAt`, když chybí, `startsAt`), ne zrušené a ne sám sebe. Čistá funkce `decideParticipantRating` v [`modules/rating/domain/participant-rating.ts`](../apps/backend/src/modules/rating/domain/participant-rating.ts). Jedno na účastníka a akci a hvězdičky 1–5 hlídá databáze. Nepovinný komentář (PO 4. 11.) je na veřejném profilu hodnoceného, proto jde nahlásit (`participant_rating` v `report_target_type`); max. `RATING_COMMENT_MAX_LENGTH` (500) znaků, stejně jako u `Rating`, hlídá aplikace (#66).
 - **Průměrné hodnocení v profilu (#178, #179):** jako organizátor z `Rating.organizerStars`, jako účastník z `ParticipantRating.stars`; zaokrouhlené na jedno desetinné místo, vždy s počtem, bez hodnocení `null`. Smazaná hodnocení se nepočítají, akce skupin se osobě jako organizátorovi nepočítají. Čisté funkce v [`modules/rating/domain/rating-summary.ts`](../apps/backend/src/modules/rating/domain/rating-summary.ts).
 - **Poslední správce skupiny** se nemůže vzdát role ani odejít (B-054).
 - **Akce se fyzicky nemaže** (Q11): zrušení = `status = cancelled`, zásah superadmina = `hidden` / `deleted`. Skupina se jen deaktivuje (B-051).
@@ -286,8 +287,9 @@ Seed (`apps/backend/src/scripts/seed/`) je opakovatelný a běží lokálně př
 2. **Superadmin** z `SUPERADMIN_EMAIL` / `SUPERADMIN_PASSWORD`, když chybí.
 3. **Testovací data**, v produkci jen se `SEED_DEMO_DATA=true`, které má staging v `Dockerfile.deploy`; jinde vypnout jde `SEED_DEMO_DATA=false`:
    - demo data #47 (41 uživatelů, 10 skupin, 59 akcí v Praze),
-   - komunita #150 (100 uživatelů, 16 skupin, 80 akcí po Česku),
-   - proběhlé akce a hodnocení #180 (4 akce demo uživatelů, 11 hodnocení akce a organizátora, 12 hodnocení účastníků; data a průměry v [`rating-data.ts`](../apps/backend/src/scripts/seed/data/rating-data.ts)).
+   - komunita #150 (133 uživatelů, 16 skupin, 304 nadcházejících akcí po Česku); od #181 v ní jsou akce krajských měst, aby měla každá běžná aktivita v Praze a každém krajském městě aspoň 2 akce ([`regional-data.ts`](../apps/backend/src/scripts/seed/data/regional-data.ts)),
+   - akce skupin #181 (každá aktivní skupina má nadcházející veřejnou akci a akci jen pro členy, 50 akcí; [`group-events-data.ts`](../apps/backend/src/scripts/seed/data/group-events-data.ts)),
+   - proběhlé akce a hodnocení #180 (4 akce demo uživatelů s ukázkovými průměry v [`rating-data.ts`](../apps/backend/src/scripts/seed/data/rating-data.ts)) a #181 (104 dalších proběhlých akcí po Česku i ve skupinách, pár zrušených, mimo jiné ty, na které by se nesešlo minimum lidí; [`past-data.ts`](../apps/backend/src/scripts/seed/data/past-data.ts)); celkem přes 300 hodnocení akce a organizátora a přes 300 hodnocení účastníků.
 
    Účty se jen doplní. Ostatní data mají verzi (#181): `SEED_DATA_VERSION` v [`seed-content.ts`](../apps/backend/src/scripts/seed/seed/seed-content.ts) proti řádku v `seed_state`. Při rozdílu seed v jedné transakci smaže akce a skupiny, které vložil předchozí seed (jejich id jsou v `seed_state.eventIds` a `groupIds`; data před #181 pozná podle obsahu), vrátí profily seedových účtů podle dat, vloží všechno znovu s čerstvými termíny a zapíše verzi i s id nových řádků. Co založili testeři, i pod demo účty, zůstane. Postup pro novou verzi je v [README](../README.md#test-data-versions-181).
 
