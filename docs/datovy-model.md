@@ -206,11 +206,12 @@ erDiagram
         string eventId FK
         string participantId FK "s eventId cizí klíč na účast"
         int stars "1–5, CHECK v databázi"
+        string comment "nepovinný, na veřejném profilu"
         datetime deletedAt "smazáno superadminem"
     }
     Report {
         string id PK
-        report_target_type targetType "user / event / group / rating"
+        report_target_type targetType "user / event / group / rating / participant_rating"
         string targetId "bez cizího klíče"
         report_reason reason "spam / fraud / inappropriate / other"
         string comment
@@ -255,7 +256,7 @@ Databáze vynucuje cizí klíče, unikátnost a enumy, k tomu jediný `CHECK`: h
 - **Kapacita (B-020, B-030):** `approvedCount`, `missingToMin`, `freeSpots`, `isFull` se počítají jen ze schválených účastí. Organizátor do kapacity patří, jen když je sám přihlášený (Q12). Kontrola kapacity a zápis účasti v jedné transakci (B-031).
 - **Jedna přihláška na akci a jedno členství ve skupině:** v databázi unikátní dvojice `eventId + userId` a `groupId + userId`. Opakovaná žádost proto mění stav existujícího záznamu, nevytváří nový.
 - **Hodnocení akce a organizátora (`Rating`) 1–5 hvězd** a jen po skončení akce, kde byl uživatel schválený (B-060).
-- **Hodnocení účastníka (`ParticipantRating`, #180):** jen organizátor akce, jen `approved` účastníka, jen po skončení akce (`endsAt`, když chybí, `startsAt`), ne zrušené a ne sám sebe. Čistá funkce `decideParticipantRating` v [`modules/rating/domain/participant-rating.ts`](../apps/backend/src/modules/rating/domain/participant-rating.ts). Jedno na účastníka a akci a hvězdičky 1–5 hlídá databáze.
+- **Hodnocení účastníka (`ParticipantRating`, #180):** jen organizátor akce, jen `approved` účastníka, jen po skončení akce (`endsAt`, když chybí, `startsAt`), ne zrušené a ne sám sebe. Čistá funkce `decideParticipantRating` v [`modules/rating/domain/participant-rating.ts`](../apps/backend/src/modules/rating/domain/participant-rating.ts). Jedno na účastníka a akci a hvězdičky 1–5 hlídá databáze. Nepovinný komentář (PO 4. 11.) je na veřejném profilu hodnoceného, proto jde nahlásit (`participant_rating` v `report_target_type`); max. `RATING_COMMENT_MAX_LENGTH` (500) znaků, stejně jako u `Rating`, hlídá aplikace (#66).
 - **Průměrné hodnocení v profilu (#178, #179):** jako organizátor z `Rating.organizerStars`, jako účastník z `ParticipantRating.stars`; zaokrouhlené na jedno desetinné místo, vždy s počtem, bez hodnocení `null`. Smazaná hodnocení se nepočítají, akce skupin se osobě jako organizátorovi nepočítají. Čisté funkce v [`modules/rating/domain/rating-summary.ts`](../apps/backend/src/modules/rating/domain/rating-summary.ts).
 - **Poslední správce skupiny** se nemůže vzdát role ani odejít (B-054).
 - **Akce se fyzicky nemaže** (Q11): zrušení = `status = cancelled`, zásah superadmina = `hidden` / `deleted`. Skupina se jen deaktivuje (B-051).
