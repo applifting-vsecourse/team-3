@@ -1,9 +1,10 @@
 import { NestFactory } from '@nestjs/core';
-import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 import { toNodeHandler } from 'better-auth/node';
 import * as cookieParser from 'cookie-parser';
 import * as express from 'express';
 import { AppModule } from './app.module';
+import { setupApiDocs } from './core/api-docs/api-docs';
+import { apiDocsEnabled } from './core/api-docs/api-docs-enabled';
 import { sameOriginWrites } from './core/security/same-origin-writes';
 import { securityHeaders } from './core/security/security-headers';
 import { BetterAuth } from './shared/auth/providers/better-auth.provider';
@@ -43,17 +44,10 @@ async function main(): Promise<void> {
   // Configure API prefix for all routes
   app.setGlobalPrefix('api');
 
-  // Setup Swagger API documentation at /api/docs
-  const swaggerConfig = new DocumentBuilder()
-    .setTitle(config.name)
-    .setDescription(config.description)
-    .setVersion(config.version)
-    .addServer('/api')
-    .addCookieAuth('better-auth.session_token')
-    .build();
-
-  const document = SwaggerModule.createDocument(app, swaggerConfig);
-  SwaggerModule.setup('api/docs', app, document);
+  // Swagger at /api/docs, off in production unless API_DOCS=true (N-9)
+  if (apiDocsEnabled(config)) {
+    setupApiDocs(app, config);
+  }
 
   // Print debug information for development purposes
   if (config.nodeEnv !== 'production') {
