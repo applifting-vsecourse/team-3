@@ -418,6 +418,9 @@ Doménová logika (čistá funkce + testy): `approvedCount`, `missingToMin = max
 - Hledání (`q`) podle názvu i klíčových slov aktivity (`Activity.keywords`) není hlavní prvek: desktop vpravo v liště filtrů, mobil lupa v hlavičce (#57).
 - Okolí zvolené lokality +10 / 25 / 50 km (bounding box / vzdálenost ze souřadnic katalogu, BE rozšíří where-builder z B-023).
 - Řazení podle vzdálenosti od středu zvolené lokality; vzdálenost na kartě akce.
+- Řazení „Nejbližší termín“ (výchozí) / „Nejmenší vzdálenost“ od středu zvolené lokality (Figma A-02j); bez zvolené lokality (celé Česko) jen termín.
+- „Všechny akce“ = výchozí lokalita bez okolí; zapnuté okolí (+10/25/50 km) platí pro všechny záložky (tým 4. 11.).
+- Pole hledání má placeholder „Hledat akci nebo aktivitu“.
 
 **Hotovo, když:**
 
@@ -431,7 +434,7 @@ Doménová logika (čistá funkce + testy): `approvedCount`, `missingToMin = max
 
 `US-03` · FS · M · závisí na: B-023
 
-- `GET /api/events/:id` bez přihlášení. Vrací i soukromé akce (soukromá = dostupná přes odkaz). Members-only akci vrací jen členům skupiny (jinak 404). Zrušenou akci vrací se štítkem a důvodem; `hidden`/`deleted` vrací 404.
+- `GET /api/events/:id` bez přihlášení. Vrací i soukromé akce (soukromá = dostupná přes odkaz). Members-only akci nečlenovi vrací 403 `MEMBERS_ONLY` jen s údaji o skupině (id, název, lokalita, počet členů, typ) – bez názvu, času, místa a účastníků akce; FE ukáže stránku s cestou do skupiny (A-05i, rozhodnuto 4. 11.). Zrušenou akci vrací se štítkem a důvodem; `hidden`/`deleted` vrací 404.
 - Jména přihlášených (`participants`) vrací API jen organizátorovi, uživateli se schválenou účastí a u akce skupiny aktivním členům a správcům skupiny (PO 28. 10., #174). Rozhoduje server podle session, nikdy podle požadavku. Ostatní dostanou `participants: null` a vidí jen obsazenost („Chybí ještě X“ / „Volná místa: Y“ / „Plno“): návštěvník, přihlášený bez účasti, čekající žadatel, kdo se odhlásil nebo byl odebrán či zamítnut, a čekající nebo zablokovaný člen skupiny. Detail jim sekci „Kdo jde“ vůbec neukáže.
 - FE stránka `/akce/:id`: název, aktivita, popis, mapa (jeden bod), termín, cena, úroveň, organizátor (osoba nebo skupina, proklik), způsob přihlášení, počet přihlášených, „Chybí ještě X“ / „Volná místa: Y“ / „Plno“, štítek „Zrušeno“ s důvodem, tlačítko „Sdílet odkaz“.
 - Open Graph meta (titulek, termín) pro hezký náhled ve WhatsAppu.
@@ -439,7 +442,7 @@ Doménová logika (čistá funkce + testy): `approvedCount`, `missingToMin = max
 
 **Hotovo, když:**
 
-- [ ] Testy BE pro každou roli: jména dostane organizátor, schválený účastník a u akce skupiny členové a správci; návštěvník, přihlášený bez účasti, čekající žadatel, odhlášený, odebraný ani čekající člen skupiny ne; members-only cizímu = 404.
+- [ ] Testy BE pro každou roli: jména dostane organizátor, schválený účastník a u akce skupiny členové a správci; návštěvník, přihlášený bez účasti, čekající žadatel, odhlášený, odebraný ani čekající člen skupiny ne; members-only nečlenovi = 403 jen s údaji o skupině.
 
 ---
 
@@ -449,7 +452,12 @@ Doménová logika (čistá funkce + testy): `approvedCount`, `missingToMin = max
 
 - Výchozí lokalita na `/`, `/akce` a `/skupiny` (tým 28. 10., #55): domovská lokalita z profilu → jinak odhad podle IP → když selže, **celé Česko** (ne Praha). „Zrušit vše“ zruší všechny filtry včetně lokality a vrátí výchozí.
 - `GET /api/geo/locality` – odhad lokality podle IP (viz otevřené otázky). IP ani výsledek se **neukládají** (ani do logů). Když nejde zjistit → celé Česko.
-- Stránka `/`: jedna věta, co HobbyHub dělá; náhled nadcházejících akcí v lokalitě (3 akce, řazení podle termínu – otevřená otázka F-68); ruční změna lokality bez registrace (uloží se jen v prohlížeči); proklik na detail a na celý přehled `/akce`.
+- Stránka `/` podle Figmy A-01 / A-01d (návštěvník) a A-01p / A-01pd (přihlášený): pás s panelem „Teď chybí jeden“, sekce Tady chybíš, Jak to funguje, Tento víkend, Kousek od tebe, O tyhle akce je zájem, Od dobře hodnocených organizátorů, Tyhle skupiny rozšiřují partu, výzva „Nic pro tebe?“ (#182). Pravidla v `docs/ux-audit.md` › Úvodní stránka:
+  - akce se ukáže jen v první sekci, kam patří (panel nahoře je první);
+  - akce jen pro členy na úvodní stránce nikdy nejsou;
+  - „Od dobře hodnocených“ = organizátor nebo skupina s průměrem aspoň 4,5 z nejméně 3 hodnocení (pravidla průměru v B-060);
+  - „Tyhle skupiny rozšiřují partu“ (PO 4. 11.): aktivní skupiny v okolí s nadcházející akcí, do kterých se dá přidat (veřejné) nebo požádat o členství (neveřejné), řazené podle nejbližší akce skupiny;
+  - „Podle tvých zájmů“ jen pro přihlášeného: podle akcí, na kterých byl, nebo zájmů v profilu, jinak náhodný výběr.
 - Nepoužívej layout hero + tři karty (DESIGN.md).
 
 **Hotovo, když:**
@@ -619,7 +627,7 @@ Doménová logika (čistá funkce + testy): `approvedCount`, `missingToMin = max
 - Plánovač (`@nestjs/schedule`), každá úloha idempotentní (záznam o odeslání, aby po restartu nepřišel e-mail dvakrát).
 - **Připomínka účastníkům** den před akcí.
 - **Organizátorovi 48 a 24 h před akcí**, kolik lidí chybí do minima, s odkazy Sdílet / Topovat / Zrušit. Při naplněném minimu nepřijde.
-- **Výzva k hodnocení**: dávkově jednou denně večer pro akce, které ten den skončily, všem `approved` (odkaz na hodnocení z B-060).
+- **Výzva k hodnocení**: dávkově jednou denně večer pro akce, které ten den skončily, všem `approved` (odkaz na hodnocení z B-060). Účastníkům „Ohodnoť akci“, organizátorovi „Ohodnoť účastníky“ (E-01 typy 11 a 12).
 
 **Hotovo, když:**
 
@@ -643,8 +651,8 @@ Doménová logika (čistá funkce + testy): `approvedCount`, `missingToMin = max
 `US-16` · FS · M · závisí na: B-050, B-011
 
 - `POST /api/groups` (`VerifiedUserGuard`), zakladatel se stane správcem. `PATCH` a `POST /:id/deactivate` jen správce.
-- Skupina se nemaže ani neruší, jen **deaktivuje** (PO 19. 10.; v UI „Deaktivovat skupinu“, ne „Zrušit“, aby se to nepletlo se zrušením akce): `status = inactive`, `deactivatedAt`, skupina zmizí z hledání, nejde se do ní přidat, stránka skupiny ukazuje „Skupina už není aktivní“. Členové dostanou e-mail (po B-040).
-- Nadcházející akce skupiny se zruší s důvodem „Skupina byla deaktivována“, proběhlé zůstanou v historii. Akce skupin přibudou až s B-055, zrušení akcí doplní B-055.
+- Skupina se nemaže ani neruší, jen **deaktivuje** (PO 19. 10.; v UI „Deaktivovat skupinu“, ne „Zrušit“, aby se to nepletlo se zrušením akce): `status = inactive`, `deactivatedAt`, skupina zmizí z hledání, nejde se do ní přidat, stránka skupiny ukazuje „Skupina už není aktivní“. Všem aktivním členům kromě správce, který deaktivoval, přijde e-mail „Skupina už není aktivní“ (E-01 typ 10); přihlášení na zrušené veřejné akce skupiny, kteří nejsou členy, dostanou e-mail o zrušení akce.
+- Nadcházející akce skupiny se zruší s důvodem „Skupina už není aktivní“, proběhlé zůstanou v historii. Akce skupin přibudou až s B-055, zrušení akcí doplní B-055.
 - FE: formulář `/skupiny/nova`, úprava a deaktivace v dialogu s potvrzením (tlačítko `destructive`).
 
 **Hotovo, když:**
@@ -702,7 +710,7 @@ Doménová logika (čistá funkce + testy): `approvedCount`, `missingToMin = max
 - Oprávnění správy akce (úprava, zrušení, účastníci, zprávy, docházka, topování) rozšiř na **všechny správce skupiny** – jedna sdílená funkce `canManageEvent(user, event)` použitá všude.
 - Členové dostanou e-mail o nové akci a hlásí se sami.
 - „Pořádám“ v Mých akcích obsahuje akce mých skupin.
-- Při deaktivaci skupiny (B-051) se nadcházející akce skupiny zruší s důvodem „Skupina byla deaktivována“ a standardními e-maily; proběhlé zůstanou beze změny.
+- Při deaktivaci skupiny (B-051) se nadcházející akce skupiny zruší s důvodem „Skupina už není aktivní“ a standardními e-maily; proběhlé zůstanou beze změny.
 
 **Hotovo, když:**
 
@@ -915,7 +923,7 @@ Dokud tým nebo PO nerozhodne jinak, agent použije výchozí volbu.
 | Q1  | Mapa a našeptávač míst (poznámky zmiňují Google Maps)                             | Leaflet + OSM, místo klikem do mapy + textová adresa, lokality z vlastního číselníku       | Tým          |
 | Q2  | Služba pro odhad lokality z IP                                                    | Jednoduchá offline databáze (např. GeoLite2 City), při chybě celé Česko (tým 28. 10.)      | Tým          |
 | Q3  | Nahrávání fotek (profil, skupina)                                                 | V MVP jen URL obrázku                                                                      | Tým          |
-| Q4  | Podle čeho vybírat akce na úvodní stránce (F-68)                                  | Nejbližší termín v lokalitě, topované první                                                | PO           |
+| Q4  | Podle čeho vybírat akce na úvodní stránce (F-68)                                  | Nejbližší termín v lokalitě, topované první; sekce podle #182, pravidla v docs/ux-audit.md | PO           |
 | Q5  | Text obchodních podmínek a zásad ochrany údajů (F-65)                             | Placeholder                                                                                | PO           |
 | Q6  | Ukázková data – dodá PO reálné skupiny ze sondy? (F-64)                           | Tým vymyslí realistická data                                                               | PO           |
 | Q7  | Zálohy – jak dlouho držet a kdo odpovídá po předání (F-63)                        | 7 denních záloh                                                                            | PO           |
