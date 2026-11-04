@@ -12,13 +12,13 @@ These are rules, not suggestions. When a rule and a "nicer looking" idea disagre
 
 ## Colour
 
-- **Never hardcode a colour.** No `#hex`, no `bg-blue-500`, no `rgb()`. Use the semantic classes only (table below).
+- **Never hardcode a colour.** No `#hex`, no `bg-blue-500`, no `rgb()`. Use the semantic classes only (table below, including the kit aliases at its end).
 - **Contrast is not negotiable, in both modes.** Text at least 4.5:1 (large text 3:1). **Every non-text element at least 3:1 against what is around it**: icons, badges, the capacity track, map pins, rating stars, dividers, and the _edge_ of any surface — a tile, a badge, a card, an outline button, a dialog or a bottom sheet over the overlay. If a fill cannot reach 3:1 on its own, it gets an outline token (`tile-border`, `primary-edge`, `control-border`, `card-border`). The token pairs are tested in `src/styles/tokens.test.ts`; a new pair gets a test. There are no "it looks fine" exceptions.
-- **`primary` (lime) is a fill, never a text or icon colour.** Text on lime is `primary-foreground`. On a light surface lime always carries the `primary-edge` outline (lime on cream or white is about 1.1:1). Lime appears only on: the one primary button per view, the „Chybí“ badge, the „Chybí lidé“ map pin, the capacity hatch, the „Koná se“ stamp, the active bottom-nav pill, the active quick-pick underline on the dark band, the highlighter under a section keyword (light mode), the logo's ring and „ty“ (`avatar-self` in dark mode). Nowhere else — lime is the brand's signal, not decoration.
+- **`primary` (lime) is a fill, never a text or icon colour.** Text on lime is `primary-foreground`. On a light surface lime always carries the `primary-edge` outline (lime on cream or white is about 1.1:1). The one exception is the section keyword in dark mode (`highlight-text`), where lime on the dark background replaces the marker. Lime appears only on: the one primary button per view, the „Chybí“ badge, the „Chybí lidé“ map pin, the ring of a map cluster with an event where people are missing, the capacity hatch, the „Koná se“ stamp, the active item of the desktop header and the bottom nav (pill), the active quick-pick underline on the dark band, the highlighter under a section keyword (light mode) and the keyword itself (dark mode), the logo's ring and „ty“ (`avatar-self` in dark mode). In dark mode also the tokens that are lime by value: `capacity-fill`, `accent-bar`, `ring`, `primary-edge`. Nowhere else — lime is the brand's signal, not decoration.
 - **`secondary` (quiet green) always comes with `tile-border`** — the fill alone is 1.2–1.3:1 against the card. Used for: activity tags, the „N volných míst“ and „Jdu“ badges, avatars, activity tiles, the date tile, the „Máš místo“ block.
 - **`destructive` only for destructive actions and errors.** Never for emphasis. Text on it is `destructive-foreground` (dark in dark mode).
 - Body text is `foreground`; supporting text is `muted-foreground`. There is no third level.
-- **Every screen must work in both modes.** Never use `text-white`/`bg-black` or the kit's default `dark:` overrides; text and icons on a filled surface use that surface's `-foreground` token. Check dark mode in Figma by switching the frame to mode „Dark“. The one exception is the kit's `bg-black/50` overlay behind dialogs and bottom sheets: darkening the page works in both modes and keeps the sheet's edge above 3:1.
+- **Every screen must work in both modes.** Never use `text-white`/`bg-black` or the kit's default `dark:` overrides; text and icons on a filled surface use that surface's `-foreground` token, and a selected/on state (quick pick, selected card, nav pill) must restate its `dark:` classes if the default state has any. Check dark mode in Figma by switching the frame to mode „Dark“. The one exception is the kit's `bg-black/50` overlay behind dialogs and bottom sheets: darkening the page works in both modes and keeps the sheet's edge above 3:1.
 
 | Token                                             | Light                             | Dark                              | Use                                                                       |
 | ------------------------------------------------- | --------------------------------- | --------------------------------- | ------------------------------------------------------------------------- |
@@ -40,11 +40,13 @@ These are rules, not suggestions. When a rule and a "nicer looking" idea disagre
 | `tile-on-hero`                                    | `#e3f3cb`                         | `#5d8449`                         | Activity tile on the band                                                 |
 | `highlight-text` / `highlight-marker`             | `#14201a` / `#b9f53c`             | `#b9f53c` / transparent           | Section-heading keyword: marker under it (light), lime word (dark)        |
 | `avatar-self` / `-foreground`                     | `#265212` / `#ffffff`             | `#b9f53c` / `#14201a`             | The „ty“ avatar                                                           |
-| `accent-bar`                                      | = `secondary`                     | = `primary`                       | Left bar of the „Máš místo“ block                                         |
+| `accent-bar`                                      | = `primary-edge`                  | = `primary`                       | Left bar of the „Máš místo“ block                                         |
 | `logo-dot`, `logo-dot-stroke`, `logo-self-stroke` | see Figma                         | see Figma                         | Logo mark only                                                            |
 | `destructive` / `-foreground`                     | `#b42318` / `#ffffff`             | `#f97066` / `#14201a`             | Destructive actions, errors                                               |
 | `ring`                                            | `#265212`                         | `#b9f53c`                         | Focus ring                                                                |
 | `map/land`, `map/road`, `map/water`, `map/park`   | see Figma                         | see Figma                         | Map placeholder (the real map uses its own tiles)                         |
+
+**Kit aliases.** The vendored kit reads shadcn's own names; `global.css` keeps them and points them at the tokens above, so the kit restyles without edits: `input` = `input-border`, `popover` = `card`, `card-foreground` = `popover-foreground` = `foreground`, `accent` / `accent-foreground` = `muted` / `foreground` (hover in buttons, menus, selects, the calendar), `destructive-hover` is mixed from `destructive`. They are part of the contract — never delete them as unused.
 
 Tokens under `color/_archiv/*` in Figma belong to archived screens only — do not add them to `global.css`.
 
@@ -83,7 +85,7 @@ Use the scale only: `1, 2, 3, 4, 6, 8, 12, 16` (Tailwind units — 4px…64px). 
 
 ## Surfaces
 
-- **Borders are hairlines**: one `border`, never two adjacent ones. Cards and panels `border-card-border`, inputs and chips `border-input-border`, outline buttons and neutral badges `border-control-border`, green surfaces `border-tile-border`.
+- **Borders are hairlines**: one `border`, never two adjacent ones. Cards and panels `border-card-border`, inputs and chips `border-input` (the kit alias of `input-border`), outline buttons and neutral badges `border-control-border`, green surfaces `border-tile-border`.
 - **Radius:** buttons and inputs `rounded-lg` (8); tiles and photos inside cards `rounded-xl` (12); cards, panels, the map and the „Nic pro tebe?“ call-out `rounded-2xl` (16). Pills (`rounded-full`) are for chips, badges, tags, quick-pick counts and avatars, never for a button. Never mix radii in one component.
 - **Shadows are rare.** Only for things that genuinely float — dropdowns and menus, dialogs, toasts, the selected map pin (Figma effect „Elevation/Float“). Cards and inputs do not get shadows. Floating things still need their edge: dialogs carry `card-border`.
 
@@ -133,7 +135,7 @@ The Figma page „Design system“ is the reference, and each component's descri
 - **Rating stars** (Figma: Hodnocení/Hvězdičky, Hvězda) — input for 1–5 stars, 40 px targets. Full star `foreground`, empty star outlined in `control-border` — never lime (lime fails 3:1). Showing an average stays text: „★ 4,5 (6 hodnocení)“.
 - **Navigation** — desktop header (Figma: Header/App desktop): logo, Akce, Skupiny, Moje akce (signed in), on the right the theme switcher and the avatar, or „Přihlásit se“ + „Registrovat“. The active item is a lime pill. Mobile bottom navigation (Figma: Nav/Bottom): icon + label, the active item has a lime pill behind the icon; inactive icon and label `muted-foreground`. The map is part of Akce, never its own item.
 - **Založit akci** — lives in Moje akce only (desktop right of the title, mobile floating above the bottom navigation, never covering the last card). Never in the header, never a page-level button on /akce; the one exception is /akce finding nothing (`EmptyEvents`), where it is the secondary next step.
-- **Menus** (sort on /akce, Figma A-02j) — `bg-card border-card-border rounded-2xl` with „Elevation/Float“; the selected option has a check. Sorting: „Nejbližší termín“ (default) and „Nejmenší vzdálenost“ (from the centre of the chosen locality; not offered for the whole country).
+- **Menus** (sort on /akce, Figma A-02j) — the kit's `bg-popover` (= `card`) with `border-card-border rounded-2xl` with „Elevation/Float“; the selected option has a check. Sorting: „Nejbližší termín“ (default) and „Nejmenší vzdálenost“ (from the centre of the chosen locality; not offered for the whole country).
 
 ## When you are unsure
 

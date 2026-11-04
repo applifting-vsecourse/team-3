@@ -33,7 +33,7 @@ Zdroj: `HobbyHub_User_Stories_MVP.md` (US-01 až US-19, odvozené z Feature brea
 | B-004                          | Mapová komponenta                                             | US-02, US-11        | FE     | M    | –                   |
 | **Fáze 1 – Účet**              |                                                               |                     |        |      |                     |
 | B-010                          | Registrace e-mailem a heslem                                  | US-04               | FS     | S    | B-003               |
-| B-011                          | Ověření e-mailu a guard ověřeného uživatele                   | US-04               | BE     | S    | B-010               |
+| B-011                          | Ověření e-mailu a guard ověřeného uživatele                   | US-04               | FS     | M    | B-010               |
 | B-012                          | Přihlášení, zapomenuté heslo, návrat na akci                  | US-04               | FE     | S    | B-010               |
 | B-013                          | Profil uživatele (data + stránka)                             | US-05               | FS     | M    | B-002, B-003        |
 | B-014                          | Viditelnost údajů v profilu                                   | US-05               | FS     | S    | B-013               |
@@ -199,7 +199,7 @@ Staging a CI/CD (F-59, F-60) už v repu jsou (`.github/workflows/ci.yml`, `deplo
 
 ### B-011 Ověření e-mailu a guard ověřeného uživatele
 
-`US-04` · BE · S · závisí na: B-010
+`US-04` · FS · M · závisí na: B-010
 
 **Cíl:** Do aplikace se přihlásí jen uživatel s ověřeným e-mailem (PO 4. 11.), takže na akce i do skupin se vždy hlásí ověřený uživatel. Řeší S-5 (#236).
 
@@ -439,8 +439,8 @@ Doménová logika (čistá funkce + testy): `approvedCount`, `missingToMin = max
 `US-03` · FS · M · závisí na: B-023
 
 - `GET /api/events/:id` bez přihlášení. Vrací i soukromé akce (soukromá = dostupná přes odkaz). Members-only akci nečlenovi vrací 403 `MEMBERS_ONLY` jen s údaji o skupině (id, název, lokalita, počet členů, typ) – bez názvu, času, místa a účastníků akce; FE ukáže stránku s cestou do skupiny (A-05i, rozhodnuto 4. 11.). Zrušenou akci vrací se štítkem a důvodem; `hidden`/`deleted` vrací 404.
-- Jména přihlášených (`participants`) vrací API jen organizátorovi, uživateli se schválenou účastí a u akce skupiny aktivním členům a správcům skupiny (PO 28. 10., #174). Rozhoduje server podle session, nikdy podle požadavku. Ostatní dostanou `participants: null` a vidí jen obsazenost („Chybí ještě X“ / „Volná místa: Y“ / „Plno“): návštěvník, přihlášený bez účasti, čekající žadatel, kdo se odhlásil nebo byl odebrán či zamítnut, a čekající nebo zablokovaný člen skupiny. Detail jim sekci „Kdo jde“ vůbec neukáže.
-- FE stránka `/akce/:id`: název, aktivita, popis, mapa (jeden bod), termín, cena, úroveň, organizátor (osoba nebo skupina, proklik), způsob přihlášení, počet přihlášených, „Chybí ještě X“ / „Volná místa: Y“ / „Plno“, štítek „Zrušeno“ s důvodem, tlačítko „Sdílet odkaz“.
+- Jména přihlášených (`participants`) vrací API jen organizátorovi, uživateli se schválenou účastí a u akce skupiny aktivním členům a správcům skupiny (PO 28. 10., #174). Rozhoduje server podle session, nikdy podle požadavku. Ostatní dostanou `participants: null` a vidí jen obsazenost („Chybí ještě X“ / „N volných míst“ / „Plno“): návštěvník, přihlášený bez účasti, čekající žadatel, kdo se odhlásil nebo byl odebrán či zamítnut, a čekající nebo zablokovaný člen skupiny. Detail jim sekci „Kdo jde“ vůbec neukáže.
+- FE stránka `/akce/:id`: název, aktivita, popis, mapa (jeden bod), termín, cena, úroveň, organizátor (osoba nebo skupina, proklik), způsob přihlášení, počet přihlášených, „Chybí ještě X“ / „N volných míst“ / „Plno“, štítek „Zrušeno“ s důvodem, tlačítko „Sdílet odkaz“.
 - Open Graph meta (titulek, termín) pro hezký náhled ve WhatsAppu.
 - Odkaz se otevře rovnou na detailu, bez přihlašovací obrazovky.
 

@@ -17,7 +17,7 @@ Aplikace byla čistá, ale působila jako dobře udělaná šablona: bílá a ze
 3. **„Koná se?“** z verze 31. 10.: šrafa v pruhu obsazenosti = ještě se nekoná, chybí lidé; plná výplň = koná se; razítko „Koná se“ na detailu; okamžik „Máš místo“.
 4. **Hlas aplikace**: tykání, bez rodu, čísla místo slov, osobní pojmenování („Tady chybíš“, „Jakube, tady se na tebe čeká.“).
 
-Barevný tón „Hlubší les“ (tmavší zelená, sytější limetka). Limetka je jen signál – hlavní tlačítko, „Chybí“, razítko, aktivní stav – nikdy dekorace ani text.
+Barevný tón „Hlubší les“ (tmavší zelená, sytější limetka). Limetka je jen signál – hlavní tlačítko, „Chybí“, razítko, aktivní stav – nikdy dekorace ani text (jedinou výjimkou je klíčové slovo nadpisu v tmavém režimu).
 
 **Jak jsme se k tomu dostali:** 31. 10. PO odmítl první verzi (málo změny) i „Plakát“ (matoucí, toxická zelená) a chtěl víc návrhů na jedné obrazovce. 1. 11. vybral kombinaci horní části návrhu 14 a karet z návrhu 12, ilustrace nahradit fotkami a osobní pojmenování. Tým pak místo vzoru z ikon zvolil velký motiv loga (návrh 16), tón Hlubší les, zvýrazňovač u nadpisů sekcí a špendlíky varianta B. PO nový brand viděl a schválil 3.–4. 11.
 
@@ -101,7 +101,7 @@ Pravidla: tykání, bez rodu (aplikace pohlaví nezná – ani „organizátorka
 | Úvod – žádné akce v okolí           | V okolí teď nic není. Buď první – založ akci a dej o ní vědět.                                                        |
 | Detail po přihlášení                | Máš místo. Parta je o jednoho větší. (+ „Díky tobě se akce koná…“ jen když minimum naplnilo právě tvoje přihlášení)   |
 | Detail, žádost čeká                 | Až ji organizátor schválí, přijde ti e-mail.                                                                          |
-| Detail, žádost zamítnutá            | Tentokrát to nevyšlo. Na tuhle akci tě organizátor nepřijal. Mrkni na podobné akce v okolí.                           |
+| Detail, žádost zamítnutá            | Tentokrát to nevyšlo. Tvoje žádost o účast nebyla přijata. Mrkni na podobné akce v okolí.                             |
 | Detail, proběhlá akce               | Sešlo se 8 lidí. Podobné akce najdeš v Akcích.                                                                        |
 | Detail, akce jen pro členy (nečlen) | Tuhle akci pořádá skupina … pro své členy. Přidej se ke skupině a uvidíš ji se všemi údaji.                           |
 | Detail – organizátor                | Organizátor · ★ 4,5 (6 hodnocení) / Organizátor · zatím bez hodnocení                                                 |
@@ -175,14 +175,14 @@ Každá obrazovka je ve světlém i tmavém režimu, na mobilu i desktopu, s pop
 
 | Co                                                                                                                                                                    | Kam                      |
 | --------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------ |
-| Tokeny nového brandu do `global.css` (tabulka v DESIGN.md), test kontrastů v `tokens.test.ts`, odstranit nepoužívané                                                  | #195                     |
+| Tokeny nového brandu do `global.css` (tabulka v DESIGN.md), test kontrastů v `tokens.test.ts`, odstranit nepoužívané (aliasy kitu zůstávají)                          | #195                     |
 | Komponenty: pás s motivem loga, karty s fotkou a datovou dlaždicí, pruh obsazenosti, štítky, razítko, Máš místo, špendlíky, rychlé výběry, hvězdičky, přepínač motivu | #195                     |
 | Přestavba obrazovek podle Figmy, texty podle Hlasu aplikace                                                                                                           | #195                     |
 | Úvodní stránka: sekce, pravidla, sekce skupin                                                                                                                         | #182                     |
 | Řazení podle vzdálenosti, hledání podle klíčových slov, okolí ve Všech akcích                                                                                         | #57                      |
 | Přihlášení jen s ověřeným e-mailem (`requireEmailVerification`, obrazovka B-01a; demo účet Eva zůstává neověřený a ukazuje B-01a)                                     | nové issue (B-011)       |
 | Akce jen pro členy pro nečlena: 403 s údaji o skupině místo 404                                                                                                       | #70 (B-026)              |
-| Hodnocení: `ParticipantRating.comment`, průměr skupiny, pravidla pro skrytá a smazaná hodnocení, profil podle PO                                                      | #66, #179 (B-060, B-013) |
+| Hodnocení: průměr skupiny, pravidla pro skrytá a smazaná hodnocení, profil podle PO                                                                                   | #66, #179 (B-060, B-013) |
 | E-maily typ 10–12 (deaktivace skupiny, výzvy k hodnocení)                                                                                                             | #177, B-043              |
 
 ## Mimo sprint 3
