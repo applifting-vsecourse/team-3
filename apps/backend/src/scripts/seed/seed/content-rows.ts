@@ -180,6 +180,7 @@ export function buildContentRows(refs: ContentRefs): ContentRows {
         eventId,
         participantId: userId(rating.userKey),
         stars: rating.stars,
+        comment: rating.comment,
         deletedAt: rating.deleted ? now : null,
       })),
     );

@@ -53,8 +53,13 @@ export interface PastEvent {
     /** Smazané superadminem (B-063): do průměru se nepočítá. */
     deleted?: true;
   }[];
-  /** Co organizátor dal účastníkům (`ParticipantRating`). */
-  participantRatings: { userKey: string; stars: number; deleted?: true }[];
+  /** Co organizátor dal účastníkům (`ParticipantRating`), komentář od PO 4. 11. */
+  participantRatings: {
+    userKey: string;
+    stars: number;
+    comment?: string;
+    deleted?: true;
+  }[];
 }
 
 export const pastEvents: PastEvent[] = [
@@ -94,10 +99,18 @@ export const pastEvents: PastEvent[] = [
       },
     ],
     participantRatings: [
-      { userKey: 'uzivatel', stars: 5 },
+      {
+        userKey: 'uzivatel',
+        stars: 5,
+        comment: 'Pomoc s natažením sítě a skvělé podání, díky.',
+      },
       { userKey: 'u04', stars: 4 },
       { userKey: 'u05', stars: 5 },
-      { userKey: 'u06', stars: 3 },
+      {
+        userKey: 'u06',
+        stars: 3,
+        comment: 'Na začátek se čekalo dvacet minut bez zprávy.',
+      },
     ],
   },
   {
@@ -126,9 +139,18 @@ export const pastEvents: PastEvent[] = [
       },
     ],
     participantRatings: [
-      { userKey: 'uzivatel', stars: 4 },
+      {
+        userKey: 'uzivatel',
+        stars: 4,
+        comment: 'Pohodový večer, příště zase.',
+      },
       { userKey: 'u05', stars: 5 },
-      { userKey: 'u07', stars: 2, deleted: true },
+      {
+        userKey: 'u07',
+        stars: 2,
+        comment: 'Nevhodné poznámky k ostatním u stolu.',
+        deleted: true,
+      },
     ],
   },
   {

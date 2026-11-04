@@ -1,4 +1,7 @@
-import { decideParticipantRating } from '@/modules/rating/domain/participant-rating';
+import {
+  decideParticipantRating,
+  RATING_COMMENT_MAX_LENGTH,
+} from '@/modules/rating/domain/participant-rating';
 import {
   organizerRatingSummary,
   participantRatingSummary,
@@ -200,5 +203,24 @@ describe('generated past events (#181)', () => {
         `${key} true`,
       );
     }
+  });
+
+  it('comment some ratings within the length limit, participants too (PO 4. 11.)', () => {
+    const comments = allPast.flatMap((e) => [
+      ...e.ratings.map((r) => r.comment),
+      ...e.participantRatings.map((r) => r.comment),
+    ]);
+    const onParticipants = allPast.flatMap((e) =>
+      e.participantRatings.filter((r) => r.comment),
+    );
+
+    for (const comment of comments) {
+      expect((comment ?? '').length).toBeLessThanOrEqual(
+        RATING_COMMENT_MAX_LENGTH,
+      );
+    }
+    // the public profile shows praise as well as criticism
+    expect(onParticipants.some((r) => r.stars >= 4)).toBe(true);
+    expect(onParticipants.some((r) => r.stars <= 3)).toBe(true);
   });
 });
