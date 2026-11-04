@@ -1,5 +1,5 @@
 import { useQuery } from "@tanstack/react-query"
-import { createFileRoute, useNavigate } from "@tanstack/react-router"
+import { createFileRoute } from "@tanstack/react-router"
 import { toast } from "sonner"
 
 import { BackLink } from "@/components/BackLink/BackLink"
@@ -15,6 +15,7 @@ import { CatalogState } from "@/features/groups/components/CatalogState"
 import { GroupForm } from "@/features/groups/components/GroupForm"
 import { InactiveGroupNotice } from "@/features/groups/components/InactiveGroupNotice"
 import { useUpdateGroup } from "@/features/groups/hooks/useGroupMutations"
+import { useOpenSavedGroup } from "@/features/groups/hooks/useOpenSavedGroup"
 
 export const Route = createFileRoute("/_ProtectedPages/skupiny/$groupId/upravit")({
   component: EditGroupPage,
@@ -26,7 +27,7 @@ export const Route = createFileRoute("/_ProtectedPages/skupiny/$groupId/upravit"
  */
 function EditGroupPage() {
   const { groupId } = Route.useParams()
-  const navigate = useNavigate()
+  const openSavedGroup = useOpenSavedGroup()
   const session = useSession()
   const user = session.user
   // undefined while the session loads; a failed check counts as a visitor
@@ -70,7 +71,7 @@ function EditGroupPage() {
                 updateGroup.mutate(input, {
                   onSuccess: () => {
                     toast.success("Změny jsou uložené")
-                    void navigate({ to: "/skupiny/$groupId", params: { groupId } })
+                    openSavedGroup(groupId)
                   },
                 })
               }
