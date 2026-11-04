@@ -1,3 +1,9 @@
+/**
+ * Longest comment of a rating, of the event (`Rating`) and of a participant
+ * (`ParticipantRating`, PO 4. 11.); the same as a bio. #66 validates it.
+ */
+export const RATING_COMMENT_MAX_LENGTH = 500;
+
 /** Why rating a participant was refused; #66 answers 409 with the code. */
 export type ParticipantRatingRefusal =
   | 'EVENT_NOT_PUBLISHED'

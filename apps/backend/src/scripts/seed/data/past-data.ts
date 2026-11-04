@@ -47,6 +47,16 @@ const weakComments = [
   'Místo bylo jiné, než stálo v popisu.',
   'Polovina lidí nepřišla a organizátor to neřešil.',
 ];
+// Co organizátor napíše účastníkovi (PO 4. 11.), podle hvězdiček.
+const participantPraise = [
+  'Spolehlivá posila, kdykoli znovu.',
+  'Super nálada celý večer, díky.',
+  'Pomoc s přípravou i úklidem, díky.',
+];
+const participantCriticism = [
+  'Na začátek se čekalo bez zprávy.',
+  'Odchod v půlce bez omluvy.',
+];
 const cancelReasons = [
   'Kvůli nemoci se akce ruší, moc se omlouvám.',
   'Hala nám zrušila rezervaci, náhradní termín dám vědět.',
@@ -99,12 +109,22 @@ const rate = (
         !PROFILE_SHOWCASE.has(userKey) &&
         stableHash(`${key} ${userKey} pr`) % 10 < 7,
     )
-    .map((userKey) => ({
-      userKey,
-      stars: [5, 5, 5, 5, 5, 4, 4, 4, 3, 2][
+    .map((userKey) => {
+      const stars = [5, 5, 5, 5, 5, 4, 4, 4, 3, 2][
         stableHash(`${key} ${userKey} ps`) % 10
-      ],
-    })),
+      ];
+      return {
+        userKey,
+        stars,
+        comment:
+          stableHash(`${key} ${userKey} pc`) % 5 === 0
+            ? pick(
+                stars >= 4 ? participantPraise : participantCriticism,
+                `${key} ${userKey} pick`,
+              )
+            : undefined,
+      };
+    }),
 });
 
 const buildPastEvents = (): PastEventSource[] => {

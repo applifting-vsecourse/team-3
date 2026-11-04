@@ -120,6 +120,26 @@ describe('buildContentRows', () => {
       ),
     ).toHaveLength(deleted.length);
   });
+
+  it("keeps the organizer's comments on participants (PO 4. 11.)", () => {
+    const rows = build();
+    const comments = [...pastEvents, ...generatedPastEvents].flatMap((e) =>
+      e.participantRatings.flatMap((r) =>
+        r.comment
+          ? [{ participantId: `u-${r.userKey}`, comment: r.comment }]
+          : [],
+      ),
+    );
+
+    expect(comments.length).toBeGreaterThan(0);
+    expect(
+      rows.participantRatings.flatMap((r) =>
+        r.comment
+          ? [{ participantId: r.participantId, comment: r.comment }]
+          : [],
+      ),
+    ).toEqual(comments);
+  });
 });
 
 describe('legacySeedContentWhere', () => {

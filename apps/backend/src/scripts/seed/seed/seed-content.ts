@@ -13,9 +13,10 @@ import { ensureUser, replaceSeedPassword } from './ensure-user';
 /**
  * Verze testovacích dat (#181). PR, který změní data v `data/`, číslo zvedne a staging
  * po deployi data vymění sám. 1 = data před #181 (bez verze v databázi), 2 = verze
- * dat a opravy z #167, 3 = krajská města, akce skupin a další proběhlé akce (#181).
+ * dat a opravy z #167, 3 = krajská města, akce skupin a další proběhlé akce (#181),
+ * 4 = komentáře k hodnocení účastníků (PO 4. 11.).
  */
-export const SEED_DATA_VERSION = 3;
+export const SEED_DATA_VERSION = 4;
 
 /** Řádek `SeedState` s verzí testovacích dat. */
 export const SEED_STATE_KEY = 'demo';
