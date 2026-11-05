@@ -51,7 +51,7 @@ describe("attendingFacts", () => {
     ).toBe("chybí 1 · 8 z 14 · min. 9 · Praha 8")
   })
 
-  it("the same for a request still waiting („Čeká na schválení“)", () => {
+  it("the same for a request still waiting („Čeká“)", () => {
     expect(
       attendingFacts(aMyEvent({ myParticipation: "pending", approvedCount: 2, missingToMin: 2 })),
     ).toBe("chybí 2 · 2 z 12 · min. 4 · Praha 8")
@@ -72,7 +72,7 @@ describe("attendingFacts", () => {
 })
 
 describe("attendingStatus", () => {
-  it("is „Jdu“ for a place and „Čeká na schválení“ for a request", () => {
+  it("is „Jdu“ for a place and „Čeká“ for a request", () => {
     expect(attendingStatus(aMyEvent())).toEqual({ kind: "going" })
     expect(attendingStatus(aMyEvent({ myParticipation: "pending" }))).toEqual({ kind: "pending" })
   })

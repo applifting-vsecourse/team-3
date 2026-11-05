@@ -24,7 +24,7 @@ export function attendingSections(events: MyEvent[]): {
   }
 }
 
-/** „Jdu“ / „Čeká na schválení“; a cancelled event says so instead (D-02a). */
+/** „Jdu“ / „Čeká“ (under the heading „Čeká na schválení“); a cancelled event says so instead (D-02a). */
 export function attendingStatus(event: MyEvent): BadgeStatus {
   if (event.status === "cancelled") return { kind: "cancelled" }
   return event.myParticipation === "pending" ? { kind: "pending" } : { kind: "going" }
@@ -32,7 +32,7 @@ export function attendingStatus(event: MyEvent): BadgeStatus {
 
 /**
  * The occupancy on a card in Přihlášen (#189). Its badge is the user's place
- * („Jdu“), not the occupancy, so the line says how many are missing itself:
+ * („Jdu“, „Čeká“), not the occupancy, so the line says how many are missing itself:
  * „chybí 1 · 8 z 14 · min. 9 · Praha 11“, else as in the list, „5 z 5 · Praha 4“.
  */
 export function attendingFacts(event: MyEvent): string {

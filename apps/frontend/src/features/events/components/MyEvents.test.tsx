@@ -47,7 +47,9 @@ describe("AttendingEvents", () => {
       "href",
       "/akce/e2",
     )
-    expect(within(waiting).getByText("Čeká na schválení")).toBeInTheDocument()
+    // short: the heading says what it waits for, and a phone needs the room for the occupancy (#189)
+    expect(within(waiting).getByText("Čeká")).toBeInTheDocument()
+    expect(within(waiting).queryByText("Čeká na schválení")).not.toBeInTheDocument()
 
     const confirmed = screen.getByRole("region", { name: "Potvrzené (1)" })
     const [florbal] = within(confirmed).getAllByRole("listitem")
