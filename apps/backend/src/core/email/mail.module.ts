@@ -57,8 +57,8 @@ const simulatedInboxProvider: Provider = {
           });
         }
         return ConsoleMailerAdapterFactory.create(
-          inbox ?? undefined,
           config.nodeEnv,
+          inbox ?? undefined,
         );
       },
       inject: [Config, SIMULATED_INBOX],
