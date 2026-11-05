@@ -164,6 +164,7 @@ Každá obrazovka je ve světlém i tmavém režimu, na mobilu i desktopu, s pop
 | Detail proběhlé akce                                         | A-05h                  | A-05h                       | #61, #66               |
 | Registrace, Ověř si e-mail, e-mail ověřen, přihlášení, heslo | B-01, B-01a, B-02–B-04 | B-01d, B-01ad, B-02d, B-03d | #153, #154, #165       |
 | Můj profil, upravit profil, veřejný profil                   | B-05, B-06, B-07       | B-05d, B-06d, B-07d         | #178, #179             |
+| Onboarding „Co tě baví?“ (zájmy a lokalita, jde přeskočit)   | B-08                   | B-08d                       | #178                   |
 | E-maily a texty upozornění                                   | E-01                   |                             | #176, #177, #194       |
 | Moje akce, založení a úprava akce, zrušení, správa, zprávy   | C-01, C-02, D-01–D-04  | C-01d, C-02d, D-01d–D-04d   | #44, #176              |
 | **Ohodnotit akci** (účastník)                                | C-03                   | C-03d                       | #66                    |

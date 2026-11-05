@@ -243,7 +243,7 @@ Staging a CI/CD (F-59, F-60) už v repu jsou (`.github/workflows/ci.yml`, `deplo
 
 - `GET/PATCH /api/me/profile`: jméno, fotka (URL, viz otevřené otázky), bio (max 500 znaků), zájmy (aktivity), domovská lokalita.
 - `GET /api/users/:id` – veřejný profil (PO 4. 11., mění 28. 10.): jméno, zájmy a hodnocení (B-060, vždy s počtem): jak ho hodnotili organizátoři jako účastníka (průměr a hodnocení s komentáři), průměr jako organizátor a průměrné hodnocení akcí, které pořádá. Když pořádal veřejné akce, i historie proběhlých s počtem lidí a průměrem hodnocení akce (Figma B-07). Jen veřejné akce, ne jen pro členy ani soukromé; akce skupin se osobě nepočítají. E-mail, akce, kterých se účastnil, ani skupiny nevrací, ty vidí jen uživatel sám (#179). Víc údajů až s přátelstvím (B-014).
-- FE: stránka `/profil` (úprava a přehled mých akcí, skupin a hodnocení, #178) a `/uzivatele/:id` (zobrazení, #179). Po prvním přihlášení se nevyplněný profil nabídne (onboarding: zájmy + lokalita, jde přeskočit).
+- FE: stránka `/profil` (úprava a přehled mých akcí, skupin a hodnocení, #178) a `/uzivatele/:id` (zobrazení, #179). Po prvním přihlášení se nevyplněný profil nabídne jednou (onboarding `/vitej`, Figma B-08 / B-08d: domovská lokalita + zájmy výběrem jako filtr A-02a; „Uložit a ukázat akce“ vede na /akce s „Podle tvých zájmů“, „Teď ne“ přeskočí a znovu se nenabízí).
 - Sprint 3 (#178): jméno, domovská lokalita a zájmy; fotka a bio zůstávají v #64.
 
 **Hotovo, když:**
