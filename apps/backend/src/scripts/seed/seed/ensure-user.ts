@@ -122,16 +122,51 @@ export async function replaceSeedPassword(
 ): Promise<boolean> {
   if (from === to) return false;
   if (!(await hasSeedPassword(prisma, auth, userId, from))) return false;
+  await writeSeedPassword(prisma, auth, userId, to);
+  return true;
+}
+
+/**
+ * #229: s N-6 už odkaz pro obnovu hesla v produkci do logu nejde, takže demo
+ * účet, kterému tester na stagingu změnil heslo, nejde obnovit přes „Zapomenuté
+ * heslo“. Seed mu při nové verzi testovacích dat vrátí heslo seedu (na stagingu
+ * SEED_DEMO_PASSWORD) a ukončí jeho přihlášení. Účet, který heslo seedu má nebo
+ * se přihlašuje jen přes Google (bez hesla), zůstane, jak je. Vrací, zda se
+ * heslo změnilo.
+ */
+export async function restoreSeedPassword(
+  prisma: PrismaService,
+  auth: BetterAuth,
+  userId: string,
+  password: string,
+): Promise<boolean> {
+  const credential = await prisma.account.findFirst({
+    where: { userId, providerId: 'credential' },
+    select: { id: true },
+  });
+  if (!credential) return false;
+  if (await hasSeedPassword(prisma, auth, userId, password)) return false;
+  await writeSeedPassword(prisma, auth, userId, password);
+  return true;
+}
+
+/** Sets the account's sign-in password and ends its sessions, together. */
+async function writeSeedPassword(
+  prisma: PrismaService,
+  auth: BetterAuth,
+  userId: string,
+  password: string,
+): Promise<void> {
   // BetterAuth's default hash, not `context.password.hash`: the Have I Been
   // Pwned plugin wraps that one and, when on (staging), needs a request's
   // endpoint context, which the seed doesn't have. The password comes from a
   // secret, not from a user, so it isn't checked against breaches.
-  const hash = await hashPassword(to);
+  const hash = await hashPassword(password);
   // Sign-in checks with `context.password.verify`. Should it ever stop
   // accepting the default hash (an own `password.hash`/`verify`), fail here
   // rather than write a password nobody can sign in with.
-  const { password } = await auth.$context;
-  if (!(await password.verify({ hash, password: to }))) {
+  const context = await auth.$context;
+  if (!(await context.password.verify({ hash, password }))) {
     throw new Error(
       `Seed password hash for ${userId} doesn't pass BetterAuth's verify`,
     );
@@ -145,7 +180,6 @@ export async function replaceSeedPassword(
     }),
     prisma.session.deleteMany({ where: { userId } }),
   ]);
-  return true;
 }
 
 /** Whether the account's sign-in password is the one the seed uses for it. */

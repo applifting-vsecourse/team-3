@@ -25,7 +25,8 @@ const simulatedInboxProvider: Provider = {
  * Picks an email adapter based on env:
  *   RESEND_API_KEY set           → Resend
  *   SMTP_HOST + USERNAME + PASS  → SMTP
- *   otherwise                    → Console (logs emails to stdout, dev only;
+ *   otherwise                    → Console (logs emails to stdout, in production
+ *                                  only recipient and subject;
  *                                  the verification e-mail also goes to the
  *                                  simulated inbox, simulatedInboxEnabled)
  *
@@ -55,7 +56,10 @@ const simulatedInboxProvider: Provider = {
             pass: config.smtpPassword,
           });
         }
-        return ConsoleMailerAdapterFactory.create(inbox ?? undefined);
+        return ConsoleMailerAdapterFactory.create(
+          config.nodeEnv,
+          inbox ?? undefined,
+        );
       },
       inject: [Config, SIMULATED_INBOX],
     }),

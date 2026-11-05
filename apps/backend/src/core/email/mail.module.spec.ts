@@ -61,6 +61,26 @@ describe('MailModule', () => {
     expect(inbox).toBeNull();
   });
 
+  it('in production the log gets no link, the simulated inbox still does (N-6, #58)', async () => {
+    const { email, inbox } = await compile({
+      nodeEnv: 'production',
+      simulatedInbox: 'true',
+    });
+    const link = '<a href="https://x/verify?token=secret-token">Ověřit</a>';
+
+    await email.sendEmail(
+      'eva@example.com',
+      'Ověř si e-mail v HobbyHubu',
+      link,
+    );
+
+    const logged = jest.mocked(console.log).mock.calls.flat().join('\n');
+    expect(logged).toContain('eva@example.com');
+    expect(logged).toContain('Ověř si e-mail v HobbyHubu');
+    expect(logged).not.toContain('secret-token');
+    expect(inbox?.messagesFor('eva@example.com')[0]?.html).toBe(link);
+  });
+
   it('with Resend or SMTP there is no simulated inbox', async () => {
     for (const config of [
       { resendApiKey: 're_123', emailFrom: 'x@example.com' },

@@ -105,6 +105,14 @@ export class Config {
   @IsIn(['', 'true', 'false'])
   readonly simulatedInbox?: string;
 
+  // Swagger (/api/docs) and BetterAuth's reference page (N-9): "true" or
+  // "false"; unset or empty = off in production, on elsewhere
+  // (api-docs-enabled.ts). Staging turns them on in Dockerfile.deploy.
+  @Env('API_DOCS', { expose: true })
+  @IsOptional()
+  @IsIn(['', 'true', 'false'])
+  readonly apiDocs?: string;
+
   // Sign-in with Google (#154): only with both set, otherwise the app offers
   // e-mail and password alone. Setup: docs/prihlaseni-pres-google.md.
   @Env('GOOGLE_CLIENT_ID', { expose: true })

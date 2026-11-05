@@ -8,7 +8,11 @@ import {
 import { BetterAuth } from '@/shared/auth/providers/better-auth.provider';
 import { DeepMockProxy, mockDeep } from 'jest-mock-extended';
 import { seedAccounts } from './content-rows';
-import { ensureUser, replaceSeedPassword } from './ensure-user';
+import {
+  ensureUser,
+  replaceSeedPassword,
+  restoreSeedPassword,
+} from './ensure-user';
 import {
   deleteSeedContent,
   REPO_PASSWORD_REPLACED_KEY,
@@ -21,6 +25,7 @@ import {
 jest.mock('./ensure-user', () => ({
   ensureUser: jest.fn(),
   replaceSeedPassword: jest.fn(),
+  restoreSeedPassword: jest.fn(),
 }));
 
 const accountIds = seedAccounts.map((a) => `u-${a.email}`);
@@ -271,6 +276,31 @@ describe('seedContent (#181)', () => {
     expect(prisma.seedState.upsert).toHaveBeenCalled();
   });
 
+  it('with a new version gives every seed account the seed password back, after the transaction (#229)', async () => {
+    const prisma = setup({ before: 1, inTransaction: 1 });
+    const auth = mockDeep<BetterAuth>();
+    jest.mocked(restoreSeedPassword).mockResolvedValue(false);
+    jest.mocked(restoreSeedPassword).mockResolvedValueOnce(true);
+
+    await seedContent(prisma, auth, 'staging-heslo-2026');
+
+    expect(restoreSeedPassword).toHaveBeenCalledTimes(seedAccounts.length);
+    expect(restoreSeedPassword).toHaveBeenCalledWith(
+      prisma,
+      auth,
+      accountIds[0],
+      'staging-heslo-2026',
+    );
+    // scrypt for every account would otherwise hold the content lock
+    const transactionAt = prisma.$transaction.mock.invocationCallOrder[0]!;
+    const restoreAt =
+      jest.mocked(restoreSeedPassword).mock.invocationCallOrder[0]!;
+    expect(transactionAt).toBeLessThan(restoreAt);
+    expect(console.log).toHaveBeenCalledWith(
+      expect.stringContaining('1 got the seed password back'),
+    );
+  });
+
   it('only creates the missing accounts when the data are of the current version', async () => {
     const prisma = setup({
       before: SEED_DATA_VERSION,
@@ -282,6 +312,8 @@ describe('seedContent (#181)', () => {
     expect(ensureUser).toHaveBeenCalledTimes(seedAccounts.length);
     expect(prisma.$transaction).not.toHaveBeenCalled();
     expect(prisma.event.deleteMany).not.toHaveBeenCalled();
+    // a tester's own password stays until the next version
+    expect(restoreSeedPassword).not.toHaveBeenCalled();
   });
 
   it('changes nothing when a seed running at the same time got there first', async () => {
@@ -293,6 +325,8 @@ describe('seedContent (#181)', () => {
     expect(prisma.event.deleteMany).not.toHaveBeenCalled();
     expect(prisma.event.createMany).not.toHaveBeenCalled();
     expect(prisma.seedState.upsert).not.toHaveBeenCalled();
+    // the seed that replaced the data restored the passwords
+    expect(restoreSeedPassword).not.toHaveBeenCalled();
   });
 });
 
