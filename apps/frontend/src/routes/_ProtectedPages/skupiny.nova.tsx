@@ -1,4 +1,4 @@
-import { createFileRoute, useNavigate } from "@tanstack/react-router"
+import { createFileRoute } from "@tanstack/react-router"
 import { toast } from "sonner"
 
 import { ROUTES } from "@/app/routes"
@@ -11,6 +11,7 @@ import { cn } from "@/lib/utils"
 import { CatalogState } from "@/features/groups/components/CatalogState"
 import { GroupForm } from "@/features/groups/components/GroupForm"
 import { useCreateGroup } from "@/features/groups/hooks/useGroupMutations"
+import { useOpenSavedGroup } from "@/features/groups/hooks/useOpenSavedGroup"
 
 export const Route = createFileRoute("/_ProtectedPages/skupiny/nova")({
   component: NewGroupPage,
@@ -18,7 +19,7 @@ export const Route = createFileRoute("/_ProtectedPages/skupiny/nova")({
 
 /** Figma D-06, D-06d. Any signed-in user; the founder becomes the group's admin. */
 function NewGroupPage() {
-  const navigate = useNavigate()
+  const openSavedGroup = useOpenSavedGroup()
   const { catalog, queries } = useCatalog()
   const createGroup = useCreateGroup()
 
@@ -44,7 +45,7 @@ function NewGroupPage() {
                 createGroup.mutate(input, {
                   onSuccess: (group) => {
                     toast.success("Skupina je založená")
-                    void navigate({ to: "/skupiny/$groupId", params: { groupId: group.id } })
+                    openSavedGroup(group.id)
                   },
                 })
               }
