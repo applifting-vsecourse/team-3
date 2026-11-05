@@ -13,6 +13,7 @@ import {
   GroupMemberEntry,
   GroupMembers,
 } from '@/modules/group/domain/membership';
+import { requestMessageFor } from '@/shared/request-message/request-message';
 import { Injectable } from '@nestjs/common';
 import { buildActiveGroupsWhere } from './active-groups-where';
 import { buildMyGroupsWhere } from './my-groups-where';
@@ -155,9 +156,17 @@ export class GroupRepository {
     groupId: string,
     userId: string,
     status: Extract<MembershipStatus, 'active' | 'pending'>,
+    message: string | null = null,
   ): Promise<void> {
     await this.prisma.groupMember.create({
-      data: { groupId, userId, role: 'member', status },
+      data: {
+        groupId,
+        userId,
+        role: 'member',
+        status,
+        // only a request carries a message for the admins (#175)
+        message: requestMessageFor(status, message),
+      },
     });
   }
 
@@ -196,6 +205,7 @@ export class GroupRepository {
         role: true,
         status: true,
         createdAt: true,
+        message: true,
         user: { select: { id: true, name: true } },
       },
       // admins first among members (D-07: „Správce skupiny“ on top)
@@ -206,6 +216,8 @@ export class GroupRepository {
       name: row.user.name,
       role: row.role,
       since: row.createdAt,
+      // the message belongs to the request; a member's old one stays unsaid
+      message: row.status === 'pending' ? row.message : null,
     });
     return {
       requests: rows

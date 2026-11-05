@@ -11,6 +11,14 @@ class EventRequestDto {
 
   @ApiProperty({ type: String, format: 'date-time' })
   requestedAt!: string;
+
+  @ApiProperty({
+    type: String,
+    nullable: true,
+    description: "The applicant's message to the organizer (#175)",
+    example: 'Brass jsem hrála dvakrát, ráda si dám znovu.',
+  })
+  message!: string | null;
 }
 
 /** Who is in and who is waiting, for the organizer's management page (B-033, #43, #53). */
@@ -31,10 +39,11 @@ export class EventParticipantsResponseDto {
   static fromDomain(view: EventManagementView): EventParticipantsResponseDto {
     return {
       participants: view.participants.map(({ id, name }) => ({ id, name })),
-      requests: view.requests.map(({ id, name, requestedAt }) => ({
+      requests: view.requests.map(({ id, name, requestedAt, message }) => ({
         id,
         name,
         requestedAt: requestedAt.toISOString(),
+        message,
       })),
     };
   }

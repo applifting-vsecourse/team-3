@@ -359,11 +359,15 @@ export class EventsService {
   async join(
     eventId: string,
     userId: string,
+    message: string | null = null,
     now: Date = new Date(),
   ): Promise<EventDetailView> {
     await this.getEventDetail(eventId, userId, now); // 404 if the user can't see it
-    const decision = await this.eventRepository.join(eventId, userId, (state) =>
-      decideJoin(state, now),
+    const decision = await this.eventRepository.join(
+      eventId,
+      userId,
+      message,
+      (state) => decideJoin(state, now),
     );
     if (!decision) throw new NotFoundException('Akce neexistuje.');
     if (!decision.ok) throw refused(decision.refusal);

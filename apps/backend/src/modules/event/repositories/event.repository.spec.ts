@@ -1,4 +1,5 @@
 import { PrismaService } from '@/core/prisma/prisma.service';
+import { MY_EVENTS_TABS } from '@/modules/event/domain/event';
 import { mockDeep } from 'jest-mock-extended';
 import { EventRepository } from './event.repository';
 import { buildPublicEventsWhere } from './public-events-where';
@@ -151,7 +152,7 @@ describe('EventRepository.join', () => {
     const { prisma } = setup(2);
     const decide = jest.fn().mockReturnValue({ ok: true, status: 'approved' });
 
-    await new EventRepository(prisma).join('e1', 'u9', decide);
+    await new EventRepository(prisma).join('e1', 'u9', null, decide);
 
     const lockAt = prisma.$executeRaw.mock.invocationCallOrder[0]!;
     const countAt = prisma.participation.count.mock.invocationCallOrder[0]!;
@@ -174,9 +175,64 @@ describe('EventRepository.join', () => {
       .mockReturnValue({ ok: false, refusal: 'EVENT_FULL' });
 
     await expect(
-      new EventRepository(prisma).join('e1', 'u9', decide),
+      new EventRepository(prisma).join('e1', 'u9', 'Ahoj', decide),
     ).resolves.toEqual({ ok: false, refusal: 'EVENT_FULL' });
     expect(prisma.participation.upsert).not.toHaveBeenCalled();
+  });
+
+  it('a request keeps its message, also over a withdrawn one (#175)', async () => {
+    const { prisma } = setup(2);
+    const decide = jest.fn().mockReturnValue({ ok: true, status: 'pending' });
+
+    await new EventRepository(prisma).join('e1', 'u9', 'Ahoj, hraju', decide);
+
+    expect(prisma.participation.upsert).toHaveBeenCalledWith(
+      expect.objectContaining({
+        create: expect.objectContaining({
+          status: 'pending',
+          message: 'Ahoj, hraju',
+        }),
+        update: expect.objectContaining({
+          status: 'pending',
+          message: 'Ahoj, hraju',
+        }),
+      }),
+    );
+  });
+
+  it('joining at once drops the message: nobody would read it (#175)', async () => {
+    const { prisma } = setup(2);
+    const decide = jest.fn().mockReturnValue({ ok: true, status: 'approved' });
+
+    await new EventRepository(prisma).join('e1', 'u9', 'Ahoj', decide);
+
+    expect(prisma.participation.upsert).toHaveBeenCalledWith(
+      expect.objectContaining({
+        create: expect.objectContaining({ message: null }),
+        update: expect.objectContaining({ message: null }),
+      }),
+    );
+  });
+});
+
+describe('EventRepository.findPendingRequests', () => {
+  it('returns each request with its message (#175)', async () => {
+    const prisma = mockDeep<PrismaService>();
+    const updatedAt = new Date('2026-10-24T10:00:00.000Z');
+    prisma.participation.findMany.mockResolvedValue([
+      { updatedAt, message: 'Ahoj', user: { id: 'u4', name: 'Jakub' } },
+      { updatedAt, message: null, user: { id: 'u5', name: 'Jana' } },
+    ] as never);
+
+    await expect(
+      new EventRepository(prisma).findPendingRequests('e1'),
+    ).resolves.toEqual([
+      { id: 'u4', name: 'Jakub', requestedAt: updatedAt, message: 'Ahoj' },
+      { id: 'u5', name: 'Jana', requestedAt: updatedAt, message: null },
+    ]);
+    expect(prisma.participation.findMany).toHaveBeenCalledWith(
+      expect.objectContaining({ where: { eventId: 'e1', status: 'pending' } }),
+    );
   });
 });
 
@@ -439,5 +495,42 @@ describe('EventRepository.leave', () => {
       where: { eventId_userId: { eventId: 'e1', userId: 'u5' } },
       data: { status: 'withdrawn', approvedAt: null },
     });
+  });
+});
+
+describe('EventRepository: the request message stays with the organizer (#175)', () => {
+  const now = new Date('2026-10-24T10:00:00.000Z');
+  const queries = (
+    prisma: ReturnType<typeof mockDeep<PrismaService>>,
+  ): string =>
+    JSON.stringify([
+      prisma.event.findMany.mock.calls,
+      prisma.event.findUnique.mock.calls,
+      prisma.participation.findMany.mock.calls,
+      prisma.participation.findUnique.mock.calls,
+      (prisma.participation.groupBy as unknown as jest.Mock).mock.calls,
+    ]);
+
+  it('the list, the detail, Moje akce and the participants never load it', async () => {
+    const prisma = mockDeep<PrismaService>();
+    prisma.event.findMany.mockResolvedValue([]);
+    prisma.event.findUnique.mockResolvedValue(null);
+    prisma.participation.findMany.mockResolvedValue([]);
+    prisma.participation.findUnique.mockResolvedValue(null);
+    (prisma.participation.groupBy as unknown as jest.Mock).mockResolvedValue(
+      [],
+    );
+    const repository = new EventRepository(prisma);
+
+    await repository.findPublicEvents({ filters: {}, now, limit: 10 });
+    await repository.countInterest({}, now);
+    await repository.findEventDetail('e1', now);
+    await repository.findApprovedParticipants('e1');
+    await repository.findParticipationStatus('e1', 'u1');
+    for (const tab of MY_EVENTS_TABS) {
+      await repository.findMyEvents({ tab, userId: 'u1', now, limit: 10 });
+    }
+
+    expect(queries(prisma)).not.toContain('message');
   });
 });

@@ -55,7 +55,11 @@ export const eventDetailSchema = publicEventSchema.extend({
 
 export type EventDetail = z.infer<typeof eventDetailSchema>
 
-const eventRequestSchema = eventParticipantSchema.extend({ requestedAt: z.coerce.date() })
+const eventRequestSchema = eventParticipantSchema.extend({
+  requestedAt: z.coerce.date(),
+  /** The applicant's message to the organizer (#175); only the organizer gets it. */
+  message: z.string().nullable(),
+})
 
 export type EventRequest = z.infer<typeof eventRequestSchema>
 

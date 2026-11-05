@@ -13,12 +13,36 @@ vi.mock("@/lib/api-client", () => ({ api }))
 // Figma D-07: Tomáš's group with two requests and five members
 const members = {
   requests: [
-    { userId: "u-jakub", name: "Jakub Král", role: "member", since: "2026-10-21T10:00:00Z" },
-    { userId: "u-petr", name: "Petr Holub", role: "member", since: "2026-10-22T10:00:00Z" },
+    {
+      userId: "u-jakub",
+      name: "Jakub Král",
+      role: "member",
+      since: "2026-10-21T10:00:00Z",
+      message: "Ahoj, v Pardubicích jsem hrál krajskou ligu v obraně. Rád bych se přidal.",
+    },
+    {
+      userId: "u-petr",
+      name: "Petr Holub",
+      role: "member",
+      since: "2026-10-22T10:00:00Z",
+      message: null,
+    },
   ],
   members: [
-    { userId: "u-tomas", name: "Tomáš Dvořák", role: "admin", since: "2026-09-01T10:00:00Z" },
-    { userId: "u-ondrej", name: "Ondřej Procházka", role: "member", since: "2026-09-02T10:00:00Z" },
+    {
+      userId: "u-tomas",
+      name: "Tomáš Dvořák",
+      role: "admin",
+      since: "2026-09-01T10:00:00Z",
+      message: null,
+    },
+    {
+      userId: "u-ondrej",
+      name: "Ondřej Procházka",
+      role: "member",
+      since: "2026-09-02T10:00:00Z",
+      message: null,
+    },
   ],
 }
 
@@ -38,6 +62,19 @@ beforeEach(() => {
 })
 
 describe("GroupManagement", () => {
+  it("a request shows the applicant's message in quotes under them (D-07, #175)", async () => {
+    renderManagement(true)
+
+    const requests = await screen.findByRole("region", { name: "Žádosti (2)" })
+    const [jakub, petr] = within(requests).getAllByRole("listitem")
+    expect(
+      within(jakub!).getByText(
+        "„Ahoj, v Pardubicích jsem hrál krajskou ligu v obraně. Rád bych se přidal.“",
+      ),
+    ).toBeInTheDocument()
+    expect(within(petr!).queryByText(/„/)).not.toBeInTheDocument()
+  })
+
   it("desktop shows requests and members at once, admins labelled", async () => {
     renderManagement(true)
 

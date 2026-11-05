@@ -15,11 +15,12 @@ describe('EventParticipantsResponseDto.fromDomain', () => {
     ]);
   });
 
-  it('sends a request with its id, name and when it was sent, nothing more (#53)', () => {
+  it('sends a request with its id, name, when it was sent and its message, nothing more (#53, #175)', () => {
     const request = {
       id: 'u4',
       name: 'Jakub',
       requestedAt: new Date('2026-10-24T10:00:00.000Z'),
+      message: 'Ahoj, hraju rád.',
       email: 'jakub@example.com',
     };
 
@@ -29,7 +30,12 @@ describe('EventParticipantsResponseDto.fromDomain', () => {
         requests: [request],
       }).requests,
     ).toEqual([
-      { id: 'u4', name: 'Jakub', requestedAt: '2026-10-24T10:00:00.000Z' },
+      {
+        id: 'u4',
+        name: 'Jakub',
+        requestedAt: '2026-10-24T10:00:00.000Z',
+        message: 'Ahoj, hraju rád.',
+      },
     ]);
   });
 });

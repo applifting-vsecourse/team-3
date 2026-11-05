@@ -48,6 +48,8 @@ const memberEntrySchema = z.object({
   name: z.string(),
   role: z.enum(["admin", "member"]),
   since: z.coerce.date(),
+  /** The applicant's message to the admins (#175); null for a member. */
+  message: z.string().nullable(),
 })
 
 /** GET /api/groups/:id/members, only for an admin (Figma D-07). */
