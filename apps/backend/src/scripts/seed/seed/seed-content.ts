@@ -8,7 +8,11 @@ import {
   legacySeedContentWhere,
   seedAccounts,
 } from './content-rows';
-import { ensureUser, replaceSeedPassword } from './ensure-user';
+import {
+  ensureUser,
+  replaceSeedPassword,
+  restoreSeedPassword,
+} from './ensure-user';
 
 /**
  * Verze testovacích dat (#181). PR, který změní data v `data/`, číslo zvedne a staging
@@ -42,7 +46,10 @@ const CONTENT_SEED_LOCK = 4_702_026;
  *   podle dat, všechno se vloží znovu s termíny relativními k teď a zapíše se
  *   nová verze i s id vložených akcí a skupin. Co testeři založili, i pod demo
  *   účty (QA na stagingu), zůstane.
- * - Hesla seedových účtů seed nemění, s jednou výjimkou (N-3): účet, který má
+ * - Při nové verzi dostanou seedové účty zpět heslo `password` (#229): tester
+ *   ho na stagingu mohl změnit a odkaz pro obnovu hesla v produkci do logu
+ *   nejde (N-6). Ověření stojí asi 70 ms na účet, proto jen při nové verzi.
+ * - Mezi verzemi hesla seed nemění, s jednou výjimkou (N-3): účet, který má
  *   pořád heslo z repa (DEMO_PASSWORD), dostane `password`, když je jiné. Jen
  *   jednou, pak to hlídá řádek REPO_PASSWORD_REPLACED_KEY: účty založené potom
  *   už heslo z repa nedostanou.
@@ -196,6 +203,20 @@ export async function seedContent(
   if (!replaced) {
     console.log('Another seed replaced the seed data meanwhile — skipping.');
     return;
+  }
+
+  // After the transaction: scrypt for ~170 accounts would hold its lock for
+  // seconds. Only the seed that replaced the data gets here.
+  let restoredPasswords = 0;
+  for (const id of accountIds) {
+    if (await restoreSeedPassword(prisma, auth, id, password)) {
+      restoredPasswords++;
+    }
+  }
+  if (restoredPasswords > 0) {
+    console.log(
+      `Seed accounts: ${restoredPasswords} got the seed password back, their sessions ended (#229)`,
+    );
   }
 
   console.log(
