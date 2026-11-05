@@ -1,5 +1,7 @@
 import { describe, expect, it } from "vitest"
 
+import { anOccupancy } from "@/test/anOccupancy"
+
 import {
   freeSpotsLabel,
   occupancyBesideBadge,
@@ -9,11 +11,7 @@ import {
   occupancySummary,
 } from "./occupancy"
 
-const occupancy = (approvedCount: number, minParticipants: number, maxParticipants: number) => ({
-  approvedCount,
-  minParticipants,
-  maxParticipants,
-})
+const occupancy = anOccupancy
 
 describe("occupancyCount", () => {
   it("says approved of maximum in words, never „12/20“", () => {
@@ -44,6 +42,13 @@ describe("occupancyState", () => {
   it("approvals over the maximum still read as full", () => {
     expect(occupancyState(occupancy(14, 6, 12))).toBe("full")
   })
+
+  it("follows the API's fields, as the status badge does, not a count of its own", () => {
+    // 3 of min. 4 would be missing one, but the API says the minimum is reached
+    expect(occupancyState(occupancy(3, 4, 12, { missingToMin: 0 }))).toBe("free")
+    expect(occupancyState(occupancy(5, 4, 12, { missingToMin: 2 }))).toBe("missing")
+    expect(occupancyState(occupancy(5, 4, 12, { isFull: true, freeSpots: 0 }))).toBe("full")
+  })
 })
 
 describe("occupancyStatus", () => {
@@ -59,6 +64,11 @@ describe("occupancyStatus", () => {
 
   it("full", () => {
     expect(occupancyStatus(occupancy(12, 6, 12))).toBe("Plno")
+  })
+
+  it("says the API's numbers", () => {
+    expect(occupancyStatus(occupancy(5, 6, 12, { missingToMin: 3 }))).toBe("Chybí ještě 3")
+    expect(occupancyStatus(occupancy(8, 6, 12, { freeSpots: 1 }))).toBe("1 volné místo")
   })
 
   it("a minimum equal to the maximum: missing until the event is full", () => {
@@ -81,6 +91,13 @@ describe("occupancyBesideBadge", () => {
 describe("occupancySummary", () => {
   it("below the minimum starts with how many are missing and ends with the minimum", () => {
     expect(occupancySummary(occupancy(5, 6, 12))).toBe("chybí 1 · 5 z 12 · min. 6")
+  })
+
+  it("takes how many are missing from the API, as the badge does", () => {
+    expect(occupancySummary(occupancy(5, 6, 12, { missingToMin: 2 }))).toBe(
+      "chybí 2 · 5 z 12 · min. 6",
+    )
+    expect(occupancySummary(occupancy(5, 6, 12, { missingToMin: 0 }))).toBe("5 z 12")
   })
 
   it("from the minimum just the count", () => {

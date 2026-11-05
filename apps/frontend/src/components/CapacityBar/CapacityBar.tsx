@@ -1,10 +1,8 @@
-import { occupancyCount, occupancyState, occupancyStatus } from "@/lib/occupancy"
+import { occupancyCount, occupancyState, occupancyStatus, type Occupancy } from "@/lib/occupancy"
 import { cn } from "@/lib/utils"
 
-type CapacityBarProps = {
-  approvedCount: number
-  minParticipants: number
-  maxParticipants: number
+/** The counts for the bar's geometry; `missingToMin`, `freeSpots` and `isFull` as the API sends them. */
+type CapacityBarProps = Occupancy & {
   className?: string
 }
 
@@ -16,13 +14,8 @@ const percent = (part: number, whole: number) =>
  * components): approved of maximum as the fill, hatched until the minimum is
  * reached; the minimum as a marker with its „min. N“ label under it.
  */
-export function CapacityBar({
-  approvedCount,
-  minParticipants,
-  maxParticipants,
-  className,
-}: CapacityBarProps) {
-  const occupancy = { approvedCount, minParticipants, maxParticipants }
+export function CapacityBar({ className, ...occupancy }: CapacityBarProps) {
+  const { approvedCount, minParticipants, maxParticipants } = occupancy
   const state = occupancyState(occupancy)
   const isFull = state === "full"
   // not confirmed yet: below the minimum the fill is hatched, from exactly the minimum solid

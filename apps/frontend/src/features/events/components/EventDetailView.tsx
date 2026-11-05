@@ -107,6 +107,9 @@ export function EventDetailView({
       approvedCount={event.approvedCount}
       minParticipants={event.minParticipants}
       maxParticipants={event.maxParticipants}
+      missingToMin={event.missingToMin}
+      freeSpots={event.freeSpots}
+      isFull={event.isFull}
     />
   )
   const facts = (

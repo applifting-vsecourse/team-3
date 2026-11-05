@@ -1,16 +1,12 @@
 import { render, screen } from "@testing-library/react"
 import { describe, expect, it } from "vitest"
 
+import { anOccupancy } from "@/test/anOccupancy"
+
 import { CapacityBar } from "./CapacityBar"
 
 const renderBar = (approvedCount: number, min = 8, max = 10) => {
-  const { container } = render(
-    <CapacityBar
-      approvedCount={approvedCount}
-      minParticipants={min}
-      maxParticipants={max}
-    />,
-  )
+  const { container } = render(<CapacityBar {...anOccupancy(approvedCount, min, max)} />)
   return {
     fill: container.querySelector<HTMLElement>("[data-slot=capacity-fill]"),
     tick: container.querySelector<HTMLElement>("[data-slot=capacity-tick]"),
@@ -115,13 +111,7 @@ describe("CapacityBar", () => {
   })
 
   it("reads in order: the status, the count, then the minimum", () => {
-    const { container } = render(
-      <CapacityBar
-        approvedCount={6}
-        minParticipants={8}
-        maxParticipants={10}
-      />,
-    )
+    const { container } = render(<CapacityBar {...anOccupancy(6, 8, 10)} />)
 
     expect(container.textContent).toBe("Chybí ještě 26 z 10min. 8")
     expect(container.querySelector("[data-slot=capacity-track]")).toHaveAttribute(

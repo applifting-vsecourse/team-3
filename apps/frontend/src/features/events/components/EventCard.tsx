@@ -19,9 +19,14 @@ type EventCardProps = {
   isHighlighted?: boolean
   onMouseEnter?: () => void
   onMouseLeave?: () => void
-  /** Instead of the occupancy, e.g. the user's place in „Moje akce“. */
+  /**
+   * Instead of the occupancy, e.g. the user's place in „Moje akce“.
+   * Pass `facts` with it: the default line leaves „chybí X“ to the occupancy
+   * badge (#189), so with a badge like „Jdu“ how many are missing would be
+   * said nowhere — use `attendingFacts` (Přihlášen) or `organizingFacts` (Pořádám).
+   */
   status?: BadgeStatus
-  /** Instead of „4 z 12 · Praha 8“. */
+  /** Instead of „4 z 12 · Praha 8“ (`eventFacts`). */
   facts?: string
   /** The organizer goes to the event's management (C-02), everyone else to its detail. */
   linkTo?: "detail" | "manage"

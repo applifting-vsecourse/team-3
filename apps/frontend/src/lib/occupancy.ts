@@ -7,15 +7,14 @@ export type Occupancy = {
   approvedCount: number
   minParticipants: number
   maxParticipants: number
-}
-
-/** Counted as the backend's `computeCapacity`: never negative, full once no place is left. */
-function capacity({ approvedCount, minParticipants, maxParticipants }: Occupancy) {
-  const freeSpots = Math.max(0, maxParticipants - approvedCount)
-  const isFull = freeSpots === 0
-  // min ≤ max, so a full event has its minimum; the guard covers odd data
-  const missing = isFull ? 0 : Math.max(0, minParticipants - approvedCount)
-  return { freeSpots, isFull, missing }
+  /**
+   * The capacity as the API counts it (the backend's `computeCapacity`).
+   * The status badge reads the same fields, so the words never disagree
+   * with the badge next to them.
+   */
+  missingToMin: number
+  freeSpots: number
+  isFull: boolean
 }
 
 /** „5 z 12“ — approved participants of the maximum. */
@@ -31,19 +30,25 @@ export const freeSpotsLabel = (count: number): string =>
 
 export type OccupancyState = "missing" | "free" | "full"
 
-/** Below the minimum (not confirmed yet), minimum reached with places left, or full. */
-export function occupancyState(occupancy: Occupancy): OccupancyState {
-  const { isFull, missing } = capacity(occupancy)
+/**
+ * Below the minimum (not confirmed yet), minimum reached with places left, or
+ * full — in the order the status badge checks them, so full wins.
+ */
+export function occupancyState({ isFull, missingToMin }: Occupancy): OccupancyState {
   if (isFull) return "full"
-  return missing > 0 ? "missing" : "free"
+  return missingToMin > 0 ? "missing" : "free"
 }
 
 /** The detail's status line (Capacity bar): „Chybí ještě 2“, „Volná místa: 3“, „1 volné místo“, „Plno“. */
 export function occupancyStatus(occupancy: Occupancy): string {
-  const { freeSpots, isFull, missing } = capacity(occupancy)
-  if (isFull) return "Plno"
-  if (missing > 0) return `Chybí ještě ${missing}`
-  return freeSpotsLabel(freeSpots)
+  switch (occupancyState(occupancy)) {
+    case "full":
+      return "Plno"
+    case "missing":
+      return `Chybí ještě ${occupancy.missingToMin}`
+    case "free":
+      return freeSpotsLabel(occupancy.freeSpots)
+  }
 }
 
 /**
@@ -52,9 +57,10 @@ export function occupancyStatus(occupancy: Occupancy): string {
  * the line doesn't repeat it.
  */
 export function occupancyBesideBadge(occupancy: Occupancy): string {
-  const { missing } = capacity(occupancy)
   const count = occupancyCount(occupancy)
-  return missing > 0 ? `${count} · min. ${occupancy.minParticipants}` : count
+  return occupancyState(occupancy) === "missing"
+    ? `${count} · min. ${occupancy.minParticipants}`
+    : count
 }
 
 /**
@@ -63,7 +69,8 @@ export function occupancyBesideBadge(occupancy: Occupancy): string {
  * are missing, „chybí 1 · 5 z 12 · min. 6“.
  */
 export function occupancySummary(occupancy: Occupancy): string {
-  const { missing } = capacity(occupancy)
   const line = occupancyBesideBadge(occupancy)
-  return missing > 0 ? `chybí ${missing} · ${line}` : line
+  return occupancyState(occupancy) === "missing"
+    ? `chybí ${occupancy.missingToMin} · ${line}`
+    : line
 }
