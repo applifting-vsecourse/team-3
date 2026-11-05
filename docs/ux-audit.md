@@ -4,7 +4,7 @@
 
 Tahle verze nahrazuje audit z 31. 10. (koncept „Koná se?“). Koncept zůstává, ale PO 31. 10. řekl, že v UX, UI ani identitě nevidí skutečný posun, takže jsme brand udělali znovu. Co z verze 31. 10. platí dál, je v [Rozhodnutí](#rozhodnutí).
 
-Podklady: [Figma HobbyHub-design](https://www.figma.com/design/dGYGqD8BjC1rYlbfjCpxWD/HobbyHub-design) (stránky „Úvod a detail akce“, „Seznam akcí“, „Účet“, „Moje akce a správa akce“, „Skupiny“, „Design system“; návrhy pro PO na „Brand – návrhy pro PO (1. 11.)“, staré verze na stránkách „Archiv“), [DESIGN.md](../DESIGN.md), [design-rozhodnuti.md](design-rozhodnuti.md), [zápis planningu sprintu 3](zapis-planning-sprint3.md), bezpečnostní audit (#172, větev `docs/172-bezpecnostni-audit`), #167 (100 AI testerů).
+Podklady: [Figma HobbyHub-design](https://www.figma.com/design/dGYGqD8BjC1rYlbfjCpxWD/HobbyHub-design) (stránky „Úvod a detail akce“, „Seznam akcí“, „Účet“, „Moje akce a správa akce“, „Skupiny“, „Design system“; návrhy pro PO na „Brand – návrhy pro PO (1. 11.)“, staré verze na stránkách „Archiv“), [DESIGN.md](../DESIGN.md), [design-rozhodnuti.md](design-rozhodnuti.md), [zápis planningu sprintu 3](zapis-planning-sprint3.md), bezpečnostní audit (#172, PR #223), #167 (100 AI testerů).
 
 ## Shrnutí
 
@@ -15,7 +15,7 @@ Aplikace byla čistá, ale působila jako dobře udělaná šablona: bílá a ze
 1. **Tmavě zelený pás** nahoře na každé stránce s velkým motivem loga – parta, které chybí jeden. Na desktopu logo vychází zespodu pásu (limetkový kroužek je ten chybějící), na mobilu je znak před nadpisem.
 2. **Fotky aktivit** na kartách a v detailu (jedna fotka na aktivitu z knihovny, ne fotky organizátorů) s datovou dlaždicí přes fotku.
 3. **„Koná se?“** z verze 31. 10.: šrafa v pruhu obsazenosti = ještě se nekoná, chybí lidé; plná výplň = koná se; razítko „Koná se“ na detailu; okamžik „Máš místo“.
-4. **Hlas aplikace**: tykání, bez rodu, čísla místo slov, osobní pojmenování („Tady chybíš“, „Jakube, tady se na tebe čeká.“).
+4. **Hlas aplikace**: tykání, bez rodu, čísla místo slov, osobní pojmenování („Tady chybíš“, „Eva, tady se na tebe čeká.“).
 
 Barevný tón „Hlubší les“ (tmavší zelená, sytější limetka). Limetka je jen signál – hlavní tlačítko, „Chybí“, razítko, aktivní stav – nikdy dekorace ani text (jedinou výjimkou je klíčové slovo nadpisu v tmavém režimu).
 
@@ -35,7 +35,7 @@ Co jsme zvažovali a zamítli: tečky jako místa v partě (tým 2 má obsazenos
 | 2   | **Razítko „Koná se“** jen na detailu akce s naplněným minimem, ne na kartách                                                                                                                                                           | platí                                                                     | Stamp/Koná se; A-05, A-05c, A-05g             |
 | 3   | **Výraznější minimum** na detailu: značka přes dráhu a „min. N“ jako tmavá pilulka                                                                                                                                                     | platí                                                                     | Capacity bar                                  |
 | 4   | **Okamžik „Máš místo“**: když tvé přihlášení naplní minimum, šrafa se změní na plnou výplň a „Díky tobě se akce koná“                                                                                                                  | platí                                                                     | A-05c                                         |
-| 5   | **„Kdo jde“**: jména vidí organizátor, schválený účastník a u akce skupiny členové; ostatní jednu větu, kdy jména uvidí (#174)                                                                                                         | platí                                                                     | A-05, A-05c, A-05g                            |
+| 5   | **„Kdo jde“**: jména vidí organizátor, schválený účastník a u akce skupiny členové; ostatní sekci jen s počtem a jednou větou, kdy jména uvidí (#174, B-026)                                                                           | platí                                                                     | A-05, A-05c, A-05g                            |
 | 6   | **Hlas aplikace** (níže)                                                                                                                                                                                                               | platí, rozšířeno                                                          | celá aplikace, DESIGN.md › Copy               |
 | 7   | **Úvodní stránka**: panel „Teď chybí jeden“, sekce podle #182, „Jak to funguje“ (výraznější, zůstává), výzva „Nic pro tebe?“                                                                                                           | změněno 4. 11. – viz [úvodní stránka](#úvodní-stránka)                    | A-01, A-01d, A-01p, A-01pd                    |
 | 8   | „Založit akci“ jako tichý odkaz na `/akce` vedle počtu akcí                                                                                                                                                                            | **zrušeno**: jen v Moje akce a v prázdném stavu `/akce`; nikdy v hlavičce | C-01, C-02, A-02 (popis)                      |
@@ -60,8 +60,8 @@ Co jsme zvažovali a zamítli: tečky jako místa v partě (tým 2 má obsazenos
 | 27  | **„Všechny akce“** = výchozí lokalita bez okolí; když si okolí (+10/25/50 km) zapneš, zahrnou ho Všechny akce i ostatní záložky                                                                                                        | nové (4. 11., #55, #57)                                                   | A-02, A-02gd (popis)                          |
 | 28  | **Hodnocení**: účastník hodnotí akci a organizátora zvlášť (C-03), organizátor účastníky – nejdřív „Všem stejně“ (hvězdičky a jeden komentář), pak jednotlivě hvězdičky i vlastní komentář (D-05); komponenta Hodnocení/Hvězdičky      | nové (PO 4. 11.)                                                          | C-03, C-03d, D-05, D-05d; Hodnocení/Hvězdičky |
 | 29  | **Veřejný profil**: hodnocení jako organizátor, průměr jeho akcí, hodnocení jako účastník a historie pořádaných veřejných akcí s hodnocením; na detailu akce u organizátora jeho hodnocení                                             | nové (PO 4. 11.)                                                          | B-07, B-07d; A-05* (Pořádá)                   |
-| 30  | **Přihlášení jen s ověřeným e-mailem**: po registraci obrazovka „Ověř si e-mail“, přihlásí až odkaz z e-mailu; stav „přihlášený, neověřený“ v aplikaci není                                                                            | nové (PO 4. 11.)                                                          | B-01a, B-01ad; A-05 · Stavy, A-08 · Stavy     |
-| 31  | **Akce jen pro členy, otevřená nečlenem**: stránka s cestou do skupiny (API 401 nepřihlášenému, přihlášenému nečlenovi 403 jen s `groupId`, ne 404); bez času, místa a fotky akce                                                      | nové (4. 11.)                                                             | A-05i                                         |
+| 30  | **Přihlášení jen s ověřeným e-mailem**: po registraci obrazovka „Ověř si e-mail“, přihlásí až odkaz z e-mailu; stav „přihlášený, neověřený“ v aplikaci není                                                                            | nové (PO 4. 11.)                                                          | B-01a, B-01ad                                 |
+| 31  | **Akce jen pro členy, otevřená nečlenem**: stránka s cestou do skupiny (API 401 nepřihlášenému, přihlášenému nečlenovi 403 jen s `groupId`, ne 404 – zdůvodnění v B-026); bez času, místa a fotky akce                                 | nové (4. 11.)                                                             | A-05i                                         |
 | 32  | **Kontrast všude**: text 4,5:1, každý negrafický prvek a hrana plochy 3:1 v obou režimech; zelené plochy s obrysem `tile-border`, limetka na světlé ploše s `primary-edge`                                                             | nové (2.–4. 11.)                                                          | celý design system                            |
 
 ## Úvodní stránka
@@ -92,7 +92,7 @@ Pravidla: tykání, bez rodu (aplikace pohlaví nezná – ani „organizátorka
 | Kde                                 | Text                                                                                                                  |
 | ----------------------------------- | --------------------------------------------------------------------------------------------------------------------- |
 | Úvod – nadpis (návštěvník)          | Někde chybí jeden do party. Třeba ty.                                                                                 |
-| Úvod – nadpis (přihlášený)          | {Jméno}, tady se na tebe čeká.                                                                                        |
+| Úvod – nadpis (přihlášený)          | {Křestní jméno}, tady se na tebe čeká. (první slovo jména v 1. pádě, „Eva, …“ – 5. pád neumíme)                       |
 | Úvod – podnadpis                    | Volejbal, deskovky, běh… Najdi akci ve svém okolí, nebo založ vlastní a lidi se přidají.                              |
 | Úvod – panel „Teď chybí jeden“      | 5 z 10 už jde, do minima chybí 1. Přijď a hraje se. · Doplnit partu                                                   |
 | Úvod – panel bez akcí               | Všechny akce v okolí mají svoje minimum. Mrkni, kde jsou ještě volná místa.                                           |
@@ -160,8 +160,8 @@ Každá obrazovka je ve světlém i tmavém režimu, na mobilu i desktopu, s pop
 | Náhled akce na mapě                                          | A-03a                  | A-03ad                      | #56                    |
 | Proběhlé akce                                                | A-02h                  | A-02hd                      | #61                    |
 | Detail akce, stavy tlačítka, Máš místo, žádost, odhlášení    | A-05, A-05a–c          | A-05d, A-05ad–bd, A-05c     | #173, #174, #175, #176 |
-| Detail akce skupiny / jen pro členy (nečlen)                 | A-05g, A-05i           | A-05gd, A-05i               | #70                    |
-| Detail proběhlé akce                                         | A-05h                  | A-05h                       | #61, #66               |
+| Detail akce skupiny / jen pro členy (nečlen)                 | A-05g, A-05i           | A-05gd, A-05i · desktop     | #70                    |
+| Detail proběhlé akce                                         | A-05h                  | A-05h · desktop             | #61, #66               |
 | Registrace, Ověř si e-mail, e-mail ověřen, přihlášení, heslo | B-01, B-01a, B-02–B-04 | B-01d, B-01ad, B-02d, B-03d | #153, #154, #165       |
 | Můj profil, upravit profil, veřejný profil                   | B-05, B-06, B-07       | B-05d, B-06d, B-07d         | #178, #179             |
 | Onboarding „Co tě baví?“ (zájmy a lokalita, jde přeskočit)   | B-08                   | B-08d                       | #178                   |

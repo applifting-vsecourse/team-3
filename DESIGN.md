@@ -6,9 +6,9 @@ These are rules, not suggestions. When a rule and a "nicer looking" idea disagre
 
 `src/components/ui/**` is vendored shadcn — treat it as a third-party kit and restyle via tokens rather than rewriting it.
 
-**Tokens live in `apps/frontend/src/styles/global.css`.** That file is the only source of truth for colour, radius, shadows and fonts. This file says how to _use_ them. The values come from the Figma collection „HobbyHub tokens“ in [HobbyHub-design](https://www.figma.com/design/dGYGqD8BjC1rYlbfjCpxWD/HobbyHub-design) (page „Design system“), with the same names (`color/hero` → `--hero`, `bg-hero`). When Figma changes, update `global.css` — never patch a colour in a component.
+**Tokens live in `apps/frontend/src/styles/global.css`.** Components read colour, radius, shadows and fonts from there, never from this file. This file says how to _use_ them. The values come from the Figma collection „HobbyHub tokens“ in [HobbyHub-design](https://www.figma.com/design/dGYGqD8BjC1rYlbfjCpxWD/HobbyHub-design) (page „Design system“), with the same names (`color/hero` → `--hero`, `bg-hero`). When Figma changes, update `global.css` — never patch a colour in a component.
 
-> **New brand (approved by the PO 3.–4. 11. 2026, UX audit #173).** The rollout is #195: it brings `global.css` to the token table below and rebuilds the screens. Figma holds the approved design; if code and Figma disagree, Figma wins and the code is the bug. Screens in Figma are illustrative — the data on them need not match the seed.
+> **New brand (approved by the PO 3.–4. 11. 2026, UX audit #173) — the table below is the target state, not the code yet.** The rollout is #195: it brings `global.css` and `tokens.test.ts` to the token table and rebuilds the screens. **Until #195 is merged, only the classes that `global.css` defines exist.** The new ones — `bg-hero`, `border-card-border`, `border-control-border`, `border-tile-border`, `bg-badge-neutral`, `capacity-fill` and the rest of the table beyond the kit names — do not, and Tailwind does not warn about a missing class: the element just stays unstyled. Outside #195, use the existing tokens (`border`, `secondary`, `muted`, …) and leave the new ones to #195. The same holds for the capacity hatch: today `capacity-hatch` mixes the dark stripe from `primary-foreground` (55 %); #195 switches it to the stripes described below together with its test. Figma holds the approved design; once #195 lands, if code and Figma disagree, Figma wins and the code is the bug. Screens in Figma are illustrative — the data on them need not match the seed.
 
 ## Colour
 
@@ -59,7 +59,7 @@ Tokens under `color/_archiv/*` in Figma belong to archived screens only — do n
 - **A detail's action panel is the one bordered section** (Figma: Panel akce A-05d, Panel skupiny A-08d). On desktop the facts and the main action sit on the right in a `rounded-2xl border border-card-border bg-card p-6` panel; on a phone there is no panel, the facts follow the title and the main action sits in a bar above the bottom navigation (`sticky bottom-16`, Figma: Lišta s akcí). It holds no cards.
 - **Every page keeps the app chrome.** The header is present on every route, including login and sign-up.
 - Forbidden by default: the centred-hero-plus-three-feature-cards layout, carousels, and any section whose only purpose is to look full.
-- **No big empty areas on desktop** (PO). Use the width for real content: a form gets two columns (D-01d „Co a kdy“ | „Kde“, D-05d), sign-in and sign-up show the nearest events next to the form, the public profile has two columns, event grids have three columns.
+- **No big empty areas on desktop** (PO). Use the width for real content: a form gets two columns (D-01d „Co a kdy“ | „Kde“, D-06d), sign-in and sign-up show the nearest events next to the form, the public profile has two columns, event grids have three columns.
 
 ## Spacing
 
@@ -79,14 +79,14 @@ Use the scale only: `1, 2, 3, 4, 6, 8, 12, 16` (Tailwind units — 4px…64px). 
 - **Keep it gender-neutral.** The app does not know anyone's gender: no past tense or adjectives in the second person („jsi přihlášený“), and no gendered nouns or verbs about other people („organizátorka“, „Petra zorganizovala“). Write „Máš místo.“, „Organizátor · ★ 4,5“, „Jak hodnotíš organizátora?“.
 - **Short, and always with a next step.** An empty state says in one sentence what would be here; a second sentence may have personality and points somewhere („V okolí teď nic není. Buď první – založ akci a dej o ní vědět.“).
 - **Numbers, not words**, when the app generates the sentence: „5 z 10 už jde, do minima chybí 1.“
-- **Personal naming** for picks made for the user: „Tady chybíš“, „Podle tvých zájmů“, „Jakube, tady se na tebe čeká.“
+- **Personal naming** for picks made for the user: „Tady chybíš“, „Podle tvých zájmů“, „Eva, tady se na tebe čeká.“ A name is the first word of the stored name in the nominative — never the vocative: the app cannot decline names reliably („Eva Malá“ → „Eva“, not „Evo“).
 - Ratings always show the count: „★ 4,5 (6 hodnocení)“; with no rating yet „zatím bez hodnocení“.
 - Content people write themselves (event and group descriptions) stays as they wrote it.
 
 ## Surfaces
 
 - **Borders are hairlines**: one `border`, never two adjacent ones. Cards and panels `border-card-border`, inputs and chips `border-input` (the kit alias of `input-border`), outline buttons and neutral badges `border-control-border`, green surfaces `border-tile-border`.
-- **Radius:** buttons and inputs `rounded-lg` (8); tiles and photos inside cards `rounded-xl` (12); cards, panels, the map and the „Nic pro tebe?“ call-out `rounded-2xl` (16). Pills (`rounded-full`) are for chips, badges, tags, quick-pick counts and avatars, never for a button. Never mix radii in one component.
+- **Radius:** buttons and inputs `rounded-lg` (8); tiles and photos inside cards `rounded-xl` (12); cards, panels, the map and the „Nic pro tebe?“ call-out `rounded-2xl` (16). Pills (`rounded-full`) are for chips, badges, tags, quick-pick counts and avatars, never for a button. One radius per level: a nested element gets the smaller step (the event card is `rounded-2xl`, its photo and date tile `rounded-xl`), but elements on the same level never mix radii.
 - **Shadows are rare.** Only for things that genuinely float — dropdowns and menus, dialogs, toasts, the selected map pin (Figma effect „Elevation/Float“). Cards and inputs do not get shadows. Floating things still need their edge: dialogs carry `card-border`.
 
 ## Forms

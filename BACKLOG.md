@@ -440,15 +440,18 @@ Doménová logika (čistá funkce + testy): `approvedCount`, `missingToMin = max
 
 `US-03` · FS · M · závisí na: B-023
 
-- `GET /api/events/:id` bez přihlášení. Vrací i soukromé akce (soukromá = dostupná přes odkaz). Members-only akce (rozhodnuto 4. 11., upřesněno v review #215): nepřihlášenému vrací 401 `UNAUTHENTICATED` a FE ho pošle na přihlášení s návratem na akci (B-012); přihlášenému nečlenovi 403 `MEMBERS_ONLY` jen s `groupId` – žádný údaj o akci (název, čas, místo, účastníci) ani o skupině navíc; FE si skupinu načte z `GET /api/groups/:id` (B-052, ten je veřejný) a ukáže stránku s cestou do skupiny (A-05i). Zrušenou akci vrací se štítkem a důvodem; `hidden`/`deleted` vrací 404.
-- Jména přihlášených (`participants`) vrací API jen organizátorovi, uživateli se schválenou účastí a u akce skupiny aktivním členům a správcům skupiny (PO 28. 10., #174). Rozhoduje server podle session, nikdy podle požadavku. Ostatní dostanou `participants: null` a vidí jen obsazenost („Chybí ještě X“ / „N volných míst“ / „Plno“): návštěvník, přihlášený bez účasti, čekající žadatel, kdo se odhlásil nebo byl odebrán či zamítnut, a čekající nebo zablokovaný člen skupiny. Detail jim sekci „Kdo jde“ vůbec neukáže.
+- `GET /api/events/:id` bez přihlášení. Vrací i soukromé akce (soukromá = dostupná přes odkaz). Members-only akce (rozhodnuto 4. 11., upřesněno v review #215): nepřihlášenému vrací 401 `UNAUTHENTICATED` a FE ho pošle na přihlášení s návratem na akci (B-012); přihlášenému nečlenovi 403 `MEMBERS_ONLY` jen s `groupId` – žádný údaj o akci (název, čas, místo, účastníci) ani o skupině navíc; FE si skupinu načte z `GET /api/groups/:id` (B-052, ten je veřejný) a ukáže stránku s cestou do skupiny (A-05i). Zrušenou akci vrací se štítkem a důvodem; `hidden`/`deleted` vrací 404. Swagger v `events.controller.ts` dnes u members-only uvádí 404 – změní se na 401 a 403.
+- Proč 403 s `groupId` a ne 404 (review #215): odkaz na akci jen pro členy pošle nečlenovi člen skupiny, a 404 by z něj udělal slepou uličku bez cesty do skupiny (A-05i). Prozradí se jen to, že akce s tímhle `id` existuje a která skupina ji pořádá. `id` je `cuid`, takže akce nejde hádat ani procházet, a skupina je veřejná (stránka skupiny i `GET /api/groups/:id` bez přihlášení). Nepřihlášený nedostane ani `groupId`. Bezpečnostní audit (#172, PR #223) tenhle případ neřeší; kdyby nález přibyl, platí audit.
+- „Kdo jde“ bez jmen (Figma A-05, A-05a–c; review #215): kdo jména nevidí, dostane sekci „Kdo jde · N z M“ jen s počtem a jednou větou, kdy jména uvidí – „Jména uvidíš, až budeš na akci.“, u čekající žádosti „Jména uvidíš, až tě organizátor schválí.“ Bez seznamu jmen a avatarů. Mění test v `EventDetailView.test.tsx`, který dnes hlídá, že se sekce neukáže (#195).
+- Jména přihlášených (`participants`) vrací API jen organizátorovi, uživateli se schválenou účastí a u akce skupiny aktivním členům a správcům skupiny (PO 28. 10., #174). Rozhoduje server podle session, nikdy podle požadavku. Ostatní dostanou `participants: null` a vidí jen obsazenost („Chybí ještě X“ / „N volných míst“ / „Plno“): návštěvník, přihlášený bez účasti, čekající žadatel, kdo se odhlásil nebo byl odebrán či zamítnut, a čekající nebo zablokovaný člen skupiny. Sekce „Kdo jde“ jim ukáže jen počet a větu, kdy jména uvidí (níž).
 - FE stránka `/akce/:id`: název, aktivita, popis, mapa (jeden bod), termín, cena, úroveň, organizátor (osoba nebo skupina, proklik), způsob přihlášení, počet přihlášených, „Chybí ještě X“ / „N volných míst“ / „Plno“, štítek „Zrušeno“ s důvodem, tlačítko „Sdílet odkaz“.
 - Open Graph meta (titulek, termín) pro hezký náhled ve WhatsAppu.
-- Odkaz se otevře rovnou na detailu, bez přihlašovací obrazovky.
+- Odkaz se otevře rovnou na detailu, bez přihlašovací obrazovky. Výjimka: akce jen pro členy nepřihlášeného pošle na přihlášení a po něm zpátky na akci (401 výš).
 
 **Hotovo, když:**
 
 - [ ] Testy BE pro každou roli: jména dostane organizátor, schválený účastník a u akce skupiny členové a správci; návštěvník, přihlášený bez účasti, čekající žadatel, odhlášený, odebraný ani čekající člen skupiny ne; members-only nepřihlášenému = 401, přihlášenému nečlenovi = 403 jen s `groupId`.
+- [ ] Test FE: bez jmen sekce „Kdo jde“ s počtem a větou, kdy jména uvidí, bez jmen; members-only nepřihlášeného přesměruje na přihlášení s návratem na akci.
 
 ---
 
@@ -713,7 +716,7 @@ Doménová logika (čistá funkce + testy): `approvedCount`, `missingToMin = max
 
 - Založení akce s `groupId` smí kterýkoli správce; aktivita předvyplněná a zamčená podle skupiny. Volba viditelnosti **veřejná** (`public`) / **jen pro členy** (`members`, vidí a hlásí se jen členové; PO 29. 10. jim říká „soukromé“, ale soukromá je v B-026 akce dostupná přes odkaz).
 - U akce je jako organizátor uvedena skupina s proklikem.
-- Oprávnění správy akce (úprava, zrušení, účastníci, zprávy, docházka, topování) rozšiř na **všechny správce skupiny** – jedna sdílená funkce `canManageEvent(user, event)` použitá všude.
+- Oprávnění správy akce (úprava, zrušení, účastníci, zprávy, docházka, topování) rozšiř na **všechny správce skupiny** – jedna sdílená funkce `canManageEvent(user, event)` použitá všude. Výjimka je hodnocení účastníků (B-060): hodnotí jen zakladatel akce (`organizerUserId`), i u akce skupiny – byl tam a akci vedl (review #215).
 - Členové dostanou e-mail o nové akci a hlásí se sami.
 - „Pořádám“ v Mých akcích obsahuje akce mých skupin.
 - Při deaktivaci skupiny (B-051) se nadcházející akce skupiny zruší s důvodem „Skupina už není aktivní“ a standardními e-maily; proběhlé zůstanou beze změny.
@@ -744,8 +747,8 @@ Doménová logika (čistá funkce + testy): `approvedCount`, `missingToMin = max
 `US-09` · FS · M · závisí na: B-031, B-043
 
 - Model `Rating`: `eventId`, `userId`, `eventStars` 1–5, `comment?`, `organizerStars` 1–5. Jedno hodnocení na uživatele a akci.
-- Hodnocení účastníka organizátorem (PO 28. 10.): model `ParticipantRating`: `eventId`, `participantId` (s `eventId` cizí klíč na účast), `stars` 1–5 (i `CHECK` v databázi), `deletedAt`. Jedno na účastníka a akci, hodnotí jen organizátor akce (ne sám sebe), jen u proběhlé akce (`endsAt`, když chybí, `startsAt`) a jen `approved` účastníka: `decideParticipantRating` v `modules/rating/domain/participant-rating.ts`. `comment?` (max 500 znaků jako `Rating.comment`; PO 4. 11., dřív bez komentáře). Komentář vidí hodnocený účastník. Po smazání superadminem jde hodnocení jen vrátit, ne dát znovu. Model a výpočet průměrů ve sprintu 3 (#180), dávání hodnocení ve sprintu 3, když zbude čas (#66).
-- Hodnotit smí jen ten, kdo byl na akci `approved`, a až po skončení akce. Potvrzená docházka podmínkou není. Hodnotit jde do 14 dnů od konce akce a do té doby jde hodnocení změnit (tým 4. 11.).
+- Hodnocení účastníka organizátorem (PO 28. 10.): model `ParticipantRating`: `eventId`, `participantId` (s `eventId` cizí klíč na účast), `stars` 1–5 (i `CHECK` v databázi), `deletedAt`. Jedno na účastníka a akci, hodnotí jen organizátor akce – zakladatel (`organizerUserId`), i u akce skupiny, ne ostatní správci skupiny (výjimka z `canManageEvent` v B-055, review #215) – ne sám sebe, jen u proběhlé akce (`endsAt`, když chybí, `startsAt`) a jen `approved` účastníka: `decideParticipantRating` v `modules/rating/domain/participant-rating.ts`. `comment?` (max 500 znaků, `RATING_COMMENT_MAX_LENGTH`; PO 4. 11., dřív bez komentáře). U `ParticipantRating.comment` limit hlídá i databáze (`VarChar(500)`), u `Rating.comment` (`@db.Text`) jen aplikace. Komentář vidí hodnocený účastník. Po smazání superadminem jde hodnocení jen vrátit, ne dát znovu. Model a výpočet průměrů ve sprintu 3 (#180), dávání hodnocení ve sprintu 3, když zbude čas (#66).
+- Hodnotit smí jen ten, kdo byl na akci `approved`, a až po skončení akce. Potvrzená docházka podmínkou není. Hodnotit jde do 14 dnů od konce akce a do té doby jde hodnocení změnit (tým 4. 11.). Platí pro `Rating` i `ParticipantRating`; `decideParticipantRating` lhůtu zatím nemá – doplní ji #66 s novým kódem odmítnutí `RATING_WINDOW_CLOSED` (a stejné pravidlo pro hodnocení akce).
 - Hodnocení organizátora se počítá k osobě, u akce skupiny ke skupině. Průměr jako organizátor (`organizerRatingSummary`, z `Rating.organizerStars`, bez akcí skupin) a jako účastník (`participantRatingSummary`, z `ParticipantRating.stars`) jsou čisté funkce v `modules/rating/domain/rating-summary.ts` (#180) pro profil (B-013, #178, #179): zaokrouhlené na jedno desetinné místo, vždy s počtem, bez hodnocení `null`, smazaná hodnocení se nepočítají a nepočítají se ani hodnocení akcí, které admin skryl nebo smazal. Průměr skupiny (`groupRatingSummary`) z `Rating.organizerStars` akcí skupiny – detail akce skupiny a sekce „Od dobře hodnocených“ (#182). „Dobře hodnocený“ = průměr aspoň 4,5 z nejméně 3 hodnocení.
 - Rychlé hodnocení účastníků (PO 4. 11., Figma D-05): organizátor nejdřív „Všem stejně“ – hvězdičky (předvyplněno 5★) a jeden komentář pro všechny, pak jednotlivým účastníkům dá individuální hodnocení (hvězdičky i komentář). Odškrtnout, kdo nepřišel, půjde až v dalších sprintech. Uloží se hodnocení každého účastníka zvlášť, výchozí hodnota pro akci se neukládá. Jeden zápis v transakci; `decideParticipantRating` platí pro každého.
 - Organizátor vidí hodnocení a komentáře svých akcí (ve správě akce).
@@ -756,6 +759,8 @@ Doménová logika (čistá funkce + testy): `approvedCount`, `missingToMin = max
 
 - [x] Testy výpočtu průměru a oprávnění k hodnocení účastníka (#180).
 - [ ] Testy oprávnění k hodnocení akce a organizátora a API (#66).
+- [ ] Test lhůty 14 dnů pro `Rating` i `ParticipantRating`: den 14 projde, později `RATING_WINDOW_CLOSED`; změna hodnocení po lhůtě taky ne (#66).
+- [ ] Test: správce skupiny, který akci nezaložil, účastníky akce skupiny nehodnotí (`NOT_ORGANIZER`).
 
 ---
 
