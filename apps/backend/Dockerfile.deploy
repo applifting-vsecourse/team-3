@@ -67,11 +67,11 @@ ENV CI_COMMIT_SHA=$CI_COMMIT_SHA
 
 # This image runs on staging, which has no e-mail service. Delete for real production.
 ENV SIMULATED_INBOX=true
-# Staging's demo accounts. Delete for real production.
-ENV SEED_DEMO_DATA=true
 # Swagger (/api/docs) and BetterAuth's reference page, kept on for the team on
 # staging (#229, N-9). Delete for real production.
 ENV API_DOCS=true
+# Staging's demo accounts. Delete for real production.
+ENV SEED_DEMO_DATA=true
 # Their password comes from the GitHub secret SEED_DEMO_PASSWORD (deploy.yml),
 # never from the repo (N-3, audit #172). Empty = the seed skips the demo data.
 # Anyone who can pull this image can read it: use a password for staging only.
