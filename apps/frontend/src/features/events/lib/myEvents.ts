@@ -1,6 +1,7 @@
 import { z } from "zod"
 
 import type { BadgeStatus } from "@/components/StatusBadge/StatusBadge"
+import { occupancyBesideBadge, occupancySummary } from "@/lib/occupancy"
 
 import type { MyEvent } from "@/features/events/api/eventSchemas"
 import { capacityStatus, eventFacts } from "@/features/events/lib/formatEvent"
@@ -30,6 +31,16 @@ export function attendingStatus(event: MyEvent): BadgeStatus {
 }
 
 /**
+ * The occupancy on a card in Přihlášen (#189). Its badge is the user's place
+ * („Jdu“), not the occupancy, so the line says how many are missing itself:
+ * „chybí 1 · 8 z 14 · min. 9 · Praha 11“, else as in the list, „5 z 5 · Praha 4“.
+ */
+export function attendingFacts(event: MyEvent): string {
+  if (event.status === "cancelled") return eventFacts(event)
+  return `${occupancySummary(event)} · ${event.locality.name}`
+}
+
+/**
  * The tab in the URL, as Figma names it: `/moje-akce` is Přihlášen,
  * `/moje-akce?tab=poradam` Pořádám. Anything else falls back to Přihlášen.
  */
@@ -56,17 +67,16 @@ export function organizingStatus(event: MyEvent): BadgeStatus {
 }
 
 /**
- * What the organizer needs next to the occupancy (C-02): the requests to
- * decide, else the minimum still missing, else the district —
- * „4/5 · 2 žádosti“, „3/12 · min. 4“, „8/8 · Praha 7“.
+ * What the organizer needs next to the occupancy badge (C-02), in the card's
+ * words (#189): the requests to decide, else the minimum still missing, else
+ * the district — „4 z 5 · 2 žádosti“, „3 z 12 · min. 4“, „8 z 8 · Praha 7“.
+ * The badge says „Chybí 1“, so the line doesn't.
  */
 export function organizingFacts(event: MyEvent): string {
+  if (event.status === "cancelled") return eventFacts(event)
   const requests = waitingRequests(event)
-  const occupancy = `${event.approvedCount}/${event.maxParticipants}`
-  if (requests > 0) return `${occupancy} · ${requestCountLabel(requests)}`
-  if (event.status !== "cancelled" && event.missingToMin > 0) {
-    return `${occupancy} · min. ${event.minParticipants}`
-  }
+  if (requests > 0) return `${occupancyBesideBadge(event)} · ${requestCountLabel(requests)}`
+  if (event.missingToMin > 0) return occupancyBesideBadge(event)
   return eventFacts(event)
 }
 

@@ -3,6 +3,7 @@ import { describe, expect, it } from "vitest"
 import { aMyEvent } from "@/features/events/test/anEvent"
 
 import {
+  attendingFacts,
   attendingSections,
   attendingStatus,
   organizingFacts,
@@ -38,6 +39,35 @@ describe("attendingSections", () => {
       approved: [place],
       cancelled: [cancelledPlace, cancelledRequest],
     })
+  })
+})
+
+describe("attendingFacts", () => {
+  it("the badge is „Jdu“, so below the minimum the line says how many are missing itself", () => {
+    expect(
+      attendingFacts(
+        aMyEvent({ approvedCount: 8, minParticipants: 9, maxParticipants: 14, missingToMin: 1 }),
+      ),
+    ).toBe("chybí 1 · 8 z 14 · min. 9 · Praha 8")
+  })
+
+  it("the same for a request still waiting („Čeká na schválení“)", () => {
+    expect(
+      attendingFacts(aMyEvent({ myParticipation: "pending", approvedCount: 2, missingToMin: 2 })),
+    ).toBe("chybí 2 · 2 z 12 · min. 4 · Praha 8")
+  })
+
+  it("from the minimum as in the list", () => {
+    expect(attendingFacts(aMyEvent())).toBe("4 z 12 · Praha 8")
+    expect(attendingFacts(aMyEvent({ approvedCount: 12, freeSpots: 0, isFull: true }))).toBe(
+      "12 z 12 · Praha 8",
+    )
+  })
+
+  it("a cancelled event misses no one any more", () => {
+    expect(
+      attendingFacts(aMyEvent({ status: "cancelled", approvedCount: 2, missingToMin: 2 })),
+    ).toBe("2 z 12 · Praha 8")
   })
 })
 
@@ -84,20 +114,34 @@ describe("organizingFacts", () => {
       organizingFacts(
         organized({ approvedCount: 4, maxParticipants: 5, missingToMin: 0, pendingRequests: 2 }),
       ),
-    ).toBe("4/5 · 2 žádosti")
+    ).toBe("4 z 5 · 2 žádosti")
   })
 
-  it("else the minimum, while people are missing", () => {
+  it("with requests below the minimum, the occupancy and then the requests", () => {
+    expect(
+      organizingFacts(
+        organized({
+          approvedCount: 3,
+          maxParticipants: 12,
+          minParticipants: 4,
+          missingToMin: 1,
+          pendingRequests: 2,
+        }),
+      ),
+    ).toBe("3 z 12 · min. 4 · 2 žádosti")
+  })
+
+  it("else the minimum, while people are missing; „chybí“ is the badge's (#189)", () => {
     expect(
       organizingFacts(
         organized({ approvedCount: 3, maxParticipants: 12, minParticipants: 4, missingToMin: 1 }),
       ),
-    ).toBe("3/12 · min. 4")
+    ).toBe("3 z 12 · min. 4")
   })
 
   it("else the district, as in the list", () => {
     expect(organizingFacts(organized({ approvedCount: 8, maxParticipants: 8, isFull: true }))).toBe(
-      "8/8 · Praha 8",
+      "8 z 8 · Praha 8",
     )
   })
 
@@ -106,7 +150,7 @@ describe("organizingFacts", () => {
       organizingFacts(
         organized({ status: "cancelled", approvedCount: 2, missingToMin: 2, pendingRequests: 1 }),
       ),
-    ).toBe("2/12 · Praha 8")
+    ).toBe("2 z 12 · Praha 8")
   })
 })
 

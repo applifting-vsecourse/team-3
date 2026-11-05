@@ -65,8 +65,26 @@ describe("capacityStatus", () => {
 })
 
 describe("eventFacts", () => {
-  it("shows approved of maximum and the district", () => {
-    expect(eventFacts(anEvent())).toBe("4/12 · Praha 8")
+  it("shows approved of maximum in words and the district, never „4/12“ (#189)", () => {
+    expect(eventFacts(anEvent())).toBe("4 z 12 · Praha 8")
+  })
+
+  it("below the minimum says the minimum, not „chybí“ — the badge next to it does", () => {
+    expect(
+      eventFacts(anEvent({ approvedCount: 5, minParticipants: 6, missingToMin: 1, freeSpots: 7 })),
+    ).toBe("5 z 12 · min. 6 · Praha 8")
+  })
+
+  it("full", () => {
+    expect(eventFacts(anEvent({ approvedCount: 12, freeSpots: 0, isFull: true }))).toBe(
+      "12 z 12 · Praha 8",
+    )
+  })
+
+  it("a cancelled event misses no one any more", () => {
+    expect(
+      eventFacts({ ...anEvent({ approvedCount: 2, missingToMin: 2 }), status: "cancelled" }),
+    ).toBe("2 z 12 · Praha 8")
   })
 })
 

@@ -1,3 +1,4 @@
+import { occupancyCount, occupancyState, occupancyStatus } from "@/lib/occupancy"
 import { cn } from "@/lib/utils"
 
 type CapacityBarProps = {
@@ -21,18 +22,12 @@ export function CapacityBar({
   maxParticipants,
   className,
 }: CapacityBarProps) {
-  const missing = Math.max(0, minParticipants - approvedCount)
-  const freeSpots = Math.max(0, maxParticipants - approvedCount)
-  const isFull = freeSpots === 0
+  const occupancy = { approvedCount, minParticipants, maxParticipants }
+  const state = occupancyState(occupancy)
+  const isFull = state === "full"
   // not confirmed yet: below the minimum the fill is hatched, from exactly the minimum solid
-  const isBelowMin = missing > 0 && !isFull
+  const isBelowMin = state === "missing"
   const minPct = percent(minParticipants, maxParticipants)
-
-  const status = isFull
-    ? "Plno"
-    : isBelowMin
-      ? `Chybí ještě ${missing}`
-      : `Volná místa: ${freeSpots}`
 
   return (
     <div className={cn("flex flex-col gap-2", className)}>
@@ -44,11 +39,9 @@ export function CapacityBar({
             isFull && "text-muted-foreground",
           )}
         >
-          {status}
+          {occupancyStatus(occupancy)}
         </p>
-        <p className="text-xs text-muted-foreground">
-          {approvedCount} z {maxParticipants}
-        </p>
+        <p className="text-xs text-muted-foreground">{occupancyCount(occupancy)}</p>
       </div>
       {/* the texts around it say it all; the bar is the picture of them */}
       <div

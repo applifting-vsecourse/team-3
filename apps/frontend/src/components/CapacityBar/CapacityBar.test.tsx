@@ -98,6 +98,13 @@ describe("CapacityBar", () => {
     expect(renderBar(10, 10, 10).fill).toHaveClass("bg-muted-foreground")
   })
 
+  it("one place left: the singular, „1 volné místo“, not „Volná místa: 1“ (#189)", () => {
+    renderBar(9)
+
+    expect(screen.getByText("1 volné místo")).toBeInTheDocument()
+    expect(screen.getByText("9 z 10")).toBeInTheDocument()
+  })
+
   it("no minimum: nothing is missing, so the fill is solid from the start", () => {
     const { fill, label } = renderBar(0, 0, 10)
 

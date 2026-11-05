@@ -21,7 +21,7 @@ type EventCardProps = {
   onMouseLeave?: () => void
   /** Instead of the occupancy, e.g. the user's place in „Moje akce“. */
   status?: BadgeStatus
-  /** Instead of „4/12 · Praha 8“. */
+  /** Instead of „4 z 12 · Praha 8“. */
   facts?: string
   /** The organizer goes to the event's management (C-02), everyone else to its detail. */
   linkTo?: "detail" | "manage"

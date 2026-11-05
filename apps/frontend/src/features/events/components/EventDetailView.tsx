@@ -162,6 +162,7 @@ export function EventDetailView({
   const participants = event.participants ? (
     <EventParticipants
       approvedCount={event.approvedCount}
+      maxParticipants={event.maxParticipants}
       participants={event.participants}
     />
   ) : null
