@@ -10,10 +10,15 @@ import { eventKeys } from "@/features/events/api/eventsQueryOptions"
  * user now sees it; it replaces the cached one, and the list and map refetch
  * so their „Chybí X“ follows.
  */
-function useParticipationMutation(eventId: string, viewerId: string, send: () => Promise<unknown>) {
+function useParticipationMutation<Variables = void>(
+  eventId: string,
+  viewerId: string,
+  send: (variables: Variables) => Promise<unknown>,
+) {
   const queryClient = useQueryClient()
   return useMutation({
-    mutationFn: async (): Promise<EventDetail> => eventDetailSchema.parse(await send()),
+    mutationFn: async (variables: Variables): Promise<EventDetail> =>
+      eventDetailSchema.parse(await send(variables)),
     onSuccess: async (event) => {
       // a waiting request asks for the detail every few seconds: an answer
       // still on its way may be from before this change and mustn't replace it
@@ -31,10 +36,17 @@ function useParticipationMutation(eventId: string, viewerId: string, send: () =>
   })
 }
 
-/** POST /api/events/:id/participation */
+/**
+ * POST /api/events/:id/participation; a request may carry a message for
+ * the organizer (#175), joining at once sends none.
+ */
 export const useJoinEvent = (eventId: string, viewerId: string) =>
-  useParticipationMutation(eventId, viewerId, () =>
-    api.post(`events/${encodeURIComponent(eventId)}/participation`).json(),
+  useParticipationMutation(eventId, viewerId, (message?: string | null) =>
+    api
+      .post(`events/${encodeURIComponent(eventId)}/participation`, {
+        json: message ? { message } : {},
+      })
+      .json(),
   )
 
 /** DELETE /api/events/:id/participation */

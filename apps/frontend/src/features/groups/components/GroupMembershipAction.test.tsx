@@ -1,8 +1,8 @@
 import type { ReactElement } from "react"
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query"
-import { screen, within } from "@testing-library/react"
+import { screen, waitFor, within } from "@testing-library/react"
 import userEvent from "@testing-library/user-event"
-import { describe, expect, it, vi } from "vitest"
+import { beforeEach, describe, expect, it, vi } from "vitest"
 
 import { renderWithRouter } from "@/test/renderWithRouter"
 
@@ -50,6 +50,10 @@ const withQueryClient = (ui: ReactElement) => (
 
 const as = (membership: Membership) => ({ viewerMembership: membership })
 
+beforeEach(() => {
+  api.post.mockClear()
+})
+
 // Figma: A-08 · Stavy tlačítka skupiny
 describe("GroupMembershipAction", () => {
   it("a visitor goes to sign in and comes back", async () => {
@@ -70,6 +74,67 @@ describe("GroupMembershipAction", () => {
     await render()
     expect(screen.getByRole("button", { name: "Požádat o členství" })).toBeEnabled()
     expect(screen.getByText("Správce žádost schválí nebo zamítne.")).toBeInTheDocument()
+  })
+
+  it("a public group joins at once, with no dialog and no message", async () => {
+    api.post.mockReturnValueOnce({ json: () => Promise.resolve({ status: "active" }) } as never)
+    await render({ type: "public" })
+
+    await userEvent.click(screen.getByRole("button", { name: "Přidat se" }))
+
+    expect(screen.queryByRole("dialog")).not.toBeInTheDocument()
+    expect(api.post).toHaveBeenCalledWith("groups/g-florbal/join", { json: {} })
+  })
+
+  it("asking a closed group opens the dialog and sends the message, trimmed (A-08a, #175)", async () => {
+    api.post.mockReturnValueOnce({ json: () => Promise.resolve({ status: "pending" }) } as never)
+    await render()
+
+    await userEvent.click(screen.getByRole("button", { name: "Požádat o členství" }))
+    const dialog = await screen.findByRole("dialog", { name: "Požádat o členství?" })
+    expect(dialog).toHaveTextContent(
+      "Florbal Praha 9 – pokročilí. Správce žádost schválí nebo zamítne, do té doby ji můžeš stáhnout.",
+    )
+    expect(api.post).not.toHaveBeenCalled()
+    await userEvent.type(
+      within(dialog).getByRole("textbox", { name: "Zpráva pro správce (nepovinné)" }),
+      "  Hrál jsem krajskou ligu.\n",
+    )
+    await userEvent.click(within(dialog).getByRole("button", { name: "Poslat žádost" }))
+
+    await waitFor(() =>
+      expect(api.post).toHaveBeenCalledWith("groups/g-florbal/join", {
+        json: { message: "Hrál jsem krajskou ligu." },
+      }),
+    )
+    await waitFor(() => expect(screen.queryByRole("dialog")).not.toBeInTheDocument())
+  })
+
+  it("a request without a message sends none (#175)", async () => {
+    api.post.mockReturnValueOnce({ json: () => Promise.resolve({ status: "pending" }) } as never)
+    await render()
+
+    await userEvent.click(screen.getByRole("button", { name: "Požádat o členství" }))
+    const dialog = await screen.findByRole("dialog", { name: "Požádat o členství?" })
+    await userEvent.type(within(dialog).getByRole("textbox"), "   ")
+    await userEvent.click(within(dialog).getByRole("button", { name: "Poslat žádost" }))
+
+    await waitFor(() =>
+      expect(api.post).toHaveBeenCalledWith("groups/g-florbal/join", { json: {} }),
+    )
+  })
+
+  it("a message over 500 characters is not sent; the field says why (#175)", async () => {
+    await render()
+
+    await userEvent.click(screen.getByRole("button", { name: "Požádat o členství" }))
+    const dialog = await screen.findByRole("dialog", { name: "Požádat o členství?" })
+    await userEvent.click(within(dialog).getByRole("textbox"))
+    await userEvent.paste("x".repeat(501))
+    await userEvent.click(within(dialog).getByRole("button", { name: "Poslat žádost" }))
+
+    expect(await within(dialog).findByText("Zpráva může mít nejvýš 500 znaků")).toBeInTheDocument()
+    expect(api.post).not.toHaveBeenCalled()
   })
 
   it("a pending request waits for the named admin", async () => {
