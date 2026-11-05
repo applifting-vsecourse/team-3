@@ -6,6 +6,7 @@ import { AuthenticatedUserGuard } from '@/shared/auth/guards/authenticated-user.
 import { OptionalUserGuard } from '@/shared/auth/guards/optional-user.guard';
 import { VerifiedUserGuard } from '@/shared/auth/guards/verified-user.guard';
 import { Config } from '@/shared/config/config.service';
+import { RequestMessageDto } from '@/shared/request-message/dto/request-message.dto';
 import {
   Body,
   Controller,
@@ -269,6 +270,7 @@ export class EventsController {
       'Join the event (B-031): at once without approval, and the organizer always; with approval a request',
   })
   @ApiResponse({ status: 200, type: EventDetailResponseDto })
+  @ApiResponse({ status: 400, description: 'The message is too long' })
   @ApiResponse({ status: 401, description: 'Not signed in' })
   @ApiResponse({
     status: 403,
@@ -282,10 +284,11 @@ export class EventsController {
   })
   async join(
     @Param('id') id: string,
+    @Body() body: RequestMessageDto,
     @User() user: Identity,
   ): Promise<EventDetailResponseDto> {
     return EventDetailResponseDto.fromDomain(
-      await this.eventsService.join(id, user.id),
+      await this.eventsService.join(id, user.id, body.message ?? null),
     );
   }
 

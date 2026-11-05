@@ -50,8 +50,16 @@ export type PublicEvent = {
 /** An approved participant, as listed on the event detail. */
 export type EventParticipant = { id: string; name: string };
 
-/** A request waiting for the organizer (#53), with when it was sent. */
-export type EventRequest = { id: string; name: string; requestedAt: Date };
+/**
+ * A request waiting for the organizer (#53), with when it was sent and the
+ * applicant's message (#175). Only the organizer's management gets it.
+ */
+export type EventRequest = {
+  id: string;
+  name: string;
+  requestedAt: Date;
+  message: string | null;
+};
 
 /** What the organizer's management page lists (#43, #53). */
 export type EventManagementView = {

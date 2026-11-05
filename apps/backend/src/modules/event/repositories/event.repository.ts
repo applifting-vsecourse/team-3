@@ -23,6 +23,7 @@ import {
   ParticipationStatus,
   RequestsState,
 } from '@/modules/event/domain/participation';
+import { requestMessageFor } from '@/shared/request-message/request-message';
 import { Injectable } from '@nestjs/common';
 import { buildMyEventsWhere } from './my-events-where';
 import { buildPublicEventsWhere } from './public-events-where';
@@ -198,12 +199,17 @@ export class EventRepository {
   async findPendingRequests(eventId: string): Promise<EventRequest[]> {
     const participations = await this.prisma.participation.findMany({
       where: { eventId, status: 'pending' },
-      select: { updatedAt: true, user: { select: { id: true, name: true } } },
+      select: {
+        updatedAt: true,
+        message: true,
+        user: { select: { id: true, name: true } },
+      },
       orderBy: [{ updatedAt: 'asc' }, { id: 'asc' }],
     });
-    return participations.map(({ user, updatedAt }) => ({
+    return participations.map(({ user, updatedAt, message }) => ({
       ...user,
       requestedAt: updatedAt,
+      message,
     }));
   }
 
@@ -261,6 +267,7 @@ export class EventRepository {
   async join(
     eventId: string,
     userId: string,
+    message: string | null,
     decide: (state: JoinState) => JoinDecision,
   ): Promise<JoinDecision | null> {
     return this.prisma.$transaction(async (tx) => {
@@ -295,11 +302,18 @@ export class EventRepository {
       if (!decision.ok) return decision;
 
       const approvedAt = decision.status === 'approved' ? new Date() : null;
+      // the message goes only with a request (#175); a new request replaces
+      // the one of a withdrawn request
+      const data = {
+        status: decision.status,
+        approvedAt,
+        message: requestMessageFor(decision.status, message),
+      };
       // one row per user and event: coming back after withdrawing reuses it
       await tx.participation.upsert({
         where: { eventId_userId: { eventId, userId } },
-        create: { eventId, userId, status: decision.status, approvedAt },
-        update: { status: decision.status, approvedAt, message: null },
+        create: { eventId, userId, ...data },
+        update: data,
       });
       return decision;
     });

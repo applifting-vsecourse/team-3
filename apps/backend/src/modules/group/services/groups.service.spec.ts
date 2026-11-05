@@ -183,6 +183,7 @@ describe('GroupsService', () => {
         'g1',
         'u-jakub',
         'active',
+        null,
       );
     });
 
@@ -197,6 +198,20 @@ describe('GroupsService', () => {
         'g1',
         'u-jakub',
         'pending',
+        null,
+      );
+    });
+
+    it('a request passes its message on to be saved (#175)', async () => {
+      const { repository, service } = setup();
+      repository.findGroupById.mockResolvedValue(aGroup('g1'));
+
+      await service.join('g1', 'u-jakub', 'Ahoj, hraju rád.');
+      expect(repository.createMembership).toHaveBeenCalledWith(
+        'g1',
+        'u-jakub',
+        'pending',
+        'Ahoj, hraju rád.',
       );
     });
 
