@@ -5,13 +5,19 @@ import { RequestMessageDto } from './request-message.dto';
 
 const parse = (
   body: Record<string, unknown>,
-): { dto: RequestMessageDto; errors: string[] } => {
+): { dto: RequestMessageDto; errors: string[]; messages: string[] } => {
   const dto = plainToInstance(RequestMessageDto, body);
-  const errors = validateSync(dto, {
+  const failures = validateSync(dto, {
     whitelist: true,
     forbidNonWhitelisted: true,
-  }).map((error) => error.property);
-  return { dto, errors };
+  });
+  return {
+    dto,
+    errors: failures.map((error) => error.property),
+    messages: failures.flatMap((error) =>
+      Object.values(error.constraints ?? {}),
+    ),
+  };
 };
 
 describe('RequestMessageDto (#175)', () => {
@@ -42,8 +48,24 @@ describe('RequestMessageDto (#175)', () => {
     expect(parse({ message: `${longest}x` }).errors).toEqual(['message']);
   });
 
+  it('a too long message is refused in Czech, with the same text as the app (#175)', () => {
+    expect(
+      parse({ message: 'x'.repeat(REQUEST_MESSAGE_MAX_LENGTH + 1) }).messages,
+    ).toEqual(['Zpráva může mít nejvýš 500 znaků']);
+  });
+
+  it('an emoji is one character, as the app counts it', () => {
+    expect(
+      parse({ message: '🎲'.repeat(REQUEST_MESSAGE_MAX_LENGTH) }).errors,
+    ).toEqual([]);
+    expect(
+      parse({ message: '🎲'.repeat(REQUEST_MESSAGE_MAX_LENGTH + 1) }).errors,
+    ).toEqual(['message']);
+  });
+
   it('refuses a message that is not text, and unknown fields', () => {
     expect(parse({ message: 42 }).errors).toEqual(['message']);
+    expect(parse({ message: 42 }).messages).toContain('Zpráva musí být text');
     expect(parse({ message: ['a'] }).errors).toEqual(['message']);
     expect(parse({ status: 'approved' }).errors).toEqual(['status']);
   });

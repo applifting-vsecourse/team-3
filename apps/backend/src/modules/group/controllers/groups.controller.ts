@@ -135,10 +135,14 @@ export class GroupsController {
   @ApiCookieAuth()
   @ApiOperation({
     summary:
-      'Join a public group at once, or ask to join a closed one; asking again changes nothing',
+      'Join a public group at once, or ask to join a closed one with an optional message for the admins (#175); asking again while a request waits changes nothing: the message is not replaced',
   })
   @ApiResponse({ status: 200, type: JoinGroupResponseDto })
-  @ApiResponse({ status: 400, description: 'The message is too long' })
+  @ApiResponse({
+    status: 400,
+    description:
+      'Invalid body: the message is not text or has more than 500 characters',
+  })
   @ApiResponse({ status: 401, description: 'Not signed in' })
   @ApiResponse({ status: 403, description: 'MEMBER_BLOCKED' })
   @ApiResponse({ status: 404, description: 'No such group' })

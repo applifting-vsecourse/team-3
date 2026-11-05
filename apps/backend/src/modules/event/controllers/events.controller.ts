@@ -267,10 +267,14 @@ export class EventsController {
   @ApiCookieAuth()
   @ApiOperation({
     summary:
-      'Join the event (B-031): at once without approval, and the organizer always; with approval a request',
+      'Join the event (B-031): at once without approval, and the organizer always; with approval a request with an optional message for the organizer (#175). Asking again while a request waits changes nothing (409 ALREADY_JOINED): the message is not replaced',
   })
   @ApiResponse({ status: 200, type: EventDetailResponseDto })
-  @ApiResponse({ status: 400, description: 'The message is too long' })
+  @ApiResponse({
+    status: 400,
+    description:
+      'Invalid body: the message is not text or has more than 500 characters',
+  })
   @ApiResponse({ status: 401, description: 'Not signed in' })
   @ApiResponse({
     status: 403,

@@ -1,4 +1,8 @@
-import { REQUEST_MESSAGE_MAX_LENGTH } from '@/shared/request-message/request-message';
+import {
+  REQUEST_MESSAGE_MAX_LENGTH,
+  REQUEST_MESSAGE_NOT_TEXT,
+  REQUEST_MESSAGE_TOO_LONG,
+} from '@/shared/request-message/request-message';
 import { ApiPropertyOptional } from '@nestjs/swagger';
 import { Transform } from 'class-transformer';
 import { IsOptional, IsString, MaxLength } from 'class-validator';
@@ -7,7 +11,7 @@ import { IsOptional, IsString, MaxLength } from 'class-validator';
  * Trimmed; blank is no message. Anything that isn't a string is left for
  * the validator to refuse.
  */
-export const normalizeRequestMessage = (value: unknown): unknown => {
+const normalizeRequestMessage = (value: unknown): unknown => {
   if (typeof value !== 'string') return value;
   const trimmed = value.trim();
   return trimmed === '' ? null : trimmed;
@@ -29,7 +33,7 @@ export class RequestMessageDto {
   })
   @Transform(({ value }: { value: unknown }) => normalizeRequestMessage(value))
   @IsOptional()
-  @IsString()
-  @MaxLength(REQUEST_MESSAGE_MAX_LENGTH)
+  @IsString({ message: REQUEST_MESSAGE_NOT_TEXT })
+  @MaxLength(REQUEST_MESSAGE_MAX_LENGTH, { message: REQUEST_MESSAGE_TOO_LONG })
   message?: string | null;
 }
