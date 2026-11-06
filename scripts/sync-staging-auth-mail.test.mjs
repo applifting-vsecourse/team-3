@@ -51,7 +51,13 @@ function server(options = {}) {
     if (path === '/applications')
       return Response.json(options.apps ?? [backend]);
     if (path === '/applications/backend/envs') {
-      return Response.json(options.readBack ? options.readBack(saved) : saved);
+      return Response.json(
+        saved.length
+          ? options.readBack
+            ? options.readBack(saved)
+            : saved
+          : (options.initialEnvs ?? []),
+      );
     }
     assert.fail(`Unexpected mock API path ${path}`);
   };
@@ -225,4 +231,146 @@ test('read-only inspection needs no Google/SMTP credentials and makes GET reques
   assert.deepEqual(result, { backendIdentified: true });
   assert.equal(mutations(api).length, 0);
   assert.ok(!api.calls.some((call) => call.path.endsWith('/envs')));
+});
+
+test('classifies known authorization failures without logging response bodies or request addresses', async () => {
+  const cases = [
+    ['API is disabled.', 'api-disabled'],
+    ['You are not allowed to access the API.', 'ip-not-allowed'],
+    ['Missing required permissions: read', 'missing-read-permission'],
+    [
+      'Missing required permissions: read:sensitive',
+      'missing-sensitive-read-permission',
+    ],
+    ['Missing required permissions: write', 'missing-write-permission'],
+    ['Missing required permissions: deploy', 'missing-deploy-permission'],
+    [
+      'This API token is limited to selected projects, environments, or resources, so it cannot use this endpoint.',
+      'resource-scope-denied',
+    ],
+    ['This action is unauthorized.', 'resource-forbidden'],
+    ['Unauthenticated.', 'unauthenticated'],
+    [`API is disabled. ${env.COOLIFY_TOKEN}`, 'json-response'],
+  ];
+  for (const [message, reason] of cases) {
+    const calls = [];
+    await assert.rejects(
+      syncStagingAuthMail(
+        env,
+        async (_url, init) => {
+          calls.push(init.method);
+          return Response.json(
+            { message, extra: env.SMTP_PASSWORD },
+            { status: 403 },
+          );
+        },
+        { inspectOnly: true },
+      ),
+      (error) => {
+        assert.equal(
+          error.message,
+          `Coolify GET returned HTTP 403 (${reason})`,
+        );
+        assert.ok(!error.message.includes(env.COOLIFY_TOKEN));
+        assert.ok(!error.message.includes(env.SMTP_PASSWORD));
+        assert.ok(!error.message.includes('coolify.example'));
+        return true;
+      },
+    );
+    assert.deepEqual(calls, ['GET']);
+  }
+});
+
+test('suppresses non-JSON and invalid error payloads', async () => {
+  for (const [contentType, payload, reason] of [
+    ['text/html', `<html>${env.COOLIFY_TOKEN}</html>`, 'html-response'],
+    ['text/plain', env.SMTP_PASSWORD, 'other-response'],
+    ['application/json', env.COOLIFY_TOKEN, 'unreadable-json-response'],
+  ]) {
+    await assert.rejects(
+      syncStagingAuthMail(
+        env,
+        async () =>
+          new Response(payload, {
+            status: 403,
+            headers: { 'content-type': contentType },
+          }),
+        { inspectOnly: true },
+      ),
+      (error) => {
+        assert.equal(
+          error.message,
+          `Coolify GET returned HTTP 403 (${reason})`,
+        );
+        return true;
+      },
+    );
+  }
+});
+
+test('refuses hidden or locked target values before any update', async () => {
+  for (const initialEnvs of [
+    [{ key: 'DATABASE_URL', is_preview: false }],
+    [{ key: 'SMTP_PASSWORD', is_preview: false, is_shown_once: true }],
+    [
+      { key: 'SMTP_PASSWORD', is_preview: false },
+      { key: 'OTHER', value: 'example', is_preview: false },
+    ],
+  ]) {
+    const api = server({ initialEnvs });
+    await assert.rejects(
+      syncStagingAuthMail(env, api.request),
+      /nothing updated/,
+    );
+    assert.equal(mutations(api).length, 0);
+  }
+});
+
+test('updates visible runtime values without altering preview-only or unrelated locked entries', async () => {
+  const api = server({
+    initialEnvs: [
+      { key: 'SMTP_PASSWORD', value: 'old-test-password', is_preview: false },
+      { key: 'GOOGLE_CLIENT_SECRET', is_preview: true, is_shown_once: true },
+      { key: 'DATABASE_URL', is_preview: false, is_shown_once: true },
+    ],
+  });
+  await syncStagingAuthMail(env, api.request);
+  assert.equal(
+    api.saved.find((item) => item.key === 'SMTP_PASSWORD').value,
+    env.SMTP_PASSWORD,
+  );
+  assert.ok(api.saved.every((item) => item.is_preview === false));
+  assert.ok(!api.saved.some((item) => item.key === 'DATABASE_URL'));
+});
+
+test('accepts an explicit null when Coolify normalizes the intentionally cleared Resend value', async () => {
+  const api = server({
+    readBack: (saved) =>
+      saved.map((item) =>
+        item.key === 'RESEND_API_KEY' ? { ...item, value: null } : item,
+      ),
+  });
+  const result = await syncStagingAuthMail(env, api.request);
+  assert.equal(result.configurationUpdated, true);
+  assert.equal(mutations(api).at(-1).method, 'POST');
+});
+
+test('never treats a missing value or a null credential as a successful read-back', async () => {
+  for (const readBack of [
+    (saved) =>
+      saved.map((item) =>
+        item.key === 'RESEND_API_KEY' ? { ...item, value: undefined } : item,
+      ),
+    (saved) =>
+      saved.map((item) =>
+        item.key === 'GOOGLE_CLIENT_SECRET' ? { ...item, value: null } : item,
+      ),
+  ]) {
+    const api = server({ readBack });
+    await assert.rejects(
+      syncStagingAuthMail(env, api.request),
+      /read-back failed/,
+    );
+    assert.ok(!api.calls.some((call) => call.method === 'POST'));
+  }
 });

@@ -27,7 +27,7 @@ Repozitář → **Settings → Secrets and variables → Actions → Secrets →
 | `SMTP_PASSWORD`        | Heslo aplikace bez mezer vložených pro čitelnost |
 | `EMAIL_FROM`           | `HobbyHub <adresa týmového Gmailu>`              |
 
-Existující `COOLIFY_WEBHOOK`, `COOLIFY_TOKEN` a registry secrets zachovat. Coolify token musí umožňovat čtení metadat a prostředí backendu i změnu jeho prostředí. Právo ke čtení samo nedokládá právo k zápisu.
+Existující `COOLIFY_WEBHOOK`, `COOLIFY_TOKEN` a registry secrets zachovat. Pro metadata je potřeba oprávnění `read`, pro změnu prostředí `write` a pro schválené nasazení `deploy`. Zpětná kontrola hodnot navíc u verzí Coolify, které je skrývají, vyžaduje `read:sensitive` a odpovídající roli správce/vlastníka týmu. Přístup má být omezený na příslušný staging projekt a prostředí; plošný `root` token není potřeba. Právo ke čtení metadat samo nedokládá právo k zápisu ani ke čtení hodnot.
 
 Synchronizace nastavuje `SMTP_HOST=smtp.gmail.com`, `SMTP_PORT=465`, `SMTP_SECURE=true`, prázdný `RESEND_API_KEY`, `SIMULATED_INBOX=false` a `GOOGLE_ACCOUNT_LINKING=false`. Resend má jinak před SMTP přednost. Klíče jsou pouze runtime konfigurace; nejsou build args ani součástí Docker image.
 
@@ -38,6 +38,25 @@ Synchronizace nastavuje `SMTP_HOST=smtp.gmail.com`, `SMTP_PORT=465`, `SMTP_SECUR
 Skript získá adresu API a výchozí UUID ze stávajícího webhooku. UUID webhooku nepovažuje automaticky za backend: webhook může cílit na frontend. Backend ověří podle přesného názvu image `${REGISTRY}/${SLUG}-backend` a prostředí webhooku. Podporuje backend jako aplikaci Coolify typu **Docker Image** s tagem `latest`. Pokud nelze najít právě jeden takový backend, skončí před změnou konfigurace. U jiného způsobu hostování je nutné integraci upravit podle zjištěné konfigurace; Compose stack se automaticky nepřepisuje.
 
 Čtecí režim ověřuje identifikaci a přístup ke čtení, nikoliv zápisová oprávnění nebo funkčnost SMTP/OAuth.
+
+## Odmítnutý přístup a skryté hodnoty
+
+Při neúspěchu skript vypíše HTTP stav a jednu pevnou kategorii, nikdy obsah odpovědi:
+
+| Kategorie                                                                         | Co ověřit se správcem stagingu                                                                 |
+| --------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------- |
+| `missing-read-permission`                                                         | Token nemá požadované oprávnění `read`.                                                        |
+| `missing-sensitive-read-permission`                                               | Chybí `read:sensitive`.                                                                        |
+| `missing-write-permission` / `missing-deploy-permission`                          | Chybí právo pro konkrétní operaci; samotná inspekce tato práva neověřuje.                      |
+| `api-disabled`                                                                    | API je na instanci vypnuté.                                                                    |
+| `ip-not-allowed`                                                                  | Původ požadavku nevyhovuje povoleným IP; nepovolovat plošně přístup bez posouzení.             |
+| `resource-scope-denied` / `resource-forbidden`                                    | Rozsah tokenu nebo role nepovolují příslušný prostředek.                                       |
+| `unauthenticated`                                                                 | Token není přijatý.                                                                            |
+| `html-response` / `json-response` / `other-response` / `unreadable-json-response` | Příčina není potvrzená; může odpovídat proxy nebo jiné verzi API. Nevypisovat surové odpovědi. |
+
+Kategorie se přiřazuje pouze známým pevným zprávám API. Neznámý obsah není přebíraný do logů a nenahrazuje ověření konkrétní verze Coolify. Po odmítnutí se nezapisuje ani se automaticky nezkouší vyšší oprávnění.
+
+Pokud načtené runtime proměnné prokazatelně skrývají hodnoty nebo je některá aktualizovaná proměnná zamčená pro jednorázové zobrazení, skript skončí před zápisem. Žádné proměnné neodemyká. U prázdného seznamu proměnných nelze oprávnění ke čtení jejich hodnot odvodit; správce je musí zajistit před aktivací. Zpětná kontrola po zápisu zůstává povinná. Při záměrném vyprázdnění `RESEND_API_KEY` je přípustné explicitní `null`, pokud API prázdný řetězec normalizuje; chybějící pole hodnoty ani `null` u skutečných přihlašovacích údajů se za ověření nepovažují.
 
 ## Aktivace po schválení a merge
 
@@ -85,3 +104,5 @@ Nové Google účty se mohou přihlásit. Existující účet se stejnou adresou
 - [Coolify aplikace](https://coolify.io/docs/api/endpoints/applications/get-application-by-uuid)
 - [Coolify prostředí aplikací](https://coolify.io/docs/api/endpoints/applications/update-envs-by-application-uuid)
 - [Issue #165](https://github.com/applifting-vsecourse/team-3/issues/165)
+
+Oprávnění a známé kategorie odmítnutí vycházejí z veřejného kódu Coolify: [API oprávnění](https://github.com/coollabsio/coolify/blob/main/app/Http/Middleware/ApiAbility.php), [povolení API](https://github.com/coollabsio/coolify/blob/main/app/Http/Middleware/ApiAllowed.php), [IP omezení](https://github.com/coollabsio/coolify/blob/main/app/Http/Middleware/ApiIpAllowed.php) a [čtení citlivých hodnot](https://github.com/coollabsio/coolify/blob/main/app/Http/Middleware/ApiSensitiveData.php). Konkrétní nasazená verze může používat jinou odpověď.

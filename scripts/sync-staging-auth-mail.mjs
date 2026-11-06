@@ -7,6 +7,41 @@ const fail = (message) => {
 const validUuid = (value) =>
   typeof value === 'string' && /^[a-zA-Z0-9-]+$/.test(value);
 
+// Only fixed categories reach logs. Never echo a response message, header or URL.
+const denialReasons = new Map([
+  ['API is disabled.', 'api-disabled'],
+  ['You are not allowed to access the API.', 'ip-not-allowed'],
+  ['Missing required permissions: read', 'missing-read-permission'],
+  [
+    'Missing required permissions: read:sensitive',
+    'missing-sensitive-read-permission',
+  ],
+  ['Missing required permissions: write', 'missing-write-permission'],
+  ['Missing required permissions: deploy', 'missing-deploy-permission'],
+  [
+    'This API token is limited to selected projects, environments, or resources, so it cannot use this endpoint.',
+    'resource-scope-denied',
+  ],
+  ['This action is unauthorized.', 'resource-forbidden'],
+  ['Unauthenticated.', 'unauthenticated'],
+]);
+const denialReason = async (response) => {
+  const contentType = response.headers
+    .get('content-type')
+    ?.split(';')[0]
+    .trim()
+    .toLowerCase();
+  if (contentType === 'text/html') return 'html-response';
+  if (contentType !== 'application/json' && !contentType?.endsWith('+json'))
+    return 'other-response';
+  try {
+    const body = await response.json();
+    return denialReasons.get(body?.message) ?? 'json-response';
+  } catch {
+    return 'unreadable-json-response';
+  }
+};
+
 // Secrets and API response bodies stay in memory; never print their values.
 export async function syncStagingAuthMail(
   env,
@@ -71,8 +106,10 @@ export async function syncStagingAuthMail(
       fail(`Coolify ${method} failed; details suppressed`);
     }
     if (allowNotFound && response.status === 404) return null;
-    if (!response.ok)
-      fail(`Coolify ${method} returned HTTP ${response.status}`);
+    if (!response.ok) {
+      const reason = await denialReason(response);
+      fail(`Coolify ${method} returned HTTP ${response.status} (${reason})`);
+    }
     return response;
   };
   const json = async (response) => {
@@ -129,7 +166,9 @@ export async function syncStagingAuthMail(
   const backend = candidates[0];
   if (inspectOnly) return { backendIdentified: true };
   const endpoint = `/applications/${backend.uuid}/envs`;
-  await call('GET', endpoint);
+  const existing = await json(await call('GET', endpoint));
+  if (!Array.isArray(existing))
+    fail('Unexpected Coolify env response; nothing updated');
   const values = {
     GOOGLE_CLIENT_ID: env.GOOGLE_CLIENT_ID,
     GOOGLE_CLIENT_SECRET: env.GOOGLE_CLIENT_SECRET,
@@ -144,6 +183,27 @@ export async function syncStagingAuthMail(
     RESEND_API_KEY: '',
     SIMULATED_INBOX: 'false',
   };
+  const productionEnvs = existing.filter((item) => item?.is_preview === false);
+  const unlocked = productionEnvs.filter((item) => item.is_shown_once !== true);
+  if (
+    unlocked.length &&
+    unlocked.every((item) => !Object.hasOwn(item, 'value'))
+  ) {
+    fail(
+      'Coolify env values are hidden; read:sensitive permission and an authorized role are required; nothing updated',
+    );
+  }
+  for (const key of Object.keys(values)) {
+    const entry = productionEnvs.find((item) => item.key === key);
+    if (
+      entry &&
+      (entry.is_shown_once === true || !Object.hasOwn(entry, 'value'))
+    ) {
+      fail(
+        `Cannot verify Coolify value for ${key} before update; nothing updated`,
+      );
+    }
+  }
   await call('PATCH', `${endpoint}/bulk`, {
     data: Object.entries(values).map(([key, value]) => ({
       key,
@@ -160,7 +220,11 @@ export async function syncStagingAuthMail(
     const entry = saved.find(
       (item) => item?.key === key && item.is_preview === false,
     );
-    if (!entry || entry.value !== value)
+    if (
+      !entry ||
+      !Object.hasOwn(entry, 'value') ||
+      (entry.value !== value && !(value === '' && entry.value === null))
+    )
       fail(`Coolify read-back failed for ${key}`);
     if (
       entry.is_runtime !== true ||
