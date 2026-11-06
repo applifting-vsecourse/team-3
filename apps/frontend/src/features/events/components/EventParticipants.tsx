@@ -21,7 +21,10 @@ export function EventParticipants({ approvedCount, participants }: EventParticip
         <ul className="flex flex-col gap-3">
           {participants.map((participant) => (
             <li key={participant.id}>
-              <PersonRow name={participant.name} />
+              <PersonRow
+                name={participant.name}
+                userId={participant.id}
+              />
             </li>
           ))}
         </ul>

@@ -231,8 +231,7 @@ function EventOrganizer({ event }: { event: EventDetail }) {
         Pořádá
       </h2>
       <div className="border-b border-border py-3">
-        {/* a group's event is organized by the group (B-055); links come with
-            the group detail and public profiles */}
+        {/* A group's event is organized by the group (B-055). */}
         {event.group ? (
           <PersonRow
             name={event.group.name}
@@ -245,6 +244,7 @@ function EventOrganizer({ event }: { event: EventDetail }) {
           // A verb, not „Organizátor“, so it fits any name (DESIGN.md › Copy).
           <PersonRow
             name={event.organizer.name}
+            userId={event.organizer.id}
             description={
               event.approvalMode === "approval" ? "Schvaluje žádosti o účast" : undefined
             }

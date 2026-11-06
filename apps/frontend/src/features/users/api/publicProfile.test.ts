@@ -1,0 +1,79 @@
+import { afterEach, describe, expect, it, vi } from "vitest"
+
+import { api } from "@/lib/api-client"
+
+import { publicProfileQueryOptions, publicProfileSchema, publicUserKeys } from "./publicProfile"
+
+const response = {
+  id: "user",
+  name: "Jana",
+  interests: [],
+  participantSummary: { average: null, count: 0 },
+  organizerSummary: { average: null, count: 0 },
+  eventSummary: { average: null, count: 0 },
+  participantRatings: [],
+  organizedEvents: [],
+}
+afterEach(() => vi.restoreAllMocks())
+describe("public profile API", () => {
+  it("keys each subject separately and requests an encoded ID without requiring a viewer", async () => {
+    const json = vi.fn().mockResolvedValue(response)
+    const get = vi
+      .spyOn(api, "get")
+      .mockReturnValue({ json } as unknown as ReturnType<typeof api.get>)
+    const options = publicProfileQueryOptions("a/b")
+    const run = options.queryFn as () => Promise<unknown>
+    await expect(run()).resolves.toEqual(response)
+    expect(get).toHaveBeenCalledWith("users/a%2Fb")
+    expect(options.queryKey).toEqual(publicUserKeys.profile("a/b"))
+    expect(publicUserKeys.profile("a")).not.toEqual(publicUserKeys.profile("b"))
+    expect(options.retry).toBe(false)
+  })
+  it("strips unexpected account fields and accepts a missing private-event reference", () => {
+    const profile = publicProfileSchema.parse({
+      ...response,
+      email: "private@example.com",
+      participations: ["private"],
+      groupMemberships: ["group"],
+      participantRatings: [
+        {
+          id: "rating",
+          stars: 4,
+          comment: "Díky",
+          createdAt: "2026-11-01T12:00:00Z",
+          event: null,
+          author: null,
+        },
+      ],
+    })
+    expect(profile).not.toHaveProperty("email")
+    expect(profile).not.toHaveProperty("participations")
+    expect(profile).not.toHaveProperty("groupMemberships")
+    expect(profile.participantRatings[0]!.createdAt).toBeInstanceOf(Date)
+    expect(profile.participantRatings[0]!.event).toBeNull()
+  })
+  it.each([-1, 1.5])("rejects an invalid approved count %s", (approvedCount) => {
+    const data = {
+      ...response,
+      organizedEvents: [
+        {
+          id: "past",
+          title: "Běh",
+          startsAt: "2026-11-01T12:00:00Z",
+          endsAt: null,
+          localityName: "Praha",
+          activityName: "Běh",
+          approvedCount,
+          rating: { average: null, count: 0 },
+        },
+      ],
+    }
+    expect(publicProfileSchema.safeParse(data).success).toBe(false)
+    expect(
+      publicProfileSchema.parse({
+        ...data,
+        organizedEvents: [{ ...data.organizedEvents[0], approvedCount: 0 }],
+      }).organizedEvents[0]?.approvedCount,
+    ).toBe(0)
+  })
+})
