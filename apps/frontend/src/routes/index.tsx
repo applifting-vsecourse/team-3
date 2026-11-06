@@ -18,7 +18,10 @@ function LandingPage() {
       <Seo />
       <AppHeader />
       {/* Wait for the session, so a signed-in user never sees the invitation flash. */}
-      <LandingView isVisitor={!user && !isPending} />
+      <LandingView
+        isVisitor={!user && !isPending}
+        isSignedIn={Boolean(user)}
+      />
     </>
   )
 }

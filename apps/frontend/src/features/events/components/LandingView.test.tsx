@@ -27,7 +27,10 @@ const localities = [
 const renderLanding = (isVisitor: boolean) =>
   renderWithRouter(
     <QueryClientProvider client={new QueryClient({ defaultOptions: { queries: { retry: 0 } } })}>
-      <LandingView isVisitor={isVisitor} />
+      <LandingView
+        isVisitor={isVisitor}
+        isSignedIn={!isVisitor}
+      />
     </QueryClientProvider>,
   )
 
@@ -51,15 +54,14 @@ describe("LandingView", () => {
             )) as never)
   })
 
-  it("says in one sentence what HobbyHub is for", async () => {
-    await renderLanding(true)
+  // docs/ux-audit.md › Hlas aplikace: personal, never by name
+  it.each([
+    [true, "Někde chybí jeden do party. Třeba ty."],
+    [false, "Tady se na tebe čeká."],
+  ])("a visitor (%s) is welcomed with „%s“", async (isVisitor, title) => {
+    await renderLanding(isVisitor)
 
-    expect(
-      screen.getByRole("heading", {
-        level: 1,
-        name: "Najdi lidi na volnočasové akce ve svém okolí",
-      }),
-    ).toBeInTheDocument()
+    expect(screen.getByRole("heading", { level: 1, name: title })).toBeInTheDocument()
   })
 
   it("shows the three soonest events in Praha, each a link to its detail", async () => {
