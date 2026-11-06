@@ -32,9 +32,6 @@ jobs:
   build-and-deploy:
     if: github.ref == 'refs/heads/main' && (github.event_name != 'workflow_dispatch' || !inputs.inspect_only)
     runs-on: ubuntu-latest
-    env:
-      COOLIFY_WEBHOOK: ${{ secrets.COOLIFY_WEBHOOK }}
-      COOLIFY_TOKEN: ${{ secrets.COOLIFY_TOKEN }}
     steps:
       - uses: actions/checkout@v4
       - name: Determine slug
@@ -76,6 +73,8 @@ jobs:
       - name: Configure staging Google and Gmail SMTP at runtime
         if: vars.STAGING_AUTH_MAIL_CONFIGURED == 'true'
         env:
+          COOLIFY_WEBHOOK: ${{ secrets.COOLIFY_WEBHOOK }}
+          COOLIFY_TOKEN: ${{ secrets.COOLIFY_TOKEN }}
           EXPECTED_BACKEND_IMAGE: ${{ env.REGISTRY }}/${{ steps.slug.outputs.slug }}-backend
           GOOGLE_CLIENT_ID: ${{ secrets.GOOGLE_CLIENT_ID }}
           GOOGLE_CLIENT_SECRET: ${{ secrets.GOOGLE_CLIENT_SECRET }}
@@ -84,6 +83,10 @@ jobs:
           EMAIL_FROM: ${{ secrets.EMAIL_FROM }}
         run: node scripts/sync-staging-auth-mail.mjs
       - name: Trigger Coolify deploy
-        if: env.COOLIFY_WEBHOOK != ''
+        env:
+          COOLIFY_WEBHOOK: ${{ secrets.COOLIFY_WEBHOOK }}
+          COOLIFY_TOKEN: ${{ secrets.COOLIFY_TOKEN }}
         run: |
-          curl -fsS --output /dev/null -X POST -H "Authorization: Bearer $COOLIFY_TOKEN" "$COOLIFY_WEBHOOK"
+          if [ -n "$COOLIFY_WEBHOOK" ]; then
+            curl -fsS --output /dev/null -X POST -H "Authorization: Bearer $COOLIFY_TOKEN" "$COOLIFY_WEBHOOK"
+          fi

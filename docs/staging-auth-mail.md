@@ -27,7 +27,7 @@ Repozitář → **Settings → Secrets and variables → Actions → Secrets →
 | `SMTP_PASSWORD`        | Heslo aplikace bez mezer vložených pro čitelnost |
 | `EMAIL_FROM`           | `HobbyHub <adresa týmového Gmailu>`              |
 
-Existující `COOLIFY_WEBHOOK`, `COOLIFY_TOKEN` a registry secrets zachovat. Pro metadata je potřeba oprávnění `read`, pro změnu prostředí `write` a pro schválené nasazení `deploy`. Zpětná kontrola hodnot navíc u verzí Coolify, které je skrývají, vyžaduje `read:sensitive` a odpovídající roli správce/vlastníka týmu. Přístup má být omezený na příslušný staging projekt a prostředí; plošný `root` token není potřeba. Právo ke čtení metadat samo nedokládá právo k zápisu ani ke čtení hodnot.
+Existující `COOLIFY_WEBHOOK`, `COOLIFY_TOKEN` a registry secrets zachovat. Pro metadata je potřeba oprávnění `read`, pro změnu prostředí `write` a pro schválené nasazení `deploy`. Zpětná kontrola hodnot navíc u verzí Coolify, které je skrývají, vyžaduje `read:sensitive` a odpovídající roli správce/vlastníka týmu. Přístup má být omezený na příslušný staging projekt a prostředí; plošný `root` token není potřeba. Právo ke čtení metadat samo nedokládá právo k zápisu ani ke čtení hodnot. `COOLIFY_TOKEN` a `COOLIFY_WEBHOOK` jsou předané pouze krokům inspekce, konfigurace a spuštění deploye; sestavení image ani akce pro přihlášení k registru je nedědí.
 
 Synchronizace nastavuje `SMTP_HOST=smtp.gmail.com`, `SMTP_PORT=465`, `SMTP_SECURE=true`, prázdný `RESEND_API_KEY`, `SIMULATED_INBOX=false` a `GOOGLE_ACCOUNT_LINKING=false`. Resend má jinak před SMTP přednost. Klíče jsou pouze runtime konfigurace; nejsou build args ani součástí Docker image.
 
