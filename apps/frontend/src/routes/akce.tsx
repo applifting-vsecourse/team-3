@@ -2,6 +2,7 @@ import { useState, type CSSProperties } from "react"
 import { createFileRoute } from "@tanstack/react-router"
 import { Map as MapIcon } from "lucide-react"
 
+import { PageBand } from "@/components/PageBand/PageBand"
 import { Seo } from "@/components/Seo"
 import { Button } from "@/components/ui/button"
 import { DESKTOP_QUERY, useMediaQuery } from "@/hooks/useMediaQuery"
@@ -61,19 +62,32 @@ function EventsPage() {
     <>
       <Seo title="Akce" />
       <AppHeader />
+      {/* Figma A-02d: „Akce v Praze 3“ needs the locality in the locative, which the catalog
+          does not have yet (#55); the line under the title names it in the nominative. The quick
+          picks come with #250. */}
+      <PageBand
+        variant="section"
+        title="Akce"
+        description={
+          search.lokalita === ALL_LOCALITIES_SLUG
+            ? "Nadcházející akce v celém Česku."
+            : locality
+              ? `Nadcházející akce v lokalitě ${locality.name}.`
+              : undefined
+        }
+      />
       {/* Desktop: main takes exactly the rest of the viewport (basis-0 + min-h-0),
           the list scrolls on its own and the map fills the height beside it. */}
       <main className="relative flex flex-1 flex-col overflow-hidden md:min-h-0 md:basis-0">
-        <h1 className="sr-only">Akce</h1>
-
         <div
           className={cn(
             // mobile: chips over the map, or a bar above the pulled-up list
             "absolute inset-x-0 top-0 z-20",
             // pb-1: the bar reaches the sheet below it (top-16), no strip of map between
             isListExpanded && "border-b border-border bg-background pb-1",
-            // desktop: no hairline under the bar, the list and the map start below it
-            "md:static md:border-b-0 md:bg-background",
+            // desktop: no hairline under the bar, the list and the map start below it; on the
+            // 1200 grid like the band (Figma A-02d)
+            "md:static md:mx-auto md:w-full md:max-w-7xl md:border-b-0 md:bg-background",
           )}
         >
           <EventFilters
@@ -85,11 +99,11 @@ function EventsPage() {
             // Chips scroll sideways on narrow screens without a visible scrollbar
             // (Figma A-02); a desktop scrollbar would also make the bar taller
             // and cover the top of the pulled-up list.
-            className="[scrollbar-width:none] overflow-x-auto px-4 py-3 md:px-8 [&::-webkit-scrollbar]:hidden"
+            className="[scrollbar-width:none] overflow-x-auto px-4 py-3 md:px-10 [&::-webkit-scrollbar]:hidden"
           />
         </div>
 
-        <div className="flex flex-1 md:min-h-0 md:gap-8 md:px-8">
+        <div className="flex flex-1 md:mx-auto md:min-h-0 md:w-full md:max-w-7xl md:gap-8 md:px-10">
           <ListPanel
             snap={panelSnap}
             onSnapChange={setPanelSnap}
@@ -134,7 +148,7 @@ function EventsPage() {
               !isDesktop && "[&_.leaflet-bottom]:bottom-(--map-bottom-inset)!",
             )}
           >
-            <div className="size-full overflow-hidden md:rounded-lg md:border md:border-border">
+            <div className="size-full overflow-hidden md:rounded-2xl md:border md:border-card-border">
               <EventsMap
                 events={events ?? []}
                 highlightedId={highlightedId}
