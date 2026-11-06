@@ -134,25 +134,29 @@ describe.each([
     expect(contrast(tokens["muted-foreground"]!, tokens.background!)).toBeGreaterThanOrEqual(3)
   })
 
-  // DESIGN.md › Capacity bar: the dark stripe of the hatch below the minimum
-  const [, hatchShare = ""] =
-    /@utility capacity-hatch[\s\S]*?color-mix\(in srgb, var\(--primary-foreground\) (\d+)%, var\(--primary\)\)/.exec(
+  // DESIGN.md › Capacity bar: the two stripes of the hatch below the minimum
+  const [, lime = "", stripe = ""] = (
+    /@utility capacity-hatch[\s\S]*?var\(--([\w-]+)\) 0 3px,\s*var\(--([\w-]+)\) 3px 6px/.exec(
       css,
     ) ?? []
-  const stripe = mix(tokens["primary-foreground"]!, tokens.primary!, Number(hatchShare) / 100)
+  ).map((name, i) => (i ? tokens[name]! : name))
 
-  // it has to read as a pattern on the track and as stripes against its own lime,
-  // or „Chybí“ looks like „Volná místa“
-  it("the capacity hatch stripe is at least 3:1 against the track and against lime", () => {
-    expect(contrast(stripe, tokens.muted!)).toBeGreaterThanOrEqual(3)
-    expect(contrast(stripe, tokens.primary!)).toBeGreaterThanOrEqual(3)
+  // it has to read as stripes, or „Chybí“ looks like „Volná místa“…
+  it("the capacity hatch stripes are at least 3:1 against each other", () => {
+    expect(contrast(stripe, lime)).toBeGreaterThanOrEqual(3)
+  })
+
+  // …and stand out from the track: in light mode the dark stripe does, in dark mode the lime
+  it("one of the hatch stripes is at least 3:1 against the track", () => {
+    const track = tokens["capacity-track"]!
+    expect(Math.max(contrast(stripe, track), contrast(lime, track))).toBeGreaterThanOrEqual(3)
   })
 
   // #166: the minimum marker (foreground, with a background-coloured gap around it) must
   // show wherever it sits: on the track, on either stripe of the hatch and on lime. In dark
   // mode the marker itself vanishes on lime, so there the gap has to carry it.
   it.each([
-    ["the track", "muted"],
+    ["the track", "capacity-track"],
     ["lime", "primary"],
     ["the hatch stripe", "stripe"],
   ])("the minimum marker or its gap is at least 3:1 against %s", (_, under) => {
