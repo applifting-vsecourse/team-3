@@ -1,6 +1,5 @@
 @import "@fontsource-variable/bricolage-grotesque";
 @import "@fontsource-variable/geist";
-@import "@fontsource-variable/geist-mono";
 @import "tailwindcss";
 @plugin "tailwindcss-animate";
 
@@ -64,8 +63,6 @@
 
   --font-sans: var(--font-sans);
   --font-heading: var(--font-heading);
-  --font-mono: var(--font-mono);
-  --font-serif: var(--font-serif);
 
   --shadow-2xs: var(--shadow-2xs);
   --shadow-xs: var(--shadow-xs);
@@ -95,10 +92,8 @@
   /* Values from the Figma collection "HobbyHub tokens" (Light). Names match 1:1; where Figma
      aliases one token to another, so does var() here. */
   --font-sans: "Geist Variable", ui-sans-serif, system-ui, sans-serif;
-  /* Brand/Wordmark and display headings (Display/H1, Display/Time). */
+  /* The display face: H1, section headings, card titles, date tile, stamp, wordmark (DESIGN.md › Type). */
   --font-heading: "Bricolage Grotesque Variable", var(--font-sans);
-  --font-serif: Georgia, serif;
-  --font-mono: "Geist Mono Variable", ui-monospace, SFMono-Regular, Menlo, monospace;
   --background: #f4f1e8;
   --foreground: #14201a;
   --card: #ffffff;
