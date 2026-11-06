@@ -31,7 +31,14 @@ const tokensOf = (selector: string): Record<string, string> => {
     const alias = /^var\(--([\w-]+)\)$/.exec(value)?.[1]
     return alias ? resolve(alias) : value
   }
-  return Object.fromEntries(Object.keys(declared).map((name) => [name, resolve(name)]))
+  const tokens = Object.fromEntries(Object.keys(declared).map((name) => [name, resolve(name)]))
+  // a transparent token shows the page through (the marker in dark mode)
+  return Object.fromEntries(
+    Object.entries(tokens).map(([name, value]) => [
+      name,
+      value === "transparent" ? tokens.background! : value,
+    ]),
+  )
 }
 
 const luminance = (hex: string) => {
@@ -70,6 +77,34 @@ const TEXT_PAIRS: [string, string][] = [
   ["destructive", "card"], // error alert
   ["destructive", "background"],
   ["destructive-foreground", "destructive"], // destructive button
+  ["on-hero", "hero"], // H1 on the band
+  ["on-hero-muted", "hero"], // supporting line on the band
+  ["badge-neutral-foreground", "badge-neutral"], // „Plno“, „Čeká na schválení“
+  ["avatar-self-foreground", "avatar-self"], // the „ty“ avatar
+  ["highlight-text", "background"], // section keyword (lime word in dark mode)
+  ["highlight-text", "highlight-marker"], // …over its marker in light mode
+]
+
+// DESIGN.md › Colour: every non-text element and every surface edge at least 3:1 against
+// what is around it. [element, surround]
+const EDGE_PAIRS: [string, string][] = [
+  ["card-border", "background"], // card and panel edge
+  ["input-border", "card"], // input edge
+  ["input-border", "background"],
+  ["control-border", "card"], // outline button, neutral badge, capacity track outline, empty star
+  ["control-border", "background"],
+  ["tile-border", "card"], // edge of every secondary surface
+  ["tile-border", "background"],
+  ["primary-edge", "card"], // lime on a light surface
+  ["primary-edge", "background"],
+  ["capacity-fill", "capacity-track"], // solid fill once the minimum is reached
+  ["full", "card"], // full bar covers the whole track
+  ["band-edge", "background"], // bottom edge of the band
+  ["tile-on-hero", "hero"], // activity tile on the band
+  ["avatar-self", "card"],
+  ["foreground", "card"], // full rating star
+  ["ring", "background"], // focus ring
+  ["ring", "card"],
 ]
 
 describe.each([
@@ -80,6 +115,10 @@ describe.each([
 
   it.each(TEXT_PAIRS)("%s on %s is at least 4.5:1", (text, surface) => {
     expect(contrast(tokens[text]!, tokens[surface]!)).toBeGreaterThanOrEqual(4.5)
+  })
+
+  it.each(EDGE_PAIRS)("%s against %s is at least 3:1", (element, surround) => {
+    expect(contrast(tokens[element]!, tokens[surround]!)).toBeGreaterThanOrEqual(3)
   })
 
   it("destructive-foreground on the destructive hover is at least 4.5:1", () => {
