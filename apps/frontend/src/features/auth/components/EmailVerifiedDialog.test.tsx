@@ -1,5 +1,5 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query"
-import { screen, waitFor, within } from "@testing-library/react"
+import { act, screen, waitFor, within } from "@testing-library/react"
 import userEvent from "@testing-library/user-event"
 import { describe, expect, it, vi } from "vitest"
 
@@ -171,5 +171,43 @@ describe("EmailVerifiedDialog", () => {
     expect(dialog).toHaveTextContent("Otevři odkaz z e-mailu, nebo si pošli nový.")
     expect(within(dialog).getByRole("button", { name: "Poslat odkaz znovu" })).toBeInTheDocument()
     expect(screen.queryByText("E-mail je ověřený")).not.toBeInTheDocument()
+  })
+})
+
+describe("verification sign-in history (#197)", () => {
+  it("offers sign-in after successful verification while signed out, preserving the origin", async () => {
+    const { router } = await renderDialog({ url: "/akce/e1?obsazenost=chybi", user: null })
+    const dialog = screen.getByRole("dialog", { name: "E-mail je ověřený" })
+    await userEvent.click(within(dialog).getByRole("link", { name: "Přihlásit se" }))
+    await waitFor(() => expect(router.state.location.pathname).toBe("/login"))
+    expect(
+      new URL(router.state.location.href, window.location.origin).searchParams.get("from"),
+    ).toBe("/akce/e1?obsazenost=chybi")
+  })
+
+  it.each([{}, { error: "INVALID_TOKEN" }])(
+    "clears the origin history entry before sign-in so Back cannot reopen the dialog (%j)",
+    async (result) => {
+      const { router } = await renderDialog({ url: "/akce/e1", user: null, result })
+      await userEvent.click(
+        within(screen.getByRole("dialog")).getByRole("link", { name: "Přihlásit se" }),
+      )
+      await waitFor(() => expect(router.state.location.pathname).toBe("/login"))
+      // The application's successful sign-in replaces /login with its from target.
+      await act(() => router.navigate({ href: "/akce/e1", replace: true }))
+      act(() => router.history.back())
+      await waitFor(() => expect(router.state.location.pathname).toBe("/akce/e1"))
+      expect(router.history.location.state.emailVerification).toBeUndefined()
+      expect(screen.queryByRole("dialog")).not.toBeInTheDocument()
+    },
+  )
+
+  it("successful verification over /login closes onto the existing sign-in destination", async () => {
+    const { router } = await renderDialog({ url: "/login?from=%2Fmoje-akce", user: null })
+    await userEvent.click(
+      within(screen.getByRole("dialog")).getByRole("button", { name: "Přihlásit se" }),
+    )
+    await waitFor(() => expect(router.state.location.state.emailVerification).toBeUndefined())
+    expect(router.state.location.href).toBe("/login?from=%2Fmoje-akce")
   })
 })
