@@ -79,7 +79,7 @@ Use the scale only: `1, 2, 3, 4, 6, 8, 12, 16` (Tailwind units — 4px…64px). 
 - **Keep it gender-neutral.** The app does not know anyone's gender: no past tense or adjectives in the second person („jsi přihlášený“), and no gendered nouns or verbs about other people („organizátorka“, „Petra zorganizovala“). Write „Máš místo.“, „Organizátor · ★ 4,5“, „Jak hodnotíš organizátora?“.
 - **Short, and always with a next step.** An empty state says in one sentence what would be here; a second sentence may have personality and points somewhere („V okolí teď nic není. Buď první – založ akci a dej o ní vědět.“).
 - **Numbers, not words**, when the app generates the sentence: „5 z 10 už jde, do minima chybí 1.“
-- **Personal naming** for picks made for the user: „Tady chybíš“, „Podle tvých zájmů“, „Eva, tady se na tebe čeká.“ A name is the first word of the stored name in the nominative — never the vocative: the app cannot decline names reliably („Eva Malá“ → „Eva“, not „Evo“).
+- **Personal naming** for picks made for the user: „Tady chybíš“, „Podle tvých zájmů“, „Tady se na tebe čeká.“ Never address the user by name: the app cannot decline names reliably into the vocative („Eva Malá“ → „Evo“?), and the nominative („Eva, …“) reads oddly in Czech.
 - Ratings always show the count: „★ 4,5 (6 hodnocení)“; with no rating yet „zatím bez hodnocení“.
 - Content people write themselves (event and group descriptions) stays as they wrote it.
 

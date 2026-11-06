@@ -15,7 +15,7 @@ Aplikace byla čistá, ale působila jako dobře udělaná šablona: bílá a ze
 1. **Tmavě zelený pás** nahoře na každé stránce s velkým motivem loga – parta, které chybí jeden. Na desktopu logo vychází zespodu pásu (limetkový kroužek je ten chybějící), na mobilu je znak před nadpisem.
 2. **Fotky aktivit** na kartách a v detailu (jedna fotka na aktivitu z knihovny, ne fotky organizátorů) s datovou dlaždicí přes fotku.
 3. **„Koná se?“** z verze 31. 10.: šrafa v pruhu obsazenosti = ještě se nekoná, chybí lidé; plná výplň = koná se; razítko „Koná se“ na detailu; okamžik „Máš místo“.
-4. **Hlas aplikace**: tykání, bez rodu, čísla místo slov, osobní pojmenování („Tady chybíš“, „Eva, tady se na tebe čeká.“).
+4. **Hlas aplikace**: tykání, bez rodu, čísla místo slov, osobní pojmenování („Tady chybíš“, „Tady se na tebe čeká.“).
 
 Barevný tón „Hlubší les“ (tmavší zelená, sytější limetka). Limetka je jen signál – hlavní tlačítko, „Chybí“, razítko, aktivní stav – nikdy dekorace ani text (jedinou výjimkou je klíčové slovo nadpisu v tmavém režimu).
 
@@ -92,7 +92,7 @@ Pravidla: tykání, bez rodu (aplikace pohlaví nezná – ani „organizátorka
 | Kde                                 | Text                                                                                                                  |
 | ----------------------------------- | --------------------------------------------------------------------------------------------------------------------- |
 | Úvod – nadpis (návštěvník)          | Někde chybí jeden do party. Třeba ty.                                                                                 |
-| Úvod – nadpis (přihlášený)          | {Křestní jméno}, tady se na tebe čeká. (první slovo jména v 1. pádě, „Eva, …“ – 5. pád neumíme)                       |
+| Úvod – nadpis (přihlášený)          | Tady se na tebe čeká. (bez jména – 5. pád neumíme a 1. pád zní divně)                                                 |
 | Úvod – podnadpis                    | Volejbal, deskovky, běh… Najdi akci ve svém okolí, nebo založ vlastní a lidi se přidají.                              |
 | Úvod – panel „Teď chybí jeden“      | 5 z 10 už jde, do minima chybí 1. Přijď a hraje se. · Doplnit partu                                                   |
 | Úvod – panel bez akcí               | Všechny akce v okolí mají svoje minimum. Mrkni, kde jsou ještě volná místa.                                           |
