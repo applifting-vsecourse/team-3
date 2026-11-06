@@ -314,6 +314,12 @@
   }
 }
 
+/* the supporting line in the band (Figma Body/Intro) */
+@utility type-intro {
+  font-size: 1.0625rem;
+  line-height: 1.5;
+}
+
 /* the only ALL CAPS in the app: the step label in „Jak to funguje“ (Figma Label/Step) */
 @utility type-step {
   font-size: 0.75rem;
