@@ -1,6 +1,6 @@
 # Bezpečnostní audit HobbyHubu
 
-Analýza vychází z `main` (`1f264ab`), stav oprav k 4. 11. 2026 (`main` `3b95698`). Issue: #172. Zveřejnění reportu i s otevřenými nálezy schválil PO 3. 11.
+Analýza vychází z `main` (`1f264ab`), stav oprav k 5. 11. 2026 (`main` `0d8e5c5`). Issue: #172. Zveřejnění reportu i s otevřenými nálezy schválil PO 3. 11.
 
 Kdo nález opraví, změní ve stejném PR i jeho stav v tomto reportu.
 
@@ -8,7 +8,7 @@ Kdo nález opraví, změní ve stejném PR i jeho stav v tomto reportu.
 
 - **Node.js:** aplikace běžela na `node:24-alpine` bez pevné verze, takže nebylo jisté, zda obsahuje opravu CVE-2026-111497 (Brotli). Verze je teď pevně 24.22.2 (#196) a na stagingu je ověřená z logu backendu.
 - **Balíčky:** `pnpm audit` hlásil 10 critical a 55 high. Po aktualizaci (#196) je 0 critical a 0 high, zbývá 5 moderate a 1 low.
-- **Kód:** nezávislá analýza nenašla žádný kritický nález, přístup k cizím datům (IDOR) ani SQL injection. Našla 1 vysoký, 4 střední a 8 nízkých nálezů. Vysoký nález (CSRF) je opravený v #140. Ze čtyř středních jsou N-3 a N-4 opravené, u N-2 a N-5 zbývá část popsaná níže.
+- **Kód:** nezávislá analýza nenašla žádný kritický nález, přístup k cizím datům (IDOR) ani SQL injection. Našla 1 vysoký, 4 střední a 8 nízkých nálezů. Vysoký nález (CSRF) je opravený v #140. Ze čtyř středních jsou N-3 a N-4 opravené, u N-2 a N-5 zbývá část popsaná níže. Z nízkých jsou N-6 a N-9 opravené v #240.
 - **Dřívější nálezy:** S-1, S-2 a S-4 jsou opravené, S-3 a S-5 mají issue (#226, #236).
 - **Průběžná kontrola:** přibyl Dependabot a CodeQL (#196).
 
@@ -82,10 +82,10 @@ Stav: **opraveno** = sloučeno do `main`, **částečně** = opravená jen čás
 | N-3  | Demo účty s heslem zveřejněným v repu se zakládaly při každém startu, pokud se to výslovně nevyplo                                             | střední   | opraveno v #216, #234 a #235 | Viz [Zbývá u N-2 a N-3](#zbývá-u-n-2-a-n-3)                                                                                       |
 | N-4  | Chyběly bezpečnostní hlavičky (CSP, `frame-ancestors`, HSTS, `nosniff`), stránku šlo vložit do cizího rámce; #140 to neřeší                    | střední   | opraveno v #216              | Hlavičky v `nginx`, `helmet` v backendu; CSP viz níže                                                                             |
 | N-5  | Neověřený účet mohl bez omezení přidávat lokality do veřejného katalogu; `/api` nemá rate limit                                                | střední   | částečně v #216, zbytek #230 | Viz [Zbývá u N-5](#zbývá-u-n-5)                                                                                                   |
-| N-6  | Bez e-mailové služby se odkazy pro obnovu hesla a ověření vypisují do logu i v produkci                                                        | nízká     | otevřený, #229               | V produkci logovat jen příjemce a předmět                                                                                         |
+| N-6  | Bez e-mailové služby se odkazy pro obnovu hesla a ověření vypisují do logu i v produkci                                                        | nízká     | opraveno v #240              | V produkci se loguje jen příjemce a předmět, i při seedu                                                                          |
 | N-7  | Zablokovaného uživatele zastaví jen některé cesty; projeví se až s blokací (B-063)                                                             | nízká     | otevřený                     | Odmítat blokované při přihlášení a rušit jejich session                                                                           |
 | N-8  | Cookie session nemá prefix `__Host-`, jiná aplikace na doméně může podstrčit vlastní cookie                                                    | nízká     | otevřený                     | Samostatná doména pro každý tým, nebo prefix `__Host-`                                                                            |
-| N-9  | Swagger a referenční stránka BetterAuth jsou v produkci veřejné, referenční stránka načítá nepřipnutý skript z CDN                             | nízká     | otevřený, #229               | Zapínat jen mimo produkci                                                                                                         |
+| N-9  | Swagger a referenční stránka BetterAuth jsou v produkci veřejné, referenční stránka načítá nepřipnutý skript z CDN                             | nízká     | opraveno v #240              | V produkci vypnuté, pokud není `API_DOCS=true`; staging je má zapnuté, viz [Zbývá u N-9](#zbývá-u-n-9)                            |
 | N-10 | Každý přihlášený vidí jména účastníků akcí a může je hromadně stáhnout                                                                         | nízká     | částečně v #222, zbytek #224 | Jména účastníků v detailu akce už vidí jen organizátor, schválený účastník a u akce skupiny její aktivní členové; navazuje na #94 |
 | N-11 | Přes registraci a kontrolu uživatelského jména lze zjistit, zda účet existuje                                                                  | nízká     | přijaté                      | Kompromis kvůli UX; limit přihlášení hromadné zkoušení zpomaluje                                                                  |
 | N-12 | `ci.yml` a `deploy.yml` nemají `permissions` (`codeql.yml` je má), akce nejsou připnuté na commit; `COOLIFY_TOKEN` je dostupný celému jobu     | nízká     | otevřený, #228               | Přidat `permissions`, připnout akce, token jen pro krok nasazení                                                                  |
@@ -116,6 +116,10 @@ Přidat lokalitu teď může jen ověřený uživatel a nejvýš 20krát za hodi
 - **Rate limit na zbytek `/api`:** ověřený uživatel může dál hromadně zakládat akce a skupiny. Limit podle IP jsme záměrně nepřidali: celá učebna na jedné Wi-Fi je jedna IP (viz #141) a backend nemá nastavené `trust proxy`, takže by mohl počítat všechny uživatele dohromady. Řeší #230.
 - **Mazání lokalit:** už přidané lokality jde odstranit jen přímo v databázi, patří to k administraci (B-063).
 
+### Zbývá u N-9
+
+Tým se rozhodl dokumentaci API na stagingu ponechat, proto ji `apps/backend/Dockerfile.deploy` zapíná řádkem `API_DOCS=true`. Před skutečnou produkcí je potřeba ho smazat, stejně jako `SIMULATED_INBOX=true` a `SEED_DEMO_DATA=true`.
+
 ## Ke kontrole na stagingu
 
 Z kódu nejde zjistit a tým nemá přístup do Coolify. Ověří to Tomáš Klíma:
@@ -130,7 +134,7 @@ Z kódu nejde zjistit a tým nemá přístup do Coolify. Ověří to Tomáš Kl�
 ## Co je v pořádku
 
 - **Oprávnění:** všechny controllery prošly kontrolou. Uživatel se bere ze session a akce i skupiny hlídají organizátora a správce.
-- **Osobní údaje:** API o lidech vrací jen `id` a jméno, e-mail vidí jen jeho majitel.
+- **Osobní údaje:** API o lidech vrací jen `id` a jméno, e-mail vidí jen jeho majitel. Zprávu k žádosti (#243) vidí jen organizátor akce nebo správci skupiny, a jen dokud žádost čeká.
 - **Vstupy:** DTO odmítají neznámá pole a seznamy mají strop. Raw SQL je parametrizované.
 - **Přihlášení:** platnost tokenů, ochranu přihlášení limitem a kontrolu uniklých hesel agent v kódu našel.
 - **XSS a přesměrování:** aplikace nepoužívá `dangerouslySetInnerHTML` a návratové adresy prochází přes `safeRedirect`.
