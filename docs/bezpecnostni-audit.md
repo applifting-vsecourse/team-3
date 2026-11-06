@@ -14,7 +14,6 @@ Kdo nález opraví, změní ve stejném PR i jeho stav v tomto reportu.
 
 ## Co ještě chybí
 
-- [ ] Vyřešit `js-yaml`, oprava už existuje, řeší #231 (viz [Závislosti](#závislosti)).
 - [ ] Ověřit `BETTER_AUTH_SECRET` a ostatní nastavení na stagingu, ověří Tomáš Klíma (viz [Ke kontrole na stagingu](#ke-kontrole-na-stagingu)).
 - [ ] Před vznikem administrace (B-063) nastavit na stagingu superadmina se silným heslem (viz [Ke kontrole na stagingu](#ke-kontrole-na-stagingu)).
 
@@ -42,7 +41,7 @@ Zranitelnost zápisu mimo paměť v dekodéru Brotli (závažnost high). Proces,
 | `Dockerfile*`          | `24-alpine` | `24.22.2-alpine` |
 | `engines`              | `>=24`      | `^24.22.1`       |
 
-Na `node:24.22.2-alpine` jsme přešli, protože jde o nejnovější verzi řady 24 a obsahuje opravu z 24.22.1. Frontendový image navíc přešel z `nginx:1.27-alpine` na `nginx:1.30-alpine`.
+Na `node:24.22.2-alpine` jsme přešli, protože to byla v době opravy nejnovější verze řady 24 a obsahuje opravu z 24.22.1. Frontendový image navíc přešel z `nginx:1.27-alpine` na `nginx:1.30-alpine`.
 
 **Ověření na stagingu:** backend od #234 po startu vypíše do logu verzi Node a commit. Na stagingu je v logu `Node v24.22.2, commit 3fe174c` (ověřeno 4. 11. v Dozzle). Další důkazy:
 
@@ -154,7 +153,7 @@ Nálezy S-1 až S-5 pocházejí z nočního testování před Sprint Review 2. J
 
 **S-2:** `9999-12-31` prošlo validací a `startOfNextPragueDay` z něj počítal následující den v roce 10000, který neuměl zpracovat. #237 počítá půlnoc z čísel místo z řetězce, takže filtr vrací seznam akcí.
 
-**S-5:** založení skupiny ověřený e-mail vyžaduje, žádost o členství a vstup do skupiny jen přihlášení. V #46 to tak bylo zvoleno záměrně, Figma A-08 ale stav „neověřený e-mail“ má. Tým 3. 11. rozhodl, že před podáním žádosti o členství musí být e-mail ověřený. Řeší #236.
+**S-5:** založení skupiny ověřený e-mail vyžaduje, žádost o členství a vstup do skupiny jen přihlášení. V #46 to tak bylo zvoleno záměrně, Figma A-08 ale stav „neověřený e-mail“ má. Tým 3. 11. rozhodl, že před podáním žádosti o členství musí být e-mail ověřený, PO 4. 11. pravidlo rozšířil: přihlásit se jde jen s ověřeným e-mailem. Řeší #236.
 
 **S-3** je chyba ve skupinách, ne bezpečnostní díra: data neunikají. Odhalilo ji noční testování. Čtením kódu jsme ověřili, že tam pořád je, znovu jsme ji nevyvolávali:
 
