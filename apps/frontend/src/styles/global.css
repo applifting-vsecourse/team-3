@@ -11,12 +11,15 @@
   --color-foreground: var(--foreground);
   --color-card: var(--card);
   --color-card-foreground: var(--card-foreground);
+  --color-card-border: var(--card-border);
   --color-popover: var(--popover);
   --color-popover-foreground: var(--popover-foreground);
   --color-primary: var(--primary);
   --color-primary-foreground: var(--primary-foreground);
+  --color-primary-edge: var(--primary-edge);
   --color-secondary: var(--secondary);
   --color-secondary-foreground: var(--secondary-foreground);
+  --color-tile-border: var(--tile-border);
   --color-muted: var(--muted);
   --color-muted-foreground: var(--muted-foreground);
   --color-accent: var(--accent);
@@ -28,7 +31,36 @@
   --color-destructive-hover: color-mix(in srgb, var(--destructive) 90%, var(--foreground));
   --color-border: var(--border);
   --color-input: var(--input);
+  --color-input-border: var(--input-border);
+  --color-control-border: var(--control-border);
   --color-ring: var(--ring);
+
+  --color-badge-neutral: var(--badge-neutral);
+  --color-badge-neutral-foreground: var(--badge-neutral-foreground);
+  --color-full: var(--full);
+  --color-capacity-fill: var(--capacity-fill);
+  --color-capacity-track: var(--capacity-track);
+
+  --color-hero: var(--hero);
+  --color-on-hero: var(--on-hero);
+  --color-on-hero-muted: var(--on-hero-muted);
+  --color-hero-pattern: var(--hero-pattern);
+  --color-band-edge: var(--band-edge);
+  --color-tile-on-hero: var(--tile-on-hero);
+
+  --color-highlight-text: var(--highlight-text);
+  --color-highlight-marker: var(--highlight-marker);
+  --color-avatar-self: var(--avatar-self);
+  --color-avatar-self-foreground: var(--avatar-self-foreground);
+  --color-accent-bar: var(--accent-bar);
+  --color-logo-dot: var(--logo-dot);
+  --color-logo-dot-stroke: var(--logo-dot-stroke);
+  --color-logo-self-stroke: var(--logo-self-stroke);
+
+  --color-map-land: var(--map-land);
+  --color-map-road: var(--map-road);
+  --color-map-water: var(--map-water);
+  --color-map-park: var(--map-park);
 
   --font-sans: var(--font-sans);
   --font-heading: var(--font-heading);
@@ -50,33 +82,67 @@
 }
 
 :root {
-  /* Values from the Figma collection "HobbyHub tokens" (Light). Names match 1:1. */
+  /* Values from the Figma collection "HobbyHub tokens" (Light). Names match 1:1; where Figma
+     aliases one token to another, so does var() here. */
   --font-sans: "Geist Variable", ui-sans-serif, system-ui, sans-serif;
   /* Brand/Wordmark and display headings (Display/H1, Display/Time). */
   --font-heading: "Bricolage Grotesque Variable", var(--font-sans);
   --font-serif: Georgia, serif;
   --font-mono: "Geist Mono Variable", ui-monospace, SFMono-Regular, Menlo, monospace;
-  --background: #ffffff;
+  --background: #f4f1e8;
   --foreground: #14201a;
   --card: #ffffff;
-  --card-foreground: #14201a;
-  --popover: #ffffff;
-  --popover-foreground: #14201a;
-  --primary: #b6f24a;
+  --muted: #e8e2d2;
+  --muted-foreground: #505e56;
+  --primary: #b9f53c;
   --primary-foreground: #14201a;
-  --secondary: #eaf5da;
-  --secondary-foreground: #2e5b16;
-  --muted: #f2f5ef;
-  --muted-foreground: #5b6860;
-  /* Not a separate Figma token: hover surface stays as quiet as muted (DESIGN.md › Colour). */
-  --accent: #f2f5ef;
-  --accent-foreground: #14201a;
-  --destructive: #d92d20;
+  /* lime on cream or white is about 1.1:1, so lime on a light surface carries this outline */
+  --primary-edge: var(--secondary-foreground);
+  --secondary: #e3f3cb;
+  --secondary-foreground: #265212;
+  --tile-border: #6f8a5a;
+  --destructive: #b42318;
   --destructive-foreground: #ffffff;
-  --border: #e1e7dc;
-  --input: #e1e7dc;
-  /* Lime on white is too faint for a focus ring, so the ring uses the dark brand green. */
-  --ring: #2e5b16;
+  --input-border: #847e70;
+  --border: var(--input-border);
+  --card-border: var(--border);
+  --control-border: var(--input-border);
+  --badge-neutral: var(--muted);
+  --badge-neutral-foreground: var(--muted-foreground);
+  --full: #8f8a7c;
+  /* lime on the cream track is 1.03:1, so the solid fill is dark green in light mode */
+  --capacity-fill: var(--secondary-foreground);
+  --capacity-track: var(--muted);
+  --hero: #0f3626;
+  --on-hero: #f6f3ea;
+  --on-hero-muted: #bccbc0;
+  --hero-pattern: #1f4c37;
+  --band-edge: var(--hero);
+  --tile-on-hero: #e3f3cb;
+  --highlight-text: #14201a;
+  --highlight-marker: #b9f53c;
+  --avatar-self: #265212;
+  --avatar-self-foreground: #ffffff;
+  /* blends into the secondary block on purpose; its edge is the tile-border (DESIGN.md › Máš místo) */
+  --accent-bar: var(--secondary);
+  --logo-dot: var(--primary);
+  --logo-dot-stroke: var(--foreground);
+  --logo-self-stroke: var(--foreground);
+  --ring: #265212;
+  --map-land: #f0f3ec;
+  --map-road: #ffffff;
+  --map-water: #cfe3ea;
+  --map-park: #ddefcb;
+
+  /* Kit aliases: the vendored shadcn kit reads these names (DESIGN.md › Kit aliases). */
+  --input: var(--input-border);
+  --popover: var(--card);
+  --card-foreground: var(--foreground);
+  --popover-foreground: var(--foreground);
+  /* hover surface stays as quiet as muted */
+  --accent: var(--muted);
+  --accent-foreground: var(--foreground);
+
   --radius: 0.5rem;
   /* Only things that float get a shadow (DESIGN.md › Surfaces); all levels use Figma Elevation/Float. */
   --shadow-2xs: 0px 1px 3px 0px rgb(20 33 26 / 0.08);
@@ -89,28 +155,48 @@
   --shadow-2xl: 0px 4px 16px 0px rgb(20 33 26 / 0.12), 0px 1px 3px 0px rgb(20 33 26 / 0.08);
 }
 
-/* Dark mode: Figma collection „HobbyHub tokens“, mode Dark (same hues on a dark green background). */
+/* Dark mode: Figma collection „HobbyHub tokens“, mode Dark. Only what differs from light;
+   the aliases above resolve against these values. */
 .dark {
   --background: #0f1612;
   --foreground: #eef3ea;
-  --card: #151e18;
-  --card-foreground: #eef3ea;
-  --popover: #151e18;
-  --popover-foreground: #eef3ea;
-  --primary: #b6f24a;
-  --primary-foreground: #14201a;
-  --secondary: #24331a;
-  --secondary-foreground: #cdeba8;
+  --card: #162c20;
   --muted: #1c2620;
-  --muted-foreground: #9aa79e;
-  --accent: #1c2620;
-  --accent-foreground: #eef3ea;
-  /* lighter than in light mode: #d92d20 is only 3.4:1 as error text on a dark card */
+  --muted-foreground: #a3afa6;
+  --primary-edge: var(--primary);
+  --secondary: #24402f;
+  --secondary-foreground: #eef3ea;
+  --tile-border: #7d8a82;
+  /* lighter than in light mode: #b42318 is too dark as error text on a dark card */
   --destructive: #f97066;
   --destructive-foreground: #14201a;
-  --border: #2a3530;
-  --input: #2a3530;
-  --ring: #b6f24a;
+  --input-border: #6b7870;
+  --control-border: #7d8a82;
+  --badge-neutral: #6b7870;
+  --badge-neutral-foreground: #ffffff;
+  --full: #6f7d74;
+  --capacity-fill: var(--primary);
+  --capacity-track: #3a4a42;
+  --hero: #133624;
+  --on-hero: #eef3ea;
+  --on-hero-muted: #b4c4b8;
+  --hero-pattern: #1f4a34;
+  --band-edge: var(--input-border);
+  --tile-on-hero: #5d8449;
+  /* the keyword itself turns lime, so the marker goes */
+  --highlight-text: #b9f53c;
+  --highlight-marker: transparent;
+  --avatar-self: var(--primary);
+  --avatar-self-foreground: var(--primary-foreground);
+  --accent-bar: var(--primary);
+  --logo-dot: #eef3ea;
+  --logo-dot-stroke: #eef3ea;
+  --logo-self-stroke: var(--primary);
+  --ring: #b9f53c;
+  --map-land: #18211b;
+  --map-road: #26302a;
+  --map-water: #1e3640;
+  --map-park: #1d2e1a;
 }
 
 /* DESIGN.md › Capacity bar: below the minimum the fill is hatched — not confirmed yet.

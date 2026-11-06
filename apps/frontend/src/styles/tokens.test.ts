@@ -6,16 +6,32 @@ import { describe, expect, it } from "vitest"
 // what keeps it. This reads the real token values, light (:root) and dark (.dark).
 const css = readFileSync(resolve(process.cwd(), "src/styles/global.css"), "utf8")
 
-const tokensOf = (selector: string): Record<string, string> => {
+const declarationsOf = (selector: string): Record<string, string> => {
   const block = new RegExp(`(?:^|\\n)${selector.replace(".", "\\.")}\\s*\\{([^}]*)\\}`).exec(
     css,
   )?.[1]
   if (!block) throw new Error(`no ${selector} block in global.css`)
   return Object.fromEntries(
-    [...block.matchAll(/--([\w-]+):\s*(#[0-9a-f]{6})/gi)].map(
-      ([, name = "", hex = ""]): [string, string] => [name, hex],
+    [...block.matchAll(/--([\w-]+):\s*(#[0-9a-f]{6}|var\(--[\w-]+\)|transparent);/gi)].map(
+      ([, name = "", value = ""]): [string, string] => [name, value],
     ),
   )
+}
+
+// .dark only overrides what differs, and a var() alias resolves against the mode it is used in
+// — the same way the browser computes it on <html class="dark">.
+const tokensOf = (selector: string): Record<string, string> => {
+  const declared = {
+    ...declarationsOf(":root"),
+    ...(selector === ":root" ? {} : declarationsOf(selector)),
+  }
+  const resolve = (name: string): string => {
+    const value = declared[name]
+    if (!value) throw new Error(`--${name} is not declared for ${selector}`)
+    const alias = /^var\(--([\w-]+)\)$/.exec(value)?.[1]
+    return alias ? resolve(alias) : value
+  }
+  return Object.fromEntries(Object.keys(declared).map((name) => [name, resolve(name)]))
 }
 
 const luminance = (hex: string) => {
