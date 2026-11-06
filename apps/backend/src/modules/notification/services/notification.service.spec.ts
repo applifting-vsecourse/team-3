@@ -243,6 +243,24 @@ describe('NotificationService.deliver', () => {
       expect(logged).not.toContain('jana@example.com');
     });
 
+    it('never logs arbitrary error names, unknown codes or provider messages', async () => {
+      const { repository, email, service } = setup();
+      repository.findAudience.mockResolvedValue([jana]);
+      email.sendEmail.mockRejectedValue(
+        Object.assign(new Error('test-private-provider-message'), {
+          name: 'private@example.com',
+          code: 'TEST_PRIVATE_TOKEN',
+        }),
+      );
+      await service.deliver({ type: 'event-cancelled', eventId: 'e1' });
+      expect(warn).toHaveBeenCalledTimes(1);
+      const logged = String(warn.mock.calls[0]![0]);
+      expect(logged).toContain('Error');
+      expect(logged).not.toMatch(
+        /private@example|TEST_PRIVATE_TOKEN|test-private-provider-message/,
+      );
+    });
+
     it('a lookup that fails is logged, not thrown', async () => {
       const { repository, email, service } = setup();
       repository.findEvent.mockRejectedValue(new Error('db down'));

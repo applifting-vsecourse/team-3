@@ -14,11 +14,34 @@ import { Inject, Injectable, Logger } from '@nestjs/common';
 /** Who gets the notification, and who it is about. */
 type Audience = { recipients: Recipient[]; person: { name: string } | null };
 
-/** What the log says of a failure: the kind, never the address an SMTP error may quote. */
+/** Provider messages, arbitrary names and unknown codes can contain addresses or credentials. */
+const loggedCodes = new Set([
+  'EAUTH',
+  'ECONNECTION',
+  'ECONNRESET',
+  'ECONNREFUSED',
+  'ETIMEDOUT',
+  'EDNS',
+  'ESOCKET',
+  'ETLS',
+  'EPROTOCOL',
+  'EENVELOPE',
+  'EMESSAGE',
+  'ESTREAM',
+  'EPIPE',
+]);
 const describeError = (error: unknown): string => {
   if (!(error instanceof Error)) return 'unknown error';
+  const name =
+    error instanceof TypeError
+      ? 'TypeError'
+      : error instanceof RangeError
+        ? 'RangeError'
+        : 'Error';
   const code = (error as { code?: unknown }).code;
-  return typeof code === 'string' ? `${error.name} ${code}` : error.name;
+  return typeof code === 'string' && loggedCodes.has(code)
+    ? `${name} ${code}`
+    : name;
 };
 
 /**
@@ -38,7 +61,7 @@ export class NotificationService {
     private readonly config: Config,
   ) {}
 
-  /** Raises a notification: sent after the response, whatever happens to it. */
+  /** Schedules delivery without waiting for mail or delaying the domain operation. */
   notify(notification: Notification): void {
     setImmediate(() => {
       void this.deliver(notification);

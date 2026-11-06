@@ -6,17 +6,17 @@ E-maily o tom, co se stalo s akcí nebo s něčí účastí (B-040, B-041). Slu�
 this.notifications.notify({ type: 'event-cancelled', eventId });
 ```
 
-`notify` se vrátí hned a nikdy nevyhodí chybu. E-maily odejdou až po odpovědi API (`setImmediate`). E-mail, který se nepodaří poslat, se zapíše do logu (id uživatele a druh chyby, nikdy adresa) a ostatní příjemci ho dostanou normálně. Chyba odeslání tedy nerozbije akci uživatele.
+`notify` se vrátí hned a nikdy nevyhodí chybu. Odesílání se naplánuje přes `setImmediate` a nečeká na něj doménová operace. Tím se nezaručuje pořadí vůči dokončení HTTP odpovědi. E-mail, který se nepodaří poslat, se zapíše do logu (id uživatele a druh chyby, nikdy adresa) a ostatní příjemci ho dostanou normálně. Chyba odeslání tedy nerozbije akci uživatele.
 
 ## Kdo co dostane
 
-| Druh (`type`)      | Příjemci                                              | Vyvolá ho                              |
-| ------------------ | ----------------------------------------------------- | -------------------------------------- |
-| `request-decided`  | žadatelé, kterým organizátor žádost schválil/zamítl   | `EventsService.decideRequests`         |
-| `event-changed`    | schválení a čekající účastníci, ne organizátor        | `EventsService.updateEvent` (jen když se změnil termín nebo místo) |
-| `event-cancelled`  | schválení a čekající účastníci, ne organizátor; s důvodem | `EventsService.cancelEvent`        |
-| `request-received` | organizátor; se zprávou žadatele (#175)               | `EventsService.join` (žádost čeká na schválení) |
-| `participant-left` | organizátor                                           | `EventsService.leave` (odhlásil se schválený účastník) |
+| Druh (`type`)      | Příjemci                                                  | Vyvolá ho                                                          |
+| ------------------ | --------------------------------------------------------- | ------------------------------------------------------------------ |
+| `request-decided`  | žadatelé, kterým organizátor žádost schválil/zamítl       | `EventsService.decideRequests`                                     |
+| `event-changed`    | schválení a čekající účastníci, ne organizátor            | `EventsService.updateEvent` (jen když se změnil termín nebo místo) |
+| `event-cancelled`  | schválení a čekající účastníci, ne organizátor; s důvodem | `EventsService.cancelEvent`                                        |
+| `request-received` | organizátor; se zprávou žadatele (#175)                   | `EventsService.join` (žádost čeká na schválení)                    |
+| `participant-left` | organizátor                                               | `EventsService.leave` (odhlásil se schválený účastník)             |
 
 Nikdo nedostane e-mail o tom, co udělal sám. Zablokovaní (`blockedAt`) a smazaní (`deletedAt`) uživatelé e-mail nedostanou. Organizátor se o stažení čekající žádosti nedozví: žádost mu jen zmizí ze seznamu.
 
