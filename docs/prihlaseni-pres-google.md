@@ -16,6 +16,8 @@ Redirect URI je vždy `BACKEND_URL` + `/api/auth/callback/google` a musí sedět
 
 ## 2. Proměnné na stagingu (Coolify)
 
+**Stav #165:** dostupný API token neumožňuje ani čtení potřebných metadat (`HTTP 403`, `missing-read-permission`) a tým nemá administrátorský přístup k platformě. Připravená integrace proto zatím nemůže konfiguraci předat. [Výsledek inspekce a omezení](staging-auth-mail.md#stav-ověření) jsou součástí návodu; samotné uložení secrets nestačí.
+
 Přesný postup pro Google, Gmail SMTP, předávání z GitHub Actions do skutečného runtime backendu a funkční testy je v [návodu pro #165](staging-auth-mail.md). Samotné uložení GitHub secrets ani úspěšný webhook hodnoty backendu nepředá. Čtecí režim workflow identifikuje backend podle image a prostředí; před aktivací musí být ověřeno předávání proměnných do jeho kontejneru.
 
 `GOOGLE_ACCOUNT_LINKING` nech výchozí `false`: zapnutí SMTP samo neopraví účty, které byly ověřené simulovanou schránkou. Nové Google účty fungují i při vypnutém propojování.

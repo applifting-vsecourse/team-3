@@ -2,6 +2,14 @@
 
 Staging: `https://team-3.vsepractical.applifting.dev`.
 
+## Stav ověření
+
+**Integrace není na stagingu zprovozněná.** Čtecí [inspekce z 6. 11. 2026](https://github.com/applifting-vsecourse/team-3/actions/runs/42291428353) skončila chybou `HTTP 403 (missing-read-permission)`. Nasazovací job se nespustil a konfigurace stagingu se nezměnila.
+
+Tým nemá administrátorský přístup k nasazovací platformě. Níže popsaná API integrace vyžaduje oprávnění, která dostupný token nemá; za současných podmínek ji nelze aktivovat. Samotné přidání Google/SMTP secrets tento blok neodstraní. Přenos konfigurace bez těchto oprávnění není v této větvi implementovaný.
+
+Google přihlášení, doručení ověřovacího e-mailu a reset hesla zatím nemají potvrzenou funkční akceptaci. Následující kroky popisují požadavky a ověření připravené integrace, nikoliv již funkční staging.
+
 ## Účty a přihlašovací údaje
 
 1. Vytvořit týmový Google účet na <https://accounts.google.com/signup>. Přístupové heslo a obnovovací údaje uložit do správce hesel.
@@ -72,7 +80,7 @@ Při provozu přímo z kořenového `docker-compose.yml` již backend přebírá
 
 ## Kontrola runtime a funkční akceptace
 
-V terminálu běžícího backendu lze přítomnost a bezpečné nastavení ověřit bez výpisu hodnot:
+Následující kontrola vyžaduje přístup k terminálu běžícího backendu, který tým aktuálně nemá. Oprávněný provozovatel tak může ověřit přítomnost a bezpečné nastavení bez výpisu hodnot:
 
 ```sh
 node -e 'const e=process.env;console.log(JSON.stringify({google:!!(e.GOOGLE_CLIENT_ID&&e.GOOGLE_CLIENT_SECRET),smtp:!!(e.SMTP_HOST&&e.SMTP_USERNAME&&e.SMTP_PASSWORD),gmail:e.SMTP_HOST==="smtp.gmail.com",tls:e.SMTP_SECURE==="true",port465:e.SMTP_PORT==="465",resendOff:!e.RESEND_API_KEY,simulationOff:e.SIMULATED_INBOX==="false",linkingOff:e.GOOGLE_ACCOUNT_LINKING==="false"}))'
