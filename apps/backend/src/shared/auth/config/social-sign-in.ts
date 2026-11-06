@@ -35,12 +35,16 @@ export const signInProviders = (config: GoogleEnv): SignInProviders => ({
  *   e-mail is verified already: otherwise whoever signed up with somebody
  *   else's address (and a password they know) would get into that person's
  *   account once they sign in with Google. With the simulated inbox on, a
- *   verified e-mail proves nothing, so accounts aren't linked at all.
+ *   verified e-mail proves nothing, so accounts aren't linked at all. Turning
+ *   on real mail does not fix earlier verifications: linking needs an explicit
+ *   opt-in after those addresses have been verified through real mail (#165).
  * - The name from Google gets our name rule (#153) applied rather than
  *   refusing the sign-in over a digit or an emoji in it.
  */
 export const socialSignInOptions = (
-  config: GoogleEnv & Parameters<typeof simulatedInboxEnabled>[0],
+  config: GoogleEnv &
+    Parameters<typeof simulatedInboxEnabled>[0] &
+    Pick<Config, 'googleAccountLinking'>,
 ): Pick<BetterAuthOptions, 'socialProviders' | 'account'> => {
   const google = googleCredentials(config);
   if (!google) return {};
@@ -55,7 +59,9 @@ export const socialSignInOptions = (
     },
     account: {
       accountLinking: {
-        enabled: !simulatedInboxEnabled(config),
+        enabled:
+          config.googleAccountLinking === 'true' &&
+          !simulatedInboxEnabled(config),
         trustedProviders: ['google'],
       },
     },

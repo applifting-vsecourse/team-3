@@ -16,17 +16,16 @@ Redirect URI je vždy `BACKEND_URL` + `/api/auth/callback/google` a musí sedět
 
 ## 2. Proměnné na stagingu (Coolify)
 
-1. V Coolify otevři resource HobbyHub (Docker Compose) → **Environment Variables**.
-2. Přidej `GOOGLE_CLIENT_ID` a `GOOGLE_CLIENT_SECRET`. Secret označ jako zamčený (_locked_), ať se neukazuje v logu. Compose je předá backendu stejně jako ostatní proměnné z `.env.example` (`env_file: .env`).
-3. Restartuj backend (nebo dej _Redeploy_).
-4. Ověř, že `https://team-3.vsepractical.applifting.dev/api/sign-in-providers` vrací `{"google":true}` a na `/login` je tlačítko.
+Přesný postup pro Google, Gmail SMTP, předávání z GitHub Actions do skutečného runtime backendu a funkční testy je v [návodu pro #165](staging-auth-mail.md). Samotné uložení GitHub secrets ani úspěšný webhook hodnoty backendu nepředá. Čtecí režim workflow identifikuje backend podle image a prostředí; před aktivací musí být ověřeno předávání proměnných do jeho kontejneru.
+
+`GOOGLE_ACCOUNT_LINKING` nech výchozí `false`: zapnutí SMTP samo neopraví účty, které byly ověřené simulovanou schránkou. Nové Google účty fungují i při vypnutém propojování.
 
 Vypnutí: smaž jednu z proměnných (nebo ji nech prázdnou) a restartuj backend – tlačítko zmizí.
 
 ## Jak se přihlášení chová
 
 - **Nový uživatel**: účet vznikne s e-mailem od Googlu a e-mail se počítá jako ověřený. Pod tlačítkem je věta, že pokračováním souhlasí s podmínkami a bere na vědomí zpracování údajů; čas souhlasu se uloží (`termsAcceptedAt`) stejně jako při registraci e-mailem.
-- **Existující účet se stejným e-mailem**: Google se k němu připojí, druhý účet nevznikne – ale jen když je e-mail toho účtu už ověřený. Jinak by se do cizího účtu dostal ten, kdo si ho dřív založil s cizí adresou a heslem, které zná (výchozí ochrana BetterAuth, necháváme ji zapnutou). Takový uživatel uvidí na `/login` hlášku, ať se přihlásí heslem.
-- **Se simulovanou schránkou** (`SIMULATED_INBOX`, staging bez e-mailové služby) se účty nepropojují vůbec, protože ověřený e-mail tam nedokazuje, že adresa patří majiteli účtu. Po zapnutí skutečné e-mailové služby zůstanou účty ověřené simulací ověřené: předtím je potřeba je znovu ověřit nebo databázi vynulovat, jinak by šlo cizí účet takhle převzít.
+- **Existující účet se stejným e-mailem**: automatické připojení je výchozí vypnuté; uživatel se přihlásí heslem. Správce může nastavit `GOOGLE_ACCOUNT_LINKING=true` až po bezpečném vyřešení účtů ověřených simulací. Pak se propojí pouze účet s ověřenou adresou; výchozí ochrana BetterAuth zůstává zapnutá.
+- **Se simulovanou schránkou** (`SIMULATED_INBOX`, staging bez e-mailové služby) se účty nepropojují vůbec, protože ověřený e-mail tam nedokazuje, že adresa patří majiteli účtu. Po zapnutí skutečné e-mailové služby zůstanou účty ověřené simulací ověřené. Automatické propojování proto zůstává vypnuté; zapnout je lze až po schváleném vyřešení a skutečném ověření starých adres.
 - **Jméno z Googlu** projde stejným pravidlem jako při registraci (#153): znaky, které do jména nepatří (číslice, emoji…), se vynechají.
 - Po přihlášení se uživatel vrátí tam, odkud přišel (`from`, stejně bezpečně jako u přihlášení heslem). Když Google vrátí chybu nebo uživatel přihlášení zruší, skončí na `/login` s českou hláškou.

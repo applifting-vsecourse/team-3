@@ -54,6 +54,7 @@ const simulatedInboxProvider: Provider = {
             secure: config.smtpSecure,
             user: config.smtpUsername,
             pass: config.smtpPassword,
+            from: config.emailFrom,
           });
         }
         return ConsoleMailerAdapterFactory.create(

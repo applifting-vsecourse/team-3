@@ -2,12 +2,35 @@ name: Build & Deploy
 on:
   push:
     branches: [main]
-  workflow_dispatch: {}
+  workflow_dispatch:
+    inputs:
+      inspect_only:
+        description: 'Read-only backend discovery (no builds, pushes, env updates or deploys)'
+        type: boolean
+        default: true
+permissions:
+  contents: read
 env:
   COURSE_DOMAIN: vsepractical.applifting.dev
   REGISTRY: registry.vsepractical.applifting.dev
 jobs:
+  inspect-staging:
+    if: github.event_name == 'workflow_dispatch' && inputs.inspect_only
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Inspect staging backend without changes
+        env:
+          COOLIFY_WEBHOOK: ${{ secrets.COOLIFY_WEBHOOK }}
+          COOLIFY_TOKEN: ${{ secrets.COOLIFY_TOKEN }}
+        run: |
+          REPO_NAME="${GITHUB_REPOSITORY##*/}"
+          OWNER="${GITHUB_REPOSITORY_OWNER,,}"
+          if [ "$REPO_NAME" = "edu-template" ]; then SLUG="$OWNER"; else SLUG="${REPO_NAME,,}"; fi
+          export EXPECTED_BACKEND_IMAGE="$REGISTRY/$SLUG-backend"
+          node scripts/sync-staging-auth-mail.mjs --inspect
   build-and-deploy:
+    if: github.ref == 'refs/heads/main' && (github.event_name != 'workflow_dispatch' || !inputs.inspect_only)
     runs-on: ubuntu-latest
     env:
       COOLIFY_WEBHOOK: ${{ secrets.COOLIFY_WEBHOOK }}
@@ -48,7 +71,19 @@ jobs:
             VITE_API_URL=${{ steps.slug.outputs.url }}/api
             VITE_BETTER_AUTH_URL=${{ steps.slug.outputs.url }}
           tags: ${{ env.REGISTRY }}/${{ steps.slug.outputs.slug }}-frontend:latest
+      # Opt in after OAuth/SMTP credentials are stored. Resource discovery is
+      # read-only; an ambiguous or unsupported target fails before any update.
+      - name: Configure staging Google and Gmail SMTP at runtime
+        if: vars.STAGING_AUTH_MAIL_CONFIGURED == 'true'
+        env:
+          EXPECTED_BACKEND_IMAGE: ${{ env.REGISTRY }}/${{ steps.slug.outputs.slug }}-backend
+          GOOGLE_CLIENT_ID: ${{ secrets.GOOGLE_CLIENT_ID }}
+          GOOGLE_CLIENT_SECRET: ${{ secrets.GOOGLE_CLIENT_SECRET }}
+          SMTP_USERNAME: ${{ secrets.SMTP_USERNAME }}
+          SMTP_PASSWORD: ${{ secrets.SMTP_PASSWORD }}
+          EMAIL_FROM: ${{ secrets.EMAIL_FROM }}
+        run: node scripts/sync-staging-auth-mail.mjs
       - name: Trigger Coolify deploy
         if: env.COOLIFY_WEBHOOK != ''
         run: |
-          curl -fsS -X POST -H "Authorization: Bearer $COOLIFY_TOKEN" "$COOLIFY_WEBHOOK"
+          curl -fsS --output /dev/null -X POST -H "Authorization: Bearer $COOLIFY_TOKEN" "$COOLIFY_WEBHOOK"

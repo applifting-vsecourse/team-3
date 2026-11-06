@@ -123,6 +123,13 @@ export class Config {
   @IsOptional()
   readonly googleClientSecret?: string;
 
+  // Opt in only after addresses previously verified by the simulated inbox
+  // have been verified through real mail. Enabling SMTP alone is not proof.
+  @Env('GOOGLE_ACCOUNT_LINKING', { expose: true })
+  @IsOptional()
+  @IsIn(['', 'true', 'false'])
+  readonly googleAccountLinking?: string;
+
   // Refusing passwords from data breaches (#153, Have I Been Pwned): "true" or
   // "false"; unset or empty = on in production, off elsewhere
   // (breached-passwords.ts). A string, not a boolean: @Env turns a missing
