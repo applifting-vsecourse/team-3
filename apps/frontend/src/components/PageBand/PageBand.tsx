@@ -73,11 +73,11 @@ export function PageBand({
             : isSection
               ? "gap-3 pt-1 md:gap-5 md:pt-6"
               : cn(
-                  "gap-3 pt-4 pb-5 md:gap-3 md:pt-5 md:pb-9",
+                  "gap-3 md:gap-3 md:pb-9",
+                  // phone: one bar (Header/Sub), the title on the page (B-03) or the plain band
+                  isCompactOnMobile ? "py-2" : isPlainOnMobile ? "pt-8 pb-0" : "pt-4 pb-5",
                   // without a back link the title starts lower (Figma B-01d, B-03d)
-                  !back && "md:pt-12",
-                  isCompactOnMobile && "py-2",
-                  isPlainOnMobile && "pt-8 pb-0",
+                  back ? "md:pt-5" : "md:pt-12",
                 ),
           isSection && !children && "pb-6 md:pb-9",
         )}

@@ -17,14 +17,20 @@ const STEPS = [
   "Přijdeš rovnou, nebo až tě organizátor schválí",
 ]
 
+const VISITOR_TITLE = "Někde chybí jeden do party. Třeba ty."
+
 type LandingViewProps = {
   /**
    * Signed out, once the session is known: the invitation to sign up (#36)
    * and the events people are interested in (#156) are for visitors only.
    */
   isVisitor: boolean
-  /** The title speaks to who is here (docs/ux-audit.md › Hlas aplikace); never by name. */
-  isSignedIn: boolean
+  /**
+   * The title speaks to who is here (docs/ux-audit.md › Hlas aplikace); never by name.
+   * Undefined while the session loads: the title keeps its place but stays hidden, so a
+   * signed-in user never sees the visitor's one swap out.
+   */
+  isSignedIn: boolean | undefined
 }
 
 /**
@@ -52,7 +58,15 @@ export function LandingView({ isVisitor, isSignedIn }: LandingViewProps) {
     <>
       <PageBand
         variant="hero"
-        title={isSignedIn ? "Tady se na tebe čeká." : "Někde chybí jeden do party. Třeba ty."}
+        title={
+          isSignedIn === undefined ? (
+            <span className="invisible">{VISITOR_TITLE}</span>
+          ) : isSignedIn ? (
+            "Tady se na tebe čeká."
+          ) : (
+            VISITOR_TITLE
+          )
+        }
         description="Volejbal, deskovky, běh… Najdi akci ve svém okolí, nebo založ vlastní a lidi se přidají."
       />
       <main

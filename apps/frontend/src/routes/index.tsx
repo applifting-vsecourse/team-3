@@ -20,7 +20,7 @@ function LandingPage() {
       {/* Wait for the session, so a signed-in user never sees the invitation flash. */}
       <LandingView
         isVisitor={!user && !isPending}
-        isSignedIn={Boolean(user)}
+        isSignedIn={isPending ? undefined : Boolean(user)}
       />
     </>
   )
