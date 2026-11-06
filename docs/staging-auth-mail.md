@@ -23,6 +23,8 @@ Google přihlášení, doručení ověřovacího e-mailu a reset hesla zatím ne
    - **Authorized redirect URIs:** `https://team-3.vsepractical.applifting.dev/api/auth/callback/google`
 8. Client ID a Client secret uložit bezpečně. Export klienta, SMTP heslo ani ověřovací odkazy nepatří do repozitáře, issue, PR nebo logů.
 
+Pokud `EMAIL_FROM` není nastavené nebo je prázdné, SMTP použije `SMTP_USERNAME`; Resend použije svou výchozí testovací adresu. Pro staging je odesílatel v následující konfiguraci nastavený výslovně.
+
 ## GitHub Actions konfigurace
 
 Repozitář → **Settings → Secrets and variables → Actions → Secrets → New repository secret**:

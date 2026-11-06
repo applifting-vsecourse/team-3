@@ -4,7 +4,7 @@ import { SMTPAdapter } from './smtp-adapter';
 jest.mock('nodemailer', () => ({ createTransport: jest.fn() }));
 
 describe('SMTP sender (#165)', () => {
-  it.each([undefined, 'HobbyHub <sender@example.com>'])(
+  it.each([undefined, '', '   ', 'HobbyHub <sender@example.com>'])(
     'uses EMAIL_FROM when configured (%s)',
     async (from) => {
       const sendMail = jest.fn().mockResolvedValue({});
@@ -23,7 +23,7 @@ describe('SMTP sender (#165)', () => {
       await email.sendEmail('recipient@example.com', 'Subject', '<p>Body</p>');
 
       expect(sendMail).toHaveBeenCalledWith({
-        from: from ?? 'sender@example.com',
+        from: from?.trim() || 'sender@example.com',
         to: 'recipient@example.com',
         subject: 'Subject',
         html: '<p>Body</p>',
