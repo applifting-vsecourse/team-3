@@ -135,11 +135,12 @@ describe.each([
   })
 
   // DESIGN.md › Capacity bar: the two stripes of the hatch below the minimum
-  const [, lime = "", stripe = ""] = (
+  const [, limeToken = "", stripeToken = ""] =
     /@utility capacity-hatch[\s\S]*?var\(--([\w-]+)\) 0 3px,\s*var\(--([\w-]+)\) 3px 6px/.exec(
       css,
     ) ?? []
-  ).map((name, i) => (i ? tokens[name]! : name))
+  const lime = tokens[limeToken]!
+  const stripe = tokens[stripeToken]!
 
   // it has to read as stripes, or „Chybí“ looks like „Volná místa“…
   it("the capacity hatch stripes are at least 3:1 against each other", () => {

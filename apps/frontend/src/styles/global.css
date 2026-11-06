@@ -161,7 +161,8 @@
 }
 
 /* Dark mode: Figma collection „HobbyHub tokens“, mode Dark. Only what differs from light;
-   the aliases above resolve against these values. */
+   the aliases above resolve against these values only because .dark sits on <html>, the same
+   element as :root — on a subtree they would inherit the light values already computed. */
 .dark {
   --background: #0f1612;
   --foreground: #eef3ea;
@@ -253,7 +254,7 @@
   }
 }
 
-/* event card title: grid card / row card (max 2 lines – line-clamp stays in the card) */
+/* event card title: grid card (max 2 lines – line-clamp stays in the card) */
 @utility type-card-title {
   font-family: var(--font-heading);
   font-weight: 700;
