@@ -81,6 +81,16 @@
   --radius-sm: calc(var(--radius) - 4px);
 }
 
+/* DESIGN.md › Type: the Geist sizes Tailwind has no step for (Figma Body/Default, Caption/Default).
+   Small 14 and tag 12 are text-sm and text-xs. src/lib/utils.ts tells tailwind-merge these
+   are sizes, not colours. */
+@theme {
+  --text-body: 0.9375rem;
+  --text-body--line-height: 1.375rem;
+  --text-caption: 0.8125rem;
+  --text-caption--line-height: 1rem;
+}
+
 :root {
   /* Values from the Figma collection "HobbyHub tokens" (Light). Names match 1:1; where Figma
      aliases one token to another, so does var() here. */
@@ -209,6 +219,124 @@
     var(--primary) 0 3px,
     var(--primary-foreground) 3px 6px
   );
+}
+
+/* DESIGN.md › Type: Figma text styles, mobile first and the desktop size from md up. The display
+   ones carry their face and weight, so one class sets the whole style. type- rather than text-,
+   or tailwind-merge would take them for a colour and drop them next to text-*. */
+@utility type-hero {
+  font-family: var(--font-heading);
+  font-weight: 800;
+  font-size: 2.5rem;
+  line-height: 0.95;
+  letter-spacing: -0.02em;
+  @variant md {
+    font-size: 5rem;
+  }
+}
+
+@utility type-title {
+  font-family: var(--font-heading);
+  font-weight: 800;
+  font-size: 1.875rem;
+  line-height: 1.1;
+  letter-spacing: -0.01em;
+  @variant md {
+    font-size: 3rem;
+    line-height: 1;
+    letter-spacing: -0.02em;
+  }
+}
+
+@utility type-feature {
+  font-family: var(--font-heading);
+  font-weight: 700;
+  font-size: 1.5rem;
+  line-height: 1.1;
+  @variant md {
+    font-size: 1.75rem;
+  }
+}
+
+/* event card title: grid card / row card (max 2 lines – line-clamp stays in the card) */
+@utility type-card-title {
+  font-family: var(--font-heading);
+  font-weight: 700;
+  font-size: 1.25rem;
+  line-height: 1.2;
+}
+
+@utility type-row-title {
+  font-family: var(--font-heading);
+  font-weight: 700;
+  font-size: 1.0625rem;
+  line-height: 1.2;
+}
+
+/* the day number in the date tile: L detail, M grid card, S row card */
+@utility type-date-l {
+  font-family: var(--font-heading);
+  font-weight: 800;
+  font-size: 2.25rem;
+  line-height: 1;
+}
+
+@utility type-date-m {
+  font-family: var(--font-heading);
+  font-weight: 800;
+  font-size: 1.625rem;
+  line-height: 1;
+}
+
+@utility type-date-s {
+  font-family: var(--font-heading);
+  font-weight: 800;
+  font-size: 1.25rem;
+  line-height: 1;
+}
+
+@utility type-wordmark {
+  font-family: var(--font-heading);
+  font-weight: 700;
+  font-size: 1.25rem;
+  line-height: 1.5rem;
+  letter-spacing: -0.02em;
+}
+
+@utility type-stamp {
+  font-family: var(--font-heading);
+  font-weight: 600;
+  font-size: 0.8125rem;
+  line-height: 1rem;
+}
+
+@utility type-lead {
+  font-size: 1rem;
+  line-height: 1.5;
+  @variant md {
+    font-size: 1.25rem;
+  }
+}
+
+/* the only ALL CAPS in the app: the step label in „Jak to funguje“ (Figma Label/Step) */
+@utility type-step {
+  font-size: 0.75rem;
+  font-weight: 600;
+  line-height: 1rem;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+/* DESIGN.md › Type: the one keyword of a section heading. Light: a lime marker under the word
+   (Figma: an underline 11 px thick at 30 px, 18 px at 48 px); dark: the marker is transparent
+   and the word itself turns lime. */
+@utility highlight-keyword {
+  color: var(--highlight-text);
+  text-decoration-line: underline;
+  text-decoration-color: var(--highlight-marker);
+  text-decoration-thickness: 0.37em;
+  text-underline-offset: -0.42em;
+  text-decoration-skip-ink: none;
 }
 
 @layer base {
