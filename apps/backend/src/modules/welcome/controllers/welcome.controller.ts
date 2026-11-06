@@ -1,3 +1,4 @@
+import { apiDocsEnabled } from '@/core/api-docs/api-docs-enabled';
 import { Config } from '@/shared/config/config.service';
 import { Controller, Get, UsePipes, ValidationPipe } from '@nestjs/common';
 import { ApiOperation } from '@nestjs/swagger';
@@ -27,8 +28,11 @@ export class WelcomeController {
       version: this.config.version,
       healthCheck: '/api/health',
       restApi: '/api',
-      swaggerDocs: '/api/docs',
-      authEndpointsDocs: '/api/auth/reference',
+      // only where they are on (API_DOCS, N-9)
+      ...(apiDocsEnabled(this.config) && {
+        swaggerDocs: '/api/docs',
+        authEndpointsDocs: '/api/auth/reference',
+      }),
     };
   }
 

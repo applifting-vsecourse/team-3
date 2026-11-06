@@ -52,9 +52,14 @@ function useMembershipMutation<Variables = void>(
   })
 }
 
-/** „Přidat se“ (public: a member at once) or „Požádat o členství“ (closed: a request). */
+/**
+ * „Přidat se“ (public: a member at once) or „Požádat o členství“ (closed: a
+ * request, which may carry a message for the admins, #175).
+ */
 export const useJoinGroup = (groupId: string) =>
-  useMembershipMutation(groupId, () => api.post(`groups/${groupId}/join`).json())
+  useMembershipMutation(groupId, (message?: string | null) =>
+    api.post(`groups/${groupId}/join`, { json: message ? { message } : {} }).json(),
+  )
 
 /** „Odejít ze skupiny“; the last admin gets LAST_ADMIN. */
 export const useLeaveGroup = (groupId: string) =>

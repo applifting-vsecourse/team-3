@@ -104,10 +104,14 @@ export class GroupsService {
     return this.getGroup(id, userId);
   }
 
-  /** „Přidat se“ / „Požádat o členství“ (US-17): the resulting status. */
+  /**
+   * „Přidat se“ / „Požádat o členství“ (US-17): the resulting status. A
+   * request to a closed group may carry a message for the admins (#175).
+   */
   async join(
     groupId: string,
     userId: string,
+    message: string | null = null,
   ): Promise<{ status: 'active' | 'pending' | 'blocked' }> {
     const group = await this.getGroup(groupId, userId);
     const decision = decideJoin(group, group.viewerMembership);
@@ -117,6 +121,7 @@ export class GroupsService {
         groupId,
         userId,
         decision.status,
+        message,
       );
     }
     return { status: decision.status };

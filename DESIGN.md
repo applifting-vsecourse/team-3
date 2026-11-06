@@ -6,28 +6,60 @@ These are rules, not suggestions. When a rule and a "nicer looking" idea disagre
 
 `src/components/ui/**` is vendored shadcn — treat it as a third-party kit and restyle via tokens rather than rewriting it.
 
-**Tokens live in `apps/frontend/src/styles/global.css`.** That file is the only source of truth for colour, radius, shadows and fonts. This file says how to _use_ them. The values come from the Figma collection „HobbyHub tokens“ in [HobbyHub-design](https://www.figma.com/design/dGYGqD8BjC1rYlbfjCpxWD/HobbyHub-design) (page „Design system“), with the same names. When Figma changes, update `global.css` — never patch a colour in a component.
+**Tokens live in `apps/frontend/src/styles/global.css`.** Components read colour, radius, shadows and fonts from there, never from this file. This file says how to _use_ them. The values come from the Figma collection „HobbyHub tokens“ in [HobbyHub-design](https://www.figma.com/design/dGYGqD8BjC1rYlbfjCpxWD/HobbyHub-design) (page „Design system“), with the same names (`color/hero` → `--hero`, `bg-hero`). When Figma changes, update `global.css` — never patch a colour in a component.
+
+> **New brand (approved by the PO 3.–4. 11. 2026, UX audit #173) — the table below is the target state, not the code yet.** The rollout is #195: it brings `global.css` and `tokens.test.ts` to the token table and rebuilds the screens. **Until #195 is merged, only the classes that `global.css` defines exist.** The new ones — `bg-hero`, `border-card-border`, `border-control-border`, `border-tile-border`, `bg-badge-neutral`, `capacity-fill` and the rest of the table beyond the kit names — do not, and Tailwind does not warn about a missing class: the element just stays unstyled. Outside #195, use the existing tokens (`border`, `secondary`, `muted`, …) and leave the new ones to #195. The same holds for the capacity hatch: today `capacity-hatch` mixes the dark stripe from `primary-foreground` (55 %); #195 switches it to the stripes described below together with its test. Figma holds the approved design; once #195 lands, if code and Figma disagree, Figma wins and the code is the bug. Screens in Figma are illustrative — the data on them need not match the seed.
 
 ## Colour
 
-- **Never hardcode a colour.** No `#hex`, no `bg-blue-500`, no `rgb()`. Use the semantic classes only: `bg-background`, `text-foreground`, `text-muted-foreground`, `bg-card`, `bg-primary`, `bg-secondary`, `border-border`, `bg-destructive`.
-- **`primary` is for actions, not decoration.** One primary button per view. Everything else is `outline`, `ghost` or a plain link.
-- **`primary` (lime) is a fill, never a text or icon colour.** Lime on white fails contrast. Text on a lime fill is `primary-foreground`. The only non-button uses of lime are the brand elements below: the capacity bar fill, the „Chybí“ badge, the „Chybí“ map pin, the active bottom-nav pill and the logo.
-- **`secondary` (light green) is for quiet brand labels** — the activity tag and the „Volná místa“ badge — with `secondary-foreground` text.
-- **`destructive` only for destructive actions and errors.** Never for emphasis. In dark mode it is lighter (`#f97066`), because error text needs 4.5:1 on a dark card; the token test in `src/styles/tokens.test.ts` checks the text pairs in both modes.
-- **`accent` is a hover/active surface, not a brand colour.** It tints menu items and ghost buttons on hover, so it must stay quiet. The brand colour is `primary`.
+- **Never hardcode a colour.** No `#hex`, no `bg-blue-500`, no `rgb()`. Use the semantic classes only (table below, including the kit aliases at its end).
+- **Contrast is not negotiable, in both modes.** Text at least 4.5:1 (large text 3:1). **Every non-text element at least 3:1 against what is around it**: icons, badges, the capacity track, map pins, rating stars, dividers, and the _edge_ of any surface — a tile, a badge, a card, an outline button, a dialog or a bottom sheet over the overlay. If a fill cannot reach 3:1 on its own, it gets an outline token (`tile-border`, `primary-edge`, `control-border`, `card-border`). The token pairs are tested in `src/styles/tokens.test.ts`; a new pair gets a test. There are no "it looks fine" exceptions.
+- **`primary` (lime) is a fill, never a text or icon colour.** Text on lime is `primary-foreground`. On a light surface lime always carries the `primary-edge` outline (lime on cream or white is about 1.1:1). The one exception is the section keyword in dark mode (`highlight-text`), where lime on the dark background replaces the marker. Lime appears only on: the one primary button per view, the „Chybí“ badge, the „Chybí lidé“ map pin, the ring of a map cluster with an event where people are missing, the capacity hatch, the „Koná se“ stamp, the active item of the desktop header and the bottom nav (pill), the active quick-pick underline on the dark band, the highlighter under a section keyword (light mode) and the keyword itself (dark mode), the logo's ring and „ty“ (`avatar-self` in dark mode). In dark mode also the tokens that are lime by value: `capacity-fill`, `accent-bar`, `ring`, `primary-edge`. Nowhere else — lime is the brand's signal, not decoration.
+- **`secondary` (quiet green) always comes with `tile-border`** — the fill alone is 1.2–1.3:1 against the card. Used for: activity tags, the „N volných míst“ and „Jdu“ badges, avatars, activity tiles, the date tile, the „Máš místo“ block.
+- **`destructive` only for destructive actions and errors.** Never for emphasis. Text on it is `destructive-foreground` (dark in dark mode).
 - Body text is `foreground`; supporting text is `muted-foreground`. There is no third level.
-- **Every screen must work in both modes.** Never use `text-white`/`bg-black` or the kit's default `dark:` overrides; text and icons on a filled surface use that surface's `-foreground` token, and a selected/on state must restate its `dark:` classes if the default state has any. Check dark mode in Figma by switching the frame to mode „Dark“ (page „Tmavý režim“ shows all components). The one exception is the kit's `bg-black/50` overlay behind dialogs and drawers: Figma has no overlay token, and darkening the page works in both modes.
+- **Every screen must work in both modes.** Never use `text-white`/`bg-black` or the kit's default `dark:` overrides; text and icons on a filled surface use that surface's `-foreground` token, and a selected/on state (quick pick, selected card, nav pill) must restate its `dark:` classes if the default state has any. Check dark mode in Figma by switching the frame to mode „Dark“. The one exception is the kit's `bg-black/50` overlay behind dialogs and bottom sheets: darkening the page works in both modes and keeps the sheet's edge above 3:1.
+
+| Token                                             | Light                             | Dark                              | Use                                                                       |
+| ------------------------------------------------- | --------------------------------- | --------------------------------- | ------------------------------------------------------------------------- |
+| `background` / `foreground`                       | `#f4f1e8` / `#14201a`             | `#0f1612` / `#eef3ea`             | Page and body text                                                        |
+| `card`                                            | `#ffffff`                         | `#162c20`                         | Cards and panels, always with `card-border`                               |
+| `muted` / `muted-foreground`                      | `#e8e2d2` / `#505e56`             | `#1c2620` / `#a3afa6`             | Quiet surfaces / supporting text                                          |
+| `primary` / `primary-foreground`                  | `#b9f53c` / `#14201a`             | same                              | Lime fill / text on it                                                    |
+| `primary-edge`                                    | `#265212`                         | = `primary`                       | Outline of lime on light surfaces                                         |
+| `secondary` / `secondary-foreground`              | `#e3f3cb` / `#265212`             | `#24402f` / `#eef3ea`             | Quiet green surfaces                                                      |
+| `tile-border`                                     | `#6f8a5a`                         | `#7d8a82`                         | Outline of every `secondary` surface                                      |
+| `border` = `input-border` = `card-border`         | `#847e70`                         | `#6b7870`                         | Hairlines, inputs, chips, card and panel edges                            |
+| `control-border`                                  | `#847e70`                         | `#7d8a82`                         | Outline buttons, neutral badges, capacity track, sheet handle, empty star |
+| `badge-neutral` / `-foreground`                   | `#e8e2d2` / `#505e56`             | `#6b7870` / `#ffffff`             | „Plno“, „Čeká na schválení“                                               |
+| `full`                                            | `#8f8a7c`                         | `#6f7d74`                         | Capacity bar when full                                                    |
+| `capacity-fill` / `capacity-track`                | `#265212` / `#e8e2d2`             | `#b9f53c` / `#3a4a42`             | Capacity bar solid fill / track                                           |
+| `hero` / `on-hero` / `on-hero-muted`              | `#0f3626` / `#f6f3ea` / `#bccbc0` | `#133624` / `#eef3ea` / `#b4c4b8` | The dark green band and text on it                                        |
+| `hero-pattern`                                    | `#1f4c37`                         | `#1f4a34`                         | Logo motif on the band — decoration only, never text                      |
+| `band-edge`                                       | = `hero`                          | `#6b7870`                         | Bottom edge of the band (visible only in dark mode)                       |
+| `tile-on-hero`                                    | `#e3f3cb`                         | `#5d8449`                         | Activity tile on the band                                                 |
+| `highlight-text` / `highlight-marker`             | `#14201a` / `#b9f53c`             | `#b9f53c` / transparent           | Section-heading keyword: marker under it (light), lime word (dark)        |
+| `avatar-self` / `-foreground`                     | `#265212` / `#ffffff`             | `#b9f53c` / `#14201a`             | The „ty“ avatar                                                           |
+| `accent-bar`                                      | = `secondary`                     | = `primary`                       | Left bar of „Máš místo“ — dark mode only; in light it blends in (Figma)   |
+| `logo-dot`, `logo-dot-stroke`, `logo-self-stroke` | see Figma                         | see Figma                         | Logo mark only                                                            |
+| `destructive` / `-foreground`                     | `#b42318` / `#ffffff`             | `#f97066` / `#14201a`             | Destructive actions, errors                                               |
+| `ring`                                            | `#265212`                         | `#b9f53c`                         | Focus ring                                                                |
+| `map/land`, `map/road`, `map/water`, `map/park`   | see Figma                         | see Figma                         | Map placeholder (the real map uses its own tiles)                         |
+
+**Kit aliases.** The vendored kit reads shadcn's own names; `global.css` keeps them and points them at the tokens above, so the kit restyles without edits: `input` = `input-border`, `popover` = `card`, `card-foreground` = `popover-foreground` = `foreground`, `accent` / `accent-foreground` = `muted` / `foreground` (hover in buttons, menus, selects, the calendar), `destructive-hover` is mixed from `destructive`. They are part of the contract — never delete them as unused.
+
+Tokens under `color/_archiv/*` in Figma belong to archived screens only — do not add them to `global.css`.
 
 ## Layout
 
+- **Every top-level page starts with the dark green band** (`bg-hero`, Figma „Úvodní pás“): back link if any, H1, one supporting line, and on /akce the quick picks. The band carries the logo motif in `hero-pattern`: on desktop the big logo rises from the bottom edge (the lime ring is the missing one — „parta, které chybí jeden“); on mobile the mark sits before the H1 and the faint dots sit top right. The motif never sits under text it would reduce below contrast. Content below the band sits on `background`.
 - **Cards are for separable items in a list** — an event, a group, a search result. They are not page sections and not layout tools.
 - **Never nest a card inside a card.** If content needs grouping inside a card, use spacing and a hairline divider.
-- **A page is not a card.** Page content sits on `background` in a centred column (`max-w-2xl` for reading, `max-w-4xl` for wide layouts), not inside a floating panel.
-- **A detail's action panel is the one bordered section** (Figma: Panel akce A-05d, Panel skupiny A-08d). On desktop the facts and the main action sit on the right in `w-100 rounded-lg border border-border bg-card p-6`; on a phone there is no panel, the facts follow the title and the main action sits in a bar above the bottom navigation (`sticky bottom-16`, Figma: Lišta s akcí). It holds no cards.
-- **Every page keeps the app chrome.** The header is present on every route, including login and sign-up. Pages never render as standalone islands.
+- **A page is not a card.** Page content sits on `background` on the 1200 px grid (`PAGE` in `src/lib/pageLayout.ts`), not inside a floating panel.
+- **A detail's action panel is the one bordered section** (Figma: Panel akce A-05d, Panel skupiny A-08d). On desktop the facts and the main action sit on the right in a `rounded-2xl border border-card-border bg-card p-6` panel; on a phone there is no panel, the facts follow the title and the main action sits in a bar above the bottom navigation (`sticky bottom-16`, Figma: Lišta s akcí). It holds no cards.
+- **Every page keeps the app chrome.** The header is present on every route, including login and sign-up.
 - Forbidden by default: the centred-hero-plus-three-feature-cards layout, carousels, and any section whose only purpose is to look full.
-- **No big empty areas on desktop** (PO). Pages sit on the 1200 px grid (`PAGE` in `src/lib/pageLayout.ts`). Use the width for real content: a form gets two columns (D-01d: „Co a kdy“ | „Kde“ with the map, D-06d), sign-in and sign-up show the nearest events next to the form, lists go into three columns. A narrow column with half the screen blank is a bug, not whitespace.
+- **No big empty areas on desktop** (PO). Use the width for real content: a form gets two columns (D-01d „Co a kdy“ | „Kde“, D-06d), sign-in and sign-up show the nearest events next to the form, the public profile has two columns, event grids have three columns.
 
 ## Spacing
 
@@ -36,22 +68,26 @@ Use the scale only: `1, 2, 3, 4, 6, 8, 12, 16` (Tailwind units — 4px…64px). 
 ## Type
 
 - One `h1` per page. Headings step down without skipping.
-- **Two typefaces.** `h1` and the HobbyHub wordmark use Bricolage Grotesque (`font-heading`, applied to `h1` globally); everything else is Geist (`font-sans`). Don't put `font-heading` on body text, buttons or card titles.
-- Sizes come from the scale: `text-sm` supporting, `text-base` body, `text-lg`/`text-xl` subheads, `text-2xl`+ page titles. Headings get `tracking-tight`; body does not.
-- Sentence case everywhere. No ALL CAPS except a single small label style (`text-xs uppercase tracking-widest`), used sparingly.
+- **Two typefaces.** Bricolage Grotesque (`font-heading`) is the display face: page titles (H1 in the band), section headings, event card titles, the date tile numbers, the „Koná se“ stamp and the wordmark. Everything else — body, labels, buttons, inputs, badges, meta lines — is Geist (`font-sans`).
+- Text styles mirror Figma (desktop / mobile): Hero 80 / 40 ExtraBold; Title 48 / 30 ExtraBold; Feature 28 / 24 Bold; event card title 20 Bold (grid) and 17 Bold (row, max 2 lines); date 36 / 26 / 20 ExtraBold. Geist: lead 20 / 16, body 15, small 14, caption 13, tag 12 SemiBold. Map them to the closest Tailwind size once, in one place — not per component.
+- **Section headings have one highlighted keyword** („Tady **chybíš**“, „Tento **víkend**“): `highlight-text` with the `highlight-marker` underneath in light mode, a lime word in dark mode. One keyword per heading, never a whole line.
+- Sentence case everywhere. No ALL CAPS except the small step label in „Jak to funguje“ (Figma text style Label/Step).
 
 ## Copy
 
-- **The app says „ty“ (tykání), everywhere** — buttons, errors, empty states, toasts, API messages the app shows: „Zkontroluj připojení a zkus to znovu.“, „Ověř si e-mail“. Never „vy“.
-- **Keep it gender-neutral.** Past tense and adjectives in the second person give away a gender („jsi přihlášený“, „odhlásil ses“). Rephrase around them: „Máš na akci místo.“, „Na akci už nejdeš.“, „Zapomenuté heslo?“.
+- **The app says „ty“ (tykání), everywhere** — buttons, errors, empty states, toasts, e-mails, API messages the app shows. Never „vy“.
+- **Keep it gender-neutral.** The app does not know anyone's gender: no past tense or adjectives in the second person („jsi přihlášený“), and no gendered nouns or verbs about other people („organizátorka“, „Petra zorganizovala“). Write „Máš místo.“, „Organizátor · ★ 4,5“, „Jak hodnotíš organizátora?“.
+- **Short, and always with a next step.** An empty state says in one sentence what would be here; a second sentence may have personality and points somewhere („V okolí teď nic není. Buď první – založ akci a dej o ní vědět.“).
+- **Numbers, not words**, when the app generates the sentence: „5 z 10 už jde, do minima chybí 1.“
+- **Personal naming** for picks made for the user: „Tady chybíš“, „Podle tvých zájmů“, „Tady se na tebe čeká.“ Never address the user by name: the app cannot decline names reliably into the vocative („Eva Malá“ → „Evo“?), and the nominative („Eva, …“) reads oddly in Czech.
+- Ratings always show the count: „★ 4,5 (6 hodnocení)“; with no rating yet „zatím bez hodnocení“.
 - Content people write themselves (event and group descriptions) stays as they wrote it.
 
 ## Surfaces
 
-- **Borders are hairlines**: `border border-border`. One border, not two adjacent ones.
-- **Shadows are rare.** Only for things that genuinely float above the page — dropdowns, dialogs, toasts. Cards and inputs do not get shadows.
-- Radius comes from the token (`rounded-lg`/`rounded-md`). Never mix radii in one component.
-- **Every button is `rounded-lg`** (Figma Button, `radius/lg`), floating ones included. Pills (`rounded-full`) are for chips, badges, tags and avatars, never for a button.
+- **Borders are hairlines**: one `border`, never two adjacent ones. Cards and panels `border-card-border`, inputs and chips `border-input` (the kit alias of `input-border`), outline buttons and neutral badges `border-control-border`, green surfaces `border-tile-border`.
+- **Radius:** buttons and inputs `rounded-lg` (8); tiles and photos inside cards `rounded-xl` (12); cards, panels, the map and the „Nic pro tebe?“ call-out `rounded-2xl` (16). Pills (`rounded-full`) are for chips, badges, tags, quick-pick counts and avatars, never for a button. One radius per level: a nested element gets the smaller step (the event card is `rounded-2xl`, its photo and date tile `rounded-xl`), but elements on the same level never mix radii.
+- **Shadows are rare.** Only for things that genuinely float — dropdowns and menus, dialogs, toasts, the selected map pin (Figma effect „Elevation/Float“). Cards and inputs do not get shadows. Floating things still need their edge: dialogs carry `card-border`.
 
 ## Forms
 
@@ -69,29 +105,41 @@ Data refreshes itself: refetch when the tab regains focus, and invalidate the qu
 ## Accessibility (the floor, not the ceiling)
 
 - Buttons are `<button>`, links are `<a>`/`<Link>`. Never a `div` with `onClick`.
-- Every icon-only control has an `aria-label`.
-- Focus rings are never removed. If you restyle focus, it must stay clearly visible.
-- Text contrast at least 4.5:1 — the tokens are chosen to satisfy this; hardcoded colours are how you break it.
+- Every icon-only control has an `aria-label`. Rating stars are a radio group („3 z 5 hvězd“).
+- Focus rings are never removed (`ring` token).
+- Touch targets at least 40 × 40 px (rating stars, map pins, the theme switcher).
+- Motion only under `motion-safe:` (the „Máš místo“ dot, the capacity fill). Stripes never move — moving stripes read as „loading“.
 
 ## HobbyHub components
 
-The Figma page „Design system“ is the reference. Build these once in `src/components/` and reuse them — never restyle them per screen.
+The Figma page „Design system“ is the reference, and each component's description there carries the details. Build these once in `src/components/` and reuse them — never restyle them per screen.
 
-- **Capacity bar** (Figma: Capacity bar) — the main brand element of an event. The fill is approved participants / maximum; a marker shows the minimum needed for the event to happen. Above the bar: the status on the left (`text-sm`), „6 z 10“ on the right (`text-xs text-muted-foreground`). Under the marker: „min. 8“ (`text-xs text-muted-foreground`), centred on it — within 10 % of an end it aligns to the marker instead, so it never leaves the bar. Three states:
-  - **Chybí** (below the minimum): status semibold „Chybí ještě 2“, the fill **hatched** (`capacity-hatch` — not confirmed yet), marker and label visible.
-  - **Volná místa** (minimum reached — from exactly the minimum — and spots left): status regular, the fill solid `bg-primary`, marker and label visible.
-  - **Plno**: status and count `text-muted-foreground`, full fill `bg-muted-foreground`, no marker, no label.
-  - Track `bg-muted`, height 8px, `rounded-full`. Hatch (`@utility capacity-hatch` in `global.css`): `repeating-linear-gradient(-45deg, var(--primary) 0 3px, color-mix(in srgb, var(--primary-foreground) 55%, var(--primary)) 3px 6px)` — tokens only, one definition for both modes; the dark stripe is at least 3:1 against the track and against lime (`tokens.test.ts`). Stripes never move (moving stripes read as „loading“); if the fill width ever animates, only under `motion-safe:`.
-  - Marker 2px wide and 16px tall (4px past the track on each side), `rounded-full bg-foreground` with a 2px `ring-background` gap (a gap, not a shadow), drawn above the fill: one style that shows on the track, the hatch and lime in both modes — the marker or its gap is at least 3:1 against each (`tokens.test.ts`). Widths and positions are computed from the numbers, never hardcoded.
-- **Status badge** (Figma: Status badge) — `rounded-full`, `text-xs font-semibold`, `px-2 py-0.5`. Chybí = `bg-primary text-primary-foreground` (the only highlighted one); Volná = `bg-secondary text-secondary-foreground`; Plno = `bg-muted text-muted-foreground`; Zrušeno = `bg-foreground text-background`. Labels: „Chybí X“, „Volná místa“, „Plno“, „Zrušeno“.
-- **Activity tag** (Figma: Tag/Activity) — the activity of an event or group: `rounded-full bg-secondary text-secondary-foreground text-xs font-semibold px-3 py-1`. Shows the activity name (second level), not the category.
-- **Activity tile** (Figma: Activity tile) — the category icon on an event card, one variant per category from B-002. An event card shows this icon, not a photo.
-- **Založit akci** — lives in Moje akce only, where people manage their events; /akce is for finding them, and the header stays navigation. One button for the whole page, in both tabs, like „Založit skupinu“ on Skupiny: desktop right of the „Moje akce“ title, mobile floating above the bottom navigation. The one exception is /akce finding nothing (`EmptyEvents`): there „Založit akci“ is the empty state's secondary next step, after widening the search — nothing to join is when people create. Never a page-level button on /akce.
-- **Navigation** — desktop: header with logo, Akce, Skupiny (active item `bg-muted font-semibold`). Mobile: bottom navigation with icon + label, active item has a lime pill (`bg-primary rounded-full`) behind the icon; an inactive item has both icon and label in `muted-foreground`. The map is part of Akce, never its own item.
+- **Event card** (Figma: Karta akce/Foto, Karta akce/Foto řádek, Karta akce/Proběhlá řádek) — `bg-card border-card-border rounded-2xl`. The photo is the **activity photo** (one per activity from the library, never an organizer upload); a card without a photo for its activity shows the Activity tile instead. Over the photo sits the **date tile** (`secondary` + `tile-border`, day / number / time). Grid card: photo on top, title max 2 lines, place, then badge + numbers and the capacity bar pinned to the bottom. Row card: 104 px photo, title, „čas · místo · městská část“ (place = address before the first comma), badge + bar filling the rest. Past card: desaturated photo, neutral date tile, „Sešlo se N lidí“ instead of the bar, and its rating state (Dáno / Ohodnotit / Zrušeno). A selected card gets a 2 px `ring-foreground` without changing size.
+- **Capacity bar** (Figma: Capacity bar; in cards a compact version) — the brand's core: „Koná se?“. Fill = approved / maximum, marker = minimum / maximum, computed from the numbers, never hardcoded.
+  - **Chybí** (below the minimum): status „Chybí ještě N“ semibold; the fill **hatched** — lime with dark diagonal stripes (`capacity-hatch`: `primary` + `primary-foreground` stripes, the dark stripe at least 3:1 against the track and the lime). Not confirmed yet. The hatch always ends before the marker.
+  - **Volná místa** (minimum reached — from exactly the minimum — and spots left): status in the badge form („1 volné místo“, „4 volná místa“, „8 volných míst“), the fill solid `capacity-fill` (dark green in light mode, lime in dark mode).
+  - **Plno**: status „Plno“ muted, full width in `full`, no marker.
+  - Track `capacity-track`, 8 px on the detail and 6 px in cards, `rounded-full`, with a 1 px `control-border` outline outside the track (the outline never covers the hatch). The marker is a dark bar past the track on both sides, with „min. N“ as a small dark pill under it — aligned to the marker near the ends so it never leaves the bar.
+- **Status badge** (Figma: Status badge) — `rounded-full text-xs font-semibold px-2 py-0.5`. The label always comes from the data (the Figma default text is a placeholder).
+  - Chybí „Chybí N“: `bg-primary text-primary-foreground border-primary-edge` — the only highlighted one.
+  - Volná „N volných míst“ (Czech plural forms as above) and Jdu „Jdu“: `bg-secondary text-secondary-foreground border-tile-border`.
+  - Plno „Plno“ and Čeká „Čeká na schválení“: `bg-badge-neutral text-badge-neutral-foreground border-control-border`.
+  - Zrušeno „Zrušeno“: `bg-foreground text-background`. Proběhlo „Proběhlo“: transparent, `text-muted-foreground border-control-border`.
+- **Koná se stamp** (Figma: Stamp/Koná se) — lime, `primary-edge` outline on light surfaces, rotated −6°. Only on an event detail whose minimum is reached; never on cards (it would be on nearly every one and say nothing).
+- **Máš místo** (Figma: Máš místo) — after signing up: `secondary` + `tile-border`, `accent-bar` on the left (visible in dark mode only — in light mode it is `secondary` on purpose and the block's edge is the `tile-border`), the logo „Plná parta“ and „Máš místo. Parta je o jednoho větší.“; „Díky tobě se akce koná…“ only when this sign-up reached the minimum. The „ty“ dot fills in only under `motion-safe:`.
+- **Logo** (Figma: Logo, Logo/Mark, Logo/Mark/Plná parta) — three dots and an empty ring: the group missing one, and that one is you. On the dark band and in dark mode: cream dots, lime ring. „Plná parta“ (the ring filled) means you are in.
+- **Map pin and cluster** (Figma: Map pin, Map cluster) — all unselected pins one size, state only by colour: Volná místa dark (light in dark mode), Chybí lidé lime, Plno grey (only without an occupancy filter). The selected pin is 1.3× bigger with a focus-style ring, a shadow and a label above. A cluster shows the count and gets a lime ring when it contains an event where people are missing. Past events appear on the map only with the „Proběhlé“ filter.
+- **Quick picks** (Figma: Tab/Rychlý výběr) — „Všechny akce“, „Tady chybíš“, „Tento víkend“, „Podle tvých zájmů“ (signed in), „Kousek od tebe“, „Od dobře hodnocených“ as tabs with a count pill, in the band on /akce. On the band the active one has a lime underline; on light surfaces a `foreground` underline. They differ from filter chips, which only set a value. „Zrušit vše“ appears only when a filter was changed by hand beyond the selected pick.
+- **Panel „Teď chybí jeden“** (Figma: Panel/Teď chybí jeden) — in the landing page band: photo + date tile, a label with the logo („Teď chybí jeden · za 2 dny“), title, place, one sentence with numbers, the capacity bar and an outline „Doplnit partu“. Edge `on-hero-muted`.
+- **Activity tile and tag** (Figma: Activity tile, Tag/Activity) — the tile is the category icon (`secondary` + `tile-border`; `tile-on-hero` on the band): event detail header, the activity picker, cards without a photo. The tag shows the activity name (second level), not the category.
+- **Rating stars** (Figma: Hodnocení/Hvězdičky, Hvězda) — input for 1–5 stars, 40 px targets. Full star `foreground`, empty star outlined in `control-border` — never lime (lime fails 3:1). Showing an average stays text: „★ 4,5 (6 hodnocení)“.
+- **Navigation** — desktop header (Figma: Header/App desktop): logo, Akce, Skupiny, Moje akce (signed in), on the right the theme switcher and the avatar, or „Přihlásit se“ + „Registrovat“. The active item is a lime pill. Mobile bottom navigation (Figma: Nav/Bottom): icon + label, the active item has a lime pill behind the icon; inactive icon and label `muted-foreground`. The map is part of Akce, never its own item.
+- **Založit akci** — lives in Moje akce only (desktop right of the title, mobile floating above the bottom navigation, never covering the last card). Never in the header, never a page-level button on /akce; the one exception is /akce finding nothing (`EmptyEvents`), where it is the secondary next step.
+- **Menus** (sort on /akce, Figma A-02j) — the kit's `bg-popover` (= `card`) with `border-card-border rounded-2xl` with „Elevation/Float“; the selected option has a check. Sorting: „Nejbližší termín“ (default) and „Nejmenší vzdálenost“ (from the centre of the chosen locality; not offered for the whole country).
 
 ## When you are unsure
 
-Prefer less: fewer borders, fewer boxes, fewer font sizes, more whitespace. If a screen feels plain, the fix is usually better spacing and clearer hierarchy, not another container.
+Prefer less: fewer borders, fewer boxes, fewer font sizes, more whitespace. If a screen feels plain, the fix is usually better spacing and clearer hierarchy, not another container — the brand lives in the band, the photos, the capacity bar and the voice, not in extra decoration.
 
 ## Extending this file
 

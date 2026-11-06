@@ -4,6 +4,7 @@ import { Info, Loader2, LogOut, X } from "lucide-react"
 import { toast } from "sonner"
 
 import { ROUTES } from "@/app/routes"
+import { RequestDialog } from "@/components/RequestDialog/RequestDialog"
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 import { Button } from "@/components/ui/button"
 import {
@@ -116,7 +117,29 @@ export function GroupMembershipAction({
     )
   }
 
-  const isClosed = group.type === "closed"
+  if (group.type === "closed") {
+    return (
+      <div className="flex flex-col gap-2">
+        {/* Figma A-08a / A-08ad: a request with an optional message for the admins (#175) */}
+        <RequestDialog
+          title="Požádat o členství?"
+          description={`${group.name}. Správce žádost schválí nebo zamítne, do té doby ji můžeš stáhnout.`}
+          label="Zpráva pro správce (nepovinné)"
+          isPending={join.isPending}
+          onSend={(message) =>
+            join.mutateAsync(message).catch((error: Error) => {
+              showError(error)
+              throw error
+            })
+          }
+        >
+          <MainButton disabled={join.isPending}>Požádat o členství</MainButton>
+        </RequestDialog>
+        <p className="text-sm text-muted-foreground">Správce žádost schválí nebo zamítne.</p>
+      </div>
+    )
+  }
+
   return (
     <div className="flex flex-col gap-2">
       <MainButton
@@ -124,11 +147,8 @@ export function GroupMembershipAction({
         onClick={() => join.mutate(undefined, { onError: showError })}
       >
         {join.isPending ? <Loader2 className="animate-spin" /> : null}
-        {isClosed ? "Požádat o členství" : "Přidat se"}
+        Přidat se
       </MainButton>
-      {isClosed ? (
-        <p className="text-sm text-muted-foreground">Správce žádost schválí nebo zamítne.</p>
-      ) : null}
     </div>
   )
 }

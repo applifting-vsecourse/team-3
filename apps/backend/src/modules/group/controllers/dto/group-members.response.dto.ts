@@ -21,8 +21,23 @@ class GroupMemberEntryDto {
   })
   since!: Date;
 
-  static fromDomain(entry: GroupMemberEntry): GroupMemberEntryDto {
-    return { ...entry };
+  @ApiProperty({
+    type: String,
+    nullable: true,
+    description:
+      "The applicant's message to the admins (#175); always null for a member",
+    example: 'Ahoj, v Pardubicích jsem hrál krajskou ligu.',
+  })
+  message!: string | null;
+
+  static fromDomain({
+    userId,
+    name,
+    role,
+    since,
+    message,
+  }: GroupMemberEntry): GroupMemberEntryDto {
+    return { userId, name, role, since, message };
   }
 }
 

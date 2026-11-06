@@ -15,8 +15,9 @@ vi.mock("@/lib/api-client", async (importOriginal) => ({
 }))
 const get = vi.mocked(api.get)
 
-const lists = (requests: { id: string; name: string; requestedAt: string }[]) =>
-  ({ json: () => Promise.resolve({ participants: [], requests }) }) as never
+const lists = (
+  requests: { id: string; name: string; requestedAt: string; message: string | null }[],
+) => ({ json: () => Promise.resolve({ participants: [], requests }) }) as never
 
 const renderLists = (isOrganizer: boolean) => {
   const queryClient = new QueryClient({ defaultOptions: { queries: { retry: 0 } } })
@@ -40,11 +41,15 @@ describe("useEventParticipants (#43, #53)", () => {
     await waitFor(() => expect(result.current.requests).toEqual([]))
 
     get.mockReturnValue(
-      lists([{ id: "u5", name: "Jakub Král", requestedAt: "2026-10-26T09:00:00Z" }]),
+      lists([
+        { id: "u5", name: "Jakub Král", requestedAt: "2026-10-26T09:00:00Z", message: "Ahoj" },
+      ]),
     )
     await vi.advanceTimersByTimeAsync(LIVE_REFRESH_MS)
 
     await waitFor(() => expect(result.current.requests?.map((r) => r.name)).toEqual(["Jakub Král"]))
+    // with the applicant's message (#175)
+    expect(result.current.requests?.[0]?.message).toBe("Ahoj")
   })
 
   it("someone else than the organizer never asks (the API would answer 403)", async () => {

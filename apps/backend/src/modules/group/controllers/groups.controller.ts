@@ -5,6 +5,7 @@ import { Identity } from '@/shared/auth/domain/identity';
 import { AuthenticatedUserGuard } from '@/shared/auth/guards/authenticated-user.guard';
 import { OptionalUserGuard } from '@/shared/auth/guards/optional-user.guard';
 import { VerifiedUserGuard } from '@/shared/auth/guards/verified-user.guard';
+import { RequestMessageDto } from '@/shared/request-message/dto/request-message.dto';
 import {
   Body,
   Controller,
@@ -134,18 +135,24 @@ export class GroupsController {
   @ApiCookieAuth()
   @ApiOperation({
     summary:
-      'Join a public group at once, or ask to join a closed one; asking again changes nothing',
+      'Join a public group at once, or ask to join a closed one with an optional message for the admins (#175); asking again while a request waits changes nothing: the message is not replaced',
   })
   @ApiResponse({ status: 200, type: JoinGroupResponseDto })
+  @ApiResponse({
+    status: 400,
+    description:
+      'Invalid body: the message is not text or has more than 500 characters',
+  })
   @ApiResponse({ status: 401, description: 'Not signed in' })
   @ApiResponse({ status: 403, description: 'MEMBER_BLOCKED' })
   @ApiResponse({ status: 404, description: 'No such group' })
   @ApiResponse({ status: 409, description: 'GROUP_INACTIVE' })
   async join(
     @Param('id') id: string,
+    @Body() body: RequestMessageDto,
     @User() user: Identity,
   ): Promise<JoinGroupResponseDto> {
-    return this.groupsService.join(id, user.id);
+    return this.groupsService.join(id, user.id, body.message ?? null);
   }
 
   @Post(':id/leave')

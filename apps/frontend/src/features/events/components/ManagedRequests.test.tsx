@@ -9,11 +9,13 @@ const jakub: EventRequest = {
   id: "u5",
   name: "Jakub Král",
   requestedAt: new Date("2026-10-23T15:30:00.000Z"),
+  message: "Brass jsem hrál dvakrát, rád si dám znovu.",
 }
 const eva: EventRequest = {
   id: "u6",
   name: "Eva Malá",
   requestedAt: new Date("2026-10-23T16:00:00.000Z"),
+  message: null,
 }
 
 const renderRequests = (props: Partial<Parameters<typeof ManagedRequests>[0]> = {}) => {
@@ -35,6 +37,16 @@ const renderRequests = (props: Partial<Parameters<typeof ManagedRequests>[0]> = 
 }
 
 describe("ManagedRequests (#53)", () => {
+  it("shows the applicant's message in quotes under them, none for a request without one (D-03, #175)", () => {
+    renderRequests()
+
+    const [jakubRow, evaRow] = screen.getAllByRole("listitem")
+    expect(
+      within(jakubRow!).getByText("„Brass jsem hrál dvakrát, rád si dám znovu.“"),
+    ).toBeInTheDocument()
+    expect(within(evaRow!).queryByText(/„/)).not.toBeInTheDocument()
+  })
+
   it("lists the waiting requests, oldest first, with when they were sent", () => {
     renderRequests()
 

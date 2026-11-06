@@ -77,7 +77,7 @@ pnpm backend start:dev
 
 ## API Documentation
 
-REST API (Swagger/OpenAPI) is available at http://localhost:4050/api/docs when the server is running.
+REST API (Swagger/OpenAPI) is available at http://localhost:4050/api/docs when the server is running (in production only with `API_DOCS=true`). The same goes for BetterAuth's reference page at http://localhost:4050/api/auth/reference.
 
 # Installation
 
@@ -159,7 +159,7 @@ Keep in mind that there are 2 better auth configurations, one in the src/shared/
 Emails are sent via [Resend](https://resend.com). Templates are authored as React components using [react-email](https://react.email) and live in `src/core/email/templates/`.
 
 - `ResendAdapter` is used automatically when `RESEND_API_KEY` is set.
-- If `RESEND_API_KEY` is empty (the default in `.env.example`), the `ConsoleMailerAdapter` logs emails to stdout — handy for local dev.
+- If `RESEND_API_KEY` is empty (the default in `.env.example`), the `ConsoleMailerAdapter` logs emails to stdout — handy for local dev. In production it logs only the recipient and subject, never the body or its links (N-6, #229).
 - The `from` address comes from `EMAIL_FROM`.
 
 #### Authoring templates
