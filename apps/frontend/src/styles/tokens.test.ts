@@ -135,13 +135,14 @@ describe.each([
     expect(contrast(tokens["muted-foreground"]!, tokens.background!)).toBeGreaterThanOrEqual(3)
   })
 
-  // DESIGN.md › Capacity bar: the two stripes of the hatch below the minimum
-  const [, limeToken = "", stripeToken = ""] =
-    /@utility capacity-hatch[\s\S]*?var\(--([\w-]+)\) 0 3px,\s*var\(--([\w-]+)\) 3px 6px/.exec(
+  // DESIGN.md › Capacity bar: the two stripes of the hatch below the minimum — lime, and the
+  // dark stripe mixed over it (Figma: primary-foreground at 55 %)
+  const [, limeToken = "", stripeToken = "", share = "", underToken = ""] =
+    /@utility capacity-hatch[\s\S]*?var\(--([\w-]+)\) 0 3px,\s*color-mix\(in srgb, var\(--([\w-]+)\) (\d+)%, var\(--([\w-]+)\)\) 3px 6px/.exec(
       css,
     ) ?? []
   const lime = tokens[limeToken]!
-  const stripe = tokens[stripeToken]!
+  const stripe = mix(tokens[stripeToken]!, tokens[underToken]!, Number(share) / 100)
 
   // it has to read as stripes, or „Chybí“ looks like „Volná místa“…
   it("the capacity hatch stripes are at least 3:1 against each other", () => {
@@ -154,17 +155,18 @@ describe.each([
     expect(Math.max(contrast(stripe, track), contrast(lime, track))).toBeGreaterThanOrEqual(3)
   })
 
-  // #166: the minimum marker (foreground, with a background-coloured gap around it) must
-  // show wherever it sits: on the track, on either stripe of the hatch and on lime. In dark
-  // mode the marker itself vanishes on lime, so there the gap has to carry it.
+  // #166: the minimum marker (foreground, with a card-coloured gap around it, Figma Tick) must
+  // show wherever it sits: on the track, on either stripe of the hatch, on lime and on the
+  // solid fill. Where the marker itself vanishes (dark mode on lime), the gap carries it.
   it.each([
     ["the track", "capacity-track"],
     ["lime", "primary"],
     ["the hatch stripe", "stripe"],
+    ["the solid fill", "capacity-fill"],
   ])("the minimum marker or its gap is at least 3:1 against %s", (_, under) => {
     const surface = under === "stripe" ? stripe : tokens[under]!
     expect(
-      Math.max(contrast(tokens.foreground!, surface), contrast(tokens.background!, surface)),
+      Math.max(contrast(tokens.foreground!, surface), contrast(tokens.card!, surface)),
     ).toBeGreaterThanOrEqual(3)
   })
 })

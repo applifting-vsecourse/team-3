@@ -206,14 +206,14 @@
 }
 
 /* DESIGN.md › Capacity bar: below the minimum the fill is hatched — not confirmed yet.
-   Figma Capacity bar › Hatch: 3 px stripes at 45°, primary-foreground on primary (the same
-   in both modes). tokens.test.ts checks the stripes against each other and the hatch against
-   the track. No bg- prefix, or tailwind-merge would drop it next to a bg-* colour. */
+   Figma Capacity bar › Hatch: 3 px stripes at 45°, primary-foreground at 55 % over primary (the
+   same in both modes). tokens.test.ts checks the stripes against each other and the hatch
+   against the track. No bg- prefix, or tailwind-merge would drop it next to a bg-* colour. */
 @utility capacity-hatch {
   background-image: repeating-linear-gradient(
     -45deg,
     var(--primary) 0 3px,
-    var(--primary-foreground) 3px 6px
+    color-mix(in srgb, var(--primary-foreground) 55%, var(--primary)) 3px 6px
   );
 }
 

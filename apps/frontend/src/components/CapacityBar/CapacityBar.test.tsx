@@ -5,9 +5,20 @@ import { anOccupancy } from "@/test/anOccupancy"
 
 import { CapacityBar } from "./CapacityBar"
 
-const renderBar = (approvedCount: number, min = 8, max = 10) => {
-  const { container } = render(<CapacityBar {...anOccupancy(approvedCount, min, max)} />)
+const renderBar = (
+  approvedCount: number,
+  min = 8,
+  max = 10,
+  variant: "detail" | "compact" = "detail",
+) => {
+  const { container } = render(
+    <CapacityBar
+      {...anOccupancy(approvedCount, min, max)}
+      variant={variant}
+    />,
+  )
   return {
+    track: container.querySelector<HTMLElement>("[data-slot=capacity-track]"),
     fill: container.querySelector<HTMLElement>("[data-slot=capacity-fill]"),
     tick: container.querySelector<HTMLElement>("[data-slot=capacity-tick]"),
     label: container.querySelector<HTMLElement>("[data-slot=capacity-min]"),
@@ -30,6 +41,32 @@ describe("CapacityBar", () => {
     expect(label).toHaveClass("-translate-x-1/2")
   })
 
+  // Figma Capacity bar: the 8 px track with its 1 px control-border outline outside, the
+  // minimum in a dark pill under the marker
+  it("draws the track with its outline and the minimum as a pill", () => {
+    const { track, label } = renderBar(6)
+
+    expect(track).toHaveClass("h-2", "bg-capacity-track", "ring-1", "ring-control-border")
+    expect(label).toHaveClass("rounded-full", "bg-foreground", "text-background")
+  })
+
+  it("compact (cards): the 6 px track and a 2 × 14 px marker, no texts", () => {
+    const { track, tick, label } = renderBar(6, 8, 10, "compact")
+
+    expect(track).toHaveClass("h-1.5", "ring-1", "ring-control-border")
+    expect(tick).toHaveClass("h-3.5", "w-0.5", "ring-card")
+    expect(tick?.style.left).toBe("80%")
+    expect(label).toBeNull()
+    expect(screen.queryByText(/Chybí|z 10|min\./)).not.toBeInTheDocument()
+  })
+
+  it("compact and full: filled to the end, no marker", () => {
+    const { fill, tick } = renderBar(10, 8, 10, "compact")
+
+    expect(fill).toHaveClass("bg-full")
+    expect(tick).toBeNull()
+  })
+
   it("exactly at the minimum: the event happens, so the fill turns solid (capacity-fill)", () => {
     const { fill, tick, label } = renderBar(8)
 
@@ -46,8 +83,9 @@ describe("CapacityBar", () => {
 
     expect(fill).toHaveClass("bg-capacity-fill")
     expect(fill).not.toHaveClass("capacity-hatch")
-    // 16px tall over the 8px track, drawn above the fill, the background-coloured ring as a gap
-    expect(tick).toHaveClass("h-4", "-top-1", "w-0.5", "bg-foreground", "ring-2", "ring-background")
+    // Figma Tick: 3 × 22 px from 4 px above the 8 px track down to the pill, drawn above the
+    // fill, the card-coloured ring as a gap
+    expect(tick).toHaveClass("h-5.5", "-top-1", "w-0.75", "bg-foreground", "ring-2", "ring-card")
     expect(tick).not.toHaveClass("bg-primary-foreground")
     expect(fill?.compareDocumentPosition(tick!)).toBe(Node.DOCUMENT_POSITION_FOLLOWING)
   })
