@@ -132,9 +132,17 @@ export class EventsController {
   })
   @ApiResponse({ status: 200, type: EventDetailResponseDto })
   @ApiResponse({
-    status: 404,
+    status: 401,
+    description: 'UNAUTHENTICATED: a members-only event and no session',
+  })
+  @ApiResponse({
+    status: 403,
     description:
-      'Unknown, hidden or deleted event, or a members-only event and the caller is not a member',
+      'MEMBERS_ONLY with `groupId` only: a members-only event and the caller is not an active member of its group (B-026)',
+  })
+  @ApiResponse({
+    status: 404,
+    description: 'Unknown, hidden or deleted event',
   })
   async detail(
     @Param('id') id: string,

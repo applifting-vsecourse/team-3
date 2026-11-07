@@ -36,6 +36,7 @@ import {
   HttpException,
   Injectable,
   NotFoundException,
+  UnauthorizedException,
 } from '@nestjs/common';
 
 /** Shown as they are in the app (409 with the code). */
@@ -138,9 +139,11 @@ export class EventsService {
 
   /**
    * One event for its detail page (B-026), for visitors too: a shared link
-   * opens without signing in. Unknown, hidden and deleted events, and a
-   * members-only event for anyone outside the group, are all 404, so the
-   * response doesn't reveal that such an event exists.
+   * opens without signing in. Unknown, hidden and deleted events are 404.
+   * A members-only event is 401 for a visitor, who signs in and comes back,
+   * and 403 MEMBERS_ONLY with just the `groupId` for a signed-in user outside
+   * the group, so the app can show the way into the group (A-05i, review
+   * #215): nothing else about the event leaves.
    *
    * The names of who is coming go only to the organizer, an approved
    * participant and the group's members and admins (#174); everyone else
@@ -162,7 +165,7 @@ export class EventsService {
     // lookup serves both canView and the names. Keep the two together.
     const viewer = viewerId ? await this.viewerOf(event, viewerId) : null;
     if (!this.canView(event, viewer)) {
-      throw new NotFoundException('Akce neexistuje.');
+      throw this.membersOnly(event, viewer);
     }
     const participants = canSeeParticipants(viewer)
       ? await this.eventRepository.findApprovedParticipants(event.id)
@@ -402,6 +405,22 @@ export class EventsService {
       isGroupMember: groupRole !== null,
       isGroupAdmin: groupRole === 'admin',
     };
+  }
+
+  private membersOnly(event: EventDetail, viewer: EventViewer): HttpException {
+    // a members-only event always has a group; without one it is nobody's
+    if (!event.group) return new NotFoundException('Akce neexistuje.');
+    if (!viewer) {
+      return new UnauthorizedException({
+        code: 'UNAUTHENTICATED',
+        message: 'Akce je jen pro členy skupiny. Přihlas se.',
+      });
+    }
+    return new ForbiddenException({
+      code: 'MEMBERS_ONLY',
+      message: 'Akce je jen pro členy skupiny.',
+      groupId: event.group.id,
+    });
   }
 
   private canView(event: EventDetail, viewer: EventViewer): boolean {

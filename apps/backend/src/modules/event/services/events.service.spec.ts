@@ -10,6 +10,7 @@ import {
   ConflictException,
   ForbiddenException,
   NotFoundException,
+  UnauthorizedException,
 } from '@nestjs/common';
 import { mock, MockProxy } from 'jest-mock-extended';
 import {
@@ -415,21 +416,35 @@ describe('EventsService.getEventDetail', () => {
         group: { id: 'g1', name: 'Deskovkáři Karlín' },
       });
 
-    it('is 404 for a visitor', async () => {
+    it('is 401 UNAUTHENTICATED for a visitor, without the group', async () => {
       const { repository, service } = setup(membersOnly());
 
-      await expect(service.getEventDetail('e1', null, now)).rejects.toThrow(
-        NotFoundException,
-      );
+      const error = (await service
+        .getEventDetail('e1', null, now)
+        .catch((e: unknown) => e)) as UnauthorizedException;
+
+      expect(error).toBeInstanceOf(UnauthorizedException);
+      expect(error.getResponse()).toEqual({
+        code: 'UNAUTHENTICATED',
+        message: expect.any(String),
+      });
       expect(repository.findActiveGroupRole).not.toHaveBeenCalled();
     });
 
-    it('is 404 for a signed-in user outside the group', async () => {
+    it('is 403 MEMBERS_ONLY with only the groupId for a signed-in user outside the group', async () => {
       const { repository, service } = setup(membersOnly());
 
-      await expect(service.getEventDetail('e1', 'u9', now)).rejects.toThrow(
-        NotFoundException,
-      );
+      const error = (await service
+        .getEventDetail('e1', 'u9', now)
+        .catch((e: unknown) => e)) as ForbiddenException;
+
+      expect(error).toBeInstanceOf(ForbiddenException);
+      // nothing about the event itself (B-026, review #215)
+      expect(error.getResponse()).toEqual({
+        code: 'MEMBERS_ONLY',
+        message: expect.any(String),
+        groupId: 'g1',
+      });
       expect(repository.findActiveGroupRole).toHaveBeenCalledWith('g1', 'u9');
     });
 
@@ -684,13 +699,13 @@ describe('EventsService participation', () => {
     });
   });
 
-  it('an event the user may not see is 404, and nothing is joined', async () => {
+  it('a members-only event of a group the user is not in is 403, and nothing is joined', async () => {
     const { repository, service } = setup(
       aDetail({ visibility: 'members', group: { id: 'g1', name: 'Skupina' } }),
     );
 
     await expect(service.join('e1', 'u9', null, now)).rejects.toThrow(
-      NotFoundException,
+      ForbiddenException,
     );
     expect(repository.join).not.toHaveBeenCalled();
   });
