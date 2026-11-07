@@ -102,8 +102,7 @@ export const eventDetailQueryOptions = (
     refetchInterval: ({ state }) => {
       // a missing or cancelled event has nothing left to wait for
       if (state.status === "error" || state.data?.status === "cancelled") return false
-      const isOrganizer = state.data !== undefined && state.data.organizer.id === viewerId
-      return (isLive && isOrganizer) || state.data?.myParticipation === "pending"
+      return (isLive && state.data?.canManage) || state.data?.myParticipation === "pending"
         ? LIVE_REFRESH_MS
         : false
     },

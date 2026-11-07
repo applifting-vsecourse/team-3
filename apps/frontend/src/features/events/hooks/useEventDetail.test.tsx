@@ -118,7 +118,7 @@ describe("useEventDetail – asking again while someone else decides (#53)", () 
   })
 
   it("on the management page (isLive) it keeps asking, for the capacity", async () => {
-    get.mockReturnValue(asJson(anEventDetail({ myParticipation: null })))
+    get.mockReturnValue(asJson(anEventDetail({ myParticipation: null, canManage: true })))
     const { result } = renderDetail("u1", { isLive: true })
     await waitFor(() => expect(result.current.event).toBeDefined())
 

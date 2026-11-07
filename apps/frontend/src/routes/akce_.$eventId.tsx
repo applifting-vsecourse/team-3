@@ -41,8 +41,8 @@ function EventDetailPage() {
   const leave = useLeaveEvent(eventId, session.user?.id ?? "")
   const signInFrom = redirectFrom(location)
   const cancelEvent = useCancelEvent(eventId, session.user?.id ?? "")
-  // only the organizer, and only while the event can still be edited or cancelled
-  const canManage = event !== undefined && editRefusal(event, session.user?.id) === null
+  // who manages it (organizer, group admin), and only while it can still be edited or cancelled
+  const canManage = event !== undefined && editRefusal(event) === null
 
   useRefreshExpiredSession(viewerId, event)
 

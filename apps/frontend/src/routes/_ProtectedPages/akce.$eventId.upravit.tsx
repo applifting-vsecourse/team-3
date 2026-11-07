@@ -35,7 +35,7 @@ function EditEventPage() {
   const updateEvent = useUpdateEvent(eventId, session.user?.id ?? "")
   const leaveForm = useLeaveEditForm(eventId)
 
-  const refusal = event ? editRefusal(event, session.user?.id) : null
+  const refusal = event ? editRefusal(event) : null
 
   return (
     <>

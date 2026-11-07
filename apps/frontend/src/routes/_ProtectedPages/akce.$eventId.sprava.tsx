@@ -46,12 +46,13 @@ function ManageEventPage() {
   const { event, isPending, isNotFound, error, retry } = useEventDetail(eventId, viewerId, {
     isLive: true,
   })
-  const isOrganizer = event !== undefined && event.organizer.id === session.user?.id
+  // the organizer or, for a group's event, any of its admins (B-055)
+  const isOrganizer = event?.canManage === true
   const participants = useEventParticipants(eventId, viewerId, isOrganizer)
   const cancelEvent = useCancelEvent(eventId, session.user?.id ?? "")
   const decide = useDecideRequest(eventId, session.user?.id ?? "")
   const isDesktop = useMediaQuery(DESKTOP_QUERY)
-  const canEdit = event !== undefined && editRefusal(event, session.user?.id) === null
+  const canEdit = event !== undefined && editRefusal(event) === null
   // who is coming: alone in the right column, or next to the requests (#53)
   const participantList = (isHeadingHidden: boolean) => (
     <ManagedParticipants

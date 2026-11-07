@@ -43,6 +43,8 @@ export type EventParticipant = z.infer<typeof eventParticipantSchema>
 export const eventDetailSchema = publicEventSchema.extend({
   description: z.string().nullable(),
   approvalMode: z.enum(["open", "approval"]),
+  /** `private`: through its link only; `members`: only the group's members (B-055). */
+  visibility: z.enum(["public", "private", "members"]),
   status: z.enum(["published", "cancelled"]),
   cancelReason: z.string().nullable(),
   /** Approved participants, only for those taking part (#174); null for anyone else, who gets only the occupancy. */
@@ -51,6 +53,8 @@ export const eventDetailSchema = publicEventSchema.extend({
   myParticipation: z.enum(["pending", "approved", "rejected", "removed"]).nullable(),
   /** Whether the API saw a valid session; false with a cached user = the session expired. */
   viewerSignedIn: z.boolean(),
+  /** The organizer or, for a group's event, any of the group's admins (B-055). */
+  canManage: z.boolean(),
 })
 
 export type EventDetail = z.infer<typeof eventDetailSchema>
