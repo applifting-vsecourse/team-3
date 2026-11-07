@@ -70,6 +70,8 @@ export type GroupMemberEntry = {
   role: MemberRole;
   /** When they asked (a request) or joined (a member). */
   since: Date;
+  /** The applicant's message to the admins (#175); null for a member. */
+  message: string | null;
 };
 
 export type GroupMembers = {

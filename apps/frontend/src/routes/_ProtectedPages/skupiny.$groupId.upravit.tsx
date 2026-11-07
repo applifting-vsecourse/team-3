@@ -2,7 +2,7 @@ import { useQuery } from "@tanstack/react-query"
 import { createFileRoute } from "@tanstack/react-router"
 import { toast } from "sonner"
 
-import { BackLink } from "@/components/BackLink/BackLink"
+import { PageBand } from "@/components/PageBand/PageBand"
 import { Seo } from "@/components/Seo"
 import { useCatalog } from "@/hooks/useCatalog"
 import { FORM, PAGE } from "@/lib/pageLayout"
@@ -42,14 +42,18 @@ function EditGroupPage() {
   return (
     <>
       <Seo title="Upravit skupinu" />
+      <PageBand
+        title="Upravit skupinu"
+        description={group?.name}
+        back={{
+          to: "/skupiny/$groupId/sprava",
+          params: { groupId },
+          fallbackLabel: "Správa skupiny",
+        }}
+        isCompactOnMobile
+      />
       <div className={cn(PAGE, "gap-4")}>
-        <BackLink
-          to="/skupiny/$groupId/sprava"
-          params={{ groupId }}
-          fallbackLabel="Správa skupiny"
-        />
         <div className={FORM}>
-          <h1 className="text-3xl font-semibold tracking-tight md:text-4xl">Upravit skupinu</h1>
           {group?.status === "inactive" ? (
             <InactiveGroupNotice />
           ) : catalog && group && !isAdmin ? (

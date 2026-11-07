@@ -199,7 +199,50 @@ describe("ParticipationAction", () => {
     const dialog = screen.getByRole("dialog", { name: "Poslat žádost o účast?" })
     expect(onJoin).not.toHaveBeenCalled()
     await userEvent.click(within(dialog).getByRole("button", { name: "Poslat žádost" }))
-    expect(onJoin).toHaveBeenCalledOnce()
+    // no message written: none is sent
+    await waitFor(() => expect(onJoin).toHaveBeenCalledExactlyOnceWith(null))
+  })
+
+  it("the request dialog says which event and sends the message, trimmed (A-05a, #175)", async () => {
+    const { onJoin } = await renderAction({ approvalMode: "approval" })
+
+    await userEvent.click(screen.getByRole("button", { name: "Poslat žádost" }))
+    const dialog = screen.getByRole("dialog", { name: "Poslat žádost o účast?" })
+    expect(dialog).toHaveTextContent(
+      "Language exchange: CZ/EN/ES, pá 23. 10. v 17:30. Organizátor žádost schválí nebo zamítne; do začátku akce ji můžeš stáhnout.",
+    )
+    const message = within(dialog).getByRole("textbox", {
+      name: "Zpráva pro organizátora (nepovinné)",
+    })
+    expect(message).toHaveAccessibleDescription(
+      "Max. 500 znaků. Napiš třeba, co hraješ a proč se hlásíš.",
+    )
+    await userEvent.type(message, "  Brass jsem hrál dvakrát.  ")
+    await userEvent.click(within(dialog).getByRole("button", { name: "Poslat žádost" }))
+
+    await waitFor(() => expect(onJoin).toHaveBeenCalledExactlyOnceWith("Brass jsem hrál dvakrát."))
+  })
+
+  it("a message over 500 characters is not sent; the field says why (#175)", async () => {
+    const { onJoin } = await renderAction({ approvalMode: "approval" })
+
+    await userEvent.click(screen.getByRole("button", { name: "Poslat žádost" }))
+    const dialog = screen.getByRole("dialog", { name: "Poslat žádost o účast?" })
+    const message = within(dialog).getByRole("textbox")
+    await userEvent.click(message)
+    await userEvent.paste("x".repeat(501))
+    await userEvent.click(within(dialog).getByRole("button", { name: "Poslat žádost" }))
+
+    expect(await within(dialog).findByText("Zpráva může mít nejvýš 500 znaků")).toBeInTheDocument()
+    expect(message).toHaveAttribute("aria-invalid", "true")
+    expect(onJoin).not.toHaveBeenCalled()
+
+    // exactly 500 goes
+    await userEvent.clear(message)
+    await userEvent.click(message)
+    await userEvent.paste("x".repeat(500))
+    await userEvent.click(within(dialog).getByRole("button", { name: "Poslat žádost" }))
+    await waitFor(() => expect(onJoin).toHaveBeenCalledExactlyOnceWith("x".repeat(500)))
   })
 
   it("a request can be called off before it's sent", async () => {
@@ -327,7 +370,9 @@ describe("ParticipationAction", () => {
       await userEvent.click(within(dialog).getByRole("button", { name: "Poslat žádost" }))
       // still open, and the request can't go twice
       expect(screen.getByRole("dialog", { name: "Poslat žádost o účast?" })).toBe(dialog)
-      expect(within(dialog).getByRole("button", { name: "Poslat žádost" })).toBeDisabled()
+      await waitFor(() =>
+        expect(within(dialog).getByRole("button", { name: "Poslat žádost" })).toBeDisabled(),
+      )
 
       await act(async () => {
         request.resolve()

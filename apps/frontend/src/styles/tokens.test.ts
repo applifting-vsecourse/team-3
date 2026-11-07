@@ -6,15 +6,38 @@ import { describe, expect, it } from "vitest"
 // what keeps it. This reads the real token values, light (:root) and dark (.dark).
 const css = readFileSync(resolve(process.cwd(), "src/styles/global.css"), "utf8")
 
-const tokensOf = (selector: string): Record<string, string> => {
+const declarationsOf = (selector: string): Record<string, string> => {
   const block = new RegExp(`(?:^|\\n)${selector.replace(".", "\\.")}\\s*\\{([^}]*)\\}`).exec(
     css,
   )?.[1]
   if (!block) throw new Error(`no ${selector} block in global.css`)
   return Object.fromEntries(
-    [...block.matchAll(/--([\w-]+):\s*(#[0-9a-f]{6})/gi)].map(
-      ([, name = "", hex = ""]): [string, string] => [name, hex],
+    [...block.matchAll(/--([\w-]+):\s*(#[0-9a-f]{6}|var\(--[\w-]+\)|transparent);/gi)].map(
+      ([, name = "", value = ""]): [string, string] => [name, value],
     ),
+  )
+}
+
+// .dark only overrides what differs, and a var() alias resolves against the mode it is used in
+// — the same way the browser computes it on <html class="dark">.
+const tokensOf = (selector: string): Record<string, string> => {
+  const declared = {
+    ...declarationsOf(":root"),
+    ...(selector === ":root" ? {} : declarationsOf(selector)),
+  }
+  const resolve = (name: string): string => {
+    const value = declared[name]
+    if (!value) throw new Error(`--${name} is not declared for ${selector}`)
+    const alias = /^var\(--([\w-]+)\)$/.exec(value)?.[1]
+    return alias ? resolve(alias) : value
+  }
+  const tokens = Object.fromEntries(Object.keys(declared).map((name) => [name, resolve(name)]))
+  // a transparent token shows the page through (the marker in dark mode)
+  return Object.fromEntries(
+    Object.entries(tokens).map(([name, value]) => [
+      name,
+      value === "transparent" ? tokens.background! : value,
+    ]),
   )
 }
 
@@ -54,6 +77,35 @@ const TEXT_PAIRS: [string, string][] = [
   ["destructive", "card"], // error alert
   ["destructive", "background"],
   ["destructive-foreground", "destructive"], // destructive button
+  ["on-hero", "hero"], // H1 on the band
+  ["on-hero-muted", "hero"], // supporting line on the band
+  ["on-hero", "hero-pattern"], // header item and button hover on the band (the on-hero utility)
+  ["badge-neutral-foreground", "badge-neutral"], // „Plno“, „Čeká na schválení“
+  ["avatar-self-foreground", "avatar-self"], // the „ty“ avatar
+  ["highlight-text", "background"], // section keyword (lime word in dark mode)
+  ["highlight-text", "highlight-marker"], // …over its marker in light mode
+]
+
+// DESIGN.md › Colour: every non-text element and every surface edge at least 3:1 against
+// what is around it. [element, surround]
+const EDGE_PAIRS: [string, string][] = [
+  ["card-border", "background"], // card and panel edge
+  ["input-border", "card"], // input edge
+  ["input-border", "background"],
+  ["control-border", "card"], // outline button, neutral badge, capacity track outline, empty star
+  ["control-border", "background"],
+  ["tile-border", "card"], // edge of every secondary surface
+  ["tile-border", "background"],
+  ["primary-edge", "card"], // lime on a light surface
+  ["primary-edge", "background"],
+  ["capacity-fill", "capacity-track"], // solid fill once the minimum is reached
+  ["full", "card"], // full bar covers the whole track
+  ["band-edge", "background"], // bottom edge of the band
+  ["tile-on-hero", "hero"], // activity tile on the band
+  ["avatar-self", "card"],
+  ["foreground", "card"], // full rating star
+  ["ring", "background"], // focus ring
+  ["ring", "card"],
 ]
 
 describe.each([
@@ -64,6 +116,10 @@ describe.each([
 
   it.each(TEXT_PAIRS)("%s on %s is at least 4.5:1", (text, surface) => {
     expect(contrast(tokens[text]!, tokens[surface]!)).toBeGreaterThanOrEqual(4.5)
+  })
+
+  it.each(EDGE_PAIRS)("%s against %s is at least 3:1", (element, surround) => {
+    expect(contrast(tokens[element]!, tokens[surround]!)).toBeGreaterThanOrEqual(3)
   })
 
   it("destructive-foreground on the destructive hover is at least 4.5:1", () => {
@@ -79,25 +135,30 @@ describe.each([
     expect(contrast(tokens["muted-foreground"]!, tokens.background!)).toBeGreaterThanOrEqual(3)
   })
 
-  // DESIGN.md › Capacity bar: the dark stripe of the hatch below the minimum
-  const [, hatchShare = ""] =
-    /@utility capacity-hatch[\s\S]*?color-mix\(in srgb, var\(--primary-foreground\) (\d+)%, var\(--primary\)\)/.exec(
+  // DESIGN.md › Capacity bar: the two stripes of the hatch below the minimum
+  const [, limeToken = "", stripeToken = ""] =
+    /@utility capacity-hatch[\s\S]*?var\(--([\w-]+)\) 0 3px,\s*var\(--([\w-]+)\) 3px 6px/.exec(
       css,
     ) ?? []
-  const stripe = mix(tokens["primary-foreground"]!, tokens.primary!, Number(hatchShare) / 100)
+  const lime = tokens[limeToken]!
+  const stripe = tokens[stripeToken]!
 
-  // it has to read as a pattern on the track and as stripes against its own lime,
-  // or „Chybí“ looks like „Volná místa“
-  it("the capacity hatch stripe is at least 3:1 against the track and against lime", () => {
-    expect(contrast(stripe, tokens.muted!)).toBeGreaterThanOrEqual(3)
-    expect(contrast(stripe, tokens.primary!)).toBeGreaterThanOrEqual(3)
+  // it has to read as stripes, or „Chybí“ looks like „Volná místa“…
+  it("the capacity hatch stripes are at least 3:1 against each other", () => {
+    expect(contrast(stripe, lime)).toBeGreaterThanOrEqual(3)
+  })
+
+  // …and stand out from the track: in light mode the dark stripe does, in dark mode the lime
+  it("one of the hatch stripes is at least 3:1 against the track", () => {
+    const track = tokens["capacity-track"]!
+    expect(Math.max(contrast(stripe, track), contrast(lime, track))).toBeGreaterThanOrEqual(3)
   })
 
   // #166: the minimum marker (foreground, with a background-coloured gap around it) must
   // show wherever it sits: on the track, on either stripe of the hatch and on lime. In dark
   // mode the marker itself vanishes on lime, so there the gap has to carry it.
   it.each([
-    ["the track", "muted"],
+    ["the track", "capacity-track"],
     ["lime", "primary"],
     ["the hatch stripe", "stripe"],
   ])("the minimum marker or its gap is at least 3:1 against %s", (_, under) => {

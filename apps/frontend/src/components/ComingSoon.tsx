@@ -1,7 +1,9 @@
 import { Link } from "@tanstack/react-router"
 
 import { ROUTES } from "@/app/routes"
+import { PageBand } from "@/components/PageBand/PageBand"
 import { Button } from "@/components/ui/button"
+import { PAGE } from "@/lib/pageLayout"
 
 type ComingSoonProps = {
   title: string
@@ -9,21 +11,24 @@ type ComingSoonProps = {
 
 /**
  * Placeholder for sections linked from the navigation that aren't built yet,
- * so the links lead somewhere instead of a 404.
+ * so the links lead somewhere instead of a 404. Starts with the band like any page.
  */
 export function ComingSoon({ title }: ComingSoonProps) {
   return (
-    <section className="mx-auto w-full max-w-2xl px-4 py-16 text-center">
-      <p className="text-xs font-medium tracking-widest text-muted-foreground uppercase">{title}</p>
-      <h1 className="mt-3 text-2xl font-semibold tracking-tight">Připravujeme</h1>
-      <p className="mt-2 text-muted-foreground">Na této části HobbyHubu právě pracujeme.</p>
-      <Button
-        asChild
-        variant="outline"
-        className="mt-6"
-      >
-        <Link to={ROUTES.home}>Zpět na úvod</Link>
-      </Button>
-    </section>
+    <>
+      <PageBand
+        title={title}
+        description="Připravujeme – na této části HobbyHubu právě pracujeme."
+      />
+      <section className={PAGE}>
+        <Button
+          asChild
+          variant="outline"
+          className="w-fit"
+        >
+          <Link to={ROUTES.home}>Zpět na úvod</Link>
+        </Button>
+      </section>
+    </>
   )
 }

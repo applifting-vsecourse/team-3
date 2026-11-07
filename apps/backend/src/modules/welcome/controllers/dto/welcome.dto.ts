@@ -5,6 +5,7 @@ export class WelcomeDto {
   version!: string;
   healthCheck!: string;
   restApi!: string;
-  swaggerDocs!: string;
-  authEndpointsDocs!: string;
+  // absent where the API docs are off (API_DOCS, N-9)
+  swaggerDocs?: string;
+  authEndpointsDocs?: string;
 }

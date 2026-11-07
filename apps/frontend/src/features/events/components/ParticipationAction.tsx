@@ -3,6 +3,7 @@ import { Link } from "@tanstack/react-router"
 import { Check, Loader2 } from "lucide-react"
 
 import { ROUTES } from "@/app/routes"
+import { RequestDialog } from "@/components/RequestDialog/RequestDialog"
 import { Button } from "@/components/ui/button"
 import {
   Dialog,
@@ -16,6 +17,7 @@ import {
 } from "@/components/ui/dialog"
 
 import type { EventDetail } from "@/features/events/api/eventSchemas"
+import { formatRequestEventStart } from "@/features/events/lib/formatEvent"
 
 export type Viewer = { id: string; emailVerified: boolean }
 
@@ -29,8 +31,9 @@ type ParticipationActionProps = {
   /**
    * Resolve once the place or the request is saved, and reject when it
    * isn't: the page says why, a confirmation dialog stays open to try again.
+   * A request may carry a message for the organizer (#175).
    */
-  onJoin: () => Promise<unknown>
+  onJoin: (message?: string | null) => Promise<unknown>
   onLeave: () => Promise<unknown>
   /** Leads an unverified user to the banner that sends or opens the link. */
   onVerifyEmail?: () => void
@@ -42,8 +45,8 @@ type ParticipationActionProps = {
  * The one action of the event detail (B-032, Figma A-05 · Stavy): „Přijdu“
  * → „Jdu“ + „Odhlásit se“, „Plno“, the sign-in for a visitor, and for the
  * organizer „Spravovat akci“ next to „Přijdu“. An event with approval takes
- * a request instead (A-05a, #53), confirmed first and without a message
- * (that is #60).
+ * a request instead (A-05a, #53), confirmed in a dialog with an optional
+ * message for the organizer (#175).
  */
 export function ParticipationAction({
   event,
@@ -241,15 +244,22 @@ function JoinControl({ event, isOrganizer, isPending, onJoin, onLeave }: JoinCon
   if (event.approvalMode === "approval" && !isOrganizer) {
     return (
       <>
-        <ConfirmButton
-          variant="default"
-          triggerRef={focusTarget}
-          label="Poslat žádost"
+        <RequestDialog
           title="Poslat žádost o účast?"
-          description="Organizátor žádost schválí, nebo zamítne. Dokud nerozhodne, můžeš ji stáhnout."
+          description={`${event.title}, ${formatRequestEventStart(event.startsAt)}. Organizátor žádost schválí nebo zamítne; do začátku akce ji můžeš stáhnout.`}
+          label="Zpráva pro organizátora (nepovinné)"
           isPending={isPending}
-          onConfirm={change(onJoin)}
-        />
+          onSend={(message) => change(() => onJoin(message))()}
+        >
+          <Button
+            ref={focusTarget}
+            size="lg"
+            // a second request while the first is on its way would only fail
+            disabled={isPending}
+          >
+            Poslat žádost
+          </Button>
+        </RequestDialog>
         {/* Figma A-05, under the button in the bar */}
         <Note>Organizátor žádost schválí, nebo zamítne. Do začátku akce ji můžeš stáhnout.</Note>
       </>
@@ -309,13 +319,6 @@ function FullButton() {
 }
 
 type ConfirmButtonProps = {
-  /**
-   * The one action of the detail is `default`. Leaving and withdrawing are
-   * `ghost`: once in, „Jdu“ / „Čeká na schválení“ is what the bar says, and a
-   * bordered full-width button would outweigh it (DESIGN.md › Colour).
-   */
-  variant?: "default" | "ghost"
-  triggerRef?: Ref<HTMLButtonElement>
   label: string
   title: string
   description: string
@@ -325,20 +328,14 @@ type ConfirmButtonProps = {
 }
 
 /**
- * Figma A-05a / A-05b: a request, leaving and withdrawing are confirmed, so a
- * stray tap doesn't send a request or give the place away. Like „Zrušit
- * akci?“, the dialog waits for the answer: it doesn't close on a request
- * that may still fail.
+ * Figma A-05b: leaving and withdrawing are confirmed, so a stray tap doesn't
+ * give the place away (a request has its own dialog with a message, #175).
+ * Like „Zrušit akci?“, the dialog waits for the answer: it doesn't close on a
+ * request that may still fail. The button is `ghost`: once in, „Jdu“ / „Čeká
+ * na schválení“ is what the bar says, and a bordered full-width button would
+ * outweigh it (DESIGN.md › Colour).
  */
-function ConfirmButton({
-  variant = "ghost",
-  triggerRef,
-  label,
-  title,
-  description,
-  isPending,
-  onConfirm,
-}: ConfirmButtonProps) {
+function ConfirmButton({ label, title, description, isPending, onConfirm }: ConfirmButtonProps) {
   const [isOpen, setIsOpen] = useState(false)
   return (
     <Dialog
@@ -347,8 +344,7 @@ function ConfirmButton({
     >
       <DialogTrigger asChild>
         <Button
-          ref={triggerRef}
-          variant={variant}
+          variant="ghost"
           size="lg"
           // a second confirmation while the first is on its way would only fail
           disabled={isPending}

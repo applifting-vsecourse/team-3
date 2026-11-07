@@ -33,7 +33,7 @@ Zdroj: `HobbyHub_User_Stories_MVP.md` (US-01 až US-19, odvozené z Feature brea
 | B-004                          | Mapová komponenta                                             | US-02, US-11        | FE     | M    | –                   |
 | **Fáze 1 – Účet**              |                                                               |                     |        |      |                     |
 | B-010                          | Registrace e-mailem a heslem                                  | US-04               | FS     | S    | B-003               |
-| B-011                          | Ověření e-mailu a guard ověřeného uživatele                   | US-04               | BE     | S    | B-010               |
+| B-011                          | Ověření e-mailu a guard ověřeného uživatele                   | US-04               | FS     | M    | B-010               |
 | B-012                          | Přihlášení, zapomenuté heslo, návrat na akci                  | US-04               | FE     | S    | B-010               |
 | B-013                          | Profil uživatele (data + stránka)                             | US-05               | FS     | M    | B-002, B-003        |
 | B-014                          | Viditelnost údajů v profilu                                   | US-05               | FS     | S    | B-013               |
@@ -199,17 +199,23 @@ Staging a CI/CD (F-59, F-60) už v repu jsou (`.github/workflows/ci.yml`, `deplo
 
 ### B-011 Ověření e-mailu a guard ověřeného uživatele
 
-`US-04` · BE · S · závisí na: B-010
+`US-04` · FS · M · závisí na: B-010
 
-**Cíl:** Bez ověřeného e-mailu se nejde hlásit na akce ani zakládat akce a skupiny.
+**Cíl:** Do aplikace se přihlásí jen uživatel s ověřeným e-mailem (PO 4. 11.), takže na akce i do skupin se vždy hlásí ověřený uživatel. Řeší S-5 (#236).
 
-- BetterAuth: ověřovací odkaz s platností 24 h (šablona `verify-email.tsx` už existuje).
-- Nový guard `VerifiedUserGuard` (vedle `authenticated-user.guard.ts`): 403 s kódem `EMAIL_NOT_VERIFIED`, když `emailVerified = false`. Guard zároveň odmítne zablokovaného uživatele (`blockedAt`).
-- FE: přihlášený neověřený uživatel vidí pruh „Ověřte e-mail“ s tlačítkem pro nové odeslání odkazu.
+- BetterAuth: ověřovací odkaz s platností 24 h (`EMAIL_VERIFICATION_TTL_SECONDS`, šablona `verify-email.tsx` už existuje), `requireEmailVerification: true` – neověřený se nepřihlásí (chyba `EMAIL_NOT_VERIFIED`, žádná session), po registraci se session nezakládá. Po kliknutí na odkaz je uživatel ověřený a rovnou přihlášený (`autoSignInAfterVerification`) a vrátí se přes `redirect` (B-012).
+- Kdo je přihlášený, je ověřený: e-mail se ověřuje při registraci a jinak session nevznikne. Při nasazení se smažou session všech uživatelů s `emailVerified = false` (migrace nebo skript v nasazení), takže neověřená session nezůstane ani z doby před změnou.
+- FE: po registraci i při pokusu o přihlášení s neověřeným e-mailem obrazovka „Ověř si e-mail“ (Figma B-01a, desktop dialog B-01ad) s „Poslat odkaz znovu“ (s limitem) a „Zpět na přihlášení“. Pruh „Ověř si e-mail“ (`VerifyEmailBanner`) a stavy „neověřený“ na detailu akce a ve formuláři akce se odstraní – přihlášený neověřený uživatel nenastane.
+- `VerifiedUserGuard` (vedle `authenticated-user.guard.ts`) zůstává jen jako obrana do hloubky: 403 `EMAIL_NOT_VERIFIED`, když `emailVerified = false`, a dál odmítá zablokovaného uživatele (`blockedAt`). Nové endpointy na něm nestojí – ověření zajišťuje přihlášení. Přihlášení přes Google: e-mail ověřil Google.
+- Seed: demo účet Eva (`emailVerified: false`) se nepřihlásí a ukazuje obrazovku B-01a.
 
 **Hotovo, když:**
 
 - [ ] Test guardu: neověřený → 403, zablokovaný → 403, ověřený → projde.
+- [ ] Test přihlášení: neověřený e-mailem a heslem se nepřihlásí a nedostane session, ověřený ano; po ověření odkazem je přihlášený.
+- [ ] Test registrace: po registraci uživatel není přihlášený a dostane ověřovací e-mail.
+- [ ] Test nasazení: po smazání neověřených session nemá žádný uživatel s `emailVerified = false` platnou session.
+- [ ] Test FE: po registraci i po odmítnutém přihlášení neověřeného obrazovka „Ověř si e-mail“ s novým odesláním odkazu.
 
 ---
 
@@ -236,8 +242,8 @@ Staging a CI/CD (F-59, F-60) už v repu jsou (`.github/workflows/ci.yml`, `deplo
 **Cíl:** Uživatel vyplní profil, domovská lokalita je výchozí ve filtrech.
 
 - `GET/PATCH /api/me/profile`: jméno, fotka (URL, viz otevřené otázky), bio (max 500 znaků), zájmy (aktivity), domovská lokalita.
-- `GET /api/users/:id` – veřejný profil: jen jméno, průměrné hodnocení (B-060) a zájmy. E-mail, historii akcí ani skupiny nevrací, ty vidí jen uživatel sám (PO 28. 10., #179). Víc údajů až s přátelstvím (B-014).
-- FE: stránka `/profil` (úprava a přehled mých akcí, skupin a hodnocení, #178) a `/uzivatele/:id` (zobrazení, #179). Po prvním přihlášení se nevyplněný profil nabídne (onboarding: zájmy + lokalita, jde přeskočit).
+- `GET /api/users/:id` – veřejný profil (PO 4. 11., mění 28. 10.): jméno, zájmy a hodnocení (B-060, vždy s počtem): jak ho hodnotili organizátoři jako účastníka (průměr a hodnocení s komentáři), průměr jako organizátor a průměrné hodnocení akcí, které pořádá. Když pořádal veřejné akce, i historie proběhlých s počtem lidí a průměrem hodnocení akce (Figma B-07). Jen veřejné akce, ne jen pro členy ani soukromé; akce skupin se osobě nepočítají. E-mail, akce, kterých se účastnil, ani skupiny nevrací, ty vidí jen uživatel sám (#179). Víc údajů až s přátelstvím (B-014).
+- FE: stránka `/profil` (úprava a přehled mých akcí, skupin a hodnocení, #178) a `/uzivatele/:id` (zobrazení, #179). Po prvním přihlášení se nevyplněný profil nabídne jednou (onboarding `/vitej`, Figma B-08 / B-08d: domovská lokalita + zájmy výběrem jako filtr A-02a; „Uložit a ukázat akce“ vede na /akce s „Podle tvých zájmů“, „Teď ne“ přeskočí a znovu se nenabízí).
 - Sprint 3 (#178): jméno, domovská lokalita a zájmy; fotka a bio zůstávají v #64.
 
 **Hotovo, když:**
@@ -253,7 +259,7 @@ Staging a CI/CD (F-59, F-60) už v repu jsou (`.github/workflows/ci.yml`, `deplo
 
 **Cíl:** Uživatel rozhoduje, kdo vidí fotku, bio a navštívené akce.
 
-> Odloženo (PO 28. 10.): nastavení viditelnosti přijde až s přátelstvím. Do té doby veřejný profil ukazuje jen jméno, hodnocení a zájmy (B-013).
+> Odloženo (PO 28. 10.): nastavení viditelnosti přijde až s přátelstvím. Do té doby veřejný profil ukazuje jméno, zájmy, hodnocení a historii pořádaných veřejných akcí (B-013, PO 4. 11.).
 
 - U každého z polí `photo`, `bio`, `pastEvents` volba: `everyone` / `organizers` (jen organizátoři akcí, na které se hlásím) / `nobody`. Výchozí `everyone`.
 - Filtrování dělá **backend** v `GET /api/users/:id`. Jméno vidí organizátor akce, na kterou se uživatel hlásí, vždy.
@@ -339,7 +345,7 @@ Doménová logika (čistá funkce + testy): `approvedCount`, `missingToMin = max
 - Stránka `/akce/nova`: povinná a nepovinná pole podle US-11, výběr místa mapou (B-004, režim výběru) + textová adresa, volba způsobu přihlašování (výchozí „Bez schválení“) a viditelnosti s krátkým vysvětlením.
 - Klientská validace stejná jako na BE, chyby pod polem, tlačítko s pending stavem (DESIGN.md › Forms).
 - Po zveřejnění přesměruj na detail a nabídni „Sdílet odkaz“ (kopírování do schránky + Web Share API na mobilu).
-- Neověřený uživatel vidí místo formuláře výzvu k ověření e-mailu.
+- Stav „neověřený“ ve formuláři se odstraní (PO 4. 11., B-011): neověřený se nepřihlásí a neověřené session se při nasazení smažou.
 
 **Hotovo, když:**
 
@@ -418,6 +424,9 @@ Doménová logika (čistá funkce + testy): `approvedCount`, `missingToMin = max
 - Hledání (`q`) podle názvu i klíčových slov aktivity (`Activity.keywords`) není hlavní prvek: desktop vpravo v liště filtrů, mobil lupa v hlavičce (#57).
 - Okolí zvolené lokality +10 / 25 / 50 km (bounding box / vzdálenost ze souřadnic katalogu, BE rozšíří where-builder z B-023).
 - Řazení podle vzdálenosti od středu zvolené lokality; vzdálenost na kartě akce.
+- Řazení „Nejbližší termín“ (výchozí) / „Nejmenší vzdálenost“ od středu zvolené lokality (Figma A-02j); bez zvolené lokality (celé Česko) jen termín.
+- „Všechny akce“ = výchozí lokalita bez okolí; zapnuté okolí (+10/25/50 km) platí pro všechny záložky (tým 4. 11.).
+- Pole hledání má placeholder „Hledat akci nebo aktivitu“.
 
 **Hotovo, když:**
 
@@ -431,15 +440,18 @@ Doménová logika (čistá funkce + testy): `approvedCount`, `missingToMin = max
 
 `US-03` · FS · M · závisí na: B-023
 
-- `GET /api/events/:id` bez přihlášení. Vrací i soukromé akce (soukromá = dostupná přes odkaz). Members-only akci vrací jen členům skupiny (jinak 404). Zrušenou akci vrací se štítkem a důvodem; `hidden`/`deleted` vrací 404.
-- Jména přihlášených (`participants`) vrací API jen organizátorovi, uživateli se schválenou účastí a u akce skupiny aktivním členům a správcům skupiny (PO 28. 10., #174). Rozhoduje server podle session, nikdy podle požadavku. Ostatní dostanou `participants: null` a vidí jen obsazenost („Chybí ještě X“ / „Volná místa: Y“ / „1 volné místo“ / „Plno“): návštěvník, přihlášený bez účasti, čekající žadatel, kdo se odhlásil nebo byl odebrán či zamítnut, a čekající nebo zablokovaný člen skupiny. Detail jim sekci „Kdo jde“ vůbec neukáže.
-- FE stránka `/akce/:id`: název, aktivita, popis, mapa (jeden bod), termín, cena, úroveň, organizátor (osoba nebo skupina, proklik), způsob přihlášení, počet přihlášených, „Chybí ještě X“ / „Volná místa: Y“ / „1 volné místo“ / „Plno“, štítek „Zrušeno“ s důvodem, tlačítko „Sdílet odkaz“.
+- `GET /api/events/:id` bez přihlášení. Vrací i soukromé akce (soukromá = dostupná přes odkaz). Members-only akce (rozhodnuto 4. 11., upřesněno v review #215): nepřihlášenému vrací 401 `UNAUTHENTICATED` a FE ho pošle na přihlášení s návratem na akci (B-012); přihlášenému nečlenovi 403 `MEMBERS_ONLY` jen s `groupId` – žádný údaj o akci (název, čas, místo, účastníci) ani o skupině navíc; FE si skupinu načte z `GET /api/groups/:id` (B-052, ten je veřejný) a ukáže stránku s cestou do skupiny (A-05i). Zrušenou akci vrací se štítkem a důvodem; `hidden`/`deleted` vrací 404. Swagger v `events.controller.ts` dnes u members-only uvádí 404 – změní se na 401 a 403.
+- Proč 403 s `groupId` a ne 404 (review #215): odkaz na akci jen pro členy pošle nečlenovi člen skupiny, a 404 by z něj udělal slepou uličku bez cesty do skupiny (A-05i). Prozradí se jen to, že akce s tímhle `id` existuje a která skupina ji pořádá. `id` je `cuid`, takže akce nejde hádat ani procházet, a skupina je veřejná (stránka skupiny i `GET /api/groups/:id` bez přihlášení). Nepřihlášený nedostane ani `groupId`. Bezpečnostní audit (#172, PR #223) tenhle případ neřeší; kdyby nález přibyl, platí audit.
+- „Kdo jde“ bez jmen (Figma A-05, A-05a–c; review #215): kdo jména nevidí, dostane sekci „Kdo jde · N z M“ jen s počtem a jednou větou, kdy jména uvidí – „Jména uvidíš, až budeš na akci.“, u čekající žádosti „Jména uvidíš, až tě organizátor schválí.“ Bez seznamu jmen a avatarů. Mění test v `EventDetailView.test.tsx`, který dnes hlídá, že se sekce neukáže (#195).
+- Jména přihlášených (`participants`) vrací API jen organizátorovi, uživateli se schválenou účastí a u akce skupiny aktivním členům a správcům skupiny (PO 28. 10., #174). Rozhoduje server podle session, nikdy podle požadavku. Ostatní dostanou `participants: null` a vidí jen obsazenost („Chybí ještě X“ / „N volných míst“ / „Plno“): návštěvník, přihlášený bez účasti, čekající žadatel, kdo se odhlásil nebo byl odebrán či zamítnut, a čekající nebo zablokovaný člen skupiny. Sekce „Kdo jde“ jim ukáže jen počet a větu, kdy jména uvidí (níž).
+- FE stránka `/akce/:id`: název, aktivita, popis, mapa (jeden bod), termín, cena, úroveň, organizátor (osoba nebo skupina, proklik), způsob přihlášení, počet přihlášených, „Chybí ještě X“ / „N volných míst“ / „Plno“, štítek „Zrušeno“ s důvodem, tlačítko „Sdílet odkaz“.
 - Open Graph meta (titulek, termín) pro hezký náhled ve WhatsAppu.
-- Odkaz se otevře rovnou na detailu, bez přihlašovací obrazovky.
+- Odkaz se otevře rovnou na detailu, bez přihlašovací obrazovky. Výjimka: akce jen pro členy nepřihlášeného pošle na přihlášení a po něm zpátky na akci (401 výš).
 
 **Hotovo, když:**
 
-- [ ] Testy BE pro každou roli: jména dostane organizátor, schválený účastník a u akce skupiny členové a správci; návštěvník, přihlášený bez účasti, čekající žadatel, odhlášený, odebraný ani čekající člen skupiny ne; members-only cizímu = 404.
+- [ ] Testy BE pro každou roli: jména dostane organizátor, schválený účastník a u akce skupiny členové a správci; návštěvník, přihlášený bez účasti, čekající žadatel, odhlášený, odebraný ani čekající člen skupiny ne; members-only nepřihlášenému = 401, přihlášenému nečlenovi = 403 jen s `groupId`.
+- [ ] Test FE: bez jmen sekce „Kdo jde“ s počtem a větou, kdy jména uvidí, bez jmen; members-only nepřihlášeného přesměruje na přihlášení s návratem na akci.
 
 ---
 
@@ -449,7 +461,12 @@ Doménová logika (čistá funkce + testy): `approvedCount`, `missingToMin = max
 
 - Výchozí lokalita na `/`, `/akce` a `/skupiny` (tým 28. 10., #55): domovská lokalita z profilu → jinak odhad podle IP → když selže, **celé Česko** (ne Praha). „Zrušit vše“ zruší všechny filtry včetně lokality a vrátí výchozí.
 - `GET /api/geo/locality` – odhad lokality podle IP (viz otevřené otázky). IP ani výsledek se **neukládají** (ani do logů). Když nejde zjistit → celé Česko.
-- Stránka `/`: jedna věta, co HobbyHub dělá; náhled nadcházejících akcí v lokalitě (3 akce, řazení podle termínu – otevřená otázka F-68); ruční změna lokality bez registrace (uloží se jen v prohlížeči); proklik na detail a na celý přehled `/akce`.
+- Stránka `/` podle Figmy A-01 / A-01d (návštěvník) a A-01p / A-01pd (přihlášený): pás s panelem „Teď chybí jeden“, sekce Tady chybíš, Jak to funguje, Tento víkend, Kousek od tebe, O tyhle akce je zájem, Od dobře hodnocených organizátorů, Tyhle skupiny rozšiřují partu, výzva „Nic pro tebe?“ (#182). Pravidla v `docs/ux-audit.md` › Úvodní stránka:
+  - akce se ukáže jen v první sekci, kam patří (panel nahoře je první);
+  - akce jen pro členy na úvodní stránce nikdy nejsou;
+  - „Od dobře hodnocených“ = organizátor nebo skupina s průměrem aspoň 4,5 z nejméně 3 hodnocení (pravidla průměru v B-060);
+  - „Tyhle skupiny rozšiřují partu“ (PO 4. 11.): aktivní skupiny v okolí s nadcházející akcí, do kterých se dá přidat (veřejné) nebo požádat o členství (neveřejné), řazené podle nejbližší akce skupiny;
+  - „Podle tvých zájmů“ jen pro přihlášeného: podle akcí, na kterých byl, nebo zájmů v profilu, jinak náhodný výběr.
 - Nepoužívej layout hero + tři karty (DESIGN.md).
 
 **Hotovo, když:**
@@ -513,7 +530,7 @@ Doménová logika (čistá funkce + testy): `approvedCount`, `missingToMin = max
 
 - V detailu akce jedno primární tlačítko podle stavu:
   - nepřihlášený: „Přihlásit se na akci“ → login/registrace s `redirect` zpět
-  - neověřený: výzva k ověření e-mailu
+  - neověřený: stav se odstraní (B-011 – neověřený se nepřihlásí, neověřené session se při nasazení smažou)
   - akce se schvalováním: „Poslat žádost“ (dialog s nepovinnou zprávou) → „Čeká na schválení“ + „Stáhnout žádost“
   - akce bez schvalování: „Přijdu“ → „Jdu“ + „Odhlásit se“
   - plno: „Plno“ (disabled)
@@ -619,7 +636,7 @@ Doménová logika (čistá funkce + testy): `approvedCount`, `missingToMin = max
 - Plánovač (`@nestjs/schedule`), každá úloha idempotentní (záznam o odeslání, aby po restartu nepřišel e-mail dvakrát).
 - **Připomínka účastníkům** den před akcí.
 - **Organizátorovi 48 a 24 h před akcí**, kolik lidí chybí do minima, s odkazy Sdílet / Topovat / Zrušit. Při naplněném minimu nepřijde.
-- **Výzva k hodnocení**: dávkově jednou denně večer pro akce, které ten den skončily, všem `approved` (odkaz na hodnocení z B-060).
+- **Výzva k hodnocení**: dávkově jednou denně večer pro akce, které ten den skončily, všem `approved` (odkaz na hodnocení z B-060). Účastníkům „Ohodnoť akci“, organizátorovi „Ohodnoť účastníky“ (E-01 typy 11 a 12).
 
 **Hotovo, když:**
 
@@ -643,8 +660,8 @@ Doménová logika (čistá funkce + testy): `approvedCount`, `missingToMin = max
 `US-16` · FS · M · závisí na: B-050, B-011
 
 - `POST /api/groups` (`VerifiedUserGuard`), zakladatel se stane správcem. `PATCH` a `POST /:id/deactivate` jen správce.
-- Skupina se nemaže ani neruší, jen **deaktivuje** (PO 19. 10.; v UI „Deaktivovat skupinu“, ne „Zrušit“, aby se to nepletlo se zrušením akce): `status = inactive`, `deactivatedAt`, skupina zmizí z hledání, nejde se do ní přidat, stránka skupiny ukazuje „Skupina už není aktivní“. Členové dostanou e-mail (po B-040).
-- Nadcházející akce skupiny se zruší s důvodem „Skupina byla deaktivována“, proběhlé zůstanou v historii. Akce skupin přibudou až s B-055, zrušení akcí doplní B-055.
+- Skupina se nemaže ani neruší, jen **deaktivuje** (PO 19. 10.; v UI „Deaktivovat skupinu“, ne „Zrušit“, aby se to nepletlo se zrušením akce): `status = inactive`, `deactivatedAt`, skupina zmizí z hledání, nejde se do ní přidat, stránka skupiny ukazuje „Skupina už není aktivní“. Všem aktivním členům kromě správce, který deaktivoval, přijde e-mail „Skupina už není aktivní“ (E-01 typ 10); přihlášení na zrušené veřejné akce skupiny, kteří nejsou členy, dostanou e-mail o zrušení akce.
+- Nadcházející akce skupiny se zruší s důvodem „Skupina už není aktivní“, proběhlé zůstanou v historii. Akce skupin přibudou až s B-055, zrušení akcí doplní B-055.
 - FE: formulář `/skupiny/nova`, úprava a deaktivace v dialogu s potvrzením (tlačítko `destructive`).
 
 **Hotovo, když:**
@@ -699,10 +716,10 @@ Doménová logika (čistá funkce + testy): `approvedCount`, `missingToMin = max
 
 - Založení akce s `groupId` smí kterýkoli správce; aktivita předvyplněná a zamčená podle skupiny. Volba viditelnosti **veřejná** (`public`) / **jen pro členy** (`members`, vidí a hlásí se jen členové; PO 29. 10. jim říká „soukromé“, ale soukromá je v B-026 akce dostupná přes odkaz).
 - U akce je jako organizátor uvedena skupina s proklikem.
-- Oprávnění správy akce (úprava, zrušení, účastníci, zprávy, docházka, topování) rozšiř na **všechny správce skupiny** – jedna sdílená funkce `canManageEvent(user, event)` použitá všude.
+- Oprávnění správy akce (úprava, zrušení, účastníci, zprávy, docházka, topování) rozšiř na **všechny správce skupiny** – jedna sdílená funkce `canManageEvent(user, event)` použitá všude. Výjimka je hodnocení účastníků (B-060): hodnotí jen zakladatel akce (`organizerUserId`), i u akce skupiny – byl tam a akci vedl (review #215).
 - Členové dostanou e-mail o nové akci a hlásí se sami.
 - „Pořádám“ v Mých akcích obsahuje akce mých skupin.
-- Při deaktivaci skupiny (B-051) se nadcházející akce skupiny zruší s důvodem „Skupina byla deaktivována“ a standardními e-maily; proběhlé zůstanou beze změny.
+- Při deaktivaci skupiny (B-051) se nadcházející akce skupiny zruší s důvodem „Skupina už není aktivní“ a standardními e-maily; proběhlé zůstanou beze změny.
 
 **Hotovo, když:**
 
@@ -730,16 +747,20 @@ Doménová logika (čistá funkce + testy): `approvedCount`, `missingToMin = max
 `US-09` · FS · M · závisí na: B-031, B-043
 
 - Model `Rating`: `eventId`, `userId`, `eventStars` 1–5, `comment?`, `organizerStars` 1–5. Jedno hodnocení na uživatele a akci.
-- Hodnocení účastníka organizátorem (PO 28. 10.): model `ParticipantRating`: `eventId`, `participantId` (s `eventId` cizí klíč na účast), `stars` 1–5 (i `CHECK` v databázi), `deletedAt`. Jedno na účastníka a akci, hodnotí jen organizátor akce (ne sám sebe), jen u proběhlé akce (`endsAt`, když chybí, `startsAt`) a jen `approved` účastníka: `decideParticipantRating` v `modules/rating/domain/participant-rating.ts`. Bez komentáře. Po smazání superadminem jde hodnocení jen vrátit, ne dát znovu. Model a výpočet průměrů ve sprintu 3 (#180), dávání hodnocení ve sprintu 4 (#66).
-- Hodnotit smí jen ten, kdo byl na akci `approved`, a až po skončení akce. Potvrzená docházka podmínkou není.
-- Hodnocení organizátora se počítá k osobě, u akce skupiny ke skupině. Průměr jako organizátor (`organizerRatingSummary`, z `Rating.organizerStars`, bez akcí skupin) a jako účastník (`participantRatingSummary`, z `ParticipantRating.stars`) jsou čisté funkce v `modules/rating/domain/rating-summary.ts` (#180) pro profil (B-013, #178, #179): zaokrouhlené na jedno desetinné místo, vždy s počtem, bez hodnocení `null`, smazaná hodnocení se nepočítají. Průměr skupiny zatím není.
+- Hodnocení účastníka organizátorem (PO 28. 10.): model `ParticipantRating`: `eventId`, `participantId` (s `eventId` cizí klíč na účast), `stars` 1–5 (i `CHECK` v databázi), `deletedAt`. Jedno na účastníka a akci, hodnotí jen organizátor akce – zakladatel (`organizerUserId`), i u akce skupiny, ne ostatní správci skupiny (výjimka z `canManageEvent` v B-055, review #215) – ne sám sebe, jen u proběhlé akce (`endsAt`, když chybí, `startsAt`) a jen `approved` účastníka: `decideParticipantRating` v `modules/rating/domain/participant-rating.ts`. `comment?` (max 500 znaků, `RATING_COMMENT_MAX_LENGTH`; PO 4. 11., dřív bez komentáře). U `ParticipantRating.comment` limit hlídá i databáze (`VarChar(500)`), u `Rating.comment` (`@db.Text`) jen aplikace. Komentář vidí hodnocený účastník. Po smazání superadminem jde hodnocení jen vrátit, ne dát znovu. Model a výpočet průměrů ve sprintu 3 (#180), dávání hodnocení ve sprintu 3, když zbude čas (#66).
+- Hodnotit smí jen ten, kdo byl na akci `approved`, a až po skončení akce. Potvrzená docházka podmínkou není. Hodnotit jde do 14 dnů od konce akce a do té doby jde hodnocení změnit (tým 4. 11.). Platí pro `Rating` i `ParticipantRating`; `decideParticipantRating` lhůtu zatím nemá – doplní ji #66 s novým kódem odmítnutí `RATING_WINDOW_CLOSED` (a stejné pravidlo pro hodnocení akce).
+- Hodnocení organizátora se počítá k osobě, u akce skupiny ke skupině. Průměr jako organizátor (`organizerRatingSummary`, z `Rating.organizerStars`, bez akcí skupin) a jako účastník (`participantRatingSummary`, z `ParticipantRating.stars`) jsou čisté funkce v `modules/rating/domain/rating-summary.ts` (#180) pro profil (B-013, #178, #179): zaokrouhlené na jedno desetinné místo, vždy s počtem, bez hodnocení `null`, smazaná hodnocení se nepočítají a nepočítají se ani hodnocení akcí, které admin skryl nebo smazal. Průměr skupiny (`groupRatingSummary`) z `Rating.organizerStars` akcí skupiny – detail akce skupiny a sekce „Od dobře hodnocených“ (#182). „Dobře hodnocený“ = průměr aspoň 4,5 z nejméně 3 hodnocení.
+- Rychlé hodnocení účastníků (PO 4. 11., Figma D-05): organizátor nejdřív „Všem stejně“ – hvězdičky (předvyplněno 5★) a jeden komentář pro všechny, pak jednotlivým účastníkům dá individuální hodnocení (hvězdičky i komentář). Odškrtnout, kdo nepřišel, půjde až v dalších sprintech. Uloží se hodnocení každého účastníka zvlášť, výchozí hodnota pro akci se neukládá. Jeden zápis v transakci; `decideParticipantRating` platí pro každého.
 - Organizátor vidí hodnocení a komentáře svých akcí (ve správě akce).
-- FE: stránka `/akce/:id/hodnoceni` (sem vede odkaz z e-mailu).
+- Hodnocení účastníka i s komentářem je vidět na jeho veřejném profilu (B-013).
+- FE: stránka `/akce/:id/hodnoceni` (sem vede odkaz z e-mailu) – obsah podle role: účastník C-03, organizátor D-05 (Figma, stránka „Moje akce a správa akce“).
 
 **Hotovo, když:**
 
 - [x] Testy výpočtu průměru a oprávnění k hodnocení účastníka (#180).
 - [ ] Testy oprávnění k hodnocení akce a organizátora a API (#66).
+- [ ] Test lhůty 14 dnů pro `Rating` i `ParticipantRating`: den 14 projde, později `RATING_WINDOW_CLOSED`; změna hodnocení po lhůtě taky ne (#66).
+- [ ] Test: správce skupiny, který akci nezaložil, účastníky akce skupiny nehodnotí (`NOT_ORGANIZER`).
 
 ---
 
@@ -747,9 +768,10 @@ Doménová logika (čistá funkce + testy): `approvedCount`, `missingToMin = max
 
 `US-10` · FS · S · závisí na: B-060, B-052
 
-- Model `Report`: `targetType` (`user` / `event` / `group` / `rating`), `targetId`, `reason` (`spam` / `fraud` / `inappropriate` / `other`), `comment?`, `reporterId`, `status` (`open` / `rejected` / `resolved`).
+- Model `Report`: `targetType` (`user` / `event` / `group` / `rating` / `participant_rating`), `targetId`, `reason` (`spam` / `fraud` / `inappropriate` / `other`), `comment?`, `reporterId`, `status` (`open` / `rejected` / `resolved`).
 - `POST /api/reports` jen přihlášený. Nahlášení samo nic neskryje. Nahlášený se nedozví, kdo ho nahlásil (`reporterId` nikdy nejde ven mimo admin API).
 - FE: „Nahlásit“ (menu ⋯) u akce, profilu, skupiny a hodnocení, dialog s důvodem.
+- Hodnocení účastníka má vlastní typ `participant_rating` (PO 4. 11.): je s komentářem na veřejném profilu a `targetId` bez cizího klíče by z `rating` nepoznal tabulku. Hotové nejpozději s komentáři na profilu.
 
 ---
 
@@ -915,7 +937,7 @@ Dokud tým nebo PO nerozhodne jinak, agent použije výchozí volbu.
 | Q1  | Mapa a našeptávač míst (poznámky zmiňují Google Maps)                             | Leaflet + OSM, místo klikem do mapy + textová adresa, lokality z vlastního číselníku       | Tým          |
 | Q2  | Služba pro odhad lokality z IP                                                    | Jednoduchá offline databáze (např. GeoLite2 City), při chybě celé Česko (tým 28. 10.)      | Tým          |
 | Q3  | Nahrávání fotek (profil, skupina)                                                 | V MVP jen URL obrázku                                                                      | Tým          |
-| Q4  | Podle čeho vybírat akce na úvodní stránce (F-68)                                  | Nejbližší termín v lokalitě, topované první                                                | PO           |
+| Q4  | Podle čeho vybírat akce na úvodní stránce (F-68)                                  | Nejbližší termín v lokalitě, topované první; sekce podle #182, pravidla v docs/ux-audit.md | PO           |
 | Q5  | Text obchodních podmínek a zásad ochrany údajů (F-65)                             | Placeholder                                                                                | PO           |
 | Q6  | Ukázková data – dodá PO reálné skupiny ze sondy? (F-64)                           | Tým vymyslí realistická data                                                               | PO           |
 | Q7  | Zálohy – jak dlouho držet a kdo odpovídá po předání (F-63)                        | 7 denních záloh                                                                            | PO           |
