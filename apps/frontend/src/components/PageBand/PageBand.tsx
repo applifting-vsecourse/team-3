@@ -113,7 +113,8 @@ export function PageBand({
                   ? // stays left of the motif's ring (xl)
                     "max-w-3xl type-hero"
                   : isCompactOnMobile
-                    ? "truncate text-base font-semibold md:overflow-visible md:type-title md:whitespace-normal"
+                    ? // the phone's bar title is Figma Header/Sub's Label/Strong
+                      "truncate text-sm font-semibold md:overflow-visible md:type-title md:whitespace-normal"
                     : "type-title",
                 isPlainOnMobile && "max-md:text-foreground",
               )}

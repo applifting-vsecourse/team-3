@@ -1,6 +1,8 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32">
   <!-- HobbyHub mark as on the dark band (Figma Logo/Mark, Pozadí=Tmavé; LogoMark isOnHero):
-       cream dots and the lime ring, the missing one, on --hero. Reads on light and dark tabs. -->
+       cream dots and the lime ring, the missing one, on the hero token. Reads on light and dark
+       tabs. No double hyphen in this comment: the browser parses the file as XML and would drop it.
+       favicon.ico and apple-touch-icon.png are rendered from this file. -->
   <rect width="32" height="32" rx="7" fill="#0f3626"/>
   <g transform="translate(2 2)">
     <g fill="#f6f3ea">

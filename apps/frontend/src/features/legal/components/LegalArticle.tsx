@@ -4,7 +4,6 @@ import { Link } from "@tanstack/react-router"
 import type { ROUTES } from "@/app/routes"
 import { PageBand } from "@/components/PageBand/PageBand"
 import { PAGE } from "@/lib/pageLayout"
-import { cn } from "@/lib/utils"
 
 type LegalArticleProps = {
   title: string
@@ -21,12 +20,12 @@ type LegalArticleProps = {
  */
 export function LegalArticle({ title, lead, children, seeAlso }: LegalArticleProps) {
   return (
-    <>
+    <main className="flex-1">
       <PageBand
         title={title}
         description={lead}
       />
-      <main className={cn(PAGE, "flex-1")}>
+      <div className={PAGE}>
         <article className="flex max-w-2xl flex-col gap-8">
           {children}
           <p className="text-sm text-muted-foreground">
@@ -40,8 +39,8 @@ export function LegalArticle({ title, lead, children, seeAlso }: LegalArticlePro
             .
           </p>
         </article>
-      </main>
-    </>
+      </div>
+    </main>
   )
 }
 

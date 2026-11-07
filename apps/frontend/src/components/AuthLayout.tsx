@@ -28,12 +28,12 @@ export function AuthLayout({ title, description, children, footer, aside }: Auth
   return (
     <>
       <Header userMenu={null} />
-      <PageBand
-        title={title}
-        description={description}
-        isPlainOnMobile
-      />
       <main className="flex-1">
+        <PageBand
+          title={title}
+          description={description}
+          isPlainOnMobile
+        />
         <div
           className={cn(
             "mx-auto w-full px-4 pt-6 pb-16 md:pt-8",

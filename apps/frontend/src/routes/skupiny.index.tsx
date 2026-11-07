@@ -103,52 +103,55 @@ function GroupsPage() {
     <>
       <Seo title="Skupiny" />
       <AppHeader />
-      {user ? (
-        <Tabs
-          value={search.tab ?? "vsechny"}
-          // replace: switching tabs shouldn't fill the back button; the filters stay for Všechny
-          onValueChange={(value) =>
-            void navigate({
-              search: (prev) => ({ ...prev, tab: value === "moje" ? "moje" : undefined }),
-              replace: true,
-            })
-          }
-          className="flex-1 gap-0"
-        >
-          {band(
-            <BandTabs>
-              <BandTabsItem
+      {/* the band and its H1 belong to main, as on every page */}
+      <main className="flex flex-1 flex-col">
+        {user ? (
+          <Tabs
+            value={search.tab ?? "vsechny"}
+            // replace: switching tabs shouldn't fill the back button; the filters stay for Všechny
+            onValueChange={(value) =>
+              void navigate({
+                search: (prev) => ({ ...prev, tab: value === "moje" ? "moje" : undefined }),
+                replace: true,
+              })
+            }
+            className="flex-1 gap-0"
+          >
+            {band(
+              <BandTabs>
+                <BandTabsItem
+                  value="vsechny"
+                  count={groups?.length}
+                >
+                  Všechny
+                </BandTabsItem>
+                <BandTabsItem
+                  value="moje"
+                  count={myGroupsCount}
+                >
+                  Moje
+                </BandTabsItem>
+              </BandTabs>,
+            )}
+            <div className={content}>
+              <TabsContent
                 value="vsechny"
-                count={groups?.length}
+                className="flex flex-col gap-6"
               >
-                Všechny
-              </BandTabsItem>
-              <BandTabsItem
-                value="moje"
-                count={myGroupsCount}
-              >
-                Moje
-              </BandTabsItem>
-            </BandTabs>,
-          )}
-          <main className={content}>
-            <TabsContent
-              value="vsechny"
-              className="flex flex-col gap-6"
-            >
-              {allGroups}
-            </TabsContent>
-            <TabsContent value="moje">
-              <MyGroups viewerId={user.id} />
-            </TabsContent>
-          </main>
-        </Tabs>
-      ) : (
-        <>
-          {band()}
-          <main className={content}>{allGroups}</main>
-        </>
-      )}
+                {allGroups}
+              </TabsContent>
+              <TabsContent value="moje">
+                <MyGroups viewerId={user.id} />
+              </TabsContent>
+            </div>
+          </Tabs>
+        ) : (
+          <>
+            {band()}
+            <div className={content}>{allGroups}</div>
+          </>
+        )}
+      </main>
     </>
   )
 }

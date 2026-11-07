@@ -21,14 +21,10 @@ const VISITOR_TITLE = "Někde chybí jeden do party. Třeba ty."
 
 type LandingViewProps = {
   /**
-   * Signed out, once the session is known: the invitation to sign up (#36)
-   * and the events people are interested in (#156) are for visitors only.
-   */
-  isVisitor: boolean
-  /**
-   * The title speaks to who is here (docs/ux-audit.md › Hlas aplikace); never by name.
-   * Undefined while the session loads: the title keeps its place but stays hidden, so a
-   * signed-in user never sees the visitor's one swap out.
+   * Undefined while the session loads. The title speaks to who is here (docs/ux-audit.md ›
+   * Hlas aplikace), never by name; until the session is known it keeps its place but stays
+   * hidden, so a signed-in user never sees the visitor's one swap out. The invitation to sign
+   * up (#36) and the events people are interested in (#156) are for a known visitor only.
    */
   isSignedIn: boolean | undefined
 }
@@ -40,7 +36,8 @@ type LandingViewProps = {
  * intro, events, steps, popular events. The locality is always Praha for
  * now; guessing it from the IP and changing it here is #55.
  */
-export function LandingView({ isVisitor, isSignedIn }: LandingViewProps) {
+export function LandingView({ isSignedIn }: LandingViewProps) {
+  const isVisitor = isSignedIn === false
   const allEventsLink = (
     <Button
       asChild
@@ -55,7 +52,7 @@ export function LandingView({ isVisitor, isSignedIn }: LandingViewProps) {
   )
 
   return (
-    <>
+    <main className="flex flex-1 flex-col">
       <PageBand
         variant="hero"
         title={
@@ -69,7 +66,7 @@ export function LandingView({ isVisitor, isSignedIn }: LandingViewProps) {
         }
         description="Volejbal, deskovky, běh… Najdi akci ve svém okolí, nebo založ vlastní a lidi se přidají."
       />
-      <main
+      <div
         className={cn(
           PAGE,
           "flex-1 gap-8 lg:grid lg:grid-cols-[minmax(0,1fr)_minmax(0,32.5rem)] lg:content-start lg:gap-x-16 lg:gap-y-6 lg:py-16",
@@ -133,7 +130,7 @@ export function LandingView({ isVisitor, isSignedIn }: LandingViewProps) {
             <PopularEvents footer={allEventsLink} />
           </div>
         ) : null}
-      </main>
-    </>
+      </div>
+    </main>
   )
 }

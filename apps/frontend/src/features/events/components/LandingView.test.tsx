@@ -27,10 +27,7 @@ const localities = [
 const renderLanding = (isVisitor: boolean, session: "known" | "loading" = "known") =>
   renderWithRouter(
     <QueryClientProvider client={new QueryClient({ defaultOptions: { queries: { retry: 0 } } })}>
-      <LandingView
-        isVisitor={isVisitor}
-        isSignedIn={session === "loading" ? undefined : !isVisitor}
-      />
+      <LandingView isSignedIn={session === "loading" ? undefined : !isVisitor} />
     </QueryClientProvider>,
   )
 
@@ -62,6 +59,12 @@ describe("LandingView", () => {
     await renderLanding(isVisitor)
 
     expect(screen.getByRole("heading", { level: 1, name: title })).toBeInTheDocument()
+  })
+
+  it("the band's title is part of the main content, where a screen reader jumps to", async () => {
+    await renderLanding(true)
+
+    expect(within(screen.getByRole("main")).getByRole("heading", { level: 1 })).toBeInTheDocument()
   })
 
   it("while the session loads, no title shows that could swap out", async () => {
