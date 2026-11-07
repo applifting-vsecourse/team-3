@@ -8,6 +8,7 @@ import {
   Membership,
   MembershipStatus,
   MyGroup,
+  RecruitingGroup,
 } from '@/modules/group/domain/group';
 import {
   GroupMemberEntry,
@@ -17,6 +18,10 @@ import { requestMessageFor } from '@/shared/request-message/request-message';
 import { Injectable } from '@nestjs/common';
 import { buildActiveGroupsWhere } from './active-groups-where';
 import { buildMyGroupsWhere } from './my-groups-where';
+import {
+  buildRecruitingGroupsWhere,
+  upcomingGroupEventWhere,
+} from './recruiting-groups-where';
 
 const summaryInclude = {
   activity: { include: { category: true } },
@@ -78,6 +83,37 @@ export class GroupRepository {
       take: query.limit,
     });
     return groups.map(toSummary);
+  }
+
+  /**
+   * Groups that meet and look for members (#182), each with the start of its
+   * next event; unordered, the landing page orders them. At most `limit`.
+   */
+  async findRecruitingGroups(query: {
+    localityId?: string;
+    viewerId: string | null;
+    now: Date;
+    limit: number;
+  }): Promise<RecruitingGroup[]> {
+    const groups = await this.prisma.group.findMany({
+      where: buildRecruitingGroupsWhere(query, query.now),
+      include: {
+        ...summaryInclude,
+        events: {
+          where: upcomingGroupEventWhere(query.now),
+          select: { startsAt: true },
+          orderBy: { startsAt: 'asc' },
+          take: 1,
+        },
+      },
+      orderBy: { id: 'asc' },
+      take: query.limit,
+    });
+    return groups.flatMap((group) => {
+      const [next] = group.events;
+      // the where guarantees one; a race with a cancellation drops the group
+      return next ? [{ ...toSummary(group), nextEventAt: next.startsAt }] : [];
+    });
   }
 
   /** „Moje skupiny“ (B-056), each with my own membership; the service sorts them. */

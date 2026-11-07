@@ -468,6 +468,7 @@ Doménová logika (čistá funkce + testy): `approvedCount`, `missingToMin = max
   - „Tyhle skupiny rozšiřují partu“ (PO 4. 11.): aktivní skupiny v okolí s nadcházející akcí, do kterých se dá přidat (veřejné) nebo požádat o členství (neveřejné), řazené podle nejbližší akce skupiny;
   - „Podle tvých zájmů“ jen pro přihlášeného: podle akcí, na kterých byl, nebo zájmů v profilu, jinak náhodný výběr.
 - Nepoužívej layout hero + tři karty (DESIGN.md).
+- API (#182): `GET /api/home?localityId=` vrací sekce už vybrané a seřazené (klíče `highlight`, `missing`, `weekend`, `interests`, `nearby`, `popular`, `wellRated`, `groups`), prázdné vynechá. Lokalita: `localityId` → domovská z profilu → celé Česko; městská část bere akce i skupiny z celého města („v okolí Prahy 3“, A-01pd), jen „Kousek od tebe“ měří od středu městské části; odhad podle IP (#55) se doplní v `resolveHomeLocalityId`. Jen akce, kam se dá ještě přihlásit (ne plné); „Od dobře hodnocených“ nejvýš jedna akce od organizátora; přihlášený nedostane vlastní akce ani ty, kde už má místo nebo žádost, ani skupiny, kde už je. Limity podle Figmy A-01d: panel 1, ostatní sekce 3.
 
 **Hotovo, když:**
 

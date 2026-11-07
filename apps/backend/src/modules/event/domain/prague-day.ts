@@ -66,3 +66,41 @@ const pragueMidnight = (day: string, daysLater: number): Date => {
     midnightUtc - pragueOffsetMinutes(midnightUtc) * MINUTE_IN_MS;
   return new Date(midnightUtc - pragueOffsetMinutes(firstGuess) * MINUTE_IN_MS);
 };
+
+/** "YYYY-MM-DD" of the UTC calendar day of `instant`. */
+const formatUtcDay = (instant: Date): string => {
+  const pad = (value: number, length = 2): string =>
+    String(value).padStart(length, '0');
+  return `${pad(instant.getUTCFullYear(), 4)}-${pad(instant.getUTCMonth() + 1)}-${pad(instant.getUTCDate())}`;
+};
+
+/** The Prague calendar day ("YYYY-MM-DD") an instant falls on. */
+export const pragueDayOf = (instant: Date): string =>
+  formatUtcDay(
+    new Date(
+      instant.getTime() + pragueOffsetMinutes(instant.getTime()) * MINUTE_IN_MS,
+    ),
+  );
+
+/** The day `days` days after `day` (calendar arithmetic, no time zone). */
+const addDays = (day: string, days: number): string => {
+  const [year, month, date] = day.split('-').map(Number);
+  return formatUtcDay(new Date(utc(year, month - 1, date + days)));
+};
+
+/**
+ * „Tento víkend“ (#182) as inclusive Prague days: Saturday and Sunday of this
+ * week. On Saturday it is today and tomorrow, on Sunday just today; Monday
+ * to Friday the coming Saturday and Sunday.
+ */
+export const pragueWeekendOf = (
+  now: Date,
+): { dateFrom: string; dateTo: string } => {
+  const today = pragueDayOf(now);
+  const [year, month, date] = today.split('-').map(Number);
+  // 0 = Sunday … 6 = Saturday
+  const weekday = new Date(utc(year, month - 1, date)).getUTCDay();
+  if (weekday === 0) return { dateFrom: today, dateTo: today };
+  const saturday = addDays(today, 6 - weekday);
+  return { dateFrom: saturday, dateTo: addDays(saturday, 1) };
+};
