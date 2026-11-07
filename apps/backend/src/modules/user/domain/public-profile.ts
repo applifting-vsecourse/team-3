@@ -53,7 +53,7 @@ export type PublicReceivedRating = {
   comment: string | null;
   createdAt: Date;
   author: PublicPerson | null;
-  event: { id: string; title: string } | null;
+  event: { id: string; title: string };
 };
 export type PublicOrganizedEvent = {
   id: string;
@@ -116,21 +116,22 @@ export function publicProfile(
     participantSummary: participantRatingSummary(received),
     organizerSummary: organizerRatingSummary(personal),
     eventSummary: summarizeStars(personal.map((row) => row.eventStars)),
-    participantRatings: received.map((row) => ({
-      id: row.id,
-      stars: row.stars,
-      comment: row.comment,
-      createdAt: row.createdAt,
-      author:
-        row.event.organizer.deletedAt || row.event.organizer.blockedAt
-          ? null
-          : { id: row.event.organizer.id, name: row.event.organizer.name },
-      // A rating must not reveal a private or members-only event's ID or title.
-      event:
-        row.event.visibility === 'public'
-          ? { id: row.event.id, title: row.event.title }
-          : null,
-    })),
+    // Only ratings from public events are listed: one from a private or
+    // members-only event would reveal who organised it and when the user was
+    // there. Those count in the average alone, which names nobody.
+    participantRatings: received
+      .filter((row) => row.event.visibility === 'public')
+      .map((row) => ({
+        id: row.id,
+        stars: row.stars,
+        comment: row.comment,
+        createdAt: row.createdAt,
+        author:
+          row.event.organizer.deletedAt || row.event.organizer.blockedAt
+            ? null
+            : { id: row.event.organizer.id, name: row.event.organizer.name },
+        event: { id: row.event.id, title: row.event.title },
+      })),
     organizedEvents: eventRows
       .filter(
         (event) =>

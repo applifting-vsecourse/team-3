@@ -35,7 +35,7 @@ describe("public profile", () => {
     expect(screen.queryByRole("heading", { name: "Pořádané akce" })).not.toBeInTheDocument()
     expect(screen.queryByRole("link", { name: /upravit|přihlásit/i })).not.toBeInTheDocument()
   })
-  it("shows ratings and counts, links public references, renders comments as text and keeps private events unlinked", async () => {
+  it("shows ratings and counts, links public references, renders comments as text and explains ratings left out from non-public events", async () => {
     await renderWithRouter(
       <PublicProfileView
         onRetry={vi.fn()}
@@ -51,14 +51,6 @@ describe("public profile", () => {
               createdAt: new Date("2026-11-01"),
               author: { id: "host", name: "Petr" },
               event: { id: "public-event", title: "Veřejný volejbal" },
-            },
-            {
-              id: "r2",
-              stars: 4,
-              comment: null,
-              createdAt: new Date("2026-11-02"),
-              author: null,
-              event: null,
             },
           ],
           organizedEvents: [
@@ -87,7 +79,9 @@ describe("public profile", () => {
       "href",
       "/akce/public-event",
     )
-    expect(screen.getByText("Neveřejná akce").closest("a")).toBeNull()
+    expect(
+      screen.getByText("Další hodnocení jsou z neveřejných akcí, počítají se jen do průměru."),
+    ).toBeInTheDocument()
     expect(screen.getByRole("heading", { name: "Pořádané akce" })).toBeInTheDocument()
     expect(screen.getByRole("link", { name: "Společný běh" })).toHaveAttribute(
       "href",

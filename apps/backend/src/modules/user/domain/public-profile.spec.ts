@@ -80,7 +80,7 @@ describe('public profile privacy (#179)', () => {
     );
     expect(result.participantSummary).toEqual({ average: null, count: 0 });
   });
-  it('keeps private and members-only event references out of received public ratings', () => {
+  it('lists only ratings from public events; the others count in the average alone', () => {
     const privateRating = received({ id: 'private-rating', stars: 4 });
     privateRating.event = {
       ...privateRating.event,
@@ -104,8 +104,6 @@ describe('public profile privacy (#179)', () => {
     );
     expect(result.participantRatings.map((row) => row.event)).toEqual([
       { id: 'public-event', title: 'Volejbal' },
-      null,
-      null,
     ]);
     expect(result.participantSummary).toEqual({ average: 4, count: 3 });
     expect(JSON.stringify(result)).not.toMatch(/private-event-|members-event-/);

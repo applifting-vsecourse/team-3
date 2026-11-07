@@ -130,23 +130,24 @@ export function PublicProfileView({
                   {rating.comment ? (
                     <p className="break-words whitespace-pre-line">{rating.comment}</p>
                   ) : null}
-                  {rating.event ? (
-                    <Link
-                      className="w-fit text-sm underline underline-offset-4"
-                      to={ROUTES.eventDetail}
-                      params={{ eventId: rating.event.id }}
-                    >
-                      {rating.event.title}
-                    </Link>
-                  ) : (
-                    <p className="text-sm text-muted-foreground">Neveřejná akce</p>
-                  )}
+                  <Link
+                    className="w-fit text-sm underline underline-offset-4"
+                    to={ROUTES.eventDetail}
+                    params={{ eventId: rating.event.id }}
+                  >
+                    {rating.event.title}
+                  </Link>
                 </li>
               ))}
             </ul>
-          ) : (
+          ) : profile.participantSummary.count === 0 ? (
             <p className="text-muted-foreground">Zatím žádné hodnocení od organizátorů.</p>
-          )}
+          ) : null}
+          {profile.participantSummary.count > profile.participantRatings.length ? (
+            <p className="text-sm text-muted-foreground">
+              Další hodnocení jsou z neveřejných akcí, počítají se jen do průměru.
+            </p>
+          ) : null}
         </section>
         <section
           className="flex flex-col gap-4"

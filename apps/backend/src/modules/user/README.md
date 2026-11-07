@@ -6,7 +6,7 @@ Odpověď obsahuje jméno, zájmy, přijatá hodnocení účastníka, průměr o
 
 Smazaná hodnocení a hodnocení nepublikovaných nebo neukončených akcí se nepočítají. Hodnocení organizátora a jeho akcí nezahrnuje akce skupin. Agregáty zahrnují i osobní neveřejné akce, ale jejich identita se nezveřejňuje. Historie akcí je užší: jen publikované, veřejné, osobní a ukončené akce.
 
-U přijatého hodnocení z neveřejné akce je `event=null`: profil tak nevyzradí její název ani ID. Autor smazaného nebo zablokovaného účtu je `author=null`. Průměr bez hodnocení je `null`, nikoliv nula. Základní pravidla průměrů používají existující doménové funkce #180.
+Seznam přijatých hodnocení obsahuje jen hodnocení z veřejných akcí. Hodnocení ze soukromé akce nebo akce jen pro členy se započítá jen do průměru: v seznamu by prozradilo organizátora, datum a že tam uživatel byl. Autor smazaného nebo zablokovaného účtu je `author=null`. Průměr bez hodnocení je `null`, nikoliv nula. Základní pravidla průměrů používají existující doménové funkce #180.
 
 Není potřeba migrace. Vlastní profil a změny účtu řeší samostatná #178.
 

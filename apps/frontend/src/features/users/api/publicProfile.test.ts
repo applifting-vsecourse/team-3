@@ -29,7 +29,7 @@ describe("public profile API", () => {
     expect(publicUserKeys.profile("a")).not.toEqual(publicUserKeys.profile("b"))
     expect(options.retry).toBe(false)
   })
-  it("strips unexpected account fields and accepts a missing private-event reference", () => {
+  it("strips unexpected account fields", () => {
     const profile = publicProfileSchema.parse({
       ...response,
       email: "private@example.com",
@@ -41,7 +41,7 @@ describe("public profile API", () => {
           stars: 4,
           comment: "Díky",
           createdAt: "2026-11-01T12:00:00Z",
-          event: null,
+          event: { id: "public-event", title: "Volejbal" },
           author: null,
         },
       ],
@@ -50,7 +50,6 @@ describe("public profile API", () => {
     expect(profile).not.toHaveProperty("participations")
     expect(profile).not.toHaveProperty("groupMemberships")
     expect(profile.participantRatings[0]!.createdAt).toBeInstanceOf(Date)
-    expect(profile.participantRatings[0]!.event).toBeNull()
   })
   it.each([-1, 1.5])("rejects an invalid approved count %s", (approvedCount) => {
     const data = {

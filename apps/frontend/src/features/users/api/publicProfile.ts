@@ -20,7 +20,7 @@ export const publicProfileSchema = person.extend({
       comment: z.string().nullable(),
       createdAt: z.coerce.date(),
       author: person.nullable(),
-      event: z.object({ id: z.string(), title: z.string() }).nullable(),
+      event: z.object({ id: z.string(), title: z.string() }),
     }),
   ),
   organizedEvents: z.array(

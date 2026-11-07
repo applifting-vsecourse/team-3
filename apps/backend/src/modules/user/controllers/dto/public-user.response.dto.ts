@@ -27,8 +27,8 @@ class PublicReceivedRatingDto implements PublicReceivedRating {
   author!: PublicReceivedRating['author'];
   @ApiProperty({
     type: PublicEventReferenceDto,
-    nullable: true,
-    description: 'Null for private or members-only events',
+    description:
+      'Always a public event: ratings from private or members-only events are not listed, they count only in participantSummary',
   })
   event!: PublicReceivedRating['event'];
 }
