@@ -5,12 +5,19 @@ import { z } from "zod"
 import { ROUTES } from "@/app/routes"
 import { AuthLayout } from "@/components/AuthLayout"
 import { Seo } from "@/components/Seo"
+import { Button } from "@/components/ui/button"
 
 import { authSessionQueryOptions } from "@/features/auth/api/authSessionQueryOptions"
+import type { InboxCredentials } from "@/features/auth/api/simulatedInbox"
 import { GoogleSignIn } from "@/features/auth/components/GoogleSignIn"
 import { SignInForm } from "@/features/auth/components/SignInForm"
+import { VerifyEmailStep } from "@/features/auth/components/VerifyEmailStep"
 import { useSignIn } from "@/features/auth/hooks/useSignIn"
-import { googleSignInErrorMessage } from "@/features/auth/lib/auth-errors"
+import {
+  AuthRequestError,
+  EMAIL_NOT_VERIFIED,
+  googleSignInErrorMessage,
+} from "@/features/auth/lib/auth-errors"
 import { safeRedirect } from "@/features/auth/lib/redirect"
 import { NearestEvents } from "@/features/events/components/NearestEvents"
 
@@ -41,6 +48,9 @@ function LoginPage() {
   const [errorMessage, setErrorMessage] = useState<string | null>(
     error ? googleSignInErrorMessage(error) : null,
   )
+  // #236: the sign-in was refused because the e-mail isn't verified
+  const [unverified, setUnverified] = useState<InboxCredentials | null>(null)
+  const [lastEmail, setLastEmail] = useState<string>()
 
   const handleSubmit = async (values: { email: string; password: string }) => {
     setErrorMessage(null)
@@ -52,10 +62,45 @@ function LoginPage() {
       // it again): the login can't see the entry before it, so it can't go back.
       await navigate({ href: safeRedirect(from, ROUTES.events), replace: true })
     } catch (error) {
+      // only a verified e-mail signs in: not an error under the form, the next step instead
+      if (error instanceof AuthRequestError && error.code === EMAIL_NOT_VERIFIED) {
+        setLastEmail(values.email)
+        setUnverified(values)
+        return
+      }
       setErrorMessage(
         error instanceof Error ? error.message : "Přihlášení se nepovedlo. Zkus to prosím znovu.",
       )
     }
+  }
+
+  if (unverified) {
+    return (
+      <>
+        <Seo title="Ověř si e-mail" />
+        <AuthLayout
+          aside={<NearestEvents />}
+          title="Ověř si e-mail"
+          description={`E-mail ${unverified.email} zatím není ověřený a bez toho se přihlásit nejde.`}
+          footer={
+            <Button
+              variant="link"
+              className="h-auto p-0 font-medium underline"
+              onClick={() => setUnverified(null)}
+            >
+              Zpět na přihlášení
+            </Button>
+          }
+        >
+          <VerifyEmailStep
+            email={unverified.email}
+            password={unverified.password}
+            from={from}
+            onAlreadyVerified={() => setUnverified(null)}
+          />
+        </AuthLayout>
+      </>
+    )
   }
 
   return (
@@ -81,6 +126,7 @@ function LoginPage() {
         }
       >
         <SignInForm
+          defaultEmail={lastEmail}
           isLoading={signIn.isPending}
           errorMessage={errorMessage}
           onSubmit={handleSubmit}

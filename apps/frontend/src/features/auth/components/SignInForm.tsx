@@ -26,15 +26,17 @@ type FormValues = z.infer<typeof schema>
 const defaultValues: FormValues = { email: "", password: "" }
 
 type SignInFormProps = {
+  /** Back from „Ověř si e-mail“ (#236): the e-mail stays filled in. */
+  defaultEmail?: string
   isLoading: boolean
   errorMessage?: string | null
   onSubmit: (values: FormValues) => void | Promise<void>
 }
 
-export function SignInForm({ isLoading, errorMessage, onSubmit }: SignInFormProps) {
+export function SignInForm({ defaultEmail, isLoading, errorMessage, onSubmit }: SignInFormProps) {
   const form = useForm<FormValues>({
     resolver: zodResolver(schema),
-    defaultValues,
+    defaultValues: { ...defaultValues, email: defaultEmail ?? "" },
   })
 
   return (

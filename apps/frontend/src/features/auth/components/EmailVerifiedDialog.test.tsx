@@ -133,7 +133,7 @@ describe("EmailVerifiedDialog", () => {
     await renderDialog({ url: "/akce/e1", result: { error: "INVALID_TOKEN" }, user: null })
 
     const dialog = screen.getByRole("dialog", { name: "E-mail se nepodařilo ověřit" })
-    expect(dialog).toHaveTextContent("Odkaz je neplatný. Nový si pošleš po přihlášení.")
+    expect(dialog).toHaveTextContent("Odkaz je neplatný. Nový si pošleš při přihlášení.")
     const signIn = within(dialog).getByRole("link", { name: "Přihlásit se" })
     const loginUrl = new URL(signIn.getAttribute("href")!, window.location.origin)
     expect(loginUrl.pathname).toBe("/login")

@@ -170,7 +170,7 @@ function VerificationOutcome({
             ? "Otevři odkaz z e-mailu, nebo si pošli nový."
             : user
               ? `${reason} Pošli si nový, platí 24 hodin.`
-              : `${reason} Nový si pošleš po přihlášení.`}
+              : `${reason} Nový si pošleš při přihlášení.`}
         </DialogDescription>
       </DialogHeader>
       <DialogFooter>

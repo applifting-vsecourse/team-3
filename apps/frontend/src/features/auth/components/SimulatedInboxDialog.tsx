@@ -13,7 +13,7 @@ import {
 import type { SimulatedEmail } from "@/features/auth/api/simulatedInbox"
 
 type SimulatedInboxDialogProps = {
-  /** Where the e-mail would have gone: the signed-in user's address. */
+  /** Where the e-mail would have gone: the address on „Ověř si e-mail“. */
   email: string
   /** Newest first, as the API sends them. */
   messages: SimulatedEmail[]
@@ -37,7 +37,7 @@ export function SimulatedInboxDialog({ email, messages, onOpen }: SimulatedInbox
       <DialogTrigger asChild>
         <Button
           variant="outline"
-          size="sm"
+          size="lg"
         >
           Otevřít e-mail (simulace)
         </Button>

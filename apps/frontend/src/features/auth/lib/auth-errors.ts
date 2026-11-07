@@ -11,6 +11,8 @@ const MESSAGES: Record<string, string> = {
   // the same for a wrong e-mail and a wrong password: it doesn't tell which accounts exist
   INVALID_EMAIL_OR_PASSWORD: "Nesprávný e-mail nebo heslo.",
   INVALID_EMAIL: "Zadej platný e-mail.",
+  // #236: only a verified e-mail signs in; the sign-in page shows „Ověř si e-mail“ instead
+  EMAIL_NOT_VERIFIED: "Nejdřív si ověř e-mail. Otevři odkaz z e-mailu, nebo si pošli nový.",
   USER_ALREADY_EXISTS: "Účet s tímto e-mailem už existuje. Přihlas se, nebo si obnov heslo.",
   USER_ALREADY_EXISTS_USE_ANOTHER_EMAIL:
     "Účet s tímto e-mailem už existuje. Přihlas se, nebo si obnov heslo.",
@@ -35,6 +37,9 @@ export function authErrorMessage(error: BetterAuthError, fallback: string): stri
   if (error.code && API_SAYS_IT_IN_CZECH.has(error.code) && error.message) return error.message
   return (error.code ? MESSAGES[error.code] : undefined) ?? fallback
 }
+
+/** BetterAuth's code for a sign-in refused over an unverified e-mail (403, #236). */
+export const EMAIL_NOT_VERIFIED = "EMAIL_NOT_VERIFIED"
 
 /** Thrown by the auth hooks: a Czech message, and the code to react to. */
 export class AuthRequestError extends Error {
