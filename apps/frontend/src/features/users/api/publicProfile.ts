@@ -31,6 +31,20 @@ export const publicProfileSchema = person.extend({
       endsAt: z.coerce.date().nullable(),
       localityName: z.string(),
       activityName: z.string(),
+      // what the past event card shows (#179): the photo by the activity, the place
+      address: z.string(),
+      locality: z.object({ id: z.string(), slug: z.string(), name: z.string() }),
+      activity: z.object({
+        id: z.string(),
+        slug: z.string(),
+        name: z.string(),
+        category: z.object({
+          id: z.string(),
+          slug: z.string(),
+          name: z.string(),
+          icon: z.string(),
+        }),
+      }),
       approvedCount: z.number().int().nonnegative(),
       rating: summary,
     }),
@@ -38,6 +52,14 @@ export const publicProfileSchema = person.extend({
 })
 export type PublicProfile = z.infer<typeof publicProfileSchema>
 export type PublicSummary = PublicProfile["participantSummary"]
+export type PublicOrganizedEvent = PublicProfile["organizedEvents"][number]
+
+/** DESIGN.md › Copy: an average always shows its count — „★ 4,5 (6 hodnocení)“. */
+export function summaryLabel(value: PublicSummary): string {
+  return value.count > 0 && value.average !== null
+    ? `★ ${value.average.toLocaleString("cs-CZ", { maximumFractionDigits: 1 })} (${value.count} hodnocení)`
+    : "zatím bez hodnocení"
+}
 
 export const publicUserKeys = {
   all: () => ["public-users"] as const,

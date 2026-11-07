@@ -4,7 +4,7 @@ import { describe, expect, it, vi } from "vitest"
 
 import { renderWithRouter } from "@/test/renderWithRouter"
 
-import type { PublicProfile } from "@/features/users/api/publicProfile"
+import type { PublicOrganizedEvent, PublicProfile } from "@/features/users/api/publicProfile"
 
 import { PublicProfileView } from "./PublicProfileView"
 
@@ -21,16 +21,34 @@ const profile = (changes: Partial<PublicProfile> = {}): PublicProfile => ({
   ...changes,
 })
 
+// the events feature's PastEventCard, whose texts PastEventCard.test.tsx checks
+const card = (event: PublicOrganizedEvent) => (
+  <a href={`/akce/${event.id}`}>
+    {event.title} · {event.approvedCount} · {event.activity.slug}
+  </a>
+)
+
 describe("public profile", () => {
   it("shows only public identity, interests and empty ratings; hides absent organized-event history", async () => {
     await renderWithRouter(
       <PublicProfileView
         profile={profile()}
         onRetry={vi.fn()}
+        renderOrganizedEvent={card}
       />,
     )
-    expect(screen.getByRole("heading", { level: 1, name: "Jana Svobodová" })).toBeInTheDocument()
-    expect(screen.getByText("Běh")).toBeInTheDocument()
+    const name = screen.getByRole("heading", { level: 1, name: "Jana Svobodová" })
+    // who it is sits in the dark band with the way back (DESIGN.md › Layout)
+    expect(name.closest(".on-hero")).not.toBeNull()
+    expect(screen.getByRole("link", { name: "Všechny akce" })).toHaveAttribute("href", "/akce")
+    expect(screen.getByText("Běh").closest(".on-hero")).not.toBeNull()
+    expect(
+      screen.getByText("Jako účastník zatím bez hodnocení · Jako organizátor zatím bez hodnocení"),
+    ).toBeInTheDocument()
+    // two columns on desktop (DESIGN.md › Layout), each heading with one keyword
+    const participant = screen.getByRole("heading", { level: 2, name: "Jako účastník" })
+    expect(participant.closest("section")?.parentElement).toHaveClass("lg:grid-cols-2")
+    expect(participant.querySelector(".highlight-keyword")).toHaveTextContent("účastník")
     expect(screen.getByText("Zatím žádné hodnocení od organizátorů.")).toBeInTheDocument()
     expect(screen.queryByRole("heading", { name: "Pořádané akce" })).not.toBeInTheDocument()
     expect(screen.queryByRole("link", { name: /upravit|přihlásit/i })).not.toBeInTheDocument()
@@ -39,6 +57,7 @@ describe("public profile", () => {
     await renderWithRouter(
       <PublicProfileView
         onRetry={vi.fn()}
+        renderOrganizedEvent={card}
         profile={profile({
           participantSummary: { average: 4.5, count: 2 },
           organizerSummary: { average: 3.5, count: 1 },
@@ -61,6 +80,14 @@ describe("public profile", () => {
               endsAt: null,
               localityName: "Praha",
               activityName: "Běh",
+              address: "Stromovka, Praha 7",
+              locality: { id: "praha", slug: "praha", name: "Praha" },
+              activity: {
+                id: "beh",
+                slug: "beh",
+                name: "Běh",
+                category: { id: "sport", slug: "sport", name: "Sport", icon: "ball" },
+              },
               approvedCount: 3,
               rating: { average: 4, count: 1 },
             },
@@ -70,7 +97,10 @@ describe("public profile", () => {
     )
     expect(screen.getByText("★ 4,5")).toBeInTheDocument()
     expect(screen.getByText("(2 hodnocení)")).toBeInTheDocument()
-    expect(screen.getByText("Počet účastníků: 3")).toBeInTheDocument()
+    // the band sums up both roles (DESIGN.md › Copy: an average always shows its count)
+    expect(
+      screen.getByText("Jako účastník ★ 4,5 (2 hodnocení) · Jako organizátor ★ 3,5 (1 hodnocení)"),
+    ).toBeInTheDocument()
     expect(screen.getByLabelText("5 z 5 hvězdiček")).toBeInTheDocument()
     expect(screen.getByText("<script>untrusted()</script>")).toBeInTheDocument()
     expect(document.querySelector("script")).toBeNull()
@@ -82,8 +112,9 @@ describe("public profile", () => {
     expect(
       screen.getByText("Další hodnocení jsou z neveřejných akcí, počítají se jen do průměru."),
     ).toBeInTheDocument()
-    expect(screen.getByRole("heading", { name: "Pořádané akce" })).toBeInTheDocument()
-    expect(screen.getByRole("link", { name: "Společný běh" })).toHaveAttribute(
+    const organized = screen.getByRole("heading", { level: 2, name: "Pořádané akce" })
+    expect(organized.querySelector(".highlight-keyword")).toHaveTextContent("Pořádané")
+    expect(screen.getByRole("link", { name: "Společný běh · 3 · beh" })).toHaveAttribute(
       "href",
       "/akce/past-event",
     )
@@ -94,6 +125,7 @@ describe("public profile", () => {
       <PublicProfileView
         isLoading
         onRetry={retry}
+        renderOrganizedEvent={card}
       />,
     )
     expect(screen.getByRole("status")).toHaveTextContent("Načítání profilu")
@@ -101,6 +133,7 @@ describe("public profile", () => {
       <PublicProfileView
         isNotFound
         onRetry={retry}
+        renderOrganizedEvent={card}
       />,
     )
     expect(screen.getByRole("heading", { name: "Profil nenalezen" })).toBeInTheDocument()
@@ -109,6 +142,7 @@ describe("public profile", () => {
         profile={profile()}
         error={new Error("offline")}
         onRetry={retry}
+        renderOrganizedEvent={card}
       />,
     )
     expect(screen.getByRole("alert")).toBeInTheDocument()

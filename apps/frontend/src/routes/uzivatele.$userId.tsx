@@ -1,15 +1,12 @@
 import { useQuery } from "@tanstack/react-query"
 import { createFileRoute } from "@tanstack/react-router"
 
-import { ROUTES } from "@/app/routes"
-import { BackLink } from "@/components/BackLink/BackLink"
 import { Seo } from "@/components/Seo"
 import { HTTPError } from "@/lib/api-client"
-import { PAGE } from "@/lib/pageLayout"
-import { cn } from "@/lib/utils"
 
 import { AppHeader } from "@/features/auth/components/AppHeader"
-import { publicProfileQueryOptions } from "@/features/users/api/publicProfile"
+import { PastEventCard } from "@/features/events/components/PastEventCard"
+import { publicProfileQueryOptions, summaryLabel } from "@/features/users/api/publicProfile"
 import { PublicProfileView } from "@/features/users/components/PublicProfileView"
 
 export const Route = createFileRoute("/uzivatele/$userId")({ component: PublicUserPage })
@@ -22,20 +19,23 @@ function PublicUserPage() {
     <>
       <Seo title={query.data?.name ?? "Profil uživatele"} />
       <AppHeader />
-      <main className="flex-1">
-        <div className={cn(PAGE, "gap-8")}>
-          <BackLink
-            to={ROUTES.events}
-            fallbackLabel="Všechny akce"
-          />
-          <PublicProfileView
-            profile={query.data}
-            isLoading={query.isPending}
-            isNotFound={isNotFound}
-            error={query.error ?? undefined}
-            onRetry={() => void query.refetch()}
-          />
-        </div>
+      {/* the band and its H1 belong to main, as on every page */}
+      <main className="flex flex-1 flex-col">
+        <PublicProfileView
+          profile={query.data}
+          isLoading={query.isPending}
+          isNotFound={isNotFound}
+          error={query.error ?? undefined}
+          onRetry={() => void query.refetch()}
+          renderOrganizedEvent={(event) => (
+            <PastEventCard
+              event={event}
+              // a visitor's own rating isn't part of the public profile: the event's average instead
+              rating={{ kind: "open" }}
+              detail={summaryLabel(event.rating)}
+            />
+          )}
+        />
       </main>
     </>
   )

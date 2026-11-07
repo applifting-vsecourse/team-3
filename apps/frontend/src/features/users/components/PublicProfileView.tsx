@@ -1,59 +1,74 @@
+import type { ReactNode } from "react"
 import { Link } from "@tanstack/react-router"
 
 import { ROUTES } from "@/app/routes"
 import { ActivityTag } from "@/components/ActivityTag/ActivityTag"
+import { PageBand } from "@/components/PageBand/PageBand"
 import { PersonRow } from "@/components/PersonRow/PersonRow"
 import { Button } from "@/components/ui/button"
+import { PAGE } from "@/lib/pageLayout"
+import { cn } from "@/lib/utils"
 
-import type { PublicProfile, PublicSummary } from "@/features/users/api/publicProfile"
+import {
+  summaryLabel,
+  type PublicOrganizedEvent,
+  type PublicProfile,
+  type PublicSummary,
+} from "@/features/users/api/publicProfile"
 
 const date = (value: Date) =>
   value.toLocaleDateString("cs-CZ", { day: "numeric", month: "numeric", year: "numeric" })
 
+// a shared link has no history: back to the events, as before
+const BACK = { to: ROUTES.events, fallbackLabel: "Všechny akce" } as const
+
+/**
+ * /uzivatele/:userId (#179): who someone is in the band — name, ratings, interests — and
+ * below in two columns on desktop (DESIGN.md › Layout) the ratings as a participant, and as
+ * an organizer with the past events they organised.
+ */
 export function PublicProfileView({
   profile,
   isLoading,
   isNotFound,
   error,
   onRetry,
+  renderOrganizedEvent,
 }: {
   profile?: PublicProfile
   isLoading?: boolean
   isNotFound?: boolean
   error?: Error
   onRetry: () => void
+  /** A past organised event as its card, from the events feature (the route puts it in). */
+  renderOrganizedEvent: (event: PublicOrganizedEvent) => ReactNode
 }) {
   if (isNotFound) {
     return (
-      <section className="flex flex-col gap-3 py-8">
-        <h1 className="type-title">Profil nenalezen</h1>
+      <State title="Profil nenalezen">
         <p className="text-muted-foreground">
           Profil není dostupný. Zkus se vrátit na přehled akcí.
         </p>
-      </section>
+      </State>
     )
   }
   if (isLoading) {
     return (
-      <section
-        aria-busy="true"
-        className="flex flex-col gap-3 py-8"
-      >
-        <h1 className="type-title">Profil uživatele</h1>
+      <State title="Profil uživatele">
         <p
           role="status"
+          aria-busy="true"
           className="text-muted-foreground"
         >
           Načítání profilu…
         </p>
-      </section>
+      </State>
     )
   }
   // A failed refresh must not keep moderated ratings or a removed account on screen.
   if (error || !profile) {
     return (
-      <section className="flex flex-col items-start gap-3 py-8">
-        <h1 className="type-title">Profil uživatele</h1>
+      <State title="Profil uživatele">
         <p
           role="alert"
           className="text-destructive"
@@ -66,14 +81,17 @@ export function PublicProfileView({
         >
           Zkusit znovu
         </Button>
-      </section>
+      </State>
     )
   }
 
   return (
     <>
-      <header className="flex flex-col gap-4">
-        <h1 className="type-title">{profile.name}</h1>
+      <PageBand
+        title={<span className="break-words">{profile.name}</span>}
+        back={BACK}
+        description={`Jako účastník ${summaryLabel(profile.participantSummary)} · Jako organizátor ${summaryLabel(profile.organizerSummary)}`}
+      >
         <section
           aria-label="Zájmy"
           className="flex flex-wrap gap-2"
@@ -83,23 +101,25 @@ export function PublicProfileView({
               <ActivityTag
                 key={interest.id}
                 name={interest.name}
+                className="border border-tile-border"
               />
             ))
           ) : (
-            <p className="text-sm text-muted-foreground">Zájmy zatím nejsou vyplněné.</p>
+            <p className="text-sm text-on-hero-muted">Zájmy zatím nejsou vyplněné.</p>
           )}
         </section>
-      </header>
-      <div className="grid gap-8 md:grid-cols-2">
+      </PageBand>
+      {/* two columns on desktop, so no half of the screen stays empty (DESIGN.md › Layout) */}
+      <div className={cn(PAGE, "grid grid-cols-1 gap-12 lg:grid-cols-2 lg:gap-16")}>
         <section
-          className="flex flex-col gap-4"
+          className="flex min-w-0 flex-col gap-4"
           aria-labelledby="participant-ratings"
         >
           <h2
             id="participant-ratings"
             className="type-feature"
           >
-            Jako účastník
+            Jako <span className="highlight-keyword">účastník</span>
           </h2>
           <Summary value={profile.participantSummary} />
           {profile.participantRatings.length ? (
@@ -149,74 +169,69 @@ export function PublicProfileView({
             </p>
           ) : null}
         </section>
-        <section
-          className="flex flex-col gap-4"
-          aria-labelledby="organizer-ratings"
-        >
-          <h2
-            id="organizer-ratings"
-            className="type-feature"
+        <div className="flex min-w-0 flex-col gap-12">
+          <section
+            className="flex flex-col gap-4"
+            aria-labelledby="organizer-ratings"
           >
-            Jako organizátor
-          </h2>
-          <dl className="flex flex-col gap-4">
-            <div>
-              <dt className="mb-1 text-sm text-muted-foreground">Hodnocení organizátora</dt>
-              <dd>
-                <Summary value={profile.organizerSummary} />
-              </dd>
-            </div>
-            <div>
-              <dt className="mb-1 text-sm text-muted-foreground">Hodnocení pořádaných akcí</dt>
-              <dd>
-                <Summary value={profile.eventSummary} />
-              </dd>
-            </div>
-          </dl>
-          <p className="text-sm text-muted-foreground">
-            Hodnocení se vztahuje k osobně pořádaným akcím.
-          </p>
-        </section>
-      </div>
-      {profile.organizedEvents.length ? (
-        <section
-          className="flex flex-col gap-4"
-          aria-labelledby="organized-events"
-        >
-          <h2
-            id="organized-events"
-            className="type-feature"
-          >
-            Pořádané akce
-          </h2>
-          <ul className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-            {profile.organizedEvents.map((event) => (
-              <li
-                key={event.id}
-                className="flex flex-col gap-3 rounded-lg border border-border bg-card p-4"
+            <h2
+              id="organizer-ratings"
+              className="type-feature"
+            >
+              Jako <span className="highlight-keyword">organizátor</span>
+            </h2>
+            <dl className="flex flex-col gap-4">
+              <div>
+                <dt className="mb-1 text-sm text-muted-foreground">Hodnocení organizátora</dt>
+                <dd>
+                  <Summary value={profile.organizerSummary} />
+                </dd>
+              </div>
+              <div>
+                <dt className="mb-1 text-sm text-muted-foreground">Hodnocení pořádaných akcí</dt>
+                <dd>
+                  <Summary value={profile.eventSummary} />
+                </dd>
+              </div>
+            </dl>
+            <p className="text-sm text-muted-foreground">
+              Hodnocení se vztahuje k osobně pořádaným akcím.
+            </p>
+          </section>
+          {profile.organizedEvents.length ? (
+            <section
+              className="flex flex-col gap-4"
+              aria-labelledby="organized-events"
+            >
+              <h2
+                id="organized-events"
+                className="type-feature"
               >
-                <ActivityTag name={event.activityName} />
-                <h3 className="type-row-title">
-                  <Link
-                    className="underline underline-offset-4"
-                    to={ROUTES.eventDetail}
-                    params={{ eventId: event.id }}
-                  >
-                    {event.title}
-                  </Link>
-                </h3>
-                <p className="text-sm text-muted-foreground">
-                  {date(event.startsAt)} · {event.localityName}
-                </p>
-                <p className="text-sm text-muted-foreground">
-                  Počet účastníků: {event.approvedCount}
-                </p>
-                <Summary value={event.rating} />
-              </li>
-            ))}
-          </ul>
-        </section>
-      ) : null}
+                <span className="highlight-keyword">Pořádané</span> akce
+              </h2>
+              {/* grid-cols-1 = minmax(0, 1fr): a long title truncates instead of widening the column */}
+              <ul className="grid grid-cols-1 gap-3">
+                {profile.organizedEvents.map((event) => (
+                  <li key={event.id}>{renderOrganizedEvent(event)}</li>
+                ))}
+              </ul>
+            </section>
+          ) : null}
+        </div>
+      </div>
+    </>
+  )
+}
+
+/** Loading, unavailable or failed: the band with a plain title, the message under it. */
+function State({ title, children }: { title: string; children: ReactNode }) {
+  return (
+    <>
+      <PageBand
+        title={title}
+        back={BACK}
+      />
+      <div className={cn(PAGE, "items-start gap-3")}>{children}</div>
     </>
   )
 }
