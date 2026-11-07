@@ -190,9 +190,7 @@ describe("signing in needs a verified e-mail (#236)", () => {
     await userEvent.type(screen.getByLabelText("E-mail"), "jana@example.com")
     await userEvent.type(screen.getByLabelText("Heslo"), "hobbyhub2026")
     await userEvent.type(screen.getByLabelText("Heslo znovu"), "hobbyhub2026")
-    await userEvent.click(
-      screen.getByRole("checkbox", { name: /^Souhlasím s podmínkami užívání/ }),
-    )
+    await userEvent.click(screen.getByRole("checkbox", { name: /^Souhlasím s podmínkami užívání/ }))
     await userEvent.click(
       screen.getByRole("checkbox", { name: /^Beru na vědomí zpracování osobních údajů/ }),
     )
@@ -201,7 +199,9 @@ describe("signing in needs a verified e-mail (#236)", () => {
     expect(
       await screen.findByRole("heading", { level: 1, name: "Ověř si e-mail" }),
     ).toBeInTheDocument()
-    expect(screen.getByText(/Odkaz k ověření jsme poslali na jana@example\.com/)).toBeInTheDocument()
+    expect(
+      screen.getByText(/Odkaz k ověření jsme poslali na jana@example\.com/),
+    ).toBeInTheDocument()
     expect(screen.getByRole("button", { name: "Poslat odkaz znovu" })).toBeInTheDocument()
     // still on the sign-up, signed out; the sign-in keeps where to come back to
     expect(app.state.location.pathname).toBe("/signup")

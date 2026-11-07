@@ -63,7 +63,10 @@ export class SimulatedInboxService {
         user: { select: { email: true, blockedAt: true } },
       },
     });
-    if (!account?.password || !(await this.passwordMatches(account.password, password))) {
+    if (
+      !account?.password ||
+      !(await this.passwordMatches(account.password, password))
+    ) {
       throw new UnauthorizedException({
         code: INVALID_EMAIL_OR_PASSWORD,
         message: 'Nesprávný e-mail nebo heslo.',

@@ -53,7 +53,10 @@ const setup = (
     blockedAt = null as Date | null,
     account = { password: HASH } as { password: string | null } | null,
   } = {},
-): { service: SimulatedInboxService; prisma: ReturnType<typeof mockDeep<PrismaService>> } => {
+): {
+  service: SimulatedInboxService;
+  prisma: ReturnType<typeof mockDeep<PrismaService>>;
+} => {
   const prisma = mockDeep<PrismaService>();
   prisma.account.findFirst.mockResolvedValue(
     (account
@@ -111,7 +114,11 @@ describe('SimulatedInboxService', () => {
   it.each([
     ['a wrong password', { account: { password: HASH } }, 'jiné-heslo-2026'],
     ['an unknown e-mail', { account: null }, credentials.password],
-    ['an account without a password (Google)', { account: { password: null } }, credentials.password],
+    [
+      'an account without a password (Google)',
+      { account: { password: null } },
+      credentials.password,
+    ],
   ])(
     '%s is 401 INVALID_EMAIL_OR_PASSWORD, the same for each',
     async (_, options, password) => {

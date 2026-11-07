@@ -47,14 +47,18 @@ export class SimulatedInboxController {
   @ApiResponse({ status: 400, description: 'Invalid or unknown field' })
   @ApiResponse({
     status: 401,
-    description: 'INVALID_EMAIL_OR_PASSWORD: no such account, or wrong password',
+    description:
+      'INVALID_EMAIL_OR_PASSWORD: no such account, or wrong password',
   })
   @ApiResponse({ status: 403, description: 'USER_BLOCKED' })
   @ApiResponse({
     status: 404,
     description: 'SIMULATED_INBOX_OFF: e-mails really go out (Resend or SMTP)',
   })
-  @ApiResponse({ status: 429, description: 'Too many requests for this address' })
+  @ApiResponse({
+    status: 429,
+    description: 'Too many requests for this address',
+  })
   async open(
     @Body() body: SimulatedInboxRequestDto,
   ): Promise<SimulatedInboxResponseDto> {

@@ -97,11 +97,7 @@ function SignUpPage() {
         aside={<NearestEvents />}
         title="Registrace"
         description="Jeden účet pro přihlašování na akce i jejich pořádání."
-        footer={
-          <>
-            Už máš účet? {signInLink("Přihlas se")}
-          </>
-        }
+        footer={<>Už máš účet? {signInLink("Přihlas se")}</>}
       >
         <SignUpForm
           isLoading={signUp.isPending}

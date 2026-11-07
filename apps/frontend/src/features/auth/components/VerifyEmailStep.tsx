@@ -21,14 +21,19 @@ type VerifyEmailStepProps = InboxCredentials & {
  * password was just typed and stays in memory: where e-mails are simulated
  * (#58) it opens the inbox, which has no session to go by.
  */
-export function VerifyEmailStep({ email, password, from, onAlreadyVerified }: VerifyEmailStepProps) {
+export function VerifyEmailStep({
+  email,
+  password,
+  from,
+  onAlreadyVerified,
+}: VerifyEmailStepProps) {
   const inbox = useQuery(simulatedInboxQueryOptions({ email, password }))
 
   return (
     <div className="flex flex-col gap-4">
       <p className="text-body">
-        Otevři odkaz z e-mailu (platí 24 hodin) a pak se přihlas. Nic nepřišlo? Mrkni do spamu,
-        nebo si pošli odkaz znovu.
+        Otevři odkaz z e-mailu (platí 24 hodin) a pak se přihlas. Nic nepřišlo? Mrkni do spamu, nebo
+        si pošli odkaz znovu.
       </p>
       <div className="flex flex-wrap gap-2">
         <ResendVerificationButton
