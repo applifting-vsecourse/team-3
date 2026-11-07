@@ -15,10 +15,12 @@ export function ThemeSwitcher() {
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
+        {/* in the header on the band; a 40 px target (DESIGN.md › Accessibility) */}
         <Button
           variant="ghost"
-          size="icon"
+          size="icon-lg"
           aria-label="Přepnout vzhled"
+          className="text-on-hero"
         >
           <Sun className="size-4 dark:hidden" />
           <Moon className="hidden size-4 dark:block" />

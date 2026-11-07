@@ -1,9 +1,11 @@
+import type { ReactNode } from "react"
 import { useQuery } from "@tanstack/react-query"
 import { createFileRoute, Link } from "@tanstack/react-router"
 import { Plus } from "lucide-react"
 
+import { BandTabs, BandTabsItem } from "@/components/PageBand/BandTabs"
+import { PageBand } from "@/components/PageBand/PageBand"
 import { Seo } from "@/components/Seo"
-import { TabBar, TabBarItem } from "@/components/TabBar/TabBar"
 import { Button } from "@/components/ui/button"
 import { Tabs, TabsContent } from "@/components/ui/tabs"
 import { PAGE } from "@/lib/pageLayout"
@@ -66,37 +68,43 @@ function GroupsPage() {
     </>
   )
 
+  // Any signed-in user founds a group; visitors don't get the button (A-07).
+  const createGroup = user ? (
+    <Button
+      asChild
+      // the page's primary, beside the title like „Založit akci“ in Moje akce (A-07d)
+      size="lg"
+      // mobile: floats above the bottom navigation (Figma A-07)
+      className="fixed right-4 bottom-20 z-30 h-11 shadow-md md:static md:shadow-none"
+    >
+      <Link to="/skupiny/nova">
+        <Plus />
+        Založit skupinu
+      </Link>
+    </Button>
+  ) : null
+
+  const band = (tabs?: ReactNode) => (
+    <PageBand
+      variant="section"
+      isMarkFull
+      title="Skupiny"
+      description="Party, které se scházejí pravidelně. Přidej se, nebo založ vlastní."
+      action={createGroup}
+    >
+      {tabs}
+    </PageBand>
+  )
+
+  // the floating „Založit skupinu“ must not cover the last card
+  const content = cn(PAGE, "flex-1 gap-6", user && "pb-24")
+
   return (
     <>
       <Seo title="Skupiny" />
       <AppHeader />
-      <main
-        className={cn(
-          PAGE,
-          "flex-1 gap-6",
-          // the floating „Založit skupinu“ must not cover the last card
-          user && "pb-24",
-        )}
-      >
-        <div className="flex items-center justify-between gap-4">
-          <h1 className="text-3xl font-semibold tracking-tight md:text-4xl">Skupiny</h1>
-          {/* Any signed-in user founds a group; visitors don't get the button (A-07). */}
-          {user ? (
-            <Button
-              asChild
-              // the page's primary, beside the title like „Založit akci“ in Moje akce (A-07d)
-              size="lg"
-              // mobile: floats above the bottom navigation (Figma A-07)
-              className="fixed right-4 bottom-20 z-30 h-11 shadow-md md:static md:shadow-none"
-            >
-              <Link to="/skupiny/nova">
-                <Plus />
-                Založit skupinu
-              </Link>
-            </Button>
-          ) : null}
-        </div>
-
+      {/* the band and its H1 belong to main, as on every page */}
+      <main className="flex flex-1 flex-col">
         {user ? (
           <Tabs
             value={search.tab ?? "vsechny"}
@@ -107,27 +115,41 @@ function GroupsPage() {
                 replace: true,
               })
             }
-            className="gap-6"
+            className="flex-1 gap-0"
           >
-            {/* A-07d: the two tabs keep their mobile width on desktop */}
-            <TabBar className="md:w-89">
-              <TabBarItem value="vsechny">Všechny</TabBarItem>
-              <TabBarItem value="moje">
-                {myGroupsCount === undefined ? "Moje" : `Moje (${myGroupsCount})`}
-              </TabBarItem>
-            </TabBar>
-            <TabsContent
-              value="vsechny"
-              className="flex flex-col gap-6"
-            >
-              {allGroups}
-            </TabsContent>
-            <TabsContent value="moje">
-              <MyGroups viewerId={user.id} />
-            </TabsContent>
+            {band(
+              <BandTabs>
+                <BandTabsItem
+                  value="vsechny"
+                  count={groups?.length}
+                >
+                  Všechny
+                </BandTabsItem>
+                <BandTabsItem
+                  value="moje"
+                  count={myGroupsCount}
+                >
+                  Moje
+                </BandTabsItem>
+              </BandTabs>,
+            )}
+            <div className={content}>
+              <TabsContent
+                value="vsechny"
+                className="flex flex-col gap-6"
+              >
+                {allGroups}
+              </TabsContent>
+              <TabsContent value="moje">
+                <MyGroups viewerId={user.id} />
+              </TabsContent>
+            </div>
           </Tabs>
         ) : (
-          allGroups
+          <>
+            {band()}
+            <div className={content}>{allGroups}</div>
+          </>
         )}
       </main>
     </>

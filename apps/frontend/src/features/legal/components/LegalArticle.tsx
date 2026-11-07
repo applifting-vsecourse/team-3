@@ -2,6 +2,8 @@ import type { ReactNode } from "react"
 import { Link } from "@tanstack/react-router"
 
 import type { ROUTES } from "@/app/routes"
+import { PageBand } from "@/components/PageBand/PageBand"
+import { PAGE } from "@/lib/pageLayout"
 
 type LegalArticleProps = {
   title: string
@@ -13,27 +15,32 @@ type LegalArticleProps = {
 
 /**
  * The pages behind the sign-up's consents (#153): text to read, so one
- * column of reading width (DESIGN.md › Layout), no cards.
+ * column of reading width (DESIGN.md › Layout), no cards. The title and the lead sit in the
+ * band like on any page.
  */
 export function LegalArticle({ title, lead, children, seeAlso }: LegalArticleProps) {
   return (
-    <article className="flex max-w-2xl flex-col gap-8">
-      <header>
-        <h1 className="text-3xl font-semibold tracking-tight">{title}</h1>
-        <p className="mt-3 text-muted-foreground">{lead}</p>
-      </header>
-      {children}
-      <p className="text-sm text-muted-foreground">
-        Platí od 26. 10. 2026. Viz také{" "}
-        <Link
-          to={seeAlso.to}
-          className="font-medium text-foreground underline underline-offset-4"
-        >
-          {seeAlso.label}
-        </Link>
-        .
-      </p>
-    </article>
+    <main className="flex-1">
+      <PageBand
+        title={title}
+        description={lead}
+      />
+      <div className={PAGE}>
+        <article className="flex max-w-2xl flex-col gap-8">
+          {children}
+          <p className="text-sm text-muted-foreground">
+            Platí od 26. 10. 2026. Viz také{" "}
+            <Link
+              to={seeAlso.to}
+              className="font-medium text-foreground underline underline-offset-4"
+            >
+              {seeAlso.label}
+            </Link>
+            .
+          </p>
+        </article>
+      </div>
+    </main>
   )
 }
 

@@ -3,10 +3,12 @@ import { describe, expect, it } from "vitest"
 import { aMyEvent } from "@/features/events/test/anEvent"
 
 import {
-  attendingFacts,
+  attendingNumbers,
+  attendingRowLead,
   attendingSections,
   attendingStatus,
-  organizingFacts,
+  organizingNumbers,
+  organizingRowTail,
   organizingStatus,
   pendingRequestsSummary,
   requestCountLabel,
@@ -42,37 +44,37 @@ describe("attendingSections", () => {
   })
 })
 
-describe("attendingFacts", () => {
+describe("attendingNumbers", () => {
   it("the badge is „Jdu“, so below the minimum the line says how many are missing itself", () => {
     expect(
-      attendingFacts(
+      attendingNumbers(
         aMyEvent({ approvedCount: 8, minParticipants: 9, maxParticipants: 14, missingToMin: 1 }),
       ),
-    ).toBe("chybí 1 · 8 z 14 · min. 9 · Praha 8")
+    ).toBe("chybí 1 · 8 z 14 · min. 9")
   })
 
-  it("the same for a request still waiting („Čeká“)", () => {
+  it("the same for a request still waiting („Čeká na schválení“)", () => {
     expect(
-      attendingFacts(aMyEvent({ myParticipation: "pending", approvedCount: 2, missingToMin: 2 })),
-    ).toBe("chybí 2 · 2 z 12 · min. 4 · Praha 8")
+      attendingNumbers(aMyEvent({ myParticipation: "pending", approvedCount: 2, missingToMin: 2 })),
+    ).toBe("chybí 2 · 2 z 12 · min. 4")
   })
 
-  it("from the minimum as in the list", () => {
-    expect(attendingFacts(aMyEvent())).toBe("4 z 12 · Praha 8")
-    expect(attendingFacts(aMyEvent({ approvedCount: 12, freeSpots: 0, isFull: true }))).toBe(
-      "12 z 12 · Praha 8",
+  it("from the minimum as in the list, with the minimum", () => {
+    expect(attendingNumbers(aMyEvent())).toBe("4 z 12 · min. 4")
+    expect(attendingNumbers(aMyEvent({ approvedCount: 12, freeSpots: 0, isFull: true }))).toBe(
+      "12 z 12 · min. 4",
     )
   })
 
   it("a cancelled event misses no one any more", () => {
     expect(
-      attendingFacts(aMyEvent({ status: "cancelled", approvedCount: 2, missingToMin: 2 })),
-    ).toBe("2 z 12 · Praha 8")
+      attendingNumbers(aMyEvent({ status: "cancelled", approvedCount: 2, missingToMin: 2 })),
+    ).toBe("2 z 12")
   })
 })
 
 describe("attendingStatus", () => {
-  it("is „Jdu“ for a place and „Čeká“ for a request", () => {
+  it("is „Jdu“ for a place and „Čeká na schválení“ for a request", () => {
     expect(attendingStatus(aMyEvent())).toEqual({ kind: "going" })
     expect(attendingStatus(aMyEvent({ myParticipation: "pending" }))).toEqual({ kind: "pending" })
   })
@@ -105,21 +107,21 @@ describe("organizingStatus", () => {
   })
 })
 
-describe("organizingFacts", () => {
+describe("organizingNumbers", () => {
   const organized = (overrides: Parameters<typeof aMyEvent>[0]) =>
     aMyEvent({ myParticipation: null, pendingRequests: 0, ...overrides })
 
   it("shows the requests to decide first", () => {
     expect(
-      organizingFacts(
+      organizingNumbers(
         organized({ approvedCount: 4, maxParticipants: 5, missingToMin: 0, pendingRequests: 2 }),
       ),
-    ).toBe("4 z 5 · 2 žádosti")
+    ).toBe("4 z 5 · min. 4 · 2 žádosti")
   })
 
   it("with requests below the minimum, the occupancy and then the requests", () => {
     expect(
-      organizingFacts(
+      organizingNumbers(
         organized({
           approvedCount: 3,
           maxParticipants: 12,
@@ -133,24 +135,43 @@ describe("organizingFacts", () => {
 
   it("else the minimum, while people are missing; „chybí“ is the badge's (#189)", () => {
     expect(
-      organizingFacts(
+      organizingNumbers(
         organized({ approvedCount: 3, maxParticipants: 12, minParticipants: 4, missingToMin: 1 }),
       ),
     ).toBe("3 z 12 · min. 4")
   })
 
-  it("else the district, as in the list", () => {
-    expect(organizingFacts(organized({ approvedCount: 8, maxParticipants: 8, isFull: true }))).toBe(
-      "8 z 8 · Praha 8",
-    )
+  // Figma C-02d: „8 z 8 · min. 6“, no district
+  it("else just the occupancy with the minimum", () => {
+    expect(
+      organizingNumbers(organized({ approvedCount: 8, maxParticipants: 8, isFull: true })),
+    ).toBe("8 z 8 · min. 4")
   })
 
   it("on a cancelled event neither requests nor the minimum matter any more", () => {
     expect(
-      organizingFacts(
+      organizingNumbers(
         organized({ status: "cancelled", approvedCount: 2, missingToMin: 2, pendingRequests: 1 }),
       ),
-    ).toBe("2 z 12 · Praha 8")
+    ).toBe("2 z 12")
+  })
+})
+
+// Figma C-01, C-02: the row card's line on a phone
+describe("row card lines", () => {
+  it("Přihlášen starts with how many are missing, as the badge is the user's place", () => {
+    expect(attendingRowLead(aMyEvent({ approvedCount: 3, missingToMin: 1 }))).toBe("chybí 1")
+    expect(attendingRowLead(aMyEvent())).toBeUndefined()
+    expect(attendingRowLead(aMyEvent({ status: "cancelled", missingToMin: 2 }))).toBeUndefined()
+  })
+
+  it("Pořádám ends with the requests waiting, in Czech forms", () => {
+    const organized = (pendingRequests: number) =>
+      aMyEvent({ myParticipation: null, pendingRequests })
+    expect(organizingRowTail(organized(1))).toBe("1 žádost čeká")
+    expect(organizingRowTail(organized(2))).toBe("2 žádosti čekají")
+    expect(organizingRowTail(organized(5))).toBe("5 žádostí čeká")
+    expect(organizingRowTail(organized(0))).toBeUndefined()
   })
 })
 

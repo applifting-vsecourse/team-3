@@ -24,10 +24,10 @@ const localities = [
   { id: "l-brno", slug: "brno", name: "Brno", parentId: null, lat: 49.2, lng: 16.6 },
 ]
 
-const renderLanding = (isVisitor: boolean) =>
+const renderLanding = (isVisitor: boolean, session: "known" | "loading" = "known") =>
   renderWithRouter(
     <QueryClientProvider client={new QueryClient({ defaultOptions: { queries: { retry: 0 } } })}>
-      <LandingView isVisitor={isVisitor} />
+      <LandingView isSignedIn={session === "loading" ? undefined : !isVisitor} />
     </QueryClientProvider>,
   )
 
@@ -51,15 +51,28 @@ describe("LandingView", () => {
             )) as never)
   })
 
-  it("says in one sentence what HobbyHub is for", async () => {
+  // docs/ux-audit.md › Hlas aplikace: personal, never by name
+  it.each([
+    [true, "Někde chybí jeden do party. Třeba ty."],
+    [false, "Tady se na tebe čeká."],
+  ])("a visitor (%s) is welcomed with „%s“", async (isVisitor, title) => {
+    await renderLanding(isVisitor)
+
+    expect(screen.getByRole("heading", { level: 1, name: title })).toBeInTheDocument()
+  })
+
+  it("the band's title is part of the main content, where a screen reader jumps to", async () => {
     await renderLanding(true)
 
-    expect(
-      screen.getByRole("heading", {
-        level: 1,
-        name: "Najdi lidi na volnočasové akce ve svém okolí",
-      }),
-    ).toBeInTheDocument()
+    expect(within(screen.getByRole("main")).getByRole("heading", { level: 1 })).toBeInTheDocument()
+  })
+
+  it("while the session loads, no title shows that could swap out", async () => {
+    await renderLanding(false, "loading")
+
+    // it keeps its place in the band, hidden (jsdom does not apply the class, so check it)
+    expect(screen.getByRole("heading", { level: 1 }).firstElementChild).toHaveClass("invisible")
+    expect(screen.queryByText("Tady se na tebe čeká.")).not.toBeInTheDocument()
   })
 
   it("shows the three soonest events in Praha, each a link to its detail", async () => {

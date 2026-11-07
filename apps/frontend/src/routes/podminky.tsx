@@ -1,8 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router"
 
 import { Seo } from "@/components/Seo"
-import { PAGE } from "@/lib/pageLayout"
-import { cn } from "@/lib/utils"
 
 import { AppHeader } from "@/features/auth/components/AppHeader"
 import { TermsOfUse } from "@/features/legal/components/TermsOfUse"
@@ -17,9 +15,7 @@ function TermsPage() {
     <>
       <Seo title="Podmínky užívání" />
       <AppHeader />
-      <main className={cn(PAGE, "flex-1")}>
-        <TermsOfUse />
-      </main>
+      <TermsOfUse />
     </>
   )
 }
