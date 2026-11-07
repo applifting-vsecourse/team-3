@@ -1430,15 +1430,29 @@ describe('EventsService notifications (#177)', () => {
   });
 
   it('a mail that fails to go out never breaks what the user did', async () => {
-    const logged = jest.spyOn(Logger.prototype, 'error').mockImplementation();
+    const warned = jest.spyOn(Logger.prototype, 'warn').mockImplementation();
     const repository = mock<EventRepository>();
     repository.findEventDetail.mockResolvedValue(aDetail());
     repository.findApprovedParticipants.mockResolvedValue(participants);
     repository.findParticipationStatus.mockResolvedValue(null);
     repository.cancelEvent.mockResolvedValue(true);
-    // the real service, with a database and a mail provider that both fail
+    // the real service: the event and its audience load, the mail provider fails
     const notificationRepository = mock<NotificationRepository>();
-    notificationRepository.findEvent.mockRejectedValue(new Error('db down'));
+    notificationRepository.findEvent.mockResolvedValue({
+      id: 'e1',
+      title: 'Deskovky ve středu',
+      startsAt: new Date('2026-11-11T17:00:00.000Z'),
+      endsAt: null,
+      address: 'Herna Karlín, Praha 8',
+      cancelReason: 'Herna má zavřeno.',
+      approvedCount: 2,
+      maxParticipants: 6,
+      organizerId: 'u1',
+    });
+    notificationRepository.findAudience.mockResolvedValue([
+      { id: 'u2', name: 'Jana', email: 'jana@example.com' },
+      { id: 'u3', name: 'Tomáš', email: 'tomas@example.com' },
+    ]);
     const email = mock<EmailService>();
     email.sendEmail.mockRejectedValue(new Error('smtp down'));
     const notifications = new NotificationService(
@@ -1452,11 +1466,15 @@ describe('EventsService notifications (#177)', () => {
       service.cancelEvent('e1', 'u1', 'Herna má zavřeno.', now),
     ).resolves.toMatchObject({ id: 'e1' });
     // let the mails go out, and fail, after the response
+    for (let i = 0; i < 10 && email.sendEmail.mock.calls.length < 2; i++)
+      await new Promise((resolve) => setImmediate(resolve));
+    // one failed mail doesn't stop the next; each failure is logged, not thrown
+    expect(email.sendEmail.mock.calls.map(([to]) => to)).toEqual([
+      'jana@example.com',
+      'tomas@example.com',
+    ]);
     await new Promise((resolve) => setImmediate(resolve));
-    await new Promise((resolve) => setImmediate(resolve));
-    expect(notificationRepository.findEvent).toHaveBeenCalledWith('e1');
-    // the failure was logged, not thrown
-    expect(logged).toHaveBeenCalledTimes(1);
-    logged.mockRestore();
+    expect(warned).toHaveBeenCalledTimes(2);
+    warned.mockRestore();
   });
 });
