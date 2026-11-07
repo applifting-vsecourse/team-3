@@ -4,16 +4,18 @@ Rozcestník podkladů k projektu. Agent i lidé začínají tady.
 
 ## Zadání a rozsah
 
-| Dokument                                                     | Co v něm je                                                                                   |
-| ------------------------------------------------------------ | --------------------------------------------------------------------------------------------- |
-| [HobbyHub_User_Stories_MVP.md](HobbyHub_User_Stories_MVP.md) | User stories US-01 až US-19 s akceptačními kritérii (zdroj pro issues `user story`)           |
-| [../BACKLOG.md](../BACKLOG.md)                               | Rozpad stories na úkoly B-0xx pro agenta, pořadí a závislosti                                 |
-| [zapis-planning-sprint2.md](zapis-planning-sprint2.md)       | Zápis z planningu s PO 13. 10. 2026 a změny ze standupu 19. 10.: happy path a scope sprintu 2 |
-| [zapis-planning-sprint3.md](zapis-planning-sprint3.md)       | Zápis z planningu s PO 28. 10. 2026: životní cyklus akce, scope a rozhodnutí sprintu 3        |
-| [design-rozhodnuti.md](design-rozhodnuti.md)                 | Kde se design vědomě liší od wireframů a proč                                                 |
-| [datovy-model.md](datovy-model.md)                           | Datový model MVP: ER diagram, přehled tabulek a pravidla, která hlídá backend                 |
-| [prihlaseni-pres-google.md](prihlaseni-pres-google.md)       | Jak zapnout přihlášení přes Google: OAuth klient v Google Cloud Console a proměnné v Coolify  |
-| Feature breakdown v3.4                                       | `HobbyHub_Feature_Breakdown_FINAL_sablona.xlsx` ve sdílené složce „Agilni vyvoj“ (čísla F-xx) |
+| Dokument                                                     | Co v něm je                                                                                                              |
+| ------------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------ |
+| [HobbyHub_User_Stories_MVP.md](HobbyHub_User_Stories_MVP.md) | User stories US-01 až US-19 s akceptačními kritérii (zdroj pro issues `user story`)                                      |
+| [../BACKLOG.md](../BACKLOG.md)                               | Rozpad stories na úkoly B-0xx pro agenta, pořadí a závislosti                                                            |
+| [zapis-planning-sprint2.md](zapis-planning-sprint2.md)       | Zápis z planningu s PO 13. 10. 2026 a změny ze standupu 19. 10.: happy path a scope sprintu 2                            |
+| [zapis-planning-sprint3.md](zapis-planning-sprint3.md)       | Zápis z planningu s PO 28. 10. 2026: životní cyklus akce, scope a rozhodnutí sprintu 3                                   |
+| [design-rozhodnuti.md](design-rozhodnuti.md)                 | Kde se design vědomě liší od wireframů a proč                                                                            |
+| [ux-audit.md](ux-audit.md)                                   | UX audit a nový brand (#173): rozhodnutí, pravidla úvodní stránky a hodnocení, hlas aplikace, přehled obrazovek ve Figmě |
+| [datovy-model.md](datovy-model.md)                           | Datový model MVP: ER diagram, přehled tabulek a pravidla, která hlídá backend                                            |
+| [prihlaseni-pres-google.md](prihlaseni-pres-google.md)       | Jak zapnout přihlášení přes Google: OAuth klient v Google Cloud Console a proměnné v Coolify                             |
+| [bezpecnostni-audit.md](bezpecnostni-audit.md)               | Bezpečnostní audit: Node.js a balíčky, nálezy v kódu, závažnost a stav                                                   |
+| Feature breakdown v3.4                                       | `HobbyHub_Feature_Breakdown_FINAL_sablona.xlsx` ve sdílené složce „Agilni vyvoj“ (čísla F-xx)                            |
 
 ## Odkazy
 
