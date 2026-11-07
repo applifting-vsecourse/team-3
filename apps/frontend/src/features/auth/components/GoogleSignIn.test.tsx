@@ -33,7 +33,10 @@ const renderGoogle = async (from?: string, startedOn: GooglePage = "/login") => 
   const queryClient = new QueryClient()
   const view = await renderWithRouter(
     <QueryClientProvider client={queryClient}>
-      <GoogleSignIn from={from} startedOn={startedOn} />
+      <GoogleSignIn
+        from={from}
+        startedOn={startedOn}
+      />
     </QueryClientProvider>,
   )
   return { queryClient, ...view }

@@ -74,8 +74,8 @@ describe('sign-in with Google (#154)', () => {
   });
 
   it('makes the name from Google pass the name rule (#153) rather than refusing it', async () => {
-    const google = socialSignInOptions({ ...both, frontendUrl })
-      .socialProviders?.google;
+    const google = socialSignInOptions({ ...both, frontendUrl }).socialProviders
+      ?.google;
     // BetterAuth also takes a function returning the options; ours are plain
     if (!google || typeof google === 'function') throw new Error('no options');
 
