@@ -31,6 +31,8 @@ type EventDetailViewProps = {
   participation?: ReactNode
   /** The organizer's own actions, e.g. „Zrušit akci“ (#52); the page builds them. */
   organizerActions?: ReactNode
+  /** For tests; the event is over once its end (or, without one, its start) is past it. */
+  now?: Date
 }
 
 /**
@@ -49,6 +51,7 @@ export function EventDetailView({
   onRetry,
   participation,
   organizerActions,
+  now = new Date(),
 }: EventDetailViewProps) {
   const isDesktop = useMediaQuery(DESKTOP_QUERY)
 
@@ -82,8 +85,10 @@ export function EventDetailView({
   if (isLoading || !event) return <EventDetailSkeleton isDesktop={isDesktop} />
 
   const isCancelled = event.status === "cancelled"
-  // the minimum is reached, so the event happens (DESIGN.md › Koná se stamp)
-  const isHappening = !isCancelled && event.missingToMin === 0
+  // the minimum is reached, so the event happens (DESIGN.md › Koná se stamp); a past one
+  // says „Proběhlo“ instead (Figma A-05h)
+  const isOver = (event.endsAt ?? event.startsAt) <= now
+  const isHappening = !isCancelled && !isOver && event.missingToMin === 0
   const heading = (
     <header className="flex flex-col gap-5 md:gap-6">
       <div className="flex flex-wrap items-center gap-3">

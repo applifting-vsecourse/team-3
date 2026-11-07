@@ -8,6 +8,9 @@ import { renderWithRouter } from "@/test/renderWithRouter"
 import { EventDetailView } from "@/features/events/components/EventDetailView"
 import { anEventDetail } from "@/features/events/test/anEvent"
 
+// the fixture starts Fri 23. 10. 2026 17:30 Prague time
+const beforeStart = new Date("2026-10-23T08:00:00.000Z")
+
 describe("EventDetailView", () => {
   it("shows what, when, where, who organizes it and how many are coming", async () => {
     await renderWithRouter(
@@ -130,9 +133,26 @@ describe("EventDetailView", () => {
     [{ approvedCount: 4, missingToMin: 0 }, true],
     [{ approvedCount: 12, missingToMin: 0, freeSpots: 0, isFull: true }, true],
   ])("with %o the „Koná se“ stamp shows: %s", async (numbers, isShown) => {
-    await renderWithRouter(<EventDetailView event={anEventDetail(numbers)} />)
+    await renderWithRouter(
+      <EventDetailView
+        event={anEventDetail(numbers)}
+        now={beforeStart}
+      />,
+    )
 
     expect(Boolean(screen.queryByText("Koná se"))).toBe(isShown)
+  })
+
+  it("an event that is over has no „Koná se“ stamp, its minimum reached or not (Figma A-05h)", async () => {
+    const event = anEventDetail({ approvedCount: 4, missingToMin: 0 })
+    await renderWithRouter(
+      <EventDetailView
+        event={event}
+        now={new Date((event.endsAt ?? event.startsAt).getTime() + 1)}
+      />,
+    )
+
+    expect(screen.queryByText("Koná se")).not.toBeInTheDocument()
   })
 
   it("shows the organizer's actions the page passes in", async () => {
