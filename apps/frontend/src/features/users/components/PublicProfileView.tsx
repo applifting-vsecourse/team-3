@@ -26,7 +26,7 @@ export function PublicProfileView({
   if (isNotFound) {
     return (
       <section className="flex flex-col gap-3 py-8">
-        <h1 className="text-2xl font-semibold tracking-tight">Profil nenalezen</h1>
+        <h1 className="type-title">Profil nenalezen</h1>
         <p className="text-muted-foreground">
           Profil není dostupný. Zkus se vrátit na přehled akcí.
         </p>
@@ -39,7 +39,7 @@ export function PublicProfileView({
         aria-busy="true"
         className="flex flex-col gap-3 py-8"
       >
-        <h1 className="text-2xl font-semibold tracking-tight">Profil uživatele</h1>
+        <h1 className="type-title">Profil uživatele</h1>
         <p
           role="status"
           className="text-muted-foreground"
@@ -53,7 +53,7 @@ export function PublicProfileView({
   if (error || !profile) {
     return (
       <section className="flex flex-col items-start gap-3 py-8">
-        <h1 className="text-2xl font-semibold tracking-tight">Profil uživatele</h1>
+        <h1 className="type-title">Profil uživatele</h1>
         <p
           role="alert"
           className="text-destructive"
@@ -73,7 +73,7 @@ export function PublicProfileView({
   return (
     <>
       <header className="flex flex-col gap-4">
-        <h1 className="text-3xl font-semibold tracking-tight">{profile.name}</h1>
+        <h1 className="type-title">{profile.name}</h1>
         <section
           aria-label="Zájmy"
           className="flex flex-wrap gap-2"
@@ -97,7 +97,7 @@ export function PublicProfileView({
         >
           <h2
             id="participant-ratings"
-            className="text-xl font-semibold tracking-tight"
+            className="type-feature"
           >
             Jako účastník
           </h2>
@@ -155,7 +155,7 @@ export function PublicProfileView({
         >
           <h2
             id="organizer-ratings"
-            className="text-xl font-semibold tracking-tight"
+            className="type-feature"
           >
             Jako organizátor
           </h2>
@@ -185,7 +185,7 @@ export function PublicProfileView({
         >
           <h2
             id="organized-events"
-            className="text-xl font-semibold tracking-tight"
+            className="type-feature"
           >
             Pořádané akce
           </h2>
@@ -196,7 +196,7 @@ export function PublicProfileView({
                 className="flex flex-col gap-3 rounded-lg border border-border bg-card p-4"
               >
                 <ActivityTag name={event.activityName} />
-                <h3 className="text-lg font-semibold tracking-tight">
+                <h3 className="type-row-title">
                   <Link
                     className="underline underline-offset-4"
                     to={ROUTES.eventDetail}
@@ -225,12 +225,13 @@ function Summary({ value }: { value: PublicSummary }) {
   return (
     <p>
       {value.count > 0 && value.average !== null ? (
+        // DESIGN.md › Copy: an average always shows its count
         <>
-          <strong>{value.average.toLocaleString("cs-CZ", { maximumFractionDigits: 1 })} / 5</strong>
-          <span className="ml-2 text-sm text-muted-foreground">Počet hodnocení: {value.count}</span>
+          <strong>★ {value.average.toLocaleString("cs-CZ", { maximumFractionDigits: 1 })}</strong>{" "}
+          <span className="text-muted-foreground">({value.count} hodnocení)</span>
         </>
       ) : (
-        <span className="text-muted-foreground">Zatím bez hodnocení.</span>
+        <span className="text-muted-foreground">zatím bez hodnocení</span>
       )}
     </p>
   )

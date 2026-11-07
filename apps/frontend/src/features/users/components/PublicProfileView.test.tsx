@@ -68,8 +68,8 @@ describe("public profile", () => {
         })}
       />,
     )
-    expect(screen.getByText("4,5 / 5")).toBeInTheDocument()
-    expect(screen.getByText("Počet hodnocení: 2")).toBeInTheDocument()
+    expect(screen.getByText("★ 4,5")).toBeInTheDocument()
+    expect(screen.getByText("(2 hodnocení)")).toBeInTheDocument()
     expect(screen.getByText("Počet účastníků: 3")).toBeInTheDocument()
     expect(screen.getByLabelText("5 z 5 hvězdiček")).toBeInTheDocument()
     expect(screen.getByText("<script>untrusted()</script>")).toBeInTheDocument()
