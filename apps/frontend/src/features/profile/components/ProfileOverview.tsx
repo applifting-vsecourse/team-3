@@ -2,7 +2,6 @@ import { useId, type ReactNode } from "react"
 import { Link, type LinkProps } from "@tanstack/react-router"
 
 import { ROUTES } from "@/app/routes"
-import { StatusBadge, type BadgeStatus } from "@/components/StatusBadge/StatusBadge"
 import { Button } from "@/components/ui/button"
 
 import type {
@@ -12,19 +11,14 @@ import type {
 } from "@/features/profile/api/profileSchemas"
 import { formatRatingSummary } from "@/features/profile/lib/formatRating"
 
-const when = new Intl.DateTimeFormat("cs-CZ", {
-  dateStyle: "medium",
-  timeStyle: "short",
-  timeZone: "Europe/Prague",
-})
-
 /** A section of the overview on /profil (Figma B-05, B-05d): heading, content, the way to the rest. */
 export function ProfileSection({
   title,
   children,
   more,
 }: {
-  title: string
+  /** With one highlighted keyword (DESIGN.md › Type): `HighlightedTitle`. */
+  title: ReactNode
   children: ReactNode
   more?: ReactNode
 }) {
@@ -43,6 +37,25 @@ export function ProfileSection({
       {children}
       {more}
     </section>
+  )
+}
+
+/** A section heading with its one keyword highlighted: „Kam **jdu**“ (DESIGN.md › Type). */
+export function HighlightedTitle({
+  before,
+  keyword,
+  after,
+}: {
+  before?: string
+  keyword: string
+  after?: string
+}) {
+  return (
+    <>
+      {before ? `${before} ` : null}
+      <span className="highlight-keyword">{keyword}</span>
+      {after ? ` ${after}` : null}
+    </>
   )
 }
 
@@ -76,33 +89,31 @@ function More({
   ) : null
 }
 
-const badgeOf = (event: ProfileEvent): BadgeStatus | null => {
-  if (event.status === "cancelled") return { kind: "cancelled" }
-  if (event.participation === "pending") return { kind: "pending" }
-  if (event.participation === "approved") return { kind: "going" }
-  return null
-}
+export type ProfileEventSection = "upcoming" | "organizing" | "past"
 
 /**
- * Kam jdu, Pořádám, Proběhlé: the first few events (the API sends at most 3)
- * as rows. The row event card (Karta akce/Foto řádek, #253) and the past one
- * (Karta akce/Proběhlá řádek, #259) replace these rows once they are merged.
+ * One event of a section as its card. The cards belong to the events feature, which this
+ * feature can't import, so the route puts them in (like Moje skupiny).
  */
+export type RenderProfileEvent = (event: ProfileEvent, section: ProfileEventSection) => ReactNode
+
+/** Kam jdu, Pořádám, Proběhlé: the first few events (the API sends at most 3) as row cards. */
 export function EventSection({
   title,
+  section,
   events,
   total,
   empty,
-  hasBadge = true,
   link,
+  renderEvent,
 }: {
-  title: string
+  title: ReactNode
+  section: ProfileEventSection
   events: ProfileEvent[]
   total: number
   empty: ReactNode
-  /** Past events are all approved places: „Jdu“ would say nothing there. */
-  hasBadge?: boolean
   link?: Pick<LinkProps, "to" | "search">
+  renderEvent: RenderProfileEvent
 }) {
   return (
     <ProfileSection
@@ -118,36 +129,11 @@ export function EventSection({
       {!events.length ? (
         <div className="flex flex-col items-start gap-3 text-sm text-muted-foreground">{empty}</div>
       ) : (
-        <ul className="divide-y divide-border">
-          {events.map((event) => {
-            const badge = hasBadge ? badgeOf(event) : null
-            return (
-              <li
-                key={event.id}
-                className="flex flex-col gap-1 py-3 first:pt-0"
-              >
-                <h3 className="type-row-title">
-                  <Link
-                    to={ROUTES.eventDetail}
-                    params={{ eventId: event.id }}
-                    className="underline-offset-4 hover:underline"
-                  >
-                    {event.title}
-                  </Link>
-                </h3>
-                <p className="text-sm text-muted-foreground">
-                  <time dateTime={event.startsAt.toISOString()}>{when.format(event.startsAt)}</time>{" "}
-                  · {event.localityName}
-                </p>
-                {badge ? (
-                  <StatusBadge
-                    status={badge}
-                    className="w-fit"
-                  />
-                ) : null}
-              </li>
-            )
-          })}
+        // grid-cols-1 = minmax(0, 1fr): a long title truncates instead of widening the column
+        <ul className="grid grid-cols-1 gap-3">
+          {events.map((event) => (
+            <li key={event.id}>{renderEvent(event, section)}</li>
+          ))}
         </ul>
       )}
     </ProfileSection>
@@ -165,7 +151,14 @@ export function RatingsSection({
   organizer: RatingGroup
 }) {
   return (
-    <ProfileSection title="Hodnocení">
+    <ProfileSection
+      title={
+        <HighlightedTitle
+          before="Moje"
+          keyword="hodnocení"
+        />
+      }
+    >
       <div className="grid gap-8 md:grid-cols-2">
         <RatingList
           title="Jako účastník"

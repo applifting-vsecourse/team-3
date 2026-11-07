@@ -46,7 +46,10 @@ describe("/profil/upravit (#178, Figma B-06)", () => {
       </QueryClientProvider>,
     )
 
-    expect(screen.getByRole("heading", { level: 1, name: "Upravit profil" })).toBeInTheDocument()
+    // the band with the way back (DESIGN.md › Layout)
+    expect(
+      screen.getByRole("heading", { level: 1, name: "Upravit profil" }).closest(".on-hero"),
+    ).not.toBeNull()
     expect(screen.getByRole("link", { name: "Můj profil" })).toHaveAttribute("href", "/profil")
 
     const details = await screen.findByRole("region", { name: "Údaje" })

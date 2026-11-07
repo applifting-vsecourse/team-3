@@ -26,7 +26,8 @@ export function ProfileGroups({ viewerId }: { viewerId: string }) {
         id={headingId}
         className="type-feature"
       >
-        Moje skupiny
+        {/* the one highlighted keyword of a section heading (DESIGN.md › Type) */}
+        Moje <span className="highlight-keyword">skupiny</span>
       </h2>
       {query.error ? (
         <div

@@ -19,11 +19,35 @@ export const profileInputSchema = z.object({
   interestIds: z.array(z.string()).max(50, "Vyber nejvýš 50 zájmů."),
 })
 export type ProfileInput = z.infer<typeof profileInputSchema>
+/**
+ * An event as GET /api/events sends it — what the event cards show — and my place in it.
+ * The events feature's schema can't be imported here (one feature imports only itself); the
+ * route hands these to its EventCard, so the compiler keeps the two shapes in step.
+ */
 const profileEventSchema = z.object({
   id: z.string(),
   title: z.string(),
   startsAt: z.coerce.date(),
   endsAt: z.coerce.date().nullable(),
+  address: z.string(),
+  lat: z.number(),
+  lng: z.number(),
+  activity: z.object({
+    id: z.string(),
+    slug: z.string(),
+    name: z.string(),
+    category: z.object({ id: z.string(), slug: z.string(), name: z.string(), icon: z.string() }),
+  }),
+  locality: z.object({ id: z.string(), slug: z.string(), name: z.string() }),
+  organizer: z.object({ id: z.string(), name: z.string() }),
+  group: z.object({ id: z.string(), name: z.string() }).nullable(),
+  minParticipants: z.number(),
+  maxParticipants: z.number(),
+  approvedCount: z.number(),
+  missingToMin: z.number(),
+  freeSpots: z.number(),
+  isFull: z.boolean(),
+  isPromoted: z.boolean(),
   status: z.enum(["published", "cancelled"]),
   localityName: z.string(),
   participation: z.enum(["approved", "pending"]).nullable(),

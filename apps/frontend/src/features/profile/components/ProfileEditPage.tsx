@@ -2,7 +2,7 @@ import { useId, type ReactNode } from "react"
 import { useQuery } from "@tanstack/react-query"
 
 import { ROUTES } from "@/app/routes"
-import { BackLink } from "@/components/BackLink/BackLink"
+import { PageBand } from "@/components/PageBand/PageBand"
 import { Seo } from "@/components/Seo"
 import { PAGE } from "@/lib/pageLayout"
 import { cn } from "@/lib/utils"
@@ -23,22 +23,21 @@ type ProfileEditPageProps = {
 
 /**
  * /profil/upravit (Figma B-06, B-06d): Údaje and Účet side by side on desktop,
- * one under the other on a phone. The page band (PageBand, #253) takes over the
- * back link and the title once it is merged.
+ * one under the other on a phone, under the band with the way back to the profile.
  */
 export function ProfileEditPage({ viewerId, accountContent, onSaved }: ProfileEditPageProps) {
   const query = useQuery(profileQueryOptions(viewerId))
   return (
     <>
       <Seo title="Upravit profil" />
+      <PageBand
+        title="Upravit profil"
+        description="Jak tě uvidí ostatní a jak se přihlašuješ."
+        back={{ to: ROUTES.profile, fallbackLabel: "Můj profil", label: "Můj profil" }}
+        // a form: on a phone one bar with the arrow and the title (Figma Header/Sub)
+        isCompactOnMobile
+      />
       <div className={cn(PAGE, "gap-6 pb-24")}>
-        <div className="flex flex-col gap-2">
-          <BackLink
-            to={ROUTES.profile}
-            fallbackLabel="Můj profil"
-          />
-          <h1 className="type-title">Upravit profil</h1>
-        </div>
         {query.error ? (
           <ProfileError retry={() => void query.refetch()} />
         ) : !query.data ? (

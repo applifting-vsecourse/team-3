@@ -30,6 +30,25 @@ const anEvent = (overrides: Partial<ProfileEvent>): ProfileEvent => ({
   title: "Florbal",
   startsAt: new Date("2026-11-20T17:00:00Z"),
   endsAt: null,
+  address: "Hala Holešovice, Za Elektrárnou 419, Praha 7",
+  lat: 50.1,
+  lng: 14.43,
+  activity: {
+    id: "a-florbal",
+    slug: "florbal",
+    name: "Florbal",
+    category: { id: "c-sport", slug: "sport", name: "Sport", icon: "ball" },
+  },
+  locality: { id: "p7", slug: "praha-7", name: "Praha 7" },
+  organizer: { id: "org", name: "Petr" },
+  group: null,
+  minParticipants: 6,
+  maxParticipants: 12,
+  approvedCount: 5,
+  missingToMin: 1,
+  freeSpots: 7,
+  isFull: false,
+  isPromoted: false,
   status: "published",
   localityName: "Praha 7",
   participation: null,
@@ -68,6 +87,12 @@ const show = () =>
     >
       <ProfilePage
         viewerId="owner"
+        // the events feature's cards, whose badges ProfileEventCard.test.tsx checks
+        renderEvent={(event, section) => (
+          <a href={`/akce/${event.id}`}>
+            {section}: {event.title}
+          </a>
+        )}
         groupsContent={
           // the groups feature's own section, with its own tests (ProfileGroups.test.tsx)
           <section aria-label="Moje skupiny">
@@ -88,7 +113,10 @@ describe("/profil overview (#178, Figma B-05)", () => {
     respond({ ...empty, participantSummary: { average: 4.5, count: 6 } })
     await show()
 
-    expect(await screen.findByRole("heading", { level: 1, name: "Jana Nová" })).toBeInTheDocument()
+    const name = await screen.findByRole("heading", { level: 1, name: "Jana Nová" })
+    // who I am sits in the dark band (DESIGN.md › Layout); the avatar is decoration
+    expect(name.closest(".on-hero")).not.toBeNull()
+    expect(screen.getByText("JN").closest("[aria-hidden='true']")).not.toBeNull()
     expect(screen.getByText("Praha 7 · ★ 4,5 (6 hodnocení)")).toBeInTheDocument()
     expect(within(screen.getByRole("list", { name: "Zájmy" })).getByText("Běh")).toBeInTheDocument()
     expect(screen.getByRole("link", { name: "Upravit profil" })).toHaveAttribute(
@@ -97,11 +125,18 @@ describe("/profil overview (#178, Figma B-05)", () => {
     )
     expect(screen.getAllByRole("heading", { level: 2 }).map((h) => h.textContent)).toEqual([
       "Kam jdu",
-      "Pořádám",
-      "Proběhlé",
+      "Co pořádám",
+      "Proběhlé akce",
       "Moje skupiny",
-      "Hodnocení",
+      "Moje hodnocení",
     ])
+    // one highlighted keyword per section heading (DESIGN.md › Type)
+    expect(
+      screen
+        .getAllByRole("heading", { level: 2 })
+        .slice(0, 3)
+        .map((h) => h.querySelector(".highlight-keyword")?.textContent),
+    ).toEqual(["jdu", "pořádám", "Proběhlé"])
   })
 
   it("says in each empty section what would be there, and that there is no rating yet", async () => {
@@ -115,9 +150,11 @@ describe("/profil overview (#178, Figma B-05)", () => {
       "href",
       "/akce",
     )
-    expect(within(section("Pořádám")).getByText("Zatím žádnou akci nepořádáš.")).toBeInTheDocument()
     expect(
-      within(section("Proběhlé")).getByText(
+      within(section("Co pořádám")).getByText("Zatím žádnou akci nepořádáš."),
+    ).toBeInTheDocument()
+    expect(
+      within(section("Proběhlé akce")).getByText(
         "Tady uvidíš proběhlé akce, na které máš schválenou účast.",
       ),
     ).toBeInTheDocument()
@@ -127,7 +164,7 @@ describe("/profil overview (#178, Figma B-05)", () => {
     expect(screen.queryByRole("link", { name: "Všechny v Moje akce" })).not.toBeInTheDocument()
   })
 
-  it("marks a waiting request and a cancelled event, and leads to the rest in Moje akce", async () => {
+  it("shows each section's events as cards and leads to the rest in Moje akce", async () => {
     respond({
       ...empty,
       upcoming: [
@@ -141,20 +178,18 @@ describe("/profil overview (#178, Figma B-05)", () => {
     await show()
 
     const going = await screen.findByRole("region", { name: "Kam jdu" })
-    const [trip, volleyball] = within(going).getAllByRole("listitem")
-    expect(within(trip!).getByRole("link", { name: "Výlet na Zbraslav" })).toHaveAttribute(
-      "href",
-      "/akce/e1",
-    )
-    expect(within(trip!).getByText("Čeká")).toBeInTheDocument()
-    expect(within(volleyball!).getByText("Jdu")).toBeInTheDocument()
+    expect(
+      within(going)
+        .getAllByRole("listitem")
+        .map((item) => item.textContent),
+    ).toEqual(["upcoming: Výlet na Zbraslav", "upcoming: Volejbal"])
     expect(within(going).getByRole("link", { name: "Všechny v Moje akce" })).toHaveAttribute(
       "href",
       "/moje-akce",
     )
 
-    const organizing = section("Pořádám")
-    expect(within(organizing).getByText("Zrušeno")).toBeInTheDocument()
+    const organizing = section("Co pořádám")
+    expect(within(organizing).getByText("organizing: Deskovky")).toBeInTheDocument()
     expect(within(organizing).getByRole("link", { name: "Všechny v Moje akce" })).toHaveAttribute(
       "href",
       "/moje-akce?tab=poradam",
@@ -184,10 +219,9 @@ describe("/profil overview (#178, Figma B-05)", () => {
     })
     await show()
 
-    const past = await screen.findByRole("region", { name: "Proběhlé" })
+    const past = await screen.findByRole("region", { name: "Proběhlé akce" })
     expect(within(past).getByText("Zobrazeno 3 z 12")).toBeInTheDocument()
-    // past places are all approved: no „Jdu“ on them
-    expect(within(past).queryByText("Jdu")).not.toBeInTheDocument()
+    expect(within(past).getAllByText(/^past: /)).toHaveLength(3)
     const asParticipant = section("Jako účastník")
     expect(within(asParticipant).getByText("★ 4,5 (6 hodnocení)")).toBeInTheDocument()
     expect(within(asParticipant).getByText("Spolehlivě dorazí.")).toBeInTheDocument()

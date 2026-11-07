@@ -31,6 +31,8 @@ type PageBandProps = {
   isPlainOnMobile?: boolean
   /** Above the title, e.g. the activity of an event (Figma A-05d). */
   eyebrow?: ReactNode
+  /** Before the title where a section page has the logo mark, e.g. the avatar on /profil (#178). */
+  leading?: ReactNode
   /** The page's one main action, beside the title on desktop (Založit akci, Založit skupinu). */
   action?: ReactNode
   /** Tabs on the band's bottom edge (BandTabs). */
@@ -51,6 +53,7 @@ export function PageBand({
   isCompactOnMobile = false,
   isPlainOnMobile = false,
   eyebrow,
+  leading,
   action,
   children,
 }: PageBandProps) {
@@ -106,6 +109,7 @@ export function PageBand({
                 className="size-8 md:size-11"
               />
             ) : null}
+            {leading}
             <h1
               className={cn(
                 "min-w-0 text-balance text-on-hero",
