@@ -26,8 +26,11 @@ import {
   decideLeave,
   decideRequests,
   ParticipationRefusal,
+  type ParticipationStatus,
 } from '@/modules/event/domain/participation';
 import { EventRepository } from '@/modules/event/repositories/event.repository';
+import { summarizeChange } from '@/modules/notification/domain/event-change';
+import { NotificationService } from '@/modules/notification/services/notification.service';
 import {
   BadRequestException,
   ConflictException,
@@ -79,7 +82,10 @@ export const MY_EVENTS_LIMIT = 200;
 
 @Injectable()
 export class EventsService {
-  constructor(private readonly eventRepository: EventRepository) {}
+  constructor(
+    private readonly eventRepository: EventRepository,
+    private readonly notifications: NotificationService,
+  ) {}
 
   /**
    * Upcoming public events matching the filters, at most `limit`: soonest
@@ -227,7 +233,10 @@ export class EventsService {
       });
     }
     this.assertCancellable(event, now);
-    if (!(await this.eventRepository.cancelEvent(id, reason, now))) {
+    if (await this.eventRepository.cancelEvent(id, reason, now)) {
+      // only the cancel that wrote tells the participants (#177)
+      this.notifications.notify({ type: 'event-cancelled', eventId: id });
+    } else {
       // changed between the check and the write (e.g. cancelled in another tab)
       this.assertCancellable(await this.getEventDetail(id, userId, now), now);
     }
@@ -271,7 +280,17 @@ export class EventsService {
     );
     if (!decision) throw new NotFoundException('Akce neexistuje.');
     if (!decision.ok) throw updateRefused(decision.refusal);
-    return this.getEventDetail(id, userId, now);
+    const updated = await this.getEventDetail(id, userId, now);
+    // a new title or a higher maximum is nobody's news; time and place are (#177)
+    const change = summarizeChange(event, updated);
+    if (change) {
+      this.notifications.notify({
+        type: 'event-changed',
+        eventId: id,
+        change,
+      });
+    }
+    return updated;
   }
 
   /**
@@ -323,6 +342,12 @@ export class EventsService {
     );
     if (!result) throw new NotFoundException('Akce neexistuje.');
     if (!result.ok) throw refused(result.refusal);
+    this.notifications.notify({
+      type: 'request-decided',
+      eventId,
+      userIds: [...new Set(requesterIds)],
+      outcome: decision === 'approve' ? 'approved' : 'rejected',
+    });
     return this.getParticipants(eventId, userId, now);
   }
 
@@ -371,23 +396,49 @@ export class EventsService {
     );
     if (!decision) throw new NotFoundException('Akce neexistuje.');
     if (!decision.ok) throw refused(decision.refusal);
+    // a request waits for the organizer, who hears of it (#177); joining at once has nobody to tell
+    if (decision.status === 'pending') {
+      this.notifications.notify({
+        type: 'request-received',
+        eventId,
+        applicantId: userId,
+        message,
+      });
+    }
     return this.getEventDetail(eventId, userId, now);
   }
 
-  /** Leaves the event or withdraws a request, before it starts; the place is free again. */
+  /**
+   * Leaves the event or withdraws a request, before it starts; the place is
+   * free again. The organizer hears of a participant leaving (#177), not of a
+   * request being withdrawn: that one just disappears from their list.
+   */
   async leave(
     eventId: string,
     userId: string,
     now: Date = new Date(),
   ): Promise<EventDetailView> {
     await this.getEventDetail(eventId, userId, now);
+    // the status read under the row lock: an approval just before leaving
+    // still tells the organizer
+    let leftStatus: ParticipationStatus | null = null;
     const decision = await this.eventRepository.leave(
       eventId,
       userId,
-      (state) => decideLeave(state, now),
+      (state) => {
+        leftStatus = state.existingStatus;
+        return decideLeave(state, now);
+      },
     );
     if (!decision) throw new NotFoundException('Akce neexistuje.');
     if (!decision.ok) throw refused(decision.refusal);
+    if (leftStatus === 'approved') {
+      this.notifications.notify({
+        type: 'participant-left',
+        eventId,
+        participantId: userId,
+      });
+    }
     return this.getEventDetail(eventId, userId, now);
   }
 
