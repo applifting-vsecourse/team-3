@@ -109,8 +109,18 @@ export class UserRepository {
           visibility: true,
           groupId: true,
           organizerUserId: true,
-          locality: { select: { name: true } },
-          activity: { select: { name: true } },
+          address: true,
+          locality: { select: { id: true, slug: true, name: true } },
+          activity: {
+            select: {
+              id: true,
+              slug: true,
+              name: true,
+              category: {
+                select: { id: true, slug: true, name: true, icon: true },
+              },
+            },
+          },
           _count: {
             select: { participations: { where: { status: 'approved' } } },
           },

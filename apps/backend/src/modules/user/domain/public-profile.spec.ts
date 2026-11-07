@@ -23,8 +23,14 @@ const event = (
   organizerUserId: 'user',
   startsAt: new Date('2026-11-01T10:00:00Z'),
   endsAt: null,
-  locality: { name: 'Praha' },
-  activity: { name: 'Volejbal' },
+  address: 'Hala Strahov, Vaníčkova 2, Praha 6',
+  locality: { id: 'p6', slug: 'praha-6', name: 'Praha' },
+  activity: {
+    id: 'volejbal',
+    slug: 'volejbal',
+    name: 'Volejbal',
+    category: { id: 'sport', slug: 'sport', name: 'Sport', icon: 'ball' },
+  },
   _count: { participations: 3 },
   ...changes,
 });
@@ -175,5 +181,15 @@ describe('public profile privacy (#179)', () => {
     expect(result.organizedEvents[0].rating).toEqual({ average: 5, count: 1 });
     expect(result.organizerSummary).toEqual({ average: 3, count: 2 });
     expect(result.eventSummary).toEqual({ average: 4, count: 2 });
+  });
+  it('gives an organised event what the past event card shows (#179)', () => {
+    const result = publicProfile(user, [], [], [event()], now);
+    expect(result.organizedEvents[0]).toMatchObject({
+      address: 'Hala Strahov, Vaníčkova 2, Praha 6',
+      locality: { id: 'p6', slug: 'praha-6', name: 'Praha' },
+      activity: { slug: 'volejbal', category: { icon: 'ball' } },
+      localityName: 'Praha',
+      activityName: 'Volejbal',
+    });
   });
 });

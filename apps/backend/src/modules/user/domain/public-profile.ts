@@ -10,6 +10,11 @@ export type PublicPerson = { id: string; name: string };
 export type PublicUserRecord = PublicPerson & {
   interests: { activity: PublicPerson }[];
 };
+/** What the past event card shows of where and what (Figma Karta akce/Proběhlá řádek). */
+type PublicPlace = { id: string; slug: string; name: string };
+type PublicActivity = PublicPlace & {
+  category: PublicPlace & { icon: string };
+};
 type EventBoundary = { status: string; startsAt: Date; endsAt: Date | null };
 export type ReceivedRatingRecord = {
   id: string;
@@ -43,8 +48,9 @@ export type PublicEventRecord = EventBoundary & {
   visibility: string;
   groupId: string | null;
   organizerUserId: string;
-  locality: { name: string };
-  activity: { name: string };
+  address: string;
+  locality: PublicPlace;
+  activity: PublicActivity;
   _count: { participations: number };
 };
 export type PublicReceivedRating = {
@@ -62,6 +68,10 @@ export type PublicOrganizedEvent = {
   endsAt: Date | null;
   localityName: string;
   activityName: string;
+  /** For the past event card (#179): its photo by the activity, the place from the address. */
+  address: string;
+  locality: PublicPlace;
+  activity: PublicActivity;
   approvedCount: number;
   rating: RatingSummary;
 };
@@ -147,6 +157,23 @@ export function publicProfile(
         endsAt: event.endsAt,
         localityName: event.locality.name,
         activityName: event.activity.name,
+        address: event.address,
+        locality: {
+          id: event.locality.id,
+          slug: event.locality.slug,
+          name: event.locality.name,
+        },
+        activity: {
+          id: event.activity.id,
+          slug: event.activity.slug,
+          name: event.activity.name,
+          category: {
+            id: event.activity.category.id,
+            slug: event.activity.category.slug,
+            name: event.activity.category.name,
+            icon: event.activity.category.icon,
+          },
+        },
         approvedCount: event._count.participations,
         rating: summarizeStars(eventRatings.get(event.id) ?? []),
       })),

@@ -32,6 +32,18 @@ class PublicReceivedRatingDto implements PublicReceivedRating {
   })
   event!: PublicReceivedRating['event'];
 }
+class PublicPlaceDto {
+  @ApiProperty() id!: string;
+  @ApiProperty() slug!: string;
+  @ApiProperty() name!: string;
+}
+class PublicCategoryDto extends PublicPlaceDto {
+  @ApiProperty({ description: 'Icon name of the category (Activity tile)' })
+  icon!: string;
+}
+class PublicActivityDto extends PublicPlaceDto {
+  @ApiProperty({ type: PublicCategoryDto }) category!: PublicCategoryDto;
+}
 class PublicOrganizedEventDto implements PublicOrganizedEvent {
   @ApiProperty() id!: string;
   @ApiProperty() title!: string;
@@ -39,6 +51,12 @@ class PublicOrganizedEventDto implements PublicOrganizedEvent {
   @ApiProperty({ type: Date, nullable: true }) endsAt!: Date | null;
   @ApiProperty() localityName!: string;
   @ApiProperty() activityName!: string;
+  @ApiProperty({ example: 'Hala Strahov, Vaníčkova 2, Praha 6' })
+  address!: string;
+  @ApiProperty({ type: PublicPlaceDto })
+  locality!: PublicOrganizedEvent['locality'];
+  @ApiProperty({ type: PublicActivityDto })
+  activity!: PublicOrganizedEvent['activity'];
   @ApiProperty({ minimum: 0 }) approvedCount!: number;
   @ApiProperty({ type: PublicRatingSummaryDto }) rating!: RatingSummary;
 }
