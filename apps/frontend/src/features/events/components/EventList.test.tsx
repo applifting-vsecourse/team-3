@@ -8,15 +8,17 @@ import { EventList } from "@/features/events/components/EventList"
 import { anEvent } from "@/features/events/test/anEvent"
 
 describe("EventList", () => {
-  it("shows a card with title, date, place, status and facts", async () => {
-    await renderWithRouter(<EventList events={[anEvent()]} />)
+  // Figma Karta akce/Foto řádek: time · place · district, the badge and the bar
+  it("shows a row card with title, date, place, status and the bar", async () => {
+    const { container } = await renderWithRouter(<EventList events={[anEvent()]} />)
 
     expect(screen.getByText("1 akce")).toBeInTheDocument()
     expect(screen.getByRole("heading", { name: "Language exchange: CZ/EN/ES" })).toBeInTheDocument()
-    expect(screen.getByText(/Pá 23\. 10\. · 17:30/)).toBeInTheDocument()
-    expect(screen.getByText(/Kavárna Pražírna$/)).toBeInTheDocument()
-    expect(screen.getByText("Volná místa")).toBeInTheDocument()
-    expect(screen.getByText("4 z 12 · Praha 8")).toBeInTheDocument()
+    // the date tile is a picture; the date is said in full for a screen reader
+    expect(screen.getByText("Pá 23. 10. · 17:30")).toHaveClass("sr-only")
+    expect(screen.getByText("17:30 · Kavárna Pražírna · Praha 8")).toBeInTheDocument()
+    expect(screen.getByText("8 volných míst")).toBeInTheDocument()
+    expect(container.querySelector("[data-slot=capacity-track]")).not.toBeNull()
   })
 
   it("the card's title links to the event's detail", async () => {
@@ -39,11 +41,9 @@ describe("EventList", () => {
     )
 
     expect(screen.getByText("Chybí 1")).toBeInTheDocument()
-    // the badge says what is missing; the line next to it doesn't repeat it (#189)
-    expect(screen.getByText("3 z 12 · min. 4 · Praha 8")).toBeInTheDocument()
+    // the badge says what is missing; the line doesn't repeat it (#189)
     expect(screen.queryByText(/chybí 1 ·/)).not.toBeInTheDocument()
     expect(screen.getByText("Plno")).toBeInTheDocument()
-    expect(screen.getByText("12 z 12 · Praha 8")).toBeInTheDocument()
     expect(screen.getByText("2 akce")).toBeInTheDocument()
   })
 

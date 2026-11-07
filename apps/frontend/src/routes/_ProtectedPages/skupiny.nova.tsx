@@ -2,7 +2,7 @@ import { createFileRoute } from "@tanstack/react-router"
 import { toast } from "sonner"
 
 import { ROUTES } from "@/app/routes"
-import { BackLink } from "@/components/BackLink/BackLink"
+import { PageBand } from "@/components/PageBand/PageBand"
 import { Seo } from "@/components/Seo"
 import { useCatalog } from "@/hooks/useCatalog"
 import { FORM, PAGE } from "@/lib/pageLayout"
@@ -26,14 +26,14 @@ function NewGroupPage() {
   return (
     <>
       <Seo title="Nová skupina" />
+      <PageBand
+        title="Nová skupina"
+        description={"Parta, která se schází pravidelně. Stačí název, aktivita a lokalita."}
+        back={{ to: ROUTES.groups, fallbackLabel: "Skupiny", label: "Skupiny" }}
+        isCompactOnMobile
+      />
       <div className={cn(PAGE, "gap-4")}>
-        <BackLink
-          to={ROUTES.groups}
-          fallbackLabel="Skupiny"
-          label="Skupiny"
-        />
         <div className={FORM}>
-          <h1 className="text-3xl font-semibold tracking-tight md:text-4xl">Nová skupina</h1>
           {catalog ? (
             <GroupForm
               catalog={catalog}
