@@ -74,8 +74,8 @@ Pokud načtené runtime proměnné prokazatelně skrývají hodnoty nebo je něk
 2. **Settings → Secrets and variables → Actions → Variables → New repository variable**: `STAGING_AUTH_MAIL_CONFIGURED=true`. Bez tohoto přepínače se konfigurace nepřenáší.
 3. Po týmovém review, merge a schválení nasazení spustit workflow na `main` s vypnutým **inspect_only**, případně využít schválené automatické nasazení z `main`. Nasazení z jiné větve je blokované.
 4. **Když krok „Configure staging Google and Gmail SMTP“ selže** (oranžový v Actions), nasazení proběhne dál se starým nastavením. Smaž proměnnou `STAGING_AUTH_MAIL_CONFIGURED` a zjisti příčinu (nejčastěji token bez práv).
-4. Workflow nejprve publikuje oba image. Synchronizace potom změní pouze povolené OAuth/SMTP proměnné identifikovaného backendu a načte je zpět. Při chybě se navazující webhook nespustí.
-5. Pokud původní webhook neobsahuje backend, skript po kontrole hodnot zařadí i jeho deploy. Pokud backend obsahuje, použije se stávající webhook bez duplicitního spuštění.
+5. Workflow nejprve publikuje oba image. Synchronizace potom změní pouze povolené OAuth/SMTP proměnné identifikovaného backendu a načte je zpět. Při chybě se navazující webhook nespustí.
+6. Pokud původní webhook neobsahuje backend, skript po kontrole hodnot zařadí i jeho deploy. Pokud backend obsahuje, použije se stávající webhook bez duplicitního spuštění.
 
 Neúspěšná kontrola po zápisu nemusí vrátit předchozí uložené hodnoty; zastaví ale navazující deploy. Výpis chyb obsahuje pouze typ operace, HTTP stav nebo název proměnné, nikdy hodnoty či odpovědi serveru.
 
