@@ -44,7 +44,7 @@ export function AccountForms({ profile }: { profile: AccountProfile }) {
       >
         <h2
           id="password-heading"
-          className="text-xl font-semibold tracking-tight"
+          className="type-feature"
         >
           Změna hesla
         </h2>
@@ -68,7 +68,7 @@ export function AccountForms({ profile }: { profile: AccountProfile }) {
       >
         <h2
           id="email-heading"
-          className="text-xl font-semibold tracking-tight"
+          className="type-feature"
         >
           Změna e-mailu
         </h2>

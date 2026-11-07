@@ -47,7 +47,7 @@ function ProfileGroups({ viewerId }: { viewerId: string }) {
       className="space-y-4"
       aria-label="Moje skupiny"
     >
-      <h2 className="text-xl font-semibold tracking-tight">Moje skupiny</h2>
+      <h2 className="type-feature">Moje skupiny</h2>
       {query.error ? (
         <ProfileError retry={() => void query.refetch()} />
       ) : !query.data ? (

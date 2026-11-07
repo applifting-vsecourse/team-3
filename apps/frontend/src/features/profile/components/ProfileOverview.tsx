@@ -62,7 +62,7 @@ function EventSection({
       className="space-y-4"
       aria-label={title}
     >
-      <h2 className="text-xl font-semibold tracking-tight">{title}</h2>
+      <h2 className="type-feature">{title}</h2>
       {!events.length ? (
         <p className="text-sm text-muted-foreground">{empty}</p>
       ) : (
@@ -72,7 +72,7 @@ function EventSection({
               key={event.id}
               className="space-y-1 py-3 first:pt-0"
             >
-              <h3 className="font-semibold">
+              <h3 className="type-row-title">
                 <Link
                   to={ROUTES.eventDetail}
                   params={{ eventId: event.id }}
@@ -134,9 +134,9 @@ function RatingSection({
       className="space-y-4"
       aria-label={title}
     >
-      <h2 className="text-xl font-semibold tracking-tight">{title}</h2>
+      <h2 className="type-feature">{title}</h2>
       {summary.average === null ? (
-        <p className="text-sm text-muted-foreground">Zatím bez hodnocení.</p>
+        <p className="text-sm text-muted-foreground">zatím bez hodnocení</p>
       ) : (
         <p className="flex items-center gap-2">
           <Star
@@ -144,7 +144,8 @@ function RatingSection({
             className="size-4"
           />
           <span>
-            Průměr {summary.average.toLocaleString("cs-CZ")} z 5 · {summary.count} hodnocení
+            {summary.average.toLocaleString("cs-CZ", { maximumFractionDigits: 1 })} ({summary.count}{" "}
+            hodnocení)
           </span>
         </p>
       )}

@@ -26,7 +26,7 @@ export function ProfilePage(props: ProfilePageProps) {
     <>
       <Seo title="Můj profil" />
       <div className={cn(PAGE, "gap-6 pb-24")}>
-        <h1 className="text-3xl font-semibold tracking-tight md:text-4xl">Můj profil</h1>
+        <h1 className="type-title">Můj profil</h1>
         <ProfileContent {...props} />
       </div>
     </>

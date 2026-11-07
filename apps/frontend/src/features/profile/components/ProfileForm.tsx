@@ -78,7 +78,7 @@ export function ProfileForm({
         className="grid gap-6 md:grid-cols-2"
       >
         <div className="space-y-6">
-          <h2 className="text-xl font-semibold tracking-tight">Základní údaje</h2>
+          <h2 className="type-feature">Základní údaje</h2>
           <FormField
             control={form.control}
             name="name"
@@ -127,7 +127,7 @@ export function ProfileForm({
           />
         </div>
         <div className="space-y-6">
-          <h2 className="text-xl font-semibold tracking-tight">Co tě baví</h2>
+          <h2 className="type-feature">Co tě baví</h2>
           <FormField
             control={form.control}
             name="interestIds"
