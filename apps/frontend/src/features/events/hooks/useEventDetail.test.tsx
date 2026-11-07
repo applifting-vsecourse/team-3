@@ -58,6 +58,33 @@ describe("useEventDetail", () => {
     expect(result.current.event?.participants).toBeNull()
   })
 
+  it("a members-only event: 401 asks a visitor to sign in (#70)", async () => {
+    get.mockReturnValue(failing(httpError(401)))
+    const { result } = renderDetail(null)
+
+    await waitFor(() => expect(result.current.isSignInRequired).toBe(true))
+    expect(result.current.error).toBeUndefined()
+  })
+
+  it("a members-only event: 403 MEMBERS_ONLY names the group, for the way into it (#70)", async () => {
+    const error = httpError(403)
+    error.data = { code: "MEMBERS_ONLY", message: "Akce je jen pro členy skupiny.", groupId: "g1" }
+    get.mockReturnValue(failing(error))
+    const { result } = renderDetail("u9")
+
+    await waitFor(() => expect(result.current.membersOnlyGroupId).toBe("g1"))
+    expect(result.current.error).toBeUndefined()
+    expect(result.current.isNotFound).toBe(false)
+  })
+
+  it("another 403 stays an error", async () => {
+    get.mockReturnValue(failing(httpError(403)))
+    const { result } = renderDetail("u9")
+
+    await waitFor(() => expect(result.current.error).toBeDefined())
+    expect(result.current.membersOnlyGroupId).toBeUndefined()
+  })
+
   it("a 404 is „not found“, not an error to retry", async () => {
     get.mockReturnValue(failing(httpError(404)))
     const { result } = renderDetail(null)

@@ -27,6 +27,8 @@ type GroupMembershipActionProps = {
   isSignedIn: boolean
   /** Login's `from`, so a visitor who signs in to join comes back to the group. */
   signInFrom: string
+  /** The public group's join button; „Přidat se ke skupině“ away from its page (A-05i). */
+  joinLabel?: string
 }
 
 const showError = (error: Error) => toast.error(error.message)
@@ -40,6 +42,7 @@ export function GroupMembershipAction({
   group,
   isSignedIn,
   signInFrom,
+  joinLabel = "Přidat se",
 }: GroupMembershipActionProps) {
   const join = useJoinGroup(group.id)
   const leave = useLeaveGroup(group.id)
@@ -163,7 +166,7 @@ export function GroupMembershipAction({
         onClick={() => join.mutate(undefined, { onError: showError })}
       >
         {join.isPending ? <Loader2 className="animate-spin" /> : null}
-        Přidat se
+        {joinLabel}
       </MainButton>
     </div>
   )

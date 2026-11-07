@@ -43,9 +43,13 @@ function ManageEventPage() {
   const session = useSession()
   const viewerId = session.isPending ? undefined : (session.user?.id ?? null)
   // live: new requests, and the capacity when someone joins or leaves meanwhile (#53)
-  const { event, isPending, isNotFound, error, retry } = useEventDetail(eventId, viewerId, {
-    isLive: true,
-  })
+  const { event, isPending, isNotFound, membersOnlyGroupId, error, retry } = useEventDetail(
+    eventId,
+    viewerId,
+    {
+      isLive: true,
+    },
+  )
   // the organizer or, for a group's event, any of its admins (B-055)
   const isOrganizer = event?.canManage === true
   const participants = useEventParticipants(eventId, viewerId, isOrganizer)
@@ -96,9 +100,9 @@ function ManageEventPage() {
               </Button>
             </AlertDescription>
           </Alert>
-        ) : isPending || !event ? (
+        ) : isPending ? (
           <Skeleton className="h-40 w-full" />
-        ) : !isOrganizer ? (
+        ) : !isOrganizer || !event || membersOnlyGroupId ? (
           <Alert>
             <AlertTitle>Akci spravuje jen její organizátor.</AlertTitle>
           </Alert>
