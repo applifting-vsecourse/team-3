@@ -179,17 +179,17 @@ function ManageEventPage() {
                     isFull={event.isFull}
                     isDeciding={decide.isPending}
                     onDecide={(request, decision) =>
-                      decide.mutate(
-                        { userId: request.id, decision },
-                        {
-                          onSuccess: () =>
-                            toast.success(
-                              decision === "approve"
-                                ? `Schváleno: ${request.name}`
-                                : `Zamítnuto: ${request.name}`,
-                            ),
-                          // the API's 409 says why, in Czech (e.g. „Akce je plná.“)
-                          onError: (decideError) => toast.error(decideError.message),
+                      decide.mutateAsync({ userId: request.id, decision }).then(
+                        () =>
+                          toast.success(
+                            decision === "approve"
+                              ? `Schváleno: ${request.name}`
+                              : `Zamítnuto: ${request.name}`,
+                          ),
+                        // the API's 409 says why, in Czech (e.g. „Akce je plná.“)
+                        (decideError: Error) => {
+                          toast.error(decideError.message)
+                          throw decideError
                         },
                       )
                     }

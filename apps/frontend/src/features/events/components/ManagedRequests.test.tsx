@@ -1,4 +1,4 @@
-import { render, screen, within } from "@testing-library/react"
+import { render, screen, waitFor, within } from "@testing-library/react"
 import userEvent from "@testing-library/user-event"
 import { describe, expect, it, vi } from "vitest"
 
@@ -19,9 +19,11 @@ const eva: EventRequest = {
 }
 
 const renderRequests = (props: Partial<Parameters<typeof ManagedRequests>[0]> = {}) => {
-  const onDecide = vi.fn()
+  const onDecide = vi.fn<(r: EventRequest, d: "approve" | "reject") => Promise<unknown>>(() =>
+    Promise.resolve(),
+  )
   const onRetry = vi.fn()
-  render(
+  const view = render(
     <ManagedRequests
       requests={[jakub, eva]}
       error={undefined}
@@ -33,7 +35,7 @@ const renderRequests = (props: Partial<Parameters<typeof ManagedRequests>[0]> = 
       {...props}
     />,
   )
-  return { onDecide, onRetry }
+  return { onDecide, onRetry, rerender: view.rerender }
 }
 
 describe("ManagedRequests (#53)", () => {
@@ -57,14 +59,81 @@ describe("ManagedRequests (#53)", () => {
     expect(within(second!).getByText("Eva Malá")).toBeInTheDocument()
   })
 
-  it("approves or rejects each request on its own", async () => {
+  it("approves each request on its own, at one click", async () => {
     const { onDecide } = renderRequests()
 
     await userEvent.click(screen.getByRole("button", { name: "Schválit žádost: Jakub Král" }))
+
+    expect(onDecide).toHaveBeenCalledExactlyOnceWith(jakub, "approve")
+    expect(screen.queryByRole("dialog")).not.toBeInTheDocument()
+  })
+
+  it("rejecting asks first and says what the applicant will see (#185)", async () => {
+    const { onDecide } = renderRequests()
+
     await userEvent.click(screen.getByRole("button", { name: "Zamítnout žádost: Eva Malá" }))
 
-    expect(onDecide).toHaveBeenNthCalledWith(1, jakub, "approve")
-    expect(onDecide).toHaveBeenNthCalledWith(2, eva, "reject")
+    const dialog = screen.getByRole("dialog", { name: "Zamítnout žádost?" })
+    expect(dialog).toHaveAccessibleDescription(
+      "Eva Malá uvidí na detailu akce, že žádost byla zamítnuta, a novou na tuhle akci už poslat nepůjde.",
+    )
+    expect(onDecide).not.toHaveBeenCalled()
+  })
+
+  it("„Zpět“ leaves the request waiting (#185)", async () => {
+    const { onDecide } = renderRequests()
+
+    await userEvent.click(screen.getByRole("button", { name: "Zamítnout žádost: Eva Malá" }))
+    await userEvent.click(screen.getByRole("button", { name: "Zpět" }))
+
+    expect(screen.queryByRole("dialog")).not.toBeInTheDocument()
+    expect(onDecide).not.toHaveBeenCalled()
+  })
+
+  it("confirming rejects that one request and closes the dialog (#185)", async () => {
+    const { onDecide } = renderRequests()
+
+    await userEvent.click(screen.getByRole("button", { name: "Zamítnout žádost: Eva Malá" }))
+    await userEvent.click(
+      within(screen.getByRole("dialog")).getByRole("button", { name: "Zamítnout" }),
+    )
+
+    expect(onDecide).toHaveBeenCalledExactlyOnceWith(eva, "reject")
+    await waitFor(() => expect(screen.queryByRole("dialog")).not.toBeInTheDocument())
+  })
+
+  it("a rejection that fails keeps the dialog open to try again (the page's toast says why)", async () => {
+    const { onDecide } = renderRequests()
+    onDecide.mockRejectedValueOnce(new Error("Žádost už vyřízená."))
+
+    await userEvent.click(screen.getByRole("button", { name: "Zamítnout žádost: Jakub Král" }))
+    await userEvent.click(
+      within(screen.getByRole("dialog")).getByRole("button", { name: "Zamítnout" }),
+    )
+
+    expect(onDecide).toHaveBeenCalledExactlyOnceWith(jakub, "reject")
+    expect(screen.getByRole("dialog", { name: "Zamítnout žádost?" })).toBeInTheDocument()
+  })
+
+  it("while the rejection is on its way, it can't be confirmed twice", async () => {
+    const { onDecide, rerender } = renderRequests()
+    await userEvent.click(screen.getByRole("button", { name: "Zamítnout žádost: Jakub Král" }))
+
+    rerender(
+      <ManagedRequests
+        requests={[jakub, eva]}
+        error={undefined}
+        onRetry={vi.fn()}
+        canDecide
+        isFull={false}
+        isDeciding
+        onDecide={onDecide}
+      />,
+    )
+
+    expect(
+      within(screen.getByRole("dialog")).getByRole("button", { name: "Zamítnout" }),
+    ).toBeDisabled()
   })
 
   it("while a decision is on its way, no other can be sent (a second click would only fail)", () => {
