@@ -82,7 +82,10 @@ function SignUpPage() {
           errorMessage={errorMessage}
           onSubmit={handleSubmit}
         />
-        <GoogleSignIn from={from} startedOn={ROUTES.signup} />
+        <GoogleSignIn
+          from={from}
+          startedOn={ROUTES.signup}
+        />
       </AuthLayout>
     </>
   )
