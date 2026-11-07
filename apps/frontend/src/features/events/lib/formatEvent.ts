@@ -29,6 +29,24 @@ const timeFormat = new Intl.DateTimeFormat("cs-CZ", {
   minute: "2-digit",
 })
 
+/** The date tile on a card (Figma Karta akce › Datum): „Pá“, „23“, „18:30“. */
+export function eventDateParts(date: Date): { weekday: string; day: string; time: string } {
+  const parts = startFormat.formatToParts(date)
+  const get = (type: Intl.DateTimeFormatPartTypes) =>
+    parts.find((part) => part.type === type)?.value ?? ""
+  const weekday = get("weekday")
+  return {
+    weekday: `${weekday.charAt(0).toUpperCase()}${weekday.slice(1)}`,
+    day: get("day"),
+    time: timeFormat.format(date),
+  }
+}
+
+/** A past event's day on its card (Karta akce/Proběhlá řádek): „Po 19. 10.“ */
+export function formatEventDay(date: Date): string {
+  return formatEventStart(date).split(" · ")[0] ?? ""
+}
+
 const dayFormat = new Intl.DateTimeFormat("cs-CZ", {
   timeZone: PRAGUE_TZ,
   dateStyle: "short",
@@ -98,12 +116,8 @@ export const placeName = (address: string): string => address.split(",")[0]?.tri
 export function capacityStatus(event: PublicEvent): CapacityStatus {
   if (event.isFull) return { kind: "full" }
   if (event.missingToMin > 0) return { kind: "missing", missing: event.missingToMin }
-  return { kind: "free" }
+  return { kind: "free", freeSpots: event.freeSpots }
 }
-
-/** "4/12 · Praha 8" — approved of maximum, and the district. */
-export const eventFacts = (event: PublicEvent): string =>
-  `${event.approvedCount}/${event.maxParticipants} · ${event.locality.name}`
 
 /**
  * Button of a filter panel: "Zobrazit 1 akci", "Zobrazit 3 akce", "Zobrazit 24 akcí";

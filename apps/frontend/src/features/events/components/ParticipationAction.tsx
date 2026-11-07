@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState, type ReactNode, type Ref } from "react"
 import { Link } from "@tanstack/react-router"
-import { Check, Loader2 } from "lucide-react"
+import { Loader2 } from "lucide-react"
 
 import { ROUTES } from "@/app/routes"
 import { RequestDialog } from "@/components/RequestDialog/RequestDialog"
@@ -15,8 +15,10 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog"
+import { happeningThanks, isMinimumReachedByLast } from "@/lib/occupancy"
 
 import type { EventDetail } from "@/features/events/api/eventSchemas"
+import { HasPlace } from "@/features/events/components/HasPlace"
 import { formatRequestEventStart } from "@/features/events/lib/formatEvent"
 
 export type Viewer = { id: string; emailVerified: boolean }
@@ -31,9 +33,10 @@ type ParticipationActionProps = {
   /**
    * Resolve once the place or the request is saved, and reject when it
    * isn't: the page says why, a confirmation dialog stays open to try again.
-   * A request may carry a message for the organizer (#175).
+   * A request may carry a message for the organizer (#175). Resolves with the detail as the
+   * API answers, which says whether this place reached the minimum.
    */
-  onJoin: (message?: string | null) => Promise<unknown>
+  onJoin: (message?: string | null) => Promise<EventDetail>
   onLeave: () => Promise<unknown>
   /** Leads an unverified user to the banner that sends or opens the link. */
   onVerifyEmail?: () => void
@@ -177,6 +180,10 @@ function JoinControl({ event, isOrganizer, isPending, onJoin, onLeave }: JoinCon
     shouldFocusNewState.current = false
     newState.current?.focus()
   }, [event.myParticipation])
+  // „Díky tobě se akce koná…“ only when this sign-up reached the minimum (DESIGN.md › Máš
+  // místo); known only here, at the moment of joining — a reload just says „Máš místo“
+  const [hasJustJoined, setHasJustJoined] = useState(false)
+  const [hasReachedMinimum, setHasReachedMinimum] = useState(false)
   const change = (action: () => Promise<unknown>) => async () => {
     shouldFocusNewState.current = true
     try {
@@ -188,20 +195,29 @@ function JoinControl({ event, isOrganizer, isPending, onJoin, onLeave }: JoinCon
   }
 
   switch (event.myParticipation) {
-    case "approved":
+    case "approved": {
+      // gone again once someone leaves and the minimum is missed
+      const isThanks = hasReachedMinimum && event.missingToMin === 0
       return (
         <>
-          <Status
+          {/* focused from code only (after a change), as Status */}
+          <div
             ref={focusTarget}
-            // the organizer makes the changes, nobody needs to tell them
-            note={isOrganizer ? undefined : "Změny akce uvidíš tady a v Mých akcích."}
+            tabIndex={-1}
+            className="rounded-lg outline-offset-4"
           >
-            <Check
-              aria-hidden
-              className="size-5"
+            <HasPlace
+              line={
+                isThanks
+                  ? happeningThanks(event)
+                  : // the organizer makes the changes, nobody needs to tell them
+                    isOrganizer
+                    ? undefined
+                    : "Změny akce uvidíš tady a v Mých akcích."
+              }
+              isFillAnimated={hasJustJoined}
             />
-            Jdu
-          </Status>
+          </div>
           <ConfirmButton
             label="Odhlásit se"
             title="Odhlásit se z akce?"
@@ -211,6 +227,7 @@ function JoinControl({ event, isOrganizer, isPending, onJoin, onLeave }: JoinCon
           />
         </>
       )
+    }
     case "pending":
       return (
         <>
@@ -265,7 +282,13 @@ function JoinControl({ event, isOrganizer, isPending, onJoin, onLeave }: JoinCon
       </>
     )
   }
-  const join = change(onJoin)
+  // the API's answer tells whether this place reached the minimum; the cached numbers from
+  // before the click may be stale (someone else may have joined meanwhile)
+  const join = change(async () => {
+    const updated = await onJoin()
+    setHasJustJoined(true)
+    setHasReachedMinimum(updated.myParticipation === "approved" && isMinimumReachedByLast(updated))
+  })
   return (
     <Button
       ref={focusTarget}
@@ -280,7 +303,7 @@ function JoinControl({ event, isOrganizer, isPending, onJoin, onLeave }: JoinCon
   )
 }
 
-/** Where the viewer stands („Jdu“, „Čeká na schválení“) and what comes next. */
+/** Where the viewer stands („Čeká na schválení“) and what comes next; a place is HasPlace. */
 function Status({
   ref,
   note,

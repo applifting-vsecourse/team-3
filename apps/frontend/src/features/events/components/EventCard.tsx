@@ -1,28 +1,45 @@
 import { Link } from "@tanstack/react-router"
 
 import { ROUTES } from "@/app/routes"
-import { ActivityTile } from "@/components/ActivityTile/ActivityTile"
+import { CapacityBar } from "@/components/CapacityBar/CapacityBar"
 import { StatusBadge, type BadgeStatus } from "@/components/StatusBadge/StatusBadge"
+import { occupancyBesideBadge, occupancyCount } from "@/lib/occupancy"
 import { cn } from "@/lib/utils"
 
 import type { PublicEvent } from "@/features/events/api/eventSchemas"
+import { EventPhoto } from "@/features/events/components/EventPhoto"
 import {
   capacityStatus,
-  eventFacts,
+  eventDateParts,
   formatEventStart,
   placeName,
 } from "@/features/events/lib/formatEvent"
 
+/**
+ * `row` – Karta akce/Foto řádek: the /akce list, a column of events. `grid` – Karta akce/Foto:
+ * a grid of cards. `responsive` – a grid on a phone is one column, so row there and grid
+ * from `md` (Figma A-01 / A-01d, C-01 / C-01d).
+ */
+export type EventCardVariant = "row" | "grid" | "responsive"
+
 type EventCardProps = {
-  event: PublicEvent
-  /** Its pin is highlighted on the map (Figma: Event card/List – najetí myší). */
+  event: PublicEvent & { status?: "published" | "cancelled" }
+  variant?: EventCardVariant
+  /** Selected: its pin is highlighted on the map — a 2 px ring that doesn't change its size. */
   isHighlighted?: boolean
   onMouseEnter?: () => void
   onMouseLeave?: () => void
   /** Instead of the occupancy, e.g. the user's place in „Moje akce“. */
   status?: BadgeStatus
-  /** Instead of „4/12 · Praha 8“. */
-  facts?: string
+  /**
+   * The grid card's numbers beside the badge; „5 z 12 · min. 6“ by default (#189). Where the
+   * badge isn't the occupancy, say how many are missing here — `attendingNumbers`.
+   */
+  numbers?: string
+  /** The row card's line starts with it, e.g. „chybí 1“ where the badge says „Jdu“ (C-01). */
+  rowLead?: string
+  /** The row card's line ends with it instead of the place, e.g. „2 žádosti čekají“ (C-02). */
+  rowTail?: string
   /** The organizer goes to the event's management (C-02), everyone else to its detail. */
   linkTo?: "detail" | "manage"
   /** h3 under a section heading. */
@@ -31,53 +48,146 @@ type EventCardProps = {
 }
 
 /**
- * An event in the list (Figma: Event card/List). The title links to the
- * detail; its ::after stretches over the card, so the whole card is clickable
- * while the link is still named by the title. The focus ring moves to the card.
+ * An event in a list or a grid (Figma: Karta akce/Foto, Karta akce/Foto řádek; DESIGN.md ›
+ * Event card): the activity photo with the date tile, the title, where, and the occupancy.
+ * The title links to the detail; its ::after stretches over the card, so the whole card is
+ * clickable while the link is still named by the title. The focus ring moves to the card.
  */
 export function EventCard({
   event,
+  variant = "row",
   isHighlighted,
   onMouseEnter,
   onMouseLeave,
   status,
-  facts,
+  numbers,
+  rowLead,
+  rowTail,
   linkTo = "detail",
   titleAs: Title = "h2",
   className,
 }: EventCardProps) {
+  const isCancelled = event.status === "cancelled"
+  const { time } = eventDateParts(event.startsAt)
+  const place = placeName(event.address)
+  const rowLine = [rowLead, time, ...(rowTail ? [rowTail] : [place, event.locality.name])]
+    .filter(Boolean)
+    .join(" · ")
+
   return (
     <article
       onMouseEnter={onMouseEnter}
       onMouseLeave={onMouseLeave}
       className={cn(
-        "relative flex items-center gap-3 rounded-lg border border-border bg-card p-3 text-card-foreground transition-colors hover:border-foreground",
+        "relative rounded-2xl border border-card-border bg-card text-card-foreground transition-colors hover:border-foreground",
         "has-[a:focus-visible]:ring-[3px] has-[a:focus-visible]:ring-ring/50",
-        isHighlighted && "border-foreground",
+        isHighlighted && "ring-2 ring-foreground",
+        {
+          row: "flex items-center gap-3 p-3",
+          grid: "flex h-full flex-col overflow-hidden",
+          responsive:
+            "flex items-center gap-3 p-3 md:h-full md:flex-col md:items-stretch md:gap-0 md:overflow-hidden md:p-0",
+        }[variant],
         className,
       )}
     >
-      <ActivityTile icon={event.activity.category.icon} />
-      <div className="flex min-w-0 flex-1 flex-col gap-1">
-        <Title className="line-clamp-2 text-base font-semibold tracking-tight">
+      <EventPhoto
+        event={event}
+        variant={variant}
+      />
+      <div
+        className={
+          {
+            row: "flex min-w-0 flex-1 flex-col gap-1",
+            grid: "flex flex-1 flex-col gap-2 px-5 pt-4 pb-5",
+            responsive: "flex min-w-0 flex-1 flex-col gap-1 md:gap-2 md:px-5 md:pt-4 md:pb-5",
+          }[variant]
+        }
+      >
+        <Title
+          className={cn(
+            "line-clamp-2",
+            {
+              row: "type-row-title",
+              grid: "type-card-title",
+              responsive: "type-row-title md:type-card-title",
+            }[variant],
+          )}
+        >
           <Link
             to={linkTo === "manage" ? ROUTES.manageEvent : ROUTES.eventDetail}
             params={{ eventId: event.id }}
-            className="outline-none after:absolute after:inset-0 after:rounded-lg"
+            className="outline-none after:absolute after:inset-0 after:rounded-2xl"
           >
             {event.title}
           </Link>
         </Title>
-        <p className="truncate text-sm text-muted-foreground">
-          <time dateTime={event.startsAt.toISOString()}>{formatEventStart(event.startsAt)}</time>
-          {" · "}
-          {placeName(event.address)}
-        </p>
-        <div className="flex items-center gap-2">
+        {/* the date tile is a picture of it */}
+        <time
+          dateTime={event.startsAt.toISOString()}
+          className="sr-only"
+        >
+          {formatEventStart(event.startsAt)}
+        </time>
+        {variant === "grid" ? null : (
+          <p
+            className={cn(
+              "truncate text-caption text-muted-foreground",
+              variant === "responsive" && "md:hidden",
+            )}
+          >
+            {rowLine}
+          </p>
+        )}
+        {variant === "row" ? null : (
+          <p
+            className={cn(
+              "truncate text-sm text-muted-foreground",
+              variant === "responsive" && "hidden md:block",
+            )}
+          >
+            {place} · {event.locality.name}
+          </p>
+        )}
+        <div
+          className={
+            {
+              row: "flex items-center gap-2 pt-1",
+              grid: "mt-auto flex flex-wrap items-center gap-2 pt-2",
+              responsive: "flex items-center gap-2 pt-1 md:mt-auto md:flex-wrap md:pt-2",
+            }[variant]
+          }
+        >
           <StatusBadge status={status ?? capacityStatus(event)} />
-          <span className="truncate text-xs font-medium text-muted-foreground">
-            {facts ?? eventFacts(event)}
-          </span>
+          {variant === "row" ? null : (
+            <span
+              className={cn(
+                "truncate text-caption font-medium text-muted-foreground",
+                variant === "responsive" && "hidden md:inline",
+              )}
+            >
+              {numbers ?? (isCancelled ? occupancyCount(event) : occupancyBesideBadge(event))}
+            </span>
+          )}
+          {/* a cancelled event no longer fills up */}
+          {isCancelled ? null : (
+            <CapacityBar
+              variant="compact"
+              approvedCount={event.approvedCount}
+              minParticipants={event.minParticipants}
+              maxParticipants={event.maxParticipants}
+              missingToMin={event.missingToMin}
+              freeSpots={event.freeSpots}
+              isFull={event.isFull}
+              className={
+                {
+                  row: "min-w-16 flex-1",
+                  grid: "basis-full",
+                  responsive: "min-w-16 flex-1 md:basis-full",
+                }[variant]
+              }
+            />
+          )}
         </div>
       </div>
     </article>

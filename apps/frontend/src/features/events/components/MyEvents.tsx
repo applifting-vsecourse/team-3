@@ -11,9 +11,12 @@ import { EventCard } from "@/features/events/components/EventCard"
 import { EventCardSkeleton } from "@/features/events/components/EventList"
 import { useMyEvents } from "@/features/events/hooks/useMyEvents"
 import {
+  attendingNumbers,
+  attendingRowLead,
   attendingSections,
   attendingStatus,
-  organizingFacts,
+  organizingNumbers,
+  organizingRowTail,
   organizingStatus,
   pendingRequestsSummary,
 } from "@/features/events/lib/myEvents"
@@ -88,7 +91,10 @@ function AttendingSection({ title, events }: { title: string; events: MyEvent[] 
           <li key={event.id}>
             <EventCard
               event={event}
+              variant="responsive"
               status={attendingStatus(event)}
+              numbers={attendingNumbers(event)}
+              rowLead={attendingRowLead(event)}
               titleAs="h3"
             />
           </li>
@@ -106,7 +112,10 @@ function MyEventsLoading() {
       aria-label="Načítám akce"
     >
       {[0, 1, 2].map((i) => (
-        <EventCardSkeleton key={i} />
+        <EventCardSkeleton
+          key={i}
+          variant="responsive"
+        />
       ))}
     </div>
   )
@@ -175,8 +184,10 @@ export function OrganizingEvents({ viewerId }: { viewerId: string }) {
               <li key={event.id}>
                 <EventCard
                   event={event}
+                  variant="responsive"
                   status={organizingStatus(event)}
-                  facts={organizingFacts(event)}
+                  numbers={organizingNumbers(event)}
+                  rowTail={organizingRowTail(event)}
                   linkTo="manage"
                 />
               </li>

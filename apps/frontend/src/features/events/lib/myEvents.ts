@@ -1,9 +1,10 @@
 import { z } from "zod"
 
 import type { BadgeStatus } from "@/components/StatusBadge/StatusBadge"
+import { occupancyBesideBadge, occupancyCount, occupancySummary } from "@/lib/occupancy"
 
 import type { MyEvent } from "@/features/events/api/eventSchemas"
-import { capacityStatus, eventFacts } from "@/features/events/lib/formatEvent"
+import { capacityStatus } from "@/features/events/lib/formatEvent"
 
 /**
  * Přihlášen (C-01): requests waiting for approval on top, apart from the
@@ -27,6 +28,22 @@ export function attendingSections(events: MyEvent[]): {
 export function attendingStatus(event: MyEvent): BadgeStatus {
   if (event.status === "cancelled") return { kind: "cancelled" }
   return event.myParticipation === "pending" ? { kind: "pending" } : { kind: "going" }
+}
+
+/**
+ * The numbers on a grid card in Přihlášen (Figma C-01d). Its badge is the user's place
+ * („Jdu“, „Čeká na schválení“), not the occupancy, so they say how many are missing
+ * themselves: „chybí 1 · 8 z 14 · min. 9“, else „5 z 5 · min. 3“; cancelled, just the count.
+ */
+export function attendingNumbers(event: MyEvent): string {
+  return event.status === "cancelled" ? occupancyCount(event) : occupancySummary(event)
+}
+
+/** A row card in Přihlášen starts its line with how many are missing: „chybí 1 · 18:00 · …“ (C-01). */
+export function attendingRowLead(event: MyEvent): string | undefined {
+  return event.status !== "cancelled" && event.missingToMin > 0
+    ? `chybí ${event.missingToMin}`
+    : undefined
 }
 
 /**
@@ -56,18 +73,25 @@ export function organizingStatus(event: MyEvent): BadgeStatus {
 }
 
 /**
- * What the organizer needs next to the occupancy (C-02): the requests to
- * decide, else the minimum still missing, else the district —
- * „4/5 · 2 žádosti“, „3/12 · min. 4“, „8/8 · Praha 7“.
+ * What the organizer needs next to the occupancy badge on a grid card (Figma C-02d): the
+ * occupancy with the minimum and the requests to decide — „4 z 5 · min. 3 · 2 žádosti“,
+ * „3 z 12 · min. 4“, „8 z 8 · min. 6“. The badge says „Chybí 1“, so the line doesn't.
  */
-export function organizingFacts(event: MyEvent): string {
+export function organizingNumbers(event: MyEvent): string {
+  if (event.status === "cancelled") return occupancyCount(event)
   const requests = waitingRequests(event)
-  const occupancy = `${event.approvedCount}/${event.maxParticipants}`
-  if (requests > 0) return `${occupancy} · ${requestCountLabel(requests)}`
-  if (event.status !== "cancelled" && event.missingToMin > 0) {
-    return `${occupancy} · min. ${event.minParticipants}`
-  }
-  return eventFacts(event)
+  const occupancy = occupancyBesideBadge(event)
+  return requests > 0 ? `${occupancy} · ${requestCountLabel(requests)}` : occupancy
+}
+
+/** „2 žádosti čekají“, „1 žádost čeká“, „5 žádostí čeká“ */
+const requestsWaiting = (count: number): string =>
+  `${requestCountLabel(count)} ${count >= 2 && count <= 4 ? "čekají" : "čeká"}`
+
+/** A row card in Pořádám ends with the requests instead of the place: „18:00 · 2 žádosti čekají“ (C-02). */
+export function organizingRowTail(event: MyEvent): string | undefined {
+  const requests = waitingRequests(event)
+  return requests > 0 ? requestsWaiting(requests) : undefined
 }
 
 /**
@@ -81,7 +105,7 @@ export function pendingRequestsSummary(
   const total = waiting.reduce((sum, event) => sum + waitingRequests(event), 0)
   if (total === 0) return null
   return {
-    title: `${requestCountLabel(total)} ${total >= 2 && total <= 4 ? "čekají" : "čeká"} na schválení`,
+    title: `${requestsWaiting(total)} na schválení`,
     events: waiting.map((event) => `${event.title} (${waitingRequests(event)})`).join(", "),
   }
 }

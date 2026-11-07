@@ -47,7 +47,8 @@ describe("AttendingEvents", () => {
       "href",
       "/akce/e2",
     )
-    expect(within(waiting).getByText("Čeká na schválení")).toBeInTheDocument()
+    // Figma C-01: the badge says it whole; on a phone the occupancy goes under it
+    expect(within(waiting).getByText("Čeká na schválení", { selector: "span" })).toBeInTheDocument()
 
     const confirmed = screen.getByRole("region", { name: "Potvrzené (1)" })
     const [florbal] = within(confirmed).getAllByRole("listitem")
@@ -65,6 +66,24 @@ describe("AttendingEvents", () => {
     ])
 
     expect(get).toHaveBeenCalledWith("me/events", { searchParams: { tab: "attending" } })
+  })
+
+  it("says how many are missing in the line, as the badge is „Jdu“ (#189)", async () => {
+    get.mockReturnValue(
+      asJson([aMyEvent({ id: "e1", title: "Florbal", approvedCount: 3, missingToMin: 1 })]),
+    )
+
+    await renderWithQuery(<AttendingEvents viewerId="u1" />)
+
+    const [florbal] = within(
+      await screen.findByRole("region", { name: "Potvrzené (1)" }),
+    ).getAllByRole("listitem")
+    expect(within(florbal!).getByText("Jdu")).toBeInTheDocument()
+    // the grid card's numbers (desktop) and the row card's line (phone), Figma C-01d / C-01
+    expect(within(florbal!).getByText("chybí 1 · 3 z 12 · min. 4")).toBeInTheDocument()
+    expect(
+      within(florbal!).getByText("chybí 1 · 17:30 · Kavárna Pražírna · Praha 8"),
+    ).toBeInTheDocument()
   })
 
   it("leaves out a section with nothing in it", async () => {
@@ -137,10 +156,23 @@ describe("OrganizingEvents", () => {
       "href",
       "/akce/e1/sprava",
     )
-    expect(within(deskovky!).getByText("4/12 · 2 žádosti")).toBeInTheDocument()
+    expect(within(deskovky!).getByText("4 z 12 · min. 4 · 2 žádosti")).toBeInTheDocument()
     expect(within(foto!).getByText("Zrušeno")).toBeInTheDocument()
 
     expect(get).toHaveBeenCalledWith("me/events", { searchParams: { tab: "organizing" } })
+  })
+
+  it("leaves „chybí“ to the badge, the line has the count and the minimum (#189)", async () => {
+    get.mockReturnValue(
+      asJson([organized({ title: "Deskovky", approvedCount: 3, missingToMin: 1 })]),
+    )
+
+    await renderWithQuery(<OrganizingEvents viewerId="u1" />)
+
+    const [deskovky] = (await screen.findAllByRole("listitem")) as [HTMLElement]
+    expect(within(deskovky).getByText("Chybí 1")).toBeInTheDocument()
+    expect(within(deskovky).getByText("3 z 12 · min. 4")).toBeInTheDocument()
+    expect(within(deskovky).queryByText(/chybí 1 ·/)).not.toBeInTheDocument()
   })
 
   it("has no strip without requests", async () => {
