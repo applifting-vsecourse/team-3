@@ -89,6 +89,19 @@ export const myEventsSchema = z.array(myEventSchema)
 
 export type MyEvent = z.infer<typeof myEventSchema>
 
+/** An event on its group's page (B-055): members-only ones are marked. */
+export const groupEventSchema = publicEventSchema.extend({
+  visibility: z.enum(["public", "members"]),
+})
+
+export type GroupEvent = z.infer<typeof groupEventSchema>
+
+/** GET /api/groups/:id/events — upcoming soonest first, past the latest first (Figma A-08e). */
+export const groupEventsSchema = z.object({
+  upcoming: z.array(groupEventSchema),
+  past: z.array(groupEventSchema),
+})
+
 /** POST /api/events answers with the detail and the link to share (B-021). */
 export const createdEventSchema = eventDetailSchema.extend({ shareUrl: z.string() })
 
