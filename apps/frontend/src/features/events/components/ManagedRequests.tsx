@@ -172,7 +172,12 @@ export function ManagedRequests({
       )}
       <Dialog
         open={isRejectOpen}
-        onOpenChange={setIsRejectOpen}
+        onOpenChange={(isNowOpen) => {
+          // while the rejection is on its way, Esc, a click outside and the ✕ wait for
+          // the answer: closing would hide whether it went through (review #262)
+          if (!isNowOpen && isDeciding) return
+          setIsRejectOpen(isNowOpen)
+        }}
       >
         <DialogContent>
           <DialogHeader>
@@ -185,7 +190,12 @@ export function ManagedRequests({
           </DialogHeader>
           <DialogFooter>
             <DialogClose asChild>
-              <Button variant="outline">Zpět</Button>
+              <Button
+                variant="outline"
+                disabled={isDeciding}
+              >
+                Zpět
+              </Button>
             </DialogClose>
             <Button
               variant="destructive"

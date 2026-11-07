@@ -142,6 +142,58 @@ describe("ManagedRequests (#53)", () => {
     for (const button of screen.getAllByRole("button")) expect(button).toBeDisabled()
   })
 
+  it("while the rejection is on its way, the dialog can't be closed (review #262)", async () => {
+    const { onDecide, rerender } = renderRequests()
+    await userEvent.click(screen.getByRole("button", { name: "Zamítnout žádost: Jakub Král" }))
+    rerender(
+      <ManagedRequests
+        requests={[jakub, eva]}
+        error={undefined}
+        onRetry={vi.fn()}
+        canDecide
+        isFull={false}
+        isDeciding
+        onDecide={onDecide}
+      />,
+    )
+    const dialog = screen.getByRole("dialog", { name: "Zamítnout žádost?" })
+
+    expect(within(dialog).getByRole("button", { name: "Zpět" })).toBeDisabled()
+    await userEvent.keyboard("{Escape}")
+    expect(dialog).toBeInTheDocument()
+    // a click on the overlay: the page under a modal dialog takes no pointer events
+    await userEvent.setup({ pointerEventsCheck: 0 }).click(document.body)
+    expect(dialog).toBeInTheDocument()
+    await userEvent.click(within(dialog).getByRole("button", { name: "Zavřít" }))
+    expect(screen.getByRole("dialog", { name: "Zamítnout žádost?" })).toBeInTheDocument()
+  })
+
+  it("an approval that fails leaves the request listed and no unhandled rejection (the page's toast says why)", async () => {
+    const unhandled = vi.fn()
+    process.on("unhandledRejection", unhandled)
+    try {
+      const decided = vi.fn()
+      // not a vi.fn: Vitest attaches a handler to what a mock returns, which would
+      // hide the very rejection this test looks for
+      renderRequests({
+        onDecide: (request, decision) => {
+          decided(request, decision)
+          return Promise.reject(new Error("Akce je plná."))
+        },
+      })
+
+      await userEvent.click(screen.getByRole("button", { name: "Schválit žádost: Jakub Král" }))
+      // Node reports an unhandled rejection only after the pending callbacks
+      await new Promise((resolve) => setTimeout(resolve, 50))
+
+      expect(decided).toHaveBeenCalledExactlyOnceWith(jakub, "approve")
+      expect(unhandled).not.toHaveBeenCalled()
+      expect(screen.getByRole("button", { name: "Schválit žádost: Jakub Král" })).toBeEnabled()
+    } finally {
+      process.off("unhandledRejection", unhandled)
+    }
+  })
+
   it("a started event lists the requests without buttons, saying why", () => {
     renderRequests({ canDecide: false })
 
