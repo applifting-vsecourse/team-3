@@ -15,8 +15,8 @@ import type { SimulatedEmail } from "@/features/auth/api/simulatedInbox"
 type SimulatedInboxDialogProps = {
   /** Where the e-mail would have gone: the address on „Ověř si e-mail“. */
   email: string
-  /** Newest first, as the API sends them. */
-  messages: SimulatedEmail[]
+  /** Newest first, as the API sends them; undefined while they load. */
+  messages: SimulatedEmail[] | undefined
   /** Opening asks for the inbox again: the e-mail may have come after the last look. */
   onOpen: () => void
 }
@@ -27,7 +27,7 @@ type SimulatedInboxDialogProps = {
  * whose link works.
  */
 export function SimulatedInboxDialog({ email, messages, onOpen }: SimulatedInboxDialogProps) {
-  const [latest] = messages
+  const latest = messages?.[0]
   return (
     <Dialog
       onOpenChange={(isOpen) => {
@@ -65,8 +65,10 @@ export function SimulatedInboxDialog({ email, messages, onOpen }: SimulatedInbox
               className="h-96 w-full rounded-lg border border-border"
             />
           </div>
-        ) : (
+        ) : messages ? (
           <p className="text-muted-foreground">Zatím tu nic není – pošli si odkaz znovu.</p>
+        ) : (
+          <p className="text-muted-foreground">Načítám e-mail…</p>
         )}
         <DialogFooter>
           <DialogClose asChild>

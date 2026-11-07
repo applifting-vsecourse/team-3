@@ -6,9 +6,14 @@ import { authKeys } from "@/lib/auth-keys"
 
 /**
  * GET /api/sign-in-providers (#154): what the sign-in pages offer besides
- * e-mail and password. Google only once the server has its keys.
+ * e-mail and password. Google only once the server has its keys; the
+ * simulated inbox only where e-mails are simulated (#58, #236).
  */
-export const signInProvidersSchema = z.object({ google: z.boolean() })
+export const signInProvidersSchema = z.object({
+  google: z.boolean(),
+  // #236: „Ověř si e-mail“ offers the simulated inbox (#58); an older API says nothing
+  simulatedInbox: z.boolean().default(false),
+})
 
 export type SignInProviders = z.infer<typeof signInProvidersSchema>
 

@@ -1,5 +1,7 @@
+import { useState } from "react"
 import { useQuery } from "@tanstack/react-query"
 
+import { signInProvidersQueryOptions } from "@/features/auth/api/signInProviders"
 import {
   simulatedInboxQueryOptions,
   type InboxCredentials,
@@ -19,7 +21,7 @@ type VerifyEmailStepProps = InboxCredentials & {
  * sign-in is refused because the e-mail isn't verified. Only a verified
  * e-mail signs in, so the next step is the link, then signing in. The
  * password was just typed and stays in memory: where e-mails are simulated
- * (#58) it opens the inbox, which has no session to go by.
+ * (#58) it opens the inbox, which has no session to go by, on a click only.
  */
 export function VerifyEmailStep({
   email,
@@ -27,7 +29,15 @@ export function VerifyEmailStep({
   from,
   onAlreadyVerified,
 }: VerifyEmailStepProps) {
-  const inbox = useQuery(simulatedInboxQueryOptions({ email, password }))
+  const providers = useQuery(signInProvidersQueryOptions())
+  // Asked only once the dialog opens, never right after the sign-up: an
+  // answer before any click would tell a new address (its e-mail is there)
+  // from somebody else's account (refused), which sign-up keeps quiet about.
+  const [isInboxOpened, setIsInboxOpened] = useState(false)
+  const inbox = useQuery({
+    ...simulatedInboxQueryOptions({ email, password }),
+    enabled: isInboxOpened,
+  })
 
   return (
     <div className="flex flex-col gap-4">
@@ -45,12 +55,16 @@ export function VerifyEmailStep({
             if (result === "already-verified") onAlreadyVerified()
           }}
         />
-        {/* only where e-mails are simulated; real ones (404) or an error: nothing */}
-        {inbox.data ? (
+        {/* only where e-mails are simulated, the same for every address */}
+        {providers.data?.simulatedInbox ? (
           <SimulatedInboxDialog
             email={email}
-            messages={inbox.data.messages}
-            onOpen={() => void inbox.refetch()}
+            // a refusal looks like an empty inbox: it says nothing about the address
+            messages={inbox.isError ? [] : inbox.data?.messages}
+            onOpen={() => {
+              if (isInboxOpened) void inbox.refetch()
+              else setIsInboxOpened(true)
+            }}
           />
         ) : null}
       </div>

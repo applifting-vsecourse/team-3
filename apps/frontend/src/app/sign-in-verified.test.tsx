@@ -1,6 +1,6 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query"
 import { createMemoryHistory, createRouter, RouterProvider } from "@tanstack/react-router"
-import { render, screen, waitFor } from "@testing-library/react"
+import { render, screen, waitFor, within } from "@testing-library/react"
 import userEvent from "@testing-library/user-event"
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest"
 
@@ -62,15 +62,25 @@ const json = (body: unknown, status = 200) =>
 
 /**
  * The API: every list is empty, and the simulated inbox (#58) is off (404)
- * unless `inbox` is given. Returns the requests to the inbox, with their bodies.
+ * unless `inbox` is given: its answer, or a status it refuses with. Returns
+ * the requests to the inbox, with their bodies.
  */
 const stubApi = ({ inbox }: { inbox?: unknown } = {}) => {
   const inboxRequests: { method: string; body: unknown }[] = []
   vi.stubGlobal(
     "fetch",
     vi.fn(async (input: Request) => {
+      if (input.url.endsWith("/sign-in-providers")) {
+        return json({ google: false, simulatedInbox: inbox !== undefined })
+      }
       if (input.url.endsWith("/simulated-inbox")) {
         inboxRequests.push({ method: input.method, body: await input.clone().json() })
+        if (typeof inbox === "number") {
+          return json(
+            { code: "INVALID_EMAIL_OR_PASSWORD", message: "Nesprávný e-mail nebo heslo." },
+            inbox,
+          )
+        }
         return inbox ? json(inbox) : json({ code: "SIMULATED_INBOX_OFF" }, 404)
       }
       return json([])
@@ -169,15 +179,38 @@ describe("signing in needs a verified e-mail (#236)", () => {
 
     await signIn("eva.mala@example.com", "hobbyhub2026")
 
-    expect(
-      await screen.findByRole("button", { name: "Otevřít e-mail (simulace)" }),
-    ).toBeInTheDocument()
+    const open = await screen.findByRole("button", { name: "Otevřít e-mail (simulace)" })
+    // nothing asked before the click: an early answer would tell addresses apart
+    expect(inboxRequests).toHaveLength(0)
+
+    await userEvent.click(open)
+
+    const dialog = await screen.findByRole("dialog", { name: "Simulovaná schránka" })
+    expect(await within(dialog).findByText("Ověř si e-mail v HobbyHubu")).toBeInTheDocument()
     const [request] = inboxRequests
     expect(request?.method).toBe("POST")
     expect(request?.body).toEqual({
       email: "eva.mala@example.com",
       password: "hobbyhub2026",
     })
+  })
+
+  it("a refused inbox (somebody else's or a verified address) looks like an empty one", async () => {
+    stubApi({ inbox: 401 })
+    signInEmail.mockResolvedValue({
+      data: null,
+      error: { code: "EMAIL_NOT_VERIFIED", status: 403 },
+    })
+    await renderApp("/login")
+    await signIn("petra.novakova@example.com", "hadam-heslo-2026")
+
+    await userEvent.click(await screen.findByRole("button", { name: "Otevřít e-mail (simulace)" }))
+
+    const dialog = await screen.findByRole("dialog", { name: "Simulovaná schránka" })
+    expect(
+      await within(dialog).findByText("Zatím tu nic není – pošli si odkaz znovu."),
+    ).toBeInTheDocument()
+    expect(within(dialog).queryByText(/Nesprávný/)).not.toBeInTheDocument()
   })
 
   it("after the sign-up the user isn't signed in and is asked to open the e-mail", async () => {
