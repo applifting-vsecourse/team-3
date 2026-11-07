@@ -43,7 +43,7 @@ Synchronizace nastavuje `SMTP_HOST=smtp.gmail.com`, `SMTP_PORT=465`, `SMTP_SECUR
 
 ## Čtecí ověření infrastruktury
 
-**Actions → Build & Deploy → Run workflow**, zvolit schválenou pracovní větev a ponechat **inspect_only** zapnuté. Tento režim pouze identifikuje backend; nesestavuje ani nepublikuje image, nemění proměnné a nespouští deploy. Nepotřebuje Google ani SMTP klíče.
+**Actions → Build & Deploy → Run workflow** na `main` a zapnout **inspect_only** (výchozí je vypnuté, takže ruční spuštění dál normálně nasazuje). Tento režim pouze identifikuje backend; nesestavuje ani nepublikuje image, nemění proměnné a nespouští deploy. Nepotřebuje Google ani SMTP klíče.
 
 Skript získá adresu API a výchozí UUID ze stávajícího webhooku. UUID webhooku nepovažuje automaticky za backend: webhook může cílit na frontend. Backend ověří podle přesného názvu image `${REGISTRY}/${SLUG}-backend` a prostředí webhooku. Podporuje backend jako aplikaci Coolify typu **Docker Image** s tagem `latest`. Pokud nelze najít právě jeden takový backend, skončí před změnou konfigurace. U jiného způsobu hostování je nutné integraci upravit podle zjištěné konfigurace; Compose stack se automaticky nepřepisuje.
 
@@ -73,6 +73,7 @@ Pokud načtené runtime proměnné prokazatelně skrývají hodnoty nebo je něk
 1. Ověřit přítomnost všech pěti nových secrets a úspěšný čtecí průchod.
 2. **Settings → Secrets and variables → Actions → Variables → New repository variable**: `STAGING_AUTH_MAIL_CONFIGURED=true`. Bez tohoto přepínače se konfigurace nepřenáší.
 3. Po týmovém review, merge a schválení nasazení spustit workflow na `main` s vypnutým **inspect_only**, případně využít schválené automatické nasazení z `main`. Nasazení z jiné větve je blokované.
+4. **Když krok „Configure staging Google and Gmail SMTP“ selže** (oranžový v Actions), nasazení proběhne dál se starým nastavením. Smaž proměnnou `STAGING_AUTH_MAIL_CONFIGURED` a zjisti příčinu (nejčastěji token bez práv).
 4. Workflow nejprve publikuje oba image. Synchronizace potom změní pouze povolené OAuth/SMTP proměnné identifikovaného backendu a načte je zpět. Při chybě se navazující webhook nespustí.
 5. Pokud původní webhook neobsahuje backend, skript po kontrole hodnot zařadí i jeho deploy. Pokud backend obsahuje, použije se stávající webhook bez duplicitního spuštění.
 

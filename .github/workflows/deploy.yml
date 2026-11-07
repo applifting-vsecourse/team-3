@@ -7,7 +7,7 @@ on:
       inspect_only:
         description: 'Read-only backend discovery (no builds, pushes, env updates or deploys)'
         type: boolean
-        default: true
+        default: false
 permissions:
   contents: read
 env:
@@ -15,7 +15,7 @@ env:
   REGISTRY: registry.vsepractical.applifting.dev
 jobs:
   inspect-staging:
-    if: github.event_name == 'workflow_dispatch' && inputs.inspect_only
+    if: github.event_name == 'workflow_dispatch' && inputs.inspect_only && github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -70,8 +70,11 @@ jobs:
           tags: ${{ env.REGISTRY }}/${{ steps.slug.outputs.slug }}-frontend:latest
       # Opt in after OAuth/SMTP credentials are stored. Resource discovery is
       # read-only; an ambiguous or unsupported target fails before any update.
+      # A failure (e.g. the token lacks the rights) must not stop the deploy:
+      # the step turns orange and the app deploys with its previous settings.
       - name: Configure staging Google and Gmail SMTP at runtime
         if: vars.STAGING_AUTH_MAIL_CONFIGURED == 'true'
+        continue-on-error: true
         env:
           COOLIFY_WEBHOOK: ${{ secrets.COOLIFY_WEBHOOK }}
           COOLIFY_TOKEN: ${{ secrets.COOLIFY_TOKEN }}
