@@ -25,6 +25,10 @@ export type EventViewer = {
  * and for a group's event any active admin of the group. The one shared
  * check for all of that; rating the participants is the exception (B-060),
  * only the organizer does it.
+ *
+ * The organizer keeps it at a group's event even after leaving the group.
+ * Today that can't happen (the founder is the only admin and LAST_ADMIN
+ * keeps them in); with more admins (#62, #100) decide whether it should.
  */
 export function canManageEvent(viewer: EventViewer): boolean {
   if (!viewer) return false;

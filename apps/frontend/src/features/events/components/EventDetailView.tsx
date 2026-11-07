@@ -261,7 +261,7 @@ function EventOrganizer({ event, group }: { event: EventDetail; group?: ReactNod
           <Link
             to="/skupiny/$groupId"
             params={{ groupId: event.group.id }}
-            className="rounded-lg border border-border bg-card p-3 font-semibold text-card-foreground hover:border-foreground"
+            className="rounded-2xl border border-card-border bg-card p-3 font-semibold text-card-foreground hover:border-foreground"
           >
             {event.group.name}
           </Link>

@@ -23,7 +23,7 @@ const STYLES: Record<BadgeStatus["kind"], string> = {
   free: "bg-secondary text-secondary-foreground",
   full: "bg-muted text-muted-foreground",
   cancelled: "bg-foreground text-background",
-  past: "border border-border text-foreground",
+  past: "border border-control-border text-foreground",
   // Figma draws these as the Volná and Plno variants with their own label
   going: "bg-secondary text-secondary-foreground",
   pending: "bg-muted text-muted-foreground",

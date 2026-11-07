@@ -64,7 +64,7 @@ function EditEventPage() {
           ) : membersOnlyGroupId ? (
             // a members-only event of a group the user isn't in
             <Alert>
-              <AlertTitle>Upravit akci může jen její organizátor.</AlertTitle>
+              <AlertTitle>Upravit akci může jen její organizátor nebo správce skupiny.</AlertTitle>
             </Alert>
           ) : isPending || !event ? (
             <Skeleton className="h-96 w-full" />

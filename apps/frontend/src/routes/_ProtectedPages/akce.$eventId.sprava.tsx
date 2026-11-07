@@ -104,7 +104,11 @@ function ManageEventPage() {
           <Skeleton className="h-40 w-full" />
         ) : !isOrganizer || !event || membersOnlyGroupId ? (
           <Alert>
-            <AlertTitle>Akci spravuje jen její organizátor.</AlertTitle>
+            <AlertTitle>
+              {membersOnlyGroupId || event?.group
+                ? "Akci spravuje jen její organizátor nebo správce skupiny."
+                : "Akci spravuje jen její organizátor."}
+            </AlertTitle>
           </Alert>
         ) : (
           // D-03d: the event's summary on the left, who is coming on the right

@@ -5,6 +5,7 @@ import { editRefusal } from "@/features/events/lib/editRefusal"
 const now = new Date("2026-10-23T08:00:00.000Z")
 const event = {
   canManage: true,
+  group: null,
   status: "published" as const,
   startsAt: new Date("2026-10-24T16:00:00.000Z"),
 }
@@ -18,6 +19,12 @@ describe("editRefusal", () => {
     expect(editRefusal({ ...event, canManage: false }, now)).toBe(
       "Upravit akci může jen její organizátor.",
     )
+  })
+
+  it("a group's event names its admins too (#70)", () => {
+    expect(
+      editRefusal({ ...event, canManage: false, group: { id: "g1", name: "Florbal" } }, now),
+    ).toBe("Upravit akci může jen její organizátor nebo správce skupiny.")
   })
 
   it("refuses a cancelled event, and one that has started", () => {

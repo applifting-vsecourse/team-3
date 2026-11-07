@@ -8,11 +8,14 @@ import type { EventDetail } from "@/features/events/api/eventSchemas"
  * buttons and pages in line.
  */
 export function editRefusal(
-  event: Pick<EventDetail, "canManage" | "status" | "startsAt">,
+  event: Pick<EventDetail, "canManage" | "group" | "status" | "startsAt">,
   now: Date = new Date(),
 ): string | null {
-  if (!event.canManage) return "Upravit akci může jen její organizátor."
-
+  if (!event.canManage) {
+    return event.group
+      ? "Upravit akci může jen její organizátor nebo správce skupiny."
+      : "Upravit akci může jen její organizátor."
+  }
   if (event.status === "cancelled") return "Zrušenou akci nejde upravit."
   if (event.startsAt <= now) return "Akce už začala, upravit ji nejde."
   return null
