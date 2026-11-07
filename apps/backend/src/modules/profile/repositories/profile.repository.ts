@@ -2,15 +2,13 @@ import { PrismaService } from '@/core/prisma/prisma.service';
 import { Prisma } from '@/generated/prisma/client';
 import {
   participationWhere,
+  PROFILE_OVERVIEW_TAKE,
   profileSelect,
   type ProfileEvent,
   type ProfileOverview,
   type ProfileRow,
 } from '@/modules/profile/domain/profile';
-import {
-  organizerRatingSummary,
-  participantRatingSummary,
-} from '@/modules/rating/domain/rating-summary';
+import { summarizeTotals } from '@/modules/rating/domain/rating-summary';
 import { Injectable } from '@nestjs/common';
 
 const eventSelect = {
@@ -72,80 +70,119 @@ export class ProfileRepository {
   }
 
   async overview(userId: string, now: Date): Promise<ProfileOverview> {
-    const [organizing, upcoming, past, participant, organizer] =
-      await Promise.all([
-        this.prisma.event.findMany({
-          where: {
-            organizerUserId: userId,
-            status: { in: ['published', 'cancelled'] },
-          },
-          select: eventSelect,
-          orderBy: { startsAt: 'desc' },
-        }),
-        this.prisma.participation.findMany({
-          where: participationWhere(userId, now, false),
-          select: { status: true, event: { select: eventSelect } },
-          orderBy: { event: { startsAt: 'asc' } },
-        }),
-        this.prisma.participation.findMany({
-          where: participationWhere(userId, now, true),
-          select: { event: { select: eventSelect } },
-          orderBy: { event: { startsAt: 'desc' } },
-        }),
-        this.prisma.participantRating.findMany({
-          where: {
-            participantId: userId,
-            deletedAt: null,
-            event: { status: 'published' },
-          },
-          select: {
-            id: true,
-            stars: true,
-            comment: true,
-            createdAt: true,
-            deletedAt: true,
-            event: {
-              select: {
-                id: true,
-                title: true,
-                organizer: { select: { id: true, name: true } },
-              },
+    const take = PROFILE_OVERVIEW_TAKE;
+    const organizingWhere: Prisma.EventWhereInput = {
+      organizerUserId: userId,
+      status: { in: ['published', 'cancelled'] },
+    };
+    const upcomingWhere = participationWhere(userId, now, false);
+    const pastWhere = participationWhere(userId, now, true);
+    const participantWhere: Prisma.ParticipantRatingWhereInput = {
+      participantId: userId,
+      deletedAt: null,
+      event: { status: 'published' },
+    };
+    // The same rows organizerRatingSummary counts: no deleted ratings, no group events.
+    const organizerWhere: Prisma.RatingWhereInput = {
+      deletedAt: null,
+      event: { organizerUserId: userId, groupId: null, status: 'published' },
+    };
+    const [
+      organizing,
+      organizingTotal,
+      upcoming,
+      upcomingTotal,
+      past,
+      pastTotal,
+      participant,
+      participantTotals,
+      organizer,
+      organizerTotals,
+    ] = await Promise.all([
+      this.prisma.event.findMany({
+        where: organizingWhere,
+        select: eventSelect,
+        orderBy: { startsAt: 'desc' },
+        take,
+      }),
+      this.prisma.event.count({ where: organizingWhere }),
+      this.prisma.participation.findMany({
+        where: upcomingWhere,
+        select: { status: true, event: { select: eventSelect } },
+        orderBy: { event: { startsAt: 'asc' } },
+        take,
+      }),
+      this.prisma.participation.count({ where: upcomingWhere }),
+      this.prisma.participation.findMany({
+        where: pastWhere,
+        select: { event: { select: eventSelect } },
+        orderBy: { event: { startsAt: 'desc' } },
+        take,
+      }),
+      this.prisma.participation.count({ where: pastWhere }),
+      this.prisma.participantRating.findMany({
+        where: participantWhere,
+        select: {
+          id: true,
+          stars: true,
+          comment: true,
+          createdAt: true,
+          event: {
+            select: {
+              id: true,
+              title: true,
+              organizer: { select: { id: true, name: true } },
             },
           },
-          orderBy: { createdAt: 'desc' },
-        }),
-        this.prisma.rating.findMany({
-          where: {
-            deletedAt: null,
-            event: {
-              organizerUserId: userId,
-              groupId: null,
-              status: 'published',
-            },
-          },
-          select: {
-            id: true,
-            organizerStars: true,
-            comment: true,
-            createdAt: true,
-            deletedAt: true,
-            user: { select: { id: true, name: true } },
-            event: { select: { id: true, title: true, groupId: true } },
-          },
-          orderBy: { createdAt: 'desc' },
-        }),
-      ]);
+        },
+        orderBy: { createdAt: 'desc' },
+        take,
+      }),
+      this.prisma.participantRating.aggregate({
+        where: participantWhere,
+        _sum: { stars: true },
+        _count: { _all: true },
+      }),
+      this.prisma.rating.findMany({
+        where: organizerWhere,
+        select: {
+          id: true,
+          organizerStars: true,
+          comment: true,
+          createdAt: true,
+          user: { select: { id: true, name: true } },
+          event: { select: { id: true, title: true } },
+        },
+        orderBy: { createdAt: 'desc' },
+        take,
+      }),
+      this.prisma.rating.aggregate({
+        where: organizerWhere,
+        _sum: { organizerStars: true },
+        _count: { _all: true },
+      }),
+    ]);
     return {
       organizing: organizing.map((event) => eventSummary(event)),
+      organizingTotal,
       upcoming: upcoming.map((row) =>
         eventSummary(
           row.event,
           row.status === 'approved' ? 'approved' : 'pending',
         ),
       ),
+      upcomingTotal,
       past: past.map((row) => eventSummary(row.event, 'approved')),
-      participantSummary: participantRatingSummary(participant),
-      organizerSummary: organizerRatingSummary(organizer),
+      pastTotal,
+      // The whole history, not just the loaded slice: count = all ratings.
+      participantSummary: summarizeTotals(
+        participantTotals._sum.stars ?? 0,
+        participantTotals._count._all,
+      ),
+      organizerSummary: summarizeTotals(
+        organizerTotals._sum.organizerStars ?? 0,
+        organizerTotals._count._all,
+      ),
       participantRatings: participant.map((row) => ({
         id: row.id,
         stars: row.stars,

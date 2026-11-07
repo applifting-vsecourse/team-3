@@ -10,12 +10,19 @@ export type RatingSummary = { average: number | null; count: number };
  * page shows the same number.
  */
 export function summarizeStars(stars: number[]): RatingSummary {
-  if (stars.length === 0) return { average: null, count: 0 };
-  const sum = stars.reduce((total, star) => total + star, 0);
-  return {
-    average: Math.round((sum * 10) / stars.length) / 10,
-    count: stars.length,
-  };
+  return summarizeTotals(
+    stars.reduce((total, star) => total + star, 0),
+    stars.length,
+  );
+}
+
+/**
+ * The same summary from a database aggregate (the sum of the stars and their
+ * count), for lists that load only a few ratings (#178).
+ */
+export function summarizeTotals(sum: number, count: number): RatingSummary {
+  if (count === 0) return { average: null, count: 0 };
+  return { average: Math.round((sum * 10) / count) / 10, count };
 }
 
 /** A participant's rating of the organizer, from `Rating`. */

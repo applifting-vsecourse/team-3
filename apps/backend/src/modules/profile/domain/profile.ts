@@ -72,10 +72,19 @@ export type ProfileRating = {
   event: { id: string; title: string };
   author: { id: string; name: string };
 };
+/**
+ * How many events per section and ratings per role the profile overview
+ * loads (Figma B-05 shows a slice with a link to the rest). The totals come
+ * alongside: `…Total` for events, `…Summary.count` for ratings.
+ */
+export const PROFILE_OVERVIEW_TAKE = 3;
 export type ProfileOverview = {
   organizing: ProfileEvent[];
+  organizingTotal: number;
   upcoming: ProfileEvent[];
+  upcomingTotal: number;
   past: ProfileEvent[];
+  pastTotal: number;
   participantRatings: ProfileRating[];
   organizerRatings: ProfileRating[];
   participantSummary: RatingSummary;

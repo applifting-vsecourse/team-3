@@ -3,6 +3,7 @@ import {
   organizerRatingSummary,
   participantRatingSummary,
   summarizeStars,
+  summarizeTotals,
 } from './rating-summary';
 
 const deletedAt = new Date('2026-10-30T10:00:00.000Z');
@@ -25,6 +26,13 @@ describe('summarizeStars', () => {
   it('rounds a half up', () => {
     // 17 / 4 = 4.25
     expect(summarizeStars([4, 4, 4, 5])).toEqual({ average: 4.3, count: 4 });
+  });
+});
+
+describe('summarizeTotals (#178)', () => {
+  it('rounds an aggregate like summarizeStars, and no ratings stay null', () => {
+    expect(summarizeTotals(17, 4)).toEqual(summarizeStars([4, 4, 4, 5]));
+    expect(summarizeTotals(0, 0)).toEqual({ average: null, count: 0 });
   });
 });
 

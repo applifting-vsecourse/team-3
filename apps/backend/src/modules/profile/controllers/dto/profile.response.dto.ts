@@ -1,9 +1,10 @@
 import { LocalityResponseDto } from '@/modules/catalog/controllers/dto/locality.response.dto';
-import type {
-  ProfileEvent,
-  ProfileOverview,
-  ProfileRating,
-  SelfProfile,
+import {
+  PROFILE_OVERVIEW_TAKE,
+  type ProfileEvent,
+  type ProfileOverview,
+  type ProfileRating,
+  type SelfProfile,
 } from '@/modules/profile/domain/profile';
 import type { RatingSummary } from '@/modules/rating/domain/rating-summary';
 import { ApiProperty } from '@nestjs/swagger';
@@ -53,15 +54,45 @@ class ProfileRatingSummaryDto implements RatingSummary {
   @ApiProperty() count!: number;
 }
 export class ProfileOverviewResponseDto implements ProfileOverview {
-  @ApiProperty({ type: [ProfileEventResponseDto] }) organizing!: ProfileEvent[];
-  @ApiProperty({ type: [ProfileEventResponseDto] }) upcoming!: ProfileEvent[];
-  @ApiProperty({ type: [ProfileEventResponseDto] }) past!: ProfileEvent[];
-  @ApiProperty({ type: [ProfileRatingResponseDto] })
+  @ApiProperty({
+    type: [ProfileEventResponseDto],
+    description: `Events I organize, latest first; at most ${PROFILE_OVERVIEW_TAKE}`,
+  })
+  organizing!: ProfileEvent[];
+  @ApiProperty({ description: 'How many events I organize in all' })
+  organizingTotal!: number;
+  @ApiProperty({
+    type: [ProfileEventResponseDto],
+    description: `Upcoming events I go to or wait for, soonest first; at most ${PROFILE_OVERVIEW_TAKE}`,
+  })
+  upcoming!: ProfileEvent[];
+  @ApiProperty({ description: 'How many upcoming events in all' })
+  upcomingTotal!: number;
+  @ApiProperty({
+    type: [ProfileEventResponseDto],
+    description: `Past events I took part in, latest first; at most ${PROFILE_OVERVIEW_TAKE}`,
+  })
+  past!: ProfileEvent[];
+  @ApiProperty({ description: 'How many past events in all' })
+  pastTotal!: number;
+  @ApiProperty({
+    type: [ProfileRatingResponseDto],
+    description: `Latest ratings as a participant; at most ${PROFILE_OVERVIEW_TAKE}, all of them in participantSummary.count`,
+  })
   participantRatings!: ProfileRating[];
-  @ApiProperty({ type: [ProfileRatingResponseDto] })
+  @ApiProperty({
+    type: [ProfileRatingResponseDto],
+    description: `Latest ratings as an organizer; at most ${PROFILE_OVERVIEW_TAKE}, all of them in organizerSummary.count`,
+  })
   organizerRatings!: ProfileRating[];
-  @ApiProperty({ type: ProfileRatingSummaryDto })
+  @ApiProperty({
+    type: ProfileRatingSummaryDto,
+    description: 'Average and count of all ratings as a participant',
+  })
   participantSummary!: RatingSummary;
-  @ApiProperty({ type: ProfileRatingSummaryDto })
+  @ApiProperty({
+    type: ProfileRatingSummaryDto,
+    description: 'Average and count of all ratings as an organizer',
+  })
   organizerSummary!: RatingSummary;
 }
