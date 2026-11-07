@@ -1,42 +1,65 @@
 import { SimulatedInboxService } from '@/modules/simulated-inbox/services/simulated-inbox.service';
-import { User } from '@/shared/auth/decorators/user.decorator';
-import { Identity } from '@/shared/auth/domain/identity';
-import { AuthenticatedUserGuard } from '@/shared/auth/guards/authenticated-user.guard';
-import { Controller, Get, UseGuards } from '@nestjs/common';
 import {
-  ApiCookieAuth,
+  Body,
+  Controller,
+  HttpCode,
+  Post,
+  UseGuards,
+  UsePipes,
+  ValidationPipe,
+} from '@nestjs/common';
+import {
   ApiOkResponse,
   ApiOperation,
   ApiResponse,
   ApiTags,
 } from '@nestjs/swagger';
+import { SimulatedInboxRequestDto } from './dto/simulated-inbox.request.dto';
 import { SimulatedInboxResponseDto } from './dto/simulated-inbox.response.dto';
+import { SimulatedInboxThrottlerGuard } from './simulated-inbox-throttler.guard';
 
-// A session is enough: the unverified user is the one who needs the e-mail.
+// No session: since #236 an unverified e-mail can't sign in, and the
+// unverified user is the one who needs the e-mail. The account's e-mail and
+// password stand in for it, as on the sign-in form. POST, so the password
+// never ends up in a URL or a log.
 @ApiTags('auth')
-@Controller('me/simulated-inbox')
-@UseGuards(AuthenticatedUserGuard)
-@ApiCookieAuth()
+@Controller('simulated-inbox')
+@UsePipes(
+  new ValidationPipe({
+    whitelist: true,
+    forbidNonWhitelisted: true,
+    transform: true,
+  }),
+)
 export class SimulatedInboxController {
   constructor(private readonly simulatedInboxService: SimulatedInboxService) {}
 
-  @Get()
+  @Post()
+  @HttpCode(200)
+  @UseGuards(SimulatedInboxThrottlerGuard)
   @ApiOperation({
     summary:
-      'Simulated inbox (#58): the verification e-mails the app would have sent me',
+      'Simulated inbox (#58): the verification e-mails the app would have sent to this account',
     description:
-      'Only without an e-mail service (console mailer), kept in memory: the last 3 per address. Password-reset e-mails are never kept.',
+      'Only without an e-mail service (console mailer), kept in memory: the last 3 per address. Password-reset e-mails are never kept. No session needed (#236: an unverified e-mail cannot sign in); the e-mail and password of the account are, as for signing in. 20 requests per address in 10 minutes.',
   })
   @ApiOkResponse({ type: SimulatedInboxResponseDto })
-  @ApiResponse({ status: 401, description: 'Not signed in' })
+  @ApiResponse({ status: 400, description: 'Invalid or unknown field' })
+  @ApiResponse({
+    status: 401,
+    description: 'INVALID_EMAIL_OR_PASSWORD: no such account, or wrong password',
+  })
   @ApiResponse({ status: 403, description: 'USER_BLOCKED' })
   @ApiResponse({
     status: 404,
     description: 'SIMULATED_INBOX_OFF: e-mails really go out (Resend or SMTP)',
   })
-  async list(@User() user: Identity): Promise<SimulatedInboxResponseDto> {
+  @ApiResponse({ status: 429, description: 'Too many requests for this address' })
+  async open(
+    @Body() body: SimulatedInboxRequestDto,
+  ): Promise<SimulatedInboxResponseDto> {
     return SimulatedInboxResponseDto.fromDomain(
-      await this.simulatedInboxService.getMessages(user),
+      await this.simulatedInboxService.getMessages(body),
     );
   }
 }

@@ -1,6 +1,7 @@
 import { PrismaModule } from '@/core/prisma/prisma.module';
 import { AuthModule } from '@/shared/auth/auth.module';
 import { Module } from '@nestjs/common';
+import { SimulatedInboxThrottlerGuard } from './controllers/simulated-inbox-throttler.guard';
 import { SimulatedInboxController } from './controllers/simulated-inbox.controller';
 import { SimulatedInboxService } from './services/simulated-inbox.service';
 
@@ -8,6 +9,6 @@ import { SimulatedInboxService } from './services/simulated-inbox.service';
 @Module({
   imports: [PrismaModule, AuthModule],
   controllers: [SimulatedInboxController],
-  providers: [SimulatedInboxService],
+  providers: [SimulatedInboxService, SimulatedInboxThrottlerGuard],
 })
 export class SimulatedInboxModule {}
