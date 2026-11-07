@@ -205,6 +205,10 @@ describe("verification sign-in history (#197)", () => {
 
   it("sign-in opened in a new tab leaves this page and its dialog as they are", async () => {
     const { router } = await renderDialog({ url: "/akce/e1", user: null })
+    // the browser would open the new tab; jsdom can't, so it stops here after
+    // the router has had its say
+    const stayHere = (event: Event) => event.preventDefault()
+    window.addEventListener("click", stayHere)
     const user = userEvent.setup()
     await user.keyboard("{Control>}")
     await user.click(within(screen.getByRole("dialog")).getByRole("link", { name: "Přihlásit se" }))
@@ -212,6 +216,7 @@ describe("verification sign-in history (#197)", () => {
     expect(router.state.location.pathname).toBe("/akce/e1")
     expect(router.history.location.state.emailVerification).toEqual({})
     expect(screen.getByRole("dialog")).toBeInTheDocument()
+    window.removeEventListener("click", stayHere)
   })
 
   it("in a real browser history, the cleared entry is written before /login is pushed", async () => {
@@ -257,6 +262,8 @@ describe("verification sign-in history (#197)", () => {
 
   it("successful verification over /login closes onto the existing sign-in destination", async () => {
     const { router } = await renderDialog({ url: "/login?from=%2Fmoje-akce", user: null })
+    // one way out: a second button closing onto the same form would say the same
+    expect(screen.queryByRole("button", { name: "Pokračovat" })).toBeNull()
     await userEvent.click(
       within(screen.getByRole("dialog")).getByRole("button", { name: "Přihlásit se" }),
     )

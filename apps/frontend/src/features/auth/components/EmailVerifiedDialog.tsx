@@ -72,9 +72,10 @@ export function EmailVerifiedDialog() {
   // clean Back target after sign-in replaces the login page. Browser history
   // batches writes into one per tick (the last one wins), so the replace has to
   // be flushed before the push, or it never reaches the entry we leave.
-  // A link opened in a new tab leaves this page, and its dialog, as they are.
+  // Sign-in opened in a new tab or window (Ctrl/Cmd/Shift-click) leaves this
+  // page, and its dialog, as they are.
   const beforeSignIn = (event: MouseEvent<HTMLAnchorElement>) => {
-    if (event.button !== 0 || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) {
+    if (event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) {
       return
     }
     router.history.replace(location.href, { ...location.state, emailVerification: undefined })
@@ -125,6 +126,14 @@ function VerificationOutcome({
   // e-mail was verified needs nothing more); signed out, the link itself.
   const isVerified = user ? user.emailVerified : !result.error
   const reason = result.error ? (REASONS[result.error] ?? "Odkaz je neplatný.") : null
+  // Signed out over the sign-in form, „Přihlásit se“ just closes the dialog
+  // onto it: a second button closing it too would only say the same thing.
+  const closeButton =
+    !user && location.pathname === ROUTES.login ? null : (
+      <DialogClose asChild>
+        <Button variant={isVerified && user ? "default" : "outline"}>{label}</Button>
+      </DialogClose>
+    )
 
   if (isVerified) {
     return (
@@ -138,9 +147,7 @@ function VerificationOutcome({
           </DialogDescription>
         </DialogHeader>
         <DialogFooter>
-          <DialogClose asChild>
-            <Button variant={user ? "default" : "outline"}>{label}</Button>
-          </DialogClose>
+          {closeButton}
           {!user ? (
             <SignInAction
               location={location}
@@ -167,9 +174,7 @@ function VerificationOutcome({
         </DialogDescription>
       </DialogHeader>
       <DialogFooter>
-        <DialogClose asChild>
-          <Button variant="outline">{label}</Button>
-        </DialogClose>
+        {closeButton}
         {user ? (
           <ResendVerificationButton
             email={user.email}
