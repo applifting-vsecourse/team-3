@@ -73,6 +73,21 @@ export const useDecideRequest = (groupId: string) =>
       api.post(`groups/${groupId}/requests/${userId}/${decision}`),
   )
 
-/** „Deaktivovat skupinu“ (B-051): only an admin; the group becomes read-only. */
-export const useDeactivateGroup = (groupId: string) =>
-  useMembershipMutation(groupId, () => api.post(`groups/${groupId}/deactivate`))
+/**
+ * „Deaktivovat skupinu“ (B-051): only an admin; the group becomes read-only
+ * and its upcoming events are cancelled (#70), so every event query goes
+ * stale too. `["events"]` is the events feature's `eventKeys.all()`, which a
+ * feature can't import from another.
+ */
+export function useDeactivateGroup(groupId: string) {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: () => api.post(`groups/${groupId}/deactivate`),
+    onSettled: () =>
+      Promise.all([
+        queryClient.invalidateQueries({ queryKey: groupKeys.detail(groupId) }),
+        queryClient.invalidateQueries({ queryKey: groupKeys.lists() }),
+        queryClient.invalidateQueries({ queryKey: ["events"] }),
+      ]),
+  })
+}

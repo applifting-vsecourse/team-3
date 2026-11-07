@@ -1,9 +1,8 @@
+import { occupancyCount, occupancyState, occupancyStatus, type Occupancy } from "@/lib/occupancy"
 import { cn } from "@/lib/utils"
 
-type CapacityBarProps = {
-  approvedCount: number
-  minParticipants: number
-  maxParticipants: number
+/** The counts for the bar's geometry; `missingToMin`, `freeSpots` and `isFull` as the API sends them. */
+type CapacityBarProps = Occupancy & {
   className?: string
 }
 
@@ -15,24 +14,13 @@ const percent = (part: number, whole: number) =>
  * components): approved of maximum as the fill, hatched until the minimum is
  * reached; the minimum as a marker with its „min. N“ label under it.
  */
-export function CapacityBar({
-  approvedCount,
-  minParticipants,
-  maxParticipants,
-  className,
-}: CapacityBarProps) {
-  const missing = Math.max(0, minParticipants - approvedCount)
-  const freeSpots = Math.max(0, maxParticipants - approvedCount)
-  const isFull = freeSpots === 0
+export function CapacityBar({ className, ...occupancy }: CapacityBarProps) {
+  const { approvedCount, minParticipants, maxParticipants } = occupancy
+  const state = occupancyState(occupancy)
+  const isFull = state === "full"
   // not confirmed yet: below the minimum the fill is hatched, from exactly the minimum solid
-  const isBelowMin = missing > 0 && !isFull
+  const isBelowMin = state === "missing"
   const minPct = percent(minParticipants, maxParticipants)
-
-  const status = isFull
-    ? "Plno"
-    : isBelowMin
-      ? `Chybí ještě ${missing}`
-      : `Volná místa: ${freeSpots}`
 
   return (
     <div className={cn("flex flex-col gap-2", className)}>
@@ -44,11 +32,9 @@ export function CapacityBar({
             isFull && "text-muted-foreground",
           )}
         >
-          {status}
+          {occupancyStatus(occupancy)}
         </p>
-        <p className="text-xs text-muted-foreground">
-          {approvedCount} z {maxParticipants}
-        </p>
+        <p className="text-xs text-muted-foreground">{occupancyCount(occupancy)}</p>
       </div>
       {/* the texts around it say it all; the bar is the picture of them */}
       <div

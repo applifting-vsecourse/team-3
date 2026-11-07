@@ -1,9 +1,18 @@
 import { cn } from "@/lib/utils"
 
 export type CapacityStatus =
-  { kind: "missing"; missing: number } | { kind: "free" } | { kind: "full" } | { kind: "cancelled" }
+  | { kind: "missing"; missing: number }
+  | { kind: "free" }
+  | { kind: "full" }
+  | { kind: "cancelled" }
+  // a past event on its group's page (Figma A-08e)
+  | { kind: "past" }
 
-/** The user's own place, in „Moje akce“ (C-01): „Jdu“, „Čeká na schválení“. */
+/**
+ * The user's own place, in „Moje akce“ (C-01): „Jdu“, „Čeká“. A request only
+ * shows under the heading „Čeká na schválení“, so the badge says it short and
+ * leaves room for the occupancy next to it on a phone (#189).
+ */
 export type ParticipationBadge = { kind: "going" } | { kind: "pending" }
 
 export type BadgeStatus = CapacityStatus | ParticipationBadge
@@ -14,6 +23,7 @@ const STYLES: Record<BadgeStatus["kind"], string> = {
   free: "bg-secondary text-secondary-foreground",
   full: "bg-muted text-muted-foreground",
   cancelled: "bg-foreground text-background",
+  past: "border border-control-border text-foreground",
   // Figma draws these as the Volná and Plno variants with their own label
   going: "bg-secondary text-secondary-foreground",
   pending: "bg-muted text-muted-foreground",
@@ -29,10 +39,12 @@ const label = (status: BadgeStatus): string => {
       return "Plno"
     case "cancelled":
       return "Zrušeno"
+    case "past":
+      return "Proběhlo"
     case "going":
       return "Jdu"
     case "pending":
-      return "Čeká na schválení"
+      return "Čeká"
   }
 }
 

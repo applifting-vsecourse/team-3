@@ -20,6 +20,13 @@ export class EventDetailResponseDto extends PublicEventResponseDto {
   })
   approvalMode!: 'open' | 'approval';
 
+  @ApiProperty({
+    enum: ['public', 'private', 'members'],
+    description:
+      "private: reachable through its link only; members: only the group's members (B-055)",
+  })
+  visibility!: 'public' | 'private' | 'members';
+
   @ApiProperty({ enum: ['published', 'cancelled'] })
   status!: 'published' | 'cancelled';
 
@@ -52,6 +59,12 @@ export class EventDetailResponseDto extends PublicEventResponseDto {
   })
   viewerSignedIn!: boolean;
 
+  @ApiProperty({
+    description:
+      "Whether the signed-in user manages the event: its organizer or, for a group event, any of the group's admins (B-055)",
+  })
+  canManage!: boolean;
+
   static fromDomain(event: EventDetailView): EventDetailResponseDto {
     if (event.status === 'hidden' || event.status === 'deleted') {
       // the service answers 404 for these; this guards the response shape
@@ -61,11 +74,13 @@ export class EventDetailResponseDto extends PublicEventResponseDto {
       ...PublicEventResponseDto.fromDomain(event),
       description: event.description,
       approvalMode: event.approvalMode,
+      visibility: event.visibility,
       status: event.status,
       cancelReason: event.cancelReason,
       participants: event.participants,
       myParticipation: event.myParticipation,
       viewerSignedIn: event.viewerSignedIn,
+      canManage: event.canManage,
     };
   }
 }

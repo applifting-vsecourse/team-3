@@ -34,13 +34,14 @@ describe("EventDetailView", () => {
     expect(screen.getByText("3 z 12")).toBeInTheDocument()
     expect(screen.getByText("min. 4")).toBeInTheDocument()
     // „Kdo jde“ as the viewer's „Jdu“, not „Přihlášení“ next to „Přihlásit se“
-    expect(screen.getByRole("heading", { name: "Kdo jde (3)" })).toBeInTheDocument()
+    expect(screen.getByRole("heading", { name: "Kdo jde · 3 z 12" })).toBeInTheDocument()
     // the facts are a valid <dl> (Kdy, Kde, Přihlašování)
     expectValidDescriptionList(screen.getByText("Kdy").closest("dl")!)
   })
 
   it.each([
     [{ approvedCount: 4, missingToMin: 0, freeSpots: 8 }, "Volná místa: 8"],
+    [{ approvedCount: 11, missingToMin: 0, freeSpots: 1 }, "1 volné místo"],
     [{ approvedCount: 12, missingToMin: 0, freeSpots: 0, isFull: true }, "Plno"],
   ])("shows the occupancy %o as „%s“", async (capacity, label) => {
     await renderWithRouter(<EventDetailView event={anEventDetail(capacity)} />)
@@ -51,7 +52,7 @@ describe("EventDetailView", () => {
   it("lists the participants when the API sends their names (someone taking part, #174)", async () => {
     await renderWithRouter(<EventDetailView event={anEventDetail()} />)
 
-    expect(screen.getByRole("heading", { name: "Kdo jde (4)" })).toBeInTheDocument()
+    expect(screen.getByRole("heading", { name: "Kdo jde · 4 z 12" })).toBeInTheDocument()
     const list = screen.getByRole("list")
     expect(within(list).getAllByRole("listitem")).toHaveLength(4)
     expect(within(list).getByText("Jana Svobodová")).toBeInTheDocument()
@@ -86,14 +87,41 @@ describe("EventDetailView", () => {
     expect(screen.getByText("Zatím se nikdo nepřihlásil.")).toBeInTheDocument()
   })
 
-  it("a group's event is organized by the group", async () => {
+  it("a group's event is organized by the group, linked to its page, and says who sees it (#70, A-05g)", async () => {
     await renderWithRouter(
-      <EventDetailView event={anEventDetail({ group: { id: "g1", name: "Tandem Praha" } })} />,
+      <EventDetailView
+        event={anEventDetail({
+          group: { id: "g1", name: "Tandem Praha" },
+          visibility: "members",
+        })}
+      />,
     )
 
-    expect(screen.getByText("Tandem Praha")).toBeInTheDocument()
-    expect(screen.getByText("Skupina")).toBeInTheDocument()
+    expect(screen.getByRole("link", { name: "Tandem Praha" })).toHaveAttribute(
+      "href",
+      "/skupiny/g1",
+    )
     expect(screen.queryByText("Petra")).not.toBeInTheDocument()
+    expect(screen.getByText("Kdo akci vidí")).toBeInTheDocument()
+    expect(screen.getByText("Jen pro členy skupiny")).toBeInTheDocument()
+  })
+
+  it("a group's event shows the group's card the page passes in, once loaded", async () => {
+    await renderWithRouter(
+      <EventDetailView
+        event={anEventDetail({ group: { id: "g1", name: "Tandem Praha" } })}
+        organizerGroup={<p>Karta skupiny</p>}
+      />,
+    )
+
+    expect(screen.getByText("Karta skupiny")).toBeInTheDocument()
+    expect(screen.getByText("Veřejná")).toBeInTheDocument()
+  })
+
+  it("a person's event doesn't say who sees it", async () => {
+    await renderWithRouter(<EventDetailView event={anEventDetail()} />)
+
+    expect(screen.queryByText("Kdo akci vidí")).not.toBeInTheDocument()
   })
 
   it("names the approval when the organizer approves, and leaves out an empty description", async () => {
@@ -174,7 +202,7 @@ describe("EventDetailView", () => {
         ),
       ).toBe(true)
       // on the left: O akci → Kdo jde → Pořádá
-      const left = ["O akci", "Kdo jde (3)", "Pořádá"].map((name) =>
+      const left = ["O akci", "Kdo jde · 3 z 12", "Pořádá"].map((name) =>
         screen.getByRole("heading", { name }),
       )
       left.forEach((heading) => expect(panel).not.toContainElement(heading))
@@ -192,7 +220,7 @@ describe("EventDetailView", () => {
           within(panel).getByLabelText("Místo akce na mapě"),
           screen.getByRole("heading", { name: "Pořádá" }),
           screen.getByRole("heading", { name: "O akci" }),
-          screen.getByRole("heading", { name: "Kdo jde (3)" }),
+          screen.getByRole("heading", { name: "Kdo jde · 3 z 12" }),
           screen.getByRole("button", { name: "Přijdu" }),
         ),
       ).toBe(true)

@@ -11,6 +11,8 @@ import {
   formatEventTime,
   formatRequestEventStart,
   formatRequestTime,
+  groupEventFacts,
+  pastEventFacts,
   placeName,
 } from "./formatEvent"
 
@@ -66,8 +68,52 @@ describe("capacityStatus", () => {
 })
 
 describe("eventFacts", () => {
-  it("shows approved of maximum and the district", () => {
-    expect(eventFacts(anEvent())).toBe("4/12 · Praha 8")
+  it("shows approved of maximum in words and the district, never „4/12“ (#189)", () => {
+    expect(eventFacts(anEvent())).toBe("4 z 12 · Praha 8")
+  })
+
+  it("below the minimum says the minimum, not „chybí“ — the badge next to it does", () => {
+    expect(
+      eventFacts(anEvent({ approvedCount: 5, minParticipants: 6, missingToMin: 1, freeSpots: 7 })),
+    ).toBe("5 z 12 · min. 6 · Praha 8")
+  })
+
+  it("full", () => {
+    expect(eventFacts(anEvent({ approvedCount: 12, freeSpots: 0, isFull: true }))).toBe(
+      "12 z 12 · Praha 8",
+    )
+  })
+
+  it("a cancelled event misses no one any more", () => {
+    expect(
+      eventFacts({ ...anEvent({ approvedCount: 2, missingToMin: 2 }), status: "cancelled" }),
+    ).toBe("2 z 12 · Praha 8")
+  })
+})
+
+describe("groupEventFacts (#70)", () => {
+  it("a members-only event says so, a public one doesn't", () => {
+    expect(groupEventFacts({ ...anEvent(), visibility: "members" })).toBe(
+      "4 z 12 · Praha 8 · jen pro členy",
+    )
+    expect(groupEventFacts({ ...anEvent(), visibility: "public" })).toBe("4 z 12 · Praha 8")
+  })
+})
+
+describe("pastEventFacts (#70)", () => {
+  it.each([
+    [6, "sešlo se 6"],
+    [3, "sešli se 3"],
+    [1, "sešel se 1"],
+    [0, "sešlo se 0"],
+  ])("%i came: „%s“", (approvedCount, label) => {
+    expect(pastEventFacts({ ...anEvent({ approvedCount }), visibility: "public" })).toBe(label)
+  })
+
+  it("members-only says so", () => {
+    expect(pastEventFacts({ ...anEvent({ approvedCount: 6 }), visibility: "members" })).toBe(
+      "sešlo se 6 · jen pro členy",
+    )
   })
 })
 

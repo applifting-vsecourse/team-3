@@ -63,6 +63,16 @@ pnpm backend docker:up
 
    It listens on host port **5433** so it can't clash with a Postgres you already run locally. Credentials for development are `quacker` / `quacker` / `quacker`.
 
+   **Also have Quacker (or another project with `apps/backend`) on your machine?** Compose names both projects `backend` after the folder, so HobbyHub ends up in Quacker's container and database. Symptom: `pnpm dev` fails with Prisma `P3009` and the error lists `quack_*` migrations. Don't run `prisma migrate reset` — that wipes Quacker's data. Instead set in `apps/backend/.env` (replace the existing `DATABASE_URL` line):
+
+   ```bash
+   COMPOSE_PROJECT_NAME=hobbyhub
+   DB_PORT=5434
+   DATABASE_URL=postgresql://quacker:quacker@localhost:5434/quacker
+   ```
+
+   and run `pnpm dev` again; it creates HobbyHub's own database on 5434 and seeds it. Both projects can then run side by side.
+
 2. Browse the data:
 
 ```bash
