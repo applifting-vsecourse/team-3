@@ -74,7 +74,10 @@ export const eventParticipantsSchema = z.object({
   requests: z.array(eventRequestSchema),
 })
 
-/** Tabs of „Moje akce“ in the API (B-035); Proběhlé comes with #61. */
+/**
+ * Tabs of „Moje akce“ in the API (B-035); `organizing` has the events of the
+ * groups I run too (#70). Proběhlé comes with #61.
+ */
 export type MyEventsTab = "attending" | "organizing"
 
 /** GET /api/me/events?tab= — an event with the user's place in it. */
