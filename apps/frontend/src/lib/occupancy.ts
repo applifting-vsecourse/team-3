@@ -90,9 +90,13 @@ export function happeningThanks({
   minParticipants,
 }: Pick<Occupancy, "approvedCount" | "minParticipants">): string {
   if (approvedCount === 1) return "Díky tobě se akce koná."
-  const gathered =
-    approvedCount >= 2 && approvedCount <= 4
-      ? `sešli se ${approvedCount} lidé`
-      : `sešlo se ${approvedCount} lidí`
-  return `Díky tobě se akce koná – ${gathered}, minimum je ${minParticipants}.`
+  const gathered = gatheredLabel(approvedCount)
+  return `Díky tobě se akce koná – ${gathered.charAt(0).toLowerCase()}${gathered.slice(1)}, minimum je ${minParticipants}.`
+}
+
+/** How many came: „Sešlo se 5 lidí“, „Sešli se 3 lidé“, „Sešel se 1 člověk“ (Figma Karta akce/Proběhlá řádek). */
+export function gatheredLabel(count: number): string {
+  if (count === 1) return "Sešel se 1 člověk"
+  if (count >= 2 && count <= 4) return `Sešli se ${count} lidé`
+  return `Sešlo se ${count} lidí`
 }

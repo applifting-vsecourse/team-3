@@ -4,6 +4,7 @@ import { anOccupancy } from "@/test/anOccupancy"
 
 import {
   freeSpotsLabel,
+  gatheredLabel,
   happeningThanks,
   isMinimumReachedByLast,
   occupancyBesideBadge,
@@ -125,5 +126,15 @@ describe("happeningThanks", () => {
     [1, 1, "Díky tobě se akce koná."],
   ])("%i of minimum %i: „%s“", (approvedCount, minParticipants, text) => {
     expect(happeningThanks({ approvedCount, minParticipants })).toBe(text)
+  })
+})
+
+describe("gatheredLabel", () => {
+  it("in Czech forms for one, two to four and five and more", () => {
+    expect([1, 3, 5].map(gatheredLabel)).toEqual([
+      "Sešel se 1 člověk",
+      "Sešli se 3 lidé",
+      "Sešlo se 5 lidí",
+    ])
   })
 })
