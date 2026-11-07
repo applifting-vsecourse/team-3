@@ -40,11 +40,7 @@ describe('sign-in with Google (#154)', () => {
   });
 
   it('gives BetterAuth the Google client and links an account with the same e-mail', () => {
-    const options = socialSignInOptions({
-      ...both,
-      resendApiKey: 're_123',
-      googleAccountLinking: 'true',
-    });
+    const options = socialSignInOptions({ ...both, resendApiKey: 're_123' });
 
     expect(options.socialProviders?.google).toMatchObject({
       clientId: both.googleClientId,
@@ -62,31 +58,9 @@ describe('sign-in with Google (#154)', () => {
   });
 
   it('links no accounts while the simulated inbox can verify any address', () => {
-    const options = socialSignInOptions({
-      ...both,
-      simulatedInbox: 'true',
-      googleAccountLinking: 'true',
-    });
+    const options = socialSignInOptions({ ...both, simulatedInbox: 'true' });
 
     expect(options.account?.accountLinking?.enabled).toBe(false);
-  });
-
-  it('keeps linking off when real mail replaces simulated verification (#165)', () => {
-    for (const mail of [
-      { resendApiKey: 're_123' },
-      { smtpHost: 'smtp.example', smtpUsername: 'u', smtpPassword: 'p' },
-    ]) {
-      for (const googleAccountLinking of [undefined, '', 'false']) {
-        const options = socialSignInOptions({
-          ...both,
-          ...mail,
-          simulatedInbox: 'false',
-          googleAccountLinking,
-        });
-        expect(options.socialProviders?.google).toBeDefined();
-        expect(options.account?.accountLinking?.enabled).toBe(false);
-      }
-    }
   });
 
   it('makes the name from Google pass the name rule (#153) rather than refusing it', async () => {

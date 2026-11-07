@@ -100,10 +100,6 @@ test('finds the backend by exact image and environment when the webhook targets 
     ),
   );
   assert.equal(
-    api.saved.find((item) => item.key === 'GOOGLE_ACCOUNT_LINKING').value,
-    'false',
-  );
-  assert.equal(
     api.saved.find((item) => item.key === 'RESEND_API_KEY').value,
     '',
   );

@@ -172,8 +172,6 @@ export async function syncStagingAuthMail(
   const values = {
     GOOGLE_CLIENT_ID: env.GOOGLE_CLIENT_ID,
     GOOGLE_CLIENT_SECRET: env.GOOGLE_CLIENT_SECRET,
-    // Real mail does not establish who owned an address verified by simulation.
-    GOOGLE_ACCOUNT_LINKING: 'false',
     SMTP_HOST: 'smtp.gmail.com',
     SMTP_PORT: '465',
     SMTP_SECURE: 'true',

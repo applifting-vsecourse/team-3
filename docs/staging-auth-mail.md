@@ -39,7 +39,7 @@ Repozitář → **Settings → Secrets and variables → Actions → Secrets →
 
 Existující `COOLIFY_WEBHOOK`, `COOLIFY_TOKEN` a registry secrets zachovat. Pro metadata je potřeba oprávnění `read`, pro změnu prostředí `write` a pro schválené nasazení `deploy`. Zpětná kontrola hodnot navíc u verzí Coolify, které je skrývají, vyžaduje `read:sensitive` a odpovídající roli správce/vlastníka týmu. Přístup má být omezený na příslušný staging projekt a prostředí; plošný `root` token není potřeba. Právo ke čtení metadat samo nedokládá právo k zápisu ani ke čtení hodnot. `COOLIFY_TOKEN` a `COOLIFY_WEBHOOK` jsou předané pouze krokům inspekce, konfigurace a spuštění deploye; sestavení image ani akce pro přihlášení k registru je nedědí.
 
-Synchronizace nastavuje `SMTP_HOST=smtp.gmail.com`, `SMTP_PORT=465`, `SMTP_SECURE=true`, prázdný `RESEND_API_KEY`, `SIMULATED_INBOX=false` a `GOOGLE_ACCOUNT_LINKING=false`. Resend má jinak před SMTP přednost. Klíče jsou pouze runtime konfigurace; nejsou build args ani součástí Docker image.
+Synchronizace nastavuje `SMTP_HOST=smtp.gmail.com`, `SMTP_PORT=465`, `SMTP_SECURE=true`, prázdný `RESEND_API_KEY` a `SIMULATED_INBOX=false`. Resend má jinak před SMTP přednost. Klíče jsou pouze runtime konfigurace; nejsou build args ani součástí Docker image.
 
 ## Čtecí ověření infrastruktury
 
@@ -85,7 +85,7 @@ Při provozu přímo z kořenového `docker-compose.yml` již backend přebírá
 Následující kontrola vyžaduje přístup k terminálu běžícího backendu, který tým aktuálně nemá. Oprávněný provozovatel tak může ověřit přítomnost a bezpečné nastavení bez výpisu hodnot:
 
 ```sh
-node -e 'const e=process.env;console.log(JSON.stringify({google:!!(e.GOOGLE_CLIENT_ID&&e.GOOGLE_CLIENT_SECRET),smtp:!!(e.SMTP_HOST&&e.SMTP_USERNAME&&e.SMTP_PASSWORD),gmail:e.SMTP_HOST==="smtp.gmail.com",tls:e.SMTP_SECURE==="true",port465:e.SMTP_PORT==="465",resendOff:!e.RESEND_API_KEY,simulationOff:e.SIMULATED_INBOX==="false",linkingOff:e.GOOGLE_ACCOUNT_LINKING==="false"}))'
+node -e 'const e=process.env;console.log(JSON.stringify({google:!!(e.GOOGLE_CLIENT_ID&&e.GOOGLE_CLIENT_SECRET),smtp:!!(e.SMTP_HOST&&e.SMTP_USERNAME&&e.SMTP_PASSWORD),gmail:e.SMTP_HOST==="smtp.gmail.com",tls:e.SMTP_SECURE==="true",port465:e.SMTP_PORT==="465",resendOff:!e.RESEND_API_KEY,simulationOff:e.SIMULATED_INBOX==="false"}))'
 ```
 
 Všech osm hodnot má být `true`. Nepoužívat výpis celého prostředí nebo kompletní `docker inspect`.
@@ -102,9 +102,7 @@ Hesla, obsah odkazů a tokeny se do reportu výsledků nezapisují. Úspěšné 
 
 ## Propojování existujících účtů
 
-Účty ověřené simulovanou schránkou nemají doložené vlastnictví adresy. Zapnutí SMTP jejich historii nezmění. Proto je `GOOGLE_ACCOUNT_LINKING` výchozí vypnuté a synchronizační skript jej drží na `false`.
-
-Nové Google účty se mohou přihlásit. Existující účet se stejnou adresou se automaticky nepropojí; použije přihlášení heslem. Propojování lze povolit až po samostatně schváleném vyřešení skutečného ověření starých adres a sessions. Simulovaná schránka musí být současně vypnutá. Tato změna databázi nemaže ani nepřepisuje a řešení starých adres není součástí automatického deploye.
+Účty ověřené simulovanou schránkou nemají doložené vlastnictví adresy a zapnutí SMTP jejich historii nezmění. Se skutečnou poštou BetterAuth propojí Google s existujícím účtem, jehož e-mail je ověřený (viz [přihlášení přes Google](prihlaseni-pres-google.md#jak-se-přihlášení-chová)). Před zapnutím SMTP na stagingu proto tým s PO rozhodne, jestli staging účty vynulovat, nebo je nechat znovu ověřit. Synchronizace ani deploy databázi nemažou ani nepřepisují.
 
 ## Reference
 
