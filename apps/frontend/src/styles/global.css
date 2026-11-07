@@ -1,6 +1,5 @@
 @import "@fontsource-variable/bricolage-grotesque";
 @import "@fontsource-variable/geist";
-@import "@fontsource-variable/geist-mono";
 @import "tailwindcss";
 @plugin "tailwindcss-animate";
 
@@ -11,12 +10,15 @@
   --color-foreground: var(--foreground);
   --color-card: var(--card);
   --color-card-foreground: var(--card-foreground);
+  --color-card-border: var(--card-border);
   --color-popover: var(--popover);
   --color-popover-foreground: var(--popover-foreground);
   --color-primary: var(--primary);
   --color-primary-foreground: var(--primary-foreground);
+  --color-primary-edge: var(--primary-edge);
   --color-secondary: var(--secondary);
   --color-secondary-foreground: var(--secondary-foreground);
+  --color-tile-border: var(--tile-border);
   --color-muted: var(--muted);
   --color-muted-foreground: var(--muted-foreground);
   --color-accent: var(--accent);
@@ -28,12 +30,39 @@
   --color-destructive-hover: color-mix(in srgb, var(--destructive) 90%, var(--foreground));
   --color-border: var(--border);
   --color-input: var(--input);
+  --color-input-border: var(--input-border);
+  --color-control-border: var(--control-border);
   --color-ring: var(--ring);
+
+  --color-badge-neutral: var(--badge-neutral);
+  --color-badge-neutral-foreground: var(--badge-neutral-foreground);
+  --color-full: var(--full);
+  --color-capacity-fill: var(--capacity-fill);
+  --color-capacity-track: var(--capacity-track);
+
+  --color-hero: var(--hero);
+  --color-on-hero: var(--on-hero);
+  --color-on-hero-muted: var(--on-hero-muted);
+  --color-hero-pattern: var(--hero-pattern);
+  --color-band-edge: var(--band-edge);
+  --color-tile-on-hero: var(--tile-on-hero);
+
+  --color-highlight-text: var(--highlight-text);
+  --color-highlight-marker: var(--highlight-marker);
+  --color-avatar-self: var(--avatar-self);
+  --color-avatar-self-foreground: var(--avatar-self-foreground);
+  --color-accent-bar: var(--accent-bar);
+  --color-logo-dot: var(--logo-dot);
+  --color-logo-dot-stroke: var(--logo-dot-stroke);
+  --color-logo-self-stroke: var(--logo-self-stroke);
+
+  --color-map-land: var(--map-land);
+  --color-map-road: var(--map-road);
+  --color-map-water: var(--map-water);
+  --color-map-park: var(--map-park);
 
   --font-sans: var(--font-sans);
   --font-heading: var(--font-heading);
-  --font-mono: var(--font-mono);
-  --font-serif: var(--font-serif);
 
   --shadow-2xs: var(--shadow-2xs);
   --shadow-xs: var(--shadow-xs);
@@ -49,34 +78,76 @@
   --radius-sm: calc(var(--radius) - 4px);
 }
 
+/* DESIGN.md › Type: the Geist sizes Tailwind has no step for (Figma Body/Default, Caption/Default).
+   Small 14 and tag 12 are text-sm and text-xs. src/lib/utils.ts tells tailwind-merge these
+   are sizes, not colours. */
+@theme {
+  --text-body: 0.9375rem;
+  --text-body--line-height: 1.375rem;
+  --text-caption: 0.8125rem;
+  --text-caption--line-height: 1rem;
+}
+
 :root {
-  /* Values from the Figma collection "HobbyHub tokens" (Light). Names match 1:1. */
+  /* Values from the Figma collection "HobbyHub tokens" (Light). Names match 1:1; where Figma
+     aliases one token to another, so does var() here. */
   --font-sans: "Geist Variable", ui-sans-serif, system-ui, sans-serif;
-  /* Brand/Wordmark and display headings (Display/H1, Display/Time). */
+  /* The display face: H1, section headings, card titles, date tile, stamp, wordmark (DESIGN.md › Type). */
   --font-heading: "Bricolage Grotesque Variable", var(--font-sans);
-  --font-serif: Georgia, serif;
-  --font-mono: "Geist Mono Variable", ui-monospace, SFMono-Regular, Menlo, monospace;
-  --background: #ffffff;
+  --background: #f4f1e8;
   --foreground: #14201a;
   --card: #ffffff;
-  --card-foreground: #14201a;
-  --popover: #ffffff;
-  --popover-foreground: #14201a;
-  --primary: #b6f24a;
+  --muted: #e8e2d2;
+  --muted-foreground: #505e56;
+  --primary: #b9f53c;
   --primary-foreground: #14201a;
-  --secondary: #eaf5da;
-  --secondary-foreground: #2e5b16;
-  --muted: #f2f5ef;
-  --muted-foreground: #5b6860;
-  /* Not a separate Figma token: hover surface stays as quiet as muted (DESIGN.md › Colour). */
-  --accent: #f2f5ef;
-  --accent-foreground: #14201a;
-  --destructive: #d92d20;
+  /* lime on cream or white is about 1.1:1, so lime on a light surface carries this outline */
+  --primary-edge: var(--secondary-foreground);
+  --secondary: #e3f3cb;
+  --secondary-foreground: #265212;
+  --tile-border: #6f8a5a;
+  --destructive: #b42318;
   --destructive-foreground: #ffffff;
-  --border: #e1e7dc;
-  --input: #e1e7dc;
-  /* Lime on white is too faint for a focus ring, so the ring uses the dark brand green. */
-  --ring: #2e5b16;
+  --input-border: #847e70;
+  --border: var(--input-border);
+  --card-border: var(--border);
+  --control-border: var(--input-border);
+  --badge-neutral: var(--muted);
+  --badge-neutral-foreground: var(--muted-foreground);
+  --full: #8f8a7c;
+  /* lime on the cream track is 1.03:1, so the solid fill is dark green in light mode */
+  --capacity-fill: var(--secondary-foreground);
+  --capacity-track: var(--muted);
+  --hero: #0f3626;
+  --on-hero: #f6f3ea;
+  --on-hero-muted: #bccbc0;
+  --hero-pattern: #1f4c37;
+  --band-edge: var(--hero);
+  --tile-on-hero: #e3f3cb;
+  --highlight-text: #14201a;
+  --highlight-marker: #b9f53c;
+  --avatar-self: #265212;
+  --avatar-self-foreground: #ffffff;
+  /* blends into the secondary block on purpose; its edge is the tile-border (DESIGN.md › Máš místo) */
+  --accent-bar: var(--secondary);
+  --logo-dot: var(--primary);
+  --logo-dot-stroke: var(--foreground);
+  --logo-self-stroke: var(--foreground);
+  --ring: #265212;
+  --map-land: #f0f3ec;
+  --map-road: #ffffff;
+  --map-water: #cfe3ea;
+  --map-park: #ddefcb;
+
+  /* Kit aliases: the vendored shadcn kit reads these names (DESIGN.md › Kit aliases). */
+  --input: var(--input-border);
+  --popover: var(--card);
+  --card-foreground: var(--foreground);
+  --popover-foreground: var(--foreground);
+  /* hover surface stays as quiet as muted */
+  --accent: var(--muted);
+  --accent-foreground: var(--foreground);
+
   --radius: 0.5rem;
   /* Only things that float get a shadow (DESIGN.md › Surfaces); all levels use Figma Elevation/Float. */
   --shadow-2xs: 0px 1px 3px 0px rgb(20 33 26 / 0.08);
@@ -89,40 +160,185 @@
   --shadow-2xl: 0px 4px 16px 0px rgb(20 33 26 / 0.12), 0px 1px 3px 0px rgb(20 33 26 / 0.08);
 }
 
-/* Dark mode: Figma collection „HobbyHub tokens“, mode Dark (same hues on a dark green background). */
+/* Dark mode: Figma collection „HobbyHub tokens“, mode Dark. Only what differs from light;
+   the aliases above resolve against these values only because .dark sits on <html>, the same
+   element as :root — on a subtree they would inherit the light values already computed. */
 .dark {
   --background: #0f1612;
   --foreground: #eef3ea;
-  --card: #151e18;
-  --card-foreground: #eef3ea;
-  --popover: #151e18;
-  --popover-foreground: #eef3ea;
-  --primary: #b6f24a;
-  --primary-foreground: #14201a;
-  --secondary: #24331a;
-  --secondary-foreground: #cdeba8;
+  --card: #162c20;
   --muted: #1c2620;
-  --muted-foreground: #9aa79e;
-  --accent: #1c2620;
-  --accent-foreground: #eef3ea;
-  /* lighter than in light mode: #d92d20 is only 3.4:1 as error text on a dark card */
+  --muted-foreground: #a3afa6;
+  --primary-edge: var(--primary);
+  --secondary: #24402f;
+  --secondary-foreground: #eef3ea;
+  --tile-border: #7d8a82;
+  /* lighter than in light mode: #b42318 is too dark as error text on a dark card */
   --destructive: #f97066;
   --destructive-foreground: #14201a;
-  --border: #2a3530;
-  --input: #2a3530;
-  --ring: #b6f24a;
+  --input-border: #6b7870;
+  --control-border: #7d8a82;
+  --badge-neutral: #6b7870;
+  --badge-neutral-foreground: #ffffff;
+  --full: #6f7d74;
+  --capacity-fill: var(--primary);
+  --capacity-track: #3a4a42;
+  --hero: #133624;
+  --on-hero: #eef3ea;
+  --on-hero-muted: #b4c4b8;
+  --hero-pattern: #1f4a34;
+  --band-edge: var(--input-border);
+  --tile-on-hero: #5d8449;
+  /* the keyword itself turns lime, so the marker goes */
+  --highlight-text: #b9f53c;
+  --highlight-marker: transparent;
+  --avatar-self: var(--primary);
+  --avatar-self-foreground: var(--primary-foreground);
+  --accent-bar: var(--primary);
+  --logo-dot: #eef3ea;
+  --logo-dot-stroke: #eef3ea;
+  --logo-self-stroke: var(--primary);
+  --ring: #b9f53c;
+  --map-land: #18211b;
+  --map-road: #26302a;
+  --map-water: #1e3640;
+  --map-park: #1d2e1a;
 }
 
 /* DESIGN.md › Capacity bar: below the minimum the fill is hatched — not confirmed yet.
-   Not a Figma token. primary and primary-foreground are the same in both modes, so one
-   mix serves light and dark; the dark stripe is ≥3:1 against the track and against lime
-   (tokens.test.ts). No bg- prefix, or tailwind-merge would drop it next to a bg-* colour. */
+   Figma Capacity bar › Hatch: 3 px stripes at 45°, primary-foreground on primary (the same
+   in both modes). tokens.test.ts checks the stripes against each other and the hatch against
+   the track. No bg- prefix, or tailwind-merge would drop it next to a bg-* colour. */
 @utility capacity-hatch {
   background-image: repeating-linear-gradient(
     -45deg,
     var(--primary) 0 3px,
-    color-mix(in srgb, var(--primary-foreground) 55%, var(--primary)) 3px 6px
+    var(--primary-foreground) 3px 6px
   );
+}
+
+/* DESIGN.md › Type: Figma text styles, mobile first and the desktop size from md up. The display
+   ones carry their face and weight, so one class sets the whole style. type- rather than text-,
+   or tailwind-merge would take them for a colour and drop them next to text-*. */
+@utility type-hero {
+  font-family: var(--font-heading);
+  font-weight: 800;
+  font-size: 2.5rem;
+  line-height: 0.95;
+  letter-spacing: -0.02em;
+  @variant md {
+    font-size: 5rem;
+  }
+}
+
+@utility type-title {
+  font-family: var(--font-heading);
+  font-weight: 800;
+  font-size: 1.875rem;
+  line-height: 1.1;
+  letter-spacing: -0.01em;
+  @variant md {
+    font-size: 3rem;
+    line-height: 1;
+    letter-spacing: -0.02em;
+  }
+}
+
+@utility type-feature {
+  font-family: var(--font-heading);
+  font-weight: 700;
+  font-size: 1.5rem;
+  line-height: 1.1;
+  @variant md {
+    font-size: 1.75rem;
+  }
+}
+
+/* event card title: grid card (max 2 lines – line-clamp stays in the card) */
+@utility type-card-title {
+  font-family: var(--font-heading);
+  font-weight: 700;
+  font-size: 1.25rem;
+  line-height: 1.2;
+}
+
+@utility type-row-title {
+  font-family: var(--font-heading);
+  font-weight: 700;
+  font-size: 1.0625rem;
+  line-height: 1.2;
+}
+
+/* the day number in the date tile: L detail, M grid card, S row card */
+@utility type-date-l {
+  font-family: var(--font-heading);
+  font-weight: 800;
+  font-size: 2.25rem;
+  line-height: 1;
+}
+
+@utility type-date-m {
+  font-family: var(--font-heading);
+  font-weight: 800;
+  font-size: 1.625rem;
+  line-height: 1;
+}
+
+@utility type-date-s {
+  font-family: var(--font-heading);
+  font-weight: 800;
+  font-size: 1.25rem;
+  line-height: 1;
+}
+
+@utility type-wordmark {
+  font-family: var(--font-heading);
+  font-weight: 700;
+  font-size: 1.25rem;
+  line-height: 1.5rem;
+  letter-spacing: -0.02em;
+}
+
+@utility type-stamp {
+  font-family: var(--font-heading);
+  font-weight: 600;
+  font-size: 0.8125rem;
+  line-height: 1rem;
+}
+
+@utility type-lead {
+  font-size: 1rem;
+  line-height: 1.5;
+  @variant md {
+    font-size: 1.25rem;
+  }
+}
+
+/* the supporting line in the band (Figma Body/Intro) */
+@utility type-intro {
+  font-size: 1.0625rem;
+  line-height: 1.5;
+}
+
+/* the only ALL CAPS in the app: the step label in „Jak to funguje“ (Figma Label/Step) */
+@utility type-step {
+  font-size: 0.75rem;
+  font-weight: 600;
+  line-height: 1rem;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+/* DESIGN.md › Type: the one keyword of a section heading. Light: a lime marker under the word
+   (Figma: an underline 11 px thick at 30 px, 18 px at 48 px); dark: the marker is transparent
+   and the word itself turns lime. */
+@utility highlight-keyword {
+  color: var(--highlight-text);
+  text-decoration-line: underline;
+  text-decoration-color: var(--highlight-marker);
+  text-decoration-thickness: 0.37em;
+  text-underline-offset: -0.42em;
+  text-decoration-skip-ink: none;
 }
 
 @layer base {
