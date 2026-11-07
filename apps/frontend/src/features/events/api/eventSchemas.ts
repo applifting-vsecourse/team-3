@@ -109,6 +109,10 @@ export type EventInput = {
   minParticipants: number
   maxParticipants: number
   approvalMode: "open" | "approval"
+  /** A group's event (B-055), created by one of its admins; only when creating. */
+  groupId?: string
+  /** `members`: only the group's members see it and join it; only with `groupId`. */
+  visibility?: "public" | "members"
 }
 
 /** Query parameters of GET /api/events, already resolved to ids. */

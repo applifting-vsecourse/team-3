@@ -1,6 +1,6 @@
 import { useState, type ComponentProps } from "react"
 import { Link } from "@tanstack/react-router"
-import { Info, Loader2, LogOut, X } from "lucide-react"
+import { Info, Loader2, LogOut, Plus, X } from "lucide-react"
 import { toast } from "sonner"
 
 import { ROUTES } from "@/app/routes"
@@ -63,14 +63,30 @@ export function GroupMembershipAction({
 
   if (membership?.status === "active" && membership.role === "admin") {
     return (
-      <MainButton asChild>
-        <Link
-          to="/skupiny/$groupId/sprava"
-          params={{ groupId: group.id }}
+      <div className="flex flex-col gap-2">
+        <MainButton asChild>
+          <Link
+            to="/skupiny/$groupId/sprava"
+            params={{ groupId: group.id }}
+          >
+            Spravovat skupinu
+          </Link>
+        </MainButton>
+        {/* Figma D-01g: only admins create the group's events (#70) */}
+        <Button
+          asChild
+          variant="outline"
+          size="lg"
         >
-          Spravovat skupinu
-        </Link>
-      </MainButton>
+          <Link
+            to="/skupiny/$groupId/akce/nova"
+            params={{ groupId: group.id }}
+          >
+            <Plus aria-hidden />
+            Založit akci skupiny
+          </Link>
+        </Button>
+      </div>
     )
   }
 

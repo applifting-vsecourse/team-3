@@ -1,6 +1,6 @@
-import { useId, useMemo, useState } from "react"
+import { useId, useMemo, useState, type Ref } from "react"
 import { zodResolver } from "@hookform/resolvers/zod"
-import { ChevronDown, Loader2 } from "lucide-react"
+import { ChevronDown, Loader2, Users } from "lucide-react"
 import { cs } from "react-day-picker/locale"
 import { useForm, useWatch } from "react-hook-form"
 import { z } from "zod"
@@ -79,6 +79,7 @@ const buildSchema = (approvedCount: number) =>
       minParticipants: count("minimum"),
       maxParticipants: count("maximum"),
       approvalMode: z.enum(["open", "approval"]),
+      visibility: z.enum(["public", "members"]),
       description: z
         .string()
         .trim()
@@ -113,8 +114,10 @@ const buildSchema = (approvedCount: number) =>
 
 type FormValues = z.input<ReturnType<typeof buildSchema>>
 
+type RadioCardOption<T extends string> = { value: T; title: string; hint: string }
+
 /** Figma D-01: Radio card; „Bez schválení“ is the default (PO 19. 10.) */
-const APPROVAL_OPTIONS: { value: EventInput["approvalMode"]; title: string; hint: string }[] = [
+const APPROVAL_OPTIONS: RadioCardOption<EventInput["approvalMode"]>[] = [
   {
     value: "open",
     title: "Bez schválení",
@@ -124,6 +127,20 @@ const APPROVAL_OPTIONS: { value: EventInput["approvalMode"]; title: string; hint
     value: "approval",
     title: "Schvaluji přihlášky",
     hint: "Každou žádost schválíš nebo zamítneš ve správě akce.",
+  },
+]
+
+/** Figma D-01g: who sees a group's event (B-055); „Veřejná“ is the default. */
+const VISIBILITY_OPTIONS: RadioCardOption<NonNullable<EventInput["visibility"]>>[] = [
+  {
+    value: "public",
+    title: "Veřejná",
+    hint: "Najde ji a přihlásí se kdokoli.",
+  },
+  {
+    value: "members",
+    title: "Jen pro členy skupiny",
+    hint: "Uvidí ji a přihlásí se jen členové. V hledání, na mapě ani na úvodní stránce se neukáže.",
   },
 ]
 
@@ -149,6 +166,11 @@ type EventFormProps = {
    */
   mode?: "create" | "edit"
   approvedCount?: number
+  /**
+   * A group's event (B-055, Figma D-01g): „Pořádá“ names the group, the
+   * activity is the group's and locked, and the admin picks who sees it.
+   */
+  group?: { id: string; name: string }
   /** Prefilled values, e.g. when editing (#41). */
   initialValues?: Partial<EventInput>
   isSubmitting: boolean
@@ -156,11 +178,16 @@ type EventFormProps = {
   onSubmit: (input: EventInput) => void | Promise<void>
 }
 
-/** Figma D-01, D-01d: a new event (B-022), and D-02, D-02d editing it (#41). The organizer is the signed-in user. */
+/**
+ * Figma D-01, D-01d: a new event (B-022), D-01g, D-01gd a new event of a
+ * group (B-055), and D-02, D-02d editing it (#41). The organizer is the
+ * signed-in user.
+ */
 export function EventForm({
   catalog,
   mode = "create",
   approvedCount = 0,
+  group,
   initialValues,
   isSubmitting,
   errorMessage,
@@ -169,12 +196,14 @@ export function EventForm({
   const placeLabelId = useId()
   const placeErrorId = useId()
   const approvalId = useId()
+  const visibilityId = useId()
   const countLabelId = useId()
   const whatId = useId()
   const whereId = useId()
   const [isCalendarOpen, setIsCalendarOpen] = useState(false)
   const [today] = useState(() => pragueToday())
   const isEdit = mode === "edit"
+  const isGroupCreate = !isEdit && group !== undefined
   const schema = useMemo(() => buildSchema(approvedCount), [approvedCount])
   const [initialDay, initialStart] = splitWallTime(initialValues?.startsAt)
   const [, initialEnd] = splitWallTime(initialValues?.endsAt)
@@ -195,6 +224,7 @@ export function EventForm({
       minParticipants: initialValues?.minParticipants?.toString() ?? "",
       maxParticipants: initialValues?.maxParticipants?.toString() ?? "",
       approvalMode: initialValues?.approvalMode ?? "open",
+      visibility: initialValues?.visibility ?? "public",
       description: initialValues?.description ?? "",
     },
   })
@@ -225,10 +255,27 @@ export function EventForm({
             minParticipants: Number(values.minParticipants),
             maxParticipants: Number(values.maxParticipants),
             approvalMode: values.approvalMode,
+            ...(isGroupCreate ? { groupId: group.id, visibility: values.visibility } : {}),
           })
         })}
         className="flex flex-col gap-6"
       >
+        {group ? (
+          // Figma D-01g: „Pořádá“ — the group is the organizer shown at the event
+          <div className="flex items-center gap-3">
+            <span className="flex size-10 shrink-0 items-center justify-center rounded-lg border border-border bg-secondary text-secondary-foreground">
+              <Users
+                className="size-5"
+                aria-hidden
+              />
+            </span>
+            <p className="flex flex-col">
+              <span className="text-xs text-muted-foreground">Pořádá</span>
+              <span className="text-base">{group.name} (skupina)</span>
+            </p>
+          </div>
+        ) : null}
+
         {errorMessage ? (
           <Alert variant="destructive">
             <AlertDescription>{errorMessage}</AlertDescription>
@@ -280,12 +327,14 @@ export function EventForm({
                       value={field.value}
                       onChange={field.onChange}
                       onBlur={field.onBlur}
-                      disabled={isEdit}
+                      disabled={isEdit || group !== undefined}
                     />
                   </FormControl>
-                  {isEdit ? (
+                  {isEdit || group ? (
                     <p className="text-sm text-muted-foreground">
-                      Aktivitu po založení změnit nejde.
+                      {isEdit
+                        ? "Aktivitu po založení změnit nejde."
+                        : "Aktivita je podle skupiny a změnit nejde."}
                     </p>
                   ) : null}
                   <FormMessage />
@@ -475,35 +524,14 @@ export function EventForm({
                 <FormItem className="order-10 md:order-none">
                   <FormLabel id={`${approvalId}-label`}>Způsob přihlašování *</FormLabel>
                   <FormControl>
-                    <RadioGroup
-                      // a <label for> can't name a radiogroup; this does
-                      aria-labelledby={`${approvalId}-label`}
+                    <RadioCards
+                      id={approvalId}
                       ref={field.ref}
+                      options={APPROVAL_OPTIONS}
                       value={field.value}
                       onValueChange={field.onChange}
-                      disabled={isEdit}
-                      className="gap-2"
-                    >
-                      {APPROVAL_OPTIONS.map((option) => (
-                        <label
-                          key={option.value}
-                          htmlFor={`${approvalId}-${option.value}`}
-                          className={cn(
-                            "flex cursor-pointer items-start gap-3 rounded-lg border border-border bg-card px-4 py-3 transition-colors hover:bg-accent",
-                            field.value === option.value && "border-foreground",
-                          )}
-                        >
-                          <RadioGroupItem
-                            id={`${approvalId}-${option.value}`}
-                            value={option.value}
-                          />
-                          <span className="flex flex-col">
-                            <span className="text-sm font-semibold">{option.title}</span>
-                            <span className="text-sm text-muted-foreground">{option.hint}</span>
-                          </span>
-                        </label>
-                      ))}
-                    </RadioGroup>
+                      isDisabled={isEdit}
+                    />
                   </FormControl>
                   {isEdit ? (
                     <p className="text-sm text-muted-foreground">
@@ -514,6 +542,28 @@ export function EventForm({
                 </FormItem>
               )}
             />
+
+            {isGroupCreate ? (
+              <FormField
+                control={form.control}
+                name="visibility"
+                render={({ field }) => (
+                  <FormItem className="order-11 md:order-none">
+                    <FormLabel id={`${visibilityId}-label`}>Kdo akci uvidí *</FormLabel>
+                    <FormControl>
+                      <RadioCards
+                        id={visibilityId}
+                        ref={field.ref}
+                        options={VISIBILITY_OPTIONS}
+                        value={field.value}
+                        onValueChange={field.onChange}
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            ) : null}
           </div>
 
           <div
@@ -632,5 +682,57 @@ export function EventForm({
         </Button>
       </form>
     </Form>
+  )
+}
+
+type RadioCardsProps<T extends string> = {
+  /** The `useId` of the field: its label is `${id}-label`, each card `${id}-${value}`. */
+  id: string
+  ref: Ref<HTMLDivElement>
+  options: RadioCardOption<T>[]
+  value: T
+  onValueChange: (value: T) => void
+  isDisabled?: boolean
+}
+
+/** Figma D-01: Radio card — a radio group whose options are cards with a hint. */
+function RadioCards<T extends string>({
+  id,
+  ref,
+  options,
+  value,
+  onValueChange,
+  isDisabled,
+}: RadioCardsProps<T>) {
+  return (
+    <RadioGroup
+      // a <label for> can't name a radiogroup; this does
+      aria-labelledby={`${id}-label`}
+      ref={ref}
+      value={value}
+      onValueChange={(next) => onValueChange(next as T)}
+      disabled={isDisabled}
+      className="gap-2"
+    >
+      {options.map((option) => (
+        <label
+          key={option.value}
+          htmlFor={`${id}-${option.value}`}
+          className={cn(
+            "flex cursor-pointer items-start gap-3 rounded-lg border border-border bg-card px-4 py-3 transition-colors hover:bg-accent",
+            value === option.value && "border-foreground",
+          )}
+        >
+          <RadioGroupItem
+            id={`${id}-${option.value}`}
+            value={option.value}
+          />
+          <span className="flex flex-col">
+            <span className="text-sm font-semibold">{option.title}</span>
+            <span className="text-sm text-muted-foreground">{option.hint}</span>
+          </span>
+        </label>
+      ))}
+    </RadioGroup>
   )
 }
