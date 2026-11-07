@@ -1,5 +1,6 @@
+import { useEffect } from "react"
 import { useQuery } from "@tanstack/react-query"
-import { createFileRoute, Link, Navigate, useLocation } from "@tanstack/react-router"
+import { createFileRoute, Link, useLocation, useNavigate } from "@tanstack/react-router"
 import { toast } from "sonner"
 
 import { ROUTES } from "@/app/routes"
@@ -57,16 +58,21 @@ function EventDetailPage() {
 
   useRefreshExpiredSession(viewerId, event)
 
-  // a members-only event: a visitor signs in and comes back to it (B-026)
-  if (isSignInRequired) {
-    return (
-      <Navigate
-        to={ROUTES.login}
-        search={{ from: signInFrom }}
-        replace
-      />
-    )
-  }
+  // A members-only event: a visitor signs in and comes back to it (B-026).
+  // Once, from an effect, and back to the event's own path: while the login
+  // loads this page is still mounted with the login's location, so a `from`
+  // taken from the location (or a <Navigate> rendered on every pass) kept
+  // sending the visitor to a login of the login.
+  const navigate = useNavigate()
+  useEffect(() => {
+    if (isSignInRequired) {
+      void navigate({
+        to: ROUTES.login,
+        search: { from: `/akce/${encodeURIComponent(eventId)}` },
+        replace: true,
+      })
+    }
+  }, [isSignInRequired, navigate, eventId])
 
   return (
     <>
