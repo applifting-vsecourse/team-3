@@ -33,6 +33,11 @@ const forbiddenDescription = (handler: Handler): string | undefined =>
     '403'
   ]?.description;
 
+const aRequest = (): ExecutionContext =>
+  ({
+    switchToHttp: () => ({ getRequest: () => ({}) }),
+  }) as unknown as ExecutionContext;
+
 // #236 (S-5): every request to join comes from a verified user — also from a
 // session made before signing in needed a verified e-mail.
 describe('GroupsController: who may join a group', () => {
@@ -57,13 +62,7 @@ describe('GroupsController: who may join a group', () => {
     } as never);
     const guard = new VerifiedUserGuard(mock<BetterAuth>(), prisma);
 
-    const error = await guard
-      .canActivate({
-        getHandler: () => GroupsController.prototype.join,
-        getClass: () => GroupsController,
-        switchToHttp: () => ({ getRequest: () => ({}) }),
-      } as unknown as ExecutionContext)
-      .catch((e: unknown) => e);
+    const error = await guard.canActivate(aRequest()).catch((e: unknown) => e);
 
     expect(error).toBeInstanceOf(ForbiddenException);
     expect((error as ForbiddenException).getResponse()).toMatchObject({
