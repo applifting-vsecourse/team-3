@@ -11,8 +11,8 @@ import { anEventDetail } from "@/features/events/test/anEvent"
 
 // the fixture starts Fri 23. 10. 2026 17:30 Prague time
 const before = new Date("2026-10-23T08:00:00.000Z")
-const jakub: Viewer = { id: "u9", emailVerified: true }
-const organizer: Viewer = { id: "u1", emailVerified: true } // the fixture's organizer
+const jakub: Viewer = { id: "u9" }
+const organizer: Viewer = { id: "u1" } // the fixture's organizer
 
 type RenderOptions = { viewer?: Viewer | null; isPending?: boolean; now?: Date }
 
@@ -21,7 +21,6 @@ const renderAction = async (event: Partial<EventDetail> = {}, options: RenderOpt
   const { viewer = jakub, isPending = false, now = before } = options
   const onJoin = vi.fn().mockResolvedValue(undefined)
   const onLeave = vi.fn().mockResolvedValue(undefined)
-  const onVerifyEmail = vi.fn()
   await renderWithRouter(
     <ParticipationAction
       event={anEventDetail(event)}
@@ -30,11 +29,10 @@ const renderAction = async (event: Partial<EventDetail> = {}, options: RenderOpt
       isPending={isPending}
       onJoin={onJoin}
       onLeave={onLeave}
-      onVerifyEmail={onVerifyEmail}
       now={now}
     />,
   )
-  return { onJoin, onLeave, onVerifyEmail }
+  return { onJoin, onLeave }
 }
 
 /** A request the test answers when it wants to. */
@@ -160,35 +158,11 @@ describe("ParticipationAction", () => {
     expect(screen.queryByRole("button", { name: "Plno" })).not.toBeInTheDocument()
   })
 
-  it("an unverified user on a full event sees „Plno“, not a promise of a place after verifying", async () => {
-    await renderAction(
-      { isFull: true, freeSpots: 0, approvedCount: 12 },
-      { viewer: { id: "u9", emailVerified: false } },
-    )
-
-    expect(screen.getByRole("button", { name: "Plno" })).toBeDisabled()
-    expect(screen.queryByText(/až si ověříš e-mail/)).not.toBeInTheDocument()
-    expect(screen.queryByRole("button", { name: "Ověřit e-mail" })).not.toBeInTheDocument()
-  })
-
   it("a visitor is offered the sign-in that comes back to the event", async () => {
     await renderAction({}, { viewer: null })
 
     const link = screen.getByRole("link", { name: "Přihlásit se na akci" })
     expect(link).toHaveAttribute("href", "/login?from=%2Fakce%2Fe1")
-  })
-
-  it("an unverified user is told to verify first and gets there from the bar, not „Přijdu“", async () => {
-    const { onJoin, onVerifyEmail } = await renderAction(
-      {},
-      { viewer: { id: "u9", emailVerified: false } },
-    )
-
-    expect(screen.getByText("Na akci se přihlásíš, až si ověříš e-mail.")).toBeInTheDocument()
-    expect(screen.queryByRole("button", { name: "Přijdu" })).not.toBeInTheDocument()
-    await userEvent.click(screen.getByRole("button", { name: "Ověřit e-mail" }))
-    expect(onVerifyEmail).toHaveBeenCalledOnce()
-    expect(onJoin).not.toHaveBeenCalled()
   })
 
   it("with approval, „Poslat žádost“ asks first and then sends the request (A-05a, #53)", async () => {

@@ -19,7 +19,9 @@ import {
 import type { EventDetail } from "@/features/events/api/eventSchemas"
 import { formatRequestEventStart } from "@/features/events/lib/formatEvent"
 
-export type Viewer = { id: string; emailVerified: boolean }
+// Signed in means verified (#236): an unverified e-mail can't sign in, and an
+// old session gets the API's 403 EMAIL_NOT_VERIFIED as the error message.
+export type Viewer = { id: string }
 
 type ParticipationActionProps = {
   event: EventDetail
@@ -35,8 +37,6 @@ type ParticipationActionProps = {
    */
   onJoin: (message?: string | null) => Promise<unknown>
   onLeave: () => Promise<unknown>
-  /** Leads an unverified user to the banner that sends or opens the link. */
-  onVerifyEmail?: () => void
   /** For tests; the event has started once `startsAt` is past it. */
   now?: Date
 }
@@ -55,7 +55,6 @@ export function ParticipationAction({
   isPending,
   onJoin,
   onLeave,
-  onVerifyEmail,
   now = new Date(),
 }: ParticipationActionProps) {
   const isOrganizer = viewer !== null && event.organizer.id === viewer.id
@@ -118,32 +117,6 @@ export function ParticipationAction({
       </Row>
     )
   }
-  if (!viewer.emailVerified) {
-    // full: verifying wouldn't get a place either; the banner still asks to verify
-    return (
-      <Row>
-        {manage}
-        {event.isFull ? (
-          <FullButton />
-        ) : (
-          <>
-            {/* the next step right here: on a phone the banner has scrolled away */}
-            {onVerifyEmail ? (
-              <Button
-                variant="outline"
-                size="lg"
-                onClick={onVerifyEmail}
-              >
-                Ověřit e-mail
-              </Button>
-            ) : null}
-            <Note>Na akci se přihlásíš, až si ověříš e-mail.</Note>
-          </>
-        )}
-      </Row>
-    )
-  }
-
   return (
     <Row>
       {manage}
