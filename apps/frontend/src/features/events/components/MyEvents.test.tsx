@@ -47,9 +47,8 @@ describe("AttendingEvents", () => {
       "href",
       "/akce/e2",
     )
-    // short: the heading says what it waits for, and a phone needs the room for the occupancy (#189)
-    expect(within(waiting).getByText("Čeká")).toBeInTheDocument()
-    expect(within(waiting).queryByText("Čeká na schválení")).not.toBeInTheDocument()
+    // Figma C-01: the badge says it whole; on a phone the occupancy goes under it
+    expect(within(waiting).getByText("Čeká na schválení", { selector: "span" })).toBeInTheDocument()
 
     const confirmed = screen.getByRole("region", { name: "Potvrzené (1)" })
     const [florbal] = within(confirmed).getAllByRole("listitem")
@@ -153,7 +152,7 @@ describe("OrganizingEvents", () => {
       "href",
       "/akce/e1/sprava",
     )
-    expect(within(deskovky!).getByText("4 z 12 · 2 žádosti")).toBeInTheDocument()
+    expect(within(deskovky!).getByText("4 z 12 · min. 4 · 2 žádosti")).toBeInTheDocument()
     expect(within(foto!).getByText("Zrušeno")).toBeInTheDocument()
 
     expect(get).toHaveBeenCalledWith("me/events", { searchParams: { tab: "organizing" } })

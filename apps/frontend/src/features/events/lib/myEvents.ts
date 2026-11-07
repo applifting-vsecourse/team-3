@@ -24,7 +24,7 @@ export function attendingSections(events: MyEvent[]): {
   }
 }
 
-/** „Jdu“ / „Čeká“ (under the heading „Čeká na schválení“); a cancelled event says so instead (D-02a). */
+/** „Jdu“ / „Čeká na schválení“; a cancelled event says so instead (D-02a). */
 export function attendingStatus(event: MyEvent): BadgeStatus {
   if (event.status === "cancelled") return { kind: "cancelled" }
   return event.myParticipation === "pending" ? { kind: "pending" } : { kind: "going" }
@@ -32,8 +32,8 @@ export function attendingStatus(event: MyEvent): BadgeStatus {
 
 /**
  * The occupancy on a card in Přihlášen (#189). Its badge is the user's place
- * („Jdu“, „Čeká“), not the occupancy, so the line says how many are missing itself:
- * „chybí 1 · 8 z 14 · min. 9 · Praha 11“, else as in the list, „5 z 5 · Praha 4“.
+ * („Jdu“, „Čeká na schválení“), not the occupancy, so the line says how many are
+ * missing itself: „chybí 1 · 8 z 14 · min. 9 · Praha 11“, else „5 z 5 · min. 3 · Praha 4“.
  */
 export function attendingFacts(event: MyEvent): string {
   if (event.status === "cancelled") return eventFacts(event)
@@ -67,17 +67,16 @@ export function organizingStatus(event: MyEvent): BadgeStatus {
 }
 
 /**
- * What the organizer needs next to the occupancy badge (C-02), in the card's
- * words (#189): the requests to decide, else the minimum still missing, else
- * the district — „4 z 5 · 2 žádosti“, „3 z 12 · min. 4“, „8 z 8 · Praha 7“.
- * The badge says „Chybí 1“, so the line doesn't.
+ * What the organizer needs next to the occupancy badge (Figma C-02d): the
+ * occupancy with the minimum and the requests to decide — „4 z 5 · min. 3 ·
+ * 2 žádosti“, „3 z 12 · min. 4“, „8 z 8 · min. 6“. The badge says „Chybí 1“,
+ * so the line doesn't.
  */
 export function organizingFacts(event: MyEvent): string {
   if (event.status === "cancelled") return eventFacts(event)
   const requests = waitingRequests(event)
-  if (requests > 0) return `${occupancyBesideBadge(event)} · ${requestCountLabel(requests)}`
-  if (event.missingToMin > 0) return occupancyBesideBadge(event)
-  return eventFacts(event)
+  const occupancy = occupancyBesideBadge(event)
+  return requests > 0 ? `${occupancy} · ${requestCountLabel(requests)}` : occupancy
 }
 
 /**

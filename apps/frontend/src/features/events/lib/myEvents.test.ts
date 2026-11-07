@@ -51,16 +51,16 @@ describe("attendingFacts", () => {
     ).toBe("chybí 1 · 8 z 14 · min. 9 · Praha 8")
   })
 
-  it("the same for a request still waiting („Čeká“)", () => {
+  it("the same for a request still waiting („Čeká na schválení“)", () => {
     expect(
       attendingFacts(aMyEvent({ myParticipation: "pending", approvedCount: 2, missingToMin: 2 })),
     ).toBe("chybí 2 · 2 z 12 · min. 4 · Praha 8")
   })
 
-  it("from the minimum as in the list", () => {
-    expect(attendingFacts(aMyEvent())).toBe("4 z 12 · Praha 8")
+  it("from the minimum as in the list, with the minimum", () => {
+    expect(attendingFacts(aMyEvent())).toBe("4 z 12 · min. 4 · Praha 8")
     expect(attendingFacts(aMyEvent({ approvedCount: 12, freeSpots: 0, isFull: true }))).toBe(
-      "12 z 12 · Praha 8",
+      "12 z 12 · min. 4 · Praha 8",
     )
   })
 
@@ -72,7 +72,7 @@ describe("attendingFacts", () => {
 })
 
 describe("attendingStatus", () => {
-  it("is „Jdu“ for a place and „Čeká“ for a request", () => {
+  it("is „Jdu“ for a place and „Čeká na schválení“ for a request", () => {
     expect(attendingStatus(aMyEvent())).toEqual({ kind: "going" })
     expect(attendingStatus(aMyEvent({ myParticipation: "pending" }))).toEqual({ kind: "pending" })
   })
@@ -114,7 +114,7 @@ describe("organizingFacts", () => {
       organizingFacts(
         organized({ approvedCount: 4, maxParticipants: 5, missingToMin: 0, pendingRequests: 2 }),
       ),
-    ).toBe("4 z 5 · 2 žádosti")
+    ).toBe("4 z 5 · min. 4 · 2 žádosti")
   })
 
   it("with requests below the minimum, the occupancy and then the requests", () => {
@@ -139,9 +139,10 @@ describe("organizingFacts", () => {
     ).toBe("3 z 12 · min. 4")
   })
 
-  it("else the district, as in the list", () => {
+  // Figma C-02d: „8 z 8 · min. 6“, no district
+  it("else just the occupancy with the minimum", () => {
     expect(organizingFacts(organized({ approvedCount: 8, maxParticipants: 8, isFull: true }))).toBe(
-      "8 z 8 · Praha 8",
+      "8 z 8 · min. 4",
     )
   })
 

@@ -21,13 +21,14 @@ describe("occupancyCount", () => {
 })
 
 describe("freeSpotsLabel", () => {
-  it("uses the Czech singular for one place", () => {
+  // Figma Capacity bar › Free: the status badge's form
+  it("uses the Czech forms for one, two to four and five and more", () => {
     expect([1, 2, 4, 5, 17].map(freeSpotsLabel)).toEqual([
       "1 volné místo",
-      "Volná místa: 2",
-      "Volná místa: 4",
-      "Volná místa: 5",
-      "Volná místa: 17",
+      "2 volná místa",
+      "4 volná místa",
+      "5 volných míst",
+      "17 volných míst",
     ])
   })
 })
@@ -58,7 +59,7 @@ describe("occupancyStatus", () => {
   })
 
   it("from the minimum says the free places, in the right form", () => {
-    expect(occupancyStatus(occupancy(8, 8, 10))).toBe("Volná místa: 2")
+    expect(occupancyStatus(occupancy(8, 8, 10))).toBe("2 volná místa")
     expect(occupancyStatus(occupancy(4, 2, 5))).toBe("1 volné místo")
   })
 
@@ -82,9 +83,10 @@ describe("occupancyBesideBadge", () => {
     expect(occupancyBesideBadge(occupancy(3, 4, 12))).toBe("3 z 12 · min. 4")
   })
 
-  it("from the minimum just the count", () => {
-    expect(occupancyBesideBadge(occupancy(4, 4, 12))).toBe("4 z 12")
-    expect(occupancyBesideBadge(occupancy(12, 4, 12))).toBe("12 z 12")
+  // Figma C-01d, C-02d: „9 z 14 · min. 8“, „8 z 8 · min. 6“
+  it("from the minimum the count with the minimum too", () => {
+    expect(occupancyBesideBadge(occupancy(4, 4, 12))).toBe("4 z 12 · min. 4")
+    expect(occupancyBesideBadge(occupancy(12, 4, 12))).toBe("12 z 12 · min. 4")
   })
 })
 
@@ -97,11 +99,11 @@ describe("occupancySummary", () => {
     expect(occupancySummary(occupancy(5, 6, 12, { missingToMin: 2 }))).toBe(
       "chybí 2 · 5 z 12 · min. 6",
     )
-    expect(occupancySummary(occupancy(5, 6, 12, { missingToMin: 0 }))).toBe("5 z 12")
+    expect(occupancySummary(occupancy(5, 6, 12, { missingToMin: 0 }))).toBe("5 z 12 · min. 6")
   })
 
-  it("from the minimum just the count", () => {
-    expect(occupancySummary(occupancy(6, 6, 12))).toBe("6 z 12")
-    expect(occupancySummary(occupancy(12, 6, 12))).toBe("12 z 12")
+  it("from the minimum the count with the minimum", () => {
+    expect(occupancySummary(occupancy(6, 6, 12))).toBe("6 z 12 · min. 6")
+    expect(occupancySummary(occupancy(12, 6, 12))).toBe("12 z 12 · min. 6")
   })
 })

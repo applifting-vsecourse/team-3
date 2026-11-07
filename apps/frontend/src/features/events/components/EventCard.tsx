@@ -78,9 +78,11 @@ export function EventCard({
           {" · "}
           {placeName(event.address)}
         </p>
-        <div className="flex items-center gap-2">
+        {/* where the line doesn't fit beside the badge („Čeká na schválení“ on a phone) it
+            goes under it whole, instead of cutting the numbers (#189) */}
+        <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
           <StatusBadge status={status ?? capacityStatus(event)} />
-          <span className="truncate text-xs font-medium text-muted-foreground">
+          <span className="max-w-full truncate text-xs font-medium text-muted-foreground">
             {facts ?? eventFacts(event)}
           </span>
         </div>

@@ -33,7 +33,7 @@ describe("CapacityBar", () => {
   it("exactly at the minimum: the event happens, so the fill turns solid (capacity-fill)", () => {
     const { fill, tick, label } = renderBar(8)
 
-    expect(screen.getByText("Volná místa: 2")).not.toHaveClass("font-semibold")
+    expect(screen.getByText("2 volná místa")).not.toHaveClass("font-semibold")
     expect(fill).toHaveClass("bg-capacity-fill")
     expect(fill).not.toHaveClass("capacity-hatch")
     expect(fill?.style.width).toBe("80%")
@@ -94,7 +94,7 @@ describe("CapacityBar", () => {
     expect(renderBar(10, 10, 10).fill).toHaveClass("bg-full")
   })
 
-  it("one place left: the singular, „1 volné místo“, not „Volná místa: 1“ (#189)", () => {
+  it("one place left: the singular, „1 volné místo“, not „1 volná místa“ (#189)", () => {
     renderBar(9)
 
     expect(screen.getByText("1 volné místo")).toBeInTheDocument()
@@ -104,7 +104,7 @@ describe("CapacityBar", () => {
   it("no minimum: nothing is missing, so the fill is solid from the start", () => {
     const { fill, label } = renderBar(0, 0, 10)
 
-    expect(screen.getByText("Volná místa: 10")).toBeInTheDocument()
+    expect(screen.getByText("10 volných míst")).toBeInTheDocument()
     expect(fill).toHaveClass("bg-capacity-fill")
     expect(fill).not.toHaveClass("capacity-hatch")
     expect(label).toHaveClass("translate-x-0")

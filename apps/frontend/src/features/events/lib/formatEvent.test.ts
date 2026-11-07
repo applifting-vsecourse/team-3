@@ -60,14 +60,14 @@ describe("placeName", () => {
 describe("capacityStatus", () => {
   it("missing people, free places, full", () => {
     expect(capacityStatus(anEvent({ missingToMin: 2 }))).toEqual({ kind: "missing", missing: 2 })
-    expect(capacityStatus(anEvent())).toEqual({ kind: "free" })
+    expect(capacityStatus(anEvent())).toEqual({ kind: "free", freeSpots: 8 })
     expect(capacityStatus(anEvent({ isFull: true, freeSpots: 0 }))).toEqual({ kind: "full" })
   })
 })
 
 describe("eventFacts", () => {
-  it("shows approved of maximum in words and the district, never „4/12“ (#189)", () => {
-    expect(eventFacts(anEvent())).toBe("4 z 12 · Praha 8")
+  it("shows approved of maximum in words, the minimum and the district, never „4/12“ (#189)", () => {
+    expect(eventFacts(anEvent())).toBe("4 z 12 · min. 4 · Praha 8")
   })
 
   it("below the minimum says the minimum, not „chybí“ — the badge next to it does", () => {
@@ -78,7 +78,7 @@ describe("eventFacts", () => {
 
   it("full", () => {
     expect(eventFacts(anEvent({ approvedCount: 12, freeSpots: 0, isFull: true }))).toBe(
-      "12 z 12 · Praha 8",
+      "12 z 12 · min. 4 · Praha 8",
     )
   })
 

@@ -40,7 +40,7 @@ describe("EventDetailView", () => {
   })
 
   it.each([
-    [{ approvedCount: 4, missingToMin: 0, freeSpots: 8 }, "Volná místa: 8"],
+    [{ approvedCount: 4, missingToMin: 0, freeSpots: 8 }, "8 volných míst"],
     [{ approvedCount: 11, missingToMin: 0, freeSpots: 1 }, "1 volné místo"],
     [{ approvedCount: 12, missingToMin: 0, freeSpots: 0, isFull: true }, "Plno"],
   ])("shows the occupancy %o as „%s“", async (capacity, label) => {
@@ -59,7 +59,7 @@ describe("EventDetailView", () => {
   })
 
   it.each([
-    [{ approvedCount: 4, missingToMin: 0, freeSpots: 8 }, "Volná místa: 8"],
+    [{ approvedCount: 4, missingToMin: 0, freeSpots: 8 }, "8 volných míst"],
     [{ approvedCount: 2, missingToMin: 2, freeSpots: 10 }, "Chybí ještě 2"],
     [{ approvedCount: 12, missingToMin: 0, freeSpots: 0, isFull: true }, "Plno"],
   ])(

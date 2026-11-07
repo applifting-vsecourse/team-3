@@ -99,13 +99,13 @@ export const placeName = (address: string): string => address.split(",")[0]?.tri
 export function capacityStatus(event: PublicEvent): CapacityStatus {
   if (event.isFull) return { kind: "full" }
   if (event.missingToMin > 0) return { kind: "missing", missing: event.missingToMin }
-  return { kind: "free" }
+  return { kind: "free", freeSpots: event.freeSpots }
 }
 
 /**
- * The line next to the capacity badge on a card, with the district: „4 z 12 ·
- * Praha 8“; below the minimum „5 z 12 · min. 6 · Praha 8“, as the badge beside
- * it already says „Chybí 1“ (#189). A cancelled event only has the count.
+ * The line next to the capacity badge on a card, with the district: „5 z 12 ·
+ * min. 6 · Praha 8“ — the badge beside it already says „Chybí 1“ (#189). A
+ * cancelled event only has the count.
  */
 export const eventFacts = (event: PublicEvent & { status?: "published" | "cancelled" }): string =>
   `${event.status === "cancelled" ? occupancyCount(event) : occupancyBesideBadge(event)} · ${event.locality.name}`

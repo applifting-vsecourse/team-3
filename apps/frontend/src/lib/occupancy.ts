@@ -24,9 +24,12 @@ export const occupancyCount = ({
 }: Pick<Occupancy, "approvedCount" | "maxParticipants">): string =>
   `${approvedCount} z ${maxParticipants}`
 
-/** „1 volné místo“, „Volná místa: 3“, „Volná místa: 8“. */
-export const freeSpotsLabel = (count: number): string =>
-  count === 1 ? "1 volné místo" : `Volná místa: ${count}`
+/** „1 volné místo“, „3 volná místa“, „8 volných míst“ — the status badge's form (Figma Capacity bar › Free). */
+export function freeSpotsLabel(count: number): string {
+  if (count === 1) return "1 volné místo"
+  if (count >= 2 && count <= 4) return `${count} volná místa`
+  return `${count} volných míst`
+}
 
 export type OccupancyState = "missing" | "free" | "full"
 
@@ -39,7 +42,7 @@ export function occupancyState({ isFull, missingToMin }: Occupancy): OccupancySt
   return missingToMin > 0 ? "missing" : "free"
 }
 
-/** The detail's status line (Capacity bar): „Chybí ještě 2“, „Volná místa: 3“, „1 volné místo“, „Plno“. */
+/** The detail's status line (Capacity bar): „Chybí ještě 2“, „3 volná místa“, „1 volné místo“, „Plno“. */
 export function occupancyStatus(occupancy: Occupancy): string {
   switch (occupancyState(occupancy)) {
     case "full":
@@ -52,21 +55,17 @@ export function occupancyStatus(occupancy: Occupancy): string {
 }
 
 /**
- * The occupancy next to a capacity badge (Figma 4. 11.): „5 z 12“, below the
- * minimum with it, „5 z 12 · min. 6“. The badge already says „Chybí 1“, so
- * the line doesn't repeat it.
+ * The occupancy next to a badge, always with the minimum (Figma C-01d, C-02d):
+ * „5 z 12 · min. 6“, „8 z 8 · min. 6“. A capacity badge beside it already says
+ * „Chybí 1“, so the line doesn't repeat it.
  */
-export function occupancyBesideBadge(occupancy: Occupancy): string {
-  const count = occupancyCount(occupancy)
-  return occupancyState(occupancy) === "missing"
-    ? `${count} · min. ${occupancy.minParticipants}`
-    : count
-}
+export const occupancyBesideBadge = (occupancy: Occupancy): string =>
+  `${occupancyCount(occupancy)} · min. ${occupancy.minParticipants}`
 
 /**
  * The occupancy in one line where no capacity badge says it (a card in
- * Přihlášen shows „Jdu“): „5 z 12“; below the minimum it starts with how many
- * are missing, „chybí 1 · 5 z 12 · min. 6“.
+ * Přihlášen shows „Jdu“): „5 z 12 · min. 3“; below the minimum it starts with
+ * how many are missing, „chybí 1 · 5 z 12 · min. 6“.
  */
 export function occupancySummary(occupancy: Occupancy): string {
   const line = occupancyBesideBadge(occupancy)
