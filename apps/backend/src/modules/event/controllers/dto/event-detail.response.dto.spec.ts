@@ -70,10 +70,11 @@ describe('EventDetailResponseDto.fromDomain', () => {
     ).toBe(true);
   });
 
-  it('does not send the visibility', () => {
-    expect(EventDetailResponseDto.fromDomain(aView())).not.toHaveProperty(
-      'visibility',
-    );
+  it('sends the visibility: the detail of a group event says who sees it (A-05g)', () => {
+    expect(
+      EventDetailResponseDto.fromDomain(aView({ visibility: 'members' }))
+        .visibility,
+    ).toBe('members');
   });
 
   it('refuses hidden and deleted events, which must have been 404', () => {
