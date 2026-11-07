@@ -1,6 +1,7 @@
 import { EmailService } from '@/core/email/interfaces/email-service.interface';
 import { Config } from '@/shared/config/config.service';
 import { mock } from 'jest-mock-extended';
+import { betterAuthCoreConfig } from './better-auth.config';
 import {
   EMAIL_VERIFICATION_TTL_SECONDS,
   emailFlowOptions,
@@ -22,6 +23,16 @@ jest.mock('@/core/email/templates/reset-password', () => ({
 }));
 jest.mock('@/core/email/templates/verify-email', () => ({
   VerifyEmail: 'VerifyEmail',
+}));
+
+// better-auth is ESM-only, which Jest can't load: only what the core config
+// calls while it is built is replaced.
+jest.mock('better-auth/api', () => ({
+  APIError: class extends Error {},
+  createAuthMiddleware: (handler: unknown): unknown => handler,
+}));
+jest.mock('better-auth/plugins', () => ({
+  username: (): { id: string } => ({ id: 'username' }),
 }));
 
 const config = {
@@ -103,5 +114,23 @@ describe('withEmailFlows', () => {
     expect(options.emailAndPassword.enabled).toBe(true);
     expect(options.emailVerification.expiresIn).toBe(86_400);
     expect(options.user).toBe(core.user);
+  });
+
+  it('a changed e-mail starts to count only once the new address is verified (B-015)', () => {
+    const options = withEmailFlows(
+      betterAuthCoreConfig,
+      emailFlowOptions(config, mock<EmailService>()),
+    );
+
+    // never switched at once, not even on an account whose e-mail isn't verified
+    // yet: BetterAuth sends the link to the new address and the old one keeps
+    // working until it's opened
+    expect(options.user?.changeEmail).toEqual({
+      enabled: true,
+      updateEmailWithoutVerification: false,
+    });
+    expect(options.emailVerification.sendVerificationEmail).toEqual(
+      expect.any(Function),
+    );
   });
 });
