@@ -1,16 +1,12 @@
 import { render, screen } from "@testing-library/react"
 import { describe, expect, it } from "vitest"
 
+import { anOccupancy } from "@/test/anOccupancy"
+
 import { CapacityBar } from "./CapacityBar"
 
 const renderBar = (approvedCount: number, min = 8, max = 10) => {
-  const { container } = render(
-    <CapacityBar
-      approvedCount={approvedCount}
-      minParticipants={min}
-      maxParticipants={max}
-    />,
-  )
+  const { container } = render(<CapacityBar {...anOccupancy(approvedCount, min, max)} />)
   return {
     fill: container.querySelector<HTMLElement>("[data-slot=capacity-fill]"),
     tick: container.querySelector<HTMLElement>("[data-slot=capacity-tick]"),
@@ -98,6 +94,13 @@ describe("CapacityBar", () => {
     expect(renderBar(10, 10, 10).fill).toHaveClass("bg-full")
   })
 
+  it("one place left: the singular, „1 volné místo“, not „Volná místa: 1“ (#189)", () => {
+    renderBar(9)
+
+    expect(screen.getByText("1 volné místo")).toBeInTheDocument()
+    expect(screen.getByText("9 z 10")).toBeInTheDocument()
+  })
+
   it("no minimum: nothing is missing, so the fill is solid from the start", () => {
     const { fill, label } = renderBar(0, 0, 10)
 
@@ -108,13 +111,7 @@ describe("CapacityBar", () => {
   })
 
   it("reads in order: the status, the count, then the minimum", () => {
-    const { container } = render(
-      <CapacityBar
-        approvedCount={6}
-        minParticipants={8}
-        maxParticipants={10}
-      />,
-    )
+    const { container } = render(<CapacityBar {...anOccupancy(6, 8, 10)} />)
 
     expect(container.textContent).toBe("Chybí ještě 26 z 10min. 8")
     expect(container.querySelector("[data-slot=capacity-track]")).toHaveAttribute(

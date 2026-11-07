@@ -34,13 +34,14 @@ describe("EventDetailView", () => {
     expect(screen.getByText("3 z 12")).toBeInTheDocument()
     expect(screen.getByText("min. 4")).toBeInTheDocument()
     // „Kdo jde“ as the viewer's „Jdu“, not „Přihlášení“ next to „Přihlásit se“
-    expect(screen.getByRole("heading", { name: "Kdo jde (3)" })).toBeInTheDocument()
+    expect(screen.getByRole("heading", { name: "Kdo jde · 3 z 12" })).toBeInTheDocument()
     // the facts are a valid <dl> (Kdy, Kde, Přihlašování)
     expectValidDescriptionList(screen.getByText("Kdy").closest("dl")!)
   })
 
   it.each([
     [{ approvedCount: 4, missingToMin: 0, freeSpots: 8 }, "Volná místa: 8"],
+    [{ approvedCount: 11, missingToMin: 0, freeSpots: 1 }, "1 volné místo"],
     [{ approvedCount: 12, missingToMin: 0, freeSpots: 0, isFull: true }, "Plno"],
   ])("shows the occupancy %o as „%s“", async (capacity, label) => {
     await renderWithRouter(<EventDetailView event={anEventDetail(capacity)} />)
@@ -51,7 +52,7 @@ describe("EventDetailView", () => {
   it("lists the participants when the API sends their names (someone taking part, #174)", async () => {
     await renderWithRouter(<EventDetailView event={anEventDetail()} />)
 
-    expect(screen.getByRole("heading", { name: "Kdo jde (4)" })).toBeInTheDocument()
+    expect(screen.getByRole("heading", { name: "Kdo jde · 4 z 12" })).toBeInTheDocument()
     const list = screen.getByRole("list")
     expect(within(list).getAllByRole("listitem")).toHaveLength(4)
     expect(within(list).getByText("Jana Svobodová")).toBeInTheDocument()
@@ -174,7 +175,7 @@ describe("EventDetailView", () => {
         ),
       ).toBe(true)
       // on the left: O akci → Kdo jde → Pořádá
-      const left = ["O akci", "Kdo jde (3)", "Pořádá"].map((name) =>
+      const left = ["O akci", "Kdo jde · 3 z 12", "Pořádá"].map((name) =>
         screen.getByRole("heading", { name }),
       )
       left.forEach((heading) => expect(panel).not.toContainElement(heading))
@@ -192,7 +193,7 @@ describe("EventDetailView", () => {
           within(panel).getByLabelText("Místo akce na mapě"),
           screen.getByRole("heading", { name: "Pořádá" }),
           screen.getByRole("heading", { name: "O akci" }),
-          screen.getByRole("heading", { name: "Kdo jde (3)" }),
+          screen.getByRole("heading", { name: "Kdo jde · 3 z 12" }),
           screen.getByRole("button", { name: "Přijdu" }),
         ),
       ).toBe(true)
