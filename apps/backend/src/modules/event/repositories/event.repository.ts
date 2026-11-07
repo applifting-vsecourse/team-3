@@ -225,7 +225,39 @@ export class EventRepository {
     return { activity: activity > 0, locality: locality > 0 };
   }
 
-  /** A new public, published event of a person (B-021); returns its id. */
+  /**
+   * What creating an event of the group needs to know (B-055): its activity,
+   * whether it is active and the user's role in it while their membership is
+   * active. Null for no such group.
+   */
+  async findGroupForEvent(
+    groupId: string,
+    userId: string,
+  ): Promise<{
+    activityId: string;
+    status: 'active' | 'inactive';
+    role: 'admin' | 'member' | null;
+  } | null> {
+    const group = await this.prisma.group.findUnique({
+      where: { id: groupId },
+      select: {
+        activityId: true,
+        status: true,
+        members: {
+          where: { userId, status: 'active' },
+          select: { role: true },
+        },
+      },
+    });
+    if (!group) return null;
+    return {
+      activityId: group.activityId,
+      status: group.status,
+      role: group.members[0]?.role ?? null,
+    };
+  }
+
+  /** A new published event of a person or a group (B-021, B-055); returns its id. */
   async createEvent(event: NewEvent, organizerUserId: string): Promise<string> {
     const created = await this.prisma.event.create({
       data: { ...event, organizerUserId },

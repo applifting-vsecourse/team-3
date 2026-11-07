@@ -185,6 +185,8 @@ export class EventsService {
   /**
    * Creates an event of the signed-in user (B-021). The organizer is always
    * `organizerId` from the session, never something from the request body.
+   * A group's event (B-055) is created by any active admin of an active
+   * group, with the group's activity; only it may be members-only.
    * Returns the new event as its detail shows it to the organizer.
    */
   async createEvent(
@@ -208,6 +210,7 @@ export class EventsService {
     if (problems.length > 0) {
       throw new BadRequestException(problems);
     }
+    await this.assertCanCreateFor(event, organizerId);
 
     const id = await this.eventRepository.createEvent(event, organizerId);
     return this.getEventDetail(id, organizerId, now);
@@ -327,6 +330,41 @@ export class EventsService {
   private assertCanManage(event: EventDetailView, message: string): void {
     if (!event.canManage) {
       throw new ForbiddenException({ code: 'NOT_ORGANIZER', message });
+    }
+  }
+
+  private async assertCanCreateFor(
+    event: NewEvent,
+    userId: string,
+  ): Promise<void> {
+    if (!event.groupId) {
+      if (event.visibility === 'members') {
+        throw new BadRequestException([
+          'Jen pro členy může být jen akce skupiny.',
+        ]);
+      }
+      return;
+    }
+    const group = await this.eventRepository.findGroupForEvent(
+      event.groupId,
+      userId,
+    );
+    if (!group) throw new BadRequestException(['Neznámá skupina.']);
+    if (group.status !== 'active') {
+      throw new ConflictException({
+        code: 'GROUP_INACTIVE',
+        message: 'Skupina už není aktivní.',
+      });
+    }
+    if (group.role !== 'admin') {
+      throw new ForbiddenException({
+        code: 'NOT_GROUP_ADMIN',
+        message: 'Akci skupiny zakládá jen její správce.',
+      });
+    }
+    // the form locks the activity to the group's; the server holds to it too
+    if (event.activityId !== group.activityId) {
+      throw new BadRequestException(['Akce skupiny má aktivitu skupiny.']);
     }
   }
 

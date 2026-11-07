@@ -82,7 +82,7 @@ export class EventsController {
   @ApiCookieAuth()
   @ApiOperation({
     summary:
-      'Create an event; the organizer is the signed-in user (B-021), with a verified e-mail',
+      "Create an event; the organizer is the signed-in user (B-021), with a verified e-mail. With groupId it is the group's event, created by any of its admins (B-055)",
   })
   @ApiResponse({ status: 201, type: CreatedEventResponseDto })
   @ApiResponse({
@@ -93,7 +93,12 @@ export class EventsController {
   @ApiResponse({ status: 401, description: 'Not signed in' })
   @ApiResponse({
     status: 403,
-    description: 'EMAIL_NOT_VERIFIED, or USER_BLOCKED',
+    description:
+      'EMAIL_NOT_VERIFIED, USER_BLOCKED, or NOT_GROUP_ADMIN for a group event',
+  })
+  @ApiResponse({
+    status: 409,
+    description: 'GROUP_INACTIVE: the group is deactivated',
   })
   async create(
     @Body() body: CreateEventDto,
@@ -113,6 +118,8 @@ export class EventsController {
         minParticipants: body.minParticipants,
         maxParticipants: body.maxParticipants,
         approvalMode: body.approvalMode,
+        groupId: body.groupId ?? null,
+        visibility: body.visibility ?? 'public',
       },
       user.id,
     );

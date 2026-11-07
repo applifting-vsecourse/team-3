@@ -124,6 +124,10 @@ export type NewEvent = {
   minParticipants: number;
   maxParticipants: number;
   approvalMode: 'open' | 'approval';
+  /** A group's event (B-055); null for a person's own. */
+  groupId: string | null;
+  /** `members` only for a group's event. */
+  visibility: 'public' | 'members';
 };
 
 /** What the organizer may change on an event (B-028, #41): not the activity nor the way of joining. */
