@@ -9,6 +9,7 @@ import {
   eventFacts,
   formatEventStart,
   formatEventTime,
+  formatRequestEventStart,
   formatRequestTime,
   placeName,
 } from "./formatEvent"
@@ -104,5 +105,12 @@ describe("eventCountLabel", () => {
 describe("formatRequestTime", () => {
   it("says when a request was sent, in Prague time (#53)", () => {
     expect(formatRequestTime(new Date("2026-10-23T15:30:00.000Z"))).toBe("Žádost z 23. 10. v 17:30")
+  })
+})
+
+describe("formatRequestEventStart (#175)", () => {
+  it("is the start inside a sentence, in Prague time", () => {
+    expect(formatRequestEventStart(new Date("2026-10-23T15:30:00.000Z"))).toBe("pá 23. 10. v 17:30")
+    expect(formatRequestEventStart(new Date("2026-10-26T07:00:00.000Z"))).toBe("po 26. 10. v 8:00")
   })
 })

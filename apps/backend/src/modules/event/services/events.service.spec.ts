@@ -625,7 +625,7 @@ describe('EventsService participation', () => {
 
   it('join decides with the rules at „now“ and returns the updated detail', async () => {
     const { repository, service } = setup();
-    repository.join.mockImplementation(async (_e, _u, decide) =>
+    repository.join.mockImplementation(async (_e, _u, _m, decide) =>
       decide({
         eventStatus: 'published',
         startsAt: new Date('2026-10-24T16:00:00.000Z'),
@@ -638,11 +638,12 @@ describe('EventsService participation', () => {
     );
     repository.findParticipationStatus.mockResolvedValue('approved');
 
-    const result = await service.join('e1', 'u9', now);
+    const result = await service.join('e1', 'u9', 'Ahoj', now);
 
     expect(repository.join).toHaveBeenCalledWith(
       'e1',
       'u9',
+      'Ahoj',
       expect.any(Function),
     );
     expect(result.myParticipation).toBe('approved');
@@ -653,7 +654,7 @@ describe('EventsService participation', () => {
     repository.join.mockResolvedValue({ ok: false, refusal: 'EVENT_FULL' });
 
     const error = (await service
-      .join('e1', 'u9', now)
+      .join('e1', 'u9', null, now)
       .catch((e: unknown) => e)) as ConflictException;
 
     expect(error).toBeInstanceOf(ConflictException);
@@ -668,7 +669,7 @@ describe('EventsService participation', () => {
       aDetail({ visibility: 'members', group: { id: 'g1', name: 'Skupina' } }),
     );
 
-    await expect(service.join('e1', 'u9', now)).rejects.toThrow(
+    await expect(service.join('e1', 'u9', null, now)).rejects.toThrow(
       NotFoundException,
     );
     expect(repository.join).not.toHaveBeenCalled();
@@ -824,6 +825,7 @@ const requests = [
     id: 'u5',
     name: 'Jakub',
     requestedAt: new Date('2026-10-22T10:00:00.000Z'),
+    message: 'Hraju rád, přijdu včas.',
   },
 ];
 
@@ -866,7 +868,8 @@ describe('EventsService.getParticipants', () => {
 
     expect(error).toBeInstanceOf(ForbiddenException);
     expect(error.getResponse()).toMatchObject({ code: 'NOT_ORGANIZER' });
-    // the requests (names of people asking) never leave for someone else
+    // the requests (names of people asking, their messages) never leave for
+    // someone else (#175)
     expect(repository.findPendingRequests).not.toHaveBeenCalled();
   });
 

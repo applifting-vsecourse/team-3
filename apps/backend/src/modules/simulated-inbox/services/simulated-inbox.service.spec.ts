@@ -92,7 +92,7 @@ describe('SimulatedInboxService', () => {
         frontendUrl: 'https://hobbyhub.example',
         frontendResetPasswordUrl: 'reset-password',
       } as Config,
-      new ConsoleMailerAdapter(inbox),
+      new ConsoleMailerAdapter('development', inbox),
     );
     const user = { id: eva.id, name: eva.name, email: eva.email } as never;
 

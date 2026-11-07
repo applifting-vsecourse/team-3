@@ -1,3 +1,4 @@
+import { apiDocsEnabled } from '@/core/api-docs/api-docs-enabled';
 import { EmailService } from '@/core/email/interfaces/email-service.interface';
 import { PrismaService } from '@/core/prisma/prisma.service';
 import { betterAuthCoreConfig } from '@/shared/auth/config/better-auth.config';
@@ -12,6 +13,7 @@ import { Config } from '@/shared/config/config.service';
 import { Inject, Provider } from '@nestjs/common';
 import { betterAuth } from 'better-auth';
 import { prismaAdapter } from 'better-auth/adapters/prisma';
+import { openAPI } from 'better-auth/plugins';
 
 const createAuth = (
   prismaService: PrismaService,
@@ -40,6 +42,8 @@ const createAuth = (
       ...(betterAuthCoreConfig.plugins ?? []),
       // passwords from data breaches are refused, in production (#153)
       breachedPasswordsPlugin(config),
+      // the reference page at /api/auth/reference, off in production (N-9)
+      ...(apiDocsEnabled(config) ? [openAPI()] : []),
     ],
   });
 

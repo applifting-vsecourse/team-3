@@ -158,6 +158,7 @@ function RequestList({ groupId, requests }: { groupId: string; requests: GroupMe
             <PersonRow
               name={request.name}
               description="Žádá o členství"
+              quote={request.message}
               actions={
                 <>
                   <Button

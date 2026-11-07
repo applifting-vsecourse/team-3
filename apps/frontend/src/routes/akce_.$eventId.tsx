@@ -86,8 +86,8 @@ function EventDetailPage() {
                   signInFrom={signInFrom}
                   isPending={join.isPending || leave.isPending}
                   onVerifyEmail={showVerifyEmailBanner}
-                  onJoin={() =>
-                    join.mutateAsync().then(
+                  onJoin={(message) =>
+                    join.mutateAsync(message).then(
                       (updated) =>
                         toast.success(
                           updated.myParticipation === "pending"

@@ -8,6 +8,11 @@ type PersonRowProps = {
   name: string
   /** A second line, e.g. „Skupina“. */
   description?: string
+  /**
+   * What the person wrote, shown whole in quotes under the description, e.g.
+   * the message with a request (Figma D-03, D-07, #175).
+   */
+  quote?: string | null
   /** Buttons under the text, e.g. Zamítnout / Schválit (Figma: Person row, Request). */
   actions?: ReactNode
   className?: string
@@ -17,19 +22,24 @@ type PersonRowProps = {
  * A person or a group with an avatar — organizer, participant, member
  * (Figma: Person row, Member) or a request with its actions (Request).
  */
-export function PersonRow({ name, description, actions, className }: PersonRowProps) {
+export function PersonRow({ name, description, quote, actions, className }: PersonRowProps) {
+  const hasMore = Boolean(actions) || Boolean(quote)
   return (
-    <div className={cn("flex min-w-0 gap-3", actions ? "items-start" : "items-center", className)}>
+    <div className={cn("flex min-w-0 gap-3", hasMore ? "items-start" : "items-center", className)}>
       <Avatar size="lg">
         {/* Figma: Avatar — initials on the quiet brand fill */}
         <AvatarFallback className="bg-secondary font-semibold text-secondary-foreground">
           {initials(name)}
         </AvatarFallback>
       </Avatar>
-      <div className={cn("flex min-w-0 flex-col", actions && "gap-1")}>
+      <div className={cn("flex min-w-0 flex-col", hasMore && "gap-1")}>
         <span className="truncate text-sm font-semibold">{name}</span>
         {description ? (
           <span className="truncate text-sm text-muted-foreground">{description}</span>
+        ) : null}
+        {quote ? (
+          // their own words: kept as written, line breaks too, and never cut off
+          <p className="text-sm break-words whitespace-pre-line">„{quote}“</p>
         ) : null}
         {actions ? <div className="flex flex-wrap gap-2 pt-1">{actions}</div> : null}
       </div>

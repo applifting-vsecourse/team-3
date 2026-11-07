@@ -1,7 +1,11 @@
 import { PrismaService } from '@/core/prisma/prisma.service';
 import { BetterAuth } from '@/shared/auth/providers/better-auth.provider';
 import { DeepMockProxy, mockDeep } from 'jest-mock-extended';
-import { ensureUser, replaceSeedPassword } from './ensure-user';
+import {
+  ensureUser,
+  replaceSeedPassword,
+  restoreSeedPassword,
+} from './ensure-user';
 
 // a factory, so better-auth doesn't load under Jest
 jest.mock('better-auth/crypto', () => ({
@@ -186,6 +190,61 @@ describe('replaceSeedPassword (N-3)', () => {
     ).resolves.toBe(false);
 
     expect(prisma.account.updateMany).not.toHaveBeenCalled();
+  });
+});
+
+describe('restoreSeedPassword (#229)', () => {
+  it('gives an account whose password a tester changed the seed password back and ends its sessions', async () => {
+    const { prisma, auth } = setup([
+      {
+        id: 'u1',
+        email: 'petra@x.cz',
+        username: 'petra',
+        password: 'vlastni-heslo-9',
+      },
+    ]);
+
+    await expect(
+      restoreSeedPassword(prisma, auth, 'u1', 'staging-heslo-1'),
+    ).resolves.toBe(true);
+
+    expect(prisma.account.updateMany).toHaveBeenCalledWith({
+      where: { userId: 'u1', providerId: 'credential' },
+      data: { password: 'hash:staging-heslo-1' },
+    });
+    expect(prisma.session.deleteMany).toHaveBeenCalledWith({
+      where: { userId: 'u1' },
+    });
+    expect(prisma.$transaction).toHaveBeenCalledTimes(1);
+  });
+
+  it('leaves an account that has the seed password, sessions included', async () => {
+    const { prisma, auth } = setup([
+      {
+        id: 'u1',
+        email: 'petra@x.cz',
+        username: 'petra',
+        password: 'staging-heslo-1',
+      },
+    ]);
+
+    await expect(
+      restoreSeedPassword(prisma, auth, 'u1', 'staging-heslo-1'),
+    ).resolves.toBe(false);
+
+    expect(prisma.$transaction).not.toHaveBeenCalled();
+  });
+
+  it('gives no password to an account without one (Google only)', async () => {
+    const { prisma, auth } = setup([
+      { id: 'u1', email: 'petra@x.cz', username: 'petra' },
+    ]);
+
+    await expect(
+      restoreSeedPassword(prisma, auth, 'u1', 'staging-heslo-1'),
+    ).resolves.toBe(false);
+
+    expect(prisma.$transaction).not.toHaveBeenCalled();
   });
 });
 

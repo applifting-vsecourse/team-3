@@ -28,8 +28,8 @@ type ManagedRequestsProps = {
 
 /**
  * Requests waiting for the organizer (Figma D-03, #53), oldest first, each
- * approved or rejected on its own (bulk is #60). Same buttons as the
- * group's requests (D-07).
+ * approved or rejected on its own (bulk is #60), with the applicant's
+ * message in quotes (#175). Same buttons as the group's requests (D-07).
  */
 export function ManagedRequests({
   requests,
@@ -110,6 +110,7 @@ export function ManagedRequests({
                 <PersonRow
                   name={request.name}
                   description={formatRequestTime(request.requestedAt)}
+                  quote={request.message}
                   actions={
                     canDecide ? (
                       <>

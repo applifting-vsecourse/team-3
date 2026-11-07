@@ -62,6 +62,14 @@ export function formatRequestTime(date: Date): string {
   return `Žádost z ${get("day")}. ${get("month")}. v ${timeFormat.format(date)}`
 }
 
+/** When an event starts, inside a sentence of the request dialog (#175): "pá 23. 10. v 17:30". */
+export function formatRequestEventStart(date: Date): string {
+  const parts = startFormat.formatToParts(date)
+  const get = (type: Intl.DateTimeFormatPartTypes) =>
+    parts.find((part) => part.type === type)?.value ?? ""
+  return `${get("weekday")} ${get("day")}. ${get("month")}. v ${get("hour")}:${get("minute")}`
+}
+
 // a Prague day `YYYY-MM-DD` is read as a UTC date, so the time zone can't move it
 const formDayFormat = new Intl.DateTimeFormat("cs-CZ", {
   timeZone: "UTC",

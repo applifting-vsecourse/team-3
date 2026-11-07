@@ -40,13 +40,13 @@ export function CapacityBar({ className, ...occupancy }: CapacityBarProps) {
       <div
         aria-hidden
         data-slot="capacity-track"
-        className="relative h-2 rounded-full bg-muted"
+        className="relative h-2 rounded-full bg-capacity-track"
       >
         <div
           data-slot="capacity-fill"
           className={cn(
             "h-full rounded-full",
-            isFull ? "bg-muted-foreground" : isBelowMin ? "capacity-hatch" : "bg-primary",
+            isFull ? "bg-full" : isBelowMin ? "capacity-hatch" : "bg-capacity-fill",
           )}
           style={{ width: `${isFull ? 100 : percent(approvedCount, maxParticipants)}%` }}
         />

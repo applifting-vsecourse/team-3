@@ -1,6 +1,6 @@
 import { PASSWORD_MIN_LENGTH } from '@/shared/auth/domain/password-policy';
 import { createAuthMiddleware } from 'better-auth/api';
-import { openAPI, username } from 'better-auth/plugins';
+import { username } from 'better-auth/plugins';
 import { BetterAuthOptions } from 'better-auth/types';
 import { requireConsent, stampConsent } from './consent';
 import { rejectInvalidNames } from './name-policy';
@@ -45,5 +45,7 @@ export const betterAuthCoreConfig: BetterAuthOptions = {
   databaseHooks: {
     user: { create: { before: stampConsent } },
   },
-  plugins: [openAPI(), username()],
+  // openAPI() (/api/auth/reference) is added in better-auth.provider.ts, only
+  // where the API docs are on (N-9)
+  plugins: [username()],
 };
