@@ -33,6 +33,9 @@ export const signInProviders = (config: GoogleEnv): SignInProviders => ({
  * whether the flow started at /login or /signup, so the sign-in page: it
  * shows a Czech message for BetterAuth's `?error=` (and its own /error page
  * forwards here too). Errors after the state is read go to errorCallbackURL.
+ * The option is BetterAuth-wide: any OAuth error it can't send elsewhere ends
+ * here too (today Google is the only provider). The path replaces any path
+ * in FRONTEND_URL, which is served from the domain root.
  */
 export const googleErrorUrl = (frontendUrl: string): string =>
   new URL('/login', frontendUrl).toString();

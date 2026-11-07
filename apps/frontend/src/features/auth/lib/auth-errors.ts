@@ -68,7 +68,7 @@ const GOOGLE_ERRORS: Record<string, string> = {
 
 // #198: on /signup, the way on without Google is signing up with the e-mail
 const GOOGLE_SIGN_UP_ERRORS: Record<string, string> = {
-  access_denied: "Přihlášení přes Google je zrušené. Zkus to znovu, nebo se zaregistruj e-mailem.",
+  access_denied: "Registrace přes Google je zrušená. Zkus to znovu, nebo se zaregistruj e-mailem.",
 }
 
 /** #154: the Czech message for /login?error=… (#198: and /signup) after Google. */

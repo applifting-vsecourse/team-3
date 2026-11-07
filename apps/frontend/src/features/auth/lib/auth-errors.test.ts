@@ -104,7 +104,7 @@ describe("googleSignInErrorMessage (#154)", () => {
 
   it("on /signup, a cancelled sign-in offers signing up with the e-mail (#198)", () => {
     expect(googleSignInErrorMessage("access_denied", "signup")).toBe(
-      "Přihlášení přes Google je zrušené. Zkus to znovu, nebo se zaregistruj e-mailem.",
+      "Registrace přes Google je zrušená. Zkus to znovu, nebo se zaregistruj e-mailem.",
     )
     // the rest reads the same on both pages
     expect(googleSignInErrorMessage("account_not_linked", "signup")).toBe(
