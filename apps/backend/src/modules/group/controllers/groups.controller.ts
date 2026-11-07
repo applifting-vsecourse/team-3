@@ -149,7 +149,7 @@ export class GroupsController {
   @ApiResponse({
     status: 403,
     description:
-      'EMAIL_NOT_VERIFIED (a session from before sign-in needed a verified e-mail, #236), USER_BLOCKED, or MEMBER_BLOCKED (blocked in this group)',
+      'EMAIL_NOT_VERIFIED (only a session from before #236, when an unverified e-mail could still sign in), USER_BLOCKED, or MEMBER_BLOCKED (blocked in this group)',
   })
   @ApiResponse({ status: 404, description: 'No such group' })
   @ApiResponse({ status: 409, description: 'GROUP_INACTIVE' })
