@@ -15,6 +15,7 @@ import {
 } from '@nestjs/common';
 import { mockDeep } from 'jest-mock-extended';
 import {
+  DUMMY_PASSWORD_HASH,
   INVALID_EMAIL_OR_PASSWORD,
   SIMULATED_INBOX_OFF,
   SimulatedInboxService,
@@ -51,16 +52,18 @@ const setup = (
   inbox: SimulatedInbox | null,
   {
     blockedAt = null as Date | null,
+    emailVerified = false,
     account = { password: HASH } as { password: string | null } | null,
   } = {},
 ): {
   service: SimulatedInboxService;
   prisma: ReturnType<typeof mockDeep<PrismaService>>;
+  verify: jest.Mock;
 } => {
   const prisma = mockDeep<PrismaService>();
   prisma.account.findFirst.mockResolvedValue(
     (account
-      ? { ...account, user: { email: eva.email, blockedAt } }
+      ? { ...account, user: { email: eva.email, emailVerified, blockedAt } }
       : null) as never,
   );
   const verify = jest.fn(
@@ -70,7 +73,11 @@ const setup = (
   const auth = {
     $context: Promise.resolve({ password: { verify } }),
   } as unknown as BetterAuth;
-  return { service: new SimulatedInboxService(inbox, prisma, auth), prisma };
+  return {
+    service: new SimulatedInboxService(inbox, prisma, auth),
+    prisma,
+    verify,
+  };
 };
 
 describe('SimulatedInboxService', () => {
@@ -119,6 +126,12 @@ describe('SimulatedInboxService', () => {
       { account: { password: null } },
       credentials.password,
     ],
+    // only an unverified account needs it; answering would tell who has an account
+    [
+      'a verified account, even with the right password',
+      { emailVerified: true },
+      credentials.password,
+    ],
   ])(
     '%s is 401 INVALID_EMAIL_OR_PASSWORD, the same for each',
     async (_, options, password) => {
@@ -135,6 +148,22 @@ describe('SimulatedInboxService', () => {
       });
     },
   );
+
+  it('an unknown e-mail still checks a password, so it takes as long as a wrong one', async () => {
+    const { service, verify } = setup(
+      new SimulatedInbox(VERIFY_EMAIL_SUBJECT),
+      {
+        account: null,
+      },
+    );
+
+    await service.getMessages(credentials).catch(() => undefined);
+
+    expect(verify).toHaveBeenCalledWith({
+      hash: DUMMY_PASSWORD_HASH,
+      password: credentials.password,
+    });
+  });
 
   it('a blocked user gets 403 USER_BLOCKED', async () => {
     const inbox = new SimulatedInbox(VERIFY_EMAIL_SUBJECT);

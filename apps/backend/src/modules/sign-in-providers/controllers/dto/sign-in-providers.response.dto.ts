@@ -8,4 +8,10 @@ export class SignInProvidersResponseDto implements SignInProviders {
       'Sign-in with Google is set up (GOOGLE_CLIENT_ID and GOOGLE_CLIENT_SECRET)',
   })
   google!: boolean;
+
+  @ApiProperty({
+    description:
+      'E-mails are simulated (#58): „Ověř si e-mail“ offers POST /simulated-inbox',
+  })
+  simulatedInbox!: boolean;
 }

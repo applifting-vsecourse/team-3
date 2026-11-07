@@ -41,23 +41,24 @@ export class SimulatedInboxController {
     summary:
       'Simulated inbox (#58): the verification e-mails the app would have sent to this account',
     description:
-      'Only without an e-mail service (console mailer), kept in memory: the last 3 per address. Password-reset e-mails are never kept. No session needed (#236: an unverified e-mail cannot sign in); the e-mail and password of the account are, as for signing in. 20 requests per address in 10 minutes.',
+      'Only without an e-mail service (console mailer), kept in memory: the last 3 per address. Password-reset e-mails are never kept. No session needed (#236: an unverified e-mail cannot sign in); the e-mail and password of the account are, as for signing in. Only an unverified account gets an answer. 20 requests per address and 100 per IP in 10 minutes.',
   })
   @ApiOkResponse({ type: SimulatedInboxResponseDto })
   @ApiResponse({ status: 400, description: 'Invalid or unknown field' })
   @ApiResponse({
     status: 401,
     description:
-      'INVALID_EMAIL_OR_PASSWORD: no such account, or wrong password',
+      'INVALID_EMAIL_OR_PASSWORD: no such account, wrong password, or the e-mail is verified already (the same answer, so it does not tell which addresses have an account)',
   })
   @ApiResponse({ status: 403, description: 'USER_BLOCKED' })
   @ApiResponse({
     status: 404,
-    description: 'SIMULATED_INBOX_OFF: e-mails really go out (Resend or SMTP)',
+    description:
+      'SIMULATED_INBOX_OFF: e-mails really go out (Resend or SMTP); answered before anything is counted or checked',
   })
   @ApiResponse({
     status: 429,
-    description: 'Too many requests for this address',
+    description: 'Too many requests for this address or from this IP',
   })
   async open(
     @Body() body: SimulatedInboxRequestDto,
