@@ -79,7 +79,11 @@ describe("AttendingEvents", () => {
       await screen.findByRole("region", { name: "Potvrzené (1)" }),
     ).getAllByRole("listitem")
     expect(within(florbal!).getByText("Jdu")).toBeInTheDocument()
-    expect(within(florbal!).getByText("chybí 1 · 3 z 12 · min. 4 · Praha 8")).toBeInTheDocument()
+    // the grid card's numbers (desktop) and the row card's line (phone), Figma C-01d / C-01
+    expect(within(florbal!).getByText("chybí 1 · 3 z 12 · min. 4")).toBeInTheDocument()
+    expect(
+      within(florbal!).getByText("chybí 1 · 17:30 · Kavárna Pražírna · Praha 8"),
+    ).toBeInTheDocument()
   })
 
   it("leaves out a section with nothing in it", async () => {

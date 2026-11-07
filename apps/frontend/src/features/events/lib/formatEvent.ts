@@ -1,5 +1,4 @@
 import type { CapacityStatus } from "@/components/StatusBadge/StatusBadge"
-import { occupancyBesideBadge, occupancyCount } from "@/lib/occupancy"
 
 import type { PublicEvent } from "@/features/events/api/eventSchemas"
 
@@ -29,6 +28,24 @@ const timeFormat = new Intl.DateTimeFormat("cs-CZ", {
   hour: "numeric",
   minute: "2-digit",
 })
+
+/** The date tile on a card (Figma Karta akce › Datum): „Pá“, „23“, „18:30“. */
+export function eventDateParts(date: Date): { weekday: string; day: string; time: string } {
+  const parts = startFormat.formatToParts(date)
+  const get = (type: Intl.DateTimeFormatPartTypes) =>
+    parts.find((part) => part.type === type)?.value ?? ""
+  const weekday = get("weekday")
+  return {
+    weekday: `${weekday.charAt(0).toUpperCase()}${weekday.slice(1)}`,
+    day: get("day"),
+    time: timeFormat.format(date),
+  }
+}
+
+/** A past event's day on its card (Karta akce/Proběhlá řádek): „Po 19. 10.“ */
+export function formatEventDay(date: Date): string {
+  return formatEventStart(date).split(" · ")[0] ?? ""
+}
 
 const dayFormat = new Intl.DateTimeFormat("cs-CZ", {
   timeZone: PRAGUE_TZ,
@@ -101,14 +118,6 @@ export function capacityStatus(event: PublicEvent): CapacityStatus {
   if (event.missingToMin > 0) return { kind: "missing", missing: event.missingToMin }
   return { kind: "free", freeSpots: event.freeSpots }
 }
-
-/**
- * The line next to the capacity badge on a card, with the district: „5 z 12 ·
- * min. 6 · Praha 8“ — the badge beside it already says „Chybí 1“ (#189). A
- * cancelled event only has the count.
- */
-export const eventFacts = (event: PublicEvent & { status?: "published" | "cancelled" }): string =>
-  `${event.status === "cancelled" ? occupancyCount(event) : occupancyBesideBadge(event)} · ${event.locality.name}`
 
 /**
  * Button of a filter panel: "Zobrazit 1 akci", "Zobrazit 3 akce", "Zobrazit 24 akcí";
