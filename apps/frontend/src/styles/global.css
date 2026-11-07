@@ -280,6 +280,15 @@
   line-height: 1.2;
 }
 
+/* Figma Heading/Card, Geist: a heading inside a content column or panel („O akci“, „Kam jdu“),
+   a bottom sheet's header, a group card's title */
+@utility type-card-heading {
+  font-weight: 600;
+  font-size: 1.0625rem;
+  line-height: 1.375rem;
+  letter-spacing: -0.01em;
+}
+
 /* the day number in the date tile: L detail, M grid card, S row card */
 @utility type-date-l {
   font-family: var(--font-heading);
