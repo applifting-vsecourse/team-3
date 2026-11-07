@@ -10,6 +10,9 @@ export type Membership = { role: MemberRole; status: MembershipStatus };
 export const GROUP_NAME_MAX_LENGTH = 80;
 export const GROUP_DESCRIPTION_MAX_LENGTH = 2000;
 
+/** Why the upcoming events of a deactivated group are cancelled (B-051, B-055). */
+export const GROUP_INACTIVE_CANCEL_REASON = 'Skupina už není aktivní';
+
 /** Filters of the group list (B-052, sprint 2: activity + locality, PO 19. 10.). */
 export type GroupFilters = {
   /** A city includes all its districts ("Praha" = Praha 1–22), a district only itself. */
