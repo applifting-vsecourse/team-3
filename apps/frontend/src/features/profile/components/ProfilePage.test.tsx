@@ -146,7 +146,7 @@ describe("/profil overview (#178, Figma B-05)", () => {
       "href",
       "/akce/e1",
     )
-    expect(within(trip!).getByText("Čeká na schválení")).toBeInTheDocument()
+    expect(within(trip!).getByText("Čeká")).toBeInTheDocument()
     expect(within(volleyball!).getByText("Jdu")).toBeInTheDocument()
     expect(within(going).getByRole("link", { name: "Všechny v Moje akce" })).toHaveAttribute(
       "href",
