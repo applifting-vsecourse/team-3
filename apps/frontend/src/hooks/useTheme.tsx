@@ -18,14 +18,14 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
 /**
  * index.html's theme-color metas follow the system setting via media queries, which is
  * right on first paint but not after a manual switch. This keeps the browser chrome on
- * --background: it watches <html>'s class (next-themes sets .dark there) and copies the
+ * --hero (the header sits on the band): it watches <html>'s class (next-themes sets .dark there) and copies the
  * token into both metas, so no colour is hardcoded here.
  */
 function ThemeColorSync() {
   useEffect(() => {
     const root = document.documentElement
     const sync = () => {
-      const color = getComputedStyle(root).getPropertyValue("--background").trim()
+      const color = getComputedStyle(root).getPropertyValue("--hero").trim()
       if (!color) return
       for (const meta of document.querySelectorAll('meta[name="theme-color"]')) {
         meta.setAttribute("content", color)
