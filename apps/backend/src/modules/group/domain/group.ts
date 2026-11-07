@@ -35,6 +35,12 @@ export type GroupSummary = {
   memberCount: number;
 };
 
+/**
+ * A group that meets (#182): with the start of its next event, only to order
+ * the landing page. It never goes out, the event may be members-only (B-026).
+ */
+export type RecruitingGroup = GroupSummary & { nextEventAt: Date };
+
 /** A group on its own page. */
 export type GroupDetail = GroupSummary & {
   description: string | null;

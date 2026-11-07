@@ -109,4 +109,56 @@ describe('GroupRepository: the request message stays with the admins (#175)', ()
       ]),
     ).not.toContain('message');
   });
+
+  describe('findRecruitingGroups (#182)', () => {
+    const now = new Date('2026-11-07T10:00:00.000Z');
+    const row = (id: string, events: { startsAt: Date }[]): object => ({
+      id,
+      name: `Skupina ${id}`,
+      type: 'closed',
+      activity: {
+        id: 'a1',
+        slug: 'volejbal',
+        name: 'Volejbal',
+        category: { id: 'c1', slug: 'sport', name: 'Sport', icon: 'ball' },
+      },
+      locality: { id: 'l1', slug: 'praha-3', name: 'Praha 3' },
+      _count: { members: 4 },
+      events,
+    });
+
+    it('asks for the next upcoming event and returns its start with the summary', async () => {
+      const prisma = mockDeep<PrismaService>();
+      const next = new Date('2026-11-08T16:00:00.000Z');
+      prisma.group.findMany.mockResolvedValue([
+        row('g1', [{ startsAt: next }]),
+        row('g2', []),
+      ] as never);
+
+      const groups = await new GroupRepository(prisma).findRecruitingGroups({
+        localityId: 'l-praha',
+        viewerId: 'u1',
+        now,
+        limit: 50,
+      });
+
+      expect(groups).toEqual([
+        expect.objectContaining({
+          id: 'g1',
+          memberCount: 4,
+          nextEventAt: next,
+        }),
+      ]);
+      const args = prisma.group.findMany.mock.calls[0][0];
+      expect(args?.include?.events).toEqual({
+        where: { status: 'published', startsAt: { gt: now } },
+        select: { startsAt: true },
+        orderBy: { startsAt: 'asc' },
+        take: 1,
+      });
+      expect(args?.take).toBe(50);
+      // no member names nor anything else about people
+      expect(JSON.stringify(args?.include)).not.toMatch(/user/);
+    });
+  });
 });
