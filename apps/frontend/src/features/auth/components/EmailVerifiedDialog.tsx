@@ -1,4 +1,4 @@
-import { useState } from "react"
+import { useState, type MouseEvent } from "react"
 import {
   Link,
   useLocation,
@@ -68,10 +68,17 @@ export function EmailVerifiedDialog() {
       state: (prev) => ({ ...prev, emailVerification: undefined }),
     })
 
-  // Clear the page we leave synchronously before the link pushes /login.
-  // It then remains a clean Back target after sign-in replaces the login page.
-  const beforeSignIn = () => {
+  // Clear the page we leave before the link pushes /login, so it remains a
+  // clean Back target after sign-in replaces the login page. Browser history
+  // batches writes into one per tick (the last one wins), so the replace has to
+  // be flushed before the push, or it never reaches the entry we leave.
+  // A link opened in a new tab leaves this page, and its dialog, as they are.
+  const beforeSignIn = (event: MouseEvent<HTMLAnchorElement>) => {
+    if (event.button !== 0 || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) {
+      return
+    }
     router.history.replace(location.href, { ...location.state, emailVerification: undefined })
+    router.history.flush()
   }
 
   return (
@@ -103,7 +110,7 @@ type VerificationOutcomeProps = {
   location: ParsedLocation
   /** A new link is on its way: nothing left to do here. */
   onDone: () => void
-  onBeforeSignIn: () => void
+  onBeforeSignIn: (event: MouseEvent<HTMLAnchorElement>) => void
 }
 
 function VerificationOutcome({
@@ -184,7 +191,7 @@ function SignInAction({
   onBeforeSignIn,
 }: {
   location: ParsedLocation
-  onBeforeSignIn: () => void
+  onBeforeSignIn: (event: MouseEvent<HTMLAnchorElement>) => void
 }) {
   if (location.pathname === ROUTES.login) {
     // The sign-in form is already under the dialog; preserve its existing from.

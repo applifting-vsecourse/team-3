@@ -1,4 +1,5 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query"
+import { createBrowserHistory } from "@tanstack/react-router"
 import { act, screen, waitFor, within } from "@testing-library/react"
 import userEvent from "@testing-library/user-event"
 import { describe, expect, it, vi } from "vitest"
@@ -201,6 +202,58 @@ describe("verification sign-in history (#197)", () => {
       expect(screen.queryByRole("dialog")).not.toBeInTheDocument()
     },
   )
+
+  it("sign-in opened in a new tab leaves this page and its dialog as they are", async () => {
+    const { router } = await renderDialog({ url: "/akce/e1", user: null })
+    const user = userEvent.setup()
+    await user.keyboard("{Control>}")
+    await user.click(within(screen.getByRole("dialog")).getByRole("link", { name: "Přihlásit se" }))
+    await user.keyboard("{/Control}")
+    expect(router.state.location.pathname).toBe("/akce/e1")
+    expect(router.history.location.state.emailVerification).toEqual({})
+    expect(screen.getByRole("dialog")).toBeInTheDocument()
+  })
+
+  it("in a real browser history, the cleared entry is written before /login is pushed", async () => {
+    // Browser history batches writes per tick; memory history does not, so
+    // only this test sees a replace swallowed by the following push.
+    window.history.replaceState(null, "", "/akce/e1")
+    const replaceState = vi.spyOn(window.history, "replaceState")
+    const pushState = vi.spyOn(window.history, "pushState")
+    const history = createBrowserHistory()
+    try {
+      const queryClient = new QueryClient()
+      queryClient.setQueryData(authKeys.session(), null)
+      const { router } = await renderWithRouter(
+        <QueryClientProvider client={queryClient}>
+          <EmailVerifiedDialog />
+        </QueryClientProvider>,
+        { url: "/akce/e1", state: { emailVerification: {} }, history },
+      )
+      await userEvent.click(
+        within(screen.getByRole("dialog")).getByRole("link", { name: "Přihlásit se" }),
+      )
+      await waitFor(() => expect(router.state.location.pathname).toBe("/login"))
+
+      const pushIndex = pushState.mock.calls.findIndex(([, , url]) =>
+        String(url).startsWith("/login"),
+      )
+      expect(pushIndex).toBeGreaterThanOrEqual(0)
+      const pushOrder = pushState.mock.invocationCallOrder[pushIndex]!
+      const cleared = replaceState.mock.calls.findIndex(
+        ([state, , url], i) =>
+          url === "/akce/e1" &&
+          (state as Record<string, unknown> | null)?.emailVerification === undefined &&
+          replaceState.mock.invocationCallOrder[i]! < pushOrder,
+      )
+      expect(cleared).toBeGreaterThanOrEqual(0)
+    } finally {
+      history.destroy()
+      replaceState.mockRestore()
+      pushState.mockRestore()
+      window.history.replaceState(null, "", "/")
+    }
+  })
 
   it("successful verification over /login closes onto the existing sign-in destination", async () => {
     const { router } = await renderDialog({ url: "/login?from=%2Fmoje-akce", user: null })
