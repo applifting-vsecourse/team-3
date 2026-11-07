@@ -48,8 +48,8 @@ export const EventNotificationEmail = ({
       </Text>
     ))}
     {quote ? (
-      <Section className="bg-[#f2f5ef] rounded-lg px-4 py-3 mt-6">
-        <Text className="text-[#5b6860] text-xs m-0">{quote.label}</Text>
+      <Section className="bg-[#f4f1e8] rounded-lg px-4 py-3 mt-6">
+        <Text className="text-[#505e56] text-xs m-0">{quote.label}</Text>
         <Text
           className="text-[#14201a] text-base leading-6 mt-1 mb-0"
           style={{ whiteSpace: 'pre-wrap' }}
@@ -61,12 +61,12 @@ export const EventNotificationEmail = ({
     <Section className="text-center my-8">
       <Button
         href={action.url}
-        className="bg-[#b6f24a] text-[#14201a] font-semibold rounded-lg px-6 py-3"
+        className="bg-[#b9f53c] text-[#14201a] border border-solid border-[#265212] font-semibold rounded-lg px-6 py-3"
       >
         {action.label}
       </Button>
     </Section>
-    <Text className="text-[#5b6860] text-sm leading-5">
+    <Text className="text-[#505e56] text-sm leading-5">
       Kdyby tlačítko nefungovalo, zkopíruj si do prohlížeče tento odkaz.
     </Text>
     <Text className="text-[#14201a] underline text-sm break-all">

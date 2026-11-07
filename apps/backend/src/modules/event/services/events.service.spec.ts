@@ -1367,9 +1367,24 @@ describe('EventsService notifications (#177)', () => {
   });
 
   describe('leaving', () => {
+    // the repository decides under its row lock with the status it reads there
+    const leavingFrom = (
+      repository: ReturnType<typeof setup>['repository'],
+      existingStatus: 'approved' | 'pending',
+    ): void => {
+      repository.leave.mockImplementation((_eventId, _userId, decide) =>
+        Promise.resolve(
+          decide({
+            startsAt: new Date(now.getTime() + 86_400_000),
+            existingStatus,
+          }),
+        ),
+      );
+    };
+
     it('a participant leaving tells the organizer', async () => {
       const { repository, notifications, service } = setup();
-      repository.findParticipationStatus.mockResolvedValue('approved');
+      leavingFrom(repository, 'approved');
 
       await service.leave('e1', 'u9', now);
 
@@ -1382,11 +1397,24 @@ describe('EventsService notifications (#177)', () => {
 
     it('withdrawing a request tells nobody: it just leaves the list', async () => {
       const { repository, notifications, service } = setup();
-      repository.findParticipationStatus.mockResolvedValue('pending');
+      leavingFrom(repository, 'pending');
 
       await service.leave('e1', 'u9', now);
 
       expect(notifications.notify).not.toHaveBeenCalled();
+    });
+
+    it('a request approved just before leaving still tells the organizer', async () => {
+      const { repository, notifications, service } = setup();
+      // the detail read before the lock still says pending
+      repository.findParticipationStatus.mockResolvedValue('pending');
+      leavingFrom(repository, 'approved');
+
+      await service.leave('e1', 'u9', now);
+
+      expect(notifications.notify).toHaveBeenCalledWith(
+        expect.objectContaining({ type: 'participant-left' }),
+      );
     });
 
     it('leaving when not in says nothing', async () => {

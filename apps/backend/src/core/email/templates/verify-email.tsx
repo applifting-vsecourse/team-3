@@ -22,12 +22,12 @@ export const VerifyEmail = ({ url }: VerifyEmailProps): React.JSX.Element => (
     <Section className="text-center my-8">
       <Button
         href={url}
-        className="bg-[#b6f24a] text-[#14201a] font-semibold rounded-lg px-6 py-3"
+        className="bg-[#b9f53c] text-[#14201a] border border-solid border-[#265212] font-semibold rounded-lg px-6 py-3"
       >
         Ověřit e-mail
       </Button>
     </Section>
-    <Text className="text-[#5b6860] text-sm leading-5">
+    <Text className="text-[#505e56] text-sm leading-5">
       Kdyby tlačítko nefungovalo, zkopíruj si do prohlížeče tento odkaz. Platí
       24 hodin.
     </Text>

@@ -21,8 +21,10 @@ export interface EmailLayoutProps {
 /**
  * The frame every HobbyHub e-mail shares (B-040): the brand on top, the
  * content, a footer. Czech and „ty“ like the app (DESIGN.md › Copy), in the
- * app's colours (--primary, --primary-foreground, --muted-foreground,
- * --border) written out, as e-mails can't read CSS variables.
+ * app's colours from global.css (--background, --card + --card-border,
+ * --primary with its --primary-edge outline, --primary-foreground,
+ * --muted-foreground, --border) written out, as e-mails can't read CSS
+ * variables.
  */
 export const EmailLayout = ({
   preview,
@@ -33,17 +35,17 @@ export const EmailLayout = ({
     <Head />
     <Preview>{preview}</Preview>
     <Tailwind>
-      <Body lang="cs" className="bg-[#f2f5ef] font-sans py-10">
-        <Container className="bg-white rounded-lg mx-auto p-8 max-w-xl">
+      <Body lang="cs" className="bg-[#f4f1e8] font-sans py-10">
+        <Container className="bg-white border border-solid border-[#847e70] rounded-lg mx-auto p-8 max-w-xl">
           <Text className="text-[#14201a] text-sm font-bold m-0 mb-6">
             HobbyHub
           </Text>
           {children}
-          <Hr className="border-[#e1e7dc] my-6" />
+          <Hr className="border-[#847e70] my-6" />
           {footnote ? (
-            <Text className="text-[#5b6860] text-xs">{footnote}</Text>
+            <Text className="text-[#505e56] text-xs">{footnote}</Text>
           ) : null}
-          <Text className="text-[#5b6860] text-xs m-0">
+          <Text className="text-[#505e56] text-xs m-0">
             Tenhle e-mail ti poslal HobbyHub.
           </Text>
         </Container>

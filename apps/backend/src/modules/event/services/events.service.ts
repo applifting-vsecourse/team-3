@@ -26,6 +26,7 @@ import {
   decideLeave,
   decideRequests,
   ParticipationRefusal,
+  type ParticipationStatus,
 } from '@/modules/event/domain/participation';
 import { EventRepository } from '@/modules/event/repositories/event.repository';
 import { summarizeChange } from '@/modules/notification/domain/event-change';
@@ -417,15 +418,21 @@ export class EventsService {
     userId: string,
     now: Date = new Date(),
   ): Promise<EventDetailView> {
-    const before = await this.getEventDetail(eventId, userId, now);
+    await this.getEventDetail(eventId, userId, now);
+    // the status read under the row lock: an approval just before leaving
+    // still tells the organizer
+    let leftStatus: ParticipationStatus | null = null;
     const decision = await this.eventRepository.leave(
       eventId,
       userId,
-      (state) => decideLeave(state, now),
+      (state) => {
+        leftStatus = state.existingStatus;
+        return decideLeave(state, now);
+      },
     );
     if (!decision) throw new NotFoundException('Akce neexistuje.');
     if (!decision.ok) throw refused(decision.refusal);
-    if (before.myParticipation === 'approved') {
+    if (leftStatus === 'approved') {
       this.notifications.notify({
         type: 'participant-left',
         eventId,
