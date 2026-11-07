@@ -4,4 +4,5 @@ export interface SMTPConfig {
   secure: boolean;
   user: string;
   pass: string;
+  from?: string;
 }

@@ -1,7 +1,10 @@
 import { Config } from '@/shared/config/config.service';
 import { DynamicModule, Module } from '@nestjs/common';
 import { Test } from '@nestjs/testing';
+import { validateSync } from 'class-validator';
+import * as nodemailer from 'nodemailer';
 import { ConsoleMailerAdapter } from './adapters/console-mailer/services/console-mailer-adapter';
+import { ResendAdapterFactory } from './adapters/resend/resend.adapter.factory';
 import { EmailService } from './interfaces/email-service.interface';
 import { MailModule } from './mail.module';
 import {
@@ -11,6 +14,7 @@ import {
 
 // The React Email templates come with the auth flows' subjects; not used here.
 jest.mock('@/core/email/render', () => ({ renderEmail: jest.fn() }));
+jest.mock('nodemailer', () => ({ createTransport: jest.fn() }));
 
 @Module({})
 class ConfigStubModule {}
@@ -32,6 +36,27 @@ const compile = async (
     email: moduleRef.get<EmailService>('EmailService'),
     inbox: moduleRef.get<SimulatedInbox | null>(SIMULATED_INBOX),
   };
+};
+
+// Env decorators read process.env when Config is imported, not at construction.
+// Re-import it with a complete fake environment so defaults are tested as deployed.
+const environmentConfig = async (
+  env: Record<string, string>,
+): Promise<Config> => {
+  jest.replaceProperty(process, 'env', {
+    NODE_ENV: 'test',
+    BETTER_AUTH_SECRET: 'test-only-auth-secret-for-mail-configuration',
+    SMTP_SECURE: 'true',
+    ...env,
+  });
+  let config!: Config;
+  await jest.isolateModulesAsync(async () => {
+    const { Config: EnvironmentConfig } =
+      await import('@/shared/config/config.service');
+    config = new EnvironmentConfig();
+  });
+  expect(validateSync(config)).toEqual([]);
+  return config;
 };
 
 describe('MailModule', () => {
@@ -92,4 +117,63 @@ describe('MailModule', () => {
       expect(inbox).toBeNull();
     }
   });
+
+  it.each([undefined, '', '   ', 'HobbyHub <sender@example.com>'])(
+    'SMTP uses its username unless EMAIL_FROM is explicit (%s)',
+    async (from) => {
+      const sendMail = jest.fn().mockResolvedValue({});
+      jest.mocked(nodemailer.createTransport).mockReturnValue({
+        sendMail,
+      } as unknown as nodemailer.Transporter);
+      const config = await environmentConfig({
+        SMTP_HOST: 'smtp.example.com',
+        SMTP_USERNAME: 'smtp-user@example.com',
+        SMTP_PASSWORD: 'test-only-smtp-password',
+        ...(from === undefined ? {} : { EMAIL_FROM: from }),
+      });
+      const { email, inbox } = await compile(config);
+
+      await email.sendEmail('recipient@example.com', 'Subject', '<p>Body</p>');
+
+      expect(sendMail).toHaveBeenCalledWith({
+        from: from?.trim()
+          ? 'HobbyHub <sender@example.com>'
+          : 'smtp-user@example.com',
+        to: 'recipient@example.com',
+        subject: 'Subject',
+        html: '<p>Body</p>',
+      });
+      expect(inbox).toBeNull();
+    },
+  );
+
+  it.each([undefined, '', '   ', 'HobbyHub <sender@example.com>'])(
+    'Resend keeps its own default unless EMAIL_FROM is explicit (%s)',
+    async (from) => {
+      const sendEmail = jest.fn().mockResolvedValue(undefined);
+      const create = jest
+        .spyOn(ResendAdapterFactory, 'create')
+        .mockReturnValue({ sendEmail });
+      const config = await environmentConfig({
+        RESEND_API_KEY: 're_test',
+        ...(from === undefined ? {} : { EMAIL_FROM: from }),
+      });
+      const { email, inbox } = await compile(config);
+
+      await email.sendEmail('recipient@example.com', 'Subject', '<p>Body</p>');
+
+      expect(create).toHaveBeenCalledWith({
+        apiKey: 're_test',
+        from: from?.trim()
+          ? 'HobbyHub <sender@example.com>'
+          : 'HobbyHub <onboarding@resend.dev>',
+      });
+      expect(sendEmail).toHaveBeenCalledWith(
+        'recipient@example.com',
+        'Subject',
+        '<p>Body</p>',
+      );
+      expect(inbox).toBeNull();
+    },
+  );
 });

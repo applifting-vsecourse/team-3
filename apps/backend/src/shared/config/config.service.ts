@@ -6,6 +6,7 @@ import {
   IsNotEmpty,
   IsOptional,
   IsSemVer,
+  IsString,
   IsUrl,
 } from 'class-validator';
 
@@ -72,12 +73,11 @@ export class Config {
   @IsOptional()
   readonly resendApiKey?: string;
 
-  @Env('EMAIL_FROM', {
-    expose: true,
-    defaultValue: 'HobbyHub <onboarding@resend.dev>',
-  })
-  @IsNotEmpty()
-  readonly emailFrom!: string;
+  // Each transport supplies its own default when no sender is configured.
+  @Env('EMAIL_FROM', { expose: true })
+  @IsOptional()
+  @IsString()
+  readonly emailFrom?: string;
 
   @Env('SMTP_HOST', { expose: true })
   @IsOptional()
@@ -122,6 +122,13 @@ export class Config {
   @Env('GOOGLE_CLIENT_SECRET')
   @IsOptional()
   readonly googleClientSecret?: string;
+
+  // Opt in only after addresses previously verified by the simulated inbox
+  // have been verified through real mail. Enabling SMTP alone is not proof.
+  @Env('GOOGLE_ACCOUNT_LINKING', { expose: true })
+  @IsOptional()
+  @IsIn(['', 'true', 'false'])
+  readonly googleAccountLinking?: string;
 
   // Refusing passwords from data breaches (#153, Have I Been Pwned): "true" or
   // "false"; unset or empty = on in production, off elsewhere
