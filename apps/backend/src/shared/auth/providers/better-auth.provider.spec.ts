@@ -22,15 +22,29 @@ jest.mock('better-auth/plugins', () => ({
 }));
 jest.mock('@/core/email/render', () => ({ renderEmail: jest.fn() }));
 
-const pluginIds = (config: Partial<Config>): string[] => {
+type Options = {
+  plugins: { id: string }[];
+  emailAndPassword: {
+    requireEmailVerification?: boolean;
+    autoSignIn?: boolean;
+    sendResetPassword?: unknown;
+  };
+  emailVerification: {
+    sendOnSignUp?: boolean;
+    sendOnSignIn?: boolean;
+    sendVerificationEmail?: unknown;
+  };
+};
+
+const optionsFor = (config: Partial<Config>): Options => {
   const create = betterAuthProvider as {
     useFactory: (
       prisma: PrismaService,
       config: Config,
       email: EmailService,
-    ) => { plugins: { id: string }[] };
+    ) => Options;
   };
-  const options = create.useFactory(
+  return create.useFactory(
     {} as PrismaService,
     {
       backendUrl: 'https://api.hobbyhub.example',
@@ -39,8 +53,38 @@ const pluginIds = (config: Partial<Config>): string[] => {
     } as Config,
     { sendEmail: jest.fn() },
   );
-  return options.plugins.map((plugin) => plugin.id);
 };
+
+const pluginIds = (config: Partial<Config>): string[] =>
+  optionsFor(config).plugins.map((plugin) => plugin.id);
+
+// BetterAuth itself is a black box (and ESM-only, out of Jest's reach): what
+// is checked here is that the options it documents for this are set. With
+// `requireEmailVerification` its /sign-in/email (and /sign-in/username) answer
+// an unverified e-mail with 403 EMAIL_NOT_VERIFIED and make no session, and
+// /sign-up/email returns `token: null` without setting a session cookie.
+describe('betterAuthProvider: signing in needs a verified e-mail (#236)', () => {
+  it('refuses e-mail + password sign-in until the e-mail is verified', () => {
+    const { emailAndPassword } = optionsFor({ nodeEnv: 'production' });
+
+    expect(emailAndPassword.requireEmailVerification).toBe(true);
+    // the e-mail flows merged into the core config didn't drop it, nor the reset e-mail
+    expect(emailAndPassword.sendResetPassword).toEqual(expect.any(Function));
+    // and nothing turns automatic sign-in after sign-up back on
+    expect(emailAndPassword.autoSignIn).not.toBe(true);
+  });
+
+  it('sends the link on sign-up, not on every refused sign-in', () => {
+    const { emailVerification } = optionsFor({ nodeEnv: 'production' });
+
+    expect(emailVerification.sendOnSignUp).toBe(true);
+    expect(emailVerification.sendVerificationEmail).toEqual(
+      expect.any(Function),
+    );
+    // a new link comes from „Poslat odkaz znovu“, which BetterAuth rate-limits
+    expect(emailVerification.sendOnSignIn).toBeUndefined();
+  });
+});
 
 describe('betterAuthProvider: the reference page (N-9)', () => {
   it('adds openAPI() outside production', () => {

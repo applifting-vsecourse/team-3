@@ -13,6 +13,14 @@ export const betterAuthCoreConfig: BetterAuthOptions = {
   emailAndPassword: {
     enabled: true,
     minPasswordLength: PASSWORD_MIN_LENGTH,
+    // #236 (S-5, PO 4. 11.): only a verified e-mail signs in. Sign-in with an
+    // unverified one is 403 EMAIL_NOT_VERIFIED without a session, and sign-up
+    // makes no session either: the link from the e-mail verifies, then the
+    // user signs in. So whoever is signed in is verified; VerifiedUserGuard
+    // stays for sessions from before. No new link on every refused sign-in
+    // (`sendOnSignIn`): the app offers „Poslat odkaz znovu“, which BetterAuth
+    // rate-limits.
+    requireEmailVerification: true,
   },
   // Our rules on top of BetterAuth's own checks, one file each. Every request
   // passes all of them and each acts only on the endpoints it is about, in

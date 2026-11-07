@@ -131,7 +131,9 @@ export class GroupsController {
 
   @Post(':id/join')
   @HttpCode(200)
-  @UseGuards(AuthenticatedUserGuard)
+  // #236 (S-5): joining or asking to join needs a verified e-mail, like
+  // founding a group; leaving and withdrawing a request don't
+  @UseGuards(VerifiedUserGuard)
   @ApiCookieAuth()
   @ApiOperation({
     summary:
@@ -144,7 +146,11 @@ export class GroupsController {
       'Invalid body: the message is not text or has more than 500 characters',
   })
   @ApiResponse({ status: 401, description: 'Not signed in' })
-  @ApiResponse({ status: 403, description: 'MEMBER_BLOCKED' })
+  @ApiResponse({
+    status: 403,
+    description:
+      'EMAIL_NOT_VERIFIED (a session from before sign-in needed a verified e-mail, #236), USER_BLOCKED, or MEMBER_BLOCKED (blocked in this group)',
+  })
   @ApiResponse({ status: 404, description: 'No such group' })
   @ApiResponse({ status: 409, description: 'GROUP_INACTIVE' })
   async join(
