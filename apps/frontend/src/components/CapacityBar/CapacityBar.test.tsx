@@ -1,16 +1,12 @@
 import { render, screen } from "@testing-library/react"
 import { describe, expect, it } from "vitest"
 
+import { anOccupancy } from "@/test/anOccupancy"
+
 import { CapacityBar } from "./CapacityBar"
 
 const renderBar = (approvedCount: number, min = 8, max = 10) => {
-  const { container } = render(
-    <CapacityBar
-      approvedCount={approvedCount}
-      minParticipants={min}
-      maxParticipants={max}
-    />,
-  )
+  const { container } = render(<CapacityBar {...anOccupancy(approvedCount, min, max)} />)
   return {
     fill: container.querySelector<HTMLElement>("[data-slot=capacity-fill]"),
     tick: container.querySelector<HTMLElement>("[data-slot=capacity-tick]"),
@@ -26,7 +22,7 @@ describe("CapacityBar", () => {
     // the minimum is said once, at its marker, not again next to the count
     expect(screen.getByText("6 z 10")).toBeInTheDocument()
     expect(fill).toHaveClass("capacity-hatch")
-    expect(fill).not.toHaveClass("bg-primary")
+    expect(fill).not.toHaveClass("bg-capacity-fill")
     expect(fill?.style.width).toBe("60%")
     expect(tick?.style.left).toBe("80%")
     expect(label).toHaveTextContent("min. 8")
@@ -34,21 +30,21 @@ describe("CapacityBar", () => {
     expect(label).toHaveClass("-translate-x-1/2")
   })
 
-  it("exactly at the minimum: the event happens, so the fill turns solid lime", () => {
+  it("exactly at the minimum: the event happens, so the fill turns solid (capacity-fill)", () => {
     const { fill, tick, label } = renderBar(8)
 
     expect(screen.getByText("Volná místa: 2")).not.toHaveClass("font-semibold")
-    expect(fill).toHaveClass("bg-primary")
+    expect(fill).toHaveClass("bg-capacity-fill")
     expect(fill).not.toHaveClass("capacity-hatch")
     expect(fill?.style.width).toBe("80%")
     expect(tick).not.toBeNull()
     expect(label).toHaveTextContent("min. 8")
   })
 
-  it("past the minimum: solid lime, and the marker keeps one style with a gap around it", () => {
+  it("past the minimum: solid, and the marker keeps one style with a gap around it", () => {
     const { fill, tick } = renderBar(9)
 
-    expect(fill).toHaveClass("bg-primary")
+    expect(fill).toHaveClass("bg-capacity-fill")
     expect(fill).not.toHaveClass("capacity-hatch")
     // 16px tall over the 8px track, drawn above the fill, the background-coloured ring as a gap
     expect(tick).toHaveClass("h-4", "-top-1", "w-0.5", "bg-foreground", "ring-2", "ring-background")
@@ -61,7 +57,7 @@ describe("CapacityBar", () => {
 
     expect(screen.getByText("Plno")).toHaveClass("text-muted-foreground")
     expect(screen.getByText("10 z 10")).toBeInTheDocument()
-    expect(fill).toHaveClass("bg-muted-foreground")
+    expect(fill).toHaveClass("bg-full")
     expect(fill).not.toHaveClass("capacity-hatch")
     expect(fill?.style.width).toBe("100%")
     expect(tick).toBeNull()
@@ -94,27 +90,28 @@ describe("CapacityBar", () => {
     expect(tick?.style.left).toBe("100%")
     // the label ends at the marker
     expect(label).toHaveClass("-translate-x-full")
-    // reaching the minimum fills it: straight to Plno, never solid lime
-    expect(renderBar(10, 10, 10).fill).toHaveClass("bg-muted-foreground")
+    // reaching the minimum fills it: straight to Plno, never the solid fill
+    expect(renderBar(10, 10, 10).fill).toHaveClass("bg-full")
+  })
+
+  it("one place left: the singular, „1 volné místo“, not „Volná místa: 1“ (#189)", () => {
+    renderBar(9)
+
+    expect(screen.getByText("1 volné místo")).toBeInTheDocument()
+    expect(screen.getByText("9 z 10")).toBeInTheDocument()
   })
 
   it("no minimum: nothing is missing, so the fill is solid from the start", () => {
     const { fill, label } = renderBar(0, 0, 10)
 
     expect(screen.getByText("Volná místa: 10")).toBeInTheDocument()
-    expect(fill).toHaveClass("bg-primary")
+    expect(fill).toHaveClass("bg-capacity-fill")
     expect(fill).not.toHaveClass("capacity-hatch")
     expect(label).toHaveClass("translate-x-0")
   })
 
   it("reads in order: the status, the count, then the minimum", () => {
-    const { container } = render(
-      <CapacityBar
-        approvedCount={6}
-        minParticipants={8}
-        maxParticipants={10}
-      />,
-    )
+    const { container } = render(<CapacityBar {...anOccupancy(6, 8, 10)} />)
 
     expect(container.textContent).toBe("Chybí ještě 26 z 10min. 8")
     expect(container.querySelector("[data-slot=capacity-track]")).toHaveAttribute(

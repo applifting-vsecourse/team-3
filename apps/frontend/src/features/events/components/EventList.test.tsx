@@ -16,7 +16,7 @@ describe("EventList", () => {
     expect(screen.getByText(/Pá 23\. 10\. · 17:30/)).toBeInTheDocument()
     expect(screen.getByText(/Kavárna Pražírna$/)).toBeInTheDocument()
     expect(screen.getByText("Volná místa")).toBeInTheDocument()
-    expect(screen.getByText("4/12 · Praha 8")).toBeInTheDocument()
+    expect(screen.getByText("4 z 12 · Praha 8")).toBeInTheDocument()
   })
 
   it("the card's title links to the event's detail", async () => {
@@ -39,7 +39,11 @@ describe("EventList", () => {
     )
 
     expect(screen.getByText("Chybí 1")).toBeInTheDocument()
+    // the badge says what is missing; the line next to it doesn't repeat it (#189)
+    expect(screen.getByText("3 z 12 · min. 4 · Praha 8")).toBeInTheDocument()
+    expect(screen.queryByText(/chybí 1 ·/)).not.toBeInTheDocument()
     expect(screen.getByText("Plno")).toBeInTheDocument()
+    expect(screen.getByText("12 z 12 · Praha 8")).toBeInTheDocument()
     expect(screen.getByText("2 akce")).toBeInTheDocument()
   })
 
