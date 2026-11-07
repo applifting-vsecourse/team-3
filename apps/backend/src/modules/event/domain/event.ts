@@ -89,6 +89,8 @@ export type EventDetailView = EventDetail & {
    * session from a signed-in user who just doesn't get the names (#174).
    */
   viewerSignedIn: boolean;
+  /** Whether the viewer manages the event (B-055, `canManageEvent`). */
+  canManage: boolean;
 };
 
 /**

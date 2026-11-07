@@ -52,6 +52,12 @@ export class EventDetailResponseDto extends PublicEventResponseDto {
   })
   viewerSignedIn!: boolean;
 
+  @ApiProperty({
+    description:
+      "Whether the signed-in user manages the event: its organizer or, for a group event, any of the group's admins (B-055)",
+  })
+  canManage!: boolean;
+
   static fromDomain(event: EventDetailView): EventDetailResponseDto {
     if (event.status === 'hidden' || event.status === 'deleted') {
       // the service answers 404 for these; this guards the response shape
@@ -66,6 +72,7 @@ export class EventDetailResponseDto extends PublicEventResponseDto {
       participants: event.participants,
       myParticipation: event.myParticipation,
       viewerSignedIn: event.viewerSignedIn,
+      canManage: event.canManage,
     };
   }
 }

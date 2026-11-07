@@ -445,11 +445,18 @@ export class EventRepository {
     });
   }
 
-  async isActiveGroupMember(groupId: string, userId: string): Promise<boolean> {
+  /**
+   * The user's role in the group while their membership is active; null for
+   * a pending, blocked or no membership.
+   */
+  async findActiveGroupRole(
+    groupId: string,
+    userId: string,
+  ): Promise<'admin' | 'member' | null> {
     const member = await this.prisma.groupMember.findUnique({
       where: { groupId_userId: { groupId, userId } },
-      select: { status: true },
+      select: { role: true, status: true },
     });
-    return member?.status === 'active';
+    return member?.status === 'active' ? member.role : null;
   }
 }

@@ -31,6 +31,7 @@ const aView = (overrides: Partial<EventDetailView> = {}): EventDetailView => ({
   participants: null,
   myParticipation: null,
   viewerSignedIn: false,
+  canManage: false,
   ...overrides,
 });
 
@@ -59,6 +60,13 @@ describe('EventDetailResponseDto.fromDomain', () => {
     expect(
       EventDetailResponseDto.fromDomain(aView({ viewerSignedIn: true }))
         .viewerSignedIn,
+    ).toBe(true);
+  });
+
+  it('says whether the viewer manages the event (B-055)', () => {
+    expect(EventDetailResponseDto.fromDomain(aView()).canManage).toBe(false);
+    expect(
+      EventDetailResponseDto.fromDomain(aView({ canManage: true })).canManage,
     ).toBe(true);
   });
 

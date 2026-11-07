@@ -5,17 +5,22 @@ import { EventRepository } from './event.repository';
 import { buildPublicEventsWhere } from './public-events-where';
 
 describe('EventRepository', () => {
-  describe('isActiveGroupMember', () => {
+  describe('findActiveGroupRole', () => {
     it.each([
-      ['active', true],
-      ['pending', false],
-      ['blocked', false],
-    ] as const)('a %s member → %s', async (status, expected) => {
+      ['admin', 'active', 'admin'],
+      ['member', 'active', 'member'],
+      ['admin', 'pending', null],
+      ['member', 'pending', null],
+      ['member', 'blocked', null],
+    ] as const)('an %s with status %s → %s', async (role, status, expected) => {
       const prisma = mockDeep<PrismaService>();
-      prisma.groupMember.findUnique.mockResolvedValue({ status } as never);
+      prisma.groupMember.findUnique.mockResolvedValue({
+        role,
+        status,
+      } as never);
 
       await expect(
-        new EventRepository(prisma).isActiveGroupMember('g1', 'u1'),
+        new EventRepository(prisma).findActiveGroupRole('g1', 'u1'),
       ).resolves.toBe(expected);
       expect(prisma.groupMember.findUnique).toHaveBeenCalledWith(
         expect.objectContaining({
@@ -24,32 +29,13 @@ describe('EventRepository', () => {
       );
     });
 
-    it.each([
-      ['admin', 'active', true],
-      ['admin', 'pending', false],
-      ['member', 'active', true],
-    ] as const)(
-      'an %s with status %s → %s; the role does not matter (#174)',
-      async (role, status, expected) => {
-        const prisma = mockDeep<PrismaService>();
-        prisma.groupMember.findUnique.mockResolvedValue({
-          role,
-          status,
-        } as never);
-
-        await expect(
-          new EventRepository(prisma).isActiveGroupMember('g1', 'u1'),
-        ).resolves.toBe(expected);
-      },
-    );
-
-    it('not a member at all → false', async () => {
+    it('not a member at all → null', async () => {
       const prisma = mockDeep<PrismaService>();
       prisma.groupMember.findUnique.mockResolvedValue(null);
 
       await expect(
-        new EventRepository(prisma).isActiveGroupMember('g1', 'u1'),
-      ).resolves.toBe(false);
+        new EventRepository(prisma).findActiveGroupRole('g1', 'u1'),
+      ).resolves.toBeNull();
     });
   });
 

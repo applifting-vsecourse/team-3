@@ -220,6 +220,10 @@ const aDetail = (overrides: Partial<EventDetail> = {}): EventDetail => ({
   ...overrides,
 });
 
+// someone else (u1) created it; u9 is in the group
+const groupEventDetail = (): EventDetail =>
+  aDetail({ group: { id: 'g1', name: 'Deskovkáři Karlín' } });
+
 const participants = [
   { id: 'u2', name: 'Jana' },
   { id: 'u3', name: 'Tomáš' },
@@ -233,7 +237,7 @@ describe('EventsService.getEventDetail', () => {
     repository.findEventDetail.mockResolvedValue(detail);
     repository.findApprovedParticipants.mockResolvedValue(participants);
     repository.findParticipationStatus.mockResolvedValue(null);
-    repository.isActiveGroupMember.mockResolvedValue(false);
+    repository.findActiveGroupRole.mockResolvedValue(null);
     return { repository, service: new EventsService(repository) };
   };
 
@@ -314,20 +318,22 @@ describe('EventsService.getEventDetail', () => {
       },
     );
 
-    it("an active member or admin of the event's group, without a place", async () => {
-      // admins are active members with another role; the check is the same
-      const { repository, service } = setup(groupEvent());
-      repository.isActiveGroupMember.mockResolvedValue(true);
+    it.each(['member', 'admin'] as const)(
+      "an active %s of the event's group, without a place",
+      async (role) => {
+        const { repository, service } = setup(groupEvent());
+        repository.findActiveGroupRole.mockResolvedValue(role);
 
-      const result = await service.getEventDetail('e1', 'u9', now);
+        const result = await service.getEventDetail('e1', 'u9', now);
 
-      expect(result.participants).toEqual(participants);
-      expect(repository.isActiveGroupMember).toHaveBeenCalledWith('g1', 'u9');
-    });
+        expect(result.participants).toEqual(participants);
+        expect(repository.findActiveGroupRole).toHaveBeenCalledWith('g1', 'u9');
+      },
+    );
 
     it("not a pending, blocked or former member of the event's group", async () => {
       const { repository, service } = setup(groupEvent());
-      repository.isActiveGroupMember.mockResolvedValue(false);
+      repository.findActiveGroupRole.mockResolvedValue(null);
 
       const result = await service.getEventDetail('e1', 'u9', now);
 
@@ -341,7 +347,7 @@ describe('EventsService.getEventDetail', () => {
       const result = await service.getEventDetail('e1', null, now);
 
       expect(result.participants).toBeNull();
-      expect(repository.isActiveGroupMember).not.toHaveBeenCalled();
+      expect(repository.findActiveGroupRole).not.toHaveBeenCalled();
       expect(repository.findParticipationStatus).not.toHaveBeenCalled();
     });
 
@@ -415,7 +421,7 @@ describe('EventsService.getEventDetail', () => {
       await expect(service.getEventDetail('e1', null, now)).rejects.toThrow(
         NotFoundException,
       );
-      expect(repository.isActiveGroupMember).not.toHaveBeenCalled();
+      expect(repository.findActiveGroupRole).not.toHaveBeenCalled();
     });
 
     it('is 404 for a signed-in user outside the group', async () => {
@@ -424,12 +430,12 @@ describe('EventsService.getEventDetail', () => {
       await expect(service.getEventDetail('e1', 'u9', now)).rejects.toThrow(
         NotFoundException,
       );
-      expect(repository.isActiveGroupMember).toHaveBeenCalledWith('g1', 'u9');
+      expect(repository.findActiveGroupRole).toHaveBeenCalledWith('g1', 'u9');
     });
 
     it('is shown to an active member of the group, with the names', async () => {
       const { repository, service } = setup(membersOnly());
-      repository.isActiveGroupMember.mockResolvedValue(true);
+      repository.findActiveGroupRole.mockResolvedValue('member');
 
       const result = await service.getEventDetail('e1', 'u9', now);
 
@@ -443,7 +449,7 @@ describe('EventsService.getEventDetail', () => {
       await expect(
         service.getEventDetail('e1', 'u1', now),
       ).resolves.toMatchObject({ id: 'e1' });
-      expect(repository.isActiveGroupMember).not.toHaveBeenCalled();
+      expect(repository.findActiveGroupRole).not.toHaveBeenCalled();
     });
 
     it('without a group is 404 for anyone but its organizer', async () => {
@@ -570,6 +576,20 @@ describe('EventsService.cancelEvent', () => {
     expect(repository.cancelEvent).not.toHaveBeenCalled();
   });
 
+  it("any admin of the event's group cancels it, not a regular member (B-055)", async () => {
+    const admin = setup(groupEventDetail());
+    admin.repository.findActiveGroupRole.mockResolvedValue('admin');
+    await admin.service.cancelEvent('e1', 'u9', 'Herna má zavřeno.', now);
+    expect(admin.repository.cancelEvent).toHaveBeenCalled();
+
+    const member = setup(groupEventDetail());
+    member.repository.findActiveGroupRole.mockResolvedValue('member');
+    await expect(
+      member.service.cancelEvent('e1', 'u9', 'Nechci', now),
+    ).rejects.toThrow(ForbiddenException);
+    expect(member.repository.cancelEvent).not.toHaveBeenCalled();
+  });
+
   it('an already cancelled or started event is 409', async () => {
     const cancelled = setup(aDetail({ status: 'cancelled' }));
     await expect(
@@ -601,7 +621,7 @@ describe('EventsService participation', () => {
     repository.findEventDetail.mockResolvedValue(detail);
     repository.findApprovedParticipants.mockResolvedValue(participants);
     repository.findParticipationStatus.mockResolvedValue(null);
-    repository.isActiveGroupMember.mockResolvedValue(false);
+    repository.findActiveGroupRole.mockResolvedValue(null);
     return { repository, service: new EventsService(repository) };
   };
 
@@ -744,6 +764,20 @@ describe('EventsService.updateEvent', () => {
     ).toEqual({ ok: true, data: changes });
   });
 
+  it("any admin of the event's group changes it, not a regular member (B-055)", async () => {
+    const admin = setup(groupEventDetail());
+    admin.repository.findActiveGroupRole.mockResolvedValue('admin');
+    await admin.service.updateEvent('e1', 'u9', { title: 'Nově' }, now);
+    expect(admin.repository.updateEvent).toHaveBeenCalled();
+
+    const member = setup(groupEventDetail());
+    member.repository.findActiveGroupRole.mockResolvedValue('member');
+    await expect(
+      member.service.updateEvent('e1', 'u9', { title: 'Nově' }, now),
+    ).rejects.toThrow(ForbiddenException);
+    expect(member.repository.updateEvent).not.toHaveBeenCalled();
+  });
+
   it('an edit that waited for the lock behind a cancel is 409, not written', async () => {
     const { repository, service } = setup();
     // the pre-read still saw it published; the cancel won the lock
@@ -848,6 +882,21 @@ describe('EventsService.getParticipants', () => {
       participants,
       requests,
     });
+  });
+
+  it("any admin of the event's group gets them too, a regular member 403 (B-055)", async () => {
+    const admin = setup(groupEventDetail());
+    admin.repository.findActiveGroupRole.mockResolvedValue('admin');
+    await expect(
+      admin.service.getParticipants('e1', 'u9', now),
+    ).resolves.toEqual({ participants, requests });
+
+    const member = setup(groupEventDetail());
+    member.repository.findActiveGroupRole.mockResolvedValue('member');
+    await expect(
+      member.service.getParticipants('e1', 'u9', now),
+    ).rejects.toThrow(ForbiddenException);
+    expect(member.repository.findPendingRequests).not.toHaveBeenCalled();
   });
 
   it('a cancelled event still shows who was coming', async () => {
