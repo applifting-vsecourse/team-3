@@ -258,7 +258,7 @@ export class EventsService {
     reason: string,
     now: Date = new Date(),
   ): Promise<EventDetailView> {
-    const event = await this.getEventDetail(id, userId, now); // 404 first
+    const event = await this.getEventDetail(id, userId, now); // 404 or MEMBERS_ONLY first
     this.assertCanManage(event, 'Akci může zrušit jen její organizátor.');
     this.assertCancellable(event, now);
     if (!(await this.eventRepository.cancelEvent(id, reason, now))) {
@@ -280,7 +280,7 @@ export class EventsService {
     changes: EventChanges,
     now: Date = new Date(),
   ): Promise<EventDetailView> {
-    const event = await this.getEventDetail(id, userId, now); // 404 first
+    const event = await this.getEventDetail(id, userId, now); // 404 or MEMBERS_ONLY first
     this.assertCanManage(event, 'Upravit akci může jen její organizátor.');
     // fail fast, before the field checks; checked again under the lock
     const refusal = lifecycleRefusal(event, now);
@@ -313,7 +313,7 @@ export class EventsService {
     userId: string,
     now: Date = new Date(),
   ): Promise<EventManagementView> {
-    const event = await this.getEventDetail(eventId, userId, now); // 404 first
+    const event = await this.getEventDetail(eventId, userId, now); // 404 or MEMBERS_ONLY first
     this.assertCanManage(
       event,
       'Účastníky akce spravuje jen její organizátor.',
@@ -336,7 +336,7 @@ export class EventsService {
     decision: 'approve' | 'reject',
     now: Date = new Date(),
   ): Promise<EventManagementView> {
-    const event = await this.getEventDetail(eventId, userId, now); // 404 first
+    const event = await this.getEventDetail(eventId, userId, now); // 404 or MEMBERS_ONLY first
     this.assertCanManage(
       event,
       'Žádosti o účast vyřizuje jen organizátor akce.',
@@ -424,7 +424,8 @@ export class EventsService {
     message: string | null = null,
     now: Date = new Date(),
   ): Promise<EventDetailView> {
-    await this.getEventDetail(eventId, userId, now); // 404 if the user can't see it
+    // 404, or 403 MEMBERS_ONLY for a members-only event outside the group
+    await this.getEventDetail(eventId, userId, now);
     const decision = await this.eventRepository.join(
       eventId,
       userId,
