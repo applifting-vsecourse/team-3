@@ -79,7 +79,7 @@ Locally the superadmin is `admin@example.com` / `adminpassword26` (from `apps/ba
 
 Only a verified e-mail signs in (#236). Eva therefore can't sign in: e-mail and password show „Ověř si e-mail“ with „Poslat odkaz znovu“ instead, the screen a new user sees after signing up (sign-up doesn't sign in). Once she opens the link she is verified and can sign in; a new version of the test data sets her back to unverified and ends her sessions. Google sign-in isn't affected: Google has verified the address.
 
-Verification/reset emails are printed to the backend terminal (console mailer) unless you configure Resend or SMTP in `apps/backend/.env`. With the simulated inbox on (staging), „Ověř si e-mail“ also offers „Otevřít e-mail (simulace)“: `POST /api/simulated-inbox` with the account's e-mail and password, as there is no session yet.
+Verification/reset emails are printed to the backend terminal (console mailer) unless you configure Resend or SMTP in `apps/backend/.env`. With the simulated inbox on (staging), „Ověř si e-mail“ also offers „Otevřít e-mail (simulace)“: on a click it asks `POST /api/simulated-inbox` with the e-mail and password just typed, as there is no session yet. It answers only for an unverified account with the right password (anything else looks like an empty inbox), at most 20 times per address and 100 times per IP in 10 minutes, and is 404 wherever e-mails really go out.
 
 ## Everyday commands
 
