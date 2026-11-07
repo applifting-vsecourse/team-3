@@ -24,7 +24,7 @@ describe("EventDetailView", () => {
     expect(screen.getByText("Kavárna Pražírna, Dělnická 12, Praha 8")).toBeInTheDocument()
     expect(screen.getByLabelText("Místo akce na mapě")).toBeInTheDocument()
     expect(screen.getByText("Bez schválení")).toBeInTheDocument()
-    expect(screen.getByText("Petra")).toBeInTheDocument()
+    expect(screen.getByRole("link", { name: "Petra" })).toHaveAttribute("href", "/uzivatele/u1")
     // „Pořádá“ names the role; no „Organizátor“ under a woman's name, no
     // „ověřený e-mail“ every organizer has
     expect(screen.queryByText(/Organizátor|ověřený e-mail/)).not.toBeInTheDocument()
@@ -54,7 +54,10 @@ describe("EventDetailView", () => {
     expect(screen.getByRole("heading", { name: "Kdo jde (4)" })).toBeInTheDocument()
     const list = screen.getByRole("list")
     expect(within(list).getAllByRole("listitem")).toHaveLength(4)
-    expect(within(list).getByText("Jana Svobodová")).toBeInTheDocument()
+    expect(within(list).getByRole("link", { name: "Jana Svobodová" })).toHaveAttribute(
+      "href",
+      "/uzivatele/u2",
+    )
   })
 
   it.each([
@@ -92,6 +95,7 @@ describe("EventDetailView", () => {
     )
 
     expect(screen.getByText("Tandem Praha")).toBeInTheDocument()
+    expect(screen.queryByRole("link", { name: "Tandem Praha" })).not.toBeInTheDocument()
     expect(screen.getByText("Skupina")).toBeInTheDocument()
     expect(screen.queryByText("Petra")).not.toBeInTheDocument()
   })

@@ -8,6 +8,7 @@ export const ROUTES = {
   myEvents: "/moje-akce",
   groups: "/skupiny",
   profile: "/profil",
+  userProfile: "/uzivatele/$userId",
   login: "/login",
   signup: "/signup",
   forgotPassword: "/zapomenute-heslo",
