@@ -30,16 +30,3 @@ export function HasPlace({ line, isFillAnimated = false }: HasPlaceProps) {
     </div>
   )
 }
-
-/**
- * „Díky tobě se akce koná – sešlo se 6 lidí, minimum je 6.“ — only when this sign-up reached
- * the minimum (Figma A-05c).
- */
-export function happeningThanks(approvedCount: number, minParticipants: number): string {
-  if (approvedCount === 1) return "Díky tobě se akce koná."
-  const gathered =
-    approvedCount >= 2 && approvedCount <= 4
-      ? `sešli se ${approvedCount} lidé`
-      : `sešlo se ${approvedCount} lidí`
-  return `Díky tobě se akce koná – ${gathered}, minimum je ${minParticipants}.`
-}

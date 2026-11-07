@@ -15,9 +15,10 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog"
+import { happeningThanks, isMinimumReachedByLast } from "@/lib/occupancy"
 
 import type { EventDetail } from "@/features/events/api/eventSchemas"
-import { happeningThanks, HasPlace } from "@/features/events/components/HasPlace"
+import { HasPlace } from "@/features/events/components/HasPlace"
 import { formatRequestEventStart } from "@/features/events/lib/formatEvent"
 
 export type Viewer = { id: string; emailVerified: boolean }
@@ -32,9 +33,10 @@ type ParticipationActionProps = {
   /**
    * Resolve once the place or the request is saved, and reject when it
    * isn't: the page says why, a confirmation dialog stays open to try again.
-   * A request may carry a message for the organizer (#175).
+   * A request may carry a message for the organizer (#175). Resolves with the detail as the
+   * API answers, which says whether this place reached the minimum.
    */
-  onJoin: (message?: string | null) => Promise<unknown>
+  onJoin: (message?: string | null) => Promise<EventDetail>
   onLeave: () => Promise<unknown>
   /** Leads an unverified user to the banner that sends or opens the link. */
   onVerifyEmail?: () => void
@@ -194,7 +196,7 @@ function JoinControl({ event, isOrganizer, isPending, onJoin, onLeave }: JoinCon
 
   switch (event.myParticipation) {
     case "approved": {
-      // the API's numbers confirm it: the minimum is reached now
+      // gone again once someone leaves and the minimum is missed
       const isThanks = hasReachedMinimum && event.missingToMin === 0
       return (
         <>
@@ -207,7 +209,7 @@ function JoinControl({ event, isOrganizer, isPending, onJoin, onLeave }: JoinCon
             <HasPlace
               line={
                 isThanks
-                  ? happeningThanks(event.approvedCount, event.minParticipants)
+                  ? happeningThanks(event)
                   : // the organizer makes the changes, nobody needs to tell them
                     isOrganizer
                     ? undefined
@@ -280,13 +282,13 @@ function JoinControl({ event, isOrganizer, isPending, onJoin, onLeave }: JoinCon
       </>
     )
   }
-  // this place is the one that gets the event to its minimum
-  const willReachMinimum = event.missingToMin === 1
-  const join = () =>
-    change(onJoin)().then(() => {
-      setHasJustJoined(true)
-      setHasReachedMinimum(willReachMinimum)
-    })
+  // the API's answer tells whether this place reached the minimum; the cached numbers from
+  // before the click may be stale (someone else may have joined meanwhile)
+  const join = change(async () => {
+    const updated = await onJoin()
+    setHasJustJoined(true)
+    setHasReachedMinimum(updated.myParticipation === "approved" && isMinimumReachedByLast(updated))
+  })
   return (
     <Button
       ref={focusTarget}

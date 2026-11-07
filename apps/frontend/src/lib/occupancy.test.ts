@@ -4,6 +4,8 @@ import { anOccupancy } from "@/test/anOccupancy"
 
 import {
   freeSpotsLabel,
+  happeningThanks,
+  isMinimumReachedByLast,
   occupancyBesideBadge,
   occupancyCount,
   occupancyState,
@@ -105,5 +107,23 @@ describe("occupancySummary", () => {
   it("from the minimum the count with the minimum", () => {
     expect(occupancySummary(occupancy(6, 6, 12))).toBe("6 z 12 · min. 6")
     expect(occupancySummary(occupancy(12, 6, 12))).toBe("12 z 12 · min. 6")
+  })
+})
+
+describe("isMinimumReachedByLast", () => {
+  it("only the place that makes the approved count equal the minimum", () => {
+    expect(isMinimumReachedByLast({ approvedCount: 4, minParticipants: 4 })).toBe(true)
+    expect(isMinimumReachedByLast({ approvedCount: 5, minParticipants: 4 })).toBe(false)
+    expect(isMinimumReachedByLast({ approvedCount: 3, minParticipants: 4 })).toBe(false)
+  })
+})
+
+describe("happeningThanks", () => {
+  it.each([
+    [6, 6, "Díky tobě se akce koná – sešlo se 6 lidí, minimum je 6."],
+    [3, 3, "Díky tobě se akce koná – sešli se 3 lidé, minimum je 3."],
+    [1, 1, "Díky tobě se akce koná."],
+  ])("%i of minimum %i: „%s“", (approvedCount, minParticipants, text) => {
+    expect(happeningThanks({ approvedCount, minParticipants })).toBe(text)
   })
 })

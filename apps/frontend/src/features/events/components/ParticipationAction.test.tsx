@@ -19,7 +19,7 @@ type RenderOptions = { viewer?: Viewer | null; isPending?: boolean; now?: Date }
 const renderAction = async (event: Partial<EventDetail> = {}, options: RenderOptions = {}) => {
   // a missing viewer is Jakub; an explicit null is a visitor
   const { viewer = jakub, isPending = false, now = before } = options
-  const onJoin = vi.fn().mockResolvedValue(undefined)
+  const onJoin = vi.fn().mockResolvedValue(anEventDetail({ ...event, myParticipation: "approved" }))
   const onLeave = vi.fn().mockResolvedValue(undefined)
   const onVerifyEmail = vi.fn()
   await renderWithRouter(
@@ -67,7 +67,9 @@ function Page({
     setIsPending(true)
     try {
       await request()
-      setDetail((current) => ({ ...current, ...numbersAfter, myParticipation: answer }))
+      const updated = { ...detail, ...numbersAfter, myParticipation: answer }
+      setDetail(updated)
+      return updated
     } finally {
       setIsPending(false)
     }
@@ -419,6 +421,8 @@ describe("ParticipationAction", () => {
           event={{}}
           request={() => Promise.resolve()}
           answer="approved"
+          // the fixture is at its minimum (4); this place is the fifth
+          numbersAfter={{ approvedCount: 5 }}
         />,
       )
 
@@ -452,6 +456,40 @@ describe("ParticipationAction", () => {
         await screen.findByText("Díky tobě se akce koná – sešli se 4 lidé, minimum je 4."),
       ).toBeInTheDocument()
       expect(screen.queryByText(/Změny akce uvidíš/)).not.toBeInTheDocument()
+    })
+
+    // the page's numbers are from before the click; the API's answer decides
+    it("someone else reached the minimum meanwhile: no thanks, though the page said „chybí 1“", async () => {
+      await renderWithRouter(
+        <Page
+          event={{ approvedCount: 3, minParticipants: 4, missingToMin: 1, freeSpots: 9 }}
+          request={() => Promise.resolve()}
+          answer="approved"
+          numbersAfter={{ approvedCount: 5, missingToMin: 0, freeSpots: 7 }}
+        />,
+      )
+
+      await userEvent.click(screen.getByRole("button", { name: "Přijdu" }))
+
+      expect(await screen.findByText("Změny akce uvidíš tady a v Mých akcích.")).toBeInTheDocument()
+      expect(screen.queryByText(/Díky tobě/)).not.toBeInTheDocument()
+    })
+
+    it("someone else left meanwhile and this place reached the minimum: thanked", async () => {
+      await renderWithRouter(
+        <Page
+          event={{ approvedCount: 4, minParticipants: 6, missingToMin: 2, freeSpots: 8 }}
+          request={() => Promise.resolve()}
+          answer="approved"
+          numbersAfter={{ approvedCount: 6, missingToMin: 0, freeSpots: 6 }}
+        />,
+      )
+
+      await userEvent.click(screen.getByRole("button", { name: "Přijdu" }))
+
+      expect(
+        await screen.findByText("Díky tobě se akce koná – sešlo se 6 lidí, minimum je 6."),
+      ).toBeInTheDocument()
     })
 
     it("a place past the minimum is not thanked", async () => {

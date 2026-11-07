@@ -73,3 +73,26 @@ export function occupancySummary(occupancy: Occupancy): string {
     ? `chybí ${occupancy.missingToMin} · ${line}`
     : line
 }
+
+/**
+ * The detail as the API answers a sign-up: this very place reached the minimum when the
+ * approved count is now exactly the minimum (DESIGN.md › Máš místo, Figma A-05c).
+ */
+export const isMinimumReachedByLast = ({
+  approvedCount,
+  minParticipants,
+}: Pick<Occupancy, "approvedCount" | "minParticipants">): boolean =>
+  approvedCount === minParticipants
+
+/** „Díky tobě se akce koná – sešlo se 6 lidí, minimum je 6.“, for the place that reached it. */
+export function happeningThanks({
+  approvedCount,
+  minParticipants,
+}: Pick<Occupancy, "approvedCount" | "minParticipants">): string {
+  if (approvedCount === 1) return "Díky tobě se akce koná."
+  const gathered =
+    approvedCount >= 2 && approvedCount <= 4
+      ? `sešli se ${approvedCount} lidé`
+      : `sešlo se ${approvedCount} lidí`
+  return `Díky tobě se akce koná – ${gathered}, minimum je ${minParticipants}.`
+}
