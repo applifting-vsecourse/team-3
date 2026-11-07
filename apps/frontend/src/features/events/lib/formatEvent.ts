@@ -1,7 +1,7 @@
 import type { CapacityStatus } from "@/components/StatusBadge/StatusBadge"
 import { occupancyBesideBadge, occupancyCount } from "@/lib/occupancy"
 
-import type { PublicEvent } from "@/features/events/api/eventSchemas"
+import type { GroupEvent, PublicEvent } from "@/features/events/api/eventSchemas"
 
 // Events happen in Prague, so their time is Prague time wherever the browser is.
 const PRAGUE_TZ = "Europe/Prague"
@@ -109,6 +109,25 @@ export function capacityStatus(event: PublicEvent): CapacityStatus {
  */
 export const eventFacts = (event: PublicEvent & { status?: "published" | "cancelled" }): string =>
   `${event.status === "cancelled" ? occupancyCount(event) : occupancyBesideBadge(event)} · ${event.locality.name}`
+
+/** On the group's page (A-08e): a members-only event says so in its facts. */
+export const groupEventFacts = (event: GroupEvent): string =>
+  event.visibility === "members" ? `${eventFacts(event)} · jen pro členy` : eventFacts(event)
+
+/**
+ * A past event on the group's page (A-08e), who came: „sešlo se 6“,
+ * „sešli se 3“, „sešel se 1“; members-only says so as upcoming ones do.
+ */
+export function pastEventFacts(event: GroupEvent): string {
+  const count = event.approvedCount
+  const came =
+    count === 1
+      ? "sešel se 1"
+      : count >= 2 && count <= 4
+        ? `sešli se ${count}`
+        : `sešlo se ${count}`
+  return event.visibility === "members" ? `${came} · jen pro členy` : came
+}
 
 /**
  * Button of a filter panel: "Zobrazit 1 akci", "Zobrazit 3 akce", "Zobrazit 24 akcí";

@@ -5,6 +5,7 @@ import { api } from "@/lib/api-client"
 import {
   eventDetailSchema,
   eventParticipantsSchema,
+  groupEventsSchema,
   myEventsSchema,
   publicEventsSchema,
   type EventFilters,
@@ -19,6 +20,10 @@ export const eventKeys = {
   // under lists(), so joining, leaving, creating, editing and cancelling refresh it too
   mine: (tab: MyEventsTab, viewerId: string) =>
     [...eventKeys.lists(), "mine", tab, viewerId] as const,
+  // members-only events depend on the viewer's membership (#70): joining or
+  // leaving the group changes `membership`, and so the answer
+  group: (groupId: string, viewerId: string | null, membership: string | null) =>
+    [...eventKeys.lists(), "group", groupId, viewerId, membership] as const,
   details: () => [...eventKeys.all(), "detail"] as const,
   // The viewer is part of the key, and it must stay the user, not just
   // signed-in vs. visitor: whether the names come depends on the viewer's
@@ -102,8 +107,7 @@ export const eventDetailQueryOptions = (
     refetchInterval: ({ state }) => {
       // a missing or cancelled event has nothing left to wait for
       if (state.status === "error" || state.data?.status === "cancelled") return false
-      const isOrganizer = state.data !== undefined && state.data.organizer.id === viewerId
-      return (isLive && isOrganizer) || state.data?.myParticipation === "pending"
+      return (isLive && state.data?.canManage) || state.data?.myParticipation === "pending"
         ? LIVE_REFRESH_MS
         : false
     },
@@ -136,4 +140,26 @@ export const myEventsQueryOptions = (tab: MyEventsTab, viewerId: string) =>
     queryKey: eventKeys.mine(tab, viewerId),
     queryFn: async () =>
       myEventsSchema.parse(await api.get("me/events", { searchParams: { tab } }).json()),
+  })
+
+/**
+ * A group's upcoming and past events for its page (#70, Figma A-08e).
+ * Members-only events come only to its members, so the viewer and their
+ * membership's status are in the key; `viewerId` is undefined while the
+ * session loads.
+ */
+export const groupEventsQueryOptions = (
+  groupId: string,
+  viewerId: string | null | undefined,
+  membership: string | null = null,
+) =>
+  queryOptions({
+    queryKey: eventKeys.group(groupId, viewerId ?? null, membership),
+    queryFn:
+      viewerId === undefined
+        ? skipToken
+        : async () =>
+            groupEventsSchema.parse(
+              await api.get(`groups/${encodeURIComponent(groupId)}/events`).json(),
+            ),
   })

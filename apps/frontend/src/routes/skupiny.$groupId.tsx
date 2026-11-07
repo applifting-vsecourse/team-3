@@ -15,6 +15,7 @@ import { cn } from "@/lib/utils"
 import { AppHeader } from "@/features/auth/components/AppHeader"
 import { useSession } from "@/features/auth/hooks/useSession"
 import { redirectFrom } from "@/features/auth/lib/redirect"
+import { GroupEvents } from "@/features/events/components/GroupEvents"
 import { groupQueryOptions } from "@/features/groups/api/groupsQueryOptions"
 import { GroupProfile } from "@/features/groups/components/GroupProfile"
 
@@ -22,7 +23,7 @@ export const Route = createFileRoute("/skupiny/$groupId")({
   component: GroupPage,
 })
 
-/** Figma A-08, A-08d. Public: visitors see the page without an account. */
+/** Figma A-08, A-08d, A-08e. Public: visitors see the page without an account. */
 function GroupPage() {
   const { groupId } = Route.useParams()
   const session = useSession()
@@ -51,6 +52,13 @@ function GroupPage() {
             group={group}
             isSignedIn={Boolean(user)}
             signInFrom={redirectFrom(location)}
+            events={
+              <GroupEvents
+                groupId={groupId}
+                viewerId={viewerId}
+                membership={group.viewerMembership?.status ?? null}
+              />
+            }
           />
         ) : groupQuery.error ? (
           <GroupError

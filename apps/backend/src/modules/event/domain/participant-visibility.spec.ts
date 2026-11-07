@@ -1,14 +1,13 @@
-import {
-  canSeeParticipants,
-  ParticipantsViewer,
-} from './participant-visibility';
+import { EventViewer } from './event-viewer';
+import { canSeeParticipants } from './participant-visibility';
 
 const viewer = (
-  overrides: Partial<NonNullable<ParticipantsViewer>> = {},
-): ParticipantsViewer => ({
+  overrides: Partial<NonNullable<EventViewer>> = {},
+): EventViewer => ({
   isOrganizer: false,
   participation: null,
   isGroupMember: false,
+  isGroupAdmin: false,
   ...overrides,
 });
 

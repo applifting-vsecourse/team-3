@@ -43,15 +43,20 @@ function ManageEventPage() {
   const session = useSession()
   const viewerId = session.isPending ? undefined : (session.user?.id ?? null)
   // live: new requests, and the capacity when someone joins or leaves meanwhile (#53)
-  const { event, isPending, isNotFound, error, retry } = useEventDetail(eventId, viewerId, {
-    isLive: true,
-  })
-  const isOrganizer = event !== undefined && event.organizer.id === session.user?.id
+  const { event, isPending, isNotFound, membersOnlyGroupId, error, retry } = useEventDetail(
+    eventId,
+    viewerId,
+    {
+      isLive: true,
+    },
+  )
+  // the organizer or, for a group's event, any of its admins (B-055)
+  const isOrganizer = event?.canManage === true
   const participants = useEventParticipants(eventId, viewerId, isOrganizer)
   const cancelEvent = useCancelEvent(eventId, session.user?.id ?? "")
   const decide = useDecideRequest(eventId, session.user?.id ?? "")
   const isDesktop = useMediaQuery(DESKTOP_QUERY)
-  const canEdit = event !== undefined && editRefusal(event, session.user?.id) === null
+  const canEdit = event !== undefined && editRefusal(event) === null
   // who is coming: alone in the right column, or next to the requests (#53)
   const participantList = (isHeadingHidden: boolean) => (
     <ManagedParticipants
@@ -95,11 +100,15 @@ function ManageEventPage() {
               </Button>
             </AlertDescription>
           </Alert>
-        ) : isPending || !event ? (
+        ) : isPending ? (
           <Skeleton className="h-40 w-full" />
-        ) : !isOrganizer ? (
+        ) : !isOrganizer || !event || membersOnlyGroupId ? (
           <Alert>
-            <AlertTitle>Akci spravuje jen její organizátor.</AlertTitle>
+            <AlertTitle>
+              {membersOnlyGroupId || event?.group
+                ? "Akci spravuje jen její organizátor nebo správce skupiny."
+                : "Akci spravuje jen její organizátor."}
+            </AlertTitle>
           </Alert>
         ) : (
           // D-03d: the event's summary on the left, who is coming on the right

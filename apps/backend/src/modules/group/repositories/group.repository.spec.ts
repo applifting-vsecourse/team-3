@@ -3,6 +3,29 @@ import { mockDeep } from 'jest-mock-extended';
 import { GroupRepository } from './group.repository';
 
 describe('GroupRepository', () => {
+  describe('deactivateGroup (B-051, B-055)', () => {
+    it("cancels the group's upcoming events with the reason; past ones stay", async () => {
+      const prisma = mockDeep<PrismaService>();
+      const at = new Date('2026-11-07T10:00:00.000Z');
+
+      await new GroupRepository(prisma).deactivateGroup('g1', at);
+
+      expect(prisma.event.updateMany).toHaveBeenCalledWith({
+        where: { groupId: 'g1', status: 'published', startsAt: { gt: at } },
+        data: {
+          status: 'cancelled',
+          cancelReason: 'Skupina už není aktivní',
+          cancelledAt: at,
+        },
+      });
+      expect(prisma.group.update).toHaveBeenCalledWith({
+        where: { id: 'g1' },
+        data: { status: 'inactive', deactivatedAt: at },
+      });
+      expect(prisma.$transaction).toHaveBeenCalledTimes(1);
+    });
+  });
+
   describe('createMembership (#175)', () => {
     it('a request keeps its message', async () => {
       const prisma = mockDeep<PrismaService>();
