@@ -240,6 +240,12 @@ describe('seedContent (#181)', () => {
         homeLocalityId: `l-${first.homeLocalitySlug}`,
       },
     });
+    // #236: the unverified ones (Eva…) are signed out, the rest stay signed in
+    const unverified = seedAccounts.filter((a) => !a.emailVerified);
+    expect(unverified.map((a) => a.email)).toContain('eva.mala@example.com');
+    expect(prisma.session.deleteMany).toHaveBeenCalledWith({
+      where: { userId: { in: unverified.map((a) => `u-${a.email}`) } },
+    });
     expect(prisma.userInterest.deleteMany).toHaveBeenCalledWith({
       where: { userId: { in: accountIds } },
     });
