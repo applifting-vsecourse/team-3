@@ -22,9 +22,23 @@ describe('buildMyEventsWhere', () => {
     });
   });
 
-  it('organizing: events the user created, whether they joined them or not', () => {
+  it('organizing: events the user created, whether they joined them or not, and the events of groups they are an active admin of', () => {
     expect(buildMyEventsWhere('organizing', 'u1', now)).toEqual({
-      AND: [UPCOMING_NOT_HIDDEN, { organizerUserId: 'u1' }],
+      AND: [
+        UPCOMING_NOT_HIDDEN,
+        {
+          OR: [
+            { organizerUserId: 'u1' },
+            {
+              group: {
+                members: {
+                  some: { userId: 'u1', role: 'admin', status: 'active' },
+                },
+              },
+            },
+          ],
+        },
+      ],
     });
   });
 

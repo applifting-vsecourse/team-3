@@ -4,6 +4,7 @@ import {
   EventDetail,
   EventDetailView,
   EventManagementView,
+  GroupEvents,
   MyEvent,
   MyEventsTab,
   NewEvent,
@@ -78,6 +79,8 @@ export const PUBLIC_EVENTS_LIMIT = 200;
 // query must stay bounded however many events exist.
 export const SCAN_LIMIT = 2000;
 export const MY_EVENTS_LIMIT = 200;
+// Per section of a group's page; the endpoint is public, so it stays bounded.
+export const GROUP_EVENTS_LIMIT = 50;
 
 @Injectable()
 export class EventsService {
@@ -135,6 +138,33 @@ export class EventsService {
       now,
       limit: MY_EVENTS_LIMIT,
     });
+  }
+
+  /**
+   * A group's upcoming and past events for its page (B-055, Figma A-08e),
+   * for visitors too. Members-only events only for an active member or
+   * admin; `viewerId` is the session's user.
+   */
+  async getGroupEvents(
+    groupId: string,
+    viewerId: string | null,
+    now: Date = new Date(),
+  ): Promise<GroupEvents> {
+    const includeMembersOnly =
+      viewerId !== null &&
+      (await this.eventRepository.findActiveGroupRole(groupId, viewerId)) !==
+        null;
+    const query = {
+      groupId,
+      includeMembersOnly,
+      now,
+      limit: GROUP_EVENTS_LIMIT,
+    };
+    const [upcoming, past] = await Promise.all([
+      this.eventRepository.findGroupEvents({ ...query, when: 'upcoming' }),
+      this.eventRepository.findGroupEvents({ ...query, when: 'past' }),
+    ]);
+    return { upcoming, past };
   }
 
   /**

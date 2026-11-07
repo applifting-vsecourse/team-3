@@ -5,6 +5,8 @@ import {
   EventDetail,
   EventParticipant,
   EventRequest,
+  GroupEvent,
+  GroupEventsWhen,
   MyEvent,
   MyEventsTab,
   NewEvent,
@@ -25,6 +27,7 @@ import {
 } from '@/modules/event/domain/participation';
 import { requestMessageFor } from '@/shared/request-message/request-message';
 import { Injectable } from '@nestjs/common';
+import { buildGroupEventsWhere } from './group-events-where';
 import { buildMyEventsWhere } from './my-events-where';
 import { buildPublicEventsWhere } from './public-events-where';
 
@@ -160,6 +163,32 @@ export class EventRepository {
             : null,
       };
     });
+  }
+
+  /**
+   * A section of a group's page (B-055), at most `limit`: upcoming soonest
+   * first, past the latest first.
+   */
+  async findGroupEvents(query: {
+    groupId: string;
+    when: GroupEventsWhen;
+    includeMembersOnly: boolean;
+    now: Date;
+    limit: number;
+  }): Promise<GroupEvent[]> {
+    const { groupId, when, includeMembersOnly, now } = query;
+    const order = when === 'upcoming' ? 'asc' : 'desc';
+    const events = await this.prisma.event.findMany({
+      where: buildGroupEventsWhere(groupId, when, { includeMembersOnly }, now),
+      include: publicEventInclude,
+      orderBy: [{ startsAt: order }, { id: order }],
+      take: query.limit,
+    });
+    return events.map((event) => ({
+      ...toPublicEvent(event, now),
+      // the group's events are public or members-only (createEvent)
+      visibility: event.visibility === 'members' ? 'members' : 'public',
+    }));
   }
 
   /**

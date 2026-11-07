@@ -15,6 +15,7 @@ import {
 import { mock, MockProxy } from 'jest-mock-extended';
 import {
   EventsService,
+  GROUP_EVENTS_LIMIT,
   MY_EVENTS_LIMIT,
   PUBLIC_EVENTS_LIMIT,
   SCAN_LIMIT,
@@ -600,9 +601,9 @@ describe('EventsService.createEvent', () => {
         status: 'inactive',
       });
 
-      await expect(service.createEvent(groupEvent(), 'u1', now)).rejects.toThrow(
-        ConflictException,
-      );
+      await expect(
+        service.createEvent(groupEvent(), 'u1', now),
+      ).rejects.toThrow(ConflictException);
       expect(repository.createEvent).not.toHaveBeenCalled();
     });
 
@@ -610,9 +611,9 @@ describe('EventsService.createEvent', () => {
       const { repository, service } = setup();
       repository.findGroupForEvent.mockResolvedValue(null);
 
-      await expect(service.createEvent(groupEvent(), 'u1', now)).rejects.toThrow(
-        BadRequestException,
-      );
+      await expect(
+        service.createEvent(groupEvent(), 'u1', now),
+      ).rejects.toThrow(BadRequestException);
       expect(repository.createEvent).not.toHaveBeenCalled();
     });
 
@@ -1024,6 +1025,64 @@ describe('EventsService.getParticipants', () => {
 
     await expect(service.getParticipants('e1', 'u1', now)).rejects.toThrow(
       NotFoundException,
+    );
+  });
+});
+
+describe('EventsService.getGroupEvents (B-055)', () => {
+  const setup = (): {
+    repository: MockProxy<EventRepository>;
+    service: EventsService;
+  } => {
+    const repository = mock<EventRepository>();
+    repository.findGroupEvents.mockImplementation(async ({ when }) => [
+      { ...anEvent(when, 2), visibility: 'public' },
+    ]);
+    return { repository, service: new EventsService(repository) };
+  };
+
+  it('loads the upcoming and the past section, with the limit', async () => {
+    const { repository, service } = setup();
+    repository.findActiveGroupRole.mockResolvedValue(null);
+
+    const result = await service.getGroupEvents('g1', 'u9', now);
+
+    expect(result.upcoming.map((event) => event.id)).toEqual(['upcoming']);
+    expect(result.past.map((event) => event.id)).toEqual(['past']);
+    for (const when of ['upcoming', 'past']) {
+      expect(repository.findGroupEvents).toHaveBeenCalledWith({
+        groupId: 'g1',
+        when,
+        includeMembersOnly: false,
+        now,
+        limit: GROUP_EVENTS_LIMIT,
+      });
+    }
+  });
+
+  it.each(['member', 'admin'] as const)(
+    'an active %s gets the members-only events too',
+    async (role) => {
+      const { repository, service } = setup();
+      repository.findActiveGroupRole.mockResolvedValue(role);
+
+      await service.getGroupEvents('g1', 'u9', now);
+
+      expect(repository.findActiveGroupRole).toHaveBeenCalledWith('g1', 'u9');
+      expect(repository.findGroupEvents).toHaveBeenCalledWith(
+        expect.objectContaining({ includeMembersOnly: true }),
+      );
+    },
+  );
+
+  it('a visitor does not, and no membership is looked up', async () => {
+    const { repository, service } = setup();
+
+    await service.getGroupEvents('g1', null, now);
+
+    expect(repository.findActiveGroupRole).not.toHaveBeenCalled();
+    expect(repository.findGroupEvents).toHaveBeenCalledWith(
+      expect.objectContaining({ includeMembersOnly: false }),
     );
   });
 });

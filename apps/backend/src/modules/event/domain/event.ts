@@ -93,9 +93,18 @@ export type EventDetailView = EventDetail & {
   canManage: boolean;
 };
 
+/** The two sections of a group's page (B-055): Nadcházející and Proběhlé. */
+export type GroupEventsWhen = 'upcoming' | 'past';
+
+/** An event on its group's page (B-055): members-only ones are marked. */
+export type GroupEvent = PublicEvent & { visibility: 'public' | 'members' };
+
+/** A group's events, as its page lists them. */
+export type GroupEvents = { upcoming: GroupEvent[]; past: GroupEvent[] };
+
 /**
- * Tabs of „Moje akce“ (B-035). `past` (Proběhlé) comes with #61, the events
- * of my groups under `organizing` with #70.
+ * Tabs of „Moje akce“ (B-035). `past` (Proběhlé) comes with #61; under
+ * `organizing` are the events of the groups I'm an admin of too (B-055).
  */
 export const MY_EVENTS_TABS = ['attending', 'organizing'] as const;
 export type MyEventsTab = (typeof MY_EVENTS_TABS)[number];
