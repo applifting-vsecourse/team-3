@@ -26,6 +26,18 @@ export const signInProviders = (config: GoogleEnv): SignInProviders => ({
 });
 
 /**
+ * #198: where BetterAuth sends the user when the return from Google fails
+ * before it has read the state — and with it the errorCallbackURL the button
+ * sent (`state_not_found`, `invalid_callback_request`, a lost state cookie…).
+ * Without it that is BetterAuth's English page /api/auth/error. It can't tell
+ * whether the flow started at /login or /signup, so the sign-in page: it
+ * shows a Czech message for BetterAuth's `?error=` (and its own /error page
+ * forwards here too). Errors after the state is read go to errorCallbackURL.
+ */
+export const googleErrorUrl = (frontendUrl: string): string =>
+  new URL('/login', frontendUrl).toString();
+
+/**
  * #154: sign-in with Google, merged into the BetterAuth options. Built from
  * the same check as signInProviders, so the button and the server agree.
  *
@@ -38,10 +50,13 @@ export const signInProviders = (config: GoogleEnv): SignInProviders => ({
  *   verified e-mail proves nothing, so accounts aren't linked at all.
  * - The name from Google gets our name rule (#153) applied rather than
  *   refusing the sign-in over a digit or an emoji in it.
+ * - Errors BetterAuth can't send to errorCallbackURL go to /login (#198).
  */
 export const socialSignInOptions = (
-  config: GoogleEnv & Parameters<typeof simulatedInboxEnabled>[0],
-): Pick<BetterAuthOptions, 'socialProviders' | 'account'> => {
+  config: GoogleEnv &
+    Pick<Config, 'frontendUrl'> &
+    Parameters<typeof simulatedInboxEnabled>[0],
+): Pick<BetterAuthOptions, 'socialProviders' | 'account' | 'onAPIError'> => {
   const google = googleCredentials(config);
   if (!google) return {};
   return {
@@ -59,5 +74,6 @@ export const socialSignInOptions = (
         trustedProviders: ['google'],
       },
     },
+    onAPIError: { errorURL: googleErrorUrl(config.frontendUrl) },
   };
 };
