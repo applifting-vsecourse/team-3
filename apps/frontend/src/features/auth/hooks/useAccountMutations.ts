@@ -18,7 +18,7 @@ export function useChangePassword() {
       if (result.error) {
         throw toAuthRequestError(
           result.error,
-          "Heslo se nepodařilo změnit. Zkontroluj původní heslo a zkus to znovu.",
+          "Heslo se nepodařilo změnit. Zkontroluj současné heslo a zkus to znovu.",
         )
       }
     },

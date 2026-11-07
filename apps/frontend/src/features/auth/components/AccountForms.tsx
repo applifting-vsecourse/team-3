@@ -18,6 +18,7 @@ import { Input } from "@/components/ui/input"
 
 import { PasswordStrength } from "@/features/auth/components/PasswordStrength"
 import { useChangeEmail, useChangePassword } from "@/features/auth/hooks/useAccountMutations"
+import { AuthRequestError } from "@/features/auth/lib/auth-errors"
 import { preloadPasswordChecker } from "@/features/auth/lib/load-password-checker"
 import { passwordSchema, passwordUserInputs } from "@/features/auth/lib/password"
 
@@ -25,7 +26,7 @@ export type AccountProfile = { name: string; email: string; hasPassword: boolean
 
 const passwordFormSchema = z
   .object({
-    currentPassword: z.string().min(1, "Vyplň původní heslo."),
+    currentPassword: z.string().min(1, "Vyplň současné heslo."),
     newPassword: passwordSchema,
     confirmation: z.string().min(1, "Zopakuj nové heslo."),
   })
@@ -35,19 +36,32 @@ const passwordFormSchema = z
   })
 const emailFormSchema = z.object({ newEmail: z.string().trim().email("Zadej platný e-mail.") })
 
+// BetterAuth's refusals that are about one field of the password form: shown
+// at it (DESIGN.md › Forms), everything else under the form.
+const PASSWORD_FIELD_OF_ERROR: Record<string, "currentPassword" | "newPassword"> = {
+  INVALID_PASSWORD: "currentPassword",
+  WEAK_PASSWORD: "newPassword",
+  PASSWORD_COMPROMISED: "newPassword",
+  PASSWORD_TOO_SHORT: "newPassword",
+  PASSWORD_TOO_LONG: "newPassword",
+}
+const passwordFieldOfError = (error: unknown) =>
+  error instanceof AuthRequestError && error.code ? PASSWORD_FIELD_OF_ERROR[error.code] : undefined
+
+/** Účet on /profil/upravit (Figma B-06, B-06d): password, then e-mail, one under the other. */
 export function AccountForms({ profile }: { profile: AccountProfile }) {
   return (
-    <div className="grid gap-8 md:grid-cols-2">
+    <div className="flex flex-col gap-8">
       <section
         className="space-y-4"
         aria-labelledby="password-heading"
       >
-        <h2
+        <h3
           id="password-heading"
-          className="type-feature"
+          className="text-body font-semibold"
         >
           Změna hesla
-        </h2>
+        </h3>
         {profile.hasPassword ? (
           <ChangePasswordForm profile={profile} />
         ) : (
@@ -66,12 +80,12 @@ export function AccountForms({ profile }: { profile: AccountProfile }) {
         className="space-y-4"
         aria-labelledby="email-heading"
       >
-        <h2
+        <h3
           id="email-heading"
-          className="type-feature"
+          className="text-body font-semibold"
         >
           Změna e-mailu
-        </h2>
+        </h3>
         <p className="text-sm break-all text-muted-foreground">
           Aktuální e-mail: <span className="text-foreground">{profile.email}</span>
         </p>
@@ -96,8 +110,12 @@ export function ChangePasswordForm({ profile }: { profile: AccountProfile }) {
     try {
       await mutation.mutateAsync({ currentPassword, newPassword })
       form.reset()
-    } catch {
-      /* The mutation error is rendered below. */
+    } catch (error) {
+      const field = passwordFieldOfError(error)
+      if (field && error instanceof Error) {
+        form.setError(field, { message: error.message }, { shouldFocus: true })
+      }
+      /* Anything else the mutation renders below the form. */
     }
   })
   return (
@@ -112,7 +130,7 @@ export function ChangePasswordForm({ profile }: { profile: AccountProfile }) {
           name="currentPassword"
           render={({ field }) => (
             <FormItem>
-              <FormLabel>Původní heslo</FormLabel>
+              <FormLabel>Současné heslo</FormLabel>
               <FormControl>
                 <Input
                   type="password"
@@ -163,7 +181,7 @@ export function ChangePasswordForm({ profile }: { profile: AccountProfile }) {
             </FormItem>
           )}
         />
-        {mutation.error ? (
+        {mutation.error && !passwordFieldOfError(mutation.error) ? (
           <p
             role="alert"
             className="text-sm text-destructive"

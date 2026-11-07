@@ -3,6 +3,7 @@ import { render, screen } from "@testing-library/react"
 import userEvent from "@testing-library/user-event"
 import { beforeEach, describe, expect, it, vi } from "vitest"
 
+import { HTTPError } from "@/lib/api-client"
 import { catalogKeys } from "@/lib/catalog/catalogQueryOptions"
 
 import type { ProfileInput, SelfProfile } from "@/features/profile/api/profileSchemas"
@@ -80,14 +81,14 @@ describe("profile editing (#178)", () => {
     show()
     await user.click(screen.getByRole("button", { name: "Vymazat lokalitu" }))
     await user.click(screen.getByRole("button", { name: "Odebrat zájem Běh" }))
-    await user.click(screen.getByRole("button", { name: "Uložit profil" }))
+    await user.click(screen.getByRole("button", { name: "Uložit změny" }))
     expect(save).toHaveBeenCalledWith({ name: "Jana Nová", homeLocalityId: null, interestIds: [] })
   })
   it("does not duplicate a selected activity", async () => {
     const user = userEvent.setup()
     show()
     await user.click(screen.getByRole("button", { name: "Vybrat běh" }))
-    await user.click(screen.getByRole("button", { name: "Uložit profil" }))
+    await user.click(screen.getByRole("button", { name: "Uložit změny" }))
     expect(save).toHaveBeenCalledWith({
       name: "Jana Nová",
       homeLocalityId: "prague",
@@ -99,8 +100,28 @@ describe("profile editing (#178)", () => {
     show()
     await user.clear(screen.getByLabelText("Jméno"))
     await user.type(screen.getByLabelText("Jméno"), "Jana 123")
-    await user.click(screen.getByRole("button", { name: "Uložit profil" }))
+    await user.click(screen.getByRole("button", { name: "Uložit změny" }))
     expect(await screen.findByText(/do jména nepatří/)).toBeInTheDocument()
     expect(save).not.toHaveBeenCalled()
+  })
+  it.each([
+    ["INVALID_NAME", "Jméno", "Do jména nepatří znak „#“."],
+    ["UNKNOWN_LOCALITY", "Domovská lokalita", "Vyber domovskou lokalitu ze seznamu."],
+  ])("shows the API's %s at the field it is about", async (code, label, message) => {
+    const refusal = new HTTPError(
+      new Response(null, { status: 400 }),
+      new Request("http://localhost:4050/api/me/profile", { method: "PATCH" }),
+      {} as never,
+    )
+    refusal.data = { code, message }
+    refusal.message = message
+    save.mockRejectedValue(refusal)
+    const user = userEvent.setup()
+    show()
+    await user.click(screen.getByRole("button", { name: "Uložit změny" }))
+    const field = await screen.findByText(message)
+    // FormMessage under the field, tied to it by aria-describedby; no alert under the form
+    expect(field.closest("[data-slot=form-item]")).toHaveTextContent(label)
+    expect(screen.queryByRole("alert")).not.toBeInTheDocument()
   })
 })

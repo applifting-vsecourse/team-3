@@ -43,12 +43,17 @@ const summarySchema = z.object({
   count: z.number().int().nonnegative(),
 })
 export type RatingSummary = z.infer<typeof summarySchema>
+// Each list is the first few items only; the totals count all of them (#178).
 export const profileOverviewSchema = z.object({
   organizing: z.array(profileEventSchema),
+  organizingTotal: z.number().int().nonnegative(),
   upcoming: z.array(profileEventSchema),
+  upcomingTotal: z.number().int().nonnegative(),
   past: z.array(profileEventSchema),
+  pastTotal: z.number().int().nonnegative(),
   participantRatings: z.array(ratingSchema),
   organizerRatings: z.array(ratingSchema),
   participantSummary: summarySchema,
   organizerSummary: summarySchema,
 })
+export type ProfileOverviewData = z.infer<typeof profileOverviewSchema>

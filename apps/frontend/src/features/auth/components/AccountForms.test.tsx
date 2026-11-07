@@ -2,7 +2,9 @@ import { render, screen } from "@testing-library/react"
 import userEvent from "@testing-library/user-event"
 import { beforeEach, describe, expect, it, vi } from "vitest"
 
-import { ChangeEmailForm, ChangePasswordForm } from "./AccountForms"
+import { authErrorMessage, AuthRequestError } from "@/features/auth/lib/auth-errors"
+
+import { AccountForms, ChangeEmailForm, ChangePasswordForm } from "./AccountForms"
 
 const mutations = vi.hoisted(() => ({ password: vi.fn(), email: vi.fn() }))
 vi.mock("@/features/auth/hooks/useAccountMutations", () => ({
@@ -36,10 +38,21 @@ beforeEach(() => {
 })
 
 describe("profile account forms (#178)", () => {
+  it("Účet on /profil/upravit: the password form, then the e-mail form (Figma B-06)", () => {
+    render(<AccountForms profile={profile} />)
+    expect(screen.getAllByRole("heading", { level: 3 }).map((h) => h.textContent)).toEqual([
+      "Změna hesla",
+      "Změna e-mailu",
+    ])
+    expect(screen.getByLabelText("Současné heslo")).toBeInTheDocument()
+    expect(screen.getByRole("button", { name: "Změnit heslo" })).toBeInTheDocument()
+    expect(screen.getByText("old@example.com")).toBeInTheDocument()
+    expect(screen.getByLabelText("Nový e-mail")).toBeInTheDocument()
+  })
   it("refuses mismatched passwords before calling the API", async () => {
     const user = userEvent.setup()
     render(<ChangePasswordForm profile={profile} />)
-    await user.type(screen.getByLabelText("Původní heslo"), "old-password-123")
+    await user.type(screen.getByLabelText("Současné heslo"), "old-password-123")
     await user.type(screen.getByLabelText("Nové heslo", { exact: true }), "new-password-456")
     await user.type(screen.getByLabelText("Nové heslo znovu"), "different-password-789")
     await user.click(screen.getByRole("button", { name: "Změnit heslo" }))
@@ -49,7 +62,7 @@ describe("profile account forms (#178)", () => {
   it("submits old/new passwords and clears password inputs after success", async () => {
     const user = userEvent.setup()
     render(<ChangePasswordForm profile={profile} />)
-    await user.type(screen.getByLabelText("Původní heslo"), "old-password-123")
+    await user.type(screen.getByLabelText("Současné heslo"), "old-password-123")
     await user.type(screen.getByLabelText("Nové heslo", { exact: true }), "new-password-456")
     await user.type(screen.getByLabelText("Nové heslo znovu"), "new-password-456")
     await user.click(screen.getByRole("button", { name: "Změnit heslo" }))
@@ -57,7 +70,7 @@ describe("profile account forms (#178)", () => {
       currentPassword: "old-password-123",
       newPassword: "new-password-456",
     })
-    expect(screen.getByLabelText("Původní heslo")).toHaveValue("")
+    expect(screen.getByLabelText("Současné heslo")).toHaveValue("")
   })
   it("only requests email verification and explains that the old address stays valid", async () => {
     const user = userEvent.setup()
@@ -68,5 +81,25 @@ describe("profile account forms (#178)", () => {
     await user.type(screen.getByLabelText("Nový e-mail"), "new@example.com")
     await user.click(screen.getByRole("button", { name: "Ověřit nový e-mail" }))
     expect(mutations.email).toHaveBeenCalledWith("new@example.com")
+  })
+  it.each([
+    ["INVALID_PASSWORD", "Současné heslo"],
+    ["WEAK_PASSWORD", "Nové heslo"],
+    ["PASSWORD_COMPROMISED", "Nové heslo"],
+  ])("shows %s from BetterAuth at the field it is about", async (code, label) => {
+    const message = authErrorMessage({ code }, "fallback")
+    mutations.password.mockRejectedValue(new AuthRequestError(message, code))
+    const user = userEvent.setup()
+    render(<ChangePasswordForm profile={profile} />)
+    await user.type(screen.getByLabelText("Současné heslo"), "old-password-123")
+    await user.type(screen.getByLabelText("Nové heslo", { exact: true }), "new-password-456")
+    await user.type(screen.getByLabelText("Nové heslo znovu"), "new-password-456")
+    await user.click(screen.getByRole("button", { name: "Změnit heslo" }))
+    const field = screen.getByLabelText(label, { exact: true })
+    expect(await screen.findByText(message)).toBeInTheDocument()
+    expect(field).toHaveAttribute("aria-invalid", "true")
+    expect(field.getAttribute("aria-describedby")).toContain(
+      screen.getByText(message).getAttribute("id"),
+    )
   })
 })
