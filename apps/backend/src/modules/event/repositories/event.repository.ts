@@ -28,8 +28,8 @@ import { Injectable } from '@nestjs/common';
 import { buildMyEventsWhere } from './my-events-where';
 import { buildPublicEventsWhere } from './public-events-where';
 
-// What the list and the detail both show of an event.
-const publicEventInclude = {
+// What the list and the detail both show of an event (and the profile's event cards, #178).
+export const publicEventInclude = {
   activity: { include: { category: true } },
   locality: true,
   organizer: { select: { id: true, name: true } },
@@ -39,11 +39,14 @@ const publicEventInclude = {
   },
 } satisfies Prisma.EventInclude;
 
-type PublicEventRow = Prisma.EventGetPayload<{
+export type PublicEventRow = Prisma.EventGetPayload<{
   include: typeof publicEventInclude;
 }>;
 
-const toPublicEvent = (event: PublicEventRow, now: Date): PublicEvent => ({
+export const toPublicEvent = (
+  event: PublicEventRow,
+  now: Date,
+): PublicEvent => ({
   id: event.id,
   title: event.title,
   startsAt: event.startsAt,

@@ -128,4 +128,46 @@ describe('private profile queries (#178)', () => {
       participantSummary: { average: 4.5, count: 6 },
     });
   });
+  it('sends each event as the public event, for the event cards, with my place in it (#178)', async () => {
+    const row = {
+      id: 'e1',
+      title: 'Deskovky',
+      startsAt: new Date('2026-11-10T16:00:00.000Z'),
+      endsAt: null,
+      address: 'Herna Karlín, Křižíkova 52, Praha 8',
+      lat: 50.09,
+      lng: 14.45,
+      status: 'published',
+      minParticipants: 3,
+      maxParticipants: 6,
+      promotedUntil: null,
+      activity: {
+        id: 'a1',
+        slug: 'deskove-hry',
+        name: 'Deskové hry',
+        category: { id: 'c1', slug: 'hry', name: 'Hry', icon: 'dice' },
+      },
+      locality: { id: 'l1', slug: 'praha-8', name: 'Praha 8' },
+      organizer: { id: 'u-org', name: 'Petra' },
+      group: null,
+      _count: { participations: 2 },
+    };
+    prisma.participation.findMany
+      .mockResolvedValueOnce([{ status: 'pending', event: row }] as never)
+      .mockResolvedValueOnce([]);
+    const result = await repository.overview(
+      'owner',
+      new Date('2026-11-05T12:00:00Z'),
+    );
+    expect(result.upcoming[0]).toMatchObject({
+      id: 'e1',
+      address: 'Herna Karlín, Křižíkova 52, Praha 8',
+      activity: { slug: 'deskove-hry' },
+      locality: { name: 'Praha 8' },
+      capacity: { approvedCount: 2, missingToMin: 1, freeSpots: 4 },
+      status: 'published',
+      localityName: 'Praha 8',
+      participation: 'pending',
+    });
+  });
 });

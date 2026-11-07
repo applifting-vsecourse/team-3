@@ -1,4 +1,5 @@
 import { Prisma } from '@/generated/prisma/client';
+import type { PublicEvent } from '@/modules/event/domain/event';
 import type { RatingSummary } from '@/modules/rating/domain/rating-summary';
 
 export const profileSelect = {
@@ -55,11 +56,8 @@ export function selfProfile(row: ProfileRow): SelfProfile {
     })),
   };
 }
-export type ProfileEvent = {
-  id: string;
-  title: string;
-  startsAt: Date;
-  endsAt: Date | null;
+/** The public event (the same as in GET /api/events, for the event cards) and my place in it. */
+export type ProfileEvent = PublicEvent & {
   status: 'published' | 'cancelled';
   localityName: string;
   participation: 'approved' | 'pending' | null;

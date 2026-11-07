@@ -65,7 +65,9 @@ export class ProfileController {
     summary:
       'My events and ratings; private, never selected by a request user ID (#178)',
   })
-  overview(@User() user: Identity): Promise<ProfileOverviewResponseDto> {
-    return this.profile.overview(user.id);
+  async overview(@User() user: Identity): Promise<ProfileOverviewResponseDto> {
+    return ProfileOverviewResponseDto.fromDomain(
+      await this.profile.overview(user.id),
+    );
   }
 }

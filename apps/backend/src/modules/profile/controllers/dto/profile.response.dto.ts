@@ -1,4 +1,5 @@
 import { LocalityResponseDto } from '@/modules/catalog/controllers/dto/locality.response.dto';
+import { PublicEventResponseDto } from '@/modules/event/controllers/dto/public-event.response.dto';
 import {
   PROFILE_OVERVIEW_TAKE,
   type ProfileEvent,
@@ -28,16 +29,22 @@ export class SelfProfileResponseDto implements SelfProfile {
   @ApiProperty({ type: [NamedProfileEntityDto] })
   interests!: SelfProfile['interests'];
 }
-class ProfileEventResponseDto implements ProfileEvent {
-  @ApiProperty() id!: string;
-  @ApiProperty() title!: string;
-  @ApiProperty() startsAt!: Date;
-  @ApiProperty({ type: Date, nullable: true }) endsAt!: Date | null;
+/** An event as in GET /api/events (for the event cards) and my place in it. */
+class ProfileEventResponseDto extends PublicEventResponseDto {
   @ApiProperty({ enum: ['published', 'cancelled'] })
   status!: ProfileEvent['status'];
   @ApiProperty() localityName!: string;
   @ApiProperty({ enum: ['approved', 'pending'], nullable: true })
   participation!: ProfileEvent['participation'];
+
+  static fromProfileEvent(event: ProfileEvent): ProfileEventResponseDto {
+    return {
+      ...PublicEventResponseDto.fromDomain(event),
+      status: event.status,
+      localityName: event.localityName,
+      participation: event.participation,
+    };
+  }
 }
 class ProfileRatingResponseDto implements ProfileRating {
   @ApiProperty() id!: string;
@@ -53,26 +60,26 @@ class ProfileRatingSummaryDto implements RatingSummary {
   @ApiProperty({ type: Number, nullable: true }) average!: number | null;
   @ApiProperty() count!: number;
 }
-export class ProfileOverviewResponseDto implements ProfileOverview {
+export class ProfileOverviewResponseDto {
   @ApiProperty({
     type: [ProfileEventResponseDto],
     description: `Events I organize, latest first; at most ${PROFILE_OVERVIEW_TAKE}`,
   })
-  organizing!: ProfileEvent[];
+  organizing!: ProfileEventResponseDto[];
   @ApiProperty({ description: 'How many events I organize in all' })
   organizingTotal!: number;
   @ApiProperty({
     type: [ProfileEventResponseDto],
     description: `Upcoming events I go to or wait for, soonest first; at most ${PROFILE_OVERVIEW_TAKE}`,
   })
-  upcoming!: ProfileEvent[];
+  upcoming!: ProfileEventResponseDto[];
   @ApiProperty({ description: 'How many upcoming events in all' })
   upcomingTotal!: number;
   @ApiProperty({
     type: [ProfileEventResponseDto],
     description: `Past events I took part in, latest first; at most ${PROFILE_OVERVIEW_TAKE}`,
   })
-  past!: ProfileEvent[];
+  past!: ProfileEventResponseDto[];
   @ApiProperty({ description: 'How many past events in all' })
   pastTotal!: number;
   @ApiProperty({
@@ -95,4 +102,15 @@ export class ProfileOverviewResponseDto implements ProfileOverview {
     description: 'Average and count of all ratings as an organizer',
   })
   organizerSummary!: RatingSummary;
+
+  static fromDomain(overview: ProfileOverview): ProfileOverviewResponseDto {
+    const events = (list: ProfileEvent[]): ProfileEventResponseDto[] =>
+      list.map((event) => ProfileEventResponseDto.fromProfileEvent(event));
+    return {
+      ...overview,
+      organizing: events(overview.organizing),
+      upcoming: events(overview.upcoming),
+      past: events(overview.past),
+    };
+  }
 }

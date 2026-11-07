@@ -1,6 +1,11 @@
 import { PrismaService } from '@/core/prisma/prisma.service';
 import { Prisma } from '@/generated/prisma/client';
 import {
+  publicEventInclude,
+  toPublicEvent,
+  type PublicEventRow,
+} from '@/modules/event/repositories/event.repository';
+import {
   participationWhere,
   PROFILE_OVERVIEW_TAKE,
   profileSelect,
@@ -11,23 +16,12 @@ import {
 import { summarizeTotals } from '@/modules/rating/domain/rating-summary';
 import { Injectable } from '@nestjs/common';
 
-const eventSelect = {
-  id: true,
-  title: true,
-  startsAt: true,
-  endsAt: true,
-  status: true,
-  locality: { select: { name: true } },
-} satisfies Prisma.EventSelect;
-type EventRow = Prisma.EventGetPayload<{ select: typeof eventSelect }>;
 const eventSummary = (
-  event: EventRow,
+  event: PublicEventRow,
+  now: Date,
   participation: ProfileEvent['participation'] = null,
 ): ProfileEvent => ({
-  id: event.id,
-  title: event.title,
-  startsAt: event.startsAt,
-  endsAt: event.endsAt,
+  ...toPublicEvent(event, now),
   status: event.status === 'cancelled' ? 'cancelled' : 'published',
   localityName: event.locality.name,
   participation,
@@ -101,21 +95,21 @@ export class ProfileRepository {
     ] = await Promise.all([
       this.prisma.event.findMany({
         where: organizingWhere,
-        select: eventSelect,
+        include: publicEventInclude,
         orderBy: { startsAt: 'desc' },
         take,
       }),
       this.prisma.event.count({ where: organizingWhere }),
       this.prisma.participation.findMany({
         where: upcomingWhere,
-        select: { status: true, event: { select: eventSelect } },
+        select: { status: true, event: { include: publicEventInclude } },
         orderBy: { event: { startsAt: 'asc' } },
         take,
       }),
       this.prisma.participation.count({ where: upcomingWhere }),
       this.prisma.participation.findMany({
         where: pastWhere,
-        select: { event: { select: eventSelect } },
+        select: { event: { include: publicEventInclude } },
         orderBy: { event: { startsAt: 'desc' } },
         take,
       }),
@@ -163,16 +157,17 @@ export class ProfileRepository {
       }),
     ]);
     return {
-      organizing: organizing.map((event) => eventSummary(event)),
+      organizing: organizing.map((event) => eventSummary(event, now)),
       organizingTotal,
       upcoming: upcoming.map((row) =>
         eventSummary(
           row.event,
+          now,
           row.status === 'approved' ? 'approved' : 'pending',
         ),
       ),
       upcomingTotal,
-      past: past.map((row) => eventSummary(row.event, 'approved')),
+      past: past.map((row) => eventSummary(row.event, now, 'approved')),
       pastTotal,
       // The whole history, not just the loaded slice: count = all ratings.
       participantSummary: summarizeTotals(
