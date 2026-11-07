@@ -1,4 +1,5 @@
 import type { CapacityStatus } from "@/components/StatusBadge/StatusBadge"
+import { occupancyBesideBadge, occupancyCount } from "@/lib/occupancy"
 
 import type { PublicEvent } from "@/features/events/api/eventSchemas"
 
@@ -101,9 +102,13 @@ export function capacityStatus(event: PublicEvent): CapacityStatus {
   return { kind: "free" }
 }
 
-/** "4/12 · Praha 8" — approved of maximum, and the district. */
-export const eventFacts = (event: PublicEvent): string =>
-  `${event.approvedCount}/${event.maxParticipants} · ${event.locality.name}`
+/**
+ * The line next to the capacity badge on a card, with the district: „4 z 12 ·
+ * Praha 8“; below the minimum „5 z 12 · min. 6 · Praha 8“, as the badge beside
+ * it already says „Chybí 1“ (#189). A cancelled event only has the count.
+ */
+export const eventFacts = (event: PublicEvent & { status?: "published" | "cancelled" }): string =>
+  `${event.status === "cancelled" ? occupancyCount(event) : occupancyBesideBadge(event)} · ${event.locality.name}`
 
 /**
  * Button of a filter panel: "Zobrazit 1 akci", "Zobrazit 3 akce", "Zobrazit 24 akcí";
