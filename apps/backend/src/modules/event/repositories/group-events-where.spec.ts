@@ -2,6 +2,8 @@ import { buildGroupEventsWhere } from './group-events-where';
 
 const now = new Date('2026-10-23T08:00:00.000Z');
 
+const MEMBER_VISIBILITY = { visibility: { in: ['public', 'members'] } };
+
 describe('buildGroupEventsWhere (B-055)', () => {
   it("upcoming: the group's published events still ahead", () => {
     expect(
@@ -15,7 +17,7 @@ describe('buildGroupEventsWhere (B-055)', () => {
       AND: [
         { groupId: 'g1', status: 'published' },
         { startsAt: { gt: now } },
-        {},
+        MEMBER_VISIBILITY,
       ],
     });
   });
@@ -27,13 +29,15 @@ describe('buildGroupEventsWhere (B-055)', () => {
       AND: [
         { groupId: 'g1', status: 'published' },
         { startsAt: { lte: now } },
-        {},
+        MEMBER_VISIBILITY,
       ],
     });
   });
 
+  // An allowlist, as the public list (review #264): a private event that got
+  // into a group would show nowhere, not on the group's public page.
   it.each(['upcoming', 'past'] as const)(
-    '%s: members-only events stay out for anyone outside the group',
+    '%s: only public events for anyone outside the group',
     (when) => {
       const [, , visibility] = buildGroupEventsWhere(
         'g1',
@@ -41,7 +45,7 @@ describe('buildGroupEventsWhere (B-055)', () => {
         { includeMembersOnly: false },
         now,
       ).AND as object[];
-      expect(visibility).toEqual({ visibility: { not: 'members' } });
+      expect(visibility).toEqual({ visibility: 'public' });
     },
   );
 });

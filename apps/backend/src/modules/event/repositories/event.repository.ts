@@ -287,12 +287,31 @@ export class EventRepository {
   }
 
   /** A new published event of a person or a group (B-021, B-055); returns its id. */
-  async createEvent(event: NewEvent, organizerUserId: string): Promise<string> {
-    const created = await this.prisma.event.create({
-      data: { ...event, organizerUserId },
-      select: { id: true },
+  /**
+   * A group's event is written under a row lock on the group (review #264):
+   * deactivating updates that row, so the two can't overlap. Created first,
+   * the event is there when the deactivation cancels the group's events;
+   * deactivated first, nothing is written and the answer is null.
+   */
+  async createEvent(
+    event: NewEvent,
+    organizerUserId: string,
+  ): Promise<string | null> {
+    return this.prisma.$transaction(async (tx) => {
+      if (event.groupId) {
+        await tx.$executeRaw`SELECT 1 FROM "group" WHERE "id" = ${event.groupId} FOR UPDATE`;
+        const group = await tx.group.findUnique({
+          where: { id: event.groupId },
+          select: { status: true },
+        });
+        if (group?.status !== 'active') return null;
+      }
+      const created = await tx.event.create({
+        data: { ...event, organizerUserId },
+        select: { id: true },
+      });
+      return created.id;
     });
-    return created.id;
   }
 
   /**

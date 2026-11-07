@@ -21,6 +21,10 @@ export const buildGroupEventsWhere = (
     when === 'upcoming'
       ? { startsAt: { gt: now } }
       : { startsAt: { lte: now } },
-    includeMembersOnly ? {} : { visibility: { not: 'members' } },
+    // an allowlist, as in buildPublicEventsWhere: a visibility nobody allowed
+    // here (`private`) never shows on the public page of a group
+    includeMembersOnly
+      ? { visibility: { in: ['public', 'members'] } }
+      : { visibility: 'public' },
   ],
 });

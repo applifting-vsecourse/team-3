@@ -263,7 +263,7 @@ export function EventForm({
         {group ? (
           // Figma D-01g: „Pořádá“ — the group is the organizer shown at the event
           <div className="flex items-center gap-3">
-            <span className="flex size-10 shrink-0 items-center justify-center rounded-lg border border-border bg-secondary text-secondary-foreground">
+            <span className="flex size-10 shrink-0 items-center justify-center rounded-lg border border-tile-border bg-secondary text-secondary-foreground">
               <Users
                 className="size-5"
                 aria-hidden

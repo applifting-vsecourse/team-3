@@ -52,6 +52,12 @@ const REFUSAL_MESSAGES: Record<ParticipationRefusal, string> = {
   NOT_PENDING: 'Žádost už není aktuální: mezitím byla vyřízená, nebo stažená.',
 };
 
+const groupInactive = (): ConflictException =>
+  new ConflictException({
+    code: 'GROUP_INACTIVE',
+    message: 'Skupina už není aktivní.',
+  });
+
 const refused = (refusal: ParticipationRefusal): ConflictException =>
   new ConflictException({ code: refusal, message: REFUSAL_MESSAGES[refusal] });
 
@@ -243,6 +249,8 @@ export class EventsService {
     await this.assertCanCreateFor(event, organizerId);
 
     const id = await this.eventRepository.createEvent(event, organizerId);
+    // deactivated between the check and the write (e.g. in another tab)
+    if (id === null) throw groupInactive();
     return this.getEventDetail(id, organizerId, now);
   }
 
@@ -380,12 +388,8 @@ export class EventsService {
       userId,
     );
     if (!group) throw new BadRequestException(['Neznámá skupina.']);
-    if (group.status !== 'active') {
-      throw new ConflictException({
-        code: 'GROUP_INACTIVE',
-        message: 'Skupina už není aktivní.',
-      });
-    }
+    // fail fast; checked again under the group's lock when writing
+    if (group.status !== 'active') throw groupInactive();
     if (group.role !== 'admin') {
       throw new ForbiddenException({
         code: 'NOT_GROUP_ADMIN',
@@ -454,7 +458,13 @@ export class EventsService {
     return this.getEventDetail(eventId, userId, now);
   }
 
-  /** What the server knows about a signed-in viewer of the event. */
+  /**
+   * What the server knows about a signed-in viewer of the event. The group's
+   * status doesn't count, on purpose (review #264): a deactivated group's
+   * members still see its members-only events, past ones are their history
+   * (Figma A-08), and its admins still manage them, which changes nothing
+   * once the upcoming ones are cancelled.
+   */
   private async viewerOf(
     event: EventDetail,
     viewerId: string,

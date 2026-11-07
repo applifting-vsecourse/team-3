@@ -113,6 +113,79 @@ describe('EventRepository.cancelEvent', () => {
   });
 });
 
+describe('EventRepository.createEvent (review #264)', () => {
+  const setup = (): { prisma: ReturnType<typeof mockDeep<PrismaService>> } => {
+    const prisma = mockDeep<PrismaService>();
+    // the transaction client is the same mock
+    prisma.$transaction.mockImplementation(((
+      run: (tx: PrismaService) => Promise<unknown>,
+    ) => run(prisma)) as never);
+    prisma.event.create.mockResolvedValue({ id: 'e-new' } as never);
+    return { prisma };
+  };
+  const event = {
+    title: 'Florbal',
+    description: null,
+    activityId: 'a-florbal',
+    localityId: 'l-praha-9',
+    lat: 50.11,
+    lng: 14.5,
+    address: 'Hala',
+    startsAt: new Date('2026-11-20T18:00:00.000Z'),
+    endsAt: null,
+    minParticipants: 4,
+    maxParticipants: 10,
+    approvalMode: 'open' as const,
+    visibility: 'public' as const,
+  };
+
+  it("a group's event: locks the group, checks it is active, then writes", async () => {
+    const { prisma } = setup();
+    prisma.group.findUnique.mockResolvedValue({ status: 'active' } as never);
+
+    await expect(
+      new EventRepository(prisma).createEvent(
+        { ...event, groupId: 'g1' },
+        'u1',
+      ),
+    ).resolves.toBe('e-new');
+
+    const lockAt = prisma.$executeRaw.mock.invocationCallOrder[0]!;
+    const readAt = prisma.group.findUnique.mock.invocationCallOrder[0]!;
+    expect(lockAt).toBeLessThan(readAt);
+    expect(prisma.event.create).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({ groupId: 'g1', organizerUserId: 'u1' }),
+      }),
+    );
+  });
+
+  it('a group deactivated meanwhile: nothing is written, null', async () => {
+    const { prisma } = setup();
+    prisma.group.findUnique.mockResolvedValue({ status: 'inactive' } as never);
+
+    await expect(
+      new EventRepository(prisma).createEvent(
+        { ...event, groupId: 'g1' },
+        'u1',
+      ),
+    ).resolves.toBeNull();
+    expect(prisma.event.create).not.toHaveBeenCalled();
+  });
+
+  it("a person's own event locks nothing", async () => {
+    const { prisma } = setup();
+
+    await expect(
+      new EventRepository(prisma).createEvent(
+        { ...event, groupId: null },
+        'u1',
+      ),
+    ).resolves.toBe('e-new');
+    expect(prisma.$executeRaw).not.toHaveBeenCalled();
+  });
+});
+
 describe('EventRepository.join', () => {
   const setup = (
     approvedCount: number,

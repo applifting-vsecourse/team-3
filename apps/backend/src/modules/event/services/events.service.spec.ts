@@ -607,6 +607,20 @@ describe('EventsService.createEvent', () => {
       expect(repository.createEvent).not.toHaveBeenCalled();
     });
 
+    it('a group deactivated between the check and the write is 409, not a published event (review #264)', async () => {
+      const { repository, service } = setup();
+      repository.findGroupForEvent.mockResolvedValue(group);
+      repository.createEvent.mockResolvedValue(null);
+
+      const error = (await service
+        .createEvent(groupEvent(), 'u1', now)
+        .catch((e: unknown) => e)) as ConflictException;
+
+      expect(error).toBeInstanceOf(ConflictException);
+      expect(error.getResponse()).toMatchObject({ code: 'GROUP_INACTIVE' });
+      expect(repository.findEventDetail).not.toHaveBeenCalled();
+    });
+
     it('an unknown group is 400', async () => {
       const { repository, service } = setup();
       repository.findGroupForEvent.mockResolvedValue(null);
