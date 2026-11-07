@@ -94,4 +94,21 @@ describe("googleSignInErrorMessage (#154)", () => {
       expect(googleSignInErrorMessage(code)).toBe(GOOGLE_SIGN_IN_FAILED)
     }
   })
+
+  it("errors raised before BetterAuth reads the state get it too, not its English page (#198)", () => {
+    for (const code of ["state_not_found", "state_mismatch", "invalid_callback_request"]) {
+      expect(googleSignInErrorMessage(code)).toBe(GOOGLE_SIGN_IN_FAILED)
+      expect(googleSignInErrorMessage(code, "signup")).toBe(GOOGLE_SIGN_IN_FAILED)
+    }
+  })
+
+  it("on /signup, a cancelled sign-in offers signing up with the e-mail (#198)", () => {
+    expect(googleSignInErrorMessage("access_denied", "signup")).toBe(
+      "Přihlášení přes Google je zrušené. Zkus to znovu, nebo se zaregistruj e-mailem.",
+    )
+    // the rest reads the same on both pages
+    expect(googleSignInErrorMessage("account_not_linked", "signup")).toBe(
+      googleSignInErrorMessage("account_not_linked"),
+    )
+  })
 })
