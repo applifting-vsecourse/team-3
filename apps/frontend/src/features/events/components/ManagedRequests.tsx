@@ -1,9 +1,18 @@
-import { useId } from "react"
-import { Check, RefreshCw, X } from "lucide-react"
+import { useId, useState } from "react"
+import { Check, Loader2, RefreshCw, X } from "lucide-react"
 
 import { PersonRow } from "@/components/PersonRow/PersonRow"
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 import { Button } from "@/components/ui/button"
+import {
+  Dialog,
+  DialogClose,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog"
 import { Skeleton } from "@/components/ui/skeleton"
 import { cn } from "@/lib/utils"
 
@@ -23,13 +32,19 @@ type ManagedRequestsProps = {
   isFull: boolean
   /** A decision is on its way: no other is sent before it's back (a second click would only fail). */
   isDeciding: boolean
-  onDecide: (request: EventRequest, decision: "approve" | "reject") => void
+  /**
+   * Resolves once the decision is saved; rejects when it isn't (the page's
+   * toast says why), and the rejection dialog stays open to try again.
+   */
+  onDecide: (request: EventRequest, decision: "approve" | "reject") => Promise<unknown>
 }
 
 /**
  * Requests waiting for the organizer (Figma D-03, #53), oldest first, each
  * approved or rejected on its own (bulk is #60), with the applicant's
  * message in quotes (#175). Same buttons as the group's requests (D-07).
+ * Rejecting can't be taken back, so it asks first and says what the
+ * applicant will see (#185); approving is one click.
  */
 export function ManagedRequests({
   requests,
@@ -42,6 +57,9 @@ export function ManagedRequests({
   onDecide,
 }: ManagedRequestsProps) {
   const headingId = useId()
+  // kept after closing, so the dialog's text doesn't vanish while it fades out
+  const [rejecting, setRejecting] = useState<EventRequest | null>(null)
+  const [isRejectOpen, setIsRejectOpen] = useState(false)
   return (
     <section
       aria-labelledby={headingId}
@@ -120,7 +138,10 @@ export function ManagedRequests({
                           className="h-11"
                           disabled={isDeciding}
                           aria-label={`Zamítnout žádost: ${request.name}`}
-                          onClick={() => onDecide(request, "reject")}
+                          onClick={() => {
+                            setRejecting(request)
+                            setIsRejectOpen(true)
+                          }}
                         >
                           <X />
                           Zamítnout
@@ -131,7 +152,11 @@ export function ManagedRequests({
                           className="h-11"
                           disabled={isDeciding || isFull}
                           aria-label={`Schválit žádost: ${request.name}`}
-                          onClick={() => onDecide(request, "approve")}
+                          onClick={() =>
+                            onDecide(request, "approve").catch(() => {
+                              // the page's toast says why
+                            })
+                          }
                         >
                           <Check />
                           Schválit
@@ -145,6 +170,53 @@ export function ManagedRequests({
           </ul>
         </>
       )}
+      <Dialog
+        open={isRejectOpen}
+        onOpenChange={(isNowOpen) => {
+          // while the rejection is on its way, Esc, a click outside and the ✕ wait for
+          // the answer: closing would hide whether it went through (review #262)
+          if (!isNowOpen && isDeciding) return
+          setIsRejectOpen(isNowOpen)
+        }}
+      >
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Zamítnout žádost?</DialogTitle>
+            <DialogDescription>
+              {/* what ParticipationAction shows them; no e-mail goes out yet (#177) */}
+              {rejecting?.name} uvidí na detailu akce, že žádost byla zamítnuta, a novou na tuhle
+              akci už poslat nepůjde.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <DialogClose asChild>
+              <Button
+                variant="outline"
+                disabled={isDeciding}
+              >
+                Zpět
+              </Button>
+            </DialogClose>
+            <Button
+              variant="destructive"
+              // a second rejection while the first is on its way would only fail
+              disabled={isDeciding}
+              onClick={async () => {
+                if (!rejecting) return
+                try {
+                  await onDecide(rejecting, "reject")
+                  setIsRejectOpen(false)
+                } catch {
+                  // the page's toast says why; the dialog stays to try again
+                }
+              }}
+            >
+              {isDeciding ? <Loader2 className="size-4 animate-spin" /> : null}
+              Zamítnout
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </section>
   )
 }
