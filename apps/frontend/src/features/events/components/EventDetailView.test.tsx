@@ -120,6 +120,19 @@ describe("EventDetailView", () => {
     expect(screen.getByText("Herna má zavřeno.")).toBeInTheDocument()
     expect(screen.queryByText("4 z 12")).not.toBeInTheDocument()
     expect(screen.queryByText("min. 4")).not.toBeInTheDocument()
+    // it no longer happens, whatever its numbers say
+    expect(screen.queryByText("Koná se")).not.toBeInTheDocument()
+  })
+
+  // DESIGN.md › Koná se stamp: only once the minimum is reached, full included
+  it.each([
+    [{ approvedCount: 3, missingToMin: 1 }, false],
+    [{ approvedCount: 4, missingToMin: 0 }, true],
+    [{ approvedCount: 12, missingToMin: 0, freeSpots: 0, isFull: true }, true],
+  ])("with %o the „Koná se“ stamp shows: %s", async (numbers, isShown) => {
+    await renderWithRouter(<EventDetailView event={anEventDetail(numbers)} />)
+
+    expect(Boolean(screen.queryByText("Koná se"))).toBe(isShown)
   })
 
   it("shows the organizer's actions the page passes in", async () => {
