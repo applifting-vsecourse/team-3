@@ -11,6 +11,7 @@ import { EventCard } from "@/features/events/components/EventCard"
 import { EventCardSkeleton } from "@/features/events/components/EventList"
 import { useMyEvents } from "@/features/events/hooks/useMyEvents"
 import {
+  attendingFacts,
   attendingSections,
   attendingStatus,
   organizingFacts,
@@ -89,6 +90,7 @@ function AttendingSection({ title, events }: { title: string; events: MyEvent[] 
             <EventCard
               event={event}
               status={attendingStatus(event)}
+              facts={attendingFacts(event)}
               titleAs="h3"
             />
           </li>

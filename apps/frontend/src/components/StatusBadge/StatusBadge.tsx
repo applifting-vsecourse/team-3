@@ -3,7 +3,11 @@ import { cn } from "@/lib/utils"
 export type CapacityStatus =
   { kind: "missing"; missing: number } | { kind: "free" } | { kind: "full" } | { kind: "cancelled" }
 
-/** The user's own place, in „Moje akce“ (C-01): „Jdu“, „Čeká na schválení“. */
+/**
+ * The user's own place, in „Moje akce“ (C-01): „Jdu“, „Čeká“. A request only
+ * shows under the heading „Čeká na schválení“, so the badge says it short and
+ * leaves room for the occupancy next to it on a phone (#189).
+ */
 export type ParticipationBadge = { kind: "going" } | { kind: "pending" }
 
 export type BadgeStatus = CapacityStatus | ParticipationBadge
@@ -32,7 +36,7 @@ const label = (status: BadgeStatus): string => {
     case "going":
       return "Jdu"
     case "pending":
-      return "Čeká na schválení"
+      return "Čeká"
   }
 }
 
