@@ -22,18 +22,22 @@ export function HeaderMenu() {
   const signOut = useSignOut()
 
   // On mobile, signing in lives in the bottom navigation.
+  // The header sits on the band (Figma Header/App desktop): cream ghost and outline buttons.
   if (!user) {
     return (
       <div className="hidden items-center gap-2 md:flex">
         <Button
           asChild
           variant="ghost"
+          className="h-11 px-4 text-on-hero"
         >
           <Link to={ROUTES.login}>Přihlásit se</Link>
         </Button>
         <Button
           asChild
           variant="outline"
+          // the outline variant has its own dark: classes, so they are restated (DESIGN.md › Colour)
+          className="h-11 border-on-hero bg-transparent px-4 text-on-hero hover:bg-hero-pattern hover:text-on-hero dark:border-on-hero dark:bg-transparent dark:hover:bg-hero-pattern"
         >
           <Link to={ROUTES.signup}>Registrovat</Link>
         </Button>
@@ -46,12 +50,14 @@ export function HeaderMenu() {
       <DropdownMenuTrigger asChild>
         <Button
           variant="ghost"
-          size="icon"
+          size="icon-lg"
           aria-label="Uživatelské menu"
           className="rounded-full"
         >
-          <Avatar className="size-8">
-            <AvatarFallback>{initials(user.name)}</AvatarFallback>
+          <Avatar className="size-10 border border-on-hero-muted">
+            <AvatarFallback className="bg-secondary text-sm font-semibold text-secondary-foreground">
+              {initials(user.name)}
+            </AvatarFallback>
           </Avatar>
         </Button>
       </DropdownMenuTrigger>

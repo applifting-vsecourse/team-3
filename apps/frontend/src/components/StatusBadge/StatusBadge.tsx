@@ -1,26 +1,31 @@
+import { freeSpotsLabel } from "@/lib/occupancy"
 import { cn } from "@/lib/utils"
 
 export type CapacityStatus =
-  { kind: "missing"; missing: number } | { kind: "free" } | { kind: "full" } | { kind: "cancelled" }
+  | { kind: "missing"; missing: number }
+  | { kind: "free"; freeSpots: number }
+  | { kind: "full" }
+  | { kind: "cancelled" }
+  // a past event on its group's page (Figma A-08e)
+  | { kind: "past" }
 
-/**
- * The user's own place, in „Moje akce“ (C-01): „Jdu“, „Čeká“. A request only
- * shows under the heading „Čeká na schválení“, so the badge says it short and
- * leaves room for the occupancy next to it on a phone (#189).
- */
+/** The user's own place, in „Moje akce“ (C-01): „Jdu“, „Čeká na schválení“. */
 export type ParticipationBadge = { kind: "going" } | { kind: "pending" }
 
 export type BadgeStatus = CapacityStatus | ParticipationBadge
 
+// Figma Status badge: every fill carries its own edge, so the badge keeps 3:1 against
+// the card (DESIGN.md › Colour)
 const STYLES: Record<BadgeStatus["kind"], string> = {
   // the only highlighted state: the event can't happen without more people
-  missing: "bg-primary text-primary-foreground",
-  free: "bg-secondary text-secondary-foreground",
-  full: "bg-muted text-muted-foreground",
-  cancelled: "bg-foreground text-background",
+  missing: "border-primary-edge bg-primary text-primary-foreground",
+  free: "border-tile-border bg-secondary text-secondary-foreground",
+  full: "border-control-border bg-badge-neutral text-badge-neutral-foreground",
+  cancelled: "border-control-border bg-foreground text-background",
+  past: "border-control-border text-muted-foreground",
   // Figma draws these as the Volná and Plno variants with their own label
-  going: "bg-secondary text-secondary-foreground",
-  pending: "bg-muted text-muted-foreground",
+  going: "border-tile-border bg-secondary text-secondary-foreground",
+  pending: "border-control-border bg-badge-neutral text-badge-neutral-foreground",
 }
 
 const label = (status: BadgeStatus): string => {
@@ -28,15 +33,17 @@ const label = (status: BadgeStatus): string => {
     case "missing":
       return `Chybí ${status.missing}`
     case "free":
-      return "Volná místa"
+      return freeSpotsLabel(status.freeSpots)
     case "full":
       return "Plno"
     case "cancelled":
       return "Zrušeno"
+    case "past":
+      return "Proběhlo"
     case "going":
       return "Jdu"
     case "pending":
-      return "Čeká"
+      return "Čeká na schválení"
   }
 }
 
@@ -45,7 +52,7 @@ export function StatusBadge({ status, className }: { status: BadgeStatus; classN
   return (
     <span
       className={cn(
-        "inline-flex shrink-0 rounded-full px-2 py-0.5 text-xs font-semibold",
+        "inline-flex h-6 shrink-0 items-center rounded-full border px-2 text-xs font-semibold whitespace-nowrap",
         STYLES[status.kind],
         className,
       )}

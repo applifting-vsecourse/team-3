@@ -25,9 +25,10 @@ export function HeaderNavLink({ section, children, className, ...props }: Header
       // Active styling uses the data-status attribute rather than
       // `activeProps`: those classes would collide with the base ones and
       // Tailwind resolves such conflicts by stylesheet order, not by class order.
+      // On the band (Figma Header/App desktop): cream items, the active one a lime pill.
       className={cn(
-        "rounded-md px-3 py-2 text-sm font-medium text-muted-foreground transition-colors hover:text-foreground",
-        "data-[status=active]:bg-muted data-[status=active]:font-semibold data-[status=active]:text-foreground",
+        "rounded-md px-3 py-2 text-sm font-medium text-on-hero transition-colors hover:bg-hero-pattern",
+        "data-[status=active]:bg-primary data-[status=active]:font-semibold data-[status=active]:text-primary-foreground",
         className,
       )}
     >

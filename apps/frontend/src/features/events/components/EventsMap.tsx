@@ -2,13 +2,14 @@ import { useNavigate } from "@tanstack/react-router"
 
 import { ROUTES } from "@/app/routes"
 import { MapView, type MapCenter, type MapPinData } from "@/components/map/MapView"
+import { missingLabel } from "@/lib/occupancy"
 
 import type { PublicEvent } from "@/features/events/api/eventSchemas"
 
 /** Figma: Popisek špendlíku — „Večerní běh Letnou · chybí 1“ */
 const pinLabel = (event: PublicEvent) => {
   if (event.isFull) return `${event.title} · plno`
-  if (event.missingToMin > 0) return `${event.title} · chybí ${event.missingToMin}`
+  if (event.missingToMin > 0) return `${event.title} · ${missingLabel(event.missingToMin)}`
   return event.title
 }
 

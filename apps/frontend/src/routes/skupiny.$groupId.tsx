@@ -15,14 +15,15 @@ import { cn } from "@/lib/utils"
 import { AppHeader } from "@/features/auth/components/AppHeader"
 import { useSession } from "@/features/auth/hooks/useSession"
 import { redirectFrom } from "@/features/auth/lib/redirect"
+import { GroupEvents } from "@/features/events/components/GroupEvents"
 import { groupQueryOptions } from "@/features/groups/api/groupsQueryOptions"
-import { GroupProfile } from "@/features/groups/components/GroupProfile"
+import { GroupProfile, GROUPS_BACK } from "@/features/groups/components/GroupProfile"
 
 export const Route = createFileRoute("/skupiny/$groupId")({
   component: GroupPage,
 })
 
-/** Figma A-08, A-08d. Public: visitors see the page without an account. */
+/** Figma A-08, A-08d, A-08e. Public: visitors see the page without an account. */
 function GroupPage() {
   const { groupId } = Route.useParams()
   const session = useSession()
@@ -39,34 +40,41 @@ function GroupPage() {
     <>
       <Seo title={group?.name ?? (isNotFound ? "Skupina nenalezena" : "Skupina")} />
       <AppHeader />
-      <main className={cn(PAGE, "flex-1 gap-4")}>
-        <BackLink
-          to={ROUTES.groups}
-          fallbackLabel="Všechny skupiny"
-          label="Skupiny"
-        />
-
+      <main className="flex-1">
         {group ? (
           <GroupProfile
             group={group}
             isSignedIn={Boolean(user)}
             signInFrom={redirectFrom(location)}
-          />
-        ) : groupQuery.error ? (
-          <GroupError
-            isNotFound={isNotFound}
-            onRetry={() => void groupQuery.refetch()}
+            events={
+              <GroupEvents
+                groupId={groupId}
+                viewerId={viewerId}
+                membership={group.viewerMembership?.status ?? null}
+              />
+            }
           />
         ) : (
-          <div
-            className="flex flex-col gap-6"
-            aria-busy
-            aria-label="Načítám skupinu"
-          >
-            <h1 className="sr-only">Skupina</h1>
-            <Skeleton className="size-16 rounded-lg" />
-            <Skeleton className="h-9 w-3/4" />
-            <Skeleton className="h-32 w-full" />
+          // before there is a band: the column with the way back
+          <div className={cn(PAGE, "gap-4")}>
+            <BackLink {...GROUPS_BACK} />
+            {groupQuery.error ? (
+              <GroupError
+                isNotFound={isNotFound}
+                onRetry={() => void groupQuery.refetch()}
+              />
+            ) : (
+              <div
+                className="flex flex-col gap-6"
+                aria-busy
+                aria-label="Načítám skupinu"
+              >
+                <h1 className="sr-only">Skupina</h1>
+                <Skeleton className="size-16 rounded-lg" />
+                <Skeleton className="h-9 w-3/4" />
+                <Skeleton className="h-32 w-full" />
+              </div>
+            )}
           </div>
         )}
       </main>

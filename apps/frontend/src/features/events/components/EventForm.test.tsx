@@ -495,6 +495,60 @@ describe("EventForm", () => {
     })
   })
 
+  describe("a group's event (#70, Figma D-01g)", () => {
+    const group = { id: "g-deskovky", name: "Deskovkáři Karlín" }
+
+    it("names the group as the organizer and locks the activity to the group's", () => {
+      renderForm({ group, initialValues: { activityId: "a-deskove-hry" } })
+
+      expect(screen.getByText("Deskovkáři Karlín (skupina)")).toBeInTheDocument()
+      expect(screen.getByRole("combobox", { name: "Aktivita *" })).toBeDisabled()
+      expect(screen.getByText("Aktivita je podle skupiny a změnit nejde.")).toBeInTheDocument()
+    })
+
+    it("asks who sees it, public by default", () => {
+      renderForm({ group })
+
+      expect(screen.getByRole("radiogroup", { name: "Kdo akci uvidí *" })).toBeInTheDocument()
+      expect(screen.getByRole("radio", { name: /Veřejná/ })).toBeChecked()
+    })
+
+    it("sends the group and the visibility", async () => {
+      const start = new Date(Date.now() + 3 * 86_400_000)
+      start.setSeconds(0, 0)
+      const { onSubmit } = renderForm({
+        group,
+        initialValues: {
+          activityId: "a-deskove-hry",
+          localityId: "l-praha-8",
+          startsAt: start.toISOString(),
+        },
+      })
+
+      await userEvent.type(screen.getByLabelText("Název akce *"), "Středeční deskovky")
+      await userEvent.click(screen.getByRole("button", { name: "Umístit špendlík do středu mapy" }))
+      await userEvent.type(screen.getByLabelText("Adresa *"), "Herna Karlín, Křižíkova 52, Praha 8")
+      await userEvent.type(screen.getByLabelText("Minimum"), "3")
+      await userEvent.type(screen.getByLabelText("Maximum"), "6")
+      await userEvent.click(screen.getByRole("radio", { name: /Jen pro členy skupiny/ }))
+      await submit()
+
+      expect(onSubmit).toHaveBeenCalledWith(
+        expect.objectContaining({
+          activityId: "a-deskove-hry",
+          groupId: "g-deskovky",
+          visibility: "members",
+        }),
+      )
+    })
+
+    it("a person's own event doesn't ask who sees it", () => {
+      renderForm()
+
+      expect(screen.queryByRole("radiogroup", { name: "Kdo akci uvidí *" })).not.toBeInTheDocument()
+    })
+  })
+
   describe("editing (#41)", () => {
     const existing = {
       title: "Deskovky po práci",
