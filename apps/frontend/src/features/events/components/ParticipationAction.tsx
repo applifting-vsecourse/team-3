@@ -184,6 +184,19 @@ function JoinControl({ event, isOrganizer, isPending, onJoin, onLeave }: JoinCon
   // místo); known only here, at the moment of joining — a reload just says „Máš místo“
   const [hasJustJoined, setHasJustJoined] = useState(false)
   const [hasReachedMinimum, setHasReachedMinimum] = useState(false)
+  // The page's cache shows the place before `onJoin` resolves (React Query's onSuccess), so
+  // the thanks and the dot are worked out in the render that first shows it — not one render
+  // later, after a screen reader has read the other line (review #259). The detail then is
+  // the API's answer, so its numbers decide, not the ones from before the click.
+  const [isJoining, setIsJoining] = useState(false)
+  if (isJoining && event.myParticipation !== null) {
+    setIsJoining(false)
+    // answered without a place (a request): nothing to thank for
+    if (event.myParticipation === "approved") {
+      setHasJustJoined(true)
+      setHasReachedMinimum(isMinimumReachedByLast(event))
+    }
+  }
   const change = (action: () => Promise<unknown>) => async () => {
     shouldFocusNewState.current = true
     try {
@@ -285,9 +298,14 @@ function JoinControl({ event, isOrganizer, isPending, onJoin, onLeave }: JoinCon
   // the API's answer tells whether this place reached the minimum; the cached numbers from
   // before the click may be stale (someone else may have joined meanwhile)
   const join = change(async () => {
-    const updated = await onJoin()
-    setHasJustJoined(true)
-    setHasReachedMinimum(updated.myParticipation === "approved" && isMinimumReachedByLast(updated))
+    setIsJoining(true)
+    try {
+      await onJoin()
+    } catch (error) {
+      // refused: the button stays, nothing to thank for
+      setIsJoining(false)
+      throw error
+    }
   })
   return (
     <Button
