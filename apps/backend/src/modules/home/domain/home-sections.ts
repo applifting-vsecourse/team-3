@@ -70,7 +70,10 @@ export type HomeViewer = {
    * took part in (B-027). Empty: „Podle tvých zájmů“ is a random pick.
    */
   interestActivityIds: string[];
-  /** Events where the user already has a place or a request waiting. */
+  /**
+   * Events the user can't ask to join any more: with their place or waiting
+   * request, or where the organizer rejected or removed them.
+   */
   joinedEventIds: string[];
 };
 
@@ -154,8 +157,9 @@ const shuffled = <T>(items: readonly T[], random: () => number): T[] => {
  *   the first. So a weekend event that misses people is in „Tady chybíš“,
  *   not again in „Tento víkend“.
  * - Only events one can still join: a full event is in no section, and a
- *   signed-in user doesn't get events they organize or already joined or
- *   asked to join („Akce, na které už jdeš, tu nejsou“, Figma A-01pd).
+ *   signed-in user doesn't get events they organize, already joined or
+ *   asked to join („Akce, na které už jdeš, tu nejsou“, Figma A-01pd), or
+ *   were rejected or removed from (no new request is possible).
  * - A section with no events is left out.
  *
  * `events` must already be only upcoming, public and published (the

@@ -41,7 +41,7 @@ export class HomeController {
       'Sections of the landing page (#182), chosen and ordered by the server; public, more for a signed-in user',
     description:
       'Only upcoming, published, public events that are not full. An event is only in the first section it belongs to ' +
-      '(the highlight panel is the first). A signed-in user gets no events they organize or already joined or asked to join, ' +
+      '(the highlight panel is the first). A signed-in user gets no events they organize, already joined or asked to join, or were rejected or removed from, ' +
       'no groups they are in, and `interests` instead of `popular`; a visitor the other way round. ' +
       '`interests`: activities from the profile and of past events the user took part in, otherwise a random pick. ' +
       '`wellRated`: an organizer, or a group for its events, with an average of at least 4.5 from at least 3 ratings; one event per organizer. ' +

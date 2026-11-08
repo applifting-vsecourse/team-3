@@ -37,9 +37,34 @@ describe('HomeRepository', () => {
       });
       expect(joined).toEqual({
         userId: 'u1',
-        status: { in: ['approved', 'pending'] },
+        status: { in: ['approved', 'pending', 'rejected', 'removed'] },
         event: { startsAt: { gt: now } },
       });
+    });
+
+    it('leaves out events where the organizer rejected or removed the user, not where they withdrew (review #263)', async () => {
+      const prisma = mockDeep<PrismaService>();
+      prisma.user.findUnique.mockResolvedValue({
+        homeLocalityId: null,
+        interests: [],
+      } as never);
+      prisma.participation.findMany
+        .mockResolvedValueOnce([] as never)
+        .mockResolvedValueOnce([
+          { eventId: 'e-rejected' },
+          { eventId: 'e-removed' },
+        ] as never);
+
+      const viewer = await new HomeRepository(prisma).findViewer('u1', now);
+
+      expect(viewer?.joinedEventIds).toEqual(['e-rejected', 'e-removed']);
+      const statuses = (
+        prisma.participation.findMany.mock.calls[1][0]?.where?.status as {
+          in: string[];
+        }
+      ).in;
+      expect(statuses).toEqual(expect.arrayContaining(['rejected', 'removed']));
+      expect(statuses).not.toContain('withdrawn');
     });
 
     it('an unknown user is null', async () => {

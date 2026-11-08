@@ -1,5 +1,5 @@
 import { PrismaService } from '@/core/prisma/prisma.service';
-import { INTEREST_STATUSES } from '@/modules/event/domain/interest';
+import { NO_NEW_REQUEST_STATUSES } from '@/modules/event/domain/participation';
 import {
   groupRatingSummary,
   organizerRatingSummary,
@@ -23,7 +23,10 @@ export type HomeViewerData = {
   homeLocalityId: string | null;
   /** Interests in the profile and activities of events the user took part in. */
   interestActivityIds: string[];
-  /** Upcoming events with the user's place or waiting request. */
+  /**
+   * Upcoming events the user can't ask to join any more: with their place or
+   * waiting request, or where the organizer rejected or removed them.
+   */
   joinedEventIds: string[];
 };
 
@@ -65,10 +68,11 @@ export class HomeRepository {
         select: { event: { select: { activityId: true } } },
         distinct: ['eventId'],
       }),
+      // not offered again: the backend wouldn't take a new request (decideJoin)
       this.prisma.participation.findMany({
         where: {
           userId,
-          status: { in: INTEREST_STATUSES },
+          status: { in: NO_NEW_REQUEST_STATUSES },
           event: { startsAt: { gt: now } },
         },
         select: { eventId: true },
