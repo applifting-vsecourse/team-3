@@ -46,7 +46,9 @@ These are rules, not suggestions. When a rule and a "nicer looking" idea disagre
 | `ring`                                            | `#265212`                         | `#b9f53c`                         | Focus ring                                                                |
 | `map-land`, `map-road`, `map-water`, `map-park`   | see Figma                         | see Figma                         | Map placeholder (the real map uses its own tiles)                         |
 
-**Kit aliases.** The vendored kit reads shadcn's own names; `global.css` keeps them and points them at the tokens above, so the kit restyles without edits: `input` = `input-border`, `popover` = `card`, `card-foreground` = `popover-foreground` = `foreground`, `accent` / `accent-foreground` = `muted` / `foreground` (hover in buttons, menus, selects, the calendar), `destructive-hover` is mixed from `destructive`. They are part of the contract — never delete them as unused.
+The page sets `color-scheme` to match the theme, so native scrollbars and form controls are dark in dark mode.
+
+**Kit aliases.** The vendored kit reads shadcn's own names; `global.css` keeps them and points them at the tokens above, so the kit restyles without edits: `input` = `input-border`, `popover` = `card`, `card-foreground` = `popover-foreground` = `foreground`, `accent` / `accent-foreground` = `muted` / `foreground` (hover in buttons, menus, selects, the calendar, and the active row of a list) — in dark mode `accent` is its own `#2e4b3a`, because `muted` is 1.05:1 on a dark card and the hovered or keyboard-active row disappeared (tokens.test.ts wants at least 1.25:1 on `card`), `destructive-hover` is mixed from `destructive`. They are part of the contract — never delete them as unused.
 
 Tokens under `color/_archiv/*` in Figma belong to archived screens only — do not add them to `global.css`.
 

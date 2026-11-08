@@ -89,6 +89,8 @@
 }
 
 :root {
+  /* Native scrollbars and form controls follow the theme (.dark switches it). */
+  color-scheme: light;
   /* Values from the Figma collection "HobbyHub tokens" (Light). Names match 1:1; where Figma
      aliases one token to another, so does var() here. */
   --font-sans: "Geist Variable", ui-sans-serif, system-ui, sans-serif;
@@ -164,6 +166,7 @@
    the aliases above resolve against these values only because .dark sits on <html>, the same
    element as :root — on a subtree they would inherit the light values already computed. */
 .dark {
+  color-scheme: dark;
   --background: #0f1612;
   --foreground: #eef3ea;
   --card: #162c20;
@@ -172,6 +175,9 @@
   --primary-edge: var(--primary);
   --secondary: #24402f;
   --secondary-foreground: #eef3ea;
+  /* hover and the active row in lists and menus: `muted` is 1.05:1 on a dark card, so the row
+     under the pointer or the keyboard was invisible; this one is 1.5:1 on card, 1.9:1 on page */
+  --accent: #2e4b3a;
   --tile-border: #7d8a82;
   /* lighter than in light mode: #b42318 is too dark as error text on a dark card */
   --destructive: #f97066;

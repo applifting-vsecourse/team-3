@@ -84,6 +84,7 @@ const TEXT_PAIRS: [string, string][] = [
   ["avatar-self-foreground", "avatar-self"], // the „ty“ avatar
   ["highlight-text", "background"], // section keyword (lime word in dark mode)
   ["highlight-text", "highlight-marker"], // …over its marker in light mode
+  ["accent-foreground", "accent"], // hovered or active row in a list or menu
 ]
 
 // DESIGN.md › Colour: every non-text element and every surface edge at least 3:1 against
@@ -120,6 +121,12 @@ describe.each([
 
   it.each(EDGE_PAIRS)("%s against %s is at least 3:1", (element, surround) => {
     expect(contrast(tokens[element]!, tokens[surround]!)).toBeGreaterThanOrEqual(3)
+  })
+
+  // A surface, not an edge, so not 3:1 — but the row under the pointer or the keyboard in a
+  // panel must stand out from it (dark `muted` was 1.05:1 on `card`).
+  it("the hover surface (accent) stands out from a card or panel", () => {
+    expect(contrast(tokens.accent!, tokens.card!)).toBeGreaterThanOrEqual(1.25)
   })
 
   it("destructive-foreground on the destructive hover is at least 4.5:1", () => {
