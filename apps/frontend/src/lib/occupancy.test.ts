@@ -7,9 +7,11 @@ import {
   gatheredLabel,
   happeningThanks,
   isMinimumReachedByLast,
+  missedMinimumLabel,
   missingLabel,
   occupancyBesideBadge,
   occupancyCount,
+  occupancyInBand,
   occupancyState,
   occupancyStatus,
   occupancySummary,
@@ -118,6 +120,22 @@ describe("occupancySummary", () => {
   })
 })
 
+describe("occupancyInBand", () => {
+  // Figma A-05d, A-05c
+  it("below the minimum how many are missing, from the API", () => {
+    expect(occupancyInBand(occupancy(5, 6, 10))).toBe("do minima chybí 1")
+    expect(occupancyInBand(occupancy(5, 6, 10, { missingToMin: 2 }))).toBe("do minima chybí 2")
+  })
+
+  it("from the minimum the count, and that the minimum is reached", () => {
+    expect(occupancyInBand(occupancy(6, 6, 10))).toBe("6 z 10, minimum je naplněné")
+  })
+
+  it("full says so", () => {
+    expect(occupancyInBand(occupancy(10, 6, 10))).toBe("10 z 10, plno")
+  })
+})
+
 describe("isMinimumReachedByLast", () => {
   it("only the place that makes the approved count equal the minimum", () => {
     expect(isMinimumReachedByLast({ approvedCount: 4, minParticipants: 4 })).toBe(true)
@@ -143,5 +161,16 @@ describe("gatheredLabel", () => {
       "Sešli se 3 lidé",
       "Sešlo se 5 lidí",
     ])
+  })
+})
+
+describe("missedMinimumLabel (review #269)", () => {
+  it.each([
+    [0, 4, "Nikdo se nepřihlásil."],
+    [3, 1, "Do minima chyběl 1 člověk."],
+    [2, 2, "Do minima chyběli 2 lidé."],
+    [1, 5, "Do minima chybělo 5 lidí."],
+  ])("%i přihlášených, chybí %i: „%s“", (approvedCount, missingToMin, label) => {
+    expect(missedMinimumLabel({ approvedCount, missingToMin })).toBe(label)
   })
 })

@@ -93,6 +93,65 @@ export function formatRequestEventStart(date: Date): string {
   return `${weekday} ${day}. ${month}. v ${time}`
 }
 
+const DAY_MS = 24 * 60 * 60 * 1000
+const pragueDayFormat = new Intl.DateTimeFormat("en-CA", { timeZone: PRAGUE_TZ })
+const pragueDay = (date: Date): number => Date.parse(pragueDayFormat.format(date))
+
+const offsetFormat = new Intl.DateTimeFormat("en-US", {
+  timeZone: PRAGUE_TZ,
+  timeZoneName: "longOffset",
+})
+
+/** Prague's offset from UTC at that moment, in minutes (60 in winter, 120 in summer). */
+function pragueOffsetMinutes(date: Date): number {
+  const name = offsetFormat.formatToParts(date).find((part) => part.type === "timeZoneName")
+  const match = /GMT([+-])(\d{2}):(\d{2})/.exec(name?.value ?? "")
+  if (!match) return 0
+  return (match[1] === "-" ? -1 : 1) * (Number(match[2]) * 60 + Number(match[3]))
+}
+
+/** Midnight at the end of the Prague day the moment falls on. */
+export function endOfPragueDay(date: Date): Date {
+  const nextDayUtc = pragueDay(date) + DAY_MS
+  return new Date(nextDayUtc - pragueOffsetMinutes(new Date(nextDayUtc)) * 60 * 1000)
+}
+
+/**
+ * Whether an event is over: past its end, or — without one — past the end of its day. An
+ * 18:00 event with no end time is still going at 18:05 (review #269), so it doesn't read
+ * „Akce proběhla“ while people are there.
+ */
+export const isEventOver = (event: { startsAt: Date; endsAt: Date | null }, now: Date): boolean =>
+  (event.endsAt ?? endOfPragueDay(event.startsAt)) <= now
+// „v pondělí“… with the preposition each day takes
+const ON_WEEKDAY = [
+  "v neděli",
+  "v pondělí",
+  "v úterý",
+  "ve středu",
+  "ve čtvrtek",
+  "v pátek",
+  "v sobotu",
+]
+
+/**
+ * When an event starts, said as in a sentence (Figma C-01d: „Nejbližší: florbal v sobotu
+ * v 19:00“): „dnes v 19:00“, „zítra v 19:00“, the weekday within a week, else „23. 10. v 19:00“.
+ */
+export function formatStartInSentence(date: Date, now: Date): string {
+  const days = Math.round((pragueDay(date) - pragueDay(now)) / DAY_MS)
+  const time = timeFormat.format(date)
+  if (days === 0) return `dnes v ${time}`
+  if (days === 1) return `zítra v ${time}`
+  if (days > 1 && days < 7) {
+    return `${ON_WEEKDAY[new Date(pragueDay(date)).getUTCDay()]} v ${time}`
+  }
+  const parts = dayMonthFormat.formatToParts(date)
+  const get = (type: Intl.DateTimeFormatPartTypes) =>
+    parts.find((part) => part.type === type)?.value ?? ""
+  return `${get("day")}. ${get("month")}. v ${time}`
+}
+
 // a Prague day `YYYY-MM-DD` is read as a UTC date, so the time zone can't move it
 const formDayFormat = new Intl.DateTimeFormat("cs-CZ", {
   timeZone: "UTC",

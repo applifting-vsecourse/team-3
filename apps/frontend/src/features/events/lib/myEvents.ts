@@ -1,6 +1,7 @@
 import { z } from "zod"
 
 import type { BadgeStatus } from "@/components/StatusBadge/StatusBadge"
+import { inSentence } from "@/lib/inSentence"
 import {
   missingLabel,
   occupancyBesideBadge,
@@ -9,7 +10,7 @@ import {
 } from "@/lib/occupancy"
 
 import type { MyEvent } from "@/features/events/api/eventSchemas"
-import { capacityStatus } from "@/features/events/lib/formatEvent"
+import { capacityStatus, formatStartInSentence } from "@/features/events/lib/formatEvent"
 
 /**
  * Přihlášen (C-01): requests waiting for approval on top, apart from the
@@ -113,4 +114,36 @@ export function pendingRequestsSummary(
     title: `${requestsWaiting(total)} na schválení`,
     events: waiting.map((event) => `${event.title} (${waitingRequests(event)})`).join(", "),
   }
+}
+
+/** Pořádám (C-02, decided 4. 11.): Nadcházející, then Zrušené, each soonest first as the API sends them. */
+export function organizingSections(events: MyEvent[]): {
+  upcoming: MyEvent[]
+  cancelled: MyEvent[]
+} {
+  return {
+    upcoming: events.filter((event) => event.status !== "cancelled"),
+    cancelled: events.filter((event) => event.status === "cancelled"),
+  }
+}
+
+/**
+ * The band's line in Přihlášen (Figma C-01d): what the tab holds, and the nearest event I go
+ * to or wait for — „Nejbližší: florbal v sobotu v 19:00.“ Cancelled ones don't count.
+ */
+export function attendingLine(events: MyEvent[] | undefined, now: Date): string {
+  const line = "Akce, kam jdeš, a ty, kde čekáš na schválení."
+  const nearest = events
+    ?.filter((event) => event.status !== "cancelled" && event.startsAt > now)
+    .toSorted((a, b) => a.startsAt.getTime() - b.startsAt.getTime())[0]
+  if (!nearest) return line
+  return `${line} Nejbližší: ${inSentence(nearest.activity.name)} ${formatStartInSentence(nearest.startsAt, now)}.`
+}
+
+/** The band's line in Pořádám (Figma C-02d): „… Na schválení čekají 4 žádosti.“ when any wait. */
+export function organizingLine(events: MyEvent[] | undefined): string {
+  const line = "Akce, které pořádáš, od nejbližší."
+  const total = (events ?? []).reduce((sum, event) => sum + waitingRequests(event), 0)
+  if (total === 0) return line
+  return `${line} Na schválení ${total >= 2 && total <= 4 ? "čekají" : "čeká"} ${requestCountLabel(total)}.`
 }

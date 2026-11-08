@@ -1,3 +1,5 @@
+import { inSentence } from "@/lib/inSentence"
+
 /**
  * How full an event is, in words (#189, Figma 4. 11.). The card, the detail
  * and Moje akce all say it with these, so one number never means two things:
@@ -78,6 +80,22 @@ export function occupancySummary(occupancy: Occupancy): string {
 }
 
 /**
+ * The occupancy at the end of the detail band's line (Figma A-05d, A-05c): „do minima chybí 1“,
+ * „6 z 10, minimum je naplněné“, „10 z 10, plno“. Numbers, not words (DESIGN.md › Copy) —
+ * Figma's „chybí jeden“ is the sample text.
+ */
+export function occupancyInBand(occupancy: Occupancy): string {
+  switch (occupancyState(occupancy)) {
+    case "missing":
+      return `do minima ${missingLabel(occupancy.missingToMin)}`
+    case "free":
+      return `${occupancyCount(occupancy)}, minimum je naplněné`
+    case "full":
+      return `${occupancyCount(occupancy)}, plno`
+  }
+}
+
+/**
  * The detail as the API answers a sign-up: this very place reached the minimum when the
  * approved count is now exactly the minimum (DESIGN.md › Máš místo, Figma A-05c).
  */
@@ -94,7 +112,7 @@ export function happeningThanks({
 }: Pick<Occupancy, "approvedCount" | "minParticipants">): string {
   if (approvedCount === 1) return "Díky tobě se akce koná."
   const gathered = gatheredLabel(approvedCount)
-  return `Díky tobě se akce koná – ${gathered.charAt(0).toLowerCase()}${gathered.slice(1)}, minimum je ${minParticipants}.`
+  return `Díky tobě se akce koná – ${inSentence(gathered)}, minimum je ${minParticipants}.`
 }
 
 /** How many came: „Sešlo se 5 lidí“, „Sešli se 3 lidé“, „Sešel se 1 člověk“ (Figma Karta akce/Proběhlá řádek). */
@@ -102,4 +120,18 @@ export function gatheredLabel(count: number): string {
   if (count === 1) return "Sešel se 1 člověk"
   if (count >= 2 && count <= 4) return `Sešli se ${count} lidé`
   return `Sešlo se ${count} lidí`
+}
+
+/**
+ * A past event that never reached its minimum (review #269): „Nikdo se nepřihlásil.“, or how
+ * many were missing — „Do minima chyběl 1 člověk.“, „chyběli 2 lidé“, „chybělo 5 lidí“.
+ */
+export function missedMinimumLabel({
+  approvedCount,
+  missingToMin,
+}: Pick<Occupancy, "approvedCount" | "missingToMin">): string {
+  if (approvedCount === 0) return "Nikdo se nepřihlásil."
+  if (missingToMin === 1) return "Do minima chyběl 1 člověk."
+  if (missingToMin >= 2 && missingToMin <= 4) return `Do minima chyběli ${missingToMin} lidé.`
+  return `Do minima chybělo ${missingToMin} lidí.`
 }

@@ -3,12 +3,15 @@ import { describe, expect, it } from "vitest"
 import { aMyEvent } from "@/features/events/test/anEvent"
 
 import {
+  attendingLine,
   attendingNumbers,
   attendingRowLead,
   attendingSections,
   attendingStatus,
+  organizingLine,
   organizingNumbers,
   organizingRowTail,
+  organizingSections,
   organizingStatus,
   pendingRequestsSummary,
   requestCountLabel,
@@ -201,5 +204,55 @@ describe("pendingRequestsSummary", () => {
     expect(
       pendingRequestsSummary([aMyEvent({ status: "cancelled", pendingRequests: 3 })]),
     ).toBeNull()
+  })
+})
+
+describe("organizingSections", () => {
+  it("upcoming apart from cancelled, keeping the order (C-02, 4. 11.)", () => {
+    const a = aMyEvent({ id: "a" })
+    const b = aMyEvent({ id: "b", status: "cancelled" })
+    const c = aMyEvent({ id: "c" })
+
+    expect(organizingSections([a, b, c])).toEqual({ upcoming: [a, c], cancelled: [b] })
+  })
+})
+
+describe("band lines (Figma C-01d, C-02d)", () => {
+  // the fixture starts Fri 23. 10. 2026 17:30 Prague time
+  const monday = new Date("2026-10-19T08:00:00.000Z")
+
+  it("Přihlášen names the nearest event that still happens", () => {
+    const later = aMyEvent({ id: "later", startsAt: new Date("2026-10-30T16:30:00.000Z") })
+    const cancelled = aMyEvent({
+      id: "x",
+      status: "cancelled",
+      startsAt: new Date("2026-10-20T16:30:00.000Z"),
+    })
+
+    expect(attendingLine([later, aMyEvent(), cancelled], monday)).toBe(
+      "Akce, kam jdeš, a ty, kde čekáš na schválení. Nejbližší: jazykový tandem v pátek v 17:30.",
+    )
+  })
+
+  it("keeps an acronym in the activity's name („RPG“, review #269)", () => {
+    const rpg = aMyEvent({
+      activity: { ...aMyEvent().activity, name: "RPG (D&D apod.)" },
+    })
+
+    expect(attendingLine([rpg], monday)).toMatch(/Nejbližší: RPG \(D&D apod\.\) v pátek/)
+  })
+
+  it("Přihlášen without an event to go to says only what the tab holds", () => {
+    expect(attendingLine([], monday)).toBe("Akce, kam jdeš, a ty, kde čekáš na schválení.")
+    expect(attendingLine(undefined, monday)).toBe("Akce, kam jdeš, a ty, kde čekáš na schválení.")
+  })
+
+  it.each([
+    [0, "Akce, které pořádáš, od nejbližší."],
+    [1, "Akce, které pořádáš, od nejbližší. Na schválení čeká 1 žádost."],
+    [4, "Akce, které pořádáš, od nejbližší. Na schválení čekají 4 žádosti."],
+    [5, "Akce, které pořádáš, od nejbližší. Na schválení čeká 5 žádostí."],
+  ])("Pořádám with %i requests: „%s“", (pendingRequests, line) => {
+    expect(organizingLine([aMyEvent({ pendingRequests })])).toBe(line)
   })
 })

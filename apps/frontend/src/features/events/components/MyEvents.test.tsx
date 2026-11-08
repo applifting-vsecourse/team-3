@@ -101,8 +101,13 @@ describe("AttendingEvents", () => {
 
     await renderWithQuery(<AttendingEvents viewerId="u1" />)
 
-    expect(await screen.findByText("Zatím nejdeš na žádnou akci.")).toBeInTheDocument()
-    expect(screen.getByRole("link", { name: "Projít akce" })).toHaveAttribute("href", "/akce")
+    expect(
+      await screen.findByText("Zatím nejdeš na žádnou akci. Mrkni, komu v okolí chybí lidé."),
+    ).toBeInTheDocument()
+    expect(screen.getByRole("link", { name: "Projít akce" })).toHaveAttribute(
+      "href",
+      "/akce?obsazenost=chybi",
+    )
   })
 
   it("with only cancelled events still says I go nowhere, above them (#183)", async () => {
@@ -110,8 +115,13 @@ describe("AttendingEvents", () => {
 
     await renderWithQuery(<AttendingEvents viewerId="u1" />)
 
-    const empty = await screen.findByText("Zatím nejdeš na žádnou akci.")
-    expect(screen.getByRole("link", { name: "Projít akce" })).toHaveAttribute("href", "/akce")
+    const empty = await screen.findByText(
+      "Zatím nejdeš na žádnou akci. Mrkni, komu v okolí chybí lidé.",
+    )
+    expect(screen.getByRole("link", { name: "Projít akce" })).toHaveAttribute(
+      "href",
+      "/akce?obsazenost=chybi",
+    )
     const cancelled = screen.getByRole("region", { name: "Zrušené (1)" })
     expect(within(cancelled).getByRole("link", { name: "Volejbal" })).toBeInTheDocument()
     // the empty state comes first, the cancelled section after it
@@ -127,7 +137,9 @@ describe("AttendingEvents", () => {
 
     expect(await screen.findByText("Akce se nepodařilo načíst")).toBeInTheDocument()
     await userEvent.click(screen.getByRole("button", { name: "Zkusit znovu" }))
-    expect(await screen.findByText("Zatím nejdeš na žádnou akci.")).toBeInTheDocument()
+    expect(
+      await screen.findByText("Zatím nejdeš na žádnou akci. Mrkni, komu v okolí chybí lidé."),
+    ).toBeInTheDocument()
   })
 })
 
@@ -136,6 +148,21 @@ describe("OrganizingEvents", () => {
 
   const organized = (overrides: Parameters<typeof aMyEvent>[0]) =>
     aMyEvent({ myParticipation: null, pendingRequests: 0, ...overrides })
+
+  it("puts the upcoming events apart from the cancelled ones (C-02, 4. 11.)", async () => {
+    get.mockReturnValue(
+      asJson([
+        organized({ id: "e1", title: "Deskovky" }),
+        organized({ id: "e2", title: "Fotovycházka", status: "cancelled" }),
+      ]),
+    )
+
+    await renderWithQuery(<OrganizingEvents viewerId="u1" />)
+
+    const upcoming = await screen.findByRole("region", { name: "Nadcházející (1)" })
+    expect(upcoming).toHaveTextContent("Deskovky")
+    expect(screen.getByRole("region", { name: "Zrušené (1)" })).toHaveTextContent("Fotovycházka")
+  })
 
   it("sums up the waiting requests and opens each event's management", async () => {
     get.mockReturnValue(
@@ -189,6 +216,10 @@ describe("OrganizingEvents", () => {
 
     await renderWithQuery(<OrganizingEvents viewerId="u1" />)
 
-    expect(await screen.findByText("Zatím nepořádáš žádnou akci.")).toBeInTheDocument()
+    expect(
+      await screen.findByText(
+        "Zatím nepořádáš žádnou akci. Stačí název, místo a čas – parta se sejde.",
+      ),
+    ).toBeInTheDocument()
   })
 })

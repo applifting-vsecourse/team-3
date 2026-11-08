@@ -70,6 +70,17 @@ describe("EventCard", () => {
     expect(screen.getByRole("article")).toHaveClass("ring-2", "ring-foreground", "border")
   })
 
+  it("the management's card leaves the occupancy to the big bar under it (D-03)", async () => {
+    const { container } = await renderWithRouter(
+      <EventCard
+        event={anEvent()}
+        hasBar={false}
+      />,
+    )
+
+    expect(container.querySelector("[data-slot=capacity-track]")).toBeNull()
+  })
+
   it("a grid card's photo is full width on a phone, so the browser picks the big file", async () => {
     const { container } = await renderWithRouter(
       <EventCard
