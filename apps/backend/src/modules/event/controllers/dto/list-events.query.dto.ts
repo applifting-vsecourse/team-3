@@ -1,4 +1,8 @@
 import {
+  BBOX_PATTERN,
+  parseBoundingBox,
+} from '@/modules/event/domain/bounding-box';
+import {
   CAPACITY_FILTERS,
   CapacityFilter,
 } from '@/modules/event/domain/capacity';
@@ -40,6 +44,17 @@ class NotBeforeDateFrom implements ValidatorConstraintInterface {
 
   defaultMessage(): string {
     return 'dateTo must not be before dateFrom';
+  }
+}
+
+@ValidatorConstraint({ name: 'boundingBox' })
+class IsBoundingBox implements ValidatorConstraintInterface {
+  validate(value: string): boolean {
+    return parseBoundingBox(value) !== undefined;
+  }
+
+  defaultMessage(): string {
+    return 'bbox must be west,south,east,north in degrees, west < east and south < north';
   }
 }
 
@@ -113,6 +128,16 @@ export class ListEventsQueryDto {
   @IsOptional()
   @IsIn(CAPACITY_FILTERS)
   capacity?: CapacityFilter;
+
+  @ApiPropertyOptional({
+    example: '14.3,50.0,14.6,50.15',
+    description:
+      'The visible area of the map, west,south,east,north (GeoJSON order): only events placed inside it („Hledat v této oblasti“)',
+  })
+  @IsOptional()
+  @Matches(BBOX_PATTERN, { message: 'bbox must be four numbers' })
+  @Validate(IsBoundingBox)
+  bbox?: string;
 
   @ApiPropertyOptional({
     enum: PUBLIC_EVENT_SORTS,

@@ -25,6 +25,7 @@ describe('buildPublicEventsWhere', () => {
     ['date range', { dateFrom: '2026-10-01', dateTo: '2026-10-30' }],
     ['activity', { activityIds: ['a-volejbal'] }],
     ['category', { categoryIds: ['c-hry'] }],
+    ['map area', { bbox: { west: 14.3, south: 50, east: 14.6, north: 50.15 } }],
     [
       'all filters',
       {
@@ -99,5 +100,17 @@ describe('buildPublicEventsWhere', () => {
   it('capacity is not part of the query (the service applies it)', () => {
     expect(conditionsOf({ capacity: 'free' })).toEqual([VISIBLE_ONLY]);
     expect(conditionsOf({ capacity: 'missing' })).toEqual([VISIBLE_ONLY]);
+  });
+
+  it('keeps to the map area by the place of the event, together with the locality', () => {
+    expect(
+      conditionsOf({
+        localityId: 'l-praha',
+        bbox: { west: 14.3, south: 50, east: 14.6, north: 50.15 },
+      }),
+    ).toContainEqual({
+      lat: { gte: 50, lte: 50.15 },
+      lng: { gte: 14.3, lte: 14.6 },
+    });
   });
 });
