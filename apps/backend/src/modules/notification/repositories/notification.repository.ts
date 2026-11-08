@@ -97,19 +97,14 @@ export class NotificationRepository {
   }
 
   /**
-   * The group's active members, admins included (#194), except
-   * `exceptUserId`: the admin who wrote the announcement. A pending request
+   * The group's active members, admins included (#194). A pending request
    * or a block is not membership.
    */
-  async findActiveMembers(
-    groupId: string,
-    exceptUserId: string,
-  ): Promise<Recipient[]> {
+  async findActiveMembers(groupId: string): Promise<Recipient[]> {
     const members = await this.prisma.groupMember.findMany({
       where: {
         groupId,
         status: 'active',
-        userId: { not: exceptUserId },
         user: deliverable,
       },
       select: { user: { select: recipientSelect } },

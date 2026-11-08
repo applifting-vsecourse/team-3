@@ -134,20 +134,19 @@ describe('NotificationRepository', () => {
       ).resolves.toEqual(row);
     });
 
-    it('findActiveMembers is the active members, admins too, not the sender, not blocked or deleted', async () => {
+    it('findActiveMembers is the active members, admins too, not blocked or deleted', async () => {
       const prisma = mockDeep<PrismaService>();
       const jana = { id: 'u2', name: 'Jana', email: 'jana@example.com' };
       prisma.groupMember.findMany.mockResolvedValue([{ user: jana }] as never);
 
       await expect(
-        new NotificationRepository(prisma).findActiveMembers('g1', 'u1'),
+        new NotificationRepository(prisma).findActiveMembers('g1'),
       ).resolves.toEqual([jana]);
       expect(prisma.groupMember.findMany).toHaveBeenCalledWith(
         expect.objectContaining({
           where: {
             groupId: 'g1',
             status: 'active',
-            userId: { not: 'u1' },
             user: deliverable,
           },
         }),

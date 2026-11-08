@@ -82,15 +82,14 @@ export function formatAnnouncementTime(date: Date): string {
 }
 
 /**
- * Who gets an announcement (Figma D-08). `otherMembers`: the active members
- * besides the admin writing it, who gets no e-mail of their own.
+ * Who gets an announcement (Figma D-08): every active member, the admin
+ * writing it included (`memberCount`).
  */
-export function announcementRecipientsLabel(otherMembers: number): string {
-  if (otherMembers <= 0) {
+export function announcementRecipientsLabel(memberCount: number): string {
+  if (memberCount <= 1) {
     return "Ve skupině zatím nikdo další není. Oznámení zůstane na stránce skupiny pro nové členy."
   }
-  const whom = otherMembers === 1 ? "1 aktivnímu členovi" : `všem ${otherMembers} aktivním členům`
-  return `Oznámení přijde e-mailem ${whom} a uvidí ho na stránce skupiny. Čekající žadatelé ho nedostanou.`
+  return `Oznámení přijde e-mailem všem ${memberCount} aktivním členům a uvidí ho na stránce skupiny. Čekající žadatelé ho nedostanou.`
 }
 
 /** Under the text (Figma D-08): what is left of today's limit; „oznámení“ is the same in every count. */

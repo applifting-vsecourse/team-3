@@ -200,19 +200,19 @@ describe('NotificationService.deliver', () => {
       group: { id: 'g1', name: 'Florbal Podvinný mlýn' },
     };
 
-    it('goes to the active members but not to the admin who wrote it, with a link to the group', async () => {
+    it('goes to every active member, the admin who wrote it too, with a link to the group', async () => {
       const { repository, email, service } = setup();
       repository.findAnnouncement.mockResolvedValue(announcement);
-      repository.findActiveMembers.mockResolvedValue([jana, tomas]);
+      repository.findActiveMembers.mockResolvedValue([organizer, jana, tomas]);
 
       await service.deliver({
         type: 'group-announcement',
         announcementId: 'an1',
       });
 
-      expect(repository.findActiveMembers).toHaveBeenCalledWith('g1', 'u1');
+      expect(repository.findActiveMembers).toHaveBeenCalledWith('g1');
       expect(repository.findEvent).not.toHaveBeenCalled();
-      expect(sentTo(email)).toEqual([jana.email, tomas.email]);
+      expect(sentTo(email)).toEqual([organizer.email, jana.email, tomas.email]);
       const [, subject, html] = email.sendEmail.mock.calls[0];
       expect(subject).toBe('Florbal Podvinný mlýn: Přes svátky se nehraje');
       expect(html).toContain(`${frontendUrl}/skupiny/g1`);
@@ -231,7 +231,7 @@ describe('NotificationService.deliver', () => {
       expect(email.sendEmail).not.toHaveBeenCalled();
     });
 
-    it('a group with nobody else in it sends nothing', async () => {
+    it('nobody to write to sends nothing', async () => {
       const { repository, email, service } = setup();
       repository.findAnnouncement.mockResolvedValue(announcement);
       repository.findActiveMembers.mockResolvedValue([]);

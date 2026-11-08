@@ -127,7 +127,8 @@ export class NotificationService {
 
   /**
    * A group announcement (#194) goes to every active member of the group,
-   * admins included, except the admin who wrote it. Null when it is gone.
+   * admins and its author included: Figma D-08 promises it to all of them,
+   * and the author's copy shows what the members got. Null when it is gone.
    */
   private async prepareAnnouncement(
     announcementId: string,
@@ -137,7 +138,6 @@ export class NotificationService {
     return {
       recipients: await this.repository.findActiveMembers(
         announcement.group.id,
-        announcement.senderId,
       ),
       message: composeAnnouncement(announcement, this.config.frontendUrl),
     };

@@ -74,7 +74,7 @@ type SendAnnouncementButtonProps = {
 
 /**
  * „Napsat členům“ in the group's management (#194, Figma D-08, D-08d):
- * subject and text, every other active member gets it by e-mail and it
+ * subject and text, every active member (the admin too) gets it by e-mail and it
  * shows on the group page. Under the text, what is left of today's limit.
  * Like „Poslat žádost“, the dialog waits for the answer and keeps the text
  * when sending fails.
@@ -131,8 +131,7 @@ export function SendAnnouncementButton({
           >
             <DialogHeader>
               <DialogTitle>Napsat členům</DialogTitle>
-              {/* the admin writing it gets no e-mail of their own */}
-              <DialogDescription>{announcementRecipientsLabel(memberCount - 1)}</DialogDescription>
+              <DialogDescription>{announcementRecipientsLabel(memberCount)}</DialogDescription>
             </DialogHeader>
             <FormField
               control={form.control}

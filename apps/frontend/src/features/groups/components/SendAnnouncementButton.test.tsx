@@ -41,7 +41,7 @@ const openDialog = async () => {
 }
 
 beforeEach(() => {
-  api.get.mockReset().mockReturnValue(answer(3))
+  api.get.mockReset().mockReturnValue(answer(10))
   api.post.mockReset().mockReturnValue({ json: () => Promise.resolve(sent) })
   toast.success.mockReset()
   toast.error.mockReset()
@@ -49,17 +49,17 @@ beforeEach(() => {
 
 // Figma D-08, D-08d
 describe("SendAnnouncementButton (#194)", () => {
-  it("says who gets it — the other four members, not the admin — and what is left today", async () => {
+  it("says who gets it — all five active members, the admin too — and what is left today", async () => {
     renderButton()
     const dialog = await openDialog()
 
     expect(
       within(dialog).getByText(
-        "Oznámení přijde e-mailem všem 4 aktivním členům a uvidí ho na stránce skupiny. Čekající žadatelé ho nedostanou.",
+        "Oznámení přijde e-mailem všem 5 aktivním členům a uvidí ho na stránce skupiny. Čekající žadatelé ho nedostanou.",
       ),
     ).toBeInTheDocument()
     expect(
-      await within(dialog).findByText("Dnes můžeš skupině poslat ještě 3 oznámení."),
+      await within(dialog).findByText("Dnes můžeš skupině poslat ještě 10 oznámení."),
     ).toBeInTheDocument()
     expect(api.get).toHaveBeenCalledWith("groups/g-florbal/announcements")
   })

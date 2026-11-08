@@ -72,16 +72,17 @@ describe("announcements (#194)", () => {
   })
 
   it.each([
-    [0, "Ve skupině zatím nikdo další není. Oznámení zůstane na stránce skupiny pro nové členy."],
+    // only the admin: nobody else to write to
+    [1, "Ve skupině zatím nikdo další není. Oznámení zůstane na stránce skupiny pro nové členy."],
     [
-      1,
-      "Oznámení přijde e-mailem 1 aktivnímu členovi a uvidí ho na stránce skupiny. Čekající žadatelé ho nedostanou.",
+      2,
+      "Oznámení přijde e-mailem všem 2 aktivním členům a uvidí ho na stránce skupiny. Čekající žadatelé ho nedostanou.",
     ],
     [
-      4,
-      "Oznámení přijde e-mailem všem 4 aktivním členům a uvidí ho na stránce skupiny. Čekající žadatelé ho nedostanou.",
+      5,
+      "Oznámení přijde e-mailem všem 5 aktivním členům a uvidí ho na stránce skupiny. Čekající žadatelé ho nedostanou.",
     ],
-  ])("%i other members: %s", (count, label) => {
+  ])("%i active members, the admin included: %s", (count, label) => {
     expect(announcementRecipientsLabel(count)).toBe(label)
   })
 

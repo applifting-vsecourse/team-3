@@ -17,11 +17,11 @@ this.notifications.notify({ type: 'event-cancelled', eventId });
 | `event-cancelled`    | schválení a čekající účastníci, ne organizátor; s důvodem | `EventsService.cancelEvent`                                        |
 | `request-received`   | organizátor; se zprávou žadatele (#175)                   | `EventsService.join` (žádost čeká na schválení)                    |
 | `participant-left`   | organizátor                                               | `EventsService.leave` (odhlásil se schválený účastník)             |
-| `group-announcement` | aktivní členové skupiny včetně správců, ne autor oznámení | `GroupsService.sendAnnouncement` (#194)                            |
+| `group-announcement` | všichni aktivní členové skupiny, správci i autor          | `GroupsService.sendAnnouncement` (#194)                            |
 
 Oznámení skupiny není o akci: e-mail má předmět „{skupina}: {předmět}“, nadpis a text jsou slova správce (odstavce podle prázdných řádků) a tlačítko „Stránka skupiny“ (Figma E-01, typ 8).
 
-Nikdo nedostane e-mail o tom, co udělal sám. Zablokovaní (`blockedAt`) a smazaní (`deletedAt`) uživatelé e-mail nedostanou. Organizátor se o stažení čekající žádosti nedozví: žádost mu jen zmizí ze seznamu.
+Nikdo nedostane e-mail o tom, co udělal sám, s výjimkou oznámení skupiny: Figma D-08 slibuje e-mail všem aktivním členům a autor tak vidí, co členům přišlo. Zablokovaní (`blockedAt`) a smazaní (`deletedAt`) uživatelé e-mail nedostanou. Organizátor se o stažení čekající žádosti nedozví: žádost mu jen zmizí ze seznamu.
 
 ## Jak přidat další druh (např. zprávu organizátora, #176)
 
