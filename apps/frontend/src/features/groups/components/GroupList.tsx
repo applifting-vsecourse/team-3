@@ -1,3 +1,4 @@
+import type { ReactNode } from "react"
 import { RefreshCw } from "lucide-react"
 
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
@@ -17,18 +18,12 @@ type GroupListProps = {
   isLoading?: boolean
   error?: Error
   onRetry?: () => void
-  /** An activity is picked, so an empty list is about the filters, not just the place. */
-  hasActivityFilter?: boolean
+  /** What an empty list says and offers (EmptyGroups, Figma A-07e); the page builds it. */
+  empty?: ReactNode
 }
 
 /** The list of /skupiny (Figma A-07, A-07d) with its loading, empty and error states. */
-export function GroupList({
-  groups,
-  isLoading,
-  error,
-  onRetry,
-  hasActivityFilter,
-}: GroupListProps) {
+export function GroupList({ groups, isLoading, error, onRetry, empty }: GroupListProps) {
   if (error) {
     return (
       <Alert variant="destructive">
@@ -69,11 +64,11 @@ export function GroupList({
     <div className="flex flex-col gap-4">
       <p className="text-sm font-semibold">{groupCountLabel(groups.length)}</p>
       {groups.length === 0 ? (
-        <p className="py-8 text-center text-sm text-muted-foreground">
-          {hasActivityFilter
-            ? "Pro zvolené filtry zatím žádná skupina není."
-            : "V této lokalitě zatím žádná skupina není."}
-        </p>
+        (empty ?? (
+          <p className="py-8 text-center text-sm text-muted-foreground">
+            V této lokalitě zatím žádná skupina není.
+          </p>
+        ))
       ) : (
         <ul className={GROUP_GRID}>
           {groups.map((group) => (

@@ -49,17 +49,17 @@ describe("GroupList", () => {
     expect(screen.getByText("Neveřejná – žádost o členství")).toBeInTheDocument()
   })
 
-  it("empty: one sentence about the place, or about the filters with an activity", () => {
+  it("empty: the page's empty state, or one sentence about the place", () => {
     const { rerender } = render(<GroupList groups={[]} />)
     expect(screen.getByText("V této lokalitě zatím žádná skupina není.")).toBeInTheDocument()
 
     rerender(
       <GroupList
         groups={[]}
-        hasActivityFilter
+        empty={<p>Nic tu není.</p>}
       />,
     )
-    expect(screen.getByText("Pro zvolené filtry zatím žádná skupina není.")).toBeInTheDocument()
+    expect(screen.getByText("Nic tu není.")).toBeInTheDocument()
   })
 
   it("loading", () => {

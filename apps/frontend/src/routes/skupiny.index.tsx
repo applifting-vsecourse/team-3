@@ -14,6 +14,7 @@ import { cn } from "@/lib/utils"
 import { AppHeader } from "@/features/auth/components/AppHeader"
 import { useSession } from "@/features/auth/hooks/useSession"
 import { myGroupsQueryOptions } from "@/features/groups/api/groupsQueryOptions"
+import { EmptyGroups } from "@/features/groups/components/EmptyGroups"
 import { GroupFilters } from "@/features/groups/components/GroupFilters"
 import { GroupList } from "@/features/groups/components/GroupList"
 import { MyGroups } from "@/features/groups/components/MyGroups"
@@ -63,7 +64,14 @@ function GroupsPage() {
         error={error}
         // Only the error state offers a retry; refocusing the tab refetches.
         onRetry={retry}
-        hasActivityFilter={search.kategorie !== undefined || search.aktivita !== undefined}
+        empty={
+          <EmptyGroups
+            search={search}
+            catalog={catalog}
+            isVisitor={!user}
+            onSearchChange={setSearch}
+          />
+        }
       />
     </>
   )
