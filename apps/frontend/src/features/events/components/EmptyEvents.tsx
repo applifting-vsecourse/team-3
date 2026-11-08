@@ -4,11 +4,7 @@ import { ROUTES } from "@/app/routes"
 import { Button } from "@/components/ui/button"
 import { selectionLabel } from "@/lib/catalog/activitySelection"
 import { toActivitySelection, type Catalog } from "@/lib/catalog/catalogSearch"
-import {
-  ALL_LOCALITIES_SLUG,
-  DEFAULT_LOCALITY_SLUG,
-  localityName,
-} from "@/lib/catalog/localityOptions"
+import { ALL_LOCALITIES_SLUG, localityName } from "@/lib/catalog/localityOptions"
 import { cn } from "@/lib/utils"
 
 import { occupancyLabel } from "@/features/events/components/OccupancyFilter"
@@ -29,7 +25,7 @@ type EmptyEventsProps = {
 /** The active filters as the chips name them: „Bruntál · Šipky a bowling · 1.–7. 11.“ */
 export function activeFiltersLabel(search: EventsSearch, catalog: Catalog | undefined): string {
   const locality = catalog
-    ? localityName(search.lokalita ?? DEFAULT_LOCALITY_SLUG, catalog.localities)
+    ? localityName(search.lokalita ?? ALL_LOCALITIES_SLUG, catalog.localities)
     : undefined
   const activity = catalog
     ? selectionLabel(toActivitySelection(search), catalog.categories)

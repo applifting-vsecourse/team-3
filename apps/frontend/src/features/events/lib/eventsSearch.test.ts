@@ -72,9 +72,9 @@ describe("eventsSearchSchema", () => {
 })
 
 describe("toEventFilters", () => {
-  it("defaults to Praha with no other filter", () => {
+  it("filters nothing without filters, no fixed Praha (#55)", () => {
     expect(toEventFilters({}, catalog)).toEqual({
-      localityId: "l-praha",
+      localityId: undefined,
       dateFrom: undefined,
       dateTo: undefined,
       activityIds: [],
@@ -119,9 +119,8 @@ describe("toEventFilters", () => {
 })
 
 describe("hasActiveFilters", () => {
-  it("does not count Praha, the default", () => {
+  it("counts nothing without a filter in the URL", () => {
     expect(hasActiveFilters({})).toBe(false)
-    expect(hasActiveFilters({ lokalita: "praha" })).toBe(false)
   })
 
   it("counts every other filter", () => {

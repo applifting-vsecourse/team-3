@@ -21,7 +21,7 @@ export const groupsSearchSchema = z.object({
 
 export type GroupsSearch = z.infer<typeof groupsSearchSchema>
 
-/** Whether „Zrušit vše“ has anything to clear. Praha is the default, not a filter. */
+/** Whether the URL has a filter for „Zrušit vše“ to clear; a remembered locality is the page's to add (useLocality). */
 export const hasActiveFilters = (search: GroupsSearch): boolean => hasCatalogFilters(search)
 
 export const toGroupFilters = (search: GroupsSearch, catalog: Catalog): GroupFilters =>

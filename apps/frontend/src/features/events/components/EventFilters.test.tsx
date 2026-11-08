@@ -40,7 +40,10 @@ vi.mock("@/lib/api-client", () => ({
   api: { get: (...args: Parameters<typeof get>) => get(...args) },
 }))
 
-const renderFilters = (props: Partial<Parameters<typeof EventFilters>[0]> = {}) => {
+const renderFilters = (
+  props: Partial<Parameters<typeof EventFilters>[0]> = {},
+  { canClearAll = false } = {},
+) => {
   const onChange = vi.fn()
   const onClearAll = vi.fn()
   const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } })
@@ -49,10 +52,11 @@ const renderFilters = (props: Partial<Parameters<typeof EventFilters>[0]> = {}) 
   )
   render(
     <EventFilters
-      search={{}}
+      // the page puts the shown locality in, the default too
+      search={{ lokalita: "praha" }}
       catalog={{ localities, categories }}
       onChange={onChange}
-      onClearAll={onClearAll}
+      onClearAll={canClearAll ? onClearAll : undefined}
       {...props}
     />,
     { wrapper },
@@ -72,7 +76,7 @@ describe("EventFilters", () => {
   })
   afterEach(() => vi.unstubAllGlobals())
 
-  it("shows Praha by default, without „Zrušit vše“", () => {
+  it("shows the default locality, without „Zrušit vše“", () => {
     renderFilters()
 
     expect(screen.getByRole("button", { name: "Lokalita: Praha" })).toBeInTheDocument()
@@ -106,7 +110,7 @@ describe("EventFilters", () => {
   })
 
   it("offers „Zrušit vše“ with an active filter", async () => {
-    const { onClearAll } = renderFilters({ search: { lokalita: "praha-8" } })
+    const { onClearAll } = renderFilters({ search: { lokalita: "praha-8" } }, { canClearAll: true })
 
     expect(screen.getByRole("button", { name: "Lokalita: Praha 8" })).toBeInTheDocument()
     await userEvent.click(screen.getByRole("button", { name: "Zrušit vše" }))
@@ -127,7 +131,7 @@ describe("EventFilters", () => {
     expect(onChange).toHaveBeenCalledWith({ lokalita: "praha-8" })
   })
 
-  it("finds a locality without diacritics and stores Praha as no parameter", async () => {
+  it("finds a locality without diacritics and applies Praha by its slug, like any pick", async () => {
     const { onChange } = renderFilters({ search: { lokalita: "brno" } })
 
     await userEvent.click(screen.getByRole("button", { name: "Lokalita: Brno" }))
@@ -137,7 +141,7 @@ describe("EventFilters", () => {
 
     await userEvent.click(within(panel).getByRole("option", { name: "Praha" }))
     await userEvent.click(await within(panel).findByRole("button", { name: "Zobrazit 2 akce" }))
-    expect(onChange).toHaveBeenCalledWith({ lokalita: undefined })
+    expect(onChange).toHaveBeenCalledWith({ lokalita: "praha" })
   })
 
   it("„Zrušit výběr“ in a town shows events from all of Czechia", async () => {

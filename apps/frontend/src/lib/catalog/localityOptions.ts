@@ -1,7 +1,7 @@
 import type { Locality } from "@/lib/catalog/catalogSchemas"
 
-/** Lists without ?lokalita= show Praha; Praha is the default, not an active filter. */
-export const DEFAULT_LOCALITY_SLUG = "praha"
+// The biggest city leads the picker; the lists' default is per visitor (useLocality, #55).
+const PRAHA_SLUG = "praha"
 
 /** `?lokalita=cele-cesko`: no locality filter, the whole catalog of Czechia. */
 export const ALL_LOCALITIES_SLUG = "cele-cesko"
@@ -12,8 +12,8 @@ export type LocalityOption = Locality & { isDistrict: boolean }
 const collator = new Intl.Collator("cs", { numeric: true })
 
 /**
- * Localities for the picker: each city followed by its districts, the default
- * (Praha) first, then other cities alphabetically; districts in natural order
+ * Localities for the picker: each city followed by its districts, Praha
+ * first, then other cities alphabetically; districts in natural order
  * („Praha 2“ before „Praha 10“).
  */
 export function localityOptions(localities: Locality[]): LocalityOption[] {
@@ -21,7 +21,7 @@ export function localityOptions(localities: Locality[]): LocalityOption[] {
     .filter((l) => l.parentId === null)
     .sort(
       (a, b) =>
-        Number(b.slug === DEFAULT_LOCALITY_SLUG) - Number(a.slug === DEFAULT_LOCALITY_SLUG) ||
+        Number(b.slug === PRAHA_SLUG) - Number(a.slug === PRAHA_SLUG) ||
         collator.compare(a.name, b.name),
     )
   return cities.flatMap((city) => [

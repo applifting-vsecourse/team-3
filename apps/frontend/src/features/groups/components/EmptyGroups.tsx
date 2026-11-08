@@ -4,11 +4,7 @@ import { ROUTES } from "@/app/routes"
 import { Button } from "@/components/ui/button"
 import { selectionLabel } from "@/lib/catalog/activitySelection"
 import { toActivitySelection, type Catalog } from "@/lib/catalog/catalogSearch"
-import {
-  ALL_LOCALITIES_SLUG,
-  DEFAULT_LOCALITY_SLUG,
-  localityName,
-} from "@/lib/catalog/localityOptions"
+import { ALL_LOCALITIES_SLUG, localityName } from "@/lib/catalog/localityOptions"
 
 import type { GroupsSearch } from "@/features/groups/lib/groupsSearch"
 import { newGroupSearchFrom } from "@/features/groups/lib/newGroupSearch"
@@ -36,7 +32,7 @@ export function EmptyGroups({ search, catalog, isVisitor, onSearchChange }: Empt
   const hasActivity = search.kategorie !== undefined || search.aktivita !== undefined
   const filters = catalog
     ? [
-        localityName(search.lokalita ?? DEFAULT_LOCALITY_SLUG, catalog.localities),
+        localityName(search.lokalita ?? ALL_LOCALITIES_SLUG, catalog.localities),
         selectionLabel(toActivitySelection(search), catalog.categories),
       ]
         .filter(Boolean)

@@ -25,7 +25,6 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
 import { Textarea } from "@/components/ui/textarea"
 import type { Catalog } from "@/lib/catalog/catalogSearch"
-import { DEFAULT_LOCALITY_SLUG } from "@/lib/catalog/localityOptions"
 import { cn } from "@/lib/utils"
 
 import { localityOfAddress } from "@/features/events/api/addressSearch"
@@ -232,7 +231,8 @@ export function EventForm({
   const localityId = useWatch({ control: form.control, name: "localityId" })
   const place = useWatch({ control: form.control, name: "place" })
   const mapCenter = catalog.localities.find((l) => l.id === localityId) ??
-    catalog.localities.find((l) => l.slug === DEFAULT_LOCALITY_SLUG) ??
+    // before a locality is picked: the biggest city, as the picker lists it first
+    catalog.localities.find((l) => l.slug === "praha") ??
     catalog.localities[0] ?? { lat: 50.0755, lng: 14.4378 }
 
   return (

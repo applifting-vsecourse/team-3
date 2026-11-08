@@ -15,26 +15,25 @@ import type { Locality } from "@/lib/catalog/catalogSchemas"
 import {
   ALL_LOCALITIES_NAME,
   ALL_LOCALITIES_SLUG,
-  DEFAULT_LOCALITY_SLUG,
   localityName,
   localityOptions,
   localityReset,
 } from "@/lib/catalog/localityOptions"
-import { foldText } from "@/lib/catalog/textSearch"
+import { foldText, matchRank } from "@/lib/catalog/textSearch"
 import { cn } from "@/lib/utils"
 
 type LocalityFilterProps = {
-  /** The applied locality's slug; undefined is the default, Praha. */
+  /** The shown locality's slug, the visitor's default included (useLocality); undefined is Celé Česko. */
   value: string | undefined
   localities: Locality[]
-  onChange: (slug: string | undefined) => void
+  onChange: (slug: string) => void
   /** The apply button, e.g. „Zobrazit 12 akcí“ for the locality being picked. */
   applyLabel: string
   /** The slug being picked while the panel is open, undefined once it closes, so the page can preview its result. */
   onDraftChange?: (draft: string | undefined) => void
 }
 
-/** Chip „Praha“ › one locality or Celé Česko; a city includes its districts. */
+/** Chip „Brno“ › one locality or Celé Česko; a city includes its districts. */
 export function LocalityFilter({
   value,
   localities,
@@ -42,7 +41,7 @@ export function LocalityFilter({
   applyLabel,
   onDraftChange,
 }: LocalityFilterProps) {
-  const current = value ?? DEFAULT_LOCALITY_SLUG
+  const current = value ?? ALL_LOCALITIES_SLUG
   const [isOpen, setIsOpen] = useState(false)
   const [draft, setDraft] = useState(current)
   const searchRef = useRef<HTMLInputElement>(null)
@@ -54,9 +53,9 @@ export function LocalityFilter({
     setDraft(slug)
     onDraftChange?.(slug)
   }
-  // The default is stored as no parameter, so the link stays /akce.
+  // Always the slug, the default's too: a pick is remembered (#55) and „Zrušit vše“ undoes it.
   const apply = (slug: string) => {
-    onChange(slug === DEFAULT_LOCALITY_SLUG ? undefined : slug)
+    onChange(slug)
     setIsOpen(false)
     onDraftChange?.(undefined)
   }
@@ -165,13 +164,18 @@ function LocalitySearch({
         // with the focus ring of the other fields (it has the focus on opening), not clipped
         className="gap-2 overflow-visible **:data-[slot=command-input-wrapper]:h-11 **:data-[slot=command-input-wrapper]:rounded-md **:data-[slot=command-input-wrapper]:border **:data-[slot=command-input-wrapper]:border-input **:data-[slot=command-input-wrapper]:focus-within:border-ring **:data-[slot=command-input-wrapper]:focus-within:ring-[3px] **:data-[slot=command-input-wrapper]:focus-within:ring-ring/50"
         // Slug or name, without diacritics, so "plzen" finds Plzeň and
-        // "usti nad orl" Ústí nad Orlicí. Celé Česko after the towns: „Česk“
-        // is on its way to Česká Lípa, and Enter picks the first row.
+        // "usti nad orl" Ústí nad Orlicí. A name starting with the text
+        // first, then a word in it, then anywhere: „nov“ gives Nová Paka
+        // before Černovice (#55). Celé Česko after the towns: „Česk“ is on
+        // its way to Česká Lípa, and Enter picks the first row.
         filter={(value, search, keywords) => {
           const needle = foldText(search)
-          const texts = [value, ...(keywords ?? [])]
-          if (!texts.some((text) => foldText(text).includes(needle))) return 0
-          return value === ALL_LOCALITIES_SLUG ? 0.5 : 1
+          const ranks = [value, ...(keywords ?? [])]
+            .map((text) => matchRank(foldText(text), needle))
+            .filter((rank) => rank !== undefined)
+          if (ranks.length === 0) return 0
+          if (value === ALL_LOCALITIES_SLUG) return 0.1
+          return 1 - Math.min(...ranks) * 0.3
         }}
       >
         <CommandInput
