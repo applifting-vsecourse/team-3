@@ -1,4 +1,4 @@
-import { useMemo, useRef, useState, type ReactNode, type RefObject } from "react"
+import { useId, useMemo, useRef, useState, type ReactNode, type RefObject } from "react"
 import { Check } from "lucide-react"
 
 import { FilterChip } from "@/components/FilterChip/FilterChip"
@@ -295,6 +295,7 @@ function RadiusPicker({
   isDisabled: boolean
   onChange: (km: string | undefined) => void
 }) {
+  const labelId = useId()
   return (
     <div
       role="presentation"
@@ -302,14 +303,14 @@ function RadiusPicker({
       className="flex flex-col gap-2"
     >
       <p
-        id="okoli"
+        id={labelId}
         className="text-sm font-semibold"
       >
         Okolí
       </p>
       <ToggleGroup
         type="single"
-        aria-labelledby="okoli"
+        aria-labelledby={labelId}
         value={value ?? JUST_THE_LOCALITY}
         // a single group can be emptied by a second click; „Jen obec“ is its empty state
         onValueChange={(next) => onChange(next && next !== JUST_THE_LOCALITY ? next : undefined)}
