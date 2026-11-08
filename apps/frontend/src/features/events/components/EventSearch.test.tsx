@@ -35,6 +35,30 @@ describe("EventSearch (#57)", () => {
     expect(onChange).toHaveBeenCalledWith(undefined)
   })
 
+  it("keeps the typed text while the URL has not caught up yet (review #279)", async () => {
+    const onChange = vi.fn()
+    const { rerender } = render(
+      <EventSearch
+        value={undefined}
+        onChange={onChange}
+      />,
+    )
+
+    await userEvent.type(field(), "volejbal")
+    await waitFor(() => expect(onChange).toHaveBeenCalledWith("volejbal"))
+    expect(field()).toHaveValue("volejbal")
+
+    // typing on before the navigation lands, then the URL arrives with what was sent
+    await userEvent.type(field(), " pla")
+    rerender(
+      <EventSearch
+        value="volejbal"
+        onChange={onChange}
+      />,
+    )
+    expect(field()).toHaveValue("volejbal pla")
+  })
+
   it("shows a search changed from outside, e.g. „Zrušit vše“", () => {
     const { rerender } = render(
       <EventSearch

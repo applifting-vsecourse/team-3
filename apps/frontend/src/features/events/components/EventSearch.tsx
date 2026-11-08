@@ -24,11 +24,18 @@ type EventSearchProps = {
  */
 export function EventSearch({ value, onChange, isAutoFocused, className }: EventSearchProps) {
   const [text, setText] = useState(value ?? "")
-  // what the URL has from this field; anything else came from outside („Zrušit vše“, back)
+  // what this field last wrote to the URL
   const [sent, setSent] = useState(value ?? "")
-  if ((value ?? "") !== sent) {
-    setSent(value ?? "")
-    setText(value ?? "")
+  // the last `?q=` this field saw. The URL catches up only after the navigation, so a
+  // render can still carry the old value: only a new value that this field didn't send
+  // came from outside („Zrušit vše“, back) and replaces the text (review #279).
+  const [seen, setSeen] = useState(value ?? "")
+  if ((value ?? "") !== seen) {
+    setSeen(value ?? "")
+    if ((value ?? "") !== sent) {
+      setSent(value ?? "")
+      setText(value ?? "")
+    }
   }
   const onChangeRef = useRef(onChange)
   useEffect(() => {
