@@ -14,7 +14,10 @@ export type PublicEventFilters = {
   categoryIds?: string[];
   /** `free`: not full yet; `missing`: still missing people to reach the minimum. */
   capacity?: CapacityFilter;
-  /** Only events whose place is in the map's visible area (#56); adds up with the locality (AND). */
+  /**
+   * Only events whose place is in the map's visible area (#56); adds up with the locality (AND).
+   * /akce sends no locality with it: there the area replaces the locality.
+   */
   bbox?: BoundingBox;
 };
 

@@ -166,6 +166,11 @@ describe("?oblast= (#56)", () => {
     expect(eventsSearchSchema.parse({ oblast: "praha" }).oblast).toBeUndefined()
   })
 
+  it("drops an area the API would refuse, so a hand-edited URL is no error", () => {
+    expect(eventsSearchSchema.parse({ oblast: "14.6,50,14.3,50.15" }).oblast).toBeUndefined()
+    expect(eventsSearchSchema.parse({ oblast: "14.3,95,14.6,96" }).oblast).toBeUndefined()
+  })
+
   it("asks for the area instead of the locality", () => {
     expect(
       toEventFilters({ lokalita: "praha", oblast: "16.5,49.1,16.7,49.3" }, catalog),

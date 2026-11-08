@@ -11,8 +11,9 @@ import {
 import type { EventFilters } from "@/features/events/api/eventSchemas"
 
 const DAY = /^\d{4}-\d{2}-\d{2}$/
+// ?oblast=west,south,east,north — the map's area after „Hledat v této oblasti“ (#56).
+// The same shape and limits as the API's `bbox` (backend domain/bounding-box.ts): keep them in step.
 const NUMBER = String.raw`-?\d{1,3}(?:\.\d{1,8})?`
-// ?oblast=west,south,east,north — the map's area after „Hledat v této oblasti“ (#56)
 const AREA = new RegExp(`^${NUMBER},${NUMBER},${NUMBER},${NUMBER}$`)
 
 /** ?obsazenost= values; Czech in the URL like the other filters, English in the API. */
@@ -32,7 +33,13 @@ export const eventsSearchSchema = z.object({
   do: z.string().regex(DAY).optional().catch(undefined),
   // volna = not full yet, chybi = still missing people (a subset of volna)
   obsazenost: z.enum(OCCUPANCY).optional().catch(undefined),
-  oblast: z.string().regex(AREA).optional().catch(undefined),
+  // a hand-edited area the API would refuse (corners swapped, off the Earth) is dropped, not a 400
+  oblast: z
+    .string()
+    .regex(AREA)
+    .refine((oblast) => toMapArea(oblast) !== undefined)
+    .optional()
+    .catch(undefined),
 })
 
 export type EventsSearch = z.infer<typeof eventsSearchSchema>
@@ -65,7 +72,7 @@ export function toEventFilters(search: EventsSearch, catalog: Catalog): EventFil
   }
 }
 
-/** `?oblast=` as the map's area; undefined without one or with corners out of order. */
+/** `?oblast=` as the map's area; undefined without one, with corners out of order or off the Earth. */
 export function toMapArea(oblast: string | undefined): MapArea | undefined {
   if (!oblast) return undefined
   const [west, south, east, north] = oblast.split(",").map(Number) as [
@@ -74,7 +81,10 @@ export function toMapArea(oblast: string | undefined): MapArea | undefined {
     number,
     number,
   ]
-  return west < east && south < north ? { west, south, east, north } : undefined
+  const isOnEarth =
+    [west, east].every((lng) => lng >= -180 && lng <= 180) &&
+    [south, north].every((lat) => lat >= -90 && lat <= 90)
+  return isOnEarth && west < east && south < north ? { west, south, east, north } : undefined
 }
 
 export const toOblast = (area: MapArea): string =>
