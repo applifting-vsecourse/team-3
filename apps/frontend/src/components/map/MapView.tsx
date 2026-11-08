@@ -67,6 +67,28 @@ type MapViewProps = {
   className?: string
 }
 
+/**
+ * What the map fits itself to: the searched area, else the set of pins (or, without pins,
+ * the centre). It changes exactly when `FitToArea` or `FitToPins` moves the map — not when a
+ * pin is highlighted or selected — so a move the user made counts only for the view it
+ * started from.
+ */
+export function viewKey({
+  area,
+  pins,
+  center,
+}: {
+  area?: MapArea
+  pins: MapPinData[]
+  center: MapCenter
+}): string {
+  if (area) return `area:${Object.values(area).join(",")}`
+  // FitToPins refits on a new centre too, even with the same pins
+  return `pins:${pinsKey(pins)}@${center.lat},${center.lng},${center.zoom ?? ""}`
+}
+
+const pinsKey = (pins: { id: string }[]) => pins.map((pin) => pin.id).join(",")
+
 const DEFAULT_ZOOM = 12
 // One or two nearby events would otherwise zoom in to single streets and
 // lose where in the city they are; 14 still shows the district around them.
@@ -91,10 +113,11 @@ export function MapView({
   label = "Mapa akcí",
   className,
 }: MapViewProps) {
-  // the move belongs to the search it followed: a new search puts the button away
-  const areaKey = area ? Object.values(area).join(",") : ""
+  // the move belongs to the view it followed: a new search, or the map fitting itself to
+  // another set of pins (another filter), puts the button away (review #276)
+  const shownKey = viewKey({ area, pins, center })
   const [moved, setMoved] = useState<{ area: MapArea; after: string }>()
-  const movedArea = moved?.after === areaKey ? moved.area : undefined
+  const movedArea = moved?.after === shownKey ? moved.area : undefined
 
   return (
     // MapContainer doesn't pass aria attributes on, hence the wrapper
@@ -134,7 +157,7 @@ export function MapView({
           <MapEvents
             onMapClick={onMapClick}
             onUserMove={
-              onAreaSearch ? (movedTo) => setMoved({ area: movedTo, after: areaKey }) : undefined
+              onAreaSearch ? (movedTo) => setMoved({ area: movedTo, after: shownKey }) : undefined
             }
           />
         ) : null}
@@ -363,7 +386,7 @@ function FitToArea({ area }: { area: MapArea }) {
  */
 function FitToPins({ pins, center }: { pins: MapPinData[]; center: MapCenter }) {
   const map = useMap()
-  const key = pins.map((pin) => pin.id).join(",")
+  const key = pinsKey(pins)
 
   useEffect(() => {
     if (pins.length === 0) {

@@ -4,7 +4,7 @@ import { render, screen } from "@testing-library/react"
 import { describe, expect, it } from "vitest"
 
 import { clusterHtml, PIN_BOX, pinHtml } from "./mapPin"
-import { MapView } from "./MapView"
+import { MapView, viewKey } from "./MapView"
 
 const praha = { lat: 50.0755, lng: 14.4378 }
 
@@ -78,6 +78,32 @@ describe("MapView with clusters (#56)", () => {
     expect(container.querySelectorAll(".leaflet-marker-icon")).toHaveLength(2)
     expect(screen.getByText("Běh · chybí 1")).toBeInTheDocument()
     expect(screen.getByTitle("2 akce – přiblížit")).toBeInTheDocument()
+  })
+})
+
+describe("viewKey: what a user's move belongs to (review #276)", () => {
+  const pin = (id: string) => ({ id, lat: 50, lng: 14, variant: "default" as const, label: id })
+  const view = { pins: [pin("a"), pin("b")], center: praha }
+
+  it("changes when the map fits itself to another set of pins, e.g. another locality", () => {
+    expect(viewKey({ ...view, pins: [pin("c")] })).not.toBe(viewKey(view))
+    expect(viewKey({ ...view, pins: [] })).not.toBe(viewKey(view))
+  })
+
+  it("changes with the centre the map falls back to", () => {
+    expect(viewKey({ ...view, center: { lat: 49.2, lng: 16.6 } })).not.toBe(viewKey(view))
+  })
+
+  it("stays for the same pins, whatever is highlighted, so the button stays too", () => {
+    expect(viewKey({ ...view, pins: [pin("a"), { ...pin("b"), variant: "highlighted" }] })).toBe(
+      viewKey(view),
+    )
+  })
+
+  it("in a searched area is the area, not the pins it found", () => {
+    const area = { west: 14.3, south: 50, east: 14.6, north: 50.15 }
+    expect(viewKey({ ...view, area })).toBe(viewKey({ ...view, pins: [pin("c")], area }))
+    expect(viewKey({ ...view, area })).not.toBe(viewKey(view))
   })
 })
 
