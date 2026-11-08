@@ -2,7 +2,7 @@ import { useState } from "react"
 
 import { ActivityFilter } from "@/components/ActivityFilter/ActivityFilter"
 import { FilterChip } from "@/components/FilterChip/FilterChip"
-import { LocalityFilter } from "@/components/LocalityFilter/LocalityFilter"
+import { LocalityFilter, type LocalityDefault } from "@/components/LocalityFilter/LocalityFilter"
 import { Button } from "@/components/ui/button"
 import type { ActivitySelection } from "@/lib/catalog/activitySelection"
 import { toActivitySearch, toActivitySelection, type Catalog } from "@/lib/catalog/catalogSearch"
@@ -18,10 +18,18 @@ type GroupFiltersProps = {
   onChange: (patch: Partial<GroupsSearch>) => void
   /** „Zrušit vše“; only when something was picked (a default locality isn't). */
   onClearAll?: () => void
+  /** The visitor's default locality on the chip (#55). */
+  localityDefault?: LocalityDefault
 }
 
 /** The filter chips of /skupiny (Figma A-07): activity and locality, like on /akce. */
-export function GroupFilters({ search, catalog, onChange, onClearAll }: GroupFiltersProps) {
+export function GroupFilters({
+  search,
+  catalog,
+  onChange,
+  onClearAll,
+  localityDefault,
+}: GroupFiltersProps) {
   return (
     <div
       role="group"
@@ -39,6 +47,7 @@ export function GroupFilters({ search, catalog, onChange, onClearAll }: GroupFil
             search={search}
             catalog={catalog}
             onChange={(lokalita) => onChange({ lokalita })}
+            localityDefault={localityDefault}
           />
         </>
       ) : (
@@ -71,10 +80,12 @@ function GroupLocalityFilter({
   search,
   catalog,
   onChange,
+  localityDefault,
 }: {
   search: GroupsSearch
   catalog: Catalog
   onChange: (lokalita: string | undefined) => void
+  localityDefault?: LocalityDefault
 }) {
   const [draft, setDraft] = useState<string>()
   const applyLabel = usePreviewLabel(
@@ -87,6 +98,7 @@ function GroupLocalityFilter({
       onChange={onChange}
       onDraftChange={setDraft}
       applyLabel={applyLabel}
+      localityDefault={localityDefault}
     />
   )
 }

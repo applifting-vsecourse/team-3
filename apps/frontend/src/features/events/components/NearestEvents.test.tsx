@@ -28,7 +28,13 @@ const renderNearest = ({ localitySlug }: { localitySlug?: string | null } = {}) 
         locality={
           localitySlug === undefined
             ? undefined
-            : { slug: localitySlug ?? undefined, source: "home", pick: vi.fn() }
+            : {
+                slug: localitySlug ?? undefined,
+                source: "home",
+                isPicked: false,
+                pick: vi.fn(),
+                forget: vi.fn(),
+              }
         }
       />
     </QueryClientProvider>,

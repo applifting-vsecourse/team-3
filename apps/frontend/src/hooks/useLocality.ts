@@ -1,6 +1,7 @@
 import { useSyncExternalStore } from "react"
 import { useQuery } from "@tanstack/react-query"
 
+import type { LocalityDefault } from "@/components/LocalityFilter/LocalityFilter"
 import { localitiesQueryOptions } from "@/lib/catalog/catalogQueryOptions"
 import { defaultLocalityQueryOptions } from "@/lib/catalog/defaultLocality"
 import { ALL_LOCALITIES_SLUG } from "@/lib/catalog/localityOptions"
@@ -83,3 +84,13 @@ export function useLocality(
     forget: forgetLocality,
   }
 }
+
+/**
+ * What the locality chip needs to show the default (#55): light, with „podle polohy“ for a
+ * guess from the IP. `onReset` is the page's: it also drops `?lokalita=` from the URL.
+ */
+export const localityDefault = (state: LocalityState, onReset: () => void): LocalityDefault => ({
+  isDefault: !state.isPicked,
+  hint: !state.isPicked && state.source === "ip" ? "podle polohy" : undefined,
+  onReset,
+})

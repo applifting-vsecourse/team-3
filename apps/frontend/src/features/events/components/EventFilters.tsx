@@ -2,7 +2,7 @@ import { useState } from "react"
 
 import { ActivityFilter } from "@/components/ActivityFilter/ActivityFilter"
 import { FilterChip } from "@/components/FilterChip/FilterChip"
-import { LocalityFilter } from "@/components/LocalityFilter/LocalityFilter"
+import { LocalityFilter, type LocalityDefault } from "@/components/LocalityFilter/LocalityFilter"
 import { Button } from "@/components/ui/button"
 import type { ActivitySelection } from "@/lib/catalog/activitySelection"
 import type { ActivityCategory, Locality } from "@/lib/catalog/catalogSchemas"
@@ -22,6 +22,8 @@ type EventFiltersProps = {
   onChange: (patch: Partial<EventsSearch>) => void
   /** „Zrušit vše“; only when something was picked (a default locality isn't). */
   onClearAll?: () => void
+  /** The visitor's default locality on the chip (#55). */
+  localityDefault?: LocalityDefault
   /** Mobile: the chips float over the map (Figma A-02) and need their own shadow. */
   isFloating?: boolean
   className?: string
@@ -33,6 +35,7 @@ export function EventFilters({
   catalog,
   onChange,
   onClearAll,
+  localityDefault,
   isFloating,
   className,
 }: EventFiltersProps) {
@@ -47,6 +50,7 @@ export function EventFilters({
           search={search}
           localities={catalog.localities}
           onChange={(lokalita) => onChange({ lokalita })}
+          localityDefault={localityDefault}
         />
       ) : (
         // keeps the bar from shifting while the catalog loads
@@ -93,10 +97,12 @@ function EventLocalityFilter({
   search,
   localities,
   onChange,
+  localityDefault,
 }: {
   search: EventsSearch
   localities: Locality[]
   onChange: (lokalita: string | undefined) => void
+  localityDefault?: LocalityDefault
 }) {
   const [draft, setDraft] = useState<string>()
   const applyLabel = usePreviewLabel(
@@ -109,6 +115,7 @@ function EventLocalityFilter({
       onChange={onChange}
       onDraftChange={setDraft}
       applyLabel={applyLabel}
+      localityDefault={localityDefault}
     />
   )
 }

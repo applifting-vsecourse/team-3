@@ -2,7 +2,7 @@ import { render, screen, within } from "@testing-library/react"
 import userEvent from "@testing-library/user-event"
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest"
 
-import { LocalityFilter } from "@/components/LocalityFilter/LocalityFilter"
+import { LocalityFilter, type LocalityDefault } from "@/components/LocalityFilter/LocalityFilter"
 import type { Locality } from "@/lib/catalog/catalogSchemas"
 
 const locality = (slug: string, name: string, parentId: string | null = null): Locality => ({
@@ -25,7 +25,7 @@ const localities = [
   locality("nova-paka", "Nová Paka"),
 ]
 
-const renderFilter = (value: string | undefined) => {
+const renderFilter = (value: string | undefined, localityDefault?: LocalityDefault) => {
   const onChange = vi.fn()
   render(
     <LocalityFilter
@@ -33,6 +33,7 @@ const renderFilter = (value: string | undefined) => {
       localities={localities}
       onChange={onChange}
       applyLabel="Zobrazit akce"
+      localityDefault={localityDefault}
     />,
   )
   return { onChange }
@@ -176,5 +177,47 @@ describe("LocalityFilter", () => {
     await userEvent.keyboard("{Enter}")
     await userEvent.click(within(panel).getByRole("button", { name: "Zobrazit akce" }))
     expect(onChange).toHaveBeenCalledWith("ceska-lipa")
+  })
+
+  describe("with the visitor's default locality (#55)", () => {
+    it("shows the default on a light chip with where it came from", () => {
+      renderFilter("praha", { isDefault: true, hint: "podle polohy", onReset: vi.fn() })
+
+      const chip = screen.getByRole("button", { name: "Lokalita: Praha · podle polohy" })
+      expect(chip).not.toHaveClass("bg-foreground")
+    })
+
+    it("shows a pick on the dark chip, without the hint", () => {
+      renderFilter("brno", { isDefault: false, onReset: vi.fn() })
+
+      expect(screen.getByRole("button", { name: "Lokalita: Brno" })).toHaveClass("bg-foreground")
+    })
+
+    it("„Zrušit výběr“ goes back to the default, not to Celé Česko", async () => {
+      const onReset = vi.fn()
+      const { onChange } = renderFilter("brno", { isDefault: false, onReset })
+      const panel = await openPanel("Lokalita: Brno")
+
+      await userEvent.click(within(panel).getByRole("button", { name: "Zrušit výběr" }))
+      expect(onReset).toHaveBeenCalledOnce()
+      expect(onChange).not.toHaveBeenCalled()
+    })
+
+    it("has nothing to reset on the default", async () => {
+      renderFilter("praha", { isDefault: true, onReset: vi.fn() })
+      const panel = await openPanel("Lokalita: Praha")
+
+      expect(within(panel).getByRole("button", { name: "Zrušit výběr" })).toBeDisabled()
+    })
+
+    it("a district still goes back to its city", async () => {
+      const onReset = vi.fn()
+      const { onChange } = renderFilter("praha-8", { isDefault: false, onReset })
+      const panel = await openPanel("Lokalita: Praha 8")
+
+      await userEvent.click(within(panel).getByRole("button", { name: "Celá Praha" }))
+      expect(onChange).toHaveBeenCalledWith("praha")
+      expect(onReset).not.toHaveBeenCalled()
+    })
   })
 })
