@@ -58,7 +58,7 @@ const failTimes = (
   limits: SimulatedInboxLimits,
   address: string,
   n: number,
-) => {
+): void => {
   for (let i = 0; i < n; i++) limits.recordFailure(address);
 };
 

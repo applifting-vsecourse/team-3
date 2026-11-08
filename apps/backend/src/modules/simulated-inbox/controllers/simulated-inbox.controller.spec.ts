@@ -14,7 +14,9 @@ jest.mock('@/shared/auth/providers/better-auth.provider', () => ({
   InjectBetterAuth: (): void => undefined,
 }));
 
-const setUp = (getMessages: jest.Mock) => {
+const setUp = (
+  getMessages: jest.Mock,
+): { controller: SimulatedInboxController; limits: SimulatedInboxLimits } => {
   const limits = new SimulatedInboxLimits();
   const controller = new SimulatedInboxController(
     { getMessages } as unknown as SimulatedInboxService,
