@@ -44,7 +44,7 @@ export function PastEventCard({
       : gatheredLabel(event.approvedCount)
 
   return (
-    <article className="relative flex items-center gap-3 rounded-2xl border border-card-border bg-card p-3 text-card-foreground has-[a:focus-visible]:ring-[3px] has-[a:focus-visible]:ring-ring/50">
+    <article className="relative flex items-center gap-3 rounded-2xl border border-card-border bg-card p-3 text-card-foreground has-[a:focus-visible]:ring-[3px] has-[a:focus-visible]:ring-ring">
       <EventPhoto
         event={event}
         variant="past"
