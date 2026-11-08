@@ -1,3 +1,6 @@
+import { Link } from "@tanstack/react-router"
+
+import { ROUTES } from "@/app/routes"
 import { PersonAvatar } from "@/components/PersonAvatar/PersonAvatar"
 import { occupancyCount } from "@/lib/occupancy"
 
@@ -58,11 +61,18 @@ export function EventParticipants({
           <ul className="flex flex-wrap gap-2">
             {people.map((person) => (
               <li key={person.id}>
-                <PersonAvatar
-                  name={person.name}
-                  isSelf={person.id === viewerId}
-                />
-                <span className="sr-only">{nameOf(person)}</span>
+                {/* the avatar opens their public profile (#179) */}
+                <Link
+                  className="flex rounded-full"
+                  to={ROUTES.userProfile}
+                  params={{ userId: person.id }}
+                >
+                  <PersonAvatar
+                    name={person.name}
+                    isSelf={person.id === viewerId}
+                  />
+                  <span className="sr-only">{nameOf(person)}</span>
+                </Link>
               </li>
             ))}
           </ul>

@@ -66,4 +66,16 @@ describe("PastEventCard", () => {
     expect(screen.queryByText("Proběhlo")).not.toBeInTheDocument()
     expect(screen.queryByRole("link", { name: "Ohodnotit →" })).not.toBeInTheDocument()
   })
+
+  it("adds the page's detail after how many came, e.g. the event's rating (#179)", async () => {
+    await renderWithRouter(
+      <PastEventCard
+        event={volleyball()}
+        rating={{ kind: "open" }}
+        detail="★ 4,5 (3 hodnocení)"
+      />,
+    )
+
+    expect(screen.getByText("Sešlo se 5 lidí · ★ 4,5 (3 hodnocení)")).toBeInTheDocument()
+  })
 })

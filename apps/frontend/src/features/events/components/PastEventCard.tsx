@@ -16,9 +16,15 @@ import { formatEventDay, formatEventStart, placeName } from "@/features/events/l
 export type PastRating = { kind: "given"; stars: number } | { kind: "open" }
 
 type PastEventCardProps = {
-  event: PublicEvent & { status?: "published" | "cancelled" }
+  /** Only what the card shows, so a profile can send less than a whole event (#179). */
+  event: Pick<
+    PublicEvent,
+    "id" | "title" | "startsAt" | "address" | "activity" | "locality" | "approvedCount"
+  > & { status?: "published" | "cancelled" }
   /** Ignored for a cancelled event, which didn't take place. */
   rating?: PastRating
+  /** After how many came, e.g. the event's rating on a public profile: „★ 4,5 (3 hodnocení)“ (#179). */
+  detail?: string
   /** „Ohodnotit →“ for an open rating; the page builds the link (C-03, #66). */
   rateAction?: ReactNode
   titleAs?: "h2" | "h3"
@@ -32,6 +38,7 @@ export function PastEventCard({
   event,
   rating,
   rateAction,
+  detail,
   titleAs: Title = "h3",
 }: PastEventCardProps) {
   // from the event, not the rating: a cancelled event never offers „Ohodnotit“
@@ -39,11 +46,16 @@ export function PastEventCard({
   const line = [formatEventDay(event.startsAt), placeName(event.address), event.locality.name].join(
     " · ",
   )
-  const attendance = isCancelled
-    ? "Akce se nekonala"
-    : rating?.kind === "given"
-      ? `${gatheredLabel(event.approvedCount)} · tvoje ★ ${rating.stars}`
-      : gatheredLabel(event.approvedCount)
+  const attendance = [
+    isCancelled
+      ? "Akce se nekonala"
+      : rating?.kind === "given"
+        ? `${gatheredLabel(event.approvedCount)} · tvoje ★ ${rating.stars}`
+        : gatheredLabel(event.approvedCount),
+    detail,
+  ]
+    .filter(Boolean)
+    .join(" · ")
 
   return (
     <article className="relative flex items-center gap-3 rounded-2xl border border-card-border bg-card p-3 text-card-foreground has-[a:focus-visible]:ring-[3px] has-[a:focus-visible]:ring-ring">
