@@ -4,6 +4,7 @@ import { api } from "@/lib/api-client"
 
 import {
   eventDetailSchema,
+  eventMessagesSchema,
   eventParticipantsSchema,
   groupEventsSchema,
   myEventsSchema,
@@ -31,6 +32,9 @@ export const eventKeys = {
   // signed-in users can get different answers for the same event.
   detail: (eventId: string, viewerId: string | null) =>
     [...eventKeys.details(), eventId, viewerId] as const,
+  // under detail(): joining, leaving and cancelling refresh them with the event (#176)
+  messages: (eventId: string, viewerId: string | null) =>
+    [...eventKeys.detail(eventId, viewerId), "messages"] as const,
   // the organizer's list (#43); with the viewer, so nobody else gets it from the cache
   participants: (eventId: string, viewerId: string | null) =>
     [...eventKeys.all(), "participants", eventId, viewerId] as const,
@@ -132,6 +136,28 @@ export const eventParticipantsQueryOptions = (
           )
       : skipToken,
     refetchInterval: LIVE_REFRESH_MS,
+  })
+
+/**
+ * The organizer's messages to the participants (#176). The API answers 403
+ * to anyone who doesn't see „Kdo jde“ (#174), so the page asks only when the
+ * detail brought the names. The viewer is in the key: the organizer's answer
+ * also carries what is left of today's limit.
+ */
+export const eventMessagesQueryOptions = (
+  eventId: string,
+  viewerId: string | null | undefined,
+  { isEnabled = true } = {},
+) =>
+  queryOptions({
+    queryKey: eventKeys.messages(eventId, viewerId ?? null),
+    queryFn:
+      isEnabled && viewerId
+        ? async () =>
+            eventMessagesSchema.parse(
+              await api.get(`events/${encodeURIComponent(eventId)}/messages`).json(),
+            )
+        : skipToken,
   })
 
 /** A tab of „Moje akce“ (B-035), soonest first; with the viewer, so nobody else gets it from the cache. */

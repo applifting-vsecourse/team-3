@@ -624,6 +624,7 @@ Doménová logika (čistá funkce + testy): `approvedCount`, `missingToMin = max
 
 - `POST /api/events/:id/message` (organizátor) – předmět + text, odešle e-mail všem `approved`.
 - FE: dialog ve správě akce. Limit 10 zpráv na akci za den (proti spamu).
+- **Jak je to hotové (#176, podle oznámení skupin #194):** `GET/POST /api/events/:id/messages` (množné číslo jako `/announcements`). Poslat smí jen organizátor (ne správce skupiny, který akci spravuje) zveřejněné, nezrušené akce (`403 NOT_ORGANIZER`, `409 EVENT_CANCELLED`), nejvýš 10 zpráv na akci za pražský kalendářní den (`429 MESSAGE_LIMIT`, kontrola pod zámkem řádku akce). Předmět nejvýš 120, text nejvýš 2000 znaků. E-mail (Figma E-01 typ 7, přes `NotificationService` po zápisu) dostanou jen schválení účastníci kromě organizátora. Číst je smí jen ti, kdo vidí „Kdo jde“ (#174, `403 NOT_PARTICIPANT`), u zrušené akce zůstanou ke čtení. FE: „Napsat účastníkům“ ve správě akce (D-04, D-04d), sekce „Zprávy od organizátora“ na detailu (A-05c).
 
 **Mimo rozsah:** chat u akce, odpovědi v aplikaci.
 

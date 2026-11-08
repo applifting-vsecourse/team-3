@@ -58,6 +58,8 @@ type EventDetailViewProps = {
   organizerGroup?: ReactNode
   /** The signed-in viewer, shown first as „Ty“ in „Kdo jde“ (Figma A-05c). */
   viewerId?: string | null
+  /** „Zprávy od organizátora“ between „O akci“ and „Kdo jde“ (#176, Figma A-05c); the page builds it. */
+  messages?: ReactNode
 }
 
 /**
@@ -82,6 +84,7 @@ export function EventDetailView({
   now = new Date(),
   organizerGroup,
   viewerId,
+  messages,
 }: EventDetailViewProps) {
   const isDesktop = useMediaQuery(DESKTOP_QUERY)
 
@@ -247,6 +250,7 @@ export function EventDetailView({
             <div className="flex flex-col gap-6">
               {photo}
               {about}
+              {messages}
               {participants}
               {organizer}
             </div>
@@ -298,6 +302,7 @@ export function EventDetailView({
           {organizerActions}
         </section>
         {about}
+        {messages}
         {participants}
         {organizer}
         {/* Figma: Lišta s akcí — above the bottom navigation, it stays while

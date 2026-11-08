@@ -153,4 +153,44 @@ describe('NotificationRepository', () => {
       );
     });
   });
+
+  describe("the organizer's message (#176)", () => {
+    it('findEventMessage gives what the e-mail says, with the event', async () => {
+      const prisma = mockDeep<PrismaService>();
+      const row = {
+        id: 'm1',
+        subject: 'Sraz u vchodu',
+        body: 'Vezmi si sálovky.',
+        senderId: 'u1',
+        event: { id: 'e1', title: 'Deskovky ve středu' },
+      };
+      prisma.eventMessage.findUnique.mockResolvedValue(row as never);
+
+      await expect(
+        new NotificationRepository(prisma).findEventMessage('m1'),
+      ).resolves.toEqual(row);
+    });
+
+    it('findApprovedParticipants is only the approved, without the organizer, not blocked or deleted', async () => {
+      const prisma = mockDeep<PrismaService>();
+      const jana = { id: 'u2', name: 'Jana', email: 'jana@example.com' };
+      prisma.participation.findMany.mockResolvedValue([
+        { user: jana },
+      ] as never);
+
+      await expect(
+        new NotificationRepository(prisma).findApprovedParticipants('e1', 'u1'),
+      ).resolves.toEqual([jana]);
+      expect(prisma.participation.findMany).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: {
+            eventId: 'e1',
+            status: 'approved',
+            userId: { not: 'u1' },
+            user: deliverable,
+          },
+        }),
+      );
+    });
+  });
 });

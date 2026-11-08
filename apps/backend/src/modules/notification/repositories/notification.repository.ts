@@ -2,6 +2,7 @@ import { PrismaService } from '@/core/prisma/prisma.service';
 import {
   NotifiedAnnouncement,
   NotifiedEvent,
+  NotifiedEventMessage,
   Recipient,
 } from '@/modules/notification/domain/notification';
 import { Injectable } from '@nestjs/common';
@@ -111,5 +112,42 @@ export class NotificationRepository {
       orderBy: { id: 'asc' },
     });
     return members.map((member) => member.user);
+  }
+
+  /** What an organizer's message says, with its event (#176); null when it is gone. */
+  async findEventMessage(id: string): Promise<NotifiedEventMessage | null> {
+    return this.prisma.eventMessage.findUnique({
+      where: { id },
+      select: {
+        id: true,
+        subject: true,
+        body: true,
+        senderId: true,
+        event: { select: { id: true, title: true } },
+      },
+    });
+  }
+
+  /**
+   * The event's approved participants (#176), except `exceptUserId`: the
+   * organizer who wrote the message doesn't get it back, even when they
+   * signed up for their own event. Waiting, rejected, removed and withdrawn
+   * places don't count.
+   */
+  async findApprovedParticipants(
+    eventId: string,
+    exceptUserId: string,
+  ): Promise<Recipient[]> {
+    const participations = await this.prisma.participation.findMany({
+      where: {
+        eventId,
+        status: 'approved',
+        userId: { not: exceptUserId },
+        user: deliverable,
+      },
+      select: { user: { select: recipientSelect } },
+      orderBy: { id: 'asc' },
+    });
+    return participations.map((participation) => participation.user);
   }
 }

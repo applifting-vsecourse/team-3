@@ -16,6 +16,7 @@ import { redirectFrom } from "@/features/auth/lib/redirect"
 import { showVerifyEmailBanner } from "@/features/auth/lib/verify-email-banner"
 import { CancelEventDialog } from "@/features/events/components/CancelEventDialog"
 import { EventDetailView, EVENTS_BACK } from "@/features/events/components/EventDetailView"
+import { EventMessages } from "@/features/events/components/EventMessages"
 import { ParticipationAction } from "@/features/events/components/ParticipationAction"
 import { useCancelEvent } from "@/features/events/hooks/useCancelEvent"
 import { useEventDetail } from "@/features/events/hooks/useEventDetail"
@@ -91,6 +92,17 @@ function EventDetailPage() {
             event={event}
             organizerGroup={organizerGroup ? <GroupOrganizer group={organizerGroup} /> : undefined}
             viewerId={viewerId}
+            messages={
+              // the organizer's messages go to whoever got the names of who is coming;
+              // the API decides both (#174, #176)
+              event?.participants && viewerId ? (
+                <EventMessages
+                  eventId={eventId}
+                  viewerId={viewerId}
+                  isOrganizer={event.organizer.id === viewerId}
+                />
+              ) : null
+            }
             isLoading={isPending}
             isNotFound={isNotFound}
             error={error}

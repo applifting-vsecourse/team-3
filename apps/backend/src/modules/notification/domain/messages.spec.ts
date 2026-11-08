@@ -1,5 +1,6 @@
 import {
   composeAnnouncement,
+  composeEventMessage,
   composeMessage,
   MessageContext,
 } from './messages';
@@ -360,6 +361,39 @@ describe('composeMessage', () => {
       expect(email.preview.startsWith('Ahoj všem. aaa')).toBe(true);
       expect(email.preview).toHaveLength(140);
       expect(email.preview.endsWith('…')).toBe(true);
+    });
+  });
+
+  describe('composeEventMessage (#176, Figma E-01 type 7)', () => {
+    const message = {
+      id: 'm1',
+      subject: 'Hrajeme v malé tělocvičně',
+      body: 'Sraz v 17:50 u vchodu.\nVezmi si sálovky.\n\nMíče mám.',
+      senderId: 'u1',
+      event: { id: 'e1', title: 'Volejbal na Pankráci' },
+    };
+
+    it('the subject names the event, the heading and text are the organizer’s words, the button opens the detail', () => {
+      const composed = composeEventMessage(
+        message,
+        'https://hobbyhub.example/',
+      );
+
+      expect(composed.subject).toBe(
+        'Volejbal na Pankráci: Hrajeme v malé tělocvičně',
+      );
+      expect(composed.email.heading).toBe('Hrajeme v malé tělocvičně');
+      expect(composed.email.paragraphs).toEqual([
+        'Sraz v 17:50 u vchodu.\nVezmi si sálovky.',
+        'Míče mám.',
+      ]);
+      expect(composed.email.action).toEqual({
+        label: 'Detail akce',
+        url: 'https://hobbyhub.example/akce/e1',
+      });
+      expect(composed.email.preview).toBe(
+        'Sraz v 17:50 u vchodu. Vezmi si sálovky. Míče mám.',
+      );
     });
   });
 });

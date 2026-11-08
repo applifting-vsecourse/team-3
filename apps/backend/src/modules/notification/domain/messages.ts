@@ -5,6 +5,7 @@ import {
   EventNotification,
   NotifiedAnnouncement,
   NotifiedEvent,
+  NotifiedEventMessage,
 } from './notification';
 
 /** What the e-mail needs besides the notification itself. */
@@ -186,6 +187,13 @@ const previewOf = (text: string): string => {
     : line;
 };
 
+// blank lines split paragraphs; a single line break stays inside one
+const paragraphsOf = (text: string): string[] =>
+  text
+    .split(/\n\s*\n/)
+    .map((paragraph) => paragraph.trim())
+    .filter(Boolean);
+
 /**
  * A group announcement (#194, Figma E-01 type 8): the subject names the
  * group, the heading and the text are the admin's own words, kept as they
@@ -200,15 +208,36 @@ export const composeAnnouncement = (
   email: {
     preview: previewOf(announcement.body),
     heading: announcement.subject,
-    paragraphs: announcement.body
-      .split(/\n\s*\n/)
-      .map((paragraph) => paragraph.trim())
-      .filter(Boolean),
+    paragraphs: paragraphsOf(announcement.body),
     details: [],
     quote: null,
     action: {
       label: 'Stránka skupiny',
       url: new URL(`/skupiny/${announcement.group.id}`, frontendUrl).toString(),
+    },
+  },
+});
+
+/**
+ * The organizer's message to the participants (#176, Figma E-01 type 7):
+ * „{akce}: {předmět}“, the heading and the text are the organizer's own
+ * words, kept as they wrote them, and the button leads to the event's
+ * detail, where the message is too.
+ */
+export const composeEventMessage = (
+  message: NotifiedEventMessage,
+  frontendUrl: string,
+): ComposedMessage => ({
+  subject: `${message.event.title}: ${message.subject}`,
+  email: {
+    preview: previewOf(message.body),
+    heading: message.subject,
+    paragraphs: paragraphsOf(message.body),
+    details: [],
+    quote: null,
+    action: {
+      label: 'Detail akce',
+      url: eventUrl(frontendUrl, message.event.id),
     },
   },
 });
