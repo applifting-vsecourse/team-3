@@ -14,19 +14,16 @@ Tlačítko „Pokračovat přes Google“ na `/login` a `/signup` se ukáže jen
 
 Redirect URI je vždy `BACKEND_URL` + `/api/auth/callback/google` a musí sedět přesně, jinak Google vrátí chybu `redirect_uri_mismatch`. Pro lokální vývoj přidej ke stejnému klientovi i `http://localhost:3050` (origin) a `http://localhost:4050/api/auth/callback/google` (redirect URI) a proměnné dej do `apps/backend/.env`.
 
-## 2. Proměnné na stagingu (Coolify)
+## 2. Proměnné na stagingu
 
-1. V Coolify otevři resource HobbyHub (Docker Compose) → **Environment Variables**.
-2. Přidej `GOOGLE_CLIENT_ID` a `GOOGLE_CLIENT_SECRET`. Secret označ jako zamčený (_locked_), ať se neukazuje v logu. Compose je předá backendu stejně jako ostatní proměnné z `.env.example` (`env_file: .env`).
-3. Restartuj backend (nebo dej _Redeploy_).
-4. Ověř, že `https://team-3.vsepractical.applifting.dev/api/sign-in-providers` vrací `{"google":true}` a na `/login` je tlačítko.
+Klíče jdou z GitHub secrets přes build-args do image (`deploy.yml` → `Dockerfile.deploy`), do Coolify se nic nezadává. Postup krok za krokem je v [návodu pro #165](staging-auth-mail.md).
 
-Vypnutí: smaž jednu z proměnných (nebo ji nech prázdnou) a restartuj backend – tlačítko zmizí.
+Vypnutí: smaž jeden ze secrets a spusť **Build & Deploy** znovu – tlačítko zmizí.
 
 ## Jak se přihlášení chová
 
 - **Nový uživatel**: účet vznikne s e-mailem od Googlu a e-mail se počítá jako ověřený. Pod tlačítkem je věta, že pokračováním souhlasí s podmínkami a bere na vědomí zpracování údajů; čas souhlasu se uloží (`termsAcceptedAt`) stejně jako při registraci e-mailem.
 - **Existující účet se stejným e-mailem**: Google se k němu připojí, druhý účet nevznikne – ale jen když je e-mail toho účtu už ověřený. Jinak by se do cizího účtu dostal ten, kdo si ho dřív založil s cizí adresou a heslem, které zná (výchozí ochrana BetterAuth, necháváme ji zapnutou). Takový uživatel uvidí na `/login` hlášku, ať se přihlásí heslem.
-- **Se simulovanou schránkou** (`SIMULATED_INBOX`, staging bez e-mailové služby) se účty nepropojují vůbec, protože ověřený e-mail tam nedokazuje, že adresa patří majiteli účtu. Po zapnutí skutečné e-mailové služby zůstanou účty ověřené simulací ověřené: předtím je potřeba je znovu ověřit nebo databázi vynulovat, jinak by šlo cizí účet takhle převzít.
+- **Se simulovanou schránkou** (`SIMULATED_INBOX`, staging bez e-mailové služby) se účty nepropojují vůbec, protože ověřený e-mail tam nedokazuje, že adresa patří majiteli účtu. Po zapnutí skutečné e-mailové služby zůstanou účty ověřené simulací ověřené: předtím je potřeba je znovu ověřit nebo databázi vynulovat, jinak by šlo cizí účet takhle převzít. O tom rozhodne tým s PO před zapnutím SMTP na stagingu.
 - **Jméno z Googlu** projde stejným pravidlem jako při registraci (#153): znaky, které do jména nepatří (číslice, emoji…), se vynechají.
 - Po přihlášení se uživatel vrátí tam, odkud přišel (`from`, stejně bezpečně jako u přihlášení heslem). Když Google vrátí chybu nebo uživatel přihlášení zruší, vrátí se na stránku, kde začal (`/login` nebo `/signup`), s českou hláškou a se stejným `from`. Chyby, které BetterAuth hlásí dřív, než přečte stav přihlášení (`state_not_found`, `invalid_callback_request`, ztracená cookie se stavem…), nevědí, kde přihlášení začalo – ty končí na `/login` (`onAPIError.errorURL`), nikdy na anglické stránce `/api/auth/error` (#198).
