@@ -110,6 +110,21 @@ describe("EventDetailView", () => {
     expect(screen.getByText(/^Pá 23\. 10\. · 17:30 · .+ · do minima chybí 1$/)).toBeInTheDocument()
   })
 
+  it("puts the viewer first as „Ty“ and names everyone under the avatars (Figma A-05c)", async () => {
+    await renderWithRouter(
+      <EventDetailView
+        event={anEventDetail()}
+        viewerId="u4"
+      />,
+    )
+
+    const names = within(screen.getByRole("list"))
+      .getAllByRole("listitem")
+      .map((item) => item.textContent)
+    expect(names).toEqual(["LČTy", "JSJana Svobodová", "TDTomáš Dvořák", "MNMarek Novák"])
+    expect(screen.getByText("Ty, Jana Svobodová, Tomáš Dvořák, Marek Novák")).toBeInTheDocument()
+  })
+
   it("says when nobody has joined yet", async () => {
     await renderWithRouter(
       <EventDetailView

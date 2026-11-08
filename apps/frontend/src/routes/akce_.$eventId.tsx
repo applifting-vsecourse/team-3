@@ -94,6 +94,7 @@ function EventDetailPage() {
           <EventDetailView
             event={event}
             organizerGroup={organizerGroup ? <GroupOrganizer group={organizerGroup} /> : undefined}
+            viewerId={viewerId}
             isLoading={isPending}
             isNotFound={isNotFound}
             error={error}

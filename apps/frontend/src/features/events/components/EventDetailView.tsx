@@ -55,6 +55,8 @@ type EventDetailViewProps = {
   now?: Date
   /** For a group's event, the group's card and admins under „Pořádá“ (A-05g); the page builds it. */
   organizerGroup?: ReactNode
+  /** The signed-in viewer, shown first as „Ty“ in „Kdo jde“ (Figma A-05c). */
+  viewerId?: string | null
 }
 
 /**
@@ -79,6 +81,7 @@ export function EventDetailView({
   organizerActions,
   now = new Date(),
   organizerGroup,
+  viewerId,
 }: EventDetailViewProps) {
   const isDesktop = useMediaQuery(DESKTOP_QUERY)
 
@@ -244,6 +247,7 @@ export function EventDetailView({
       maxParticipants={event.maxParticipants}
       participants={event.participants}
       isWaitingForApproval={event.myParticipation === "pending"}
+      viewerId={viewerId}
     />
   )
 
