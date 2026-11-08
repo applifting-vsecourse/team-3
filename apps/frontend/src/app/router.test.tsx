@@ -152,4 +152,26 @@ describe("router", () => {
       expect(app.state.location.pathname).toBe("/login")
     })
   })
+  // #198: what Google (through BetterAuth) sends back to the page the sign-in started on
+  describe("back from Google with an error", () => {
+    it("on /signup: the Czech message offers signing up with the e-mail", async () => {
+      stubApi()
+      await renderApp("/signup?error=access_denied")
+
+      expect(
+        await screen.findByText(
+          "Registrace přes Google je zrušená. Zkus to znovu, nebo se zaregistruj e-mailem.",
+        ),
+      ).toBeInTheDocument()
+    })
+
+    it("on /login: an error raised before BetterAuth reads the state gets the general sentence", async () => {
+      stubApi()
+      await renderApp("/login?error=state_not_found")
+
+      expect(
+        await screen.findByText("Přihlášení přes Google se nepovedlo. Zkus to prosím znovu."),
+      ).toBeInTheDocument()
+    })
+  })
 })

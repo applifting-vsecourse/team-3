@@ -20,6 +20,14 @@ describe("googleCallbackUrls (#154)", () => {
     })
   })
 
+  it("from /signup goes back to /signup when not signed in (#198)", () => {
+    expect(googleCallbackUrls("/akce/e1", "/signup")).toEqual({
+      callbackURL: `${origin}/akce/e1`,
+      errorCallbackURL: `${origin}/signup?from=%2Fakce%2Fe1`,
+    })
+    expect(googleCallbackUrls(undefined, "/signup").errorCallbackURL).toBe(`${origin}/signup`)
+  })
+
   it("never leaves the app: a crafted `from` falls back to the events", () => {
     for (const from of ["https://evil.example", "//evil.example", "/login"]) {
       expect(googleCallbackUrls(from).callbackURL).toBe(`${origin}/akce`)
