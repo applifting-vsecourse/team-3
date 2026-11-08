@@ -11,4 +11,4 @@ Barvy se na fotky nepečou: jednotný color grade (sytost −14 %, kontrast +10 
 
 ## Původ
 
-Dnes vzorové fotky z Figmy HobbyHub-design (stránky „Seznam akcí“, „Úvod a detail akce“) pro aktivity `badminton`, `beh`, `deskove-hry`, `florbal`, `jazykovy-tandem`, `joga`, `karetni-hry`, `stolni-tenis`, `turistika`, `unikove-hry`, `volejbal`. Jsou to demo data – před ostrým provozem ověřit původ a licenci, nebo je nahradit.
+Dnes vzorové fotky z Figmy HobbyHub-design (stránky „Seznam akcí“, „Úvod a detail akce“) pro aktivity `badminton`, `beh`, `deskove-hry`, `florbal`, `jazykovy-tandem`, `joga`, `karetni-hry`, `stolni-tenis`, `turistika`, `unikove-hry`, `volejbal`. Jsou vygenerované, ne fotky třetích stran, takže je můžeme mít v repu jako demo data. Novou fotku přidej stejně: vygenerovanou nebo s licencí, která dovoluje použití v projektu, a sem napiš, odkud je.
