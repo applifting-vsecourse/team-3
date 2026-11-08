@@ -6,6 +6,7 @@ import { ROUTES } from "@/app/routes"
 import { ActivityTile } from "@/components/ActivityTile/ActivityTile"
 import { CapacityBar } from "@/components/CapacityBar/CapacityBar"
 import { DetailRow } from "@/components/DetailRow/DetailRow"
+import { HappeningStamp } from "@/components/HappeningStamp/HappeningStamp"
 import { MapView } from "@/components/map/MapView"
 import { PersonRow } from "@/components/PersonRow/PersonRow"
 import { StatusBadge } from "@/components/StatusBadge/StatusBadge"
@@ -30,6 +31,8 @@ type EventDetailViewProps = {
   participation?: ReactNode
   /** The organizer's own actions, e.g. „Zrušit akci“ (#52); the page builds them. */
   organizerActions?: ReactNode
+  /** For tests; the event is over once its end (or, without one, its start) is past it. */
+  now?: Date
   /** For a group's event, the group's card and admins under „Pořádá“ (A-05g); the page builds it. */
   organizerGroup?: ReactNode
 }
@@ -50,6 +53,7 @@ export function EventDetailView({
   onRetry,
   participation,
   organizerActions,
+  now = new Date(),
   organizerGroup,
 }: EventDetailViewProps) {
   const isDesktop = useMediaQuery(DESKTOP_QUERY)
@@ -84,6 +88,10 @@ export function EventDetailView({
   if (isLoading || !event) return <EventDetailSkeleton isDesktop={isDesktop} />
 
   const isCancelled = event.status === "cancelled"
+  // the minimum is reached, so the event happens (DESIGN.md › Koná se stamp); a past one
+  // says „Proběhlo“ instead (Figma A-05h)
+  const isOver = (event.endsAt ?? event.startsAt) <= now
+  const isHappening = !isCancelled && !isOver && event.missingToMin === 0
   const heading = (
     <header className="flex flex-col gap-5 md:gap-6">
       <div className="flex flex-wrap items-center gap-3">
@@ -93,6 +101,8 @@ export function EventDetailView({
           <span className="text-sm text-muted-foreground">{event.activity.category.name}</span>
         </div>
         {isCancelled ? <StatusBadge status={{ kind: "cancelled" }} /> : null}
+        {/* Figma puts it in the detail's band, which comes with #251 */}
+        {isHappening ? <HappeningStamp /> : null}
       </div>
       <h1 className="text-3xl font-semibold tracking-tight md:text-4xl">{event.title}</h1>
     </header>
@@ -107,6 +117,8 @@ export function EventDetailView({
     </Alert>
   ) : (
     <CapacityBar
+      // a phone has no panel: the bar lies on the page
+      surface={isDesktop ? "card" : "background"}
       approvedCount={event.approvedCount}
       minParticipants={event.minParticipants}
       maxParticipants={event.maxParticipants}

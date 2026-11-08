@@ -9,7 +9,7 @@ import type { GroupEvent } from "@/features/events/api/eventSchemas"
 import { groupEventsQueryOptions } from "@/features/events/api/eventsQueryOptions"
 import { EventCard } from "@/features/events/components/EventCard"
 import { EventCardSkeleton } from "@/features/events/components/EventList"
-import { groupEventFacts, pastEventFacts } from "@/features/events/lib/formatEvent"
+import { groupEventTail, pastEventFacts } from "@/features/events/lib/formatEvent"
 
 type GroupEventsProps = {
   groupId: string
@@ -102,7 +102,7 @@ function EventsSection({
                 event={event}
                 titleAs="h3"
                 status={isPast ? { kind: "past" } : undefined}
-                facts={isPast ? pastEventFacts(event) : groupEventFacts(event)}
+                rowTail={isPast ? pastEventFacts(event) : groupEventTail(event)}
               />
             </li>
           ))}

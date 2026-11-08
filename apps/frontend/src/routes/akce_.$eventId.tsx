@@ -127,12 +127,14 @@ function EventDetailPage() {
                     onVerifyEmail={showVerifyEmailBanner}
                     onJoin={(message) =>
                       join.mutateAsync(message).then(
-                        (updated) =>
+                        (updated) => {
                           toast.success(
                             updated.myParticipation === "pending"
                               ? "Žádost je odeslaná."
                               : "Máš na akci místo.",
-                          ),
+                          )
+                          return updated
+                        },
                         // the API's 409 says why, in Czech (e.g. „Akce je plná.“)
                         (joinError: Error) => {
                           toast.error(joinError.message)

@@ -51,7 +51,7 @@ describe("GroupEvents", () => {
       "/akce/e01",
     )
     expect(within(past).getByText("Proběhlo")).toBeInTheDocument()
-    expect(within(past).getByText("sešlo se 6")).toBeInTheDocument()
+    expect(within(past).getByText(/· sešlo se 6$/)).toBeInTheDocument()
   })
 
   it("says when nothing is planned, and leaves out an empty history", async () => {

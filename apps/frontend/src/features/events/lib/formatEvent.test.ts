@@ -6,12 +6,13 @@ import {
   approvalModeLabel,
   capacityStatus,
   eventCountLabel,
-  eventFacts,
+  eventDateParts,
+  formatEventDay,
   formatEventStart,
   formatEventTime,
   formatRequestEventStart,
   formatRequestTime,
-  groupEventFacts,
+  groupEventTail,
   pastEventFacts,
   placeName,
 } from "./formatEvent"
@@ -62,41 +63,34 @@ describe("placeName", () => {
 describe("capacityStatus", () => {
   it("missing people, free places, full", () => {
     expect(capacityStatus(anEvent({ missingToMin: 2 }))).toEqual({ kind: "missing", missing: 2 })
-    expect(capacityStatus(anEvent())).toEqual({ kind: "free" })
+    expect(capacityStatus(anEvent())).toEqual({ kind: "free", freeSpots: 8 })
     expect(capacityStatus(anEvent({ isFull: true, freeSpots: 0 }))).toEqual({ kind: "full" })
   })
 })
 
-describe("eventFacts", () => {
-  it("shows approved of maximum in words and the district, never „4/12“ (#189)", () => {
-    expect(eventFacts(anEvent())).toBe("4 z 12 · Praha 8")
-  })
-
-  it("below the minimum says the minimum, not „chybí“ — the badge next to it does", () => {
-    expect(
-      eventFacts(anEvent({ approvedCount: 5, minParticipants: 6, missingToMin: 1, freeSpots: 7 })),
-    ).toBe("5 z 12 · min. 6 · Praha 8")
-  })
-
-  it("full", () => {
-    expect(eventFacts(anEvent({ approvedCount: 12, freeSpots: 0, isFull: true }))).toBe(
-      "12 z 12 · Praha 8",
-    )
-  })
-
-  it("a cancelled event misses no one any more", () => {
-    expect(
-      eventFacts({ ...anEvent({ approvedCount: 2, missingToMin: 2 }), status: "cancelled" }),
-    ).toBe("2 z 12 · Praha 8")
+// Figma Karta akce › Datum, in Prague time wherever the browser is
+describe("eventDateParts", () => {
+  it("the weekday, the day and the time for the date tile", () => {
+    expect(eventDateParts(new Date("2026-10-23T15:30:00.000Z"))).toEqual({
+      weekday: "Pá",
+      day: "23",
+      time: "17:30",
+    })
   })
 })
 
-describe("groupEventFacts (#70)", () => {
-  it("a members-only event says so, a public one doesn't", () => {
-    expect(groupEventFacts({ ...anEvent(), visibility: "members" })).toBe(
-      "4 z 12 · Praha 8 · jen pro členy",
+describe("formatEventDay", () => {
+  it("a past event's day without the time", () => {
+    expect(formatEventDay(new Date("2026-10-19T16:00:00.000Z"))).toBe("Po 19. 10.")
+  })
+})
+
+describe("groupEventTail (#70)", () => {
+  it("a members-only event says so after its place, a public one keeps the card's line", () => {
+    expect(groupEventTail({ ...anEvent(), visibility: "members" })).toBe(
+      "Kavárna Pražírna · Praha 8 · jen pro členy",
     )
-    expect(groupEventFacts({ ...anEvent(), visibility: "public" })).toBe("4 z 12 · Praha 8")
+    expect(groupEventTail({ ...anEvent(), visibility: "public" })).toBeUndefined()
   })
 })
 
