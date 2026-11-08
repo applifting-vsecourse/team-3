@@ -265,18 +265,19 @@ model User {
   blockedReason   String?   @db.Text
   deletedAt       DateTime?
 
-  organizedEvents     Event[]            @relation("EventOrganizer")
+  organizedEvents     Event[]             @relation("EventOrganizer")
   participations      Participation[]
   groupMemberships    GroupMember[]
   ratings             Rating[]
-  reports             Report[]           @relation("ReportReporter")
-  resolvedReports     Report[]           @relation("ReportResolver")
-  moderationActions   ModerationAction[] @relation("ModerationAdmin")
-  revertedModerations ModerationAction[] @relation("ModerationReverter")
-  payments            Payment[]          @relation("PaymentPayer")
-  confirmedPayments   Payment[]          @relation("PaymentConfirmer")
+  reports             Report[]            @relation("ReportReporter")
+  resolvedReports     Report[]            @relation("ReportResolver")
+  moderationActions   ModerationAction[]  @relation("ModerationAdmin")
+  revertedModerations ModerationAction[]  @relation("ModerationReverter")
+  payments            Payment[]           @relation("PaymentPayer")
+  confirmedPayments   Payment[]           @relation("PaymentConfirmer")
   subscription        Subscription?
   sentEventMessages   EventMessage[]
+  sentAnnouncements   GroupAnnouncement[]
   notificationLogs    NotificationLog[]
 
   @@unique([email])
@@ -480,8 +481,9 @@ model Group {
   createdAt     DateTime    @default(now())
   updatedAt     DateTime    @default(now()) @updatedAt
 
-  members GroupMember[]
-  events  Event[]
+  members       GroupMember[]
+  events        Event[]
+  announcements GroupAnnouncement[]
 
   @@index([status])
   @@index([activityId])
@@ -505,6 +507,22 @@ model GroupMember {
   @@unique([groupId, userId])
   @@index([userId])
   @@map("group_member")
+}
+
+/// Oznámení správce všem aktivním členům skupiny (#194). Je na stránce skupiny pro členy a správce,
+/// přijde e-mailem; záznam slouží i pro denní limit oznámení na skupinu.
+model GroupAnnouncement {
+  id        String   @id @default(cuid())
+  groupId   String
+  group     Group    @relation(fields: [groupId], references: [id], onDelete: Cascade)
+  senderId  String
+  sender    User     @relation(fields: [senderId], references: [id], onDelete: Cascade)
+  subject   String
+  body      String   @db.Text
+  createdAt DateTime @default(now())
+
+  @@index([groupId, createdAt])
+  @@map("group_announcement")
 }
 
 // ---------------------------------------------------------------------------

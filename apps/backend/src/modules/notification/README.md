@@ -1,6 +1,6 @@
-# Upozornění k akcím (#177)
+# Upozornění k akcím (#177) a oznámení skupin (#194)
 
-E-maily o tom, co se stalo s akcí nebo s něčí účastí (B-040, B-041). Služba, která změnu zapsala, po zápisu zavolá jedinou metodu:
+E-maily o tom, co se stalo s akcí nebo s něčí účastí (B-040, B-041), a oznámení správce členům skupiny (#194). Služba, která změnu zapsala, po zápisu zavolá jedinou metodu:
 
 ```ts
 this.notifications.notify({ type: 'event-cancelled', eventId });
@@ -10,15 +10,18 @@ this.notifications.notify({ type: 'event-cancelled', eventId });
 
 ## Kdo co dostane
 
-| Druh (`type`)      | Příjemci                                                  | Vyvolá ho                                                          |
-| ------------------ | --------------------------------------------------------- | ------------------------------------------------------------------ |
-| `request-decided`  | žadatelé, kterým organizátor žádost schválil/zamítl       | `EventsService.decideRequests`                                     |
-| `event-changed`    | schválení a čekající účastníci, ne organizátor            | `EventsService.updateEvent` (jen když se změnil termín nebo místo) |
-| `event-cancelled`  | schválení a čekající účastníci, ne organizátor; s důvodem | `EventsService.cancelEvent`                                        |
-| `request-received` | organizátor; se zprávou žadatele (#175)                   | `EventsService.join` (žádost čeká na schválení)                    |
-| `participant-left` | organizátor                                               | `EventsService.leave` (odhlásil se schválený účastník)             |
+| Druh (`type`)        | Příjemci                                                  | Vyvolá ho                                                          |
+| -------------------- | --------------------------------------------------------- | ------------------------------------------------------------------ |
+| `request-decided`    | žadatelé, kterým organizátor žádost schválil/zamítl       | `EventsService.decideRequests`                                     |
+| `event-changed`      | schválení a čekající účastníci, ne organizátor            | `EventsService.updateEvent` (jen když se změnil termín nebo místo) |
+| `event-cancelled`    | schválení a čekající účastníci, ne organizátor; s důvodem | `EventsService.cancelEvent`                                        |
+| `request-received`   | organizátor; se zprávou žadatele (#175)                   | `EventsService.join` (žádost čeká na schválení)                    |
+| `participant-left`   | organizátor                                               | `EventsService.leave` (odhlásil se schválený účastník)             |
+| `group-announcement` | všichni aktivní členové skupiny, správci i autor          | `GroupsService.sendAnnouncement` (#194)                            |
 
-Nikdo nedostane e-mail o tom, co udělal sám. Zablokovaní (`blockedAt`) a smazaní (`deletedAt`) uživatelé e-mail nedostanou. Organizátor se o stažení čekající žádosti nedozví: žádost mu jen zmizí ze seznamu.
+Oznámení skupiny není o akci: e-mail má předmět „{skupina}: {předmět}“, nadpis a text jsou slova správce (odstavce podle prázdných řádků) a tlačítko „Stránka skupiny“ (Figma E-01, typ 8).
+
+Nikdo nedostane e-mail o tom, co udělal sám, s výjimkou oznámení skupiny: Figma D-08 slibuje e-mail všem aktivním členům a autor tak vidí, co členům přišlo. Zablokovaní (`blockedAt`) a smazaní (`deletedAt`) uživatelé e-mail nedostanou. Organizátor se o stažení čekající žádosti nedozví: žádost mu jen zmizí ze seznamu.
 
 ## Jak přidat další druh (např. zprávu organizátora, #176)
 

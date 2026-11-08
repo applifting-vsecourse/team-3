@@ -1,5 +1,6 @@
 import { PrismaService } from '@/core/prisma/prisma.service';
 import {
+  NotifiedAnnouncement,
   NotifiedEvent,
   Recipient,
 } from '@/modules/notification/domain/notification';
@@ -79,5 +80,36 @@ export class NotificationRepository {
       orderBy: { id: 'asc' },
     });
     return participations.map((participation) => participation.user);
+  }
+
+  /** What a group announcement's e-mail says (#194); null when it is gone. */
+  async findAnnouncement(id: string): Promise<NotifiedAnnouncement | null> {
+    return this.prisma.groupAnnouncement.findUnique({
+      where: { id },
+      select: {
+        id: true,
+        subject: true,
+        body: true,
+        senderId: true,
+        group: { select: { id: true, name: true } },
+      },
+    });
+  }
+
+  /**
+   * The group's active members, admins included (#194). A pending request
+   * or a block is not membership.
+   */
+  async findActiveMembers(groupId: string): Promise<Recipient[]> {
+    const members = await this.prisma.groupMember.findMany({
+      where: {
+        groupId,
+        status: 'active',
+        user: deliverable,
+      },
+      select: { user: { select: recipientSelect } },
+      orderBy: { id: 'asc' },
+    });
+    return members.map((member) => member.user);
   }
 }

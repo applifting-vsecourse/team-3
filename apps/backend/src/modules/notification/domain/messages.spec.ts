@@ -1,4 +1,8 @@
-import { composeMessage, MessageContext } from './messages';
+import {
+  composeAnnouncement,
+  composeMessage,
+  MessageContext,
+} from './messages';
 import { NotifiedEvent } from './notification';
 
 const event: NotifiedEvent = {
@@ -315,5 +319,47 @@ describe('composeMessage', () => {
         /\b(Vaše|Vás|Vám|váš|vaši)\b|organizátor (schválil|nepřijal|zrušil)/i,
       );
     }
+  });
+
+  describe('composeAnnouncement (#194, Figma E-01 type 8)', () => {
+    const announcement = {
+      id: 'an1',
+      subject: 'Přes svátky se nehraje',
+      body: 'Poslední hra v roce bude 16. 12.\nPak pauza do 6. 1.\n\nAkce na leden založím do konce prosince.',
+      senderId: 'u1',
+      group: { id: 'g1', name: 'Florbal Podvinný mlýn' },
+    };
+
+    it('the subject names the group, the heading and text are the admin’s words', () => {
+      const message = composeAnnouncement(
+        announcement,
+        'https://hobbyhub.example/',
+      );
+
+      expect(message.subject).toBe(
+        'Florbal Podvinný mlýn: Přes svátky se nehraje',
+      );
+      expect(message.email.heading).toBe('Přes svátky se nehraje');
+      // blank lines split paragraphs; a single line break stays inside one
+      expect(message.email.paragraphs).toEqual([
+        'Poslední hra v roce bude 16. 12.\nPak pauza do 6. 1.',
+        'Akce na leden založím do konce prosince.',
+      ]);
+      expect(message.email.action).toEqual({
+        label: 'Stránka skupiny',
+        url: 'https://hobbyhub.example/skupiny/g1',
+      });
+    });
+
+    it('the preview is the start of the text on one line', () => {
+      const { email } = composeAnnouncement(
+        { ...announcement, body: `Ahoj\nvšem. ${'a'.repeat(200)}` },
+        'https://hobbyhub.example/',
+      );
+
+      expect(email.preview.startsWith('Ahoj všem. aaa')).toBe(true);
+      expect(email.preview).toHaveLength(140);
+      expect(email.preview.endsWith('…')).toBe(true);
+    });
   });
 });
