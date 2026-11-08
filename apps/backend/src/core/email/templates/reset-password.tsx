@@ -27,8 +27,8 @@ export const ResetPassword = ({
     <Head />
     <Preview>Odkaz platí hodinu.</Preview>
     <Tailwind>
-      <Body lang="cs" className="bg-[#f2f5ef] font-sans py-10">
-        <Container className="bg-white rounded-lg mx-auto p-8 max-w-xl">
+      <Body lang="cs" className="bg-[#f4f1e8] font-sans py-10">
+        <Container className="bg-white border border-solid border-[#847e70] rounded-lg mx-auto p-8 max-w-xl">
           <Heading className="text-2xl font-bold text-[#14201a] m-0">
             Nové heslo
           </Heading>
@@ -39,20 +39,20 @@ export const ResetPassword = ({
           <Section className="text-center my-8">
             <Button
               href={url}
-              className="bg-[#b6f24a] text-[#14201a] font-semibold rounded-lg px-6 py-3"
+              className="bg-[#b9f53c] text-[#14201a] border border-solid border-[#265212] font-semibold rounded-lg px-6 py-3"
             >
               Nastavit nové heslo
             </Button>
           </Section>
-          <Text className="text-[#5b6860] text-sm leading-5">
+          <Text className="text-[#505e56] text-sm leading-5">
             Kdyby tlačítko nefungovalo, zkopíruj si do prohlížeče tento odkaz.
             Platí hodinu.
           </Text>
           <Text className="text-[#14201a] underline text-sm break-all">
             {url}
           </Text>
-          <Hr className="border-[#e1e7dc] my-6" />
-          <Text className="text-[#5b6860] text-xs">
+          <Hr className="border-[#847e70] my-6" />
+          <Text className="text-[#505e56] text-xs">
             Žádost nebyla od tebe? Klidně tenhle e-mail ignoruj, heslo zůstane
             stejné.
           </Text>

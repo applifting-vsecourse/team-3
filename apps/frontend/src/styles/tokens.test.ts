@@ -79,6 +79,7 @@ const TEXT_PAIRS: [string, string][] = [
   ["destructive-foreground", "destructive"], // destructive button
   ["on-hero", "hero"], // H1 on the band
   ["on-hero-muted", "hero"], // supporting line on the band
+  ["on-hero", "hero-pattern"], // header item and button hover on the band (the on-hero utility)
   ["badge-neutral-foreground", "badge-neutral"], // „Plno“, „Čeká na schválení“
   ["avatar-self-foreground", "avatar-self"], // the „ty“ avatar
   ["highlight-text", "background"], // section keyword (lime word in dark mode)
