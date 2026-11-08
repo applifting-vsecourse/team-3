@@ -26,7 +26,8 @@ type GroupProfileProps = {
  * and description. Mobile (Figma A-08) stacks them with the action in a bar
  * above the bottom navigation; desktop (A-08d, like the event detail A-05d)
  * puts the facts and the action in a panel on the right. A member sees the
- * announcements after the description, then the group's events (A-08e).
+ * announcements after the description, then the group's events (A-08e);
+ * on desktop the admins follow the events (A-08ed).
  */
 export function GroupProfile({
   group,
@@ -51,8 +52,9 @@ export function GroupProfile({
           <GroupHeading group={group} />
           <GroupAbout description={group.description} />
           {announcements}
-          <GroupAdmins admins={group.admins} />
           {events}
+          {/* A-08ed: on desktop who runs the group comes after its events */}
+          <GroupAdmins admins={group.admins} />
         </div>
         {/* Figma: Panel skupiny */}
         <div className="flex w-100 flex-col gap-4 rounded-lg border border-border bg-card p-6 text-card-foreground">
