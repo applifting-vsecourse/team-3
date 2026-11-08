@@ -8,7 +8,7 @@ import { PageBand } from "@/components/PageBand/PageBand"
 import { Seo } from "@/components/Seo"
 import { Button } from "@/components/ui/button"
 import { Tabs, TabsContent } from "@/components/ui/tabs"
-import { useLocality } from "@/hooks/useLocality"
+import { localityDefault, useLocality } from "@/hooks/useLocality"
 import { PAGE } from "@/lib/pageLayout"
 import { cn } from "@/lib/utils"
 
@@ -69,6 +69,11 @@ function GroupsPage() {
     void navigate({ search: { tab: urlSearch.tab }, replace: true })
   }
   const canClear = hasActiveFilters(urlSearch) || shownLocality.isPicked
+  // „Zrušit výběr“ in the locality panel: back to the default, the other filters stay
+  const clearLocality = () => {
+    shownLocality.forget()
+    void navigate({ search: (prev) => ({ ...prev, lokalita: undefined }), replace: true })
+  }
 
   // „Všechny“, and the whole page for a visitor, who has no tabs
   const allGroups = (
@@ -78,6 +83,7 @@ function GroupsPage() {
         catalog={catalog}
         onChange={setSearch}
         onClearAll={canClear ? clearFilters : undefined}
+        localityDefault={localityDefault(shownLocality, clearLocality)}
       />
       <GroupList
         groups={groups ?? []}

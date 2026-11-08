@@ -5,7 +5,7 @@ import { Map as MapIcon } from "lucide-react"
 import { PageBand } from "@/components/PageBand/PageBand"
 import { Seo } from "@/components/Seo"
 import { Button } from "@/components/ui/button"
-import { useLocality } from "@/hooks/useLocality"
+import { localityDefault, useLocality } from "@/hooks/useLocality"
 import { DESKTOP_QUERY, useMediaQuery } from "@/hooks/useMediaQuery"
 import { ALL_LOCALITIES_SLUG } from "@/lib/catalog/localityOptions"
 import { cn } from "@/lib/utils"
@@ -70,6 +70,11 @@ function EventsPage() {
     void navigate({ search: {}, replace: true })
   }
   const canClear = hasActiveFilters(urlSearch) || shownLocality.isPicked
+  // „Zrušit výběr“ in the locality panel: back to the default, the other filters stay
+  const clearLocality = () => {
+    shownLocality.forget()
+    void navigate({ search: (prev) => ({ ...prev, lokalita: undefined }), replace: true })
+  }
 
   return (
     <>
@@ -112,6 +117,7 @@ function EventsPage() {
               catalog={catalog}
               onChange={setSearch}
               onClearAll={canClear ? clearFilters : undefined}
+              localityDefault={localityDefault(shownLocality, clearLocality)}
               isFloating={!isDesktop && !isListExpanded}
               // Chips scroll sideways on narrow screens without a visible scrollbar
               // (Figma A-02); a desktop scrollbar would also make the bar taller

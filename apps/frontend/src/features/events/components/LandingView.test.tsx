@@ -36,7 +36,7 @@ const renderLanding = (
     <QueryClientProvider client={new QueryClient({ defaultOptions: { queries: { retry: 0 } } })}>
       <LandingView
         isSignedIn={session === "loading" ? undefined : !isVisitor}
-        locality={{ slug: "praha", source, pick }}
+        locality={{ slug: "praha", source, pick, isPicked: false, forget: vi.fn() }}
       />
     </QueryClientProvider>,
   )
@@ -123,7 +123,7 @@ describe("LandingView", () => {
     expect(get).toHaveBeenCalledWith("events", { searchParams: { sort: "popular", limit: 6 } })
   })
 
-  it("says the locality is a guess when it comes from the IP, and lets it be changed", async () => {
+  it("says on the chip that the locality is a guess from the IP, and lets it be changed", async () => {
     // desktop: the locality panel opens as a popover
     vi.stubGlobal("matchMedia", (query: string) => ({
       matches: true,
@@ -134,8 +134,9 @@ describe("LandingView", () => {
     await renderLanding(true, "known", "ip")
 
     const nearest = screen.getByRole("region", { name: "Nejbližší akce" })
-    expect(within(nearest).getByText("Odhad podle tvé IP adresy.")).toBeInTheDocument()
-    await userEvent.click(await within(nearest).findByRole("button", { name: "Lokalita: Praha" }))
+    await userEvent.click(
+      await within(nearest).findByRole("button", { name: "Lokalita: Praha · podle polohy" }),
+    )
     const panel = await screen.findByRole("dialog", { name: "Lokalita" })
     await userEvent.click(within(panel).getByRole("option", { name: "Brno" }))
     await userEvent.click(within(panel).getByRole("button", { name: "Zobrazit akce" }))
@@ -146,7 +147,7 @@ describe("LandingView", () => {
     await renderLanding(true)
 
     expect(await screen.findByRole("button", { name: "Lokalita: Praha" })).toBeInTheDocument()
-    expect(screen.queryByText("Odhad podle tvé IP adresy.")).not.toBeInTheDocument()
+    expect(screen.queryByText(/podle polohy/)).not.toBeInTheDocument()
   })
 
   it("invites a visitor to sign up", async () => {

@@ -28,7 +28,7 @@ type LandingViewProps = {
    */
   isSignedIn: boolean | undefined
   /** Where the nearest events are from: the visitor's default or pick (useLocality, #55). */
-  locality: Pick<LocalityState, "slug" | "source" | "pick">
+  locality: LocalityState
 }
 
 /**

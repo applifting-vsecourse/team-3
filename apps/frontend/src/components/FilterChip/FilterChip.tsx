@@ -19,7 +19,10 @@ const chipOn =
 type FilterChipProps = ComponentProps<typeof Button> & {
   /** The filter has a value; the chip then shows it on a dark fill. */
   isSelected?: boolean
-  /** Which filter this is, so a screen reader hears „Lokalita: Praha 8“, not just „Praha 8“. */
+  /**
+   * Which filter this is, so a screen reader hears „Lokalita: Praha 8“, not just „Praha 8“ —
+   * also on a light chip that shows a default value („Lokalita: Praha · podle polohy“).
+   */
   filterName?: string
 }
 
@@ -35,7 +38,7 @@ export function FilterChip({
     <Button
       variant="outline"
       aria-label={
-        isSelected && filterName && typeof children === "string"
+        filterName && typeof children === "string" && children !== filterName
           ? `${filterName}: ${children}`
           : undefined
       }

@@ -5,7 +5,7 @@ import { MapPin, RefreshCw } from "lucide-react"
 import { LocalityFilter } from "@/components/LocalityFilter/LocalityFilter"
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 import { Button } from "@/components/ui/button"
-import type { LocalityState } from "@/hooks/useLocality"
+import { localityDefault, type LocalityState } from "@/hooks/useLocality"
 import { localitiesQueryOptions } from "@/lib/catalog/catalogQueryOptions"
 import { ALL_LOCALITIES_SLUG } from "@/lib/catalog/localityOptions"
 
@@ -25,7 +25,7 @@ type NearestEventsProps = {
    * includes its districts), changeable with the locality chip. Without it,
    * the whole public list and no chip (sign-in, sign-up).
    */
-  locality?: Pick<LocalityState, "slug" | "source" | "pick">
+  locality?: LocalityState
   /** Under the list, e.g. a link to all events. */
   footer?: ReactNode
 }
@@ -70,6 +70,8 @@ export function NearestEvents({ locality: shown, footer }: NearestEventsProps) {
             localities={localitiesQuery.data}
             onChange={shown.pick}
             applyLabel="Zobrazit akce"
+            // a guess says so on the chip, „Praha · podle polohy“ (wireframe A-01: „odhad z IP“)
+            localityDefault={localityDefault(shown, shown.forget)}
           />
         ) : /* From the resolved locality, so the label can't name a place the list isn't for. */
         locality ? (
@@ -82,10 +84,6 @@ export function NearestEvents({ locality: shown, footer }: NearestEventsProps) {
           </span>
         ) : null}
       </div>
-      {shown?.source === "ip" ? (
-        // the wireframe A-01: say it is a guess, so a wrong one is worth changing
-        <p className="text-sm text-muted-foreground">Odhad podle tvé IP adresy.</p>
-      ) : null}
       {error ? (
         <Alert variant="destructive">
           <AlertTitle>Akce se nepodařilo načíst</AlertTitle>
