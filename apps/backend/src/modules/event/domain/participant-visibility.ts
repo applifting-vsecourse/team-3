@@ -1,20 +1,4 @@
-import { ParticipationStatus } from './participation';
-
-/**
- * Who is looking at an event's detail, as the server knows it from the
- * session; a visitor is null.
- */
-export type ParticipantsViewer = {
-  isOrganizer: boolean;
-  /** The viewer's own participation in the event, null when there's none. */
-  participation: ParticipationStatus | null;
-  /**
-   * An active member or admin of the event's group. False without a group,
-   * and for the organizer, for whom it isn't looked up (they see the names
-   * anyway).
-   */
-  isGroupMember: boolean;
-} | null;
+import { EventViewer } from './event-viewer';
 
 /**
  * Whether the viewer may see the names of who is coming (B-026, #174, PO
@@ -22,7 +6,7 @@ export type ParticipantsViewer = {
  * event, the group's members and admins. Everyone else, a waiting applicant
  * included, sees only the occupancy.
  */
-export function canSeeParticipants(viewer: ParticipantsViewer): boolean {
+export function canSeeParticipants(viewer: EventViewer): boolean {
   if (!viewer) return false;
   return (
     viewer.isOrganizer ||

@@ -16,10 +16,12 @@ import {
   ForbiddenException,
   Logger,
   NotFoundException,
+  UnauthorizedException,
 } from '@nestjs/common';
 import { mock, MockProxy } from 'jest-mock-extended';
 import {
   EventsService,
+  GROUP_EVENTS_LIMIT,
   MY_EVENTS_LIMIT,
   PUBLIC_EVENTS_LIMIT,
   SCAN_LIMIT,
@@ -235,6 +237,10 @@ const aDetail = (overrides: Partial<EventDetail> = {}): EventDetail => ({
   ...overrides,
 });
 
+// someone else (u1) created it; u9 is in the group
+const groupEventDetail = (): EventDetail =>
+  aDetail({ group: { id: 'g1', name: 'Deskovkáři Karlín' } });
+
 const participants = [
   { id: 'u2', name: 'Jana' },
   { id: 'u3', name: 'Tomáš' },
@@ -248,7 +254,7 @@ describe('EventsService.getEventDetail', () => {
     repository.findEventDetail.mockResolvedValue(detail);
     repository.findApprovedParticipants.mockResolvedValue(participants);
     repository.findParticipationStatus.mockResolvedValue(null);
-    repository.isActiveGroupMember.mockResolvedValue(false);
+    repository.findActiveGroupRole.mockResolvedValue(null);
     return {
       repository,
       service: new EventsService(repository, mock<NotificationService>()),
@@ -332,20 +338,22 @@ describe('EventsService.getEventDetail', () => {
       },
     );
 
-    it("an active member or admin of the event's group, without a place", async () => {
-      // admins are active members with another role; the check is the same
-      const { repository, service } = setup(groupEvent());
-      repository.isActiveGroupMember.mockResolvedValue(true);
+    it.each(['member', 'admin'] as const)(
+      "an active %s of the event's group, without a place",
+      async (role) => {
+        const { repository, service } = setup(groupEvent());
+        repository.findActiveGroupRole.mockResolvedValue(role);
 
-      const result = await service.getEventDetail('e1', 'u9', now);
+        const result = await service.getEventDetail('e1', 'u9', now);
 
-      expect(result.participants).toEqual(participants);
-      expect(repository.isActiveGroupMember).toHaveBeenCalledWith('g1', 'u9');
-    });
+        expect(result.participants).toEqual(participants);
+        expect(repository.findActiveGroupRole).toHaveBeenCalledWith('g1', 'u9');
+      },
+    );
 
     it("not a pending, blocked or former member of the event's group", async () => {
       const { repository, service } = setup(groupEvent());
-      repository.isActiveGroupMember.mockResolvedValue(false);
+      repository.findActiveGroupRole.mockResolvedValue(null);
 
       const result = await service.getEventDetail('e1', 'u9', now);
 
@@ -359,7 +367,7 @@ describe('EventsService.getEventDetail', () => {
       const result = await service.getEventDetail('e1', null, now);
 
       expect(result.participants).toBeNull();
-      expect(repository.isActiveGroupMember).not.toHaveBeenCalled();
+      expect(repository.findActiveGroupRole).not.toHaveBeenCalled();
       expect(repository.findParticipationStatus).not.toHaveBeenCalled();
     });
 
@@ -427,27 +435,41 @@ describe('EventsService.getEventDetail', () => {
         group: { id: 'g1', name: 'Deskovkáři Karlín' },
       });
 
-    it('is 404 for a visitor', async () => {
+    it('is 401 UNAUTHENTICATED for a visitor, without the group', async () => {
       const { repository, service } = setup(membersOnly());
 
-      await expect(service.getEventDetail('e1', null, now)).rejects.toThrow(
-        NotFoundException,
-      );
-      expect(repository.isActiveGroupMember).not.toHaveBeenCalled();
+      const error = (await service
+        .getEventDetail('e1', null, now)
+        .catch((e: unknown) => e)) as UnauthorizedException;
+
+      expect(error).toBeInstanceOf(UnauthorizedException);
+      expect(error.getResponse()).toEqual({
+        code: 'UNAUTHENTICATED',
+        message: expect.any(String),
+      });
+      expect(repository.findActiveGroupRole).not.toHaveBeenCalled();
     });
 
-    it('is 404 for a signed-in user outside the group', async () => {
+    it('is 403 MEMBERS_ONLY with only the groupId for a signed-in user outside the group', async () => {
       const { repository, service } = setup(membersOnly());
 
-      await expect(service.getEventDetail('e1', 'u9', now)).rejects.toThrow(
-        NotFoundException,
-      );
-      expect(repository.isActiveGroupMember).toHaveBeenCalledWith('g1', 'u9');
+      const error = (await service
+        .getEventDetail('e1', 'u9', now)
+        .catch((e: unknown) => e)) as ForbiddenException;
+
+      expect(error).toBeInstanceOf(ForbiddenException);
+      // nothing about the event itself (B-026, review #215)
+      expect(error.getResponse()).toEqual({
+        code: 'MEMBERS_ONLY',
+        message: expect.any(String),
+        groupId: 'g1',
+      });
+      expect(repository.findActiveGroupRole).toHaveBeenCalledWith('g1', 'u9');
     });
 
     it('is shown to an active member of the group, with the names', async () => {
       const { repository, service } = setup(membersOnly());
-      repository.isActiveGroupMember.mockResolvedValue(true);
+      repository.findActiveGroupRole.mockResolvedValue('member');
 
       const result = await service.getEventDetail('e1', 'u9', now);
 
@@ -461,7 +483,7 @@ describe('EventsService.getEventDetail', () => {
       await expect(
         service.getEventDetail('e1', 'u1', now),
       ).resolves.toMatchObject({ id: 'e1' });
-      expect(repository.isActiveGroupMember).not.toHaveBeenCalled();
+      expect(repository.findActiveGroupRole).not.toHaveBeenCalled();
     });
 
     it('without a group is 404 for anyone but its organizer', async () => {
@@ -490,6 +512,8 @@ describe('EventsService.createEvent', () => {
     minParticipants: 3,
     maxParticipants: 6,
     approvalMode: 'open',
+    groupId: null,
+    visibility: 'public',
     ...overrides,
   });
 
@@ -543,6 +567,100 @@ describe('EventsService.createEvent', () => {
     expect(error).toBeInstanceOf(BadRequestException);
     expect(JSON.stringify(error.getResponse())).toContain('Neznámá aktivita.');
     expect(repository.createEvent).not.toHaveBeenCalled();
+  });
+
+  it("a person's own event cannot be members-only (400)", async () => {
+    const { repository, service } = setup();
+
+    await expect(
+      service.createEvent(newEvent({ visibility: 'members' }), 'u1', now),
+    ).rejects.toThrow(BadRequestException);
+    expect(repository.createEvent).not.toHaveBeenCalled();
+  });
+
+  describe("a group's event (B-055)", () => {
+    const groupEvent = (overrides: Partial<NewEvent> = {}): NewEvent =>
+      newEvent({ groupId: 'g1', visibility: 'members', ...overrides });
+
+    const group = {
+      activityId: 'a-deskove-hry',
+      status: 'active' as const,
+      role: 'admin' as const,
+    };
+
+    it('an admin of the group creates it, members-only too', async () => {
+      const { repository, service } = setup();
+      repository.findGroupForEvent.mockResolvedValue(group);
+      const event = groupEvent();
+
+      await service.createEvent(event, 'u1', now);
+
+      expect(repository.findGroupForEvent).toHaveBeenCalledWith('g1', 'u1');
+      expect(repository.createEvent).toHaveBeenCalledWith(event, 'u1');
+    });
+
+    it.each([
+      ['a regular member', 'member'],
+      ['someone outside the group', null],
+    ] as const)('%s gets 403 NOT_GROUP_ADMIN', async (_who, role) => {
+      const { repository, service } = setup();
+      repository.findGroupForEvent.mockResolvedValue({ ...group, role });
+
+      const error = (await service
+        .createEvent(groupEvent(), 'u9', now)
+        .catch((e: unknown) => e)) as ForbiddenException;
+
+      expect(error).toBeInstanceOf(ForbiddenException);
+      expect(error.getResponse()).toMatchObject({ code: 'NOT_GROUP_ADMIN' });
+      expect(repository.createEvent).not.toHaveBeenCalled();
+    });
+
+    it('a deactivated group is 409 GROUP_INACTIVE', async () => {
+      const { repository, service } = setup();
+      repository.findGroupForEvent.mockResolvedValue({
+        ...group,
+        status: 'inactive',
+      });
+
+      await expect(
+        service.createEvent(groupEvent(), 'u1', now),
+      ).rejects.toThrow(ConflictException);
+      expect(repository.createEvent).not.toHaveBeenCalled();
+    });
+
+    it('a group deactivated between the check and the write is 409, not a published event (review #264)', async () => {
+      const { repository, service } = setup();
+      repository.findGroupForEvent.mockResolvedValue(group);
+      repository.createEvent.mockResolvedValue(null);
+
+      const error = (await service
+        .createEvent(groupEvent(), 'u1', now)
+        .catch((e: unknown) => e)) as ConflictException;
+
+      expect(error).toBeInstanceOf(ConflictException);
+      expect(error.getResponse()).toMatchObject({ code: 'GROUP_INACTIVE' });
+      expect(repository.findEventDetail).not.toHaveBeenCalled();
+    });
+
+    it('an unknown group is 400', async () => {
+      const { repository, service } = setup();
+      repository.findGroupForEvent.mockResolvedValue(null);
+
+      await expect(
+        service.createEvent(groupEvent(), 'u1', now),
+      ).rejects.toThrow(BadRequestException);
+      expect(repository.createEvent).not.toHaveBeenCalled();
+    });
+
+    it("another activity than the group's is 400", async () => {
+      const { repository, service } = setup();
+      repository.findGroupForEvent.mockResolvedValue(group);
+
+      await expect(
+        service.createEvent(groupEvent({ activityId: 'a-sachy' }), 'u1', now),
+      ).rejects.toThrow(BadRequestException);
+      expect(repository.createEvent).not.toHaveBeenCalled();
+    });
   });
 });
 
@@ -600,6 +718,20 @@ describe('EventsService.cancelEvent', () => {
     expect(repository.cancelEvent).not.toHaveBeenCalled();
   });
 
+  it("any admin of the event's group cancels it, not a regular member (B-055)", async () => {
+    const admin = setup(groupEventDetail());
+    admin.repository.findActiveGroupRole.mockResolvedValue('admin');
+    await admin.service.cancelEvent('e1', 'u9', 'Herna má zavřeno.', now);
+    expect(admin.repository.cancelEvent).toHaveBeenCalled();
+
+    const member = setup(groupEventDetail());
+    member.repository.findActiveGroupRole.mockResolvedValue('member');
+    await expect(
+      member.service.cancelEvent('e1', 'u9', 'Nechci', now),
+    ).rejects.toThrow(ForbiddenException);
+    expect(member.repository.cancelEvent).not.toHaveBeenCalled();
+  });
+
   it('an already cancelled or started event is 409', async () => {
     const cancelled = setup(aDetail({ status: 'cancelled' }));
     await expect(
@@ -635,7 +767,7 @@ describe('EventsService participation', () => {
     repository.findEventDetail.mockResolvedValue(detail);
     repository.findApprovedParticipants.mockResolvedValue(participants);
     repository.findParticipationStatus.mockResolvedValue(null);
-    repository.isActiveGroupMember.mockResolvedValue(false);
+    repository.findActiveGroupRole.mockResolvedValue(null);
     const notifications = mock<NotificationService>();
     return {
       repository,
@@ -703,13 +835,13 @@ describe('EventsService participation', () => {
     });
   });
 
-  it('an event the user may not see is 404, and nothing is joined', async () => {
+  it('a members-only event of a group the user is not in is 403, and nothing is joined', async () => {
     const { repository, service } = setup(
       aDetail({ visibility: 'members', group: { id: 'g1', name: 'Skupina' } }),
     );
 
     await expect(service.join('e1', 'u9', null, now)).rejects.toThrow(
-      NotFoundException,
+      ForbiddenException,
     );
     expect(repository.join).not.toHaveBeenCalled();
   });
@@ -790,6 +922,20 @@ describe('EventsService.updateEvent', () => {
         maxParticipants: 6,
       }),
     ).toEqual({ ok: true, data: changes });
+  });
+
+  it("any admin of the event's group changes it, not a regular member (B-055)", async () => {
+    const admin = setup(groupEventDetail());
+    admin.repository.findActiveGroupRole.mockResolvedValue('admin');
+    await admin.service.updateEvent('e1', 'u9', { title: 'Nově' }, now);
+    expect(admin.repository.updateEvent).toHaveBeenCalled();
+
+    const member = setup(groupEventDetail());
+    member.repository.findActiveGroupRole.mockResolvedValue('member');
+    await expect(
+      member.service.updateEvent('e1', 'u9', { title: 'Nově' }, now),
+    ).rejects.toThrow(ForbiddenException);
+    expect(member.repository.updateEvent).not.toHaveBeenCalled();
   });
 
   it('an edit that waited for the lock behind a cancel is 409, not written', async () => {
@@ -901,6 +1047,21 @@ describe('EventsService.getParticipants', () => {
     });
   });
 
+  it("any admin of the event's group gets them too, a regular member 403 (B-055)", async () => {
+    const admin = setup(groupEventDetail());
+    admin.repository.findActiveGroupRole.mockResolvedValue('admin');
+    await expect(
+      admin.service.getParticipants('e1', 'u9', now),
+    ).resolves.toEqual({ participants, requests });
+
+    const member = setup(groupEventDetail());
+    member.repository.findActiveGroupRole.mockResolvedValue('member');
+    await expect(
+      member.service.getParticipants('e1', 'u9', now),
+    ).rejects.toThrow(ForbiddenException);
+    expect(member.repository.findPendingRequests).not.toHaveBeenCalled();
+  });
+
   it('a cancelled event still shows who was coming', async () => {
     const { service } = setup(aDetail({ status: 'cancelled' }));
 
@@ -929,6 +1090,67 @@ describe('EventsService.getParticipants', () => {
 
     await expect(service.getParticipants('e1', 'u1', now)).rejects.toThrow(
       NotFoundException,
+    );
+  });
+});
+
+describe('EventsService.getGroupEvents (B-055)', () => {
+  const setup = (): {
+    repository: MockProxy<EventRepository>;
+    service: EventsService;
+  } => {
+    const repository = mock<EventRepository>();
+    repository.findGroupEvents.mockImplementation(async ({ when }) => [
+      { ...anEvent(when, 2), visibility: 'public' },
+    ]);
+    return {
+      repository,
+      service: new EventsService(repository, mock<NotificationService>()),
+    };
+  };
+
+  it('loads the upcoming and the past section, with the limit', async () => {
+    const { repository, service } = setup();
+    repository.findActiveGroupRole.mockResolvedValue(null);
+
+    const result = await service.getGroupEvents('g1', 'u9', now);
+
+    expect(result.upcoming.map((event) => event.id)).toEqual(['upcoming']);
+    expect(result.past.map((event) => event.id)).toEqual(['past']);
+    for (const when of ['upcoming', 'past']) {
+      expect(repository.findGroupEvents).toHaveBeenCalledWith({
+        groupId: 'g1',
+        when,
+        includeMembersOnly: false,
+        now,
+        limit: GROUP_EVENTS_LIMIT,
+      });
+    }
+  });
+
+  it.each(['member', 'admin'] as const)(
+    'an active %s gets the members-only events too',
+    async (role) => {
+      const { repository, service } = setup();
+      repository.findActiveGroupRole.mockResolvedValue(role);
+
+      await service.getGroupEvents('g1', 'u9', now);
+
+      expect(repository.findActiveGroupRole).toHaveBeenCalledWith('g1', 'u9');
+      expect(repository.findGroupEvents).toHaveBeenCalledWith(
+        expect.objectContaining({ includeMembersOnly: true }),
+      );
+    },
+  );
+
+  it('a visitor does not, and no membership is looked up', async () => {
+    const { repository, service } = setup();
+
+    await service.getGroupEvents('g1', null, now);
+
+    expect(repository.findActiveGroupRole).not.toHaveBeenCalled();
+    expect(repository.findGroupEvents).toHaveBeenCalledWith(
+      expect.objectContaining({ includeMembersOnly: false }),
     );
   });
 });

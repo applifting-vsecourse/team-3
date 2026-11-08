@@ -122,7 +122,10 @@ describe("ParticipationAction", () => {
   })
 
   it("the organizer sees „Spravovat akci“ and next to it „Přijdu“, even with approval", async () => {
-    const { onJoin } = await renderAction({ approvalMode: "approval" }, { viewer: organizer })
+    const { onJoin } = await renderAction(
+      { approvalMode: "approval", canManage: true },
+      { viewer: organizer },
+    )
 
     expect(screen.getByRole("link", { name: "Spravovat akci" })).toHaveAttribute(
       "href",
@@ -306,17 +309,32 @@ describe("ParticipationAction", () => {
   })
 
   it("the organizer still gets to the management page once the event is cancelled", async () => {
-    await renderAction({ status: "cancelled" }, { viewer: organizer })
+    await renderAction({ status: "cancelled", canManage: true }, { viewer: organizer })
 
     expect(screen.getByRole("link", { name: "Spravovat akci" })).toBeInTheDocument()
     expect(screen.queryByRole("button")).not.toBeInTheDocument()
   })
 
   it("…and once it has started", async () => {
-    await renderAction({}, { viewer: organizer, now: new Date("2026-10-23T16:00:00.000Z") })
+    await renderAction(
+      { canManage: true },
+      { viewer: organizer, now: new Date("2026-10-23T16:00:00.000Z") },
+    )
 
     expect(screen.getByRole("link", { name: "Spravovat akci" })).toBeInTheDocument()
     expect(screen.getByText("Akce už začala.")).toBeInTheDocument()
+  })
+
+  it("an admin of the event's group gets to the management too, and joins like anyone (#70)", async () => {
+    const { onJoin } = await renderAction(
+      { approvalMode: "approval", canManage: true, group: { id: "g1", name: "Deskovkáři" } },
+      { viewer: jakub },
+    )
+
+    expect(screen.getByRole("link", { name: "Spravovat akci" })).toBeInTheDocument()
+    // not the organizer: with approval, they ask like anyone else
+    await userEvent.click(screen.getByRole("button", { name: "Poslat žádost" }))
+    expect(onJoin).not.toHaveBeenCalled()
   })
 
   it("joining in progress: „Přijdu“ is disabled", async () => {

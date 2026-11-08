@@ -11,6 +11,8 @@ import {
   formatEventTime,
   formatRequestEventStart,
   formatRequestTime,
+  groupEventFacts,
+  pastEventFacts,
   placeName,
 } from "./formatEvent"
 
@@ -86,6 +88,32 @@ describe("eventFacts", () => {
     expect(
       eventFacts({ ...anEvent({ approvedCount: 2, missingToMin: 2 }), status: "cancelled" }),
     ).toBe("2 z 12 · Praha 8")
+  })
+})
+
+describe("groupEventFacts (#70)", () => {
+  it("a members-only event says so, a public one doesn't", () => {
+    expect(groupEventFacts({ ...anEvent(), visibility: "members" })).toBe(
+      "4 z 12 · Praha 8 · jen pro členy",
+    )
+    expect(groupEventFacts({ ...anEvent(), visibility: "public" })).toBe("4 z 12 · Praha 8")
+  })
+})
+
+describe("pastEventFacts (#70)", () => {
+  it.each([
+    [6, "sešlo se 6"],
+    [3, "sešli se 3"],
+    [1, "sešel se 1"],
+    [0, "sešlo se 0"],
+  ])("%i came: „%s“", (approvedCount, label) => {
+    expect(pastEventFacts({ ...anEvent({ approvedCount }), visibility: "public" })).toBe(label)
+  })
+
+  it("members-only says so", () => {
+    expect(pastEventFacts({ ...anEvent({ approvedCount: 6 }), visibility: "members" })).toBe(
+      "sešlo se 6 · jen pro členy",
+    )
   })
 })
 

@@ -1,3 +1,5 @@
+import type { ReactNode } from "react"
+
 import { PersonRow } from "@/components/PersonRow/PersonRow"
 import { DESKTOP_QUERY, useMediaQuery } from "@/hooks/useMediaQuery"
 
@@ -13,6 +15,8 @@ type GroupProfileProps = {
   isSignedIn: boolean
   /** Login's `from`, so a visitor who signs in to join comes back to the group. */
   signInFrom: string
+  /** The group's upcoming and past events (#70, A-08e); the page builds them. */
+  events?: ReactNode
 }
 
 /**
@@ -20,9 +24,9 @@ type GroupProfileProps = {
  * and description. Mobile (Figma A-08) stacks them with the action in a bar
  * above the bottom navigation; desktop (A-08d, like the event detail A-05d)
  * puts the facts and the action in a panel on the right. The group's
- * events come with #70.
+ * events follow the description (A-08e).
  */
-export function GroupProfile({ group, isSignedIn, signInFrom }: GroupProfileProps) {
+export function GroupProfile({ group, isSignedIn, signInFrom, events }: GroupProfileProps) {
   const isDesktop = useMediaQuery(DESKTOP_QUERY)
   const action = hasMembershipAction(group) ? (
     <GroupMembershipAction
@@ -39,6 +43,7 @@ export function GroupProfile({ group, isSignedIn, signInFrom }: GroupProfileProp
           <GroupHeading group={group} />
           <GroupAbout description={group.description} />
           <GroupAdmins admins={group.admins} />
+          {events}
         </div>
         {/* Figma: Panel skupiny */}
         <div className="flex w-100 flex-col gap-4 rounded-lg border border-border bg-card p-6 text-card-foreground">
@@ -55,6 +60,7 @@ export function GroupProfile({ group, isSignedIn, signInFrom }: GroupProfileProp
       <GroupFacts group={group} />
       <GroupAdmins admins={group.admins} />
       <GroupAbout description={group.description} />
+      {events}
       {action ? (
         // Figma: Lišta s akcí — above the bottom navigation
         <div className="sticky bottom-16 -mx-4 border-t border-border bg-background px-4 py-3">

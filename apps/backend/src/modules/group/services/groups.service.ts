@@ -172,7 +172,9 @@ export class GroupsService {
   /**
    * „Deaktivovat skupinu“ (B-051): the group is kept, not deleted — it drops
    * out of the list, nobody joins and its waiting requests are removed,
-   * since nobody will decide them. Members stay as history; it is final.
+   * since nobody will decide them. Its upcoming events are cancelled with
+   * the reason „Skupina už není aktivní“ (B-055); past ones and the members
+   * stay as history. It is final.
    */
   async deactivateGroup(groupId: string, userId: string): Promise<void> {
     await this.getActiveGroup(groupId);

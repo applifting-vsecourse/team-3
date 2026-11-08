@@ -89,11 +89,22 @@ export type EventDetailView = EventDetail & {
    * session from a signed-in user who just doesn't get the names (#174).
    */
   viewerSignedIn: boolean;
+  /** Whether the viewer manages the event (B-055, `canManageEvent`). */
+  canManage: boolean;
 };
 
+/** The two sections of a group's page (B-055): Nadcházející and Proběhlé. */
+export type GroupEventsWhen = 'upcoming' | 'past';
+
+/** An event on its group's page (B-055): members-only ones are marked. */
+export type GroupEvent = PublicEvent & { visibility: 'public' | 'members' };
+
+/** A group's events, as its page lists them. */
+export type GroupEvents = { upcoming: GroupEvent[]; past: GroupEvent[] };
+
 /**
- * Tabs of „Moje akce“ (B-035). `past` (Proběhlé) comes with #61, the events
- * of my groups under `organizing` with #70.
+ * Tabs of „Moje akce“ (B-035). `past` (Proběhlé) comes with #61; under
+ * `organizing` are the events of the groups I'm an admin of too (B-055).
  */
 export const MY_EVENTS_TABS = ['attending', 'organizing'] as const;
 export type MyEventsTab = (typeof MY_EVENTS_TABS)[number];
@@ -122,6 +133,10 @@ export type NewEvent = {
   minParticipants: number;
   maxParticipants: number;
   approvalMode: 'open' | 'approval';
+  /** A group's event (B-055); null for a person's own. */
+  groupId: string | null;
+  /** `members` only for a group's event. */
+  visibility: 'public' | 'members';
 };
 
 /** What the organizer may change on an event (B-028, #41): not the activity nor the way of joining. */

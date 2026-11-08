@@ -87,14 +87,41 @@ describe("EventDetailView", () => {
     expect(screen.getByText("Zatím se nikdo nepřihlásil.")).toBeInTheDocument()
   })
 
-  it("a group's event is organized by the group", async () => {
+  it("a group's event is organized by the group, linked to its page, and says who sees it (#70, A-05g)", async () => {
     await renderWithRouter(
-      <EventDetailView event={anEventDetail({ group: { id: "g1", name: "Tandem Praha" } })} />,
+      <EventDetailView
+        event={anEventDetail({
+          group: { id: "g1", name: "Tandem Praha" },
+          visibility: "members",
+        })}
+      />,
     )
 
-    expect(screen.getByText("Tandem Praha")).toBeInTheDocument()
-    expect(screen.getByText("Skupina")).toBeInTheDocument()
+    expect(screen.getByRole("link", { name: "Tandem Praha" })).toHaveAttribute(
+      "href",
+      "/skupiny/g1",
+    )
     expect(screen.queryByText("Petra")).not.toBeInTheDocument()
+    expect(screen.getByText("Kdo akci vidí")).toBeInTheDocument()
+    expect(screen.getByText("Jen pro členy skupiny")).toBeInTheDocument()
+  })
+
+  it("a group's event shows the group's card the page passes in, once loaded", async () => {
+    await renderWithRouter(
+      <EventDetailView
+        event={anEventDetail({ group: { id: "g1", name: "Tandem Praha" } })}
+        organizerGroup={<p>Karta skupiny</p>}
+      />,
+    )
+
+    expect(screen.getByText("Karta skupiny")).toBeInTheDocument()
+    expect(screen.getByText("Veřejná")).toBeInTheDocument()
+  })
+
+  it("a person's event doesn't say who sees it", async () => {
+    await renderWithRouter(<EventDetailView event={anEventDetail()} />)
+
+    expect(screen.queryByText("Kdo akci vidí")).not.toBeInTheDocument()
   })
 
   it("names the approval when the organizer approves, and leaves out an empty description", async () => {
