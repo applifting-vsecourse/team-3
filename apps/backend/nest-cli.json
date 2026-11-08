@@ -5,6 +5,10 @@
   "compilerOptions": {
     "plugins": [
       "@nestjs/swagger"
-    ]
+    ],
+    "assets": [
+      "modules/geo/data/*.txt"
+    ],
+    "watchAssets": true
   }
 }
