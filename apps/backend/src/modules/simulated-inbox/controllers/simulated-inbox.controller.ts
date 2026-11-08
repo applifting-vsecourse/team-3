@@ -4,6 +4,7 @@ import {
   Controller,
   HttpCode,
   Post,
+  UnauthorizedException,
   UseGuards,
   UsePipes,
   ValidationPipe,
@@ -16,6 +17,7 @@ import {
 } from '@nestjs/swagger';
 import { SimulatedInboxRequestDto } from './dto/simulated-inbox.request.dto';
 import { SimulatedInboxResponseDto } from './dto/simulated-inbox.response.dto';
+import { inboxAddress, SimulatedInboxLimits } from './simulated-inbox-limits';
 import { SimulatedInboxThrottlerGuard } from './simulated-inbox-throttler.guard';
 
 // No session: since #236 an unverified e-mail can't sign in, and the
@@ -32,7 +34,10 @@ import { SimulatedInboxThrottlerGuard } from './simulated-inbox-throttler.guard'
   }),
 )
 export class SimulatedInboxController {
-  constructor(private readonly simulatedInboxService: SimulatedInboxService) {}
+  constructor(
+    private readonly simulatedInboxService: SimulatedInboxService,
+    private readonly limits: SimulatedInboxLimits,
+  ) {}
 
   @Post()
   @HttpCode(200)
@@ -41,7 +46,7 @@ export class SimulatedInboxController {
     summary:
       'Simulated inbox (#58): the verification e-mails the app would have sent to this account',
     description:
-      'Only without an e-mail service (console mailer), kept in memory: the last 3 per address. Password-reset e-mails are never kept. No session needed (#236: an unverified e-mail cannot sign in); the e-mail and password of the account are, as for signing in. Only an unverified account gets an answer. 20 requests per address and 100 per IP in 10 minutes.',
+      'Only without an e-mail service (console mailer), kept in memory: the last 3 per address. Password-reset e-mails are never kept. No session needed (#236: an unverified e-mail cannot sign in); the e-mail and password of the account are, as for signing in. Only an unverified account gets an answer. 100 requests per IP and 20 failed ones per address in 10 minutes; a successful one clears the count for the address.',
   })
   @ApiOkResponse({ type: SimulatedInboxResponseDto })
   @ApiResponse({ status: 400, description: 'Invalid or unknown field' })
@@ -58,13 +63,23 @@ export class SimulatedInboxController {
   })
   @ApiResponse({
     status: 429,
-    description: 'Too many requests for this address or from this IP',
+    description:
+      'Too many requests from this IP, or too many failed ones for this address',
   })
   async open(
     @Body() body: SimulatedInboxRequestDto,
   ): Promise<SimulatedInboxResponseDto> {
-    return SimulatedInboxResponseDto.fromDomain(
-      await this.simulatedInboxService.getMessages(body),
-    );
+    // only now, after the DTO, is the address valid enough to be a key
+    const address = inboxAddress(body.email);
+    try {
+      const messages = await this.simulatedInboxService.getMessages(body);
+      this.limits.recordSuccess(address);
+      return SimulatedInboxResponseDto.fromDomain(messages);
+    } catch (error) {
+      if (error instanceof UnauthorizedException) {
+        this.limits.recordFailure(address);
+      }
+      throw error;
+    }
   }
 }

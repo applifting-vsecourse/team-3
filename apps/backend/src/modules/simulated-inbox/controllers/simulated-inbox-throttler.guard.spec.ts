@@ -1,18 +1,16 @@
 import { SimulatedInbox } from '@/core/email/simulated-inbox/simulated-inbox';
 import {
-  BadRequestException,
   ExecutionContext,
   HttpException,
   NotFoundException,
 } from '@nestjs/common';
 import {
-  clientIp,
   SIMULATED_INBOX_ADDRESS_LIMIT,
   SIMULATED_INBOX_IP_LIMIT,
-  SIMULATED_INBOX_MAX_KEYS,
   SIMULATED_INBOX_WINDOW_MS,
-  SimulatedInboxThrottlerGuard,
-} from './simulated-inbox-throttler.guard';
+  SimulatedInboxLimits,
+} from './simulated-inbox-limits';
+import { SimulatedInboxThrottlerGuard } from './simulated-inbox-throttler.guard';
 
 // The service's file would load better-auth's ESM-only node entry.
 jest.mock('@/shared/auth/utils/get-session-from-request', () => ({
@@ -22,10 +20,14 @@ jest.mock('@/shared/auth/providers/better-auth.provider', () => ({
   InjectBetterAuth: (): void => undefined,
 }));
 
-const contextFor = (email: unknown, ip = '10.0.0.1'): ExecutionContext =>
+const contextFor = (
+  email: unknown,
+  ip = '10.0.0.1',
+  headers: Record<string, string> = {},
+): ExecutionContext =>
   ({
     switchToHttp: () => ({
-      getRequest: () => ({ body: { email }, headers: {}, ip }),
+      getRequest: () => ({ body: { email }, headers, ip }),
     }),
   }) as unknown as ExecutionContext;
 
@@ -38,41 +40,55 @@ const thrown = (run: () => unknown): unknown => {
   return undefined;
 };
 
-const guardWithInbox = (): SimulatedInboxThrottlerGuard =>
-  new SimulatedInboxThrottlerGuard(new SimulatedInbox('Ověř si e-mail'));
+const setUp = (): {
+  guard: SimulatedInboxThrottlerGuard;
+  limits: SimulatedInboxLimits;
+} => {
+  const limits = new SimulatedInboxLimits();
+  return {
+    guard: new SimulatedInboxThrottlerGuard(
+      new SimulatedInbox('Ověř si e-mail'),
+      limits,
+    ),
+    limits,
+  };
+};
+
+const failTimes = (
+  limits: SimulatedInboxLimits,
+  address: string,
+  n: number,
+) => {
+  for (let i = 0; i < n; i++) limits.recordFailure(address);
+};
 
 describe('SimulatedInboxThrottlerGuard', () => {
   afterEach(() => jest.useRealTimers());
 
   it('is 404 where the inbox is off, before counting anything', () => {
-    const guard = new SimulatedInboxThrottlerGuard(null);
+    const limits = new SimulatedInboxLimits();
+    const guard = new SimulatedInboxThrottlerGuard(null, limits);
 
     expect(
       thrown(() => guard.canActivate(contextFor('eva@example.com'))),
     ).toBeInstanceOf(NotFoundException);
-    expect(guard.trackedKeys).toEqual({ addresses: 0, ips: 0 });
+    expect(limits.trackedKeys).toEqual({ addresses: 0, ips: 0 });
   });
 
   it.each([
     ['too long', `${'a'.repeat(400)}@example.com`],
     ['blank', '   '],
     ['not text', { a: 1 }],
-  ])('a %s e-mail is 400 and stores nothing', (_, email) => {
-    const guard = guardWithInbox();
+  ])('a %s e-mail is left to the DTO and stores no address', (_, email) => {
+    const { guard, limits } = setUp();
 
-    expect(thrown(() => guard.canActivate(contextFor(email)))).toBeInstanceOf(
-      BadRequestException,
-    );
-    expect(guard.trackedKeys).toEqual({ addresses: 0, ips: 0 });
+    expect(guard.canActivate(contextFor(email))).toBe(true);
+    expect(limits.trackedKeys.addresses).toBe(0);
   });
 
-  it('stops an address over its limit with 429 and a Czech message, others go on', () => {
-    const guard = guardWithInbox();
-    for (let i = 0; i < SIMULATED_INBOX_ADDRESS_LIMIT; i++) {
-      expect(
-        guard.canActivate(contextFor('eva.mala@example.com', `10.0.1.${i}`)),
-      ).toBe(true);
-    }
+  it('stops an address with too many failed looks with 429 and a Czech message, others go on', () => {
+    const { guard, limits } = setUp();
+    failTimes(limits, 'eva.mala@example.com', SIMULATED_INBOX_ADDRESS_LIMIT);
 
     // the same address however it is written, from yet another IP
     const error = thrown(() =>
@@ -86,8 +102,32 @@ describe('SimulatedInboxThrottlerGuard', () => {
     expect(guard.canActivate(contextFor('jakub.kral@example.com'))).toBe(true);
   });
 
+  it('never locks the owner out by successful looks, and a success clears the failures', () => {
+    const { guard, limits } = setUp();
+    for (let i = 0; i < SIMULATED_INBOX_ADDRESS_LIMIT * 2; i++) {
+      expect(
+        guard.canActivate(contextFor('eva.mala@example.com', `10.0.1.${i}`)),
+      ).toBe(true);
+      limits.recordSuccess('eva.mala@example.com');
+    }
+
+    failTimes(
+      limits,
+      'eva.mala@example.com',
+      SIMULATED_INBOX_ADDRESS_LIMIT - 1,
+    );
+    limits.recordSuccess('eva.mala@example.com');
+    failTimes(
+      limits,
+      'eva.mala@example.com',
+      SIMULATED_INBOX_ADDRESS_LIMIT - 1,
+    );
+
+    expect(guard.canActivate(contextFor('eva.mala@example.com'))).toBe(true);
+  });
+
   it('stops one IP trying many addresses', () => {
-    const guard = guardWithInbox();
+    const { guard } = setUp();
     for (let i = 0; i < SIMULATED_INBOX_IP_LIMIT; i++) {
       guard.canActivate(contextFor(`user${i}@example.com`));
     }
@@ -101,27 +141,30 @@ describe('SimulatedInboxThrottlerGuard', () => {
     ).toBe(true);
   });
 
-  it('keeps no more keys than its cap', () => {
-    const guard = guardWithInbox();
-    for (let i = 0; i < SIMULATED_INBOX_MAX_KEYS + 50; i++) {
+  it('takes the IP from the connection, never from x-forwarded-for', () => {
+    const { guard } = setUp();
+    for (let i = 0; i < SIMULATED_INBOX_IP_LIMIT; i++) {
       guard.canActivate(
-        contextFor(
-          `user${i}@example.com`,
-          `10.${(i >> 16) & 255}.${(i >> 8) & 255}.${i & 255}`,
-        ),
+        contextFor('eva@example.com', '10.0.0.1', {
+          'x-forwarded-for': `203.0.113.${i}`,
+        }),
       );
     }
 
-    expect(guard.trackedKeys.addresses).toBe(SIMULATED_INBOX_MAX_KEYS);
-    expect(guard.trackedKeys.ips).toBe(SIMULATED_INBOX_MAX_KEYS);
+    const error = thrown(() =>
+      guard.canActivate(
+        contextFor('eva@example.com', '10.0.0.1', {
+          'x-forwarded-for': '198.51.100.1',
+        }),
+      ),
+    );
+    expect((error as HttpException).getStatus()).toBe(429);
   });
 
   it('lets the address in again once its window is over', () => {
     jest.useFakeTimers();
-    const guard = guardWithInbox();
-    for (let i = 0; i < SIMULATED_INBOX_ADDRESS_LIMIT; i++) {
-      guard.canActivate(contextFor('eva.mala@example.com'));
-    }
+    const { guard, limits } = setUp();
+    failTimes(limits, 'eva.mala@example.com', SIMULATED_INBOX_ADDRESS_LIMIT);
     expect(() => guard.canActivate(contextFor('eva.mala@example.com'))).toThrow(
       HttpException,
     );
@@ -129,28 +172,5 @@ describe('SimulatedInboxThrottlerGuard', () => {
     jest.advanceTimersByTime(SIMULATED_INBOX_WINDOW_MS);
 
     expect(guard.canActivate(contextFor('eva.mala@example.com'))).toBe(true);
-  });
-});
-
-describe('clientIp', () => {
-  it('takes a single x-forwarded-for address, as BetterAuth does', () => {
-    expect(
-      clientIp({
-        headers: { 'x-forwarded-for': '203.0.113.7' },
-        ip: '10.0.0.2',
-      }),
-    ).toBe('203.0.113.7');
-  });
-
-  it('falls back to the connection for a chain or garbage', () => {
-    expect(
-      clientIp({
-        headers: { 'x-forwarded-for': '1.2.3.4, 203.0.113.7' },
-        ip: '10.0.0.2',
-      }),
-    ).toBe('10.0.0.2');
-    expect(
-      clientIp({ headers: { 'x-forwarded-for': 'nope' }, ip: '10.0.0.2' }),
-    ).toBe('10.0.0.2');
   });
 });

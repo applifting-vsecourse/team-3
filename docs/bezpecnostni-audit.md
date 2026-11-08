@@ -112,7 +112,7 @@ Dokud je schránka zapnutá, jde na stagingu ověřit cizí adresu. Google se al
 
 Přidat lokalitu teď může jen ověřený uživatel a nejvýš 20krát za hodinu. Limit se počítá na uživatele a po restartu backendu se vynuluje. Zůstává:
 
-- **Rate limit na zbytek `/api`:** ověřený uživatel může dál hromadně zakládat akce a skupiny. Limit podle IP jsme záměrně nepřidali: celá učebna na jedné Wi-Fi je jedna IP (viz #141) a backend nemá nastavené `trust proxy`, takže by mohl počítat všechny uživatele dohromady. Řeší #230.
+- **Rate limit na zbytek `/api`:** ověřený uživatel může dál hromadně zakládat akce a skupiny. Limit podle IP jsme záměrně nepřidali: celá učebna na jedné Wi-Fi je jedna IP (viz #141) a `trust proxy` je zatím nastavené jen na stagingu (`TRUST_PROXY_HOPS=1` v `Dockerfile.deploy`, kvůli limitu simulované schránky z #236). Řeší #230.
 - **Mazání lokalit:** už přidané lokality jde odstranit jen přímo v databázi, patří to k administraci (B-063).
 
 ### Zbývá u N-9
@@ -126,6 +126,7 @@ Z kódu nejde zjistit a tým nemá přístup do Coolify. Ověří to Tomáš Kl�
 - `BETTER_AUTH_SECRET` nastavuje Coolify, nesmí mít hodnotu z `.env.example`.
 - Backend nesmí být dostupný přímo mimo proxy.
 - Proxy musí přepisovat hlavičku `X-Forwarded-For`, jinak nemusí správně fungovat rate limit přihlášení.
+- Před backendem je právě jedna proxy (`TRUST_PROXY_HOPS=1`). Při víc proxy by limit simulované schránky počítal adresu vnější proxy, ne klienta.
 - `FRONTEND_URL` a `BACKEND_URL` musí odpovídat skutečným adresám, jinak ochrana z #140 odmítne všechny zápisy.
 
 **Superadmin:** na stagingu není nastavený `SUPERADMIN_EMAIL` ani `SUPERADMIN_PASSWORD`, takže se superadmin nezaložil (seed to hlásí v logu, ověřeno 2. 11.). Výchozí heslo z `.env.example` tam proto nehrozí. Účet superadmina by dnes ani neměl práva navíc, protože administrace (B-063) ještě neexistuje. Než v aplikaci vznikne prostředí a speciální práva pro superadmina, je potřeba ho na stagingu nastavit se silným heslem, které není v repu.

@@ -34,6 +34,10 @@ async function main(): Promise<void> {
   app.use(cookieParser());
 
   const appInstance = app.getHttpAdapter().getInstance();
+  // request.ip behind the proxy: the address the proxy saw, not a header the client set
+  if (config.trustProxyHops > 0) {
+    appInstance.set('trust proxy', config.trustProxyHops);
+  }
   const betterAuth = app.get<BetterAuth>('BetterAuth');
   // Express 5 (via NestJS 11) requires named wildcards — a bare `*` throws.
   appInstance.all('/api/auth/*splat', toNodeHandler(betterAuth));
