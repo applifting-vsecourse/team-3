@@ -43,6 +43,7 @@ const anEvent = (
     id: 'a-volejbal',
     slug: 'volejbal',
     name: 'Volejbal',
+    keywords: [],
     category: { id: 'c-sport', slug: 'sport', name: 'Sport', icon: 'ball' },
   },
   locality: { id: PRAHA_3.id, slug: PRAHA_3.slug, name: PRAHA_3.name },
@@ -55,6 +56,7 @@ const anEvent = (
     approved,
   ),
   isPromoted: false,
+  distanceKm: null,
   ...extra,
 });
 

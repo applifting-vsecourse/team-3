@@ -44,6 +44,7 @@ const anEvent = (id: string, spec: EventSpec = {}): PublicEvent => {
       id: spec.activityId ?? 'a-volejbal',
       slug: 'volejbal',
       name: 'Volejbal',
+      keywords: [],
       category: { id: 'c-sport', slug: 'sport', name: 'Sport', icon: 'ball' },
     },
     locality: { id: 'l-praha-3', slug: 'praha-3', name: 'Praha 3' },
@@ -57,6 +58,7 @@ const anEvent = (id: string, spec: EventSpec = {}): PublicEvent => {
       spec.approved ?? min,
     ),
     isPromoted: false,
+    distanceKm: null,
   };
 };
 
