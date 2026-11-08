@@ -24,6 +24,15 @@ export type NotifiedAnnouncement = {
   group: { id: string; name: string };
 };
 
+/** What the e-mail of an organizer's message to the participants needs to know of it (#176). */
+export type NotifiedEventMessage = {
+  id: string;
+  subject: string;
+  body: string;
+  senderId: string;
+  event: { id: string; title: string };
+};
+
 /** When an event takes place. */
 export type EventWhen = { startsAt: Date; endsAt: Date | null };
 
@@ -42,9 +51,9 @@ export type EventChange = {
  * somebody should hear about (#177). The services raise these after the change
  * is written; `NotificationService` turns each into e-mails.
  *
- * To add a kind (e.g. the organizer's message to the participants, #176):
- * add it here, say who gets it in `NotificationService.recipientsOf`, and say
- * what it reads in `composeMessage`.
+ * To add a kind: add it here, say who gets it in
+ * `NotificationService.audienceOf`, and say what it reads in `composeMessage`
+ * (see the README).
  */
 export type Notification =
   /** The organizer hears of a request waiting for them. */
@@ -69,12 +78,18 @@ export type Notification =
   /** The organizer hears a participant gave up their place. */
   | { type: 'participant-left'; eventId: string; participantId: string }
   /** Every active member of the group hears what its admin announced (#194). */
-  | { type: 'group-announcement'; announcementId: string };
+  | { type: 'group-announcement'; announcementId: string }
+  /** Every approved participant hears what the organizer wrote them (#176). */
+  | { type: 'event-message'; eventId: string; messageId: string };
 
-/** The notifications about an event: all but the group announcement. */
+/**
+ * The notifications about something that happened to an event: not the
+ * group announcement nor the organizer's message, which carry their author's
+ * own words and are prepared on their own.
+ */
 export type EventNotification = Exclude<
   Notification,
-  { type: 'group-announcement' }
+  { type: 'group-announcement' } | { type: 'event-message' }
 >;
 
 export type NotificationType = Notification['type'];

@@ -13,6 +13,17 @@ import {
   PublicEventSort,
 } from '@/modules/event/domain/event';
 import {
+  canReadMessages,
+  canSendMessages,
+  decideMessage,
+  EventMessage,
+  EventMessages,
+  MessageInput,
+  MessageRefusal,
+  MESSAGES_SHOWN,
+  remainingMessages,
+} from '@/modules/event/domain/event-message';
+import {
   decideUpdate,
   lifecycleRefusal,
   UpdateRefusal,
@@ -30,6 +41,7 @@ import {
   ParticipationRefusal,
   type ParticipationStatus,
 } from '@/modules/event/domain/participation';
+import { startOfPragueDayOf } from '@/modules/event/domain/prague-day';
 import { EventRepository } from '@/modules/event/repositories/event.repository';
 import { summarizeChange } from '@/modules/notification/domain/event-change';
 import { NotificationService } from '@/modules/notification/services/notification.service';
@@ -38,6 +50,7 @@ import {
   ConflictException,
   ForbiddenException,
   HttpException,
+  HttpStatus,
   Injectable,
   NotFoundException,
   UnauthorizedException,
@@ -79,6 +92,20 @@ const updateRefused = (refusal: UpdateRefusal): HttpException => {
       return new BadRequestException([refusal.problem]);
   }
 };
+
+const messageRefused = (refusal: MessageRefusal): HttpException =>
+  refusal === 'EVENT_CANCELLED'
+    ? new ConflictException({
+        code: refusal,
+        message: 'Zrušené akci už zprávu poslat nejde.',
+      })
+    : new HttpException(
+        {
+          code: refusal,
+          message: 'Dnes už k akci další zprávu poslat nemůžeš. Zkus to zítra.',
+        },
+        HttpStatus.TOO_MANY_REQUESTS,
+      );
 
 // One endpoint serves both the list and the map in sprint 2, without paging
 // (deviation from B-023, which has paging and a separate /events/map).
@@ -198,17 +225,7 @@ export class EventsService {
     viewerId: string | null,
     now: Date = new Date(),
   ): Promise<EventDetailView> {
-    const event = await this.eventRepository.findEventDetail(id, now);
-    // a cancelled event stays reachable, with its reason (#52)
-    if (!event || event.status === 'hidden' || event.status === 'deleted') {
-      throw new NotFoundException('Akce neexistuje.');
-    }
-    // Who the viewer is comes first, before the 404 decision: one membership
-    // lookup serves both canView and the names. Keep the two together.
-    const viewer = viewerId ? await this.viewerOf(event, viewerId) : null;
-    if (!this.canView(event, viewer)) {
-      throw this.membersOnly(event, viewer);
-    }
+    const { event, viewer } = await this.findVisibleEvent(id, viewerId, now);
     const participants = canSeeParticipants(viewer)
       ? await this.eventRepository.findApprovedParticipants(event.id)
       : null;
@@ -222,6 +239,76 @@ export class EventsService {
       viewerSignedIn: viewer !== null,
       canManage: canManageEvent(viewer),
     };
+  }
+
+  /**
+   * The event's messages from its organizer (#176), newest first, for
+   * whoever sees „Kdo jde“ (#174); anyone else gets 403. The organizer of a
+   * published event also learns how many they may still send today. A
+   * cancelled event's messages stay readable.
+   */
+  async getMessages(
+    eventId: string,
+    userId: string,
+    now: Date = new Date(),
+  ): Promise<EventMessages> {
+    const { event, viewer } = await this.findVisibleEvent(eventId, userId, now);
+    if (!canReadMessages(viewer)) {
+      throw new ForbiddenException({
+        code: 'NOT_PARTICIPANT',
+        message: 'Zprávy od organizátora vidí jen ti, kdo na akci jdou.',
+      });
+    }
+    const [messages, total, remainingToday] = await Promise.all([
+      this.eventRepository.findMessages(eventId, MESSAGES_SHOWN),
+      this.eventRepository.countMessages(eventId),
+      canSendMessages(event, viewer)
+        ? this.eventRepository
+            .countMessagesSince(eventId, startOfPragueDayOf(now))
+            .then(remainingMessages)
+        : null,
+    ]);
+    return { messages, total, remainingToday };
+  }
+
+  /**
+   * „Napsat účastníkům“ (B-042, #176, Figma D-04): only the organizer of a
+   * published event, at most MESSAGES_PER_DAY in a Prague calendar day.
+   * Every approved participant gets it by e-mail, not the organizer.
+   */
+  async sendMessage(
+    eventId: string,
+    userId: string,
+    input: MessageInput,
+    now: Date = new Date(),
+  ): Promise<EventMessage> {
+    // 404, or 403 MEMBERS_ONLY for a members-only event outside the group
+    const { event, viewer } = await this.findVisibleEvent(eventId, userId, now);
+    if (!viewer?.isOrganizer) {
+      throw new ForbiddenException({
+        code: 'NOT_ORGANIZER',
+        message: 'Účastníkům může napsat jen organizátor akce.',
+      });
+    }
+    // fail fast; checked again under the lock
+    if (!canSendMessages(event, viewer))
+      throw messageRefused('EVENT_CANCELLED');
+    const result = await this.eventRepository.createMessage(
+      eventId,
+      userId,
+      input,
+      startOfPragueDayOf(now),
+      decideMessage,
+    );
+    if (!result) throw new NotFoundException('Akce neexistuje.');
+    if (!result.ok) throw messageRefused(result.refusal);
+    // after the write: the participants get the e-mail, the organizer doesn't wait for it
+    this.notifications.notify({
+      type: 'event-message',
+      eventId,
+      messageId: result.message.id,
+    });
+    return result.message;
   }
 
   /**
@@ -507,6 +594,30 @@ export class EventsService {
       });
     }
     return this.getEventDetail(eventId, userId, now);
+  }
+
+  /**
+   * The event and who is looking at it, once the viewer may see it at all:
+   * unknown, hidden and deleted events are 404, a members-only event outside
+   * the group 401/403 (see `getEventDetail`). Who the viewer is comes first,
+   * before the 404 decision: one membership lookup serves both canView and
+   * what the viewer may see. Keep the two together.
+   */
+  private async findVisibleEvent(
+    id: string,
+    viewerId: string | null,
+    now: Date,
+  ): Promise<{ event: EventDetail; viewer: EventViewer }> {
+    const event = await this.eventRepository.findEventDetail(id, now);
+    // a cancelled event stays reachable, with its reason (#52)
+    if (!event || event.status === 'hidden' || event.status === 'deleted') {
+      throw new NotFoundException('Akce neexistuje.');
+    }
+    const viewer = viewerId ? await this.viewerOf(event, viewerId) : null;
+    if (!this.canView(event, viewer)) {
+      throw this.membersOnly(event, viewer);
+    }
+    return { event, viewer };
   }
 
   /**

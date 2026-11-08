@@ -35,7 +35,7 @@ export const EventNotificationEmail = ({
       <Text
         key={paragraph}
         className="text-[#14201a] text-base leading-6 mt-4 mb-0"
-        // a group announcement's lines stay as the admin wrote them (#194)
+        // an announcement's (#194) or a message's (#176) lines stay as they were written
         style={{ whiteSpace: 'pre-line' }}
       >
         {paragraph}

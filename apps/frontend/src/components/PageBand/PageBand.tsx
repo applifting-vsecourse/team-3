@@ -37,6 +37,11 @@ type PageBandProps = {
   action?: ReactNode
   /** Tabs on the band's bottom edge (BandTabs), or what follows the title (the „Koná se“ stamp). */
   children?: ReactNode
+  /**
+   * `hero`: beside the title, its line and the children on desktop, under them on a phone —
+   * the landing page's panel „Teď chybí jeden“ (Figma A-01, A-01d).
+   */
+  aside?: ReactNode
 }
 
 /**
@@ -55,10 +60,74 @@ export function PageBand({
   eyebrow,
   action,
   children,
+  aside,
 }: PageBandProps) {
   const isSection = variant === "section"
   const isHero = variant === "hero"
   const isDetail = variant === "detail"
+
+  const content = (
+    <>
+      {back ? (
+        <div className={cn(isDetail && "hidden md:block")}>
+          <BackLink
+            {...back}
+            isIconOnlyOnMobile={isCompactOnMobile}
+          />
+        </div>
+      ) : null}
+      {eyebrow ? <div className={cn(isCompactOnMobile && "hidden md:block")}>{eyebrow}</div> : null}
+      <div
+        className={cn(
+          "flex items-center justify-between gap-6",
+          // the arrow and the title share one bar on a phone
+          isCompactOnMobile && "absolute top-2 right-4 left-14 h-10 md:static md:h-auto",
+        )}
+      >
+        <div className="flex min-w-0 items-center gap-3">
+          {isSection ? (
+            <LogoMark
+              isOnHero
+              isFull={isMarkFull}
+              className="size-8 md:size-11"
+            />
+          ) : null}
+          <h1
+            className={cn(
+              "min-w-0 text-balance text-on-hero",
+              isHero
+                ? // stays left of the motif's ring (xl)
+                  "max-w-3xl type-hero"
+                : isCompactOnMobile
+                  ? // the phone's bar title is Figma Header/Sub's Label/Strong
+                    "truncate text-sm font-semibold md:overflow-visible md:type-title md:whitespace-normal"
+                  : // the detail's title stays left of the motif's ring (xl)
+                    cn("type-title", isDetail && "xl:max-w-3xl"),
+              isPlainOnMobile && "max-md:text-foreground",
+            )}
+          >
+            {title}
+          </h1>
+        </div>
+        {/* beside the title on desktop; on a phone the page's button floats above the
+              bottom navigation (DESIGN.md › Založit akci) */}
+        {action ? <div className="shrink-0">{action}</div> : null}
+      </div>
+      {description ? (
+        <p
+          className={cn(
+            "max-w-3xl text-on-hero-muted",
+            isHero ? "type-lead" : "text-body md:type-intro",
+            // a section band on a phone is just the title and its tabs (Figma A-02, A-07, C-01)
+            (isSection || isDetail || isCompactOnMobile || isPlainOnMobile) && "hidden md:block",
+          )}
+        >
+          {description}
+        </p>
+      ) : null}
+      {children}
+    </>
+  )
 
   return (
     <div
@@ -67,8 +136,10 @@ export function PageBand({
         isPlainOnMobile && "max-md:border-b-0 max-md:bg-background",
       )}
     >
-      {isSection || isHero || isDetail ? <LogoMotif /> : null}
-      {isDetail ? <CornerMotif /> : null}
+      {isSection || isDetail ? <LogoMotif /> : null}
+      {isHero ? <HeroMotif /> : null}
+      {/* a phone has the corner motif on the landing page too (Figma A-01 › Motiv loga (návrh 16)) */}
+      {isDetail || isHero ? <CornerMotif /> : null}
       <div
         className={cn(
           "relative mx-auto flex w-full max-w-7xl flex-col px-4 md:px-10",
@@ -86,68 +157,60 @@ export function PageBand({
           isSection && !children && "pb-6 md:pb-9",
         )}
       >
-        {back ? (
-          <div className={cn(isDetail && "hidden md:block")}>
-            <BackLink
-              {...back}
-              isIconOnlyOnMobile={isCompactOnMobile}
-            />
+        {aside ? (
+          <div className="flex flex-col gap-6 lg:flex-row lg:items-center lg:gap-16">
+            <div className="flex min-w-0 flex-col gap-4 md:gap-6 lg:flex-1">{content}</div>
+            <div className="lg:w-120 lg:shrink-0">{aside}</div>
           </div>
-        ) : null}
-        {eyebrow ? (
-          <div className={cn(isCompactOnMobile && "hidden md:block")}>{eyebrow}</div>
-        ) : null}
-        <div
-          className={cn(
-            "flex items-center justify-between gap-6",
-            // the arrow and the title share one bar on a phone
-            isCompactOnMobile && "absolute top-2 right-4 left-14 h-10 md:static md:h-auto",
-          )}
-        >
-          <div className="flex min-w-0 items-center gap-3">
-            {isSection ? (
-              <LogoMark
-                isOnHero
-                isFull={isMarkFull}
-                className="size-8 md:size-11"
-              />
-            ) : null}
-            <h1
-              className={cn(
-                "min-w-0 text-balance text-on-hero",
-                isHero
-                  ? // stays left of the motif's ring (xl)
-                    "max-w-3xl type-hero"
-                  : isCompactOnMobile
-                    ? // the phone's bar title is Figma Header/Sub's Label/Strong
-                      "truncate text-sm font-semibold md:overflow-visible md:type-title md:whitespace-normal"
-                    : // the detail's title stays left of the motif's ring (xl)
-                      cn("type-title", isDetail && "xl:max-w-3xl"),
-                isPlainOnMobile && "max-md:text-foreground",
-              )}
-            >
-              {title}
-            </h1>
-          </div>
-          {/* beside the title on desktop; on a phone the page's button floats above the
-              bottom navigation (DESIGN.md › Založit akci) */}
-          {action ? <div className="shrink-0">{action}</div> : null}
-        </div>
-        {description ? (
-          <p
-            className={cn(
-              "max-w-3xl text-on-hero-muted",
-              isHero ? "type-lead" : "text-body md:type-intro",
-              // a section band on a phone is just the title and its tabs (Figma A-02, A-07, C-01)
-              (isSection || isDetail || isCompactOnMobile || isPlainOnMobile) && "hidden md:block",
-            )}
-          >
-            {description}
-          </p>
-        ) : null}
-        {children}
+        ) : (
+          content
+        )}
       </div>
     </div>
+  )
+}
+
+/**
+ * The landing page's logo rising from the band's bottom edge on the left (Figma A-01d, A-01pd ›
+ * Motiv loga (vychází zespodu)): the faint dots behind the title, the lime ring's arc under the
+ * buttons — the panel takes the right side. From lg, where the panel stands beside the title.
+ * Decoration — hidden from assistive tech.
+ */
+function HeroMotif() {
+  return (
+    <svg
+      aria-hidden="true"
+      viewBox="0 0 700 630"
+      width={700}
+      height={630}
+      className="pointer-events-none absolute bottom-0 left-0 hidden lg:block"
+    >
+      <circle
+        cx="30"
+        cy="260"
+        r="210"
+        className="fill-hero-pattern"
+      />
+      <circle
+        cx="490"
+        cy="260"
+        r="210"
+        className="fill-hero-pattern"
+      />
+      <circle
+        cx="30"
+        cy="720"
+        r="210"
+        className="fill-hero-pattern"
+      />
+      <circle
+        cx="490"
+        cy="720"
+        r="206"
+        strokeWidth="8"
+        className="fill-none stroke-primary"
+      />
+    </svg>
   )
 }
 

@@ -61,6 +61,34 @@ export const eventDetailSchema = publicEventSchema.extend({
 
 export type EventDetail = z.infer<typeof eventDetailSchema>
 
+// Same limits as the API (CreateEventMessageDto, #176).
+export const MESSAGE_SUBJECT_MAX_LENGTH = 120
+export const MESSAGE_BODY_MAX_LENGTH = 2000
+
+export const eventMessageSchema = z.object({
+  id: z.string(),
+  subject: z.string(),
+  body: z.string(),
+  createdAt: z.coerce.date(),
+  sender: z.object({ id: z.string(), name: z.string() }),
+})
+
+/** GET /api/events/:id/messages, only for those who see „Kdo jde“ (#174, #176). */
+export const eventMessagesSchema = z.object({
+  /** Newest first. */
+  messages: z.array(eventMessageSchema),
+  /** All the event's messages; the list holds only the latest 50. */
+  total: z.number(),
+  /** How many more the viewer may send today; null unless they are the organizer of a published event. */
+  remainingToday: z.number().nullable(),
+})
+
+export type EventMessage = z.infer<typeof eventMessageSchema>
+export type EventMessages = z.infer<typeof eventMessagesSchema>
+
+/** Body of POST /api/events/:id/messages (Figma D-04). */
+export type EventMessageInput = { subject: string; body: string }
+
 const eventRequestSchema = eventParticipantSchema.extend({
   requestedAt: z.coerce.date(),
   /** The applicant's message to the organizer (#175); only the organizer gets it. */
