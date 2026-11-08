@@ -1,5 +1,4 @@
 import type { CapacityStatus } from "@/components/StatusBadge/StatusBadge"
-import { occupancyBesideBadge, occupancyCount } from "@/lib/occupancy"
 
 import type { GroupEvent, PublicEvent } from "@/features/events/api/eventSchemas"
 
@@ -15,13 +14,33 @@ const startFormat = new Intl.DateTimeFormat("cs-CZ", {
   minute: "2-digit",
 })
 
-/** "Pá 23. 10. · 17:30" */
-export function formatEventStart(date: Date): string {
+/**
+ * The parts of a start, in Prague time — every format below is built from them, so the
+ * code splitting a date exists once.
+ */
+function startParts(date: Date): { weekday: string; day: string; month: string; time: string } {
   const parts = startFormat.formatToParts(date)
   const get = (type: Intl.DateTimeFormatPartTypes) =>
     parts.find((part) => part.type === type)?.value ?? ""
-  const weekday = get("weekday")
-  return `${weekday.charAt(0).toUpperCase()}${weekday.slice(1)} ${get("day")}. ${get("month")}. · ${get("hour")}:${get("minute")}`
+  return {
+    weekday: get("weekday"),
+    day: get("day"),
+    month: get("month"),
+    time: `${get("hour")}:${get("minute")}`,
+  }
+}
+
+const capitalize = (text: string): string => `${text.charAt(0).toUpperCase()}${text.slice(1)}`
+
+/** A past event's day on its card (Karta akce/Proběhlá řádek): „Po 19. 10.“ */
+export function formatEventDay(date: Date): string {
+  const { weekday, day, month } = startParts(date)
+  return `${capitalize(weekday)} ${day}. ${month}.`
+}
+
+/** "Pá 23. 10. · 17:30" */
+export function formatEventStart(date: Date): string {
+  return `${formatEventDay(date)} · ${startParts(date).time}`
 }
 
 const timeFormat = new Intl.DateTimeFormat("cs-CZ", {
@@ -29,6 +48,12 @@ const timeFormat = new Intl.DateTimeFormat("cs-CZ", {
   hour: "numeric",
   minute: "2-digit",
 })
+
+/** The date tile on a card (Figma Karta akce › Datum): „Pá“, „23“, „18:30“. */
+export function eventDateParts(date: Date): { weekday: string; day: string; time: string } {
+  const { weekday, day, time } = startParts(date)
+  return { weekday: capitalize(weekday), day, time }
+}
 
 const dayFormat = new Intl.DateTimeFormat("cs-CZ", {
   timeZone: PRAGUE_TZ,
@@ -64,10 +89,67 @@ export function formatRequestTime(date: Date): string {
 
 /** When an event starts, inside a sentence of the request dialog (#175): "pá 23. 10. v 17:30". */
 export function formatRequestEventStart(date: Date): string {
-  const parts = startFormat.formatToParts(date)
+  const { weekday, day, month, time } = startParts(date)
+  return `${weekday} ${day}. ${month}. v ${time}`
+}
+
+const DAY_MS = 24 * 60 * 60 * 1000
+const pragueDayFormat = new Intl.DateTimeFormat("en-CA", { timeZone: PRAGUE_TZ })
+const pragueDay = (date: Date): number => Date.parse(pragueDayFormat.format(date))
+
+const offsetFormat = new Intl.DateTimeFormat("en-US", {
+  timeZone: PRAGUE_TZ,
+  timeZoneName: "longOffset",
+})
+
+/** Prague's offset from UTC at that moment, in minutes (60 in winter, 120 in summer). */
+function pragueOffsetMinutes(date: Date): number {
+  const name = offsetFormat.formatToParts(date).find((part) => part.type === "timeZoneName")
+  const match = /GMT([+-])(\d{2}):(\d{2})/.exec(name?.value ?? "")
+  if (!match) return 0
+  return (match[1] === "-" ? -1 : 1) * (Number(match[2]) * 60 + Number(match[3]))
+}
+
+/** Midnight at the end of the Prague day the moment falls on. */
+export function endOfPragueDay(date: Date): Date {
+  const nextDayUtc = pragueDay(date) + DAY_MS
+  return new Date(nextDayUtc - pragueOffsetMinutes(new Date(nextDayUtc)) * 60 * 1000)
+}
+
+/**
+ * Whether an event is over: past its end, or — without one — past the end of its day. An
+ * 18:00 event with no end time is still going at 18:05 (review #269), so it doesn't read
+ * „Akce proběhla“ while people are there.
+ */
+export const isEventOver = (event: { startsAt: Date; endsAt: Date | null }, now: Date): boolean =>
+  (event.endsAt ?? endOfPragueDay(event.startsAt)) <= now
+// „v pondělí“… with the preposition each day takes
+const ON_WEEKDAY = [
+  "v neděli",
+  "v pondělí",
+  "v úterý",
+  "ve středu",
+  "ve čtvrtek",
+  "v pátek",
+  "v sobotu",
+]
+
+/**
+ * When an event starts, said as in a sentence (Figma C-01d: „Nejbližší: florbal v sobotu
+ * v 19:00“): „dnes v 19:00“, „zítra v 19:00“, the weekday within a week, else „23. 10. v 19:00“.
+ */
+export function formatStartInSentence(date: Date, now: Date): string {
+  const days = Math.round((pragueDay(date) - pragueDay(now)) / DAY_MS)
+  const time = timeFormat.format(date)
+  if (days === 0) return `dnes v ${time}`
+  if (days === 1) return `zítra v ${time}`
+  if (days > 1 && days < 7) {
+    return `${ON_WEEKDAY[new Date(pragueDay(date)).getUTCDay()]} v ${time}`
+  }
+  const parts = dayMonthFormat.formatToParts(date)
   const get = (type: Intl.DateTimeFormatPartTypes) =>
     parts.find((part) => part.type === type)?.value ?? ""
-  return `${get("weekday")} ${get("day")}. ${get("month")}. v ${get("hour")}:${get("minute")}`
+  return `${get("day")}. ${get("month")}. v ${time}`
 }
 
 // a Prague day `YYYY-MM-DD` is read as a UTC date, so the time zone can't move it
@@ -99,20 +181,17 @@ export const placeName = (address: string): string => address.split(",")[0]?.tri
 export function capacityStatus(event: PublicEvent): CapacityStatus {
   if (event.isFull) return { kind: "full" }
   if (event.missingToMin > 0) return { kind: "missing", missing: event.missingToMin }
-  return { kind: "free" }
+  return { kind: "free", freeSpots: event.freeSpots }
 }
 
 /**
- * The line next to the capacity badge on a card, with the district: „4 z 12 ·
- * Praha 8“; below the minimum „5 z 12 · min. 6 · Praha 8“, as the badge beside
- * it already says „Chybí 1“ (#189). A cancelled event only has the count.
+ * The row card's line on the group's page (A-08e) after the time: a members-only event says
+ * so after its place; others keep the card's own „místo · městská část“.
  */
-export const eventFacts = (event: PublicEvent & { status?: "published" | "cancelled" }): string =>
-  `${event.status === "cancelled" ? occupancyCount(event) : occupancyBesideBadge(event)} · ${event.locality.name}`
-
-/** On the group's page (A-08e): a members-only event says so in its facts. */
-export const groupEventFacts = (event: GroupEvent): string =>
-  event.visibility === "members" ? `${eventFacts(event)} · jen pro členy` : eventFacts(event)
+export const groupEventTail = (event: GroupEvent): string | undefined =>
+  event.visibility === "members"
+    ? `${placeName(event.address)} · ${event.locality.name} · jen pro členy`
+    : undefined
 
 /**
  * A past event on the group's page (A-08e), who came: „sešlo se 6“,

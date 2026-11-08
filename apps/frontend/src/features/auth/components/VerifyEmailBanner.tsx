@@ -22,7 +22,7 @@ export function VerifyEmailBanner({ email }: { email: string }) {
       className="border-b border-border bg-muted"
     >
       {/* the header's width and insets: text above the logo, buttons above the menu */}
-      <div className="flex w-full flex-wrap items-center justify-between gap-x-4 gap-y-2 px-4 py-2 text-sm md:px-10">
+      <div className="mx-auto flex w-full max-w-7xl flex-wrap items-center justify-between gap-x-4 gap-y-2 px-4 py-2 text-sm md:px-10">
         <p>
           Ověř si e-mail: odkaz jsme poslali na <span className="font-semibold">{email}</span>. Bez
           ověření se nejde přihlásit na akci ani nic založit.

@@ -29,20 +29,25 @@ type ActivityTileProps = {
   /** Icon name of the activity's category. */
   icon: string
   className?: string
+  /** A smaller tile needs a smaller icon, e.g. `size-5` in a 32 px tile; 28 px by default. */
+  iconClassName?: string
 }
 
-/** Category icon in place of an event photo (Figma: Activity tile). */
-export function ActivityTile({ icon, className }: ActivityTileProps) {
+/**
+ * Category icon in place of an event photo (Figma: Activity tile): `secondary` with its
+ * `tile-border` — the fill alone is 1.2:1 against the card (DESIGN.md › Colour).
+ */
+export function ActivityTile({ icon, className, iconClassName }: ActivityTileProps) {
   const Icon = ICONS[icon]
   return (
     <div
       aria-hidden
       className={cn(
-        "flex size-16 shrink-0 items-center justify-center rounded-lg bg-secondary text-secondary-foreground",
+        "flex size-16 shrink-0 items-center justify-center rounded-lg border border-tile-border bg-secondary text-secondary-foreground",
         className,
       )}
     >
-      {Icon ? <Icon /> : null}
+      {Icon ? <Icon className={iconClassName} /> : null}
     </div>
   )
 }

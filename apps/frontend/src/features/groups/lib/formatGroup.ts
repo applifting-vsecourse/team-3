@@ -63,6 +63,22 @@ export const groupFacts = (group: {
 }): string =>
   `${group.activity.name} · ${group.locality.name} · ${memberCountLabel(group.memberCount)}`
 
+/** In the band of the group page and its management (Figma A-08d, D-07d). */
+export const GROUP_TYPE_IN_BAND: Record<GroupType, string> = {
+  public: "Veřejná skupina",
+  closed: "Neveřejná skupina",
+}
+
+/** The band's line: „Neveřejná skupina · Praha 2 · 5 členů“ (A-08d). */
+export const groupBandLine = (group: {
+  type: GroupType
+  locality: { name: string }
+  memberCount: number
+}): string =>
+  [GROUP_TYPE_IN_BAND[group.type], group.locality.name, memberCountLabel(group.memberCount)].join(
+    " · ",
+  )
+
 const announcementTimeFormat = new Intl.DateTimeFormat("cs-CZ", {
   // a group meets in Prague, so its announcements are in Prague time wherever the browser is
   timeZone: "Europe/Prague",

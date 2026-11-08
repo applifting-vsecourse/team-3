@@ -3,6 +3,7 @@ import { describe, expect, it } from "vitest"
 import {
   announcementRecipientsLabel,
   formatAnnouncementTime,
+  groupBandLine,
   groupCountLabel,
   groupFacts,
   memberCountLabel,
@@ -91,6 +92,17 @@ describe("announcements (#194)", () => {
     expect(remainingAnnouncementsLabel(1)).toBe("Dnes můžeš skupině poslat ještě 1 oznámení.")
     expect(remainingAnnouncementsLabel(0)).toBe(
       "Dnes už skupině další oznámení poslat nemůžeš. Zkus to zítra.",
+    )
+  })
+})
+
+describe("groupBandLine (Figma A-08d)", () => {
+  it("type, locality and members", () => {
+    expect(groupBandLine({ type: "closed", locality: { name: "Praha 2" }, memberCount: 5 })).toBe(
+      "Neveřejná skupina · Praha 2 · 5 členů",
+    )
+    expect(groupBandLine({ type: "public", locality: { name: "Brno" }, memberCount: 1 })).toBe(
+      "Veřejná skupina · Brno · 1 člen",
     )
   })
 })

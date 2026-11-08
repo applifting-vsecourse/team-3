@@ -7,6 +7,9 @@ import { ShareEventButton } from "@/features/events/components/ShareEventButton"
 
 vi.mock("sonner", () => ({ toast: { success: vi.fn(), error: vi.fn() } }))
 
+const event = { id: "e1", title: "Volejbal na Pankráci" }
+const detailUrl = `${window.location.origin}/akce/e1`
+
 describe("ShareEventButton", () => {
   afterEach(() => {
     vi.unstubAllGlobals()
@@ -18,11 +21,18 @@ describe("ShareEventButton", () => {
     const writeText = vi.fn().mockResolvedValue(undefined)
     // after setup(): user-event installs its own clipboard on the navigator
     Object.defineProperty(navigator, "clipboard", { value: { writeText }, configurable: true })
-    render(<ShareEventButton label="Sdílet odkaz" />)
+    // from the management too: the detail's link, never the page's own (review #269)
+    window.history.pushState({}, "", "/akce/e1/sprava")
+    render(
+      <ShareEventButton
+        event={event}
+        label="Sdílet odkaz"
+      />,
+    )
 
     await user.click(screen.getByRole("button", { name: "Sdílet odkaz" }))
 
-    expect(writeText).toHaveBeenCalledWith(window.location.href)
+    expect(writeText).toHaveBeenCalledWith(detailUrl)
     expect(toast.success).toHaveBeenCalledWith("Odkaz je zkopírovaný.")
   })
 
@@ -31,6 +41,7 @@ describe("ShareEventButton", () => {
     vi.stubGlobal("navigator", { ...navigator, share })
     render(
       <ShareEventButton
+        event={event}
         label="Sdílet"
         shouldUseShareSheet
       />,
@@ -38,7 +49,7 @@ describe("ShareEventButton", () => {
 
     await userEvent.click(screen.getByRole("button", { name: "Sdílet" }))
 
-    expect(share).toHaveBeenCalledWith(expect.objectContaining({ url: window.location.href }))
+    expect(share).toHaveBeenCalledWith({ title: "Volejbal na Pankráci", url: detailUrl })
     expect(toast.success).not.toHaveBeenCalled()
   })
 })

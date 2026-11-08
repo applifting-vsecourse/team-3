@@ -1,23 +1,45 @@
 import type { ReactNode } from "react"
 import { Link } from "@tanstack/react-router"
-import { CalendarDays, Lock, MapPin, RefreshCw, UserCheck } from "lucide-react"
+import { Ban, RefreshCw } from "lucide-react"
 
 import { ROUTES } from "@/app/routes"
-import { ActivityTile } from "@/components/ActivityTile/ActivityTile"
+import { ActivityPhoto } from "@/components/ActivityPhoto/ActivityPhoto"
+import { BackLink, type BackLinkProps } from "@/components/BackLink/BackLink"
 import { CapacityBar } from "@/components/CapacityBar/CapacityBar"
-import { DetailRow } from "@/components/DetailRow/DetailRow"
+import { DateTile } from "@/components/DateTile/DateTile"
+import { HappeningStamp } from "@/components/HappeningStamp/HappeningStamp"
 import { MapView } from "@/components/map/MapView"
+import { BandActivity } from "@/components/PageBand/BandActivity"
+import { PageBand } from "@/components/PageBand/PageBand"
+import { SubBar } from "@/components/PageBand/SubBar"
 import { PersonRow } from "@/components/PersonRow/PersonRow"
-import { StatusBadge } from "@/components/StatusBadge/StatusBadge"
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 import { Button } from "@/components/ui/button"
 import { Skeleton } from "@/components/ui/skeleton"
 import { DESKTOP_QUERY, useMediaQuery } from "@/hooks/useMediaQuery"
+import { occupancyInBand } from "@/lib/occupancy"
+import { PAGE } from "@/lib/pageLayout"
+import { cn } from "@/lib/utils"
 
 import type { EventDetail } from "@/features/events/api/eventSchemas"
+import { EventFacts } from "@/features/events/components/EventFacts"
 import { EventParticipants } from "@/features/events/components/EventParticipants"
 import { ShareEventButton } from "@/features/events/components/ShareEventButton"
-import { approvalModeLabel, formatEventTime, placeName } from "@/features/events/lib/formatEvent"
+import {
+  eventDateParts,
+  formatEventStart,
+  isEventOver,
+  placeName,
+} from "@/features/events/lib/formatEvent"
+
+export type EventBack = Omit<BackLinkProps, "isIconOnlyOnMobile">
+
+/** Back to the list of events — the detail and its loading or error states (the page too). */
+export const EVENTS_BACK: EventBack = {
+  to: ROUTES.events,
+  fallbackLabel: "Všechny akce",
+  label: "Akce",
+}
 
 type EventDetailViewProps = {
   event?: EventDetail
@@ -30,17 +52,24 @@ type EventDetailViewProps = {
   participation?: ReactNode
   /** The organizer's own actions, e.g. „Zrušit akci“ (#52); the page builds them. */
   organizerActions?: ReactNode
+  /** For tests; the event is over once its end (or, without one, its start) is past it. */
+  now?: Date
   /** For a group's event, the group's card and admins under „Pořádá“ (A-05g); the page builds it. */
   organizerGroup?: ReactNode
+  /** The signed-in viewer, shown first as „Ty“ in „Kdo jde“ (Figma A-05c). */
+  viewerId?: string | null
 }
 
 /**
  * The event detail (Figma A-05, desktop A-05d; B-026): what, when, where, who
- * organizes it and who is coming. The capacity comes right under the title,
- * then the facts and the map. Desktop puts those in a panel on the right with
- * the action; a phone keeps the action in a bar above the bottom navigation,
- * so it stays in sight (#42). A cancelled event keeps its detail (shared
- * links still work) with the „Zrušeno“ label and the reason (#52).
+ * organizes it and who is coming. The dark green band holds the activity and
+ * the title, and on desktop one line with when, where and how full it is; the
+ * activity's photo with the date tile sits above the band on a phone and at
+ * the top of the content on desktop. Then the capacity, the facts and the map:
+ * desktop puts those in a panel on the right with the action; a phone keeps
+ * the action in a bar above the bottom navigation, so it stays in sight (#42).
+ * A cancelled event keeps its detail (shared links still work) with the
+ * reason (#52).
  */
 export function EventDetailView({
   event,
@@ -50,15 +79,23 @@ export function EventDetailView({
   onRetry,
   participation,
   organizerActions,
+  now = new Date(),
   organizerGroup,
+  viewerId,
 }: EventDetailViewProps) {
   const isDesktop = useMediaQuery(DESKTOP_QUERY)
 
-  if (isNotFound) return <EventNotFound />
+  if (isNotFound) {
+    return (
+      <StatePage>
+        <EventNotFound />
+      </StatePage>
+    )
+  }
 
   if (error) {
     return (
-      <>
+      <StatePage>
         <h1 className="sr-only">Detail akce</h1>
         <Alert variant="destructive">
           <AlertTitle>Akci se nepodařilo načíst</AlertTitle>
@@ -77,29 +114,54 @@ export function EventDetailView({
             ) : null}
           </AlertDescription>
         </Alert>
-      </>
+      </StatePage>
     )
   }
 
-  if (isLoading || !event) return <EventDetailSkeleton isDesktop={isDesktop} />
+  if (isLoading || !event) {
+    return (
+      <StatePage>
+        <EventDetailSkeleton isDesktop={isDesktop} />
+      </StatePage>
+    )
+  }
 
   const isCancelled = event.status === "cancelled"
-  const heading = (
-    <header className="flex flex-col gap-5 md:gap-6">
-      <div className="flex flex-wrap items-center gap-3">
-        <ActivityTile icon={event.activity.category.icon} />
-        <div className="flex flex-col">
-          <span className="text-sm font-semibold">{event.activity.name}</span>
-          <span className="text-sm text-muted-foreground">{event.activity.category.name}</span>
-        </div>
-        {isCancelled ? <StatusBadge status={{ kind: "cancelled" }} /> : null}
-      </div>
-      <h1 className="text-3xl font-semibold tracking-tight md:text-4xl">{event.title}</h1>
-    </header>
+  // the minimum is reached, so the event happens (DESIGN.md › Koná se stamp); a past one
+  // says „Proběhlo“ instead (Figma A-05h)
+  const isOver = isEventOver(event, now)
+  const isHappening = !isCancelled && !isOver && event.missingToMin === 0
+  // Figma A-05d, A-05c: „Ne 25. 10. · 18:00 · Tělocvična ZŠ Na Pankráci · Praha 4 · do minima chybí 1“
+  const line = [
+    formatEventStart(event.startsAt),
+    placeName(event.address),
+    event.locality.name,
+    isCancelled ? "akce je zrušená" : isOver ? null : occupancyInBand(event),
+  ]
+    .filter(Boolean)
+    .join(" · ")
+  const band = (
+    <PageBand
+      variant="detail"
+      back={EVENTS_BACK}
+      title={event.title}
+      eyebrow={<BandActivity activity={event.activity} />}
+      description={
+        <>
+          {/* before the line on desktop (A-05c); under the title on a phone (A-05) */}
+          {isHappening && isDesktop ? <HappeningStamp className="mr-3 align-middle" /> : null}
+          {line}
+        </>
+      }
+    >
+      {isHappening && !isDesktop ? <HappeningStamp className="self-start" /> : null}
+    </PageBand>
   )
   const capacity = isCancelled ? (
     // instead of the capacity: „Chybí ještě 2“ would read as if it still happens
-    <Alert>
+    // (Figma A-05 · Stavy › Zrušená akce, Alert Destructive)
+    <Alert variant="destructive">
+      <Ban />
       <AlertTitle>Akce je zrušená</AlertTitle>
       {event.cancelReason ? (
         <AlertDescription className="whitespace-pre-line">{event.cancelReason}</AlertDescription>
@@ -107,6 +169,8 @@ export function EventDetailView({
     </Alert>
   ) : (
     <CapacityBar
+      // a phone has no panel: the bar lies on the page
+      surface={isDesktop ? "card" : "background"}
       approvedCount={event.approvedCount}
       minParticipants={event.minParticipants}
       maxParticipants={event.maxParticipants}
@@ -115,41 +179,9 @@ export function EventDetailView({
       isFull={event.isFull}
     />
   )
-  const facts = (
-    <dl className="flex flex-col gap-3 md:gap-4">
-      <DetailRow
-        icon={CalendarDays}
-        label="Kdy"
-      >
-        <time dateTime={event.startsAt.toISOString()}>
-          {formatEventTime(event.startsAt, event.endsAt)}
-        </time>
-      </DetailRow>
-      <DetailRow
-        icon={MapPin}
-        label="Kde"
-      >
-        {event.address}
-      </DetailRow>
-      <DetailRow
-        icon={UserCheck}
-        label="Přihlašování"
-      >
-        {approvalModeLabel(event.approvalMode)}
-      </DetailRow>
-      {event.group ? (
-        // Figma A-05g: a group's event says who sees it (B-055)
-        <DetailRow
-          icon={Lock}
-          label="Kdo akci vidí"
-        >
-          {event.visibility === "members" ? "Jen pro členy skupiny" : "Veřejná"}
-        </DetailRow>
-      ) : null}
-    </dl>
-  )
+  const facts = <EventFacts event={event} />
   const map = (
-    <div className="h-40 overflow-hidden rounded-lg border border-border">
+    <div className="h-40 overflow-hidden rounded-lg border border-input">
       <MapView
         isStatic
         label="Místo akce na mapě"
@@ -174,67 +206,117 @@ export function EventDetailView({
   )
   const about = event.description ? (
     <section className="flex flex-col gap-2">
-      <h2 className="text-lg font-semibold tracking-tight">O akci</h2>
-      <p className="whitespace-pre-line">{event.description}</p>
+      <h2 className="type-card-heading">O akci</h2>
+      <p className="text-body whitespace-pre-line">{event.description}</p>
     </section>
   ) : null
-  // without the names (#174) the occupancy above is all there is to show
-  const participants = event.participants ? (
-    <EventParticipants
-      approvedCount={event.approvedCount}
-      maxParticipants={event.maxParticipants}
-      participants={event.participants}
-    />
-  ) : null
+  // without the names (#174) the count and when the names show (Figma A-05, A-05d)
+  const date = eventDateParts(event.startsAt)
+  const photo = (
+    <ActivityPhoto slug={event.activity.slug}>
+      <DateTile
+        weekday={date.weekday}
+        day={date.day}
+        time={date.time}
+        size="l"
+        className="absolute bottom-4 left-4"
+      />
+    </ActivityPhoto>
+  )
+  // a cancelled event still shows who was coming to those who get the names (#43, #183);
+  // there is just nothing to promise about names to anyone else
+  const participants =
+    isCancelled && !event.participants ? null : (
+      <EventParticipants
+        approvedCount={event.approvedCount}
+        maxParticipants={event.maxParticipants}
+        participants={event.participants}
+        isWaitingForApproval={event.myParticipation === "pending"}
+        viewerId={viewerId}
+      />
+    )
 
   // Figma lays the two out differently (as the group page, A-08 / A-08d), so
   // each gets its own order rather than one order bent by the grid.
   if (isDesktop) {
     return (
-      <article className="grid grid-cols-[minmax(0,1fr)_auto] items-start gap-12">
-        <div className="flex flex-col gap-6">
-          {heading}
-          {about}
-          {participants}
-          {organizer}
+      <>
+        {band}
+        <div className={PAGE}>
+          <article className="grid grid-cols-[minmax(0,1fr)_auto] items-start gap-12">
+            <div className="flex flex-col gap-6">
+              {photo}
+              {about}
+              {participants}
+              {organizer}
+            </div>
+            {/* Figma: Panel akce */}
+            <section
+              aria-label="Termín, místo a účast"
+              className="flex w-100 flex-col gap-4 rounded-2xl border border-card-border bg-card p-6 text-card-foreground"
+            >
+              {capacity}
+              {facts}
+              {map}
+              {participation}
+              <ShareEventButton
+                event={event}
+                label="Sdílet odkaz"
+              />
+              {organizerActions}
+            </section>
+          </article>
         </div>
-        {/* Figma: Panel akce */}
-        <section
-          aria-label="Termín, místo a účast"
-          className="flex w-100 flex-col gap-4 rounded-lg border border-border bg-card p-6 text-card-foreground"
-        >
-          {capacity}
-          {facts}
-          {map}
-          {participation}
-          <ShareEventButton label="Sdílet odkaz" />
-          {organizerActions}
-        </section>
-      </article>
+      </>
     )
   }
 
   return (
-    <article className="flex flex-col gap-5">
-      {heading}
-      <section
-        aria-label="Termín, místo a účast"
-        className="flex flex-col gap-5"
-      >
-        {capacity}
-        {facts}
-        {map}
-        {organizerActions}
-      </section>
-      {organizer}
-      {about}
-      {participants}
-      {/* Figma: Lišta s akcí — above the bottom navigation, it stays while
-          scrolling; empty (a cancelled event for a visitor) it isn't drawn */}
-      <div className="sticky bottom-16 -mx-4 border-t border-border bg-background px-4 py-3 empty:hidden">
-        {participation}
-      </div>
-    </article>
+    <>
+      {/* Figma Header/Sub: back, what the page is and „Sdílet“; the photo comes before the band */}
+      <SubBar
+        back={EVENTS_BACK}
+        label="Detail akce"
+        action={
+          <ShareEventButton
+            event={event}
+            label="Sdílet"
+            shouldUseShareSheet
+          />
+        }
+      />
+      {photo}
+      {band}
+      <article className="flex flex-col gap-5 px-4 pt-5">
+        <section
+          aria-label="Termín, místo a účast"
+          className="flex flex-col gap-5"
+        >
+          {capacity}
+          {facts}
+          {map}
+          {organizerActions}
+        </section>
+        {about}
+        {participants}
+        {organizer}
+        {/* Figma: Lišta s akcí — above the bottom navigation, it stays while
+            scrolling; empty (a cancelled event for a visitor) it isn't drawn */}
+        <div className="sticky bottom-16 -mx-4 border-t border-border bg-background px-4 py-3 empty:hidden">
+          {participation}
+        </div>
+      </article>
+    </>
+  )
+}
+
+/** Loading, an error or „not found“: the page's column with the way back, before there is a band. */
+function StatePage({ children }: { children: ReactNode }) {
+  return (
+    <div className={cn(PAGE, "gap-4")}>
+      <BackLink {...EVENTS_BACK} />
+      {children}
+    </div>
   )
 }
 
@@ -252,7 +334,7 @@ function EventOrganizer({ event, group }: { event: EventDetail; group?: ReactNod
       >
         <h2
           id="event-organizer"
-          className="text-xs font-medium text-muted-foreground"
+          className="text-caption font-medium text-muted-foreground"
         >
           Pořádá
         </h2>
@@ -276,7 +358,7 @@ function EventOrganizer({ event, group }: { event: EventDetail; group?: ReactNod
     >
       <h2
         id="event-organizer"
-        className="text-xs font-medium text-muted-foreground"
+        className="text-caption font-medium text-muted-foreground"
       >
         Pořádá
       </h2>
@@ -284,7 +366,8 @@ function EventOrganizer({ event, group }: { event: EventDetail; group?: ReactNod
         {/* „Pořádá“ above already names the role, and every organizer has a
             verified e-mail (VerifiedUserGuard), so the second line says only
             what the viewer can't tell otherwise: who decides on a request.
-            A verb, not „Organizátor“, so it fits any name (DESIGN.md › Copy). */}
+            A verb, not „Organizátor“, so it fits any name (DESIGN.md › Copy).
+            Figma's „Organizátor · ★ 4,5 (6 hodnocení)“ comes with the ratings (#66). */}
         <PersonRow
           name={event.organizer.name}
           description={event.approvalMode === "approval" ? "Schvaluje žádosti o účast" : undefined}
@@ -334,7 +417,11 @@ function EventDetailSkeleton({ isDesktop }: { isDesktop: boolean }) {
     >
       <h1 className="sr-only">Detail akce</h1>
       {heading}
-      {isDesktop ? <div className="w-100 rounded-lg border border-border p-6">{panel}</div> : panel}
+      {isDesktop ? (
+        <div className="w-100 rounded-2xl border border-card-border p-6">{panel}</div>
+      ) : (
+        panel
+      )}
     </div>
   )
 }

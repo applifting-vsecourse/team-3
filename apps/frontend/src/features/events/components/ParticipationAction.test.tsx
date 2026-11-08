@@ -11,6 +11,8 @@ import { anEventDetail } from "@/features/events/test/anEvent"
 
 // the fixture starts Fri 23. 10. 2026 17:30 Prague time
 const before = new Date("2026-10-23T08:00:00.000Z")
+// the fixture starts at 15:30 UTC; an end after 16:00, when the tests say it has started
+const afterNow = new Date("2026-10-23T18:00:00.000Z")
 const jakub: Viewer = { id: "u9", emailVerified: true }
 const organizer: Viewer = { id: "u1", emailVerified: true } // the fixture's organizer
 
@@ -19,7 +21,7 @@ type RenderOptions = { viewer?: Viewer | null; isPending?: boolean; now?: Date }
 const renderAction = async (event: Partial<EventDetail> = {}, options: RenderOptions = {}) => {
   // a missing viewer is Jakub; an explicit null is a visitor
   const { viewer = jakub, isPending = false, now = before } = options
-  const onJoin = vi.fn().mockResolvedValue(undefined)
+  const onJoin = vi.fn().mockResolvedValue(anEventDetail({ ...event, myParticipation: "approved" }))
   const onLeave = vi.fn().mockResolvedValue(undefined)
   const onVerifyEmail = vi.fn()
   await renderWithRouter(
@@ -53,10 +55,19 @@ function Page({
   event,
   request,
   answer,
+  numbersAfter = {},
+  isCacheFirst = false,
 }: {
   event: Partial<EventDetail>
   request: () => Promise<void>
   answer: EventDetail["myParticipation"]
+  /** The occupancy the API answers with, e.g. the minimum reached by this place. */
+  numbersAfter?: Partial<EventDetail>
+  /**
+   * As React Query does it: the cache (the page's detail) changes in `onSuccess`, before
+   * `mutateAsync` resolves — the action must not wait for the promise to know what happened.
+   */
+  isCacheFirst?: boolean
 }) {
   const [detail, setDetail] = useState(() => anEventDetail(event))
   const [isPending, setIsPending] = useState(false)
@@ -64,7 +75,10 @@ function Page({
     setIsPending(true)
     try {
       await request()
-      setDetail((current) => ({ ...current, myParticipation: answer }))
+      const updated = { ...detail, ...numbersAfter, myParticipation: answer }
+      setDetail(updated)
+      if (isCacheFirst) await new Promise((resolve) => setTimeout(resolve, 50))
+      return updated
     } finally {
       setIsPending(false)
     }
@@ -90,10 +104,11 @@ describe("ParticipationAction", () => {
     expect(onJoin).toHaveBeenCalledOnce()
   })
 
-  it("joined: „Jdu“ and „Odhlásit se“, which asks before leaving", async () => {
+  it("joined: „Máš místo“ and „Odhlásit se“, which asks before leaving", async () => {
     const { onLeave } = await renderAction({ myParticipation: "approved" })
 
-    expect(screen.getByText("Jdu")).toBeInTheDocument()
+    // Figma A-05 · Stavy: the Máš místo block instead of a bare „Jdu“
+    expect(screen.getByText("Máš místo. Parta je o jednoho větší.")).toBeInTheDocument()
     // no e-mail comes with a change yet: say where it shows
     expect(screen.getByText("Změny akce uvidíš tady a v Mých akcích.")).toBeInTheDocument()
     // opening the page doesn't move the focus, only a change does
@@ -119,6 +134,19 @@ describe("ParticipationAction", () => {
     expect(screen.getByRole("button", { name: "Plno" })).toBeDisabled()
     expect(screen.getByRole("button", { name: "Plno" })).toHaveAttribute("data-variant", "outline")
     expect(screen.queryByRole("button", { name: "Přijdu" })).not.toBeInTheDocument()
+  })
+
+  it("the organizer: „Spravovat akci“ is the primary action, „Přijdu“ outline beside it", async () => {
+    await renderAction({ canManage: true }, { viewer: organizer })
+
+    expect(screen.getByRole("link", { name: "Spravovat akci" })).toHaveAttribute(
+      "data-variant",
+      "default",
+    )
+    expect(screen.getByRole("button", { name: "Přijdu" })).toHaveAttribute(
+      "data-variant",
+      "outline",
+    )
   })
 
   it("the organizer sees „Spravovat akci“ and next to it „Přijdu“, even with approval", async () => {
@@ -156,7 +184,7 @@ describe("ParticipationAction", () => {
 
   it("…and once it has started, a visitor is told so", async () => {
     await renderAction(
-      { isFull: true, freeSpots: 0, approvedCount: 12 },
+      { isFull: true, freeSpots: 0, approvedCount: 12, endsAt: afterNow },
       { viewer: null, now: new Date("2026-10-23T16:00:00.000Z") },
     )
     expect(screen.getByText("Akce už začala.")).toBeInTheDocument()
@@ -267,26 +295,80 @@ describe("ParticipationAction", () => {
   it("a rejected request is told so and can't be sent again", async () => {
     await renderAction({ approvalMode: "approval", myParticipation: "rejected" })
 
-    expect(screen.getByText("Tvoje žádost o účast byla zamítnuta.")).toBeInTheDocument()
+    expect(screen.getByText("Tentokrát to nevyšlo")).toBeInTheDocument()
+    expect(
+      screen.getByText("Tvoje žádost o účast nebyla přijata. Mrkni na podobné akce v okolí."),
+    ).toBeInTheDocument()
     expect(screen.queryByRole("button", { name: "Poslat žádost" })).not.toBeInTheDocument()
+    // not a dead end (UX audit U2): the same activity in the same locality
+    expect(screen.getByRole("link", { name: "Podobné akce v okolí" })).toHaveAttribute(
+      "href",
+      "/akce?lokalita=praha-8&aktivita=jazykovy-tandem",
+    )
   })
 
   it("a waiting request says where the decision shows, and can be withdrawn", async () => {
     await renderAction({ approvalMode: "approval", myParticipation: "pending" })
 
-    expect(screen.getByText("Čeká na schválení")).toBeInTheDocument()
+    expect(screen.getByText("Žádost čeká na schválení")).toBeInTheDocument()
     expect(screen.getByText("Rozhodnutí uvidíš tady a v Mých akcích.")).toBeInTheDocument()
-    expect(screen.getByRole("button", { name: "Stáhnout žádost" })).toBeInTheDocument()
+    // Figma A-05 · Stavy: withdrawing is outline, under the state
+    expect(screen.getByRole("button", { name: "Stáhnout žádost" })).toHaveAttribute(
+      "data-variant",
+      "outline",
+    )
   })
 
   it("after the start there is nothing to join or leave; a participant still sees they're in", async () => {
     await renderAction(
-      { myParticipation: "approved" },
+      { myParticipation: "approved", endsAt: afterNow },
       { now: new Date("2026-10-23T16:00:00.000Z") },
     )
 
     expect(screen.getByText("Akce už začala. Máš na ní místo.")).toBeInTheDocument()
     expect(screen.queryByRole("button")).not.toBeInTheDocument()
+  })
+
+  it("once over, it says when it was and how many came (Figma A-05 · Stavy › Proběhlá akce)", async () => {
+    await renderAction(
+      { approvedCount: 8, missingToMin: 0, endsAt: afterNow },
+      { viewer: null, now: new Date("2026-10-24T08:00:00.000Z") },
+    )
+
+    expect(screen.getByText("Akce proběhla v pá 23. 10.")).toBeInTheDocument()
+    expect(screen.getByText(/^Sešlo se 8 lidí\./)).toBeInTheDocument()
+    // a way on, not just a sentence about it (review #269)
+    expect(screen.getByRole("link", { name: "Podobné akce najdeš v Akcích" })).toHaveAttribute(
+      "href",
+      "/akce?lokalita=praha-8&aktivita=jazykovy-tandem",
+    )
+    expect(screen.queryByRole("button")).not.toBeInTheDocument()
+  })
+
+  it.each([
+    [{ approvedCount: 0, missingToMin: 4 }, "Nikdo se nepřihlásil."],
+    [{ approvedCount: 3, missingToMin: 1 }, "Do minima chyběl 1 člověk."],
+  ])(
+    "over without its minimum %o: it didn't take place — „%s“ (review #269)",
+    async (numbers, line) => {
+      await renderAction(
+        { ...numbers, endsAt: afterNow },
+        { viewer: null, now: new Date("2026-10-24T08:00:00.000Z") },
+      )
+
+      expect(screen.getByText("Akce se v pá 23. 10. nekonala")).toBeInTheDocument()
+      expect(screen.getByRole("alert")).toHaveTextContent(line)
+      expect(screen.getByRole("alert")).not.toHaveTextContent(/Sešl/)
+    },
+  )
+
+  it("without an end time, at 18:05 it has started, not finished (review #269)", async () => {
+    await renderAction(
+      { myParticipation: "approved", endsAt: null },
+      { now: new Date("2026-10-23T16:05:00.000Z") },
+    )
+
+    expect(screen.getByText("Akce už začala. Máš na ní místo.")).toBeInTheDocument()
   })
 
   it("leaving in progress: „Odhlásit se“ can't be sent twice", async () => {
@@ -317,7 +399,7 @@ describe("ParticipationAction", () => {
 
   it("…and once it has started", async () => {
     await renderAction(
-      { canManage: true },
+      { canManage: true, endsAt: afterNow },
       { viewer: organizer, now: new Date("2026-10-23T16:00:00.000Z") },
     )
 
@@ -343,18 +425,21 @@ describe("ParticipationAction", () => {
     expect(screen.getByRole("button", { name: "Přijdu" })).toBeDisabled()
   })
 
-  it.each([
-    ["approved", "Jdu", "Odhlásit se"],
-    ["pending", "Čeká na schválení", "Stáhnout žádost"],
-  ] as const)(
-    "once %s, the state stands out and „%s“'s way back is quiet (ghost, not a bordered button)",
-    async (myParticipation, state, wayBack) => {
-      await renderAction({ approvalMode: "approval", myParticipation })
+  it("once in, „Máš místo“ stands out and „Odhlásit se“ is quiet (ghost, not a bordered button)", async () => {
+    await renderAction({ approvalMode: "approval", myParticipation: "approved" })
 
-      expect(screen.getByText(state)).toHaveClass("font-semibold")
-      expect(screen.getByRole("button", { name: wayBack })).toHaveAttribute("data-variant", "ghost")
-    },
-  )
+    expect(screen.getByText("Máš místo. Parta je o jednoho větší.")).toHaveClass("font-semibold")
+    expect(screen.getByRole("button", { name: "Odhlásit se" })).toHaveAttribute(
+      "data-variant",
+      "ghost",
+    )
+  })
+
+  it("a full event points to similar events nearby, for a visitor too", async () => {
+    await renderAction({ isFull: true, freeSpots: 0, approvedCount: 12 }, { viewer: null })
+
+    expect(screen.getByRole("link", { name: "Podobné akce v okolí" })).toBeInTheDocument()
+  })
 
   it("sending a request is still the one primary action", async () => {
     await renderAction({ approvalMode: "approval" })
@@ -368,7 +453,7 @@ describe("ParticipationAction", () => {
   it("the organizer going to their own event isn't told where its changes show", async () => {
     await renderAction({ myParticipation: "approved" }, { viewer: organizer })
 
-    expect(screen.getByText("Jdu")).toBeInTheDocument()
+    expect(screen.getByText("Máš místo. Parta je o jednoho větší.")).toBeInTheDocument()
     expect(screen.queryByText(/Změny akce uvidíš/)).not.toBeInTheDocument()
   })
 
@@ -399,7 +484,7 @@ describe("ParticipationAction", () => {
 
       expect(screen.queryByRole("dialog")).not.toBeInTheDocument()
       // not left on <body>: the button used is gone, its result is read out
-      const state = screen.getByText("Čeká na schválení").parentElement!
+      const state = screen.getByRole("alert").parentElement!
       expect(state).toHaveFocus()
       expect(state).toHaveTextContent("Rozhodnutí uvidíš tady a v Mých akcích.")
     })
@@ -427,20 +512,118 @@ describe("ParticipationAction", () => {
       expect(screen.queryByText("Čeká na schválení")).not.toBeInTheDocument()
     })
 
-    it("after „Přijdu“ the focus moves to „Jdu“, which says where changes show", async () => {
+    it("after „Přijdu“ the focus moves to „Máš místo“, which says where changes show", async () => {
       await renderWithRouter(
         <Page
           event={{}}
           request={() => Promise.resolve()}
           answer="approved"
+          // the fixture is at its minimum (4); this place is the fifth
+          numbersAfter={{ approvedCount: 5 }}
         />,
       )
 
       await userEvent.click(screen.getByRole("button", { name: "Přijdu" }))
 
-      const state = (await screen.findByText("Jdu")).parentElement!
+      const state = (
+        await screen.findByText("Máš místo. Parta je o jednoho větší.")
+      ).closest<HTMLElement>("[tabindex='-1']")!
       await waitFor(() => expect(state).toHaveFocus())
       expect(state).toHaveTextContent("Změny akce uvidíš tady a v Mých akcích.")
+      // the „ty“ dot fills in right after joining
+      expect(state.querySelector("[data-slot=logo-self]")?.getAttribute("class")).toMatch(
+        /motion-safe:animate-in/,
+      )
+    })
+
+    // DESIGN.md › Máš místo: the thanks only when this very place reached the minimum
+    it("the place that reaches the minimum is thanked for it", async () => {
+      await renderWithRouter(
+        <Page
+          event={{ approvedCount: 3, minParticipants: 4, missingToMin: 1, freeSpots: 9 }}
+          request={() => Promise.resolve()}
+          answer="approved"
+          numbersAfter={{ approvedCount: 4, missingToMin: 0, freeSpots: 8 }}
+        />,
+      )
+
+      await userEvent.click(screen.getByRole("button", { name: "Přijdu" }))
+
+      expect(
+        await screen.findByText("Díky tobě se akce koná – sešli se 4 lidé, minimum je 4."),
+      ).toBeInTheDocument()
+      expect(screen.queryByText(/Změny akce uvidíš/)).not.toBeInTheDocument()
+    })
+
+    // the page's numbers are from before the click; the API's answer decides
+    it("the thanks is there as soon as the place shows, not one render later (cache first)", async () => {
+      await renderWithRouter(
+        <Page
+          event={{ approvedCount: 3, minParticipants: 4, missingToMin: 1, freeSpots: 9 }}
+          request={() => Promise.resolve()}
+          answer="approved"
+          numbersAfter={{ approvedCount: 4, missingToMin: 0, freeSpots: 8 }}
+          isCacheFirst
+        />,
+      )
+
+      await userEvent.click(screen.getByRole("button", { name: "Přijdu" }))
+
+      // the place shows while `onJoin` is still out: the right line must be there already
+      await screen.findByText("Máš místo. Parta je o jednoho větší.")
+      expect(
+        screen.getByText("Díky tobě se akce koná – sešli se 4 lidé, minimum je 4."),
+      ).toBeInTheDocument()
+      expect(screen.queryByText(/Změny akce uvidíš/)).not.toBeInTheDocument()
+    })
+
+    it("someone else reached the minimum meanwhile: no thanks, though the page said „chybí 1“", async () => {
+      await renderWithRouter(
+        <Page
+          event={{ approvedCount: 3, minParticipants: 4, missingToMin: 1, freeSpots: 9 }}
+          request={() => Promise.resolve()}
+          answer="approved"
+          numbersAfter={{ approvedCount: 5, missingToMin: 0, freeSpots: 7 }}
+        />,
+      )
+
+      await userEvent.click(screen.getByRole("button", { name: "Přijdu" }))
+
+      expect(await screen.findByText("Změny akce uvidíš tady a v Mých akcích.")).toBeInTheDocument()
+      expect(screen.queryByText(/Díky tobě/)).not.toBeInTheDocument()
+    })
+
+    it("someone else left meanwhile and this place reached the minimum: thanked", async () => {
+      await renderWithRouter(
+        <Page
+          event={{ approvedCount: 4, minParticipants: 6, missingToMin: 2, freeSpots: 8 }}
+          request={() => Promise.resolve()}
+          answer="approved"
+          numbersAfter={{ approvedCount: 6, missingToMin: 0, freeSpots: 6 }}
+        />,
+      )
+
+      await userEvent.click(screen.getByRole("button", { name: "Přijdu" }))
+
+      expect(
+        await screen.findByText("Díky tobě se akce koná – sešlo se 6 lidí, minimum je 6."),
+      ).toBeInTheDocument()
+    })
+
+    it("a place past the minimum is not thanked", async () => {
+      await renderWithRouter(
+        <Page
+          event={{ approvedCount: 5, minParticipants: 4, missingToMin: 0, freeSpots: 7 }}
+          request={() => Promise.resolve()}
+          answer="approved"
+          numbersAfter={{ approvedCount: 6, freeSpots: 6 }}
+        />,
+      )
+
+      await userEvent.click(screen.getByRole("button", { name: "Přijdu" }))
+
+      expect(await screen.findByText("Změny akce uvidíš tady a v Mých akcích.")).toBeInTheDocument()
+      expect(screen.queryByText(/Díky tobě/)).not.toBeInTheDocument()
     })
 
     it("after leaving the focus moves back to „Přijdu“", async () => {

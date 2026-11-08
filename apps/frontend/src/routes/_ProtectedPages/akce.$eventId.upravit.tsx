@@ -2,7 +2,7 @@ import { createFileRoute } from "@tanstack/react-router"
 import { toast } from "sonner"
 
 import { ROUTES } from "@/app/routes"
-import { BackLink } from "@/components/BackLink/BackLink"
+import { PageBand } from "@/components/PageBand/PageBand"
 import { Seo } from "@/components/Seo"
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 import { Skeleton } from "@/components/ui/skeleton"
@@ -43,15 +43,19 @@ function EditEventPage() {
   return (
     <>
       <Seo title="Upravit akci" />
+      <PageBand
+        title="Upravit akci"
+        description={event?.title}
+        back={{
+          to: ROUTES.manageEvent,
+          params: { eventId },
+          fallbackLabel: "Správa akce",
+          label: "Správa akce",
+        }}
+        isCompactOnMobile
+      />
       <div className={cn(PAGE, "gap-4")}>
-        <BackLink
-          to={ROUTES.manageEvent}
-          params={{ eventId }}
-          fallbackLabel="Správa akce"
-          label="Správa akce"
-        />
         <div className={FORM}>
-          <h1 className="text-3xl font-semibold tracking-tight md:text-4xl">Upravit akci</h1>
           {isNotFound ? (
             <Alert>
               <AlertTitle>Akce nenalezena</AlertTitle>
