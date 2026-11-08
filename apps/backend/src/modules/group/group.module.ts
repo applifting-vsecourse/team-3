@@ -12,6 +12,6 @@ import { GroupsService } from './services/groups.service';
   imports: [PrismaModule, AuthModule, NotificationModule],
   controllers: [GroupsController, MyGroupsController],
   providers: [GroupsService, GroupRepository],
-  exports: [GroupsService],
+  exports: [GroupsService, GroupRepository],
 })
 export class GroupModule {}
