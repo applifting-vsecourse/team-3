@@ -50,5 +50,8 @@ describe("BandTabs", () => {
     const strip = screen.getByRole("tablist")
     expect(strip).not.toHaveClass("group-data-[orientation=horizontal]/tabs:h-9")
     expect(strip).toHaveClass("group-data-[orientation=horizontal]/tabs:h-auto")
+    // sideways only, no scrollbar: the kit's indicator 5 px below the tab made it scroll
+    expect(strip).toHaveClass("overflow-y-hidden", "[scrollbar-width:none]")
+    expect(screen.getByRole("tab", { name: "Moje" })).toHaveClass("after:hidden")
   })
 })

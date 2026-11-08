@@ -17,8 +17,9 @@ export function BandTabs({ className, ...props }: ComponentProps<typeof TabsList
         // (tailwind-merge sees no conflict, the variant wins): the 36 px strip clipped the
         // tabs and their lime underline. So the height is replaced with the same variant.
         "group-data-[orientation=horizontal]/tabs:h-auto",
-        // the scroll strip reaches the screen edge on a phone (-mx-4 px-4), like Figma A-02
-        "-mx-4 h-auto w-auto max-w-none justify-start gap-6 overflow-x-auto rounded-none p-0 px-4 md:mx-0 md:gap-7 md:px-0",
+        // the scroll strip reaches the screen edge on a phone (-mx-4 px-4), like Figma A-02; it
+        // scrolls sideways only, without a visible scrollbar (like the filter chips)
+        "-mx-4 h-auto w-auto max-w-none [scrollbar-width:none] justify-start gap-6 overflow-x-auto overflow-y-hidden rounded-none p-0 px-4 md:mx-0 md:gap-7 md:px-0 [&::-webkit-scrollbar]:hidden",
         className,
       )}
       {...props}
@@ -43,6 +44,8 @@ export function BandTabsItem({ count, children, className, ...props }: BandTabsI
         "data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:text-on-hero",
         "dark:text-on-hero-muted dark:hover:text-on-hero dark:data-[state=active]:border-primary dark:data-[state=active]:bg-transparent dark:data-[state=active]:text-on-hero",
         "group-data-[variant=line]/tabs-list:data-[state=active]:after:opacity-0 dark:group-data-[variant=line]/tabs-list:data-[state=active]:border-primary",
+        // the kit's line indicator sits 5 px below the tab: unused, and it made the strip scroll
+        "after:hidden",
         className,
       )}
       {...props}
