@@ -1,5 +1,4 @@
 import { matchesCapacity } from '@/modules/event/domain/capacity';
-import { distanceKm, GeoPoint } from '@/modules/event/domain/distance';
 import {
   EventChanges,
   EventDetail,
@@ -47,6 +46,7 @@ import { startOfPragueDayOf } from '@/modules/event/domain/prague-day';
 import { EventRepository } from '@/modules/event/repositories/event.repository';
 import { summarizeChange } from '@/modules/notification/domain/event-change';
 import { NotificationService } from '@/modules/notification/services/notification.service';
+import { distanceKm, LatLng } from '@/shared/geo/distance';
 import {
   BadRequestException,
   ConflictException,
@@ -112,23 +112,32 @@ const messageRefused = (refusal: MessageRefusal): HttpException =>
 // One endpoint serves both the list and the map in sprint 2, without paging
 // (deviation from B-023, which has paging and a separate /events/map).
 export const PUBLIC_EVENTS_LIMIT = 200;
-// Safety cap for the capacity filter and the popular order, which have to load
-// events before filtering or ranking them. The endpoint is public, so the
-// query must stay bounded however many events exist.
+// Safety cap for the filters and orders the database can't do (capacity, the
+// search, okolí, popular), which have to load events before filtering or
+// ranking them. The endpoint is public, so the query must stay bounded however
+// many events exist. Known limit: the search (`q`) only looks through the
+// SCAN_LIMIT soonest events of the locality (or of the whole country), so a
+// match further in the future can be missed once there are more (BACKLOG B-023).
 export const SCAN_LIMIT = 2000;
 export const MY_EVENTS_LIMIT = 200;
 
-/** Each event's distance from the point, to one decimal (#57); unchanged without a point. */
+/** Each event's exact distance from the point (#57); unchanged without a point. */
 const withDistance = (
   events: PublicEvent[],
-  point: GeoPoint | undefined,
+  point: LatLng | undefined,
 ): PublicEvent[] =>
   point
-    ? events.map((event) => ({
-        ...event,
-        distanceKm: Math.round(distanceKm(point, event) * 10) / 10,
-      }))
+    ? events.map((event) => ({ ...event, distanceKm: distanceKm(point, event) }))
     : events;
+
+/**
+ * The distance as the card shows it, to one decimal. Only for the response:
+ * the circle compares the exact distance, or 10.04 km would pass „+10 km“.
+ */
+const roundDistance = (event: PublicEvent): PublicEvent =>
+  event.distanceKm === null
+    ? event
+    : { ...event, distanceKm: Math.round(event.distanceKm * 10) / 10 };
 
 /** Nearest first; equally far soonest first (the input is soonest first, the sort is stable). */
 const byDistance = (events: PublicEvent[]): PublicEvent[] =>
@@ -165,7 +174,7 @@ export class EventsService {
         now,
         limit,
       });
-      return withDistance(events, point);
+      return withDistance(events, point).map(roundDistance);
     }
     // The capacity filter compares approved participations with the minimum and
     // maximum, interest counts waiting requests too, the search ignores
@@ -194,7 +203,7 @@ export class EventsService {
       : sort === 'distance'
         ? byDistance(matching)
         : matching;
-    return ordered.slice(0, limit);
+    return ordered.slice(0, limit).map(roundDistance);
   }
 
   /**

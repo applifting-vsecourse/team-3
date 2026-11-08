@@ -1,6 +1,6 @@
 import { BoundingBox } from './bounding-box';
 import { Capacity, CapacityFilter } from './capacity';
-import { GeoPoint } from './distance';
+import { LatLng } from '@/shared/geo/distance';
 
 /** Filters of the public event list (B-023, sprint 2 version). */
 export type PublicEventFilters = {
@@ -23,7 +23,7 @@ export type PublicEventFilters = {
   /** Words found in the title, the activity's name or its keywords, without diacritics (#57). */
   q?: string;
   /** Where distances are measured from: the centre of the chosen locality (#57). */
-  point?: GeoPoint;
+  point?: LatLng;
   /** Only events at most this far from `point` („okolí +10 km“, #57). */
   radiusKm?: number;
 };

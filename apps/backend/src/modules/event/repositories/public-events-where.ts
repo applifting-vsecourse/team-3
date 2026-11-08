@@ -1,5 +1,5 @@
 import { Prisma } from '@/generated/prisma/client';
-import { boxAround } from '@/modules/event/domain/distance';
+import { boxAround } from '@/shared/geo/distance';
 import { PublicEventFilters } from '@/modules/event/domain/event';
 import {
   startOfNextPragueDay,

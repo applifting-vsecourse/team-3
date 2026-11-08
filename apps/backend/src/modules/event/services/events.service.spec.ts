@@ -194,6 +194,30 @@ describe('EventsService', () => {
       ]);
     });
 
+    it('compares the exact distance with the circle, rounds only the answer', async () => {
+      const repository = mock<EventRepository>();
+      // 10.04 km due north: shown as 10 km, but outside „+10 km“
+      const north = (km: number): number => praha8.lat + (km / 6371) * (180 / Math.PI);
+      repository.findPublicEvents.mockResolvedValue([
+        at('edge-in', north(9.96), praha8.lng),
+        at('edge-out', north(10.04), praha8.lng),
+      ]);
+      const service = new EventsService(
+        repository,
+        mock<NotificationService>(),
+      );
+
+      const result = await service.getPublicEvents(
+        { point: praha8, radiusKm: 10 },
+        {},
+        now,
+      );
+
+      expect(result.map((event) => [event.id, event.distanceKm])).toEqual([
+        ['edge-in', 10],
+      ]);
+    });
+
     it('orders by distance, nearest first', async () => {
       const repository = mock<EventRepository>();
       repository.findPublicEvents.mockResolvedValue([
