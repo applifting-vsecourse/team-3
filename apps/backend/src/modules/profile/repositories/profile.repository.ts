@@ -5,6 +5,7 @@ import {
   toPublicEvent,
   type PublicEventRow,
 } from '@/modules/event/repositories/event.repository';
+import { buildMyEventsWhere } from '@/modules/event/repositories/my-events-where';
 import {
   participationWhere,
   PROFILE_OVERVIEW_TAKE,
@@ -65,10 +66,8 @@ export class ProfileRepository {
 
   async overview(userId: string, now: Date): Promise<ProfileOverview> {
     const take = PROFILE_OVERVIEW_TAKE;
-    const organizingWhere: Prisma.EventWhereInput = {
-      organizerUserId: userId,
-      status: { in: ['published', 'cancelled'] },
-    };
+    // Exactly the Pořádám tab of Moje akce, where „Všechny“ leads.
+    const organizingWhere = buildMyEventsWhere('organizing', userId, now);
     const upcomingWhere = participationWhere(userId, now, false);
     const pastWhere = participationWhere(userId, now, true);
     const participantWhere: Prisma.ParticipantRatingWhereInput = {
@@ -96,14 +95,14 @@ export class ProfileRepository {
       this.prisma.event.findMany({
         where: organizingWhere,
         include: publicEventInclude,
-        orderBy: { startsAt: 'desc' },
+        orderBy: [{ startsAt: 'asc' }, { id: 'asc' }],
         take,
       }),
       this.prisma.event.count({ where: organizingWhere }),
       this.prisma.participation.findMany({
         where: upcomingWhere,
         select: { status: true, event: { include: publicEventInclude } },
-        orderBy: { event: { startsAt: 'asc' } },
+        orderBy: [{ event: { startsAt: 'asc' } }, { event: { id: 'asc' } }],
         take,
       }),
       this.prisma.participation.count({ where: upcomingWhere }),

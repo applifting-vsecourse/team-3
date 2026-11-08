@@ -1,4 +1,5 @@
 import { PrismaService } from '@/core/prisma/prisma.service';
+import { buildMyEventsWhere } from '@/modules/event/repositories/my-events-where';
 import { PROFILE_OVERVIEW_TAKE } from '@/modules/profile/domain/profile';
 import { mockDeep } from 'jest-mock-extended';
 import { ProfileRepository } from './profile.repository';
@@ -24,18 +25,18 @@ describe('private profile queries (#178)', () => {
     } as never);
   });
   it('scopes organizing, participation and received ratings to the owner and excludes moderated ratings/events', async () => {
-    const result = await repository.overview(
-      'owner',
-      new Date('2026-11-05T12:00:00Z'),
-    );
+    const now = new Date('2026-11-05T12:00:00Z');
+    const result = await repository.overview('owner', now);
+    // „Co pořádám“ = the Pořádám tab of Moje akce: upcoming only, soonest first
     expect(prisma.event.findMany).toHaveBeenCalledWith(
       expect.objectContaining({
-        where: {
-          organizerUserId: 'owner',
-          status: { in: ['published', 'cancelled'] },
-        },
+        where: buildMyEventsWhere('organizing', 'owner', now),
+        orderBy: [{ startsAt: 'asc' }, { id: 'asc' }],
       }),
     );
+    expect(prisma.event.count).toHaveBeenCalledWith({
+      where: buildMyEventsWhere('organizing', 'owner', now),
+    });
     for (const [query] of prisma.participation.findMany.mock.calls)
       expect(query?.where?.userId).toBe('owner');
     expect(prisma.participantRating.findMany).toHaveBeenCalledWith(

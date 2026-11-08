@@ -1,3 +1,4 @@
+import { buildMyEventsWhere } from '@/modules/event/repositories/my-events-where';
 import { participationWhere, selfProfile, type ProfileRow } from './profile';
 
 export const ownerRow = (): ProfileRow => ({
@@ -51,18 +52,19 @@ describe('private profile projection (#178)', () => {
 
 describe('private participation history (#178)', () => {
   const now = new Date('2026-11-05T12:00:00Z');
-  it('keeps the owner predicate, excludes hidden/cancelled events and retains pending future requests', () => {
+  it('keeps the owner predicate and pending requests and matches the Přihlášen tab of Moje akce', () => {
     expect(participationWhere('owner', now, false)).toEqual({
       userId: 'owner',
       status: { in: ['pending', 'approved'] },
-      event: {
-        status: 'published',
-        OR: [
-          { endsAt: { gte: now } },
-          { endsAt: null, startsAt: { gte: now } },
-        ],
-      },
+      event: buildMyEventsWhere('attending', 'owner', now),
     });
+  });
+  it('leaves out events already in progress, as Moje akce does', () => {
+    const where = participationWhere('owner', now, false);
+    expect(JSON.stringify(where)).toContain(
+      `"startsAt":${JSON.stringify({ gt: now })}`,
+    );
+    expect(JSON.stringify(where)).not.toContain('endsAt');
   });
   it('only counts approved participation in history and uses the end time when available', () => {
     expect(participationWhere('other-owner', now, true)).toEqual({

@@ -1,5 +1,6 @@
 import { Prisma } from '@/generated/prisma/client';
 import type { PublicEvent } from '@/modules/event/domain/event';
+import { buildMyEventsWhere } from '@/modules/event/repositories/my-events-where';
 import type { RatingSummary } from '@/modules/rating/domain/rating-summary';
 
 export const profileSelect = {
@@ -89,20 +90,30 @@ export type ProfileOverview = {
   organizerSummary: RatingSummary;
 };
 
-/** The authenticated owner is always part of every private history predicate. */
+/**
+ * The owner's participations of a section. Upcoming („Kam jdu“) is exactly the
+ * Přihlášen tab of Moje akce (`buildMyEventsWhere('attending')`: events that
+ * have not started yet, cancelled ones with their label), so the section, its
+ * total and „Všechny v Moje akce“ agree. History counts approved places of
+ * published events that are over (the end, or the start when there is none).
+ */
 export function participationWhere(
   userId: string,
   now: Date,
   past: boolean,
 ): Prisma.ParticipationWhereInput {
+  if (!past)
+    return {
+      userId,
+      status: { in: ['pending', 'approved'] },
+      event: buildMyEventsWhere('attending', userId, now),
+    };
   return {
     userId,
-    status: past ? 'approved' : { in: ['pending', 'approved'] },
+    status: 'approved',
     event: {
       status: 'published',
-      OR: past
-        ? [{ endsAt: { lt: now } }, { endsAt: null, startsAt: { lt: now } }]
-        : [{ endsAt: { gte: now } }, { endsAt: null, startsAt: { gte: now } }],
+      OR: [{ endsAt: { lt: now } }, { endsAt: null, startsAt: { lt: now } }],
     },
   };
 }
