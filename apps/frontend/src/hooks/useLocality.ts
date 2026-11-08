@@ -1,6 +1,7 @@
 import { useSyncExternalStore } from "react"
 import { useQuery } from "@tanstack/react-query"
 
+import { localitiesQueryOptions } from "@/lib/catalog/catalogQueryOptions"
 import { defaultLocalityQueryOptions } from "@/lib/catalog/defaultLocality"
 import { ALL_LOCALITIES_SLUG } from "@/lib/catalog/localityOptions"
 import {
@@ -38,11 +39,25 @@ export function useLocality(
   urlSlug: string | undefined,
   userId: string | null | undefined,
 ): LocalityState {
-  const remembered = useSyncExternalStore(
+  const stored = useSyncExternalStore(
     subscribeRememberedLocality,
     getRememberedLocality,
     () => undefined,
   )
+  // A remembered locality the catalog no longer has (removed, renamed) would leave the chip
+  // naming nothing and the list for all of Czechia: it counts as no pick. Until the catalog
+  // has loaded it holds — the lists wait for the catalog anyway.
+  const localities = useQuery({
+    ...localitiesQueryOptions(),
+    enabled: urlSlug === undefined && stored !== undefined,
+  })
+  const remembered =
+    stored === undefined ||
+    stored === ALL_LOCALITIES_SLUG ||
+    !localities.data ||
+    localities.data.some((locality) => locality.slug === stored)
+      ? stored
+      : undefined
   const isPicked = urlSlug !== undefined || remembered !== undefined
   const defaultQuery = useQuery({
     ...defaultLocalityQueryOptions(userId ?? null),
