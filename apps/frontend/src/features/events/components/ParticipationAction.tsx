@@ -1,9 +1,10 @@
-import { useCallback, useEffect, useRef, useState, type ReactNode, type Ref } from "react"
+import { useCallback, useEffect, useRef, useState, type ReactNode } from "react"
 import { Link } from "@tanstack/react-router"
-import { Loader2 } from "lucide-react"
+import { Info, Loader2 } from "lucide-react"
 
 import { ROUTES } from "@/app/routes"
 import { RequestDialog } from "@/components/RequestDialog/RequestDialog"
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 import { Button } from "@/components/ui/button"
 import {
   Dialog,
@@ -15,11 +16,11 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog"
-import { happeningThanks, isMinimumReachedByLast } from "@/lib/occupancy"
+import { gatheredLabel, happeningThanks, isMinimumReachedByLast } from "@/lib/occupancy"
 
 import type { EventDetail } from "@/features/events/api/eventSchemas"
 import { HasPlace } from "@/features/events/components/HasPlace"
-import { formatRequestEventStart } from "@/features/events/lib/formatEvent"
+import { formatEventDay, formatRequestEventStart } from "@/features/events/lib/formatEvent"
 
 export type Viewer = { id: string; emailVerified: boolean }
 
@@ -46,10 +47,12 @@ type ParticipationActionProps = {
 
 /**
  * The one action of the event detail (B-032, Figma A-05 · Stavy): „Přijdu“
- * → „Jdu“ + „Odhlásit se“, „Plno“, the sign-in for a visitor, and for the
- * organizer „Spravovat akci“ next to „Přijdu“. An event with approval takes
- * a request instead (A-05a, #53), confirmed in a dialog with an optional
- * message for the organizer (#175).
+ * → „Máš místo“ + „Odhlásit se“, „Plno“ with similar events nearby, the
+ * sign-in for a visitor, and for the organizer „Spravovat akci“ with „Přijdu“
+ * beside it. An event with approval takes a request instead (A-05a, #53),
+ * confirmed in a dialog with an optional message for the organizer (#175); a
+ * rejected one points to similar events, as a full one does — neither is a
+ * dead end (UX audit U2).
  */
 export function ParticipationAction({
   event,
@@ -67,6 +70,21 @@ export function ParticipationAction({
   const manage = event.canManage ? <ManageLink eventId={event.id} /> : null
 
   if (event.status === "cancelled") return manage ? <Row>{manage}</Row> : null
+  if ((event.endsAt ?? event.startsAt) <= now) {
+    // Figma A-05 · Stavy › Proběhlá akce
+    return (
+      <Row>
+        {manage}
+        <Alert variant="neutral">
+          <Info />
+          <AlertTitle>Akce proběhla {lowerFirst(formatEventDay(event.startsAt))}</AlertTitle>
+          <AlertDescription>
+            {gatheredLabel(event.approvedCount)}. Podobné akce najdeš v Akcích.
+          </AlertDescription>
+        </Alert>
+      </Row>
+    )
+  }
   if (event.startsAt <= now) {
     return (
       <Row>
@@ -86,6 +104,7 @@ export function ParticipationAction({
     return (
       <Row>
         <FullButton />
+        <SimilarEvents event={event} />
         <p className="text-sm text-muted-foreground">
           Máš na akci místo nebo žádost?{" "}
           <Link
@@ -147,6 +166,28 @@ export function ParticipationAction({
     )
   }
 
+  // Figma A-05 · Stavy › Vlastní akce: managing is the main action, joining sits beside it
+  // (Q12: the organizer joins without approval)
+  const canJoinAtOnce = isOrganizer || event.approvalMode === "open"
+  if (event.canManage && event.myParticipation === null && !event.isFull && canJoinAtOnce) {
+    return (
+      <div className="flex gap-2">
+        <ManageLink
+          eventId={event.id}
+          isPrimary
+        />
+        <JoinControl
+          event={event}
+          isOrganizer={isOrganizer}
+          isPending={isPending}
+          onJoin={onJoin}
+          onLeave={onLeave}
+          isSecondary
+        />
+      </div>
+    )
+  }
+
   return (
     <Row>
       {manage}
@@ -164,9 +205,20 @@ export function ParticipationAction({
 type JoinControlProps = Pick<
   ParticipationActionProps,
   "event" | "isPending" | "onJoin" | "onLeave"
-> & { isOrganizer: boolean }
+> & {
+  isOrganizer: boolean
+  /** „Přijdu“ beside „Spravovat akci“: outline, the primary button stays one (Figma A-05 · Stavy). */
+  isSecondary?: boolean
+}
 
-function JoinControl({ event, isOrganizer, isPending, onJoin, onLeave }: JoinControlProps) {
+function JoinControl({
+  event,
+  isOrganizer,
+  isPending,
+  onJoin,
+  onLeave,
+  isSecondary = false,
+}: JoinControlProps) {
   // The control just used goes away with the change („Poslat žádost“ →
   // „Čeká na schválení“), so focus moves to what replaced it instead of
   // falling to <body>: the new state, or the button to come back.
@@ -231,14 +283,21 @@ function JoinControl({ event, isOrganizer, isPending, onJoin, onLeave }: JoinCon
     case "pending":
       return (
         <>
-          {/* no e-mail tells the decision yet (US-08), so say where it shows */}
-          <Status
+          {/* Figma's „Až ji organizátor schválí, přijde ti e-mail.“ comes with the e-mails
+              (#177); until then say where the decision shows */}
+          <div
             ref={focusTarget}
-            note="Rozhodnutí uvidíš tady a v Mých akcích."
+            tabIndex={-1}
+            className="rounded-lg outline-offset-4"
           >
-            Čeká na schválení
-          </Status>
+            <Alert variant="info">
+              <Info />
+              <AlertTitle>Žádost čeká na schválení</AlertTitle>
+              <AlertDescription>Rozhodnutí uvidíš tady a v Mých akcích.</AlertDescription>
+            </Alert>
+          </div>
           <ConfirmButton
+            variant="outline"
             label="Stáhnout žádost"
             title="Stáhnout žádost o účast?"
             description="Organizátor ji pak už neuvidí."
@@ -248,15 +307,37 @@ function JoinControl({ event, isOrganizer, isPending, onJoin, onLeave }: JoinCon
         </>
       )
     case "rejected":
-      // gender-neutral (DESIGN.md › Copy): the organizer may well be a woman
-      return <Note>Tvoje žádost o účast byla zamítnuta.</Note>
+      // Figma A-05 · Stavy › Žádost zamítnutá; a new request isn't possible (team, 4. 11.).
+      // Gender-neutral (DESIGN.md › Copy): „organizátor“ is the role, not a person.
+      return (
+        <>
+          <Alert variant="neutral">
+            <Info />
+            <AlertTitle>Tentokrát to nevyšlo</AlertTitle>
+            <AlertDescription>
+              Na tuhle akci tě organizátor nepřijal. Mrkni na podobné akce v okolí.
+            </AlertDescription>
+          </Alert>
+          <SimilarEvents
+            event={event}
+            variant="outline"
+          />
+        </>
+      )
     case "removed":
       return <Note>Na akci už nemáš místo.</Note>
     case null:
       break
   }
 
-  if (event.isFull) return <FullButton />
+  if (event.isFull) {
+    return (
+      <>
+        <FullButton />
+        <SimilarEvents event={event} />
+      </>
+    )
+  }
   // the organizer joins at once even with approval (Q12); anyone else asks
   if (event.approvalMode === "approval" && !isOrganizer) {
     return (
@@ -292,6 +373,7 @@ function JoinControl({ event, isOrganizer, isPending, onJoin, onLeave }: JoinCon
   return (
     <Button
       ref={focusTarget}
+      variant={isSecondary ? "outline" : "default"}
       size="lg"
       disabled={isPending}
       // a refusal is the page's toast; the button stays to try again
@@ -300,30 +382,6 @@ function JoinControl({ event, isOrganizer, isPending, onJoin, onLeave }: JoinCon
       {isPending ? <Loader2 className="size-4 animate-spin" /> : null}
       Přijdu
     </Button>
-  )
-}
-
-/** Where the viewer stands („Čeká na schválení“) and what comes next; a place is HasPlace. */
-function Status({
-  ref,
-  note,
-  children,
-}: {
-  ref: Ref<HTMLDivElement>
-  note?: string
-  children: ReactNode
-}) {
-  return (
-    // focused from code only (after a change), never a Tab stop; the
-    // browser's focus outline stays, a little off the text
-    <div
-      ref={ref}
-      tabIndex={-1}
-      className="flex flex-col gap-1 rounded-md outline-offset-4"
-    >
-      <p className="inline-flex items-center gap-2 font-semibold">{children}</p>
-      {note ? <Note>{note}</Note> : null}
-    </div>
   )
 }
 
@@ -342,6 +400,8 @@ function FullButton() {
 }
 
 type ConfirmButtonProps = {
+  /** Figma A-05 · Stavy: „Odhlásit se“ ghost under „Máš místo“, „Stáhnout žádost“ outline. */
+  variant?: "ghost" | "outline"
   label: string
   title: string
   description: string
@@ -355,10 +415,17 @@ type ConfirmButtonProps = {
  * give the place away (a request has its own dialog with a message, #175).
  * Like „Zrušit akci?“, the dialog waits for the answer: it doesn't close on a
  * request that may still fail. The button is `ghost`: once in, „Jdu“ / „Čeká
- * na schválení“ is what the bar says, and a bordered full-width button would
- * outweigh it (DESIGN.md › Colour).
+ * na schválení“ is what the bar says. Withdrawing a request is `outline`, as in
+ * Figma A-05 · Stavy.
  */
-function ConfirmButton({ label, title, description, isPending, onConfirm }: ConfirmButtonProps) {
+function ConfirmButton({
+  variant = "ghost",
+  label,
+  title,
+  description,
+  isPending,
+  onConfirm,
+}: ConfirmButtonProps) {
   const [isOpen, setIsOpen] = useState(false)
   return (
     <Dialog
@@ -367,7 +434,7 @@ function ConfirmButton({ label, title, description, isPending, onConfirm }: Conf
     >
       <DialogTrigger asChild>
         <Button
-          variant="ghost"
+          variant={variant}
           size="lg"
           // a second confirmation while the first is on its way would only fail
           disabled={isPending}
@@ -404,12 +471,13 @@ function ConfirmButton({ label, title, description, isPending, onConfirm }: Conf
   )
 }
 
-function ManageLink({ eventId }: { eventId: string }) {
+function ManageLink({ eventId, isPrimary = false }: { eventId: string; isPrimary?: boolean }) {
   return (
     <Button
       asChild
-      variant="outline"
+      variant={isPrimary ? "default" : "outline"}
       size="lg"
+      className={isPrimary ? "flex-1" : undefined}
     >
       <Link
         to={ROUTES.manageEvent}
@@ -429,3 +497,33 @@ function Row({ children }: { children: ReactNode }) {
 function Note({ children }: { children: string }) {
   return <p className="text-sm text-muted-foreground">{children}</p>
 }
+
+/**
+ * „Podobné akce v okolí“ (Figma A-05 · Stavy, UX audit U2): /akce with the same activity in
+ * the same locality, so a full event or a rejected request isn't a dead end.
+ */
+function SimilarEvents({
+  event,
+  variant = "ghost",
+}: {
+  event: EventDetail
+  variant?: "ghost" | "outline"
+}) {
+  return (
+    <Button
+      asChild
+      variant={variant}
+      size="lg"
+      className={variant === "ghost" ? "self-start" : undefined}
+    >
+      <Link
+        to={ROUTES.events}
+        search={{ lokalita: event.locality.slug, aktivita: event.activity.slug }}
+      >
+        Podobné akce v okolí
+      </Link>
+    </Button>
+  )
+}
+
+const lowerFirst = (text: string): string => `${text.charAt(0).toLowerCase()}${text.slice(1)}`

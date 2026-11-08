@@ -11,6 +11,8 @@ import { anEventDetail } from "@/features/events/test/anEvent"
 
 // the fixture starts Fri 23. 10. 2026 17:30 Prague time
 const before = new Date("2026-10-23T08:00:00.000Z")
+// the fixture starts at 15:30 UTC; an end after 16:00, when the tests say it has started
+const afterNow = new Date("2026-10-23T18:00:00.000Z")
 const jakub: Viewer = { id: "u9", emailVerified: true }
 const organizer: Viewer = { id: "u1", emailVerified: true } // the fixture's organizer
 
@@ -127,6 +129,19 @@ describe("ParticipationAction", () => {
     expect(screen.queryByRole("button", { name: "Přijdu" })).not.toBeInTheDocument()
   })
 
+  it("the organizer: „Spravovat akci“ is the primary action, „Přijdu“ outline beside it", async () => {
+    await renderAction({ canManage: true }, { viewer: organizer })
+
+    expect(screen.getByRole("link", { name: "Spravovat akci" })).toHaveAttribute(
+      "data-variant",
+      "default",
+    )
+    expect(screen.getByRole("button", { name: "Přijdu" })).toHaveAttribute(
+      "data-variant",
+      "outline",
+    )
+  })
+
   it("the organizer sees „Spravovat akci“ and next to it „Přijdu“, even with approval", async () => {
     const { onJoin } = await renderAction(
       { approvalMode: "approval", canManage: true },
@@ -162,7 +177,7 @@ describe("ParticipationAction", () => {
 
   it("…and once it has started, a visitor is told so", async () => {
     await renderAction(
-      { isFull: true, freeSpots: 0, approvedCount: 12 },
+      { isFull: true, freeSpots: 0, approvedCount: 12, endsAt: afterNow },
       { viewer: null, now: new Date("2026-10-23T16:00:00.000Z") },
     )
     expect(screen.getByText("Akce už začala.")).toBeInTheDocument()
@@ -273,25 +288,48 @@ describe("ParticipationAction", () => {
   it("a rejected request is told so and can't be sent again", async () => {
     await renderAction({ approvalMode: "approval", myParticipation: "rejected" })
 
-    expect(screen.getByText("Tvoje žádost o účast byla zamítnuta.")).toBeInTheDocument()
+    expect(screen.getByText("Tentokrát to nevyšlo")).toBeInTheDocument()
+    expect(
+      screen.getByText("Na tuhle akci tě organizátor nepřijal. Mrkni na podobné akce v okolí."),
+    ).toBeInTheDocument()
     expect(screen.queryByRole("button", { name: "Poslat žádost" })).not.toBeInTheDocument()
+    // not a dead end (UX audit U2): the same activity in the same locality
+    expect(screen.getByRole("link", { name: "Podobné akce v okolí" })).toHaveAttribute(
+      "href",
+      "/akce?lokalita=praha-8&aktivita=jazykovy-tandem",
+    )
   })
 
   it("a waiting request says where the decision shows, and can be withdrawn", async () => {
     await renderAction({ approvalMode: "approval", myParticipation: "pending" })
 
-    expect(screen.getByText("Čeká na schválení")).toBeInTheDocument()
+    expect(screen.getByText("Žádost čeká na schválení")).toBeInTheDocument()
     expect(screen.getByText("Rozhodnutí uvidíš tady a v Mých akcích.")).toBeInTheDocument()
-    expect(screen.getByRole("button", { name: "Stáhnout žádost" })).toBeInTheDocument()
+    // Figma A-05 · Stavy: withdrawing is outline, under the state
+    expect(screen.getByRole("button", { name: "Stáhnout žádost" })).toHaveAttribute(
+      "data-variant",
+      "outline",
+    )
   })
 
   it("after the start there is nothing to join or leave; a participant still sees they're in", async () => {
     await renderAction(
-      { myParticipation: "approved" },
+      { myParticipation: "approved", endsAt: afterNow },
       { now: new Date("2026-10-23T16:00:00.000Z") },
     )
 
     expect(screen.getByText("Akce už začala. Máš na ní místo.")).toBeInTheDocument()
+    expect(screen.queryByRole("button")).not.toBeInTheDocument()
+  })
+
+  it("once over, it says when it was and how many came (Figma A-05 · Stavy › Proběhlá akce)", async () => {
+    await renderAction(
+      { approvedCount: 8, endsAt: afterNow },
+      { viewer: null, now: new Date("2026-10-24T08:00:00.000Z") },
+    )
+
+    expect(screen.getByText("Akce proběhla pá 23. 10.")).toBeInTheDocument()
+    expect(screen.getByText("Sešlo se 8 lidí. Podobné akce najdeš v Akcích.")).toBeInTheDocument()
     expect(screen.queryByRole("button")).not.toBeInTheDocument()
   })
 
@@ -323,7 +361,7 @@ describe("ParticipationAction", () => {
 
   it("…and once it has started", async () => {
     await renderAction(
-      { canManage: true },
+      { canManage: true, endsAt: afterNow },
       { viewer: organizer, now: new Date("2026-10-23T16:00:00.000Z") },
     )
 
@@ -349,18 +387,21 @@ describe("ParticipationAction", () => {
     expect(screen.getByRole("button", { name: "Přijdu" })).toBeDisabled()
   })
 
-  it.each([
-    ["approved", "Máš místo. Parta je o jednoho větší.", "Odhlásit se"],
-    ["pending", "Čeká na schválení", "Stáhnout žádost"],
-  ] as const)(
-    "once %s, the state stands out and „%s“'s way back is quiet (ghost, not a bordered button)",
-    async (myParticipation, state, wayBack) => {
-      await renderAction({ approvalMode: "approval", myParticipation })
+  it("once in, „Máš místo“ stands out and „Odhlásit se“ is quiet (ghost, not a bordered button)", async () => {
+    await renderAction({ approvalMode: "approval", myParticipation: "approved" })
 
-      expect(screen.getByText(state)).toHaveClass("font-semibold")
-      expect(screen.getByRole("button", { name: wayBack })).toHaveAttribute("data-variant", "ghost")
-    },
-  )
+    expect(screen.getByText("Máš místo. Parta je o jednoho větší.")).toHaveClass("font-semibold")
+    expect(screen.getByRole("button", { name: "Odhlásit se" })).toHaveAttribute(
+      "data-variant",
+      "ghost",
+    )
+  })
+
+  it("a full event points to similar events nearby, for a visitor too", async () => {
+    await renderAction({ isFull: true, freeSpots: 0, approvedCount: 12 }, { viewer: null })
+
+    expect(screen.getByRole("link", { name: "Podobné akce v okolí" })).toBeInTheDocument()
+  })
 
   it("sending a request is still the one primary action", async () => {
     await renderAction({ approvalMode: "approval" })
@@ -405,7 +446,7 @@ describe("ParticipationAction", () => {
 
       expect(screen.queryByRole("dialog")).not.toBeInTheDocument()
       // not left on <body>: the button used is gone, its result is read out
-      const state = screen.getByText("Čeká na schválení").parentElement!
+      const state = screen.getByRole("alert").parentElement!
       expect(state).toHaveFocus()
       expect(state).toHaveTextContent("Rozhodnutí uvidíš tady a v Mých akcích.")
     })
