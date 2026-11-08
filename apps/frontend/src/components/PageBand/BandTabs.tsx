@@ -39,11 +39,9 @@ export function BandTabsItem({ count, children, className, ...props }: BandTabsI
         // group/tab: the count pill follows the state. Inactive: muted and medium, so the active one
         // differs by weight and pill, not only by the underline (on-hero vs on-hero-muted is 1.5:1)
         "group/tab h-auto flex-none gap-1.5 rounded-none border-0 border-b-3 border-transparent px-0 pt-3 pb-2.5 text-body font-medium text-on-hero-muted hover:text-on-hero data-[state=active]:font-semibold",
-        // the active one: cream with the lime underline; the kit's dark: classes are restated
-        // (DESIGN.md › Colour), its line indicator and shadow are not used
+        // the active one: cream with the lime underline; the kit's line indicator and shadow are not used
         "data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:text-on-hero",
-        "dark:text-on-hero-muted dark:hover:text-on-hero dark:data-[state=active]:border-primary dark:data-[state=active]:bg-transparent dark:data-[state=active]:text-on-hero",
-        "group-data-[variant=line]/tabs-list:data-[state=active]:after:opacity-0 dark:group-data-[variant=line]/tabs-list:data-[state=active]:border-primary",
+        "group-data-[variant=line]/tabs-list:data-[state=active]:after:opacity-0",
         // the kit's line indicator sits 5 px below the tab: unused, and it made the strip scroll
         "after:hidden",
         className,

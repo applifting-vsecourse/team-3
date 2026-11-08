@@ -176,7 +176,7 @@ export function CatalogCombobox({
           }}
           // looks like the other fields of the form (the date picker, 15 px type)
           className={cn(
-            "h-11 w-full justify-between px-3 text-base font-normal md:text-sm",
+            "h-11 w-full justify-between bg-card px-3 text-base font-normal md:text-sm",
             !picked && "text-muted-foreground",
             className,
           )}

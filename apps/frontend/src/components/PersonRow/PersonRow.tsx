@@ -1,10 +1,14 @@
 import type { ReactNode } from "react"
+import { Link } from "@tanstack/react-router"
 
+import { ROUTES } from "@/app/routes"
 import { PersonAvatar } from "@/components/PersonAvatar/PersonAvatar"
 import { cn } from "@/lib/utils"
 
 type PersonRowProps = {
   name: string
+  /** Provided only when the name represents a user, never a group. */
+  userId?: string
   /** A second line, e.g. „Skupina“. */
   description?: string
   /**
@@ -21,13 +25,30 @@ type PersonRowProps = {
  * A person or a group with an avatar — organizer, participant, member
  * (Figma: Person row, Member) or a request with its actions (Request).
  */
-export function PersonRow({ name, description, quote, actions, className }: PersonRowProps) {
+export function PersonRow({
+  name,
+  userId,
+  description,
+  quote,
+  actions,
+  className,
+}: PersonRowProps) {
   const hasMore = Boolean(actions) || Boolean(quote)
   return (
     <div className={cn("flex min-w-0 gap-3", hasMore ? "items-start" : "items-center", className)}>
       <PersonAvatar name={name} />
       <div className={cn("flex min-w-0 flex-col", hasMore && "gap-1")}>
-        <span className="truncate text-sm font-semibold">{name}</span>
+        {userId ? (
+          <Link
+            className="truncate text-sm font-semibold underline underline-offset-4"
+            to={ROUTES.userProfile}
+            params={{ userId }}
+          >
+            {name}
+          </Link>
+        ) : (
+          <span className="truncate text-sm font-semibold">{name}</span>
+        )}
         {description ? (
           <span className="truncate text-sm text-muted-foreground">{description}</span>
         ) : null}

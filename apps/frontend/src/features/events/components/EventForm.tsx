@@ -361,7 +361,7 @@ export function EventForm({
                           variant="outline"
                           onBlur={field.onBlur}
                           className={cn(
-                            "h-11 w-full justify-between px-3 text-base font-normal md:text-sm",
+                            "h-11 w-full justify-between bg-card px-3 text-base font-normal md:text-sm",
                             !field.value && "text-muted-foreground",
                           )}
                         >

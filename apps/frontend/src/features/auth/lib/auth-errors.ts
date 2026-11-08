@@ -53,7 +53,10 @@ export const toAuthRequestError = (error: BetterAuthError, fallback: string) =>
 export const GOOGLE_SIGN_IN_FAILED = "Přihlášení přes Google se nepovedlo. Zkus to prosím znovu."
 
 // What BetterAuth (or Google) puts in `?error=` when it sends the user back
-// without signing in (#154). Only these are told apart; the code is never shown.
+// without signing in (#154). Only these are told apart; the code is never
+// shown. Anything else — e.g. `state_not_found` or `state_mismatch` (#198),
+// when the return from Google can't be matched to its start — gets the
+// general sentence: trying again is all there is to do.
 const GOOGLE_ERRORS: Record<string, string> = {
   // cancelled on Google's page
   access_denied: "Přihlášení přes Google je zrušené. Zkus to znovu, nebo se přihlas e-mailem.",
@@ -63,6 +66,16 @@ const GOOGLE_ERRORS: Record<string, string> = {
   email_not_found: "Google nám neposlal tvůj e-mail a bez něj se přihlásit nejde.",
 }
 
-/** #154: the Czech message for /login?error=… after Google. */
-export const googleSignInErrorMessage = (code: string): string =>
-  GOOGLE_ERRORS[code] ?? GOOGLE_SIGN_IN_FAILED
+// #198: on /signup, the way on without Google is signing up with the e-mail
+const GOOGLE_SIGN_UP_ERRORS: Record<string, string> = {
+  access_denied: "Registrace přes Google je zrušená. Zkus to znovu, nebo se zaregistruj e-mailem.",
+}
+
+/** #154: the Czech message for /login?error=… (#198: and /signup) after Google. */
+export const googleSignInErrorMessage = (
+  code: string,
+  page: "login" | "signup" = "login",
+): string =>
+  (page === "signup" ? GOOGLE_SIGN_UP_ERRORS[code] : undefined) ??
+  GOOGLE_ERRORS[code] ??
+  GOOGLE_SIGN_IN_FAILED

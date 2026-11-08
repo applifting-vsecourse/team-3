@@ -35,7 +35,8 @@ const createAuth = (
       provider: 'postgresql',
     }),
     trustedOrigins: [config.frontendUrl],
-    // Google, when GOOGLE_CLIENT_ID and GOOGLE_CLIENT_SECRET are set (#154)
+    // Google, when GOOGLE_CLIENT_ID and GOOGLE_CLIENT_SECRET are set (#154);
+    // its errors end on /login, not on BetterAuth's English page (#198)
     ...socialSignInOptions(config),
     rateLimit: rateLimitOptions,
     plugins: [

@@ -36,8 +36,7 @@ export function HeaderMenu() {
         <Button
           asChild
           variant="outline"
-          // the outline variant has its own dark: classes, so they are restated (DESIGN.md › Colour)
-          className="h-11 border-on-hero bg-transparent px-4 text-on-hero hover:bg-hero-pattern hover:text-on-hero dark:border-on-hero dark:bg-transparent dark:hover:bg-hero-pattern"
+          className="h-11 border-on-hero bg-transparent px-4 text-on-hero hover:bg-hero-pattern hover:text-on-hero"
         >
           <Link to={ROUTES.signup}>Registrovat</Link>
         </Button>

@@ -68,12 +68,39 @@ export const myGroupSchema = groupSchema.extend({
 
 export const myGroupsSchema = z.array(myGroupSchema)
 
+// Same limits as the API (CreateGroupAnnouncementDto, #194).
+export const ANNOUNCEMENT_SUBJECT_MAX_LENGTH = 120
+export const ANNOUNCEMENT_BODY_MAX_LENGTH = 2000
+
+export const announcementSchema = z.object({
+  id: z.string(),
+  subject: z.string(),
+  body: z.string(),
+  createdAt: z.coerce.date(),
+  sender: z.object({ id: z.string(), name: z.string() }),
+})
+
+/** GET /api/groups/:id/announcements, only for active members and admins (#194). */
+export const groupAnnouncementsSchema = z.object({
+  /** Newest first. */
+  announcements: z.array(announcementSchema),
+  /** All the group's announcements; the list holds only the latest 50. */
+  total: z.number(),
+  /** How many more the viewer may send today; null unless they are an admin of an active group. */
+  remainingToday: z.number().nullable(),
+})
+
 export type Group = z.infer<typeof groupSchema>
 export type MyGroup = z.infer<typeof myGroupSchema>
 export type GroupDetail = z.infer<typeof groupDetailSchema>
 export type Membership = z.infer<typeof membershipSchema>
 export type GroupMemberEntry = z.infer<typeof memberEntrySchema>
 export type GroupMembers = z.infer<typeof groupMembersSchema>
+export type Announcement = z.infer<typeof announcementSchema>
+export type GroupAnnouncements = z.infer<typeof groupAnnouncementsSchema>
+
+/** Body of POST /api/groups/:id/announcements (Figma D-08). */
+export type AnnouncementInput = { subject: string; body: string }
 
 /** Query parameters of GET /api/groups, already resolved to ids. */
 export type GroupFilters = {

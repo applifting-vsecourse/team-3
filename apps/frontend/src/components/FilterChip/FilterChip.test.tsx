@@ -7,9 +7,8 @@ const classesOf = (element: HTMLElement) => element.className.split(/\s+/).filte
 
 describe("FilterToggleChip", () => {
   // The on state is chipSelected behind data-[state=on]. jsdom can't run the Tailwind cascade, so
-  // this checks the class names: what FilterChip adds when selected must all be there when on,
-  // dark: ones included — without them chipDefault's dark:bg-background hid the text.
-  it("when on, restates every class a selected FilterChip has, dark: included", () => {
+  // this checks the class names: what FilterChip adds when selected must all be there when on.
+  it("when on, restates every class a selected FilterChip has", () => {
     render(
       <>
         <FilterChip>Termín</FilterChip>
@@ -24,10 +23,8 @@ describe("FilterToggleChip", () => {
     const toggle = screen.getByRole("button", { name: "Příštích 7 dní" })
 
     expect(toggle).toHaveAttribute("data-state", "on")
-    expect(selectedOnly).toContain("dark:bg-foreground")
-    const expected = selectedOnly.map((c) =>
-      c.startsWith("dark:") ? `dark:data-[state=on]:${c.slice(5)}` : `data-[state=on]:${c}`,
-    )
+    expect(selectedOnly).toContain("bg-foreground")
+    const expected = selectedOnly.map((c) => `data-[state=on]:${c}`)
     expect(classesOf(toggle)).toEqual(expect.arrayContaining(expected))
   })
 

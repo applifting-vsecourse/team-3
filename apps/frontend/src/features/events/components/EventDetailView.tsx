@@ -370,6 +370,7 @@ function EventOrganizer({ event, group }: { event: EventDetail; group?: ReactNod
             Figma's „Organizátor · ★ 4,5 (6 hodnocení)“ comes with the ratings (#66). */}
         <PersonRow
           name={event.organizer.name}
+          userId={event.organizer.id}
           description={event.approvalMode === "approval" ? "Schvaluje žádosti o účast" : undefined}
         />
       </div>
