@@ -17,17 +17,11 @@ import { useSession } from "@/features/auth/hooks/useSession"
 import { redirectFrom } from "@/features/auth/lib/redirect"
 import { GroupEvents } from "@/features/events/components/GroupEvents"
 import { groupQueryOptions } from "@/features/groups/api/groupsQueryOptions"
-import { GroupProfile } from "@/features/groups/components/GroupProfile"
+import { GroupProfile, GROUPS_BACK } from "@/features/groups/components/GroupProfile"
 
 export const Route = createFileRoute("/skupiny/$groupId")({
   component: GroupPage,
 })
-
-const GROUPS_BACK = {
-  to: ROUTES.groups,
-  fallbackLabel: "Všechny skupiny",
-  label: "Skupiny",
-} as const
 
 /** Figma A-08, A-08d, A-08e. Public: visitors see the page without an account. */
 function GroupPage() {

@@ -34,7 +34,8 @@ import {
 
 export type EventBack = Omit<BackLinkProps, "isIconOnlyOnMobile">
 
-const EVENTS_BACK: EventBack = {
+/** Back to the list of events — the detail and its loading or error states (the page too). */
+export const EVENTS_BACK: EventBack = {
   to: ROUTES.events,
   fallbackLabel: "Všechny akce",
   label: "Akce",
@@ -42,8 +43,6 @@ const EVENTS_BACK: EventBack = {
 
 type EventDetailViewProps = {
   event?: EventDetail
-  /** Where the arrow leads; the list of events unless the page knows better. */
-  back?: EventBack
   isLoading?: boolean
   /** Unknown, hidden or deleted (API 404). */
   isNotFound?: boolean
@@ -74,7 +73,6 @@ type EventDetailViewProps = {
  */
 export function EventDetailView({
   event,
-  back = EVENTS_BACK,
   isLoading,
   isNotFound,
   error,
@@ -89,7 +87,7 @@ export function EventDetailView({
 
   if (isNotFound) {
     return (
-      <StatePage back={back}>
+      <StatePage>
         <EventNotFound />
       </StatePage>
     )
@@ -97,7 +95,7 @@ export function EventDetailView({
 
   if (error) {
     return (
-      <StatePage back={back}>
+      <StatePage>
         <h1 className="sr-only">Detail akce</h1>
         <Alert variant="destructive">
           <AlertTitle>Akci se nepodařilo načíst</AlertTitle>
@@ -122,7 +120,7 @@ export function EventDetailView({
 
   if (isLoading || !event) {
     return (
-      <StatePage back={back}>
+      <StatePage>
         <EventDetailSkeleton isDesktop={isDesktop} />
       </StatePage>
     )
@@ -145,7 +143,7 @@ export function EventDetailView({
   const band = (
     <PageBand
       variant="detail"
-      back={back}
+      back={EVENTS_BACK}
       title={event.title}
       eyebrow={<BandActivity activity={event.activity} />}
       description={
@@ -277,7 +275,7 @@ export function EventDetailView({
     <>
       {/* Figma Header/Sub: back, what the page is and „Sdílet“; the photo comes before the band */}
       <SubBar
-        back={back}
+        back={EVENTS_BACK}
         label="Detail akce"
         action={
           <ShareEventButton
@@ -313,10 +311,10 @@ export function EventDetailView({
 }
 
 /** Loading, an error or „not found“: the page's column with the way back, before there is a band. */
-function StatePage({ back, children }: { back: EventBack; children: ReactNode }) {
+function StatePage({ children }: { children: ReactNode }) {
   return (
     <div className={cn(PAGE, "gap-4")}>
-      <BackLink {...back} />
+      <BackLink {...EVENTS_BACK} />
       {children}
     </div>
   )

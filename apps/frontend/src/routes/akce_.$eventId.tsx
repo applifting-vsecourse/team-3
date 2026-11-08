@@ -15,7 +15,7 @@ import { useSession } from "@/features/auth/hooks/useSession"
 import { redirectFrom } from "@/features/auth/lib/redirect"
 import { showVerifyEmailBanner } from "@/features/auth/lib/verify-email-banner"
 import { CancelEventDialog } from "@/features/events/components/CancelEventDialog"
-import { EventDetailView } from "@/features/events/components/EventDetailView"
+import { EventDetailView, EVENTS_BACK } from "@/features/events/components/EventDetailView"
 import { ParticipationAction } from "@/features/events/components/ParticipationAction"
 import { useCancelEvent } from "@/features/events/hooks/useCancelEvent"
 import { useEventDetail } from "@/features/events/hooks/useEventDetail"
@@ -78,11 +78,7 @@ function EventDetailPage() {
       <main className="flex-1">
         {membersOnlyGroupId ? (
           <div className={cn(PAGE, "gap-4")}>
-            <BackLink
-              to={ROUTES.events}
-              fallbackLabel="Všechny akce"
-              label="Akce"
-            />
+            <BackLink {...EVENTS_BACK} />
             <MembersOnlyEvent
               groupId={membersOnlyGroupId}
               viewerId={viewerId}

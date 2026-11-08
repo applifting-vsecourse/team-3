@@ -20,8 +20,6 @@ import { groupBandLine } from "@/features/groups/lib/formatGroup"
 
 type GroupProfileProps = {
   group: GroupDetail
-  /** Where the band's arrow leads when there is no history; the list of groups by default. */
-  back?: Omit<BackLinkProps, "isIconOnlyOnMobile">
   isSignedIn: boolean
   /** Login's `from`, so a visitor who signs in to join comes back to the group. */
   signInFrom: string
@@ -29,7 +27,8 @@ type GroupProfileProps = {
   events?: ReactNode
 }
 
-const GROUPS_BACK: Omit<BackLinkProps, "isIconOnlyOnMobile"> = {
+/** Back to the list of groups — the group page and its loading or error states. */
+export const GROUPS_BACK: Omit<BackLinkProps, "isIconOnlyOnMobile"> = {
   to: ROUTES.groups,
   fallbackLabel: "Všechny skupiny",
   label: "Skupiny",
@@ -44,13 +43,7 @@ const GROUPS_BACK: Omit<BackLinkProps, "isIconOnlyOnMobile"> = {
  * puts the facts and the action in a panel on the right. The group's events
  * follow the description (A-08e).
  */
-export function GroupProfile({
-  group,
-  back = GROUPS_BACK,
-  isSignedIn,
-  signInFrom,
-  events,
-}: GroupProfileProps) {
+export function GroupProfile({ group, isSignedIn, signInFrom, events }: GroupProfileProps) {
   const isDesktop = useMediaQuery(DESKTOP_QUERY)
   const action = hasMembershipAction(group) ? (
     <GroupMembershipAction
@@ -64,7 +57,7 @@ export function GroupProfile({
   const band = (
     <PageBand
       variant="detail"
-      back={back}
+      back={GROUPS_BACK}
       title={group.name}
       eyebrow={<BandActivity activity={group.activity} />}
       description={isDesktop ? line : undefined}
@@ -101,7 +94,7 @@ export function GroupProfile({
   return (
     <>
       <SubBar
-        back={back}
+        back={GROUPS_BACK}
         label="Skupina"
       />
       {photo}
