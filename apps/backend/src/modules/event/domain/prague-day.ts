@@ -66,3 +66,19 @@ const pragueMidnight = (day: string, daysLater: number): Date => {
     midnightUtc - pragueOffsetMinutes(midnightUtc) * MINUTE_IN_MS;
   return new Date(midnightUtc - pragueOffsetMinutes(firstGuess) * MINUTE_IN_MS);
 };
+
+// sortable "YYYY-MM-DD" of an instant in Prague
+const pragueDayKey = new Intl.DateTimeFormat('en-CA', {
+  timeZone: PRAGUE_TZ,
+  year: 'numeric',
+  month: '2-digit',
+  day: '2-digit',
+});
+
+/** The Prague calendar day ("2026-11-08") an instant falls on, whatever the server's zone. */
+export const pragueDayOf = (instant: Date): string =>
+  pragueDayKey.format(instant);
+
+/** Midnight that started the Prague day `instant` falls on, e.g. for a daily limit (#194). */
+export const startOfPragueDayOf = (instant: Date): Date =>
+  startOfPragueDay(pragueDayOf(instant));

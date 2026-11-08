@@ -4,6 +4,7 @@ import {
   BadRequestException,
   ConflictException,
   ForbiddenException,
+  HttpException,
   NotFoundException,
 } from '@nestjs/common';
 import { mock, MockProxy } from 'jest-mock-extended';
@@ -403,6 +404,193 @@ describe('GroupsService', () => {
       expect(repository.approveRequest).not.toHaveBeenCalled();
       expect(repository.deleteMembership).not.toHaveBeenCalled();
       expect(repository.createMembership).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('announcements (#194)', () => {
+    // 00:30 on 8 Nov in Prague, still 7 Nov in UTC: the day began at 23:00 UTC
+    const now = new Date('2026-11-07T23:30:00.000Z');
+    const pragueMidnight = new Date('2026-11-07T23:00:00.000Z');
+    const announcement = {
+      id: 'an1',
+      subject: 'Přes svátky se nehraje',
+      body: 'Pauza do 6. 1.',
+      createdAt: now,
+      sender: { id: 'u-petra', name: 'Petra' },
+    };
+    const input = { subject: announcement.subject, body: announcement.body };
+    const admin = { role: 'admin', status: 'active' } as const;
+    const member = { role: 'member', status: 'active' } as const;
+
+    describe('getAnnouncements', () => {
+      it('a member reads them, without a count to send', async () => {
+        const { repository, service } = setup();
+        repository.findGroupById.mockResolvedValue({
+          ...aGroup('g1'),
+          viewerMembership: member,
+        });
+        repository.findAnnouncements.mockResolvedValue([announcement]);
+
+        await expect(
+          service.getAnnouncements('g1', 'u-jakub', now),
+        ).resolves.toEqual({
+          announcements: [announcement],
+          remainingToday: null,
+        });
+        expect(repository.findAnnouncements).toHaveBeenCalledWith('g1', 50);
+        expect(repository.countAnnouncementsSince).not.toHaveBeenCalled();
+      });
+
+      it("an admin also learns what is left of today's limit, counted from Prague midnight", async () => {
+        const { repository, service } = setup();
+        repository.findGroupById.mockResolvedValue({
+          ...aGroup('g1'),
+          viewerMembership: admin,
+        });
+        repository.findAnnouncements.mockResolvedValue([]);
+        repository.countAnnouncementsSince.mockResolvedValue(1);
+
+        await expect(
+          service.getAnnouncements('g1', 'u-petra', now),
+        ).resolves.toMatchObject({ remainingToday: 2 });
+        expect(repository.countAnnouncementsSince).toHaveBeenCalledWith(
+          'g1',
+          pragueMidnight,
+        );
+      });
+
+      it('in a deactivated group they stay readable, but nothing is left to send', async () => {
+        const { repository, service } = setup();
+        repository.findGroupById.mockResolvedValue({
+          ...aGroup('g1'),
+          status: 'inactive',
+          viewerMembership: admin,
+        });
+        repository.findAnnouncements.mockResolvedValue([announcement]);
+
+        await expect(
+          service.getAnnouncements('g1', 'u-petra', now),
+        ).resolves.toEqual({
+          announcements: [announcement],
+          remainingToday: null,
+        });
+      });
+
+      it.each([
+        ['a non-member', null],
+        ['an applicant', { role: 'member', status: 'pending' } as const],
+        ['a blocked member', { role: 'member', status: 'blocked' } as const],
+      ])('%s gets 403 NOT_GROUP_MEMBER', async (_who, viewerMembership) => {
+        const { repository, service } = setup();
+        repository.findGroupById.mockResolvedValue({
+          ...aGroup('g1'),
+          viewerMembership,
+        });
+
+        const error = await service
+          .getAnnouncements('g1', 'u-cizi', now)
+          .catch((e: unknown) => e);
+        expect(error).toBeInstanceOf(ForbiddenException);
+        expect((error as ForbiddenException).getResponse()).toMatchObject({
+          code: 'NOT_GROUP_MEMBER',
+        });
+        expect(repository.findAnnouncements).not.toHaveBeenCalled();
+      });
+    });
+
+    describe('sendAnnouncement', () => {
+      const asAdmin = (): ReturnType<typeof setup> => {
+        const context = setup();
+        context.repository.findGroupById.mockResolvedValue(aGroup('g1'));
+        context.repository.isActiveAdmin.mockResolvedValue(true);
+        return context;
+      };
+
+      it('an admin sends it; the limit counts from Prague midnight', async () => {
+        const { repository, service } = asAdmin();
+        repository.createAnnouncement.mockResolvedValue({
+          ok: true,
+          announcement,
+        });
+
+        await expect(
+          service.sendAnnouncement('g1', 'u-petra', input, now),
+        ).resolves.toEqual(announcement);
+        expect(repository.createAnnouncement).toHaveBeenCalledWith(
+          'g1',
+          'u-petra',
+          input,
+          pragueMidnight,
+          expect.any(Function),
+        );
+      });
+
+      it('a member who is not an admin gets 403 and nothing is written', async () => {
+        const { repository, service } = asAdmin();
+        repository.isActiveAdmin.mockResolvedValue(false);
+
+        await expect(
+          service.sendAnnouncement('g1', 'u-jakub', input, now),
+        ).rejects.toBeInstanceOf(ForbiddenException);
+        expect(repository.createAnnouncement).not.toHaveBeenCalled();
+      });
+
+      it('a deactivated group is 409 GROUP_INACTIVE', async () => {
+        const { repository, service } = asAdmin();
+        repository.findGroupById.mockResolvedValue({
+          ...aGroup('g1'),
+          status: 'inactive',
+        });
+
+        await expect(
+          service.sendAnnouncement('g1', 'u-petra', input, now),
+        ).rejects.toBeInstanceOf(ConflictException);
+        expect(repository.createAnnouncement).not.toHaveBeenCalled();
+      });
+
+      it('an unknown group is 404', async () => {
+        const { repository, service } = asAdmin();
+        repository.findGroupById.mockResolvedValue(null);
+
+        await expect(
+          service.sendAnnouncement('nope', 'u-petra', input, now),
+        ).rejects.toBeInstanceOf(NotFoundException);
+      });
+
+      it('the fourth of the day is 429 ANNOUNCEMENT_LIMIT', async () => {
+        const { repository, service } = asAdmin();
+        repository.createAnnouncement.mockImplementation(
+          async (_g, _u, _i, _since, decide) => {
+            const decision = decide({ groupStatus: 'active', sentToday: 3 });
+            if (!decision.ok) return decision;
+            return { ok: true, announcement };
+          },
+        );
+
+        const error = await service
+          .sendAnnouncement('g1', 'u-petra', input, now)
+          .catch((e: unknown) => e);
+        expect(error).toBeInstanceOf(HttpException);
+        expect((error as HttpException).getStatus()).toBe(429);
+        expect((error as HttpException).getResponse()).toMatchObject({
+          code: 'ANNOUNCEMENT_LIMIT',
+        });
+      });
+
+      it('deactivated under the lock in the meantime is 409 GROUP_INACTIVE', async () => {
+        const { repository, service } = asAdmin();
+        repository.createAnnouncement.mockImplementation(
+          async (_g, _u, _i, _since, decide) => {
+            const decision = decide({ groupStatus: 'inactive', sentToday: 0 });
+            if (!decision.ok) return decision;
+            return { ok: true, announcement };
+          },
+        );
+
+        await expect(
+          service.sendAnnouncement('g1', 'u-petra', input, now),
+        ).rejects.toBeInstanceOf(ConflictException);
+      });
     });
   });
 });

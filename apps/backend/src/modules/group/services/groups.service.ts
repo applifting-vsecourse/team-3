@@ -1,3 +1,15 @@
+import { startOfPragueDayOf } from '@/modules/event/domain/prague-day';
+import {
+  AnnouncementInput,
+  AnnouncementRefusal,
+  ANNOUNCEMENTS_SHOWN,
+  canReadAnnouncements,
+  canSendAnnouncements,
+  decideAnnouncement,
+  GroupAnnouncement,
+  GroupAnnouncements,
+  remainingAnnouncements,
+} from '@/modules/group/domain/announcement';
 import {
   GroupDetail,
   GroupFilters,
@@ -19,6 +31,7 @@ import {
   ConflictException,
   ForbiddenException,
   HttpException,
+  HttpStatus,
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
@@ -50,6 +63,20 @@ const MEMBERSHIP_ERRORS: Record<MembershipError, () => HttpException> = {
       message: 'Žádost už je vyřízená',
     }),
 };
+
+const ANNOUNCEMENT_REFUSALS: Record<AnnouncementRefusal, () => HttpException> =
+  {
+    GROUP_INACTIVE: MEMBERSHIP_ERRORS.GROUP_INACTIVE,
+    ANNOUNCEMENT_LIMIT: () =>
+      new HttpException(
+        {
+          code: 'ANNOUNCEMENT_LIMIT',
+          message:
+            'Dnes už skupině další oznámení poslat nemůžeš. Zkus to zítra.',
+        },
+        HttpStatus.TOO_MANY_REQUESTS,
+      ),
+  };
 
 // No paging in sprint 2, like the event list; the endpoint is public, so it stays bounded.
 export const GROUPS_LIMIT = 200;
@@ -184,6 +211,62 @@ export class GroupsService {
       'Skupinu může deaktivovat jen její správce',
     );
     await this.groupRepository.deactivateGroup(groupId, new Date());
+  }
+
+  /**
+   * The group's announcements (#194) for its active members and admins,
+   * newest first; anyone else gets 403. An admin of an active group also
+   * learns how many they may still send today. A deactivated group's
+   * announcements stay readable as history.
+   */
+  async getAnnouncements(
+    groupId: string,
+    userId: string,
+    now: Date = new Date(),
+  ): Promise<GroupAnnouncements> {
+    const group = await this.getGroup(groupId, userId);
+    if (!canReadAnnouncements(group.viewerMembership)) {
+      throw new ForbiddenException({
+        code: 'NOT_GROUP_MEMBER',
+        message: 'Oznámení vidí jen členové skupiny',
+      });
+    }
+    const [announcements, remainingToday] = await Promise.all([
+      this.groupRepository.findAnnouncements(groupId, ANNOUNCEMENTS_SHOWN),
+      canSendAnnouncements(group, group.viewerMembership)
+        ? this.groupRepository
+            .countAnnouncementsSince(groupId, startOfPragueDayOf(now))
+            .then(remainingAnnouncements)
+        : null,
+    ]);
+    return { announcements, remainingToday };
+  }
+
+  /**
+   * „Napsat členům“ (#194, Figma D-08): only an admin of an active group,
+   * at most ANNOUNCEMENTS_PER_DAY in a Prague calendar day.
+   */
+  async sendAnnouncement(
+    groupId: string,
+    userId: string,
+    input: AnnouncementInput,
+    now: Date = new Date(),
+  ): Promise<GroupAnnouncement> {
+    await this.getActiveGroup(groupId);
+    await this.assertAdmin(
+      groupId,
+      userId,
+      'Oznámení může poslat jen správce skupiny',
+    );
+    const result = await this.groupRepository.createAnnouncement(
+      groupId,
+      userId,
+      input,
+      startOfPragueDayOf(now),
+      decideAnnouncement,
+    );
+    if (!result.ok) throw ANNOUNCEMENT_REFUSALS[result.refusal]();
+    return result.announcement;
   }
 
   /**
