@@ -25,7 +25,8 @@ describe("EventCard", () => {
     expect(photo.querySelector("img")).toHaveClass("saturate-86", "contrast-110")
     expect(within(photo).getByText("23")).toHaveClass("type-date-s")
     expect(screen.getByText("17:30 · Kavárna Pražírna · Praha 8")).toBeInTheDocument()
-    expect(screen.queryByText("4 z 12 · min. 4")).not.toBeInTheDocument()
+    // drawn only as the bar, but a screen reader gets the numbers (review #259)
+    expect(screen.getByText("4 z 12 · min. 4")).toHaveClass("sr-only")
     expect(container.querySelector("[data-slot=capacity-track]")).toHaveClass("h-1.5")
   })
 
@@ -69,6 +70,47 @@ describe("EventCard", () => {
     expect(screen.getByRole("article")).toHaveClass("ring-2", "ring-foreground", "border")
   })
 
+  it("the management's card leaves the occupancy to the big bar under it (D-03)", async () => {
+    const { container } = await renderWithRouter(
+      <EventCard
+        event={anEvent()}
+        hasBar={false}
+      />,
+    )
+
+    expect(container.querySelector("[data-slot=capacity-track]")).toBeNull()
+  })
+
+  it("a grid card's photo is full width on a phone, so the browser picks the big file", async () => {
+    const { container } = await renderWithRouter(
+      <EventCard
+        event={withActivity(florbal)}
+        variant="grid"
+      />,
+    )
+
+    expect(container.querySelector("[data-slot=event-photo] img")).toHaveAttribute(
+      "sizes",
+      "(min-width: 48rem) 400px, 100vw",
+    )
+  })
+
+  it("a phone's screen reader hears „chybí N“ once: the line has it, the numbers don't", async () => {
+    const { container } = await renderWithRouter(
+      <EventCard
+        event={anEvent({ approvedCount: 3, minParticipants: 4, missingToMin: 1 })}
+        variant="responsive"
+        status={{ kind: "going" }}
+        rowLead="chybí 1"
+        numbers="chybí 1 · 3 z 12 · min. 4"
+      />,
+    )
+
+    const phoneOnly = container.querySelector(String.raw`.sr-only.md\:hidden`)
+    expect(phoneOnly).toHaveTextContent("3 z 12 · min. 4")
+    expect(phoneOnly).not.toHaveTextContent("chybí")
+  })
+
   it("a cancelled event shows only its count and no bar", async () => {
     const { container } = await renderWithRouter(
       <EventCard
@@ -80,6 +122,19 @@ describe("EventCard", () => {
 
     expect(screen.getByText("Zrušeno")).toBeInTheDocument()
     expect(screen.getByText("2 z 12")).toBeInTheDocument()
+    expect(container.querySelector("[data-slot=capacity-track]")).toBeNull()
+  })
+
+  it("a past event (its group's page, A-08e) has no bar", async () => {
+    const { container } = await renderWithRouter(
+      <EventCard
+        event={anEvent()}
+        status={{ kind: "past" }}
+        rowTail="sešlo se 6"
+      />,
+    )
+
+    expect(screen.getByText("Proběhlo")).toBeInTheDocument()
     expect(container.querySelector("[data-slot=capacity-track]")).toBeNull()
   })
 })

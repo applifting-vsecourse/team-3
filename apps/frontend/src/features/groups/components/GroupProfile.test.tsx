@@ -57,6 +57,12 @@ describe("GroupProfile", () => {
     expectValidDescriptionList(container.querySelector("dl")!)
   })
 
+  it("the band says the type, the locality and the members in one line (A-08, A-08d)", async () => {
+    await renderWithRouter(profile())
+
+    expect(screen.getByText("Neveřejná skupina · Praha 2 · 5 členů")).toBeInTheDocument()
+  })
+
   it("the main action follows the viewer's membership", async () => {
     const { rerender } = await renderWithRouter(profile())
     expect(screen.getByRole("button", { name: "Požádat o členství" })).toBeInTheDocument()

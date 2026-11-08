@@ -155,18 +155,25 @@ describe.each([
     expect(Math.max(contrast(stripe, track), contrast(lime, track))).toBeGreaterThanOrEqual(3)
   })
 
-  // #166: the minimum marker (foreground, with a card-coloured gap around it, Figma Tick) must
-  // show wherever it sits: on the track, on either stripe of the hatch, on lime and on the
-  // solid fill. Where the marker itself vanishes (dark mode on lime), the gap carries it.
-  it.each([
-    ["the track", "capacity-track"],
-    ["lime", "primary"],
-    ["the hatch stripe", "stripe"],
-    ["the solid fill", "capacity-fill"],
-  ])("the minimum marker or its gap is at least 3:1 against %s", (_, under) => {
+  // #166: the minimum marker (foreground, with a gap in the surface's colour around it, Figma
+  // Tick) must show wherever it sits: on the track, on either stripe of the hatch, on lime and
+  // on the solid fill. Where the marker itself vanishes (dark mode on lime), the gap carries it.
+  // The gap is `card` in cards and the desktop panel, `background` on the phone's detail.
+  it.each(
+    (["card", "background"] as const).flatMap((gap) =>
+      (
+        [
+          ["the track", "capacity-track"],
+          ["lime", "primary"],
+          ["the hatch stripe", "stripe"],
+          ["the solid fill", "capacity-fill"],
+        ] as const
+      ).map(([name, under]) => [gap, name, under] as const),
+    ),
+  )("with a %s gap, the minimum marker or its gap is at least 3:1 against %s", (gap, _, under) => {
     const surface = under === "stripe" ? stripe : tokens[under]!
     expect(
-      Math.max(contrast(tokens.foreground!, surface), contrast(tokens.card!, surface)),
+      Math.max(contrast(tokens.foreground!, surface), contrast(tokens[gap]!, surface)),
     ).toBeGreaterThanOrEqual(3)
   })
 })

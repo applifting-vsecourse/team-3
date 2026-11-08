@@ -1,5 +1,11 @@
-import { useState } from "react"
-import { Link, useLocation, useNavigate, type ParsedLocation } from "@tanstack/react-router"
+import { useState, type MouseEvent } from "react"
+import {
+  Link,
+  useLocation,
+  useNavigate,
+  useRouter,
+  type ParsedLocation,
+} from "@tanstack/react-router"
 
 import { ROUTES } from "@/app/routes"
 import { Button } from "@/components/ui/button"
@@ -47,6 +53,7 @@ const continueLabel = (pathname: string) => {
 export function EmailVerifiedDialog() {
   const location = useLocation()
   const navigate = useNavigate()
+  const router = useRouter()
   const { user } = useSession()
   const result = location.state.emailVerification
   // the content stays while the dialog fades out, after the result is gone
@@ -60,6 +67,20 @@ export function EmailVerifiedDialog() {
       resetScroll: false,
       state: (prev) => ({ ...prev, emailVerification: undefined }),
     })
+
+  // Clear the page we leave before the link pushes /login, so it remains a
+  // clean Back target after sign-in replaces the login page. Browser history
+  // batches writes into one per tick (the last one wins), so the replace has to
+  // be flushed before the push, or it never reaches the entry we leave.
+  // Sign-in opened in a new tab or window (Ctrl/Cmd/Shift-click) leaves this
+  // page, and its dialog, as they are.
+  const beforeSignIn = (event: MouseEvent<HTMLAnchorElement>) => {
+    if (event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) {
+      return
+    }
+    router.history.replace(location.href, { ...location.state, emailVerification: undefined })
+    router.history.flush()
+  }
 
   return (
     <Dialog
@@ -75,6 +96,7 @@ export function EmailVerifiedDialog() {
             user={user}
             location={location}
             onDone={close}
+            onBeforeSignIn={beforeSignIn}
           />
         ) : null}
       </DialogContent>
@@ -89,14 +111,29 @@ type VerificationOutcomeProps = {
   location: ParsedLocation
   /** A new link is on its way: nothing left to do here. */
   onDone: () => void
+  onBeforeSignIn: (event: MouseEvent<HTMLAnchorElement>) => void
 }
 
-function VerificationOutcome({ result, user, location, onDone }: VerificationOutcomeProps) {
+function VerificationOutcome({
+  result,
+  user,
+  location,
+  onDone,
+  onBeforeSignIn,
+}: VerificationOutcomeProps) {
   const label = continueLabel(location.pathname)
   // Signed in, the fresh session decides (an old link opened again after the
   // e-mail was verified needs nothing more); signed out, the link itself.
   const isVerified = user ? user.emailVerified : !result.error
   const reason = result.error ? (REASONS[result.error] ?? "Odkaz je neplatný.") : null
+  // Signed out over the sign-in form, „Přihlásit se“ just closes the dialog
+  // onto it: a second button closing it too would only say the same thing.
+  const closeButton =
+    !user && location.pathname === ROUTES.login ? null : (
+      <DialogClose asChild>
+        <Button variant={isVerified && user ? "default" : "outline"}>{label}</Button>
+      </DialogClose>
+    )
 
   if (isVerified) {
     return (
@@ -110,9 +147,13 @@ function VerificationOutcome({ result, user, location, onDone }: VerificationOut
           </DialogDescription>
         </DialogHeader>
         <DialogFooter>
-          <DialogClose asChild>
-            <Button>{label}</Button>
-          </DialogClose>
+          {closeButton}
+          {!user ? (
+            <SignInAction
+              location={location}
+              onBeforeSignIn={onBeforeSignIn}
+            />
+          ) : null}
         </DialogFooter>
       </>
     )
@@ -133,31 +174,47 @@ function VerificationOutcome({ result, user, location, onDone }: VerificationOut
         </DialogDescription>
       </DialogHeader>
       <DialogFooter>
-        <DialogClose asChild>
-          <Button variant="outline">{label}</Button>
-        </DialogClose>
+        {closeButton}
         {user ? (
           <ResendVerificationButton
             email={user.email}
             onDone={onDone}
           />
-        ) : location.pathname === ROUTES.login ? (
-          // the sign-in is right under the dialog (a page that needs it): a
-          // link to it again would lose where it leads afterwards
-          <DialogClose asChild>
-            <Button>Přihlásit se</Button>
-          </DialogClose>
         ) : (
-          <Button asChild>
-            <Link
-              to={ROUTES.login}
-              search={{ from: redirectFrom(location) }}
-            >
-              Přihlásit se
-            </Link>
-          </Button>
+          <SignInAction
+            location={location}
+            onBeforeSignIn={onBeforeSignIn}
+          />
         )}
       </DialogFooter>
     </>
+  )
+}
+
+function SignInAction({
+  location,
+  onBeforeSignIn,
+}: {
+  location: ParsedLocation
+  onBeforeSignIn: (event: MouseEvent<HTMLAnchorElement>) => void
+}) {
+  if (location.pathname === ROUTES.login) {
+    // The sign-in form is already under the dialog; preserve its existing from.
+    return (
+      <DialogClose asChild>
+        <Button>Přihlásit se</Button>
+      </DialogClose>
+    )
+  }
+  return (
+    <Button asChild>
+      <Link
+        to={ROUTES.login}
+        search={{ from: redirectFrom(location) }}
+        onClick={onBeforeSignIn}
+      >
+        Přihlásit se
+      </Link>
+    </Button>
   )
 }

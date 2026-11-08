@@ -12,12 +12,14 @@ type PageBandProps = {
    * `section` – a top-level page (Akce, Skupiny, Moje akce): the logo mark before the title
    * and on desktop the big logo motif. `sub` – a page under one of them (detail, form,
    * management, account): a back link instead of the mark. `hero` – the landing page: the
-   * Hero-size title and its line, with the motif.
+   * Hero-size title and its line, with the motif. `detail` – an event's detail (Figma A-05,
+   * A-05d): as `sub` with the motif; on a phone the page puts its own bar and the photo above
+   * the band, so the back link and the line show from `md` only.
    */
-  variant?: "section" | "sub" | "hero"
+  variant?: "section" | "sub" | "hero" | "detail"
   /** `section`: „Plná parta“ where the page is about the groups you are in (Figma A-07, C-01). */
   isMarkFull?: boolean
-  /** `sub`: where the arrow leads. */
+  /** `sub`, `detail`: where the arrow leads. */
   back?: Omit<BackLinkProps, "isIconOnlyOnMobile">
   /**
    * `sub`: on a phone only the arrow and the title in one bar (Figma Header/Sub) — forms
@@ -35,7 +37,7 @@ type PageBandProps = {
   leading?: ReactNode
   /** The page's one main action, beside the title on desktop (Založit akci, Založit skupinu). */
   action?: ReactNode
-  /** Tabs on the band's bottom edge (BandTabs). */
+  /** Tabs on the band's bottom edge (BandTabs), or what follows the title (the „Koná se“ stamp). */
   children?: ReactNode
 }
 
@@ -59,6 +61,7 @@ export function PageBand({
 }: PageBandProps) {
   const isSection = variant === "section"
   const isHero = variant === "hero"
+  const isDetail = variant === "detail"
 
   return (
     <div
@@ -67,7 +70,8 @@ export function PageBand({
         isPlainOnMobile && "max-md:border-b-0 max-md:bg-background",
       )}
     >
-      {isSection || isHero ? <LogoMotif /> : null}
+      {isSection || isHero || isDetail ? <LogoMotif /> : null}
+      {isDetail ? <CornerMotif /> : null}
       <div
         className={cn(
           "relative mx-auto flex w-full max-w-7xl flex-col px-4 md:px-10",
@@ -86,10 +90,12 @@ export function PageBand({
         )}
       >
         {back ? (
-          <BackLink
-            {...back}
-            isIconOnlyOnMobile={isCompactOnMobile}
-          />
+          <div className={cn(isDetail && "hidden md:block")}>
+            <BackLink
+              {...back}
+              isIconOnlyOnMobile={isCompactOnMobile}
+            />
+          </div>
         ) : null}
         {eyebrow ? (
           <div className={cn(isCompactOnMobile && "hidden md:block")}>{eyebrow}</div>
@@ -119,7 +125,8 @@ export function PageBand({
                   : isCompactOnMobile
                     ? // the phone's bar title is Figma Header/Sub's Label/Strong
                       "truncate text-sm font-semibold md:overflow-visible md:type-title md:whitespace-normal"
-                    : "type-title",
+                    : // the detail's title stays left of the motif's ring (xl)
+                      cn("type-title", isDetail && "xl:max-w-3xl"),
                 isPlainOnMobile && "max-md:text-foreground",
               )}
             >
@@ -136,7 +143,7 @@ export function PageBand({
               "max-w-3xl text-on-hero-muted",
               isHero ? "type-lead" : "text-body md:type-intro",
               // a section band on a phone is just the title and its tabs (Figma A-02, A-07, C-01)
-              (isSection || isCompactOnMobile || isPlainOnMobile) && "hidden md:block",
+              (isSection || isDetail || isCompactOnMobile || isPlainOnMobile) && "hidden md:block",
             )}
           >
             {description}
@@ -145,6 +152,49 @@ export function PageBand({
         {children}
       </div>
     </div>
+  )
+}
+
+/**
+ * On a phone the detail's band has the logo's faint dots in its top-right corner, the ring
+ * past the edge (Figma A-05 › Motiv loga (návrh 16)); from `md` the big motif takes over (xl).
+ * Decoration — hidden from assistive tech.
+ */
+function CornerMotif() {
+  return (
+    <svg
+      aria-hidden="true"
+      viewBox="0 0 194 194"
+      width={194}
+      height={194}
+      className="pointer-events-none absolute -top-4 -right-22 md:hidden"
+    >
+      <circle
+        cx="45"
+        cy="45"
+        r="45"
+        className="fill-on-hero opacity-12"
+      />
+      <circle
+        cx="149"
+        cy="45"
+        r="45"
+        className="fill-on-hero opacity-12"
+      />
+      <circle
+        cx="45"
+        cy="149"
+        r="45"
+        className="fill-on-hero opacity-12"
+      />
+      <circle
+        cx="149"
+        cy="149"
+        r="43.5"
+        strokeWidth="3"
+        className="fill-none stroke-primary"
+      />
+    </svg>
   )
 }
 

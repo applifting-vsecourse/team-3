@@ -12,8 +12,8 @@ import { cn } from "@/lib/utils"
 
 import { useSession } from "@/features/auth/hooks/useSession"
 import { AttendingEvents, OrganizingEvents } from "@/features/events/components/MyEvents"
-import { useMyEvents } from "@/features/events/hooks/useMyEvents"
-import { attendingSections, myEventsSearchSchema } from "@/features/events/lib/myEvents"
+import { useAttendingEvents, useOrganizingEvents } from "@/features/events/hooks/useMyEvents"
+import { attendingLine, myEventsSearchSchema, organizingLine } from "@/features/events/lib/myEvents"
 
 export const Route = createFileRoute("/_ProtectedPages/moje-akce")({
   component: MyEventsPage,
@@ -22,7 +22,7 @@ export const Route = createFileRoute("/_ProtectedPages/moje-akce")({
 
 /**
  * Figma C-01, C-02, C-01d, C-02d (B-035, #44): the events I go to and the ones I organize,
- * soonest first. Proběhlé comes with #61, my groups' events with #70.
+ * soonest first; Pořádám has the events of the groups I run too (#70). Proběhlé comes with #61.
  */
 function MyEventsPage() {
   const { tab = "prihlasen" } = Route.useSearch()
@@ -31,11 +31,13 @@ function MyEventsPage() {
   // the protected layout lets only a signed-in user in; the session is cached by then
   const viewerId = user?.id ?? ""
   // for the counts on the tabs; the same queries fill the tabs themselves
-  const attending = useMyEvents("attending", viewerId).events
-  const organizing = useMyEvents("organizing", viewerId).events
+  const attending = useAttendingEvents(viewerId)
+  const organizing = useOrganizingEvents(viewerId)
   // the events I go to, without the cancelled ones (the count in Figma C-01)
-  const sections = attending ? attendingSections(attending) : undefined
-  const attendingCount = sections && sections.pending.length + sections.approved.length
+  const attendingCount =
+    attending.sections && attending.sections.pending.length + attending.sections.approved.length
+  // the upcoming ones, as in Přihlášen (Figma C-02: Nadcházející)
+  const organizingCount = organizing.sections?.upcoming.length
 
   return (
     <>
@@ -55,10 +57,11 @@ function MyEventsPage() {
           variant="section"
           isMarkFull
           title="Moje akce"
+          // Figma C-01d, C-02d: the nearest event, or the requests waiting
           description={
             tab === "poradam"
-              ? "Akce, které pořádáš, od nejbližší."
-              : "Akce, kam jdeš, a ty, kde čekáš na schválení."
+              ? organizingLine(organizing.events)
+              : attendingLine(attending.events, new Date())
           }
           action={
             // the page's primary in both tabs, like „Založit skupinu“ on Skupiny (C-01, C-01d)
@@ -84,7 +87,7 @@ function MyEventsPage() {
             </BandTabsItem>
             <BandTabsItem
               value="poradam"
-              count={organizing?.length}
+              count={organizingCount}
             >
               Pořádám
             </BandTabsItem>

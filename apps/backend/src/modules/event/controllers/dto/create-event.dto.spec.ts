@@ -23,6 +23,16 @@ const invalid = (body: Record<string, unknown>): string[] =>
   }).map((error) => error.property);
 
 describe('CreateEventDto', () => {
+  it('takes a group and a visibility for a group event (B-055)', () => {
+    expect(invalid({ ...valid, groupId: 'g1', visibility: 'members' })).toEqual(
+      [],
+    );
+    expect(invalid({ ...valid, visibility: 'private' })).toEqual([
+      'visibility',
+    ]);
+    expect(invalid({ ...valid, groupId: '' })).toEqual(['groupId']);
+  });
+
   it('accepts a complete event; the description and the end are optional', () => {
     expect(invalid(valid)).toEqual([]);
   });

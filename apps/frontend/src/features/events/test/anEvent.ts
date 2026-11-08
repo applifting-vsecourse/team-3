@@ -33,6 +33,7 @@ export const anEventDetail = (overrides: Partial<EventDetail> = {}): EventDetail
   ...anEvent(),
   description: "Procvičte si angličtinu a španělštinu u kávy.\nZačátečníci vítáni.",
   approvalMode: "open",
+  visibility: "public",
   status: "published",
   cancelReason: null,
   participants: [
@@ -43,6 +44,7 @@ export const anEventDetail = (overrides: Partial<EventDetail> = {}): EventDetail
   ],
   myParticipation: null,
   viewerSignedIn: true,
+  canManage: false,
   ...overrides,
 })
 

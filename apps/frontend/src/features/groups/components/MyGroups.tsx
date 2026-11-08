@@ -63,7 +63,7 @@ export function MyGroups({ viewerId }: { viewerId: string }) {
   if (query.data.length === 0) {
     return (
       <div className="flex flex-col items-center gap-4 py-8 text-center text-sm text-muted-foreground">
-        <p>Zatím nejsi v žádné skupině.</p>
+        <p>Zatím nejsi v žádné skupině. Najdi partu, se kterou se budete potkávat pravidelně.</p>
         <Button
           asChild
           variant="outline"

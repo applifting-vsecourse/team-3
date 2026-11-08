@@ -7,12 +7,14 @@ type DateTileProps = {
   day: string
   /** „18:30“ — the grid card's tile has it; the row card says it in its line instead. */
   time?: string
-  /** `m` on a grid card's photo, `s` on a row card's (Figma Date/M, Date/S). */
-  size?: "m" | "s"
+  /** `l` on the detail's photo, `m` on a grid card's, `s` on a row card's (Figma Date/L, Date/M, Date/S). */
+  size?: "l" | "m" | "s"
   /** A past event: neutral, as its photo is desaturated (Karta akce/Proběhlá řádek). */
   isPast?: boolean
   className?: string
 }
+
+const label = "text-xs leading-4 font-semibold"
 
 /**
  * The date over an event's photo (Figma: Karta akce › Datum, DESIGN.md › Event card):
@@ -31,13 +33,15 @@ export function DateTile({
       className={cn(
         "flex flex-col items-center border border-tile-border",
         isPast ? "bg-muted text-muted-foreground" : "bg-secondary text-secondary-foreground",
-        size === "m" ? "rounded-xl px-2.5 py-2" : "rounded-lg px-2 py-1",
+        { l: "rounded-xl px-3.5 py-2.5", m: "rounded-xl px-2.5 py-2", s: "rounded-lg px-2 py-1" }[
+          size
+        ],
         className,
       )}
     >
-      <span className="text-xs leading-4 font-semibold">{weekday}</span>
-      <span className={size === "m" ? "type-date-m" : "type-date-s"}>{day}</span>
-      {time ? <span className="text-xs leading-4 font-semibold">{time}</span> : null}
+      <span className={cn(label, size === "l" && "text-caption")}>{weekday}</span>
+      <span className={{ l: "type-date-l", m: "type-date-m", s: "type-date-s" }[size]}>{day}</span>
+      {time ? <span className={cn(label, size === "l" && "text-caption")}>{time}</span> : null}
     </div>
   )
 }

@@ -5,6 +5,7 @@ import { anEvent } from "@/features/events/test/anEvent"
 import {
   approvalModeLabel,
   capacityStatus,
+  endOfPragueDay,
   eventCountLabel,
   eventDateParts,
   formatEventDay,
@@ -12,6 +13,10 @@ import {
   formatEventTime,
   formatRequestEventStart,
   formatRequestTime,
+  formatStartInSentence,
+  groupEventTail,
+  isEventOver,
+  pastEventFacts,
   placeName,
 } from "./formatEvent"
 
@@ -83,6 +88,32 @@ describe("formatEventDay", () => {
   })
 })
 
+describe("groupEventTail (#70)", () => {
+  it("a members-only event says so after its place, a public one keeps the card's line", () => {
+    expect(groupEventTail({ ...anEvent(), visibility: "members" })).toBe(
+      "Kavárna Pražírna · Praha 8 · jen pro členy",
+    )
+    expect(groupEventTail({ ...anEvent(), visibility: "public" })).toBeUndefined()
+  })
+})
+
+describe("pastEventFacts (#70)", () => {
+  it.each([
+    [6, "sešlo se 6"],
+    [3, "sešli se 3"],
+    [1, "sešel se 1"],
+    [0, "sešlo se 0"],
+  ])("%i came: „%s“", (approvedCount, label) => {
+    expect(pastEventFacts({ ...anEvent({ approvedCount }), visibility: "public" })).toBe(label)
+  })
+
+  it("members-only says so", () => {
+    expect(pastEventFacts({ ...anEvent({ approvedCount: 6 }), visibility: "members" })).toBe(
+      "sešlo se 6 · jen pro členy",
+    )
+  })
+})
+
 describe("eventCountLabel", () => {
   it("uses Czech plural forms", () => {
     expect([0, 1, 2, 4, 5, 24].map(eventCountLabel)).toEqual([
@@ -106,5 +137,54 @@ describe("formatRequestEventStart (#175)", () => {
   it("is the start inside a sentence, in Prague time", () => {
     expect(formatRequestEventStart(new Date("2026-10-23T15:30:00.000Z"))).toBe("pá 23. 10. v 17:30")
     expect(formatRequestEventStart(new Date("2026-10-26T07:00:00.000Z"))).toBe("po 26. 10. v 8:00")
+  })
+})
+
+describe("formatStartInSentence", () => {
+  // Fri 23. 10. 2026 17:30 Prague time
+  const start = new Date("2026-10-23T15:30:00.000Z")
+
+  it.each([
+    ["2026-10-23T06:00:00.000Z", "dnes v 17:30"],
+    ["2026-10-22T21:30:00.000Z", "zítra v 17:30"],
+    ["2026-10-19T08:00:00.000Z", "v pátek v 17:30"],
+    ["2026-10-16T08:00:00.000Z", "23. 10. v 17:30"],
+  ])("from %s: „%s“", (now, text) => {
+    expect(formatStartInSentence(start, new Date(now))).toBe(text)
+  })
+
+  it("names the day with its preposition (ve středu, ve čtvrtek)", () => {
+    const monday = new Date("2026-10-19T08:00:00.000Z")
+    expect(formatStartInSentence(new Date("2026-10-21T16:00:00.000Z"), monday)).toBe(
+      "ve středu v 18:00",
+    )
+    expect(formatStartInSentence(new Date("2026-10-22T16:00:00.000Z"), monday)).toBe(
+      "ve čtvrtek v 18:00",
+    )
+  })
+})
+
+describe("isEventOver (review #269)", () => {
+  // Fri 23. 10. 2026 18:00 Prague time (CEST, +2)
+  const startsAt = new Date("2026-10-23T16:00:00.000Z")
+
+  it("without an end, an event is over only after its day ends in Prague", () => {
+    expect(endOfPragueDay(startsAt)).toEqual(new Date("2026-10-23T22:00:00.000Z"))
+    expect(isEventOver({ startsAt, endsAt: null }, new Date("2026-10-23T16:05:00.000Z"))).toBe(
+      false,
+    )
+    expect(isEventOver({ startsAt, endsAt: null }, new Date("2026-10-23T22:00:00.000Z"))).toBe(true)
+  })
+
+  it("winter time: midnight is 23:00 UTC", () => {
+    expect(endOfPragueDay(new Date("2026-12-04T17:00:00.000Z"))).toEqual(
+      new Date("2026-12-04T23:00:00.000Z"),
+    )
+  })
+
+  it("with an end, at the end", () => {
+    const endsAt = new Date("2026-10-23T18:00:00.000Z")
+    expect(isEventOver({ startsAt, endsAt }, new Date("2026-10-23T17:59:00.000Z"))).toBe(false)
+    expect(isEventOver({ startsAt, endsAt }, endsAt)).toBe(true)
   })
 })

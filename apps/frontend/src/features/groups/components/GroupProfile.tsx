@@ -1,28 +1,49 @@
+import type { ReactNode } from "react"
+
+import { ROUTES } from "@/app/routes"
+import { ActivityPhoto } from "@/components/ActivityPhoto/ActivityPhoto"
+import type { BackLinkProps } from "@/components/BackLink/BackLink"
+import { BandActivity } from "@/components/PageBand/BandActivity"
+import { PageBand } from "@/components/PageBand/PageBand"
+import { SubBar } from "@/components/PageBand/SubBar"
 import { PersonRow } from "@/components/PersonRow/PersonRow"
 import { DESKTOP_QUERY, useMediaQuery } from "@/hooks/useMediaQuery"
+import { PAGE } from "@/lib/pageLayout"
 
 import type { GroupDetail } from "@/features/groups/api/groupSchemas"
 import {
   GroupMembershipAction,
   hasMembershipAction,
 } from "@/features/groups/components/GroupMembershipAction"
-import { GroupFacts, GroupHeading } from "@/features/groups/components/GroupSummary"
+import { GroupFacts } from "@/features/groups/components/GroupSummary"
+import { groupBandLine } from "@/features/groups/lib/formatGroup"
 
 type GroupProfileProps = {
   group: GroupDetail
   isSignedIn: boolean
   /** Login's `from`, so a visitor who signs in to join comes back to the group. */
   signInFrom: string
+  /** The group's upcoming and past events (#70, A-08e); the page builds them. */
+  events?: ReactNode
+}
+
+/** Back to the list of groups — the group page and its loading or error states. */
+export const GROUPS_BACK: Omit<BackLinkProps, "isIconOnlyOnMobile"> = {
+  to: ROUTES.groups,
+  fallbackLabel: "Všechny skupiny",
+  label: "Skupiny",
 }
 
 /**
- * The group page: activity, name, locality, type, approved members, admins
- * and description. Mobile (Figma A-08) stacks them with the action in a bar
- * above the bottom navigation; desktop (A-08d, like the event detail A-05d)
- * puts the facts and the action in a panel on the right. The group's
- * events come with #70.
+ * The group page, laid out as the event detail (Figma A-08, A-08d): the band
+ * with the activity, the name and one line — type, locality, members — and
+ * the activity's photo (without a date) under the bar on a phone, at the top
+ * of the content on desktop. Then the facts, admins and description; mobile
+ * stacks them with the action in a bar above the bottom navigation, desktop
+ * puts the facts and the action in a panel on the right. The group's events
+ * follow the description (A-08e).
  */
-export function GroupProfile({ group, isSignedIn, signInFrom }: GroupProfileProps) {
+export function GroupProfile({ group, isSignedIn, signInFrom, events }: GroupProfileProps) {
   const isDesktop = useMediaQuery(DESKTOP_QUERY)
   const action = hasMembershipAction(group) ? (
     <GroupMembershipAction
@@ -32,36 +53,65 @@ export function GroupProfile({ group, isSignedIn, signInFrom }: GroupProfileProp
     />
   ) : null
 
+  const line = groupBandLine(group)
+  const band = (
+    <PageBand
+      variant="detail"
+      back={GROUPS_BACK}
+      title={group.name}
+      eyebrow={<BandActivity activity={group.activity} />}
+      description={isDesktop ? line : undefined}
+    >
+      {/* a phone keeps the line in the band too (A-08), unlike the event detail */}
+      {isDesktop ? null : <p className="text-body text-on-hero-muted">{line}</p>}
+    </PageBand>
+  )
+  const photo = <ActivityPhoto slug={group.activity.slug} />
+
   if (isDesktop) {
     return (
-      <article className="grid grid-cols-[minmax(0,1fr)_auto] items-start gap-12">
-        <div className="flex flex-col gap-6">
-          <GroupHeading group={group} />
-          <GroupAbout description={group.description} />
-          <GroupAdmins admins={group.admins} />
+      <>
+        {band}
+        <div className={PAGE}>
+          <article className="grid grid-cols-[minmax(0,1fr)_auto] items-start gap-12">
+            <div className="flex flex-col gap-6">
+              {photo}
+              <GroupAbout description={group.description} />
+              <GroupAdmins admins={group.admins} />
+              {events}
+            </div>
+            {/* Figma: Panel skupiny */}
+            <div className="flex w-100 flex-col gap-4 rounded-2xl border border-card-border bg-card p-6 text-card-foreground">
+              <GroupFacts group={group} />
+              {action}
+            </div>
+          </article>
         </div>
-        {/* Figma: Panel skupiny */}
-        <div className="flex w-100 flex-col gap-4 rounded-lg border border-border bg-card p-6 text-card-foreground">
-          <GroupFacts group={group} />
-          {action}
-        </div>
-      </article>
+      </>
     )
   }
 
   return (
-    <article className="flex flex-col gap-5">
-      <GroupHeading group={group} />
-      <GroupFacts group={group} />
-      <GroupAdmins admins={group.admins} />
-      <GroupAbout description={group.description} />
-      {action ? (
-        // Figma: Lišta s akcí — above the bottom navigation
-        <div className="sticky bottom-16 -mx-4 border-t border-border bg-background px-4 py-3">
-          {action}
-        </div>
-      ) : null}
-    </article>
+    <>
+      <SubBar
+        back={GROUPS_BACK}
+        label="Skupina"
+      />
+      {photo}
+      {band}
+      <article className="flex flex-col gap-5 px-4 pt-5">
+        <GroupFacts group={group} />
+        <GroupAdmins admins={group.admins} />
+        <GroupAbout description={group.description} />
+        {events}
+        {action ? (
+          // Figma: Lišta s akcí — above the bottom navigation
+          <div className="sticky bottom-16 -mx-4 border-t border-border bg-background px-4 py-3">
+            {action}
+          </div>
+        ) : null}
+      </article>
+    </>
   )
 }
 
@@ -73,7 +123,7 @@ function GroupAdmins({ admins }: { admins: GroupDetail["admins"] }) {
     >
       <h2
         id="group-admins"
-        className="text-xs font-medium text-muted-foreground"
+        className="text-caption font-medium text-muted-foreground"
       >
         Spravuje
       </h2>
@@ -104,11 +154,11 @@ function GroupAbout({ description }: { description: string | null }) {
     >
       <h2
         id="group-about"
-        className="text-lg font-semibold tracking-tight"
+        className="type-card-heading"
       >
         O skupině
       </h2>
-      <p className="text-base whitespace-pre-line">{description}</p>
+      <p className="text-body whitespace-pre-line">{description}</p>
     </section>
   )
 }

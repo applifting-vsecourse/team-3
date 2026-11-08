@@ -9,11 +9,10 @@ import { Button } from "@/components/ui/button"
 import type { MyEvent } from "@/features/events/api/eventSchemas"
 import { EventCard } from "@/features/events/components/EventCard"
 import { EventCardSkeleton } from "@/features/events/components/EventList"
-import { useMyEvents } from "@/features/events/hooks/useMyEvents"
+import { useAttendingEvents, useOrganizingEvents } from "@/features/events/hooks/useMyEvents"
 import {
   attendingNumbers,
   attendingRowLead,
-  attendingSections,
   attendingStatus,
   organizingNumbers,
   organizingRowTail,
@@ -32,22 +31,28 @@ const GRID = "grid grid-cols-1 gap-3 md:grid-cols-2 md:gap-4 lg:grid-cols-3"
  * withdrawn or the place given up.
  */
 export function AttendingEvents({ viewerId }: { viewerId: string }) {
-  const { events, isPending, error, retry } = useMyEvents("attending", viewerId)
+  const { sections, isPending, error, retry } = useAttendingEvents(viewerId)
   if (error) return <MyEventsError onRetry={retry} />
-  if (isPending || !events) return <MyEventsLoading />
+  if (isPending || !sections) return <MyEventsLoading />
 
-  const { pending, approved, cancelled } = attendingSections(events)
+  const { pending, approved, cancelled } = sections
   return (
     <div className="flex flex-col gap-6">
       {/* nothing to go to, even when cancelled events are left below (#183) */}
       {pending.length + approved.length === 0 ? (
+        // Hlas aplikace: where people are missing is where to go next
         <MyEventsEmpty>
-          <p>Zatím nejdeš na žádnou akci.</p>
+          <p>Zatím nejdeš na žádnou akci. Mrkni, komu v okolí chybí lidé.</p>
           <Button
             asChild
             variant="outline"
           >
-            <Link to={ROUTES.events}>Projít akce</Link>
+            <Link
+              to={ROUTES.events}
+              search={{ obsazenost: "chybi" }}
+            >
+              Projít akce
+            </Link>
           </Button>
         </MyEventsEmpty>
       ) : null}
@@ -74,32 +79,39 @@ export function AttendingEvents({ viewerId }: { viewerId: string }) {
 }
 
 function AttendingSection({ title, events }: { title: string; events: MyEvent[] }) {
+  return (
+    <EventsSection title={title}>
+      {events.map((event) => (
+        <li key={event.id}>
+          <EventCard
+            event={event}
+            variant="responsive"
+            status={attendingStatus(event)}
+            numbers={attendingNumbers(event)}
+            rowLead={attendingRowLead(event)}
+            titleAs="h3"
+          />
+        </li>
+      ))}
+    </EventsSection>
+  )
+}
+
+/** A section of cards under its heading, Figma Display/Feature („Potvrzené (5)“, C-01, C-01d). */
+function EventsSection({ title, children }: { title: string; children: ReactNode }) {
   const headingId = useId()
   return (
     <section
       aria-labelledby={headingId}
-      className="flex flex-col gap-3"
+      className="flex flex-col gap-3 md:gap-4"
     >
       <h2
         id={headingId}
-        className="text-lg font-semibold tracking-tight"
+        className="type-feature"
       >
         {title}
       </h2>
-      <ul className={GRID}>
-        {events.map((event) => (
-          <li key={event.id}>
-            <EventCard
-              event={event}
-              variant="responsive"
-              status={attendingStatus(event)}
-              numbers={attendingNumbers(event)}
-              rowLead={attendingRowLead(event)}
-              titleAs="h3"
-            />
-          </li>
-        ))}
-      </ul>
+      <ul className={GRID}>{children}</ul>
     </section>
   )
 }
@@ -149,23 +161,25 @@ function MyEventsEmpty({ children }: { children: ReactNode }) {
 }
 
 /**
- * Pořádám (Figma C-02): the events I created, soonest first, cancelled ones
- * with their label. The strip on top sums up the requests to decide; a card
- * opens the event's management. „Založit akci“ is the page's, in both tabs.
+ * Pořádám (Figma C-02): the events I created and those of the groups I run
+ * (#70), soonest first — Nadcházející, then Zrušené (decided 4. 11.). The
+ * strip on top sums up the requests to decide; a card opens the event's
+ * management. „Založit akci“ is the page's, in both tabs.
  */
 export function OrganizingEvents({ viewerId }: { viewerId: string }) {
-  const { events, isPending, error, retry } = useMyEvents("organizing", viewerId)
+  const { events, sections, isPending, error, retry } = useOrganizingEvents(viewerId)
   const summary = events ? pendingRequestsSummary(events) : null
 
   return (
     <div className="flex flex-col gap-6">
       {error ? (
         <MyEventsError onRetry={retry} />
-      ) : isPending || !events ? (
+      ) : isPending || !events || !sections ? (
         <MyEventsLoading />
       ) : events.length === 0 ? (
+        // Hlas aplikace; „Založit akci“ is right there, in the band or floating
         <MyEventsEmpty>
-          <p>Zatím nepořádáš žádnou akci.</p>
+          <p>Zatím nepořádáš žádnou akci. Stačí název, místo a čas – parta se sejde.</p>
         </MyEventsEmpty>
       ) : (
         <>
@@ -179,22 +193,38 @@ export function OrganizingEvents({ viewerId }: { viewerId: string }) {
               <AlertDescription>{summary.events}</AlertDescription>
             </Alert>
           ) : null}
-          <ul className={GRID}>
-            {events.map((event) => (
-              <li key={event.id}>
-                <EventCard
-                  event={event}
-                  variant="responsive"
-                  status={organizingStatus(event)}
-                  numbers={organizingNumbers(event)}
-                  rowTail={organizingRowTail(event)}
-                  linkTo="manage"
-                />
-              </li>
-            ))}
-          </ul>
+          <OrganizingSection
+            title="Nadcházející"
+            events={sections.upcoming}
+          />
+          <OrganizingSection
+            title="Zrušené"
+            events={sections.cancelled}
+          />
         </>
       )}
     </div>
+  )
+}
+
+/** A section of Pořádám, left out while empty (C-02); a card opens the event's management. */
+function OrganizingSection({ title, events }: { title: string; events: MyEvent[] }) {
+  if (events.length === 0) return null
+  return (
+    <EventsSection title={`${title} (${events.length})`}>
+      {events.map((event) => (
+        <li key={event.id}>
+          <EventCard
+            event={event}
+            variant="responsive"
+            status={organizingStatus(event)}
+            numbers={organizingNumbers(event)}
+            rowTail={organizingRowTail(event)}
+            linkTo="manage"
+            titleAs="h3"
+          />
+        </li>
+      ))}
+    </EventsSection>
   )
 }
