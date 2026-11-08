@@ -7,7 +7,6 @@ import { ROUTES } from "@/app/routes"
 import { BackLink } from "@/components/BackLink/BackLink"
 import { Seo } from "@/components/Seo"
 import { Button } from "@/components/ui/button"
-import { DESKTOP_QUERY, useMediaQuery } from "@/hooks/useMediaQuery"
 import { PAGE } from "@/lib/pageLayout"
 import { cn } from "@/lib/utils"
 
@@ -18,7 +17,6 @@ import { showVerifyEmailBanner } from "@/features/auth/lib/verify-email-banner"
 import { CancelEventDialog } from "@/features/events/components/CancelEventDialog"
 import { EventDetailView } from "@/features/events/components/EventDetailView"
 import { ParticipationAction } from "@/features/events/components/ParticipationAction"
-import { ShareEventButton } from "@/features/events/components/ShareEventButton"
 import { useCancelEvent } from "@/features/events/hooks/useCancelEvent"
 import { useEventDetail } from "@/features/events/hooks/useEventDetail"
 import { useJoinEvent, useLeaveEvent } from "@/features/events/hooks/useParticipation"
@@ -48,7 +46,6 @@ function EventDetailPage() {
     enabled: groupId !== undefined,
   })
   const location = useLocation()
-  const isDesktop = useMediaQuery(DESKTOP_QUERY)
   const join = useJoinEvent(eventId, session.user?.id ?? "")
   const leave = useLeaveEvent(eventId, session.user?.id ?? "")
   const signInFrom = redirectFrom(location)
@@ -79,118 +76,105 @@ function EventDetailPage() {
       <Seo title={event?.title ?? (isNotFound ? "Akce nenalezena" : "Akce")} />
       <AppHeader />
       <main className="flex-1">
-        <div className={cn(PAGE, "gap-4")}>
-          {/* Figma A-05 (Header/Sub): back on the left, „Sdílet“ on the right;
-              desktop shares from the panel (A-05d) */}
-          <div className="flex items-center justify-between gap-3">
+        {membersOnlyGroupId ? (
+          <div className={cn(PAGE, "gap-4")}>
             <BackLink
               to={ROUTES.events}
               fallbackLabel="Všechny akce"
               label="Akce"
             />
-            {event && !isDesktop ? (
-              <ShareEventButton
-                label="Sdílet"
-                shouldUseShareSheet
-                className="-mr-3"
-              />
-            ) : null}
-          </div>
-          {membersOnlyGroupId ? (
             <MembersOnlyEvent
               groupId={membersOnlyGroupId}
               viewerId={viewerId}
               signInFrom={signInFrom}
               onMember={retry}
             />
-          ) : (
-            <EventDetailView
-              event={event}
-              organizerGroup={
-                organizerGroup ? <GroupOrganizer group={organizerGroup} /> : undefined
-              }
-              isLoading={isPending}
-              isNotFound={isNotFound}
-              error={error}
-              onRetry={retry}
-              participation={
-                event ? (
-                  <ParticipationAction
-                    event={event}
-                    viewer={
-                      session.user
-                        ? { id: session.user.id, emailVerified: session.user.emailVerified }
-                        : null
-                    }
-                    signInFrom={signInFrom}
-                    isPending={join.isPending || leave.isPending}
-                    onVerifyEmail={showVerifyEmailBanner}
-                    onJoin={(message) =>
-                      join.mutateAsync(message).then(
-                        (updated) => {
-                          toast.success(
-                            updated.myParticipation === "pending"
-                              ? "Žádost je odeslaná."
-                              : "Máš na akci místo.",
-                          )
-                          return updated
-                        },
-                        // the API's 409 says why, in Czech (e.g. „Akce je plná.“)
-                        (joinError: Error) => {
-                          toast.error(joinError.message)
-                          throw joinError
-                        },
-                      )
-                    }
-                    onLeave={() => {
-                      // a withdrawn request never had a place to give up
-                      const isWithdrawingRequest = event.myParticipation === "pending"
-                      return leave.mutateAsync().then(
-                        () =>
-                          toast.success(
-                            isWithdrawingRequest ? "Žádost je stažená." : "Na akci už nejdeš.",
-                          ),
-                        (leaveError: Error) => {
-                          toast.error(leaveError.message)
-                          throw leaveError
-                        },
-                      )
-                    }}
-                  />
-                ) : null
-              }
-              organizerActions={
-                canManage ? (
-                  <div className="flex flex-wrap gap-3">
-                    <Button
-                      asChild
-                      variant="outline"
-                    >
-                      <Link
-                        to={ROUTES.editEvent}
-                        params={{ eventId }}
-                      >
-                        Upravit
-                      </Link>
-                    </Button>
-                    <CancelEventDialog
-                      isPending={cancelEvent.isPending}
-                      onCancel={(reason) =>
-                        cancelEvent.mutateAsync(reason).then(
-                          () => toast.success("Akce je zrušená."),
-                          (cancelError: Error) => {
-                            toast.error(cancelError.message)
-                            throw cancelError
-                          },
+          </div>
+        ) : (
+          <EventDetailView
+            event={event}
+            organizerGroup={organizerGroup ? <GroupOrganizer group={organizerGroup} /> : undefined}
+            isLoading={isPending}
+            isNotFound={isNotFound}
+            error={error}
+            onRetry={retry}
+            participation={
+              event ? (
+                <ParticipationAction
+                  event={event}
+                  viewer={
+                    session.user
+                      ? { id: session.user.id, emailVerified: session.user.emailVerified }
+                      : null
+                  }
+                  signInFrom={signInFrom}
+                  isPending={join.isPending || leave.isPending}
+                  onVerifyEmail={showVerifyEmailBanner}
+                  onJoin={(message) =>
+                    join.mutateAsync(message).then(
+                      (updated) => {
+                        toast.success(
+                          updated.myParticipation === "pending"
+                            ? "Žádost je odeslaná."
+                            : "Máš na akci místo.",
                         )
-                      }
-                    />
-                  </div>
-                ) : null
-              }
-            />
-          )}
-        </div>
+                        return updated
+                      },
+                      // the API's 409 says why, in Czech (e.g. „Akce je plná.“)
+                      (joinError: Error) => {
+                        toast.error(joinError.message)
+                        throw joinError
+                      },
+                    )
+                  }
+                  onLeave={() => {
+                    // a withdrawn request never had a place to give up
+                    const isWithdrawingRequest = event.myParticipation === "pending"
+                    return leave.mutateAsync().then(
+                      () =>
+                        toast.success(
+                          isWithdrawingRequest ? "Žádost je stažená." : "Na akci už nejdeš.",
+                        ),
+                      (leaveError: Error) => {
+                        toast.error(leaveError.message)
+                        throw leaveError
+                      },
+                    )
+                  }}
+                />
+              ) : null
+            }
+            organizerActions={
+              canManage ? (
+                <div className="flex flex-wrap gap-3">
+                  <Button
+                    asChild
+                    variant="outline"
+                  >
+                    <Link
+                      to={ROUTES.editEvent}
+                      params={{ eventId }}
+                    >
+                      Upravit
+                    </Link>
+                  </Button>
+                  <CancelEventDialog
+                    isPending={cancelEvent.isPending}
+                    onCancel={(reason) =>
+                      cancelEvent.mutateAsync(reason).then(
+                        () => toast.success("Akce je zrušená."),
+                        (cancelError: Error) => {
+                          toast.error(cancelError.message)
+                          throw cancelError
+                        },
+                      )
+                    }
+                  />
+                </div>
+              ) : null
+            }
+          />
+        )}
       </main>
     </>
   )

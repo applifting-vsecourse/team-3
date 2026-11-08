@@ -11,7 +11,17 @@ import { anEventDetail } from "@/features/events/test/anEvent"
 // the fixture starts Fri 23. 10. 2026 17:30 Prague time
 const beforeStart = new Date("2026-10-23T08:00:00.000Z")
 
+const stubDesktop = (isDesktop: boolean) =>
+  vi.stubGlobal("matchMedia", (query: string) => ({
+    matches: isDesktop,
+    media: query,
+    addEventListener: vi.fn(),
+    removeEventListener: vi.fn(),
+  }))
+
 describe("EventDetailView", () => {
+  afterEach(() => vi.unstubAllGlobals())
+
   it("shows what, when, where, who organizes it and how many are coming", async () => {
     await renderWithRouter(
       <EventDetailView event={anEventDetail({ approvedCount: 3, missingToMin: 1 })} />,
@@ -66,19 +76,39 @@ describe("EventDetailView", () => {
     [{ approvedCount: 2, missingToMin: 2, freeSpots: 10 }, "Chybí ještě 2"],
     [{ approvedCount: 12, missingToMin: 0, freeSpots: 0, isFull: true }, "Plno"],
   ])(
-    "without the names (#174) shows only the occupancy %o as „%s“, no „Kdo jde“",
+    "without the names (#174) shows the occupancy %o as „%s“ and only the count in „Kdo jde“",
     async (capacity, label) => {
       await renderWithRouter(
         <EventDetailView event={anEventDetail({ ...capacity, participants: null })} />,
       )
 
       expect(screen.getByText(label)).toBeInTheDocument()
-      expect(screen.queryByRole("heading", { name: /Kdo jde/ })).not.toBeInTheDocument()
+      expect(screen.getByRole("heading", { name: /^Kdo jde · \d+ z 12$/ })).toBeInTheDocument()
       expect(screen.queryByText("Jana Svobodová")).not.toBeInTheDocument()
-      // signing in alone no longer shows the names, so no hint to do it
-      expect(screen.queryByText(/Jména přihlášených/)).not.toBeInTheDocument()
+      // Figma A-05d: when the names show — signing in alone doesn't do it
+      expect(screen.getByText("Jména uvidíš, až budeš na akci.")).toBeInTheDocument()
     },
   )
+
+  it("with a request waiting, the names show once the organizer approves it (Figma A-05)", async () => {
+    await renderWithRouter(
+      <EventDetailView event={anEventDetail({ participants: null, myParticipation: "pending" })} />,
+    )
+
+    expect(screen.getByText("Jména uvidíš, až tě organizátor schválí.")).toBeInTheDocument()
+  })
+
+  it("the band's line says when, where and how full (Figma A-05d)", async () => {
+    stubDesktop(true)
+    await renderWithRouter(
+      <EventDetailView
+        event={anEventDetail({ approvedCount: 3, missingToMin: 1 })}
+        now={beforeStart}
+      />,
+    )
+
+    expect(screen.getByText(/^Pá 23\. 10\. · 17:30 · .+ · do minima chybí 1$/)).toBeInTheDocument()
+  })
 
   it("says when nobody has joined yet", async () => {
     await renderWithRouter(
@@ -138,15 +168,16 @@ describe("EventDetailView", () => {
     expect(screen.queryByRole("heading", { name: "O akci" })).not.toBeInTheDocument()
   })
 
-  it("a cancelled event keeps its detail with the „Zrušeno“ label and the reason, not the capacity", async () => {
+  it("a cancelled event keeps its detail with the reason, not the capacity", async () => {
     await renderWithRouter(
       <EventDetailView
         event={anEventDetail({ status: "cancelled", cancelReason: "Herna má zavřeno." })}
       />,
     )
 
-    expect(screen.getByText("Zrušeno")).toBeInTheDocument()
+    expect(screen.getByText(/ · akce je zrušená$/)).toBeInTheDocument()
     expect(screen.getByText("Akce je zrušená")).toBeInTheDocument()
+    expect(screen.queryByRole("heading", { name: /Kdo jde/ })).not.toBeInTheDocument()
     expect(screen.getByText("Herna má zavřeno.")).toBeInTheDocument()
     expect(screen.queryByText("4 z 12")).not.toBeInTheDocument()
     expect(screen.queryByText("min. 4")).not.toBeInTheDocument()
@@ -205,12 +236,7 @@ describe("EventDetailView", () => {
         )
 
     const renderDetail = async ({ isDesktop }: { isDesktop: boolean }) => {
-      vi.stubGlobal("matchMedia", (query: string) => ({
-        matches: isDesktop,
-        media: query,
-        addEventListener: vi.fn(),
-        removeEventListener: vi.fn(),
-      }))
+      stubDesktop(isDesktop)
       await renderWithRouter(
         <EventDetailView
           event={anEventDetail({ approvedCount: 3, missingToMin: 1 })}
@@ -242,18 +268,19 @@ describe("EventDetailView", () => {
       expect(inOrder(...left)).toBe(true)
     })
 
-    it("phone: the capacity right under the title, the action in the bar at the end", async () => {
+    it("phone: sharing at the top, the capacity right under the title, the action in the bar at the end", async () => {
       const panel = await renderDetail({ isDesktop: false })
 
       expect(
         inOrder(
+          screen.getByRole("button", { name: "Sdílet" }),
           screen.getByRole("heading", { level: 1 }),
           within(panel).getByText("Chybí ještě 1"),
           within(panel).getByText("Kdy"),
           within(panel).getByLabelText("Místo akce na mapě"),
-          screen.getByRole("heading", { name: "Pořádá" }),
           screen.getByRole("heading", { name: "O akci" }),
           screen.getByRole("heading", { name: "Kdo jde · 3 z 12" }),
+          screen.getByRole("heading", { name: "Pořádá" }),
           screen.getByRole("button", { name: "Přijdu" }),
         ),
       ).toBe(true)
@@ -262,8 +289,8 @@ describe("EventDetailView", () => {
         "sticky",
         "bottom-16",
       )
-      // sharing is at the top of the page on a phone (the route), not in the panel
-      expect(screen.queryByRole("button", { name: /Sdílet/ })).not.toBeInTheDocument()
+      // sharing is in the bar at the top on a phone (Header/Sub), not in the panel
+      expect(within(panel).queryByRole("button", { name: /Sdílet/ })).not.toBeInTheDocument()
     })
   })
 
