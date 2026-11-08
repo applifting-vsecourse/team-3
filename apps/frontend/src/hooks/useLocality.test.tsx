@@ -5,6 +5,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest"
 
 import { api } from "@/lib/api-client"
 import type * as ApiClient from "@/lib/api-client"
+import { authKeys } from "@/lib/auth-keys"
 import { getRememberedLocality } from "@/lib/catalog/rememberedLocality"
 
 import { useLocality } from "./useLocality"
@@ -15,15 +16,27 @@ vi.mock("@/lib/api-client", async (importOriginal) => ({
 }))
 const get = vi.mocked(api.get)
 
-const brno = { id: "l-brno", slug: "brno", name: "Brno", parentId: null, lat: 49.2, lng: 16.6 }
+const town = (slug: string, name: string) => ({
+  id: `l-${slug}`,
+  slug,
+  name,
+  parentId: null,
+  lat: 49.2,
+  lng: 16.6,
+})
+const brno = town("brno", "Brno")
+const catalog = [brno, town("ostrava", "Ostrava"), town("liberec", "Liberec")]
 const answer = (body: unknown) => ({ json: () => Promise.resolve(body) }) as never
+// GET /api/geo/locality answers this; GET /api/localities the catalog
+const answerDefault = (geo: unknown) =>
+  get.mockImplementation((path) => (path === "localities" ? answer(catalog) : (geo as never)))
 
 const renderLocality = (
   urlSlug: string | undefined,
   // "loading": the session isn't known yet
   userId: { id: string | null } | "loading" = { id: null },
+  queryClient = new QueryClient(),
 ) => {
-  const queryClient = new QueryClient()
   const wrapper = ({ children }: { children: ReactNode }) => (
     <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>
   )
@@ -46,7 +59,7 @@ describe("useLocality", () => {
   beforeEach(() => {
     vi.stubGlobal("localStorage", memoryStorage())
     get.mockReset()
-    get.mockReturnValue(answer({ locality: brno, source: "ip" }))
+    answerDefault(answer({ locality: brno, source: "ip" }))
   })
   afterEach(() => vi.unstubAllGlobals())
 
@@ -59,15 +72,26 @@ describe("useLocality", () => {
     expect(get).toHaveBeenCalledWith("geo/locality")
   })
 
+  it("asks again when the session is refreshed, e.g. after a new home locality (#178)", async () => {
+    const queryClient = new QueryClient()
+    const { result } = renderLocality(undefined, { id: "u1" }, queryClient)
+    await waitFor(() => expect(result.current.slug).toBe("brno"))
+
+    answerDefault(answer({ locality: town("ostrava", "Ostrava"), source: "home" }))
+    await act(() => queryClient.invalidateQueries({ queryKey: authKeys.session() }))
+
+    await waitFor(() => expect(result.current).toMatchObject({ slug: "ostrava", source: "home" }))
+  })
+
   it("is all of Czechia when nothing is known", async () => {
-    get.mockReturnValue(answer({ locality: null, source: "none" }))
+    answerDefault(answer({ locality: null, source: "none" }))
     const { result } = renderLocality(undefined)
 
     await waitFor(() => expect(result.current.slug).toBe("cele-cesko"))
   })
 
   it("is all of Czechia when the API fails, never Praha", async () => {
-    get.mockReturnValue({ json: () => Promise.reject(new Error("offline")) } as never)
+    answerDefault({ json: () => Promise.reject(new Error("offline")) })
     const { result } = renderLocality(undefined)
 
     await waitFor(() => expect(result.current.slug).toBe("cele-cesko"))
@@ -108,6 +132,14 @@ describe("useLocality", () => {
     expect(result.current).toMatchObject({ slug: "liberec", source: "remembered" })
   })
 
+  it("forgets about a remembered locality the catalog no longer has", async () => {
+    localStorage.setItem("hobbyhub.lokalita", "zrusena-obec")
+    const { result } = renderLocality(undefined)
+
+    await waitFor(() => expect(result.current).toMatchObject({ slug: "brno", source: "ip" }))
+    expect(result.current.isPicked).toBe(false)
+  })
+
   it("ignores a tampered remembered value", async () => {
     localStorage.setItem("hobbyhub.lokalita", "<script>")
     const { result } = renderLocality(undefined)
@@ -130,7 +162,7 @@ describe("useLocality without storage (a private window)", () => {
       },
     })
     get.mockReset()
-    get.mockReturnValue(answer({ locality: brno, source: "ip" }))
+    answerDefault(answer({ locality: brno, source: "ip" }))
   })
   afterEach(() => vi.unstubAllGlobals())
 

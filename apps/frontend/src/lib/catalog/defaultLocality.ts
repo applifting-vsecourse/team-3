@@ -2,6 +2,7 @@ import { queryOptions } from "@tanstack/react-query"
 import { z } from "zod"
 
 import { api } from "@/lib/api-client"
+import { authKeys } from "@/lib/auth-keys"
 import { localitySchema } from "@/lib/catalog/catalogSchemas"
 
 /** GET /api/geo/locality: null = all of Czechia (#55). */
@@ -15,12 +16,14 @@ export type DefaultLocality = z.infer<typeof defaultLocalitySchema>
 
 /**
  * Per viewer: the home locality differs after signing in or out, so the key
- * has the user. Kept for the session only, never written to the browser's
- * storage — the guess isn't stored anywhere (#55).
+ * has the user. Under the session's key, so whatever refreshes the session —
+ * signing in or out, saving the profile with a new home locality (#178) —
+ * asks for the default again. Kept in memory only, never written to the
+ * browser's storage — the guess isn't stored anywhere (#55).
  */
 export const defaultLocalityQueryOptions = (userId: string | null) =>
   queryOptions({
-    queryKey: ["geo", "locality", userId] as const,
+    queryKey: [...authKeys.session(), "default-locality", userId] as const,
     queryFn: async () => defaultLocalitySchema.parse(await api.get("geo/locality").json()),
     staleTime: Infinity,
     // a failed guess is all of Czechia, not an error to retry
