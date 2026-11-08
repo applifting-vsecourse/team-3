@@ -16,7 +16,7 @@ import {
   hasMembershipAction,
 } from "@/features/groups/components/GroupMembershipAction"
 import { GroupFacts } from "@/features/groups/components/GroupSummary"
-import { memberCountLabel } from "@/features/groups/lib/formatGroup"
+import { groupBandLine } from "@/features/groups/lib/formatGroup"
 
 type GroupProfileProps = {
   group: GroupDetail
@@ -33,11 +33,6 @@ const GROUPS_BACK: Omit<BackLinkProps, "isIconOnlyOnMobile"> = {
   to: ROUTES.groups,
   fallbackLabel: "Všechny skupiny",
   label: "Skupiny",
-}
-
-const TYPE_IN_BAND: Record<GroupDetail["type"], string> = {
-  public: "Veřejná skupina",
-  closed: "Neveřejná skupina",
 }
 
 /**
@@ -65,12 +60,7 @@ export function GroupProfile({
     />
   ) : null
 
-  // Figma A-08d: „Neveřejná skupina · Praha 2 · 5 členů“
-  const line = [
-    TYPE_IN_BAND[group.type],
-    group.locality.name,
-    memberCountLabel(group.memberCount),
-  ].join(" · ")
+  const line = groupBandLine(group)
   const band = (
     <PageBand
       variant="detail"
