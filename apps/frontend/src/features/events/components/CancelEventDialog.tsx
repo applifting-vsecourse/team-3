@@ -1,6 +1,6 @@
 import { useState } from "react"
 import { zodResolver } from "@hookform/resolvers/zod"
-import { Loader2 } from "lucide-react"
+import { Ban, Loader2 } from "lucide-react"
 import { useForm } from "react-hook-form"
 import { z } from "zod"
 
@@ -38,6 +38,9 @@ const schema = z.object({
 
 type CancelEventDialogProps = {
   isPending: boolean
+  /** Figma D-03d: a quiet ghost with its icon beside „Upravit akci“; outline elsewhere. */
+  triggerVariant?: "outline" | "ghost"
+  className?: string
   /**
    * Resolves once the event is cancelled, and the dialog closes; rejects when
    * it couldn't be, and the dialog stays open to try again.
@@ -49,7 +52,12 @@ type CancelEventDialogProps = {
  * The organizer cancels the event (#52, B-028): a required reason, which the
  * participants see on the detail. The event is never deleted.
  */
-export function CancelEventDialog({ isPending, onCancel }: CancelEventDialogProps) {
+export function CancelEventDialog({
+  isPending,
+  onCancel,
+  triggerVariant = "outline",
+  className,
+}: CancelEventDialogProps) {
   const [isOpen, setIsOpen] = useState(false)
   const form = useForm<z.input<typeof schema>>({
     resolver: zodResolver(schema),
@@ -66,9 +74,10 @@ export function CancelEventDialog({ isPending, onCancel }: CancelEventDialogProp
     >
       <DialogTrigger asChild>
         <Button
-          variant="outline"
-          className="self-start"
+          variant={triggerVariant}
+          className={className ?? "self-start"}
         >
+          <Ban />
           Zrušit akci
         </Button>
       </DialogTrigger>

@@ -70,6 +70,17 @@ describe("EventCard", () => {
     expect(screen.getByRole("article")).toHaveClass("ring-2", "ring-foreground", "border")
   })
 
+  it("the management's card leaves the occupancy to the big bar under it (D-03)", async () => {
+    const { container } = await renderWithRouter(
+      <EventCard
+        event={anEvent()}
+        hasBar={false}
+      />,
+    )
+
+    expect(container.querySelector("[data-slot=capacity-track]")).toBeNull()
+  })
+
   it("a cancelled event shows only its count and no bar", async () => {
     const { container } = await renderWithRouter(
       <EventCard

@@ -1,11 +1,14 @@
 import type { ReactNode } from "react"
 import { createFileRoute, Link } from "@tanstack/react-router"
-import { Pencil, RefreshCw } from "lucide-react"
+import { Ban, Pencil, RefreshCw } from "lucide-react"
 import { toast } from "sonner"
 
 import { ROUTES } from "@/app/routes"
 import { BackLink } from "@/components/BackLink/BackLink"
 import { CapacityBar } from "@/components/CapacityBar/CapacityBar"
+import { BandActivity } from "@/components/PageBand/BandActivity"
+import { PageBand } from "@/components/PageBand/PageBand"
+import { SubBar } from "@/components/PageBand/SubBar"
 import { Seo } from "@/components/Seo"
 import { TabBar, TabBarItem } from "@/components/TabBar/TabBar"
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
@@ -18,8 +21,11 @@ import { cn } from "@/lib/utils"
 
 import { useSession } from "@/features/auth/hooks/useSession"
 import { CancelEventDialog } from "@/features/events/components/CancelEventDialog"
+import { EventCard } from "@/features/events/components/EventCard"
+import { EventFacts } from "@/features/events/components/EventFacts"
 import { ManagedParticipants } from "@/features/events/components/ManagedParticipants"
 import { ManagedRequests } from "@/features/events/components/ManagedRequests"
+import { ShareEventButton } from "@/features/events/components/ShareEventButton"
 import { useCancelEvent } from "@/features/events/hooks/useCancelEvent"
 import { useDecideRequest } from "@/features/events/hooks/useDecideRequest"
 import { useEventDetail } from "@/features/events/hooks/useEventDetail"
@@ -37,6 +43,10 @@ export const Route = createFileRoute("/_ProtectedPages/akce/$eventId/sprava")({
  * coming, against the minimum and the maximum, the requests waiting at an
  * event with approval, and the way to edit or cancel it. Anyone else gets an
  * explanation; the API answers them 403. Removing people is #60.
+ *
+ * Desktop starts with the band, as the detail (A-05d): the activity, the title and one line
+ * — when, where, „Pořádáš ty“. A phone has no band (D-03): the bar „Správa akce“ with
+ * „Sdílet“, then the event's card with its photo, without the small bar the big one repeats.
  */
 function ManageEventPage() {
   const { eventId } = Route.useParams()
@@ -57,6 +67,13 @@ function ManageEventPage() {
   const decide = useDecideRequest(eventId, session.user?.id ?? "")
   const isDesktop = useMediaQuery(DESKTOP_QUERY)
   const canEdit = event !== undefined && editRefusal(event) === null
+  const isManaging =
+    isOrganizer && event !== undefined && !membersOnlyGroupId && !isNotFound && !error
+  const back = {
+    to: ROUTES.eventDetail,
+    params: { eventId },
+    fallbackLabel: "Na akci",
+  } as const
   // who is coming: alone in the right column, or next to the requests (#53)
   const participantList = (isHeadingHidden: boolean) => (
     <ManagedParticipants
@@ -71,16 +88,43 @@ function ManageEventPage() {
   return (
     <>
       <Seo title="Správa akce" />
+      {isManaging ? (
+        isDesktop ? (
+          <PageBand
+            variant="detail"
+            back={back}
+            title={event.title}
+            eyebrow={<BandActivity activity={event.activity} />}
+            // Figma D-03d: „St 28. 10. · 18:00–22:00 · Klubovna Holešovice, … · Pořádáš ty“
+            description={[
+              formatEventTime(event.startsAt, event.endsAt),
+              event.address,
+              // a group's admin manages it for the group (B-055)
+              event.group ? `Akce skupiny ${event.group.name}` : "Pořádáš ty",
+            ].join(" · ")}
+          />
+        ) : (
+          <SubBar
+            back={back}
+            label="Správa akce"
+            isHeading
+            action={
+              <ShareEventButton
+                label="Sdílet"
+                shouldUseShareSheet
+              />
+            }
+          />
+        )
+      ) : null}
       <div className={cn(PAGE, "gap-6")}>
-        <BackLink
-          to={ROUTES.eventDetail}
-          params={{ eventId }}
-          fallbackLabel="Na akci"
-        />
-        {/* once the event is here, its title is the page's heading (D-03d) */}
-        {!isOrganizer || !event ? (
-          <h1 className="text-3xl font-semibold tracking-tight md:text-4xl">Správa akce</h1>
-        ) : null}
+        {/* until the event is here and theirs, the page is just its name */}
+        {isManaging ? null : (
+          <>
+            <BackLink {...back} />
+            <h1 className="text-3xl font-semibold tracking-tight md:text-4xl">Správa akce</h1>
+          </>
+        )}
         {isNotFound ? (
           <Alert>
             <AlertTitle>Akce nenalezena</AlertTitle>
@@ -114,15 +158,16 @@ function ManageEventPage() {
           // D-03d: the event's summary on the left, who is coming on the right
           <div className="grid grid-cols-1 items-start gap-8 md:grid-cols-[minmax(0,27.5rem)_minmax(0,1fr)] md:gap-12">
             <section className="flex flex-col gap-5">
-              <div className="flex flex-col gap-1">
-                <h1 className="text-3xl font-semibold tracking-tight md:text-4xl">{event.title}</h1>
-                <p className="text-sm text-muted-foreground">
-                  {formatEventTime(event.startsAt, event.endsAt)}
-                </p>
-              </div>
+              {isDesktop ? null : (
+                <EventCard
+                  event={event}
+                  hasBar={false}
+                />
+              )}
               {event.status === "cancelled" ? (
                 // instead of the capacity: „Chybí ještě 2“ would read as if it still happens
-                <Alert>
+                <Alert variant="destructive">
+                  <Ban />
                   <AlertTitle>Akce je zrušená</AlertTitle>
                   {event.cancelReason ? (
                     <AlertDescription className="whitespace-pre-line">
@@ -140,11 +185,19 @@ function ManageEventPage() {
                   isFull={event.isFull}
                 />
               )}
-              {canEdit ? (
-                <div className="flex flex-wrap gap-3">
+              {isDesktop ? <EventFacts event={event} /> : null}
+              {/* Figma D-03d: Upravit, Sdílet odkaz, Zrušit (ghost); a phone shares from the bar
+                  and has Upravit and Zrušit side by side (D-03) */}
+              <div
+                className={cn(
+                  isDesktop ? "flex flex-wrap items-center gap-3" : "grid grid-cols-2 gap-3",
+                )}
+              >
+                {canEdit ? (
                   <Button
                     asChild
                     variant="outline"
+                    size="lg"
                   >
                     <Link
                       to={ROUTES.editEvent}
@@ -154,7 +207,12 @@ function ManageEventPage() {
                       Upravit akci
                     </Link>
                   </Button>
+                ) : null}
+                {isDesktop ? <ShareEventButton label="Sdílet odkaz" /> : null}
+                {canEdit ? (
                   <CancelEventDialog
+                    triggerVariant={isDesktop ? "ghost" : "outline"}
+                    className="h-11"
                     isPending={cancelEvent.isPending}
                     onCancel={(reason) =>
                       cancelEvent.mutateAsync(reason).then(
@@ -166,8 +224,8 @@ function ManageEventPage() {
                       )
                     }
                   />
-                </div>
-              ) : null}
+                ) : null}
+              </div>
             </section>
             {/* the right column (D-03d): an event with approval adds the requests (#53),
                 unless it's cancelled — then only who was coming, read-only (#183) */}

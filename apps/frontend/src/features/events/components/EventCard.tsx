@@ -44,6 +44,8 @@ type EventCardProps = {
   linkTo?: "detail" | "manage"
   /** h3 under a section heading. */
   titleAs?: "h2" | "h3"
+  /** The management's card leaves the occupancy to the big bar under it (Figma D-03). */
+  hasBar?: boolean
   className?: string
 }
 
@@ -65,6 +67,7 @@ export function EventCard({
   rowTail,
   linkTo = "detail",
   titleAs: Title = "h2",
+  hasBar = true,
   className,
 }: EventCardProps) {
   const isCancelled = event.status === "cancelled"
@@ -172,7 +175,7 @@ export function EventCard({
             </span>
           )}
           {/* a cancelled or past event no longer fills up */}
-          {isCancelled || status?.kind === "past" ? null : (
+          {!hasBar || isCancelled || status?.kind === "past" ? null : (
             <CapacityBar
               variant="compact"
               approvedCount={event.approvedCount}
