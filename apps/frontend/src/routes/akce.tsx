@@ -1,6 +1,6 @@
 import { useEffect, useState, type CSSProperties } from "react"
 import { createFileRoute } from "@tanstack/react-router"
-import { Map as MapIcon } from "lucide-react"
+import { Map as MapIcon, Search } from "lucide-react"
 
 import { PageBand } from "@/components/PageBand/PageBand"
 import { Seo } from "@/components/Seo"
@@ -16,6 +16,7 @@ import { EmptyEvents } from "@/features/events/components/EmptyEvents"
 import { EventFilters } from "@/features/events/components/EventFilters"
 import { EventList } from "@/features/events/components/EventList"
 import { EventMapPreview } from "@/features/events/components/EventMapPreview"
+import { EventSearch } from "@/features/events/components/EventSearch"
 import { EventsMap } from "@/features/events/components/EventsMap"
 import { ListPanel, type PanelSnap } from "@/features/events/components/ListPanel"
 import { SortMenu } from "@/features/events/components/SortMenu"
@@ -106,6 +107,16 @@ function EventsPage() {
   const center = catalog ? localityCenter(search, catalog) : undefined
   const sort = catalog ? effectiveSort(search, catalog) : "termin"
   const isDistanceShown = Boolean(search.okoli && center)
+  // phone: the header's „Hledat“ opens the search above the chips; a search in the URL keeps it
+  const [isSearchOpened, setIsSearchOpened] = useState(false)
+  const hasSearchRow = !isDesktop && (isSearchOpened || search.q !== undefined)
+  const searchField = (isAutoFocused = false) => (
+    <EventSearch
+      value={search.q}
+      onChange={(q) => setSearch({ q })}
+      isAutoFocused={isAutoFocused}
+    />
+  )
   // „Zrušit výběr“ in the locality panel: back to the default, the other filters stay
   const clearLocality = () => {
     shownLocality.forget()
@@ -118,7 +129,20 @@ function EventsPage() {
   return (
     <>
       <Seo title="Akce" />
-      <AppHeader />
+      <AppHeader
+        screenAction={
+          // Figma A-02: the magnifier in the phone's header (#57)
+          <Button
+            variant="ghost"
+            aria-expanded={hasSearchRow}
+            onClick={() => setIsSearchOpened((isOpen) => !isOpen)}
+            className="h-10 gap-1.5 px-2"
+          >
+            <Search />
+            Hledat
+          </Button>
+        }
+      />
       {/* the band and its H1 belong to main, as on every page; desktop: main takes exactly the
           rest of the viewport (basis-0 + min-h-0) */}
       <main className="flex flex-1 flex-col md:min-h-0 md:basis-0">
@@ -153,6 +177,9 @@ function EventsPage() {
               "md:static md:mx-auto md:w-full md:max-w-7xl md:border-b-0 md:bg-background",
             )}
           >
+            {hasSearchRow ? (
+              <div className="px-4 pt-3 md:hidden">{searchField(isSearchOpened)}</div>
+            ) : null}
             <EventFilters
               search={search}
               catalog={catalog}
@@ -161,6 +188,7 @@ function EventsPage() {
               onClearAll={canClear ? clearFilters : undefined}
               localityDefault={localityDefault(shownLocality, clearLocality)}
               isFloating={!isDesktop && !isListExpanded}
+              searchControl={isDesktop ? searchField() : undefined}
               // Chips scroll sideways on narrow screens without a visible scrollbar
               // (Figma A-02); a desktop scrollbar would also make the bar taller
               // and cover the top of the pulled-up list.
@@ -175,6 +203,7 @@ function EventsPage() {
               scrollResetKey={JSON.stringify(search)}
               onVisibleHeightChange={setPanelPeekHeight}
               isHidden={selectedEvent !== undefined}
+              hasSearchRow={hasSearchRow}
             >
               <EventList
                 events={events ?? []}

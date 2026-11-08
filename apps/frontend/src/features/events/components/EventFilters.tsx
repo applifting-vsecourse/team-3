@@ -1,4 +1,4 @@
-import { useState } from "react"
+import { useState, type ReactNode } from "react"
 
 import { ActivityFilter } from "@/components/ActivityFilter/ActivityFilter"
 import { FilterChip } from "@/components/FilterChip/FilterChip"
@@ -32,6 +32,8 @@ type EventFiltersProps = {
   localityDefault?: LocalityDefault
   /** Mobile: the chips float over the map (Figma A-02) and need their own shadow. */
   isFloating?: boolean
+  /** Desktop: the search at the right end of the bar (Figma A-02d, #57). */
+  searchControl?: ReactNode
   className?: string
 }
 
@@ -44,6 +46,7 @@ export function EventFilters({
   onLocalityChange,
   localityDefault,
   isFloating,
+  searchControl,
   className,
 }: EventFiltersProps) {
   return (
@@ -90,6 +93,9 @@ export function EventFilters({
         >
           Zrušit vše
         </Button>
+      ) : null}
+      {searchControl ? (
+        <div className="ml-auto hidden w-72 shrink-0 md:block">{searchControl}</div>
       ) : null}
     </div>
   )

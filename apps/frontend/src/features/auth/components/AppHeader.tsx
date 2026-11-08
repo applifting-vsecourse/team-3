@@ -1,15 +1,18 @@
+import type { ReactNode } from "react"
+
 import { Header } from "@/components/Header/Header"
 
 import { HeaderMenu } from "@/features/auth/components/HeaderMenu"
 import { useSession } from "@/features/auth/hooks/useSession"
 
 /** The header with what depends on the session: the user menu and „Moje akce“. */
-export function AppHeader() {
+export function AppHeader({ screenAction }: { screenAction?: ReactNode } = {}) {
   const { user } = useSession()
   return (
     <Header
       userMenu={<HeaderMenu />}
       isSignedIn={Boolean(user)}
+      screenAction={screenAction}
     />
   )
 }
