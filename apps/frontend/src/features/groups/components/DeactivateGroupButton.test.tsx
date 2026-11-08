@@ -35,7 +35,7 @@ describe("DeactivateGroupButton", () => {
     const dialog = await screen.findByRole("dialog", { name: "Deaktivovat skupinu?" })
     expect(
       within(dialog).getByText(
-        "Florbal Praha 9 – pokročilí zmizí z hledání a nikdo nový se do ní nepřidá. Skupina se nemaže, členové i historie zůstanou.",
+        "Florbal Praha 9 – pokročilí zmizí z hledání a nikdo nový se nepřidá. Nadcházející akce skupiny se zruší. Členové i proběhlé akce zůstanou.",
       ),
     ).toBeInTheDocument()
 
@@ -52,5 +52,24 @@ describe("DeactivateGroupButton", () => {
 
     expect(api.post).toHaveBeenCalledWith("groups/g-florbal/deactivate")
     await waitFor(() => expect(onDeactivated).toHaveBeenCalledOnce())
+  })
+
+  it("its cancelled events go stale with the group (#70)", async () => {
+    const queryClient = new QueryClient()
+    const invalidate = vi.spyOn(queryClient, "invalidateQueries")
+    render(
+      <QueryClientProvider client={queryClient}>
+        <DeactivateGroupButton
+          groupId="g-florbal"
+          groupName="Florbal Praha 9 – pokročilí"
+          onDeactivated={vi.fn()}
+        />
+      </QueryClientProvider>,
+    )
+    await userEvent.click(screen.getByRole("button", { name: "Deaktivovat skupinu" }))
+    const dialog = await screen.findByRole("dialog")
+    await userEvent.click(within(dialog).getByRole("button", { name: "Deaktivovat skupinu" }))
+
+    await waitFor(() => expect(invalidate).toHaveBeenCalledWith({ queryKey: ["events"] }))
   })
 })

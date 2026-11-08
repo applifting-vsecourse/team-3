@@ -6,7 +6,8 @@ import { MyEventsTab } from '@/modules/event/domain/event';
  * sorting into tabs can be tested without a database (CI has none).
  * - `attending`: an approved place or a request still waiting, the user's own
  *   event too when they joined it (Q12);
- * - `organizing`: the events the user created.
+ * - `organizing`: the events the user created and the events of the groups
+ *   they are an active admin of (B-055), as they manage those too.
  * Both list upcoming events only (past ones are Proběhlé, #61), cancelled ones
  * with their label; hidden and deleted never.
  */
@@ -23,6 +24,17 @@ export const buildMyEventsWhere = (
             some: { userId, status: { in: ['approved', 'pending'] } },
           },
         }
-      : { organizerUserId: userId },
+      : {
+          OR: [
+            { organizerUserId: userId },
+            {
+              group: {
+                members: {
+                  some: { userId, role: 'admin', status: 'active' },
+                },
+              },
+            },
+          ],
+        },
   ],
 });

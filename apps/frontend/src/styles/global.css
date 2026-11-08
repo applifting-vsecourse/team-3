@@ -206,15 +206,26 @@
 }
 
 /* DESIGN.md › Capacity bar: below the minimum the fill is hatched — not confirmed yet.
-   Figma Capacity bar › Hatch: 3 px stripes at 45°, primary-foreground on primary (the same
-   in both modes). tokens.test.ts checks the stripes against each other and the hatch against
-   the track. No bg- prefix, or tailwind-merge would drop it next to a bg-* colour. */
+   Figma Capacity bar › Hatch: 3 px stripes at 45°, primary-foreground at 55 % over primary (the
+   same in both modes). tokens.test.ts checks the stripes against each other and the hatch
+   against the track. No bg- prefix, or tailwind-merge would drop it next to a bg-* colour. */
 @utility capacity-hatch {
   background-image: repeating-linear-gradient(
     -45deg,
     var(--primary) 0 3px,
-    var(--primary-foreground) 3px 6px
+    color-mix(in srgb, var(--primary-foreground) 55%, var(--primary)) 3px 6px
   );
+}
+
+/* DESIGN.md › Layout: the dark green band and the header on it. Inside, the kit's hover surface
+   and the focus ring switch to the band's tokens — the page's ring (dark green in light mode)
+   would vanish on the band. tokens.test.ts checks on-hero against hero. */
+@utility on-hero {
+  background-color: var(--hero);
+  color: var(--on-hero);
+  --ring: var(--on-hero);
+  --accent: var(--hero-pattern);
+  --accent-foreground: var(--on-hero);
 }
 
 /* DESIGN.md › Type: Figma text styles, mobile first and the desktop size from md up. The display
@@ -267,6 +278,15 @@
   font-weight: 700;
   font-size: 1.0625rem;
   line-height: 1.2;
+}
+
+/* Figma Heading/Card, Geist: a heading inside a content column or panel („O akci“, „Kam jdu“),
+   a bottom sheet's header, a group card's title */
+@utility type-card-heading {
+  font-weight: 600;
+  font-size: 1.0625rem;
+  line-height: 1.375rem;
+  letter-spacing: -0.01em;
 }
 
 /* the day number in the date tile: L detail, M grid card, S row card */

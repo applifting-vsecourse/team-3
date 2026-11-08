@@ -73,7 +73,10 @@ export function PopularEvents({ footer }: PopularEventsProps) {
           aria-label="Načítám akce"
         >
           {Array.from({ length: POPULAR_COUNT }, (_, i) => (
-            <EventCardSkeleton key={i} />
+            <EventCardSkeleton
+              key={i}
+              variant="responsive"
+            />
           ))}
         </div>
       ) : events.length === 0 ? (
@@ -85,6 +88,7 @@ export function PopularEvents({ footer }: PopularEventsProps) {
               {/* the cards of a row are as tall as the tallest */}
               <EventCard
                 event={event}
+                variant="responsive"
                 titleAs="h3"
                 className="h-full"
               />

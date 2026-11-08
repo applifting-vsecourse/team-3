@@ -1,7 +1,6 @@
 import type { ReactNode } from "react"
 
-import { Avatar, AvatarFallback } from "@/components/ui/avatar"
-import { initials } from "@/lib/initials"
+import { PersonAvatar } from "@/components/PersonAvatar/PersonAvatar"
 import { cn } from "@/lib/utils"
 
 type PersonRowProps = {
@@ -26,12 +25,7 @@ export function PersonRow({ name, description, quote, actions, className }: Pers
   const hasMore = Boolean(actions) || Boolean(quote)
   return (
     <div className={cn("flex min-w-0 gap-3", hasMore ? "items-start" : "items-center", className)}>
-      <Avatar size="lg">
-        {/* Figma: Avatar — initials on the quiet brand fill */}
-        <AvatarFallback className="bg-secondary font-semibold text-secondary-foreground">
-          {initials(name)}
-        </AvatarFallback>
-      </Avatar>
+      <PersonAvatar name={name} />
       <div className={cn("flex min-w-0 flex-col", hasMore && "gap-1")}>
         <span className="truncate text-sm font-semibold">{name}</span>
         {description ? (

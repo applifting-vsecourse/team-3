@@ -2,7 +2,7 @@ import { createFileRoute, useNavigate } from "@tanstack/react-router"
 import { toast } from "sonner"
 
 import { ROUTES } from "@/app/routes"
-import { BackLink } from "@/components/BackLink/BackLink"
+import { PageBand } from "@/components/PageBand/PageBand"
 import { Seo } from "@/components/Seo"
 import { useCatalog } from "@/hooks/useCatalog"
 import { FORM, PAGE } from "@/lib/pageLayout"
@@ -29,14 +29,14 @@ function NewEventPage() {
   return (
     <>
       <Seo title="Nová akce" />
+      <PageBand
+        title="Nová akce"
+        description={"Napiš, co, kdy a kde. Lidi se pak přidají sami."}
+        back={{ to: ROUTES.events, fallbackLabel: "Akce", label: "Akce" }}
+        isCompactOnMobile
+      />
       <div className={cn(PAGE, "gap-4")}>
-        <BackLink
-          to={ROUTES.events}
-          fallbackLabel="Akce"
-          label="Akce"
-        />
         <div className={FORM}>
-          <h1 className="text-3xl font-semibold tracking-tight md:text-4xl">Nová akce</h1>
           {catalog ? (
             <EventForm
               catalog={catalog}

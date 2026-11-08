@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest"
 
 import {
+  groupBandLine,
   groupCountLabel,
   groupFacts,
   memberCountLabel,
@@ -59,5 +60,16 @@ describe("myGroupTypeLabel", () => {
       "Neveřejná – žádost čeká na schválení",
     )
     expect(myGroupTypeLabel({ type: "public", membership: { status: "active" } })).toBe("Veřejná")
+  })
+})
+
+describe("groupBandLine (Figma A-08d)", () => {
+  it("type, locality and members", () => {
+    expect(groupBandLine({ type: "closed", locality: { name: "Praha 2" }, memberCount: 5 })).toBe(
+      "Neveřejná skupina · Praha 2 · 5 členů",
+    )
+    expect(groupBandLine({ type: "public", locality: { name: "Brno" }, memberCount: 1 })).toBe(
+      "Veřejná skupina · Brno · 1 člen",
+    )
   })
 })

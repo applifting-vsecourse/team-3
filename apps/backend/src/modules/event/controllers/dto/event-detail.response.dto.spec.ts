@@ -31,6 +31,7 @@ const aView = (overrides: Partial<EventDetailView> = {}): EventDetailView => ({
   participants: null,
   myParticipation: null,
   viewerSignedIn: false,
+  canManage: false,
   ...overrides,
 });
 
@@ -62,10 +63,18 @@ describe('EventDetailResponseDto.fromDomain', () => {
     ).toBe(true);
   });
 
-  it('does not send the visibility', () => {
-    expect(EventDetailResponseDto.fromDomain(aView())).not.toHaveProperty(
-      'visibility',
-    );
+  it('says whether the viewer manages the event (B-055)', () => {
+    expect(EventDetailResponseDto.fromDomain(aView()).canManage).toBe(false);
+    expect(
+      EventDetailResponseDto.fromDomain(aView({ canManage: true })).canManage,
+    ).toBe(true);
+  });
+
+  it('sends the visibility: the detail of a group event says who sees it (A-05g)', () => {
+    expect(
+      EventDetailResponseDto.fromDomain(aView({ visibility: 'members' }))
+        .visibility,
+    ).toBe('members');
   });
 
   it('refuses hidden and deleted events, which must have been 404', () => {

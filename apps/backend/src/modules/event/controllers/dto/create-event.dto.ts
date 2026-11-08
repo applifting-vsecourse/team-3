@@ -25,6 +25,8 @@ export const EVENT_DESCRIPTION_MAX_LENGTH = 2000;
 export const EVENT_ADDRESS_MAX_LENGTH = 200;
 export const EVENT_MAX_PARTICIPANTS = 500;
 export const APPROVAL_MODES = ['open', 'approval'] as const;
+/** A group's event (B-055): public, or only for the group's members. */
+export const GROUP_EVENT_VISIBILITIES = ['public', 'members'] as const;
 
 const trim = ({ value }: { value: unknown }): unknown =>
   typeof value === 'string' ? value.trim() : value;
@@ -164,4 +166,24 @@ export class CreateEventDto {
   })
   @IsIn(APPROVAL_MODES)
   approvalMode!: (typeof APPROVAL_MODES)[number];
+
+  @ApiPropertyOptional({
+    description:
+      "A group the user is an admin of (B-055): the event is the group's, with the group's activity",
+  })
+  @IsOptional()
+  @IsString()
+  @IsNotEmpty()
+  @MaxLength(100)
+  groupId?: string;
+
+  @ApiPropertyOptional({
+    enum: GROUP_EVENT_VISIBILITIES,
+    default: 'public',
+    description:
+      "members: only the group's members see the event and join it; only with groupId",
+  })
+  @IsOptional()
+  @IsIn(GROUP_EVENT_VISIBILITIES)
+  visibility?: (typeof GROUP_EVENT_VISIBILITIES)[number];
 }

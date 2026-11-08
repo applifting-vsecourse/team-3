@@ -1,6 +1,7 @@
 import { createRouter } from "@tanstack/react-router"
 
 import { AppLoadingScreen } from "@/components/AppLoadingScreen"
+import { rememberHistoryEntry } from "@/components/BackLink/backTarget"
 import { NotFound } from "@/components/Error/NotFound"
 import { RootErrorBoundary } from "@/components/Error/RootErrorBoundary"
 import { queryClient } from "@/config/react-query"
@@ -35,6 +36,11 @@ export const router = createRouter({
   defaultErrorComponent: ({ error }) => <RootErrorBoundary error={error} />,
   defaultPendingComponent: AppLoadingScreen,
 })
+
+// the back link names the page it returns to (BackLink, N9)
+router.subscribe("onResolved", ({ toLocation }) =>
+  rememberHistoryEntry(toLocation.state.__TSR_index, toLocation.pathname),
+)
 
 declare module "@tanstack/react-router" {
   // eslint-disable-next-line @typescript-eslint/consistent-type-definitions
