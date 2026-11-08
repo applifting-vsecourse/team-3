@@ -63,6 +63,9 @@ function EventsPage() {
   const selectedEvent = events?.find((event) => event.id === selectedId)
   const area = toMapArea(search.oblast)
   const [panelPeekHeight, setPanelPeekHeight] = useState(0)
+  // phone: the preview hides the list sheet and covers the map's bottom instead (review #276)
+  const [previewCover, setPreviewCover] = useState(0)
+  const mapBottomInset = selectedEvent ? previewCover : panelPeekHeight
   const locality = catalog?.localities.find((l) => l.slug === search.lokalita)
   const isMapVisible = isDesktop || !isListExpanded
 
@@ -193,11 +196,12 @@ function EventsPage() {
               aria-hidden={!isMapVisible}
               inert={!isMapVisible}
               // mobile: the OSM attribution sits bottom right just above the closed list
-              // sheet instead of hiding under it (! because leaflet.css isn't layered)
+              // sheet, or above the preview that took its place, instead of hiding under it
+              // (! because leaflet.css isn't layered)
               style={
                 isDesktop
                   ? undefined
-                  : ({ "--map-bottom-inset": `${panelPeekHeight}px` } as CSSProperties)
+                  : ({ "--map-bottom-inset": `${mapBottomInset}px` } as CSSProperties)
               }
               className={cn(
                 "absolute inset-0 md:static md:min-w-0 md:flex-1 md:py-8",
@@ -239,6 +243,7 @@ function EventsPage() {
             <EventMapPreview
               event={selectedEvent}
               isDesktop={false}
+              onCoverChange={setPreviewCover}
             />
           ) : null}
 

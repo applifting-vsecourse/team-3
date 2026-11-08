@@ -1,5 +1,5 @@
 import { screen, within } from "@testing-library/react"
-import { describe, expect, it } from "vitest"
+import { describe, expect, it, vi } from "vitest"
 
 import { renderWithRouter } from "@/test/renderWithRouter"
 
@@ -45,5 +45,20 @@ describe("EventMapPreview (#56)", () => {
     // the time and the place first, the description after them, at most two lines
     expect(line.compareDocumentPosition(summary) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
     expect(summary).toHaveClass("line-clamp-2")
+  })
+
+  it("phone: reports how much of the map it covers, its 16 px gap included (review #276)", async () => {
+    const onCoverChange = vi.fn()
+    await renderWithRouter(
+      <EventMapPreview
+        event={event}
+        isDesktop={false}
+        onCoverChange={onCoverChange}
+      />,
+    )
+
+    const preview = screen.getByRole("region", { name: "Náhled akce" })
+    // jsdom lays nothing out: the card's height is 0, so only the gap above the bottom is left
+    expect(onCoverChange).toHaveBeenLastCalledWith(preview.offsetHeight + 16)
   })
 })
