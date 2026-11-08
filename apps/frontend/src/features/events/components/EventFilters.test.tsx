@@ -117,6 +117,26 @@ describe("EventFilters", () => {
     expect(onClearAll).toHaveBeenCalledOnce()
   })
 
+  it("names no locality until the default is known, never Celé Česko for a moment", () => {
+    renderFilters({ search: {} })
+
+    expect(screen.getByRole("button", { name: "Lokalita" })).toBeDisabled()
+    expect(screen.queryByText("Celé Česko")).not.toBeInTheDocument()
+  })
+
+  it("hands a pick in the chip to the page to remember, apart from other filters", async () => {
+    const onLocalityChange = vi.fn()
+    const { onChange } = renderFilters({ onLocalityChange })
+
+    await userEvent.click(screen.getByRole("button", { name: "Lokalita: Praha" }))
+    const panel = await screen.findByRole("dialog", { name: "Lokalita" })
+    await userEvent.click(within(panel).getByRole("option", { name: "Praha 8" }))
+    await userEvent.click(await within(panel).findByRole("button", { name: "Zobrazit 1 akci" }))
+
+    expect(onLocalityChange).toHaveBeenCalledWith("praha-8")
+    expect(onChange).not.toHaveBeenCalled()
+  })
+
   it("picks a locality and previews how many events it shows", async () => {
     const { onChange } = renderFilters()
 
