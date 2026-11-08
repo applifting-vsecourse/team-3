@@ -31,7 +31,9 @@ export function BandTabsItem({ count, children, className, ...props }: BandTabsI
   return (
     <TabsTrigger
       className={cn(
-        "h-auto flex-none gap-1.5 rounded-none border-0 border-b-3 border-transparent px-0 pt-3 pb-2.5 text-body font-semibold text-on-hero-muted hover:text-on-hero",
+        // group/tab: the count pill follows the state. Inactive: muted and medium, so the active one
+        // differs by weight and pill, not only by the underline (on-hero vs on-hero-muted is 1.5:1)
+        "group/tab h-auto flex-none gap-1.5 rounded-none border-0 border-b-3 border-transparent px-0 pt-3 pb-2.5 text-body font-medium text-on-hero-muted hover:text-on-hero data-[state=active]:font-semibold",
         // the active one: cream with the lime underline; the kit's dark: classes are restated
         // (DESIGN.md › Colour), its line indicator and shadow are not used
         "data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:text-on-hero",
@@ -45,7 +47,7 @@ export function BandTabsItem({ count, children, className, ...props }: BandTabsI
       {/* the space keeps „Moje 3“ apart for a screen reader; flex layout ignores it */}
       {count === undefined ? null : " "}
       {count === undefined ? null : (
-        <span className="rounded-full border border-on-hero-muted bg-hero-pattern px-1.5 py-px text-xs font-semibold text-on-hero">
+        <span className="rounded-full border border-on-hero-muted bg-hero-pattern px-1.5 py-px text-xs font-semibold text-on-hero-muted group-data-[state=active]/tab:border-on-hero group-data-[state=active]/tab:text-on-hero">
           {count}
         </span>
       )}
