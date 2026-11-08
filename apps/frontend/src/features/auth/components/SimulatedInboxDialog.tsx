@@ -17,6 +17,8 @@ type SimulatedInboxDialogProps = {
   email: string
   /** Newest first, as the API sends them; undefined while they load. */
   messages: SimulatedEmail[] | undefined
+  /** Why the inbox didn't open, shown instead of the e-mail. */
+  errorMessage?: string
   /** Opening asks for the inbox again: the e-mail may have come after the last look. */
   onOpen: () => void
 }
@@ -26,7 +28,12 @@ type SimulatedInboxDialogProps = {
  * opens in the app instead, with its link. Only the newest one: it is the one
  * whose link works.
  */
-export function SimulatedInboxDialog({ email, messages, onOpen }: SimulatedInboxDialogProps) {
+export function SimulatedInboxDialog({
+  email,
+  messages,
+  errorMessage,
+  onOpen,
+}: SimulatedInboxDialogProps) {
   const latest = messages?.[0]
   return (
     <Dialog
@@ -49,7 +56,9 @@ export function SimulatedInboxDialog({ email, messages, onOpen }: SimulatedInbox
             Na tomhle prostředí se e-maily neodesílají – tady je, co by ti přišlo.
           </DialogDescription>
         </DialogHeader>
-        {latest ? (
+        {errorMessage ? (
+          <p role="alert">{errorMessage}</p>
+        ) : latest ? (
           <div className="flex flex-col gap-3">
             <div className="flex flex-col gap-1">
               <p className="font-semibold">{latest.subject}</p>

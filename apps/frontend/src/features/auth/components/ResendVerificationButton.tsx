@@ -17,7 +17,7 @@ type ResendVerificationButtonProps = Pick<ComponentProps<typeof Button>, "varian
    */
   from?: string
   /** The link is on its way, or the e-mail turned out to be verified already. */
-  onDone?: (result: "sent" | "already-verified") => void
+  onDone?: () => void
 }
 
 /**
@@ -45,7 +45,7 @@ export function ResendVerificationButton({
             onSuccess: (result) => {
               if (result === "already-verified") toast.success("E-mail už je ověřený.")
               else toast.success(`Nový odkaz je na cestě na ${email}. Platí 24 hodin.`)
-              onDone?.(result)
+              onDone?.()
             },
             onError: (error) => toast.error(error.message),
           },

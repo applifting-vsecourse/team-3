@@ -1,5 +1,5 @@
 import { useState } from "react"
-import { createFileRoute, Link, redirect, useNavigate } from "@tanstack/react-router"
+import { createFileRoute, Link, redirect } from "@tanstack/react-router"
 import { z } from "zod"
 
 import { ROUTES } from "@/app/routes"
@@ -34,7 +34,6 @@ export const Route = createFileRoute("/signup")({
 
 function SignUpPage() {
   const { from } = Route.useSearch()
-  const navigate = useNavigate()
   const signUp = useSignUp()
   const [errorMessage, setErrorMessage] = useState<string | null>(null)
   // #236: signed up, not signed in: the link from the e-mail comes first
@@ -80,10 +79,6 @@ function SignUpPage() {
             email={signedUp.email}
             password={signedUp.password}
             from={from}
-            // verified meanwhile (another tab): on to signing in
-            onAlreadyVerified={() =>
-              void navigate({ to: ROUTES.login, search: { from }, replace: true })
-            }
           />
         </AuthLayout>
       </>

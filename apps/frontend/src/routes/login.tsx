@@ -48,9 +48,9 @@ function LoginPage() {
   const [errorMessage, setErrorMessage] = useState<string | null>(
     error ? googleSignInErrorMessage(error) : null,
   )
-  // #236: the sign-in was refused because the e-mail isn't verified
+  // #236: what the refused sign-in was for; kept after „Zpět na přihlášení“ to fill the e-mail in
   const [unverified, setUnverified] = useState<InboxCredentials | null>(null)
-  const [lastEmail, setLastEmail] = useState<string>()
+  const [isVerifyStepShown, setIsVerifyStepShown] = useState(false)
 
   const handleSubmit = async (values: { email: string; password: string }) => {
     setErrorMessage(null)
@@ -64,8 +64,8 @@ function LoginPage() {
     } catch (error) {
       // only a verified e-mail signs in: not an error under the form, the next step instead
       if (error instanceof AuthRequestError && error.code === EMAIL_NOT_VERIFIED) {
-        setLastEmail(values.email)
         setUnverified(values)
+        setIsVerifyStepShown(true)
         return
       }
       setErrorMessage(
@@ -74,7 +74,7 @@ function LoginPage() {
     }
   }
 
-  if (unverified) {
+  if (unverified && isVerifyStepShown) {
     return (
       <>
         <Seo title="Ověř si e-mail" />
@@ -86,7 +86,7 @@ function LoginPage() {
             <Button
               variant="link"
               className="h-auto p-0 font-medium underline"
-              onClick={() => setUnverified(null)}
+              onClick={() => setIsVerifyStepShown(false)}
             >
               Zpět na přihlášení
             </Button>
@@ -96,7 +96,6 @@ function LoginPage() {
             email={unverified.email}
             password={unverified.password}
             from={from}
-            onAlreadyVerified={() => setUnverified(null)}
           />
         </AuthLayout>
       </>
@@ -126,7 +125,7 @@ function LoginPage() {
         }
       >
         <SignInForm
-          defaultEmail={lastEmail}
+          defaultEmail={unverified?.email}
           isLoading={signIn.isPending}
           errorMessage={errorMessage}
           onSubmit={handleSubmit}

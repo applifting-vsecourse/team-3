@@ -75,6 +75,12 @@ const stubApi = ({ inbox }: { inbox?: unknown } = {}) => {
       }
       if (input.url.endsWith("/simulated-inbox")) {
         inboxRequests.push({ method: input.method, body: await input.clone().json() })
+        if (inbox === 429) {
+          return json(
+            { statusCode: 429, message: "Příliš mnoho pokusů. Zkus to prosím za pár minut." },
+            429,
+          )
+        }
         if (typeof inbox === "number") {
           return json(
             { code: "INVALID_EMAIL_OR_PASSWORD", message: "Nesprávný e-mail nebo heslo." },
@@ -195,7 +201,7 @@ describe("signing in needs a verified e-mail (#236)", () => {
     })
   })
 
-  it("a refused inbox (somebody else's or a verified address) looks like an empty one", async () => {
+  it("a refused inbox (401) says to sign in if verified, without telling which case it is", async () => {
     stubApi({ inbox: 401 })
     signInEmail.mockResolvedValue({
       data: null,
@@ -207,10 +213,29 @@ describe("signing in needs a verified e-mail (#236)", () => {
     await userEvent.click(await screen.findByRole("button", { name: "Otevřít e-mail (simulace)" }))
 
     const dialog = await screen.findByRole("dialog", { name: "Simulovaná schránka" })
-    expect(
-      await within(dialog).findByText("Zatím tu nic není – pošli si odkaz znovu."),
-    ).toBeInTheDocument()
+    expect(await within(dialog).findByRole("alert")).toHaveTextContent(
+      /otevřít nepodařilo\. Jestli už máš e-mail ověřený, rovnou se přihlas\./,
+    )
+    expect(within(dialog).queryByText(/Zatím tu nic není/)).not.toBeInTheDocument()
     expect(within(dialog).queryByText(/Nesprávný/)).not.toBeInTheDocument()
+  })
+
+  it("too many looks (429) shows the API's message, not an empty inbox", async () => {
+    stubApi({ inbox: 429 })
+    signInEmail.mockResolvedValue({
+      data: null,
+      error: { code: "EMAIL_NOT_VERIFIED", status: 403 },
+    })
+    await renderApp("/login")
+    await signIn("eva.mala@example.com", "hobbyhub2026")
+
+    await userEvent.click(await screen.findByRole("button", { name: "Otevřít e-mail (simulace)" }))
+
+    const dialog = await screen.findByRole("dialog", { name: "Simulovaná schránka" })
+    expect(await within(dialog).findByRole("alert")).toHaveTextContent(
+      "Příliš mnoho pokusů. Zkus to prosím za pár minut.",
+    )
+    expect(within(dialog).queryByText(/Zatím tu nic není/)).not.toBeInTheDocument()
   })
 
   it("after the sign-up the user isn't signed in and is asked to open the e-mail", async () => {

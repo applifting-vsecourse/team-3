@@ -44,4 +44,7 @@ export const simulatedInboxQueryOptions = ({ email, password }: InboxCredentials
     // 404 means real e-mails: asking again (or on window focus) won't change it
     retry: false,
     refetchOnWindowFocus: false,
+    // gone once nobody looks: an account signed up again on the same e-mail with
+    // another password must not see the previous one's e-mails from the cache
+    gcTime: 0,
   })
