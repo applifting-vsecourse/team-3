@@ -32,7 +32,7 @@ export const eventsSearchSchema = z.object({
 
 export type EventsSearch = z.infer<typeof eventsSearchSchema>
 
-/** Whether „Zrušit vše“ has anything to clear. Praha is the default, not a filter. */
+/** Whether the URL has a filter for „Zrušit vše“ to clear; a remembered locality is the page's to add (useLocality). */
 export const hasActiveFilters = (search: EventsSearch): boolean =>
   hasCatalogFilters(search) ||
   search.od !== undefined ||

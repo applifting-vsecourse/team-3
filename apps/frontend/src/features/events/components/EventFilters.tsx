@@ -12,14 +12,16 @@ import { cn } from "@/lib/utils"
 import { DateFilter } from "@/features/events/components/DateFilter"
 import { OccupancyFilter } from "@/features/events/components/OccupancyFilter"
 import { useEvents } from "@/features/events/hooks/useEvents"
-import { hasActiveFilters, type EventsSearch } from "@/features/events/lib/eventsSearch"
+import type { EventsSearch } from "@/features/events/lib/eventsSearch"
 import { showEventsLabel } from "@/features/events/lib/formatEvent"
 
 type EventFiltersProps = {
+  /** The URL's filters with the shown locality in `lokalita`, the visitor's default included. */
   search: EventsSearch
   catalog: { localities: Locality[]; categories: ActivityCategory[] } | undefined
   onChange: (patch: Partial<EventsSearch>) => void
-  onClearAll: () => void
+  /** „Zrušit vše“; only when something was picked (a default locality isn't). */
+  onClearAll?: () => void
   /** Mobile: the chips float over the map (Figma A-02) and need their own shadow. */
   isFloating?: boolean
   className?: string
@@ -67,7 +69,7 @@ export function EventFilters({
         search={search}
         onChange={(obsazenost) => onChange({ obsazenost })}
       />
-      {hasActiveFilters(search) ? (
+      {onClearAll ? (
         <Button
           variant="ghost"
           // desktop only: on mobile it sits by the event count (EventList), always in view

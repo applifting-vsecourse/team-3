@@ -5,8 +5,9 @@ import { Map as MapIcon } from "lucide-react"
 import { PageBand } from "@/components/PageBand/PageBand"
 import { Seo } from "@/components/Seo"
 import { Button } from "@/components/ui/button"
+import { useLocality } from "@/hooks/useLocality"
 import { DESKTOP_QUERY, useMediaQuery } from "@/hooks/useMediaQuery"
-import { ALL_LOCALITIES_SLUG, DEFAULT_LOCALITY_SLUG } from "@/lib/catalog/localityOptions"
+import { ALL_LOCALITIES_SLUG } from "@/lib/catalog/localityOptions"
 import { cn } from "@/lib/utils"
 
 import { AppHeader } from "@/features/auth/components/AppHeader"
@@ -23,9 +24,7 @@ import {
   type EventsSearch,
 } from "@/features/events/lib/eventsSearch"
 
-// Praha, until the catalog has loaded
-const FALLBACK_CENTER = { lat: 50.0755, lng: 14.4378 }
-// Celé Česko without events: the whole country in view
+// Celé Česko, and until the locality is known: the whole country in view
 const CZECHIA_CENTER = { lat: 49.8, lng: 15.5, zoom: 7 }
 
 export const Route = createFileRoute("/akce")({
@@ -39,24 +38,38 @@ export const Route = createFileRoute("/akce")({
  * filters live in the URL, so they survive it too.
  */
 function EventsPage() {
-  const search = Route.useSearch()
+  const urlSearch = Route.useSearch()
   const navigate = Route.useNavigate()
-  const { events, catalog, isPending, error, retry } = useEvents(search)
   const session = useSession()
+  const shownLocality = useLocality(
+    urlSearch.lokalita,
+    session.isPending ? undefined : (session.user?.id ?? null),
+  )
+  // the filters as shown: the visitor's default locality (#55) when the URL has none
+  const search = { ...urlSearch, lokalita: shownLocality.slug }
+  const { events, catalog, isPending, error, retry } = useEvents(search, {
+    // nothing for all of Czechia first while the default locality loads
+    isEnabled: shownLocality.slug !== undefined,
+  })
   const isDesktop = useMediaQuery(DESKTOP_QUERY)
   const [panelSnap, setPanelSnap] = useState<PanelSnap>("peek")
   const isListExpanded = panelSnap === "list"
   const [highlightedId, setHighlightedId] = useState<string>()
   const [panelPeekHeight, setPanelPeekHeight] = useState(0)
-  const locality = catalog?.localities.find(
-    (l) => l.slug === (search.lokalita ?? DEFAULT_LOCALITY_SLUG),
-  )
+  const locality = catalog?.localities.find((l) => l.slug === search.lokalita)
   const isMapVisible = isDesktop || !isListExpanded
 
   // replace: changing a filter shouldn't fill the back button with filter states
-  const setSearch = (patch: Partial<EventsSearch>) =>
+  const setSearch = (patch: Partial<EventsSearch>) => {
+    if (patch.lokalita !== undefined) shownLocality.pick(patch.lokalita)
     void navigate({ search: (prev) => ({ ...prev, ...patch }), replace: true })
-  const clearFilters = () => void navigate({ search: {}, replace: true })
+  }
+  // also the remembered locality: back to the visitor's default (#55)
+  const clearFilters = () => {
+    shownLocality.forget()
+    void navigate({ search: {}, replace: true })
+  }
+  const canClear = hasActiveFilters(urlSearch) || shownLocality.isPicked
 
   return (
     <>
@@ -66,7 +79,7 @@ function EventsPage() {
           rest of the viewport (basis-0 + min-h-0) */}
       <main className="flex flex-1 flex-col md:min-h-0 md:basis-0">
         {/* Figma A-02d: „Akce v Praze 3“ needs the locality in the locative, which the catalog
-            does not have yet (#55); the line under the title names it in the nominative. The
+            does not have; the line under the title names it in the nominative. The
             quick picks come with #250. */}
         <PageBand
           variant="section"
@@ -98,7 +111,7 @@ function EventsPage() {
               search={search}
               catalog={catalog}
               onChange={setSearch}
-              onClearAll={clearFilters}
+              onClearAll={canClear ? clearFilters : undefined}
               isFloating={!isDesktop && !isListExpanded}
               // Chips scroll sideways on narrow screens without a visible scrollbar
               // (Figma A-02); a desktop scrollbar would also make the bar taller
@@ -122,7 +135,7 @@ function EventsPage() {
                 onRetry={retry}
                 highlightedId={highlightedId}
                 onHighlight={setHighlightedId}
-                onClearFilters={hasActiveFilters(search) ? clearFilters : undefined}
+                onClearFilters={canClear ? clearFilters : undefined}
                 empty={
                   <EmptyEvents
                     search={search}
@@ -159,7 +172,7 @@ function EventsPage() {
                   center={
                     search.lokalita === ALL_LOCALITIES_SLUG
                       ? CZECHIA_CENTER
-                      : (locality ?? FALLBACK_CENTER)
+                      : (locality ?? CZECHIA_CENTER)
                   }
                   hasZoomControl={isDesktop}
                 />

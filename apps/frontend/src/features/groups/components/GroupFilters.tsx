@@ -9,13 +9,15 @@ import { toActivitySearch, toActivitySelection, type Catalog } from "@/lib/catal
 
 import { useGroups } from "@/features/groups/hooks/useGroups"
 import { showGroupsLabel } from "@/features/groups/lib/formatGroup"
-import { hasActiveFilters, type GroupsSearch } from "@/features/groups/lib/groupsSearch"
+import type { GroupsSearch } from "@/features/groups/lib/groupsSearch"
 
 type GroupFiltersProps = {
+  /** The URL's filters with the shown locality in `lokalita`, the visitor's default included. */
   search: GroupsSearch
   catalog: Catalog | undefined
   onChange: (patch: Partial<GroupsSearch>) => void
-  onClearAll: () => void
+  /** „Zrušit vše“; only when something was picked (a default locality isn't). */
+  onClearAll?: () => void
 }
 
 /** The filter chips of /skupiny (Figma A-07): activity and locality, like on /akce. */
@@ -46,7 +48,7 @@ export function GroupFilters({ search, catalog, onChange, onClearAll }: GroupFil
           <FilterChip disabled>Lokalita</FilterChip>
         </>
       )}
-      {hasActiveFilters(search) ? (
+      {onClearAll ? (
         <Button
           variant="ghost"
           className="h-9 shrink-0"

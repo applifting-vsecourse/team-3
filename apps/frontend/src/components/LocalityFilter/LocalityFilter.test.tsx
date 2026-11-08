@@ -20,6 +20,9 @@ const localities = [
   locality("brno", "Brno"),
   locality("bruntal", "Bruntál"),
   locality("ceska-lipa", "Česká Lípa"),
+  locality("cernovice", "Černovice"),
+  locality("sezimovo-usti", "Sezimovo Ústí"),
+  locality("nova-paka", "Nová Paka"),
 ]
 
 const renderFilter = (value: string | undefined) => {
@@ -53,7 +56,7 @@ describe("LocalityFilter", () => {
   afterEach(() => vi.unstubAllGlobals())
 
   it("offers Celé Česko first, above Praha", async () => {
-    renderFilter(undefined)
+    renderFilter("praha")
     const panel = await openPanel("Lokalita: Praha")
 
     const [first, second] = within(panel).getAllByRole("option")
@@ -71,7 +74,7 @@ describe("LocalityFilter", () => {
   })
 
   it("Praha itself: „Zrušit výběr“ shows all of Czechia too", async () => {
-    const { onChange } = renderFilter(undefined)
+    const { onChange } = renderFilter("praha")
     const panel = await openPanel("Lokalita: Praha")
 
     await userEvent.click(within(panel).getByRole("button", { name: "Zrušit výběr" }))
@@ -83,7 +86,7 @@ describe("LocalityFilter", () => {
     const panel = await openPanel("Lokalita: Praha 8")
 
     await userEvent.click(within(panel).getByRole("button", { name: "Celá Praha" }))
-    expect(onChange).toHaveBeenCalledWith(undefined)
+    expect(onChange).toHaveBeenCalledWith("praha")
   })
 
   it("the reset follows the row being picked, before it is applied", async () => {
@@ -103,7 +106,7 @@ describe("LocalityFilter", () => {
   })
 
   it("opens with the focus in the search field, so typing a town finds it", async () => {
-    renderFilter(undefined)
+    renderFilter("praha")
     const panel = await openPanel("Lokalita: Praha")
 
     expect(within(panel).getByRole("combobox", { name: "Hledat lokalitu" })).toHaveFocus()
@@ -140,8 +143,28 @@ describe("LocalityFilter", () => {
     expect(list.scrollTop).toBe(0)
   })
 
+  it("ranks a name starting with the text first, then a word in it, then anywhere", async () => {
+    renderFilter("praha")
+    const panel = await openPanel("Lokalita: Praha")
+
+    await userEvent.keyboard("nov")
+    expect(
+      within(panel)
+        .getAllByRole("option")
+        .map((option) => option.textContent),
+    ).toEqual(["Nová Paka", "Černovice"])
+
+    await userEvent.clear(within(panel).getByRole("combobox", { name: "Hledat lokalitu" }))
+    await userEvent.keyboard("ust")
+    expect(
+      within(panel)
+        .getAllByRole("option")
+        .map((option) => option.textContent),
+    ).toEqual(["Sezimovo Ústí"])
+  })
+
   it("a town comes before Celé Česko: „česk“ is on its way to Česká Lípa", async () => {
-    const { onChange } = renderFilter(undefined)
+    const { onChange } = renderFilter("praha")
     const panel = await openPanel("Lokalita: Praha")
 
     await userEvent.keyboard("česk")

@@ -59,9 +59,9 @@ describe("groupsSearchSchema › tab", () => {
 })
 
 describe("hasActiveFilters", () => {
-  it("Praha is the default, not a filter", () => {
+  it("counts what is in the URL, Praha too (#55: no fixed default)", () => {
     expect(hasActiveFilters({})).toBe(false)
-    expect(hasActiveFilters({ lokalita: "praha" })).toBe(false)
+    expect(hasActiveFilters({ lokalita: "praha" })).toBe(true)
     expect(hasActiveFilters({ lokalita: "praha-9" })).toBe(true)
     expect(hasActiveFilters({ aktivita: "florbal" })).toBe(true)
   })
