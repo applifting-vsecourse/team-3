@@ -1,13 +1,12 @@
 import type { ReactNode } from "react"
 import { Link } from "@tanstack/react-router"
-import { Ban, CalendarDays, Lock, MapPin, RefreshCw, UserCheck } from "lucide-react"
+import { Ban, RefreshCw } from "lucide-react"
 
 import { ROUTES } from "@/app/routes"
 import { ActivityPhoto } from "@/components/ActivityPhoto/ActivityPhoto"
 import { BackLink, type BackLinkProps } from "@/components/BackLink/BackLink"
 import { CapacityBar } from "@/components/CapacityBar/CapacityBar"
 import { DateTile } from "@/components/DateTile/DateTile"
-import { DetailRow } from "@/components/DetailRow/DetailRow"
 import { HappeningStamp } from "@/components/HappeningStamp/HappeningStamp"
 import { MapView } from "@/components/map/MapView"
 import { BandActivity } from "@/components/PageBand/BandActivity"
@@ -23,15 +22,10 @@ import { PAGE } from "@/lib/pageLayout"
 import { cn } from "@/lib/utils"
 
 import type { EventDetail } from "@/features/events/api/eventSchemas"
+import { EventFacts } from "@/features/events/components/EventFacts"
 import { EventParticipants } from "@/features/events/components/EventParticipants"
 import { ShareEventButton } from "@/features/events/components/ShareEventButton"
-import {
-  approvalModeLabel,
-  eventDateParts,
-  formatEventStart,
-  formatEventTime,
-  placeName,
-} from "@/features/events/lib/formatEvent"
+import { eventDateParts, formatEventStart, placeName } from "@/features/events/lib/formatEvent"
 
 export type EventBack = Omit<BackLinkProps, "isIconOnlyOnMobile">
 
@@ -180,39 +174,7 @@ export function EventDetailView({
       isFull={event.isFull}
     />
   )
-  const facts = (
-    <dl className="flex flex-col gap-3 md:gap-4">
-      <DetailRow
-        icon={CalendarDays}
-        label="Kdy"
-      >
-        <time dateTime={event.startsAt.toISOString()}>
-          {formatEventTime(event.startsAt, event.endsAt)}
-        </time>
-      </DetailRow>
-      <DetailRow
-        icon={MapPin}
-        label="Kde"
-      >
-        {event.address}
-      </DetailRow>
-      <DetailRow
-        icon={UserCheck}
-        label="Přihlašování"
-      >
-        {approvalModeLabel(event.approvalMode)}
-      </DetailRow>
-      {event.group ? (
-        // Figma A-05g: a group's event says who sees it (B-055)
-        <DetailRow
-          icon={Lock}
-          label="Kdo akci vidí"
-        >
-          {event.visibility === "members" ? "Jen pro členy skupiny" : "Veřejná"}
-        </DetailRow>
-      ) : null}
-    </dl>
-  )
+  const facts = <EventFacts event={event} />
   const map = (
     <div className="h-40 overflow-hidden rounded-lg border border-input">
       <MapView
