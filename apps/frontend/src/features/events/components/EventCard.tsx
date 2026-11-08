@@ -70,6 +70,7 @@ export function EventCard({
   const isCancelled = event.status === "cancelled"
   const { time } = eventDateParts(event.startsAt)
   const place = placeName(event.address)
+  const cardNumbers = numbers ?? (isCancelled ? occupancyCount(event) : occupancyBesideBadge(event))
   const rowLine = [rowLead, time, ...(rowTail ? [rowTail] : [place, event.locality.name])]
     .filter(Boolean)
     .join(" · ")
@@ -162,14 +163,25 @@ export function EventCard({
           {/* the row card draws the numbers only as the bar, so a screen reader still gets them
               (a past event says who came in its line) */}
           {variant === "row" && status?.kind === "past" ? null : (
-            <span
-              className={cn(
-                "truncate text-caption font-medium text-muted-foreground",
-                { row: "sr-only", grid: null, responsive: "max-md:sr-only" }[variant],
-              )}
-            >
-              {numbers ?? (isCancelled ? occupancyCount(event) : occupancyBesideBadge(event))}
-            </span>
+            <>
+              {/* the row card and a phone show the numbers only to a screen reader — without
+                  „chybí N“ when the line already starts with it (DESIGN.md › Occupancy in words) */}
+              <span
+                className={cn(
+                  "truncate text-caption font-medium text-muted-foreground",
+                  {
+                    row: "sr-only",
+                    grid: null,
+                    responsive: rowLead ? "hidden md:inline" : "max-md:sr-only",
+                  }[variant],
+                )}
+              >
+                {variant === "row" && rowLead ? occupancyBesideBadge(event) : cardNumbers}
+              </span>
+              {variant === "responsive" && rowLead ? (
+                <span className="sr-only md:hidden">{occupancyBesideBadge(event)}</span>
+              ) : null}
+            </>
           )}
           {/* a cancelled or past event no longer fills up */}
           {isCancelled || status?.kind === "past" ? null : (
