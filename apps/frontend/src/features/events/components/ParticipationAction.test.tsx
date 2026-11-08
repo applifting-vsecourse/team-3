@@ -56,12 +56,18 @@ function Page({
   request,
   answer,
   numbersAfter = {},
+  isCacheFirst = false,
 }: {
   event: Partial<EventDetail>
   request: () => Promise<void>
   answer: EventDetail["myParticipation"]
   /** The occupancy the API answers with, e.g. the minimum reached by this place. */
   numbersAfter?: Partial<EventDetail>
+  /**
+   * As React Query does it: the cache (the page's detail) changes in `onSuccess`, before
+   * `mutateAsync` resolves — the action must not wait for the promise to know what happened.
+   */
+  isCacheFirst?: boolean
 }) {
   const [detail, setDetail] = useState(() => anEventDetail(event))
   const [isPending, setIsPending] = useState(false)
@@ -71,6 +77,7 @@ function Page({
       await request()
       const updated = { ...detail, ...numbersAfter, myParticipation: answer }
       setDetail(updated)
+      if (isCacheFirst) await new Promise((resolve) => setTimeout(resolve, 50))
       return updated
     } finally {
       setIsPending(false)
@@ -518,6 +525,27 @@ describe("ParticipationAction", () => {
     })
 
     // the page's numbers are from before the click; the API's answer decides
+    it("the thanks is there as soon as the place shows, not one render later (cache first)", async () => {
+      await renderWithRouter(
+        <Page
+          event={{ approvedCount: 3, minParticipants: 4, missingToMin: 1, freeSpots: 9 }}
+          request={() => Promise.resolve()}
+          answer="approved"
+          numbersAfter={{ approvedCount: 4, missingToMin: 0, freeSpots: 8 }}
+          isCacheFirst
+        />,
+      )
+
+      await userEvent.click(screen.getByRole("button", { name: "Přijdu" }))
+
+      // the place shows while `onJoin` is still out: the right line must be there already
+      await screen.findByText("Máš místo. Parta je o jednoho větší.")
+      expect(
+        screen.getByText("Díky tobě se akce koná – sešli se 4 lidé, minimum je 4."),
+      ).toBeInTheDocument()
+      expect(screen.queryByText(/Změny akce uvidíš/)).not.toBeInTheDocument()
+    })
+
     it("someone else reached the minimum meanwhile: no thanks, though the page said „chybí 1“", async () => {
       await renderWithRouter(
         <Page

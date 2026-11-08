@@ -14,13 +14,33 @@ const startFormat = new Intl.DateTimeFormat("cs-CZ", {
   minute: "2-digit",
 })
 
-/** "Pá 23. 10. · 17:30" */
-export function formatEventStart(date: Date): string {
+/**
+ * The parts of a start, in Prague time — every format below is built from them, so the
+ * code splitting a date exists once.
+ */
+function startParts(date: Date): { weekday: string; day: string; month: string; time: string } {
   const parts = startFormat.formatToParts(date)
   const get = (type: Intl.DateTimeFormatPartTypes) =>
     parts.find((part) => part.type === type)?.value ?? ""
-  const weekday = get("weekday")
-  return `${weekday.charAt(0).toUpperCase()}${weekday.slice(1)} ${get("day")}. ${get("month")}. · ${get("hour")}:${get("minute")}`
+  return {
+    weekday: get("weekday"),
+    day: get("day"),
+    month: get("month"),
+    time: `${get("hour")}:${get("minute")}`,
+  }
+}
+
+const capitalize = (text: string): string => `${text.charAt(0).toUpperCase()}${text.slice(1)}`
+
+/** A past event's day on its card (Karta akce/Proběhlá řádek): „Po 19. 10.“ */
+export function formatEventDay(date: Date): string {
+  const { weekday, day, month } = startParts(date)
+  return `${capitalize(weekday)} ${day}. ${month}.`
+}
+
+/** "Pá 23. 10. · 17:30" */
+export function formatEventStart(date: Date): string {
+  return `${formatEventDay(date)} · ${startParts(date).time}`
 }
 
 const timeFormat = new Intl.DateTimeFormat("cs-CZ", {
@@ -31,20 +51,8 @@ const timeFormat = new Intl.DateTimeFormat("cs-CZ", {
 
 /** The date tile on a card (Figma Karta akce › Datum): „Pá“, „23“, „18:30“. */
 export function eventDateParts(date: Date): { weekday: string; day: string; time: string } {
-  const parts = startFormat.formatToParts(date)
-  const get = (type: Intl.DateTimeFormatPartTypes) =>
-    parts.find((part) => part.type === type)?.value ?? ""
-  const weekday = get("weekday")
-  return {
-    weekday: `${weekday.charAt(0).toUpperCase()}${weekday.slice(1)}`,
-    day: get("day"),
-    time: timeFormat.format(date),
-  }
-}
-
-/** A past event's day on its card (Karta akce/Proběhlá řádek): „Po 19. 10.“ */
-export function formatEventDay(date: Date): string {
-  return formatEventStart(date).split(" · ")[0] ?? ""
+  const { weekday, day, time } = startParts(date)
+  return { weekday: capitalize(weekday), day, time }
 }
 
 const dayFormat = new Intl.DateTimeFormat("cs-CZ", {
@@ -81,10 +89,8 @@ export function formatRequestTime(date: Date): string {
 
 /** When an event starts, inside a sentence of the request dialog (#175): "pá 23. 10. v 17:30". */
 export function formatRequestEventStart(date: Date): string {
-  const parts = startFormat.formatToParts(date)
-  const get = (type: Intl.DateTimeFormatPartTypes) =>
-    parts.find((part) => part.type === type)?.value ?? ""
-  return `${get("weekday")} ${get("day")}. ${get("month")}. v ${get("hour")}:${get("minute")}`
+  const { weekday, day, month, time } = startParts(date)
+  return `${weekday} ${day}. ${month}. v ${time}`
 }
 
 const pragueDayFormat = new Intl.DateTimeFormat("en-CA", { timeZone: PRAGUE_TZ })

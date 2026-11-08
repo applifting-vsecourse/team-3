@@ -81,6 +81,36 @@ describe("EventCard", () => {
     expect(container.querySelector("[data-slot=capacity-track]")).toBeNull()
   })
 
+  it("a grid card's photo is full width on a phone, so the browser picks the big file", async () => {
+    const { container } = await renderWithRouter(
+      <EventCard
+        event={withActivity(florbal)}
+        variant="grid"
+      />,
+    )
+
+    expect(container.querySelector("[data-slot=event-photo] img")).toHaveAttribute(
+      "sizes",
+      "(min-width: 48rem) 400px, 100vw",
+    )
+  })
+
+  it("a phone's screen reader hears „chybí N“ once: the line has it, the numbers don't", async () => {
+    const { container } = await renderWithRouter(
+      <EventCard
+        event={anEvent({ approvedCount: 3, minParticipants: 4, missingToMin: 1 })}
+        variant="responsive"
+        status={{ kind: "going" }}
+        rowLead="chybí 1"
+        numbers="chybí 1 · 3 z 12 · min. 4"
+      />,
+    )
+
+    const phoneOnly = container.querySelector(String.raw`.sr-only.md\:hidden`)
+    expect(phoneOnly).toHaveTextContent("3 z 12 · min. 4")
+    expect(phoneOnly).not.toHaveTextContent("chybí")
+  })
+
   it("a cancelled event shows only its count and no bar", async () => {
     const { container } = await renderWithRouter(
       <EventCard
