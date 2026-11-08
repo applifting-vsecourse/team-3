@@ -1,6 +1,7 @@
 import { Share } from "lucide-react"
 import { toast } from "sonner"
 
+import { ROUTES } from "@/app/routes"
 import { Button } from "@/components/ui/button"
 
 type ShareEventButtonProps = {
@@ -25,7 +26,8 @@ export function ShareEventButton({
   className,
 }: ShareEventButtonProps) {
   const share = async () => {
-    const url = new URL(`/akce/${encodeURIComponent(event.id)}`, window.location.origin).href
+    const path = ROUTES.eventDetail.replace("$eventId", encodeURIComponent(event.id))
+    const url = new URL(path, window.location.origin).href
     if (shouldUseShareSheet && typeof navigator.share === "function") {
       try {
         await navigator.share({ title: event.title, url })
