@@ -1,4 +1,4 @@
-import { useMemo, useRef, useState, type RefObject } from "react"
+import { useMemo, useRef, useState, type ReactNode, type RefObject } from "react"
 import { Check } from "lucide-react"
 
 import { FilterChip } from "@/components/FilterChip/FilterChip"
@@ -10,6 +10,7 @@ import {
   CommandItem,
   CommandList,
 } from "@/components/ui/command"
+import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group"
 import { useScrollToPicked } from "@/hooks/useScrollToPicked"
 import type { Locality } from "@/lib/catalog/catalogSchemas"
 import {
@@ -35,15 +36,30 @@ export type LocalityDefault = {
   onReset: () => void
 }
 
+/** „Okolí“ around the locality's centre (#57, Figma A-02gd): km as strings, e.g. ["10", "25", "50"]. */
+export type LocalityRadius = {
+  /** The applied radius; undefined = „Jen obec“. */
+  value: string | undefined
+  options: readonly string[]
+}
+
+/** What the panel is picking: the locality and, with `radius`, the okolí around it. */
+export type LocalityDraft = { slug: string; radius: string | undefined }
+
+const JUST_THE_LOCALITY = "obec"
+
 type LocalityFilterProps = {
   /** The shown locality's slug, the visitor's default included (useLocality); undefined is Celé Česko. */
   value: string | undefined
   localities: Locality[]
-  onChange: (slug: string) => void
+  /** The picked locality, and its okolí when the filter has `radius` (none for Celé Česko). */
+  onChange: (slug: string, radius?: string) => void
   /** The apply button, e.g. „Zobrazit 12 akcí“ for the locality being picked. */
   applyLabel: string
-  /** The slug being picked while the panel is open, undefined once it closes, so the page can preview its result. */
-  onDraftChange?: (draft: string | undefined) => void
+  /** What is being picked while the panel is open, undefined once it closes, so the page can preview its result. */
+  onDraftChange?: (draft: LocalityDraft | undefined) => void
+  /** Offers „Okolí: Jen obec / +10 / +25 / +50 km“ (#57); only /akce has it. */
+  radius?: LocalityRadius
   /** On the lists and the landing page; without it „Zrušit výběr“ goes to Celé Česko. */
   localityDefault?: LocalityDefault
   /** The list is limited to an area of the map instead (#56): the chip names it, e.g. „Výřez mapy“. */
@@ -59,18 +75,25 @@ export function LocalityFilter({
   onDraftChange,
   localityDefault,
   areaLabel,
+  radius,
 }: LocalityFilterProps) {
   const current = value ?? ALL_LOCALITIES_SLUG
   const [isOpen, setIsOpen] = useState(false)
   const [draft, setDraft] = useState(current)
+  const [draftRadius, setDraftRadius] = useState(radius?.value)
   const searchRef = useRef<HTMLInputElement>(null)
 
   const currentName = localityName(current, localities)
-  const isDefault = localityDefault?.isDefault ?? false
+  // Celé Česko has no centre to measure from
+  const appliedRadius = current === ALL_LOCALITIES_SLUG ? undefined : radius?.value
+  // okolí is a filter: the chip turns dark even around the default locality
+  const isDefault = (localityDefault?.isDefault ?? false) && !appliedRadius
   const chipLabel =
-    currentName && isDefault && localityDefault?.hint
-      ? `${currentName} · ${localityDefault.hint}`
-      : currentName
+    currentName && appliedRadius
+      ? `${currentName} · +${appliedRadius} km`
+      : currentName && isDefault && localityDefault?.hint
+        ? `${currentName} · ${localityDefault.hint}`
+        : currentName
   // follows what is picked: a district goes back to its city, anything else to the
   // visitor's default (or Celé Česko without one)
   const cityReset = localityReset(draft, localities)
@@ -78,13 +101,17 @@ export function LocalityFilter({
   const reset = isResetToDefault
     ? { label: "Zrušit výběr", isDisabled: !areaLabel && isDefault && draft === current }
     : { label: cityReset.label, isDisabled: cityReset.slug === undefined }
-  const updateDraft = (slug: string) => {
+  const radiusFor = (slug: string, km: string | undefined) =>
+    slug === ALL_LOCALITIES_SLUG ? undefined : km
+  const updateDraft = (slug: string, km = draftRadius) => {
     setDraft(slug)
-    onDraftChange?.(slug)
+    setDraftRadius(km)
+    onDraftChange?.({ slug, radius: radiusFor(slug, km) })
   }
   // Always the slug, the default's too: a pick is remembered (#55) and „Zrušit vše“ undoes it.
-  const apply = (slug: string) => {
-    onChange(slug)
+  const apply = (slug: string, km?: string) => {
+    if (radius) onChange(slug, radiusFor(slug, km))
+    else onChange(slug)
     setIsOpen(false)
     onDraftChange?.(undefined)
   }
@@ -94,7 +121,7 @@ export function LocalityFilter({
       title="Lokalita"
       isOpen={isOpen}
       onOpenChange={(isOpening) => {
-        if (isOpening) updateDraft(current)
+        if (isOpening) updateDraft(current, appliedRadius)
         else onDraftChange?.(undefined)
         setIsOpen(isOpening)
       }}
@@ -115,19 +142,30 @@ export function LocalityFilter({
           setIsOpen(false)
           onDraftChange?.(undefined)
         } else if (cityReset.slug !== undefined) {
-          apply(cityReset.slug)
+          apply(cityReset.slug, draftRadius)
         }
       }}
       applyLabel={applyLabel}
-      onApply={() => apply(draft)}
+      onApply={() => apply(draft, draftRadius)}
       popoverClassName="w-80"
       initialFocusRef={searchRef}
     >
       <LocalitySearch
         localities={localities}
         draft={draft}
-        onPick={updateDraft}
+        onPick={(slug) => updateDraft(slug)}
         inputRef={searchRef}
+        between={
+          radius ? (
+            <RadiusPicker
+              options={radius.options}
+              value={draftRadius}
+              // no centre to measure from in all of Czechia
+              isDisabled={draft === ALL_LOCALITIES_SLUG}
+              onChange={(km) => updateDraft(draft, km)}
+            />
+          ) : null
+        }
       />
     </FilterPanel>
   )
@@ -139,11 +177,14 @@ function LocalitySearch({
   draft,
   onPick,
   inputRef,
+  between,
 }: {
   localities: Locality[]
   draft: string
   onPick: (slug: string) => void
   inputRef: RefObject<HTMLInputElement | null>
+  /** Between the search field and the list, e.g. the okolí (Figma A-02gd). */
+  between?: ReactNode
 }) {
   const listRef = useRef<HTMLDivElement>(null)
   const options = useMemo(() => localityOptions(localities), [localities])
@@ -221,6 +262,7 @@ function LocalitySearch({
           // 16 px on phones, or iOS zooms in on the field
           className="text-base md:text-sm"
         />
+        {between}
         <CommandList
           ref={listRef}
           className="max-h-72"
@@ -235,5 +277,58 @@ function LocalitySearch({
         </CommandList>
       </Command>
     </>
+  )
+}
+
+/**
+ * „Okolí: Jen obec / +10 km / +25 km / +50 km“ (#57, Figma A-02gd): one choice, as chips. It
+ * sits inside the locality search, whose keys (Enter, arrows) would otherwise move the list.
+ */
+function RadiusPicker({
+  options,
+  value,
+  isDisabled,
+  onChange,
+}: {
+  options: readonly string[]
+  value: string | undefined
+  isDisabled: boolean
+  onChange: (km: string | undefined) => void
+}) {
+  return (
+    <div
+      role="presentation"
+      onKeyDown={(event) => event.stopPropagation()}
+      className="flex flex-col gap-2"
+    >
+      <p
+        id="okoli"
+        className="text-sm font-semibold"
+      >
+        Okolí
+      </p>
+      <ToggleGroup
+        type="single"
+        aria-labelledby="okoli"
+        value={value ?? JUST_THE_LOCALITY}
+        // a single group can be emptied by a second click; „Jen obec“ is its empty state
+        onValueChange={(next) => onChange(next && next !== JUST_THE_LOCALITY ? next : undefined)}
+        disabled={isDisabled}
+        spacing={2}
+        className="flex-wrap"
+      >
+        {[JUST_THE_LOCALITY, ...options].map((option) => (
+          <ToggleGroupItem
+            key={option}
+            value={option}
+            variant="outline"
+            // Figma: the chips of the filter bar, dark when picked
+            className="h-9 rounded-full px-4 data-[state=on]:border-foreground data-[state=on]:bg-foreground data-[state=on]:font-semibold data-[state=on]:text-background"
+          >
+            {option === JUST_THE_LOCALITY ? "Jen obec" : `+${option} km`}
+          </ToggleGroupItem>
+        ))}
+      </ToggleGroup>
+    </div>
   )
 }

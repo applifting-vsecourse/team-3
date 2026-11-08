@@ -133,7 +133,7 @@ describe("EventFilters", () => {
     await userEvent.click(within(panel).getByRole("option", { name: "Praha 8" }))
     await userEvent.click(await within(panel).findByRole("button", { name: "Zobrazit 1 akci" }))
 
-    expect(onLocalityChange).toHaveBeenCalledWith("praha-8")
+    expect(onLocalityChange).toHaveBeenCalledWith("praha-8", undefined)
     expect(onChange).not.toHaveBeenCalled()
   })
 
@@ -149,6 +149,41 @@ describe("EventFilters", () => {
     await userEvent.click(within(panel).getByRole("option", { name: "Praha 8" }))
     await userEvent.click(await within(panel).findByRole("button", { name: "Zobrazit 1 akci" }))
     expect(onChange).toHaveBeenCalledWith({ lokalita: "praha-8" })
+  })
+
+  it("picks okolí with the locality: the chip says it and the API gets the circle (#57)", async () => {
+    const { onChange } = renderFilters()
+
+    await userEvent.click(screen.getByRole("button", { name: "Lokalita: Praha" }))
+    const panel = await screen.findByRole("dialog", { name: "Lokalita" })
+    const okoli = within(panel).getByRole("radiogroup", { name: "Okolí" })
+    expect(within(okoli).getByRole("radio", { name: "Jen obec" })).toBeChecked()
+    get.mockClear()
+    await userEvent.click(within(okoli).getByRole("radio", { name: "+10 km" }))
+    await within(panel).findByRole("button", { name: /^Zobrazit \d/ })
+    const params = get.mock.calls.filter(([path]) => path === "events").at(-1)?.[1]?.searchParams
+    expect(params?.get("radiusKm")).toBe("10")
+    expect(params?.get("lat")).not.toBeNull()
+    expect(params?.get("localityId")).toBeNull()
+
+    await userEvent.click(within(panel).getByRole("button", { name: /^Zobrazit/ }))
+    expect(onChange).toHaveBeenCalledWith({ lokalita: "praha", okoli: "10" })
+  })
+
+  it("names okolí on a dark chip", () => {
+    renderFilters({ search: { lokalita: "praha-8", okoli: "25" } })
+
+    expect(screen.getByRole("button", { name: "Lokalita: Praha 8 · +25 km" })).toHaveClass(
+      "bg-foreground",
+    )
+  })
+
+  it("offers no okolí for all of Czechia", async () => {
+    renderFilters({ search: { lokalita: "cele-cesko" } })
+
+    await userEvent.click(screen.getByRole("button", { name: "Lokalita: Celé Česko" }))
+    const panel = await screen.findByRole("dialog", { name: "Lokalita" })
+    expect(within(panel).getByRole("radio", { name: "+10 km" })).toBeDisabled()
   })
 
   it("finds a locality without diacritics and applies Praha by its slug, like any pick", async () => {

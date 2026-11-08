@@ -25,6 +25,7 @@ import {
   toMapArea,
   toOblast,
   type EventsSearch,
+  type Radius,
 } from "@/features/events/lib/eventsSearch"
 
 // Celé Česko, and until the locality is known: the whole country in view
@@ -87,10 +88,10 @@ function EventsPage() {
     const withArea = patch.lokalita !== undefined ? { ...patch, oblast: undefined } : patch
     void navigate({ search: (prev) => ({ ...prev, ...withArea }), replace: true })
   }
-  // a pick in the locality chip: remembered in this browser (#55)
-  const pickLocality = (lokalita: string) => {
+  // a pick in the locality chip: remembered in this browser (#55), with its okolí (#57)
+  const pickLocality = (lokalita: string, okoli?: Radius) => {
     shownLocality.pick(lokalita)
-    setSearch({ lokalita })
+    setSearch({ lokalita, okoli })
   }
   // also the remembered locality: back to the visitor's default (#55)
   const clearFilters = () => {
@@ -102,7 +103,7 @@ function EventsPage() {
   const clearLocality = () => {
     shownLocality.forget()
     void navigate({
-      search: (prev) => ({ ...prev, lokalita: undefined, oblast: undefined }),
+      search: (prev) => ({ ...prev, lokalita: undefined, oblast: undefined, okoli: undefined }),
       replace: true,
     })
   }
