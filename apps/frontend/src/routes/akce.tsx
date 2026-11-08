@@ -1,4 +1,4 @@
-import { useState, type CSSProperties } from "react"
+import { useEffect, useState, type CSSProperties } from "react"
 import { createFileRoute } from "@tanstack/react-router"
 import { Map as MapIcon } from "lucide-react"
 
@@ -15,12 +15,15 @@ import { useSession } from "@/features/auth/hooks/useSession"
 import { EmptyEvents } from "@/features/events/components/EmptyEvents"
 import { EventFilters } from "@/features/events/components/EventFilters"
 import { EventList } from "@/features/events/components/EventList"
+import { EventMapPreview } from "@/features/events/components/EventMapPreview"
 import { EventsMap } from "@/features/events/components/EventsMap"
 import { ListPanel, type PanelSnap } from "@/features/events/components/ListPanel"
 import { useEvents } from "@/features/events/hooks/useEvents"
 import {
   eventsSearchSchema,
   hasActiveFilters,
+  toMapArea,
+  toOblast,
   type EventsSearch,
 } from "@/features/events/lib/eventsSearch"
 
@@ -55,14 +58,30 @@ function EventsPage() {
   const [panelSnap, setPanelSnap] = useState<PanelSnap>("peek")
   const isListExpanded = panelSnap === "list"
   const [highlightedId, setHighlightedId] = useState<string>()
+  // the tapped pin's event (#56); gone with the filters that showed it
+  const [selectedId, setSelectedId] = useState<string>()
+  const selectedEvent = events?.find((event) => event.id === selectedId)
+  const area = toMapArea(search.oblast)
   const [panelPeekHeight, setPanelPeekHeight] = useState(0)
   const locality = catalog?.localities.find((l) => l.slug === search.lokalita)
   const isMapVisible = isDesktop || !isListExpanded
 
+  // Escape closes the preview, like a tap into the map
+  useEffect(() => {
+    if (!selectedEvent) return
+    const onKey = (event: KeyboardEvent) => {
+      if (event.key === "Escape") setSelectedId(undefined)
+    }
+    window.addEventListener("keydown", onKey)
+    return () => window.removeEventListener("keydown", onKey)
+  }, [selectedEvent])
+
   // replace: changing a filter shouldn't fill the back button with filter states
   const setSearch = (patch: Partial<EventsSearch>) => {
+    // a locality replaces the searched area (and the other way round)
     if (patch.lokalita !== undefined) shownLocality.pick(patch.lokalita)
-    void navigate({ search: (prev) => ({ ...prev, ...patch }), replace: true })
+    const withArea = patch.lokalita !== undefined ? { ...patch, oblast: undefined } : patch
+    void navigate({ search: (prev) => ({ ...prev, ...withArea }), replace: true })
   }
   // also the remembered locality: back to the visitor's default (#55)
   const clearFilters = () => {
@@ -73,7 +92,10 @@ function EventsPage() {
   // „Zrušit výběr“ in the locality panel: back to the default, the other filters stay
   const clearLocality = () => {
     shownLocality.forget()
-    void navigate({ search: (prev) => ({ ...prev, lokalita: undefined }), replace: true })
+    void navigate({
+      search: (prev) => ({ ...prev, lokalita: undefined, oblast: undefined }),
+      replace: true,
+    })
   }
 
   return (
@@ -90,12 +112,14 @@ function EventsPage() {
           variant="section"
           title="Akce"
           description={
-            search.lokalita === ALL_LOCALITIES_SLUG
-              ? "Nadcházející akce v celém Česku."
-              : locality
-                ? `Nadcházející akce v lokalitě ${locality.name}.`
-                : // the line keeps its place until the catalog names the locality
-                  " "
+            area
+              ? "Nadcházející akce ve výřezu mapy."
+              : search.lokalita === ALL_LOCALITIES_SLUG
+                ? "Nadcházející akce v celém Česku."
+                : locality
+                  ? `Nadcházející akce v lokalitě ${locality.name}.`
+                  : // the line keeps its place until the catalog names the locality
+                    " "
           }
         />
         {/* Desktop: the rest under the band, the list scrolls on its own and the map fills
@@ -132,6 +156,7 @@ function EventsPage() {
               onSnapChange={setPanelSnap}
               scrollResetKey={JSON.stringify(search)}
               onVisibleHeightChange={setPanelPeekHeight}
+              isHidden={selectedEvent !== undefined}
             >
               <EventList
                 events={events ?? []}
@@ -139,7 +164,8 @@ function EventsPage() {
                 error={error}
                 // Only the error state offers a retry; refocusing the tab refetches.
                 onRetry={retry}
-                highlightedId={highlightedId}
+                // desktop: the selected pin's card stays marked in the list (Figma A-03ad)
+                highlightedId={highlightedId ?? selectedEvent?.id}
                 onHighlight={setHighlightedId}
                 onClearFilters={canClear ? clearFilters : undefined}
                 empty={
@@ -171,10 +197,20 @@ function EventsPage() {
                 !isDesktop && "[&_.leaflet-bottom]:bottom-(--map-bottom-inset)!",
               )}
             >
-              <div className="size-full overflow-hidden md:rounded-2xl md:border md:border-card-border">
+              <div className="relative size-full overflow-hidden md:rounded-2xl md:border md:border-card-border">
                 <EventsMap
                   events={events ?? []}
                   highlightedId={highlightedId}
+                  selectedId={selectedEvent?.id}
+                  onSelect={setSelectedId}
+                  area={area}
+                  onAreaSearch={(searched) => {
+                    setSelectedId(undefined)
+                    void navigate({
+                      search: (prev) => ({ ...prev, oblast: toOblast(searched) }),
+                      replace: true,
+                    })
+                  }}
                   center={
                     search.lokalita === ALL_LOCALITIES_SLUG
                       ? CZECHIA_CENTER
@@ -182,9 +218,22 @@ function EventsPage() {
                   }
                   hasZoomControl={isDesktop}
                 />
+                {selectedEvent && isDesktop ? (
+                  <EventMapPreview
+                    event={selectedEvent}
+                    isDesktop
+                  />
+                ) : null}
               </div>
             </div>
           </div>
+
+          {selectedEvent && !isDesktop ? (
+            <EventMapPreview
+              event={selectedEvent}
+              isDesktop={false}
+            />
+          ) : null}
 
           {isListExpanded ? (
             // Figma: Map action „Mapa“ over the pulled-up list

@@ -430,7 +430,7 @@ Doménová logika (čistá funkce + testy): `approvedCount`, `missingToMin = max
 
 **Hotovo, když:**
 
-- [ ] Při 500 bodech je mapa čitelná díky shlukům.
+- [x] Při 500 bodech je mapa čitelná díky shlukům.
 - [ ] Hledání najde akci podle názvu i klíčového slova aktivity bez ohledu na velikost písmen a diakritiku.
 - [ ] Testy where-builderu pro okolí.
 

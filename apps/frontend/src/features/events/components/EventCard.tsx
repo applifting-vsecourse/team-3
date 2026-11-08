@@ -46,6 +46,11 @@ type EventCardProps = {
   titleAs?: "h2" | "h3"
   /** The management's card leaves the occupancy to the big bar under it (Figma D-03). */
   hasBar?: boolean
+  /**
+   * The grid card's line under the title: the start of the description instead of the place,
+   * as in the map preview (Figma A-03ad, #56).
+   */
+  summary?: string | null
   className?: string
 }
 
@@ -68,6 +73,7 @@ export function EventCard({
   linkTo = "detail",
   titleAs: Title = "h2",
   hasBar = true,
+  summary,
   className,
 }: EventCardProps) {
   const isCancelled = event.status === "cancelled"
@@ -143,7 +149,9 @@ export function EventCard({
             {rowLine}
           </p>
         )}
-        {variant === "row" ? null : (
+        {variant === "row" ? null : summary ? (
+          <p className="line-clamp-2 text-sm text-muted-foreground">{summary}</p>
+        ) : (
           <p
             className={cn(
               "truncate text-sm text-muted-foreground",

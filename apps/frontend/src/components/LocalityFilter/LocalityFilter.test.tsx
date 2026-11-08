@@ -220,4 +220,25 @@ describe("LocalityFilter", () => {
       expect(onReset).not.toHaveBeenCalled()
     })
   })
+
+  it("names the searched map area on a dark chip, and „Zrušit výběr“ goes back to the default", async () => {
+    const onReset = vi.fn()
+    const onChange = vi.fn()
+    render(
+      <LocalityFilter
+        value="praha"
+        localities={localities}
+        onChange={onChange}
+        applyLabel="Zobrazit akce"
+        localityDefault={{ isDefault: true, onReset }}
+        areaLabel="Výřez mapy"
+      />,
+    )
+
+    const chip = screen.getByRole("button", { name: "Lokalita: Výřez mapy" })
+    expect(chip).toHaveClass("bg-foreground")
+    const panel = await openPanel("Lokalita: Výřez mapy")
+    await userEvent.click(within(panel).getByRole("button", { name: "Zrušit výběr" }))
+    expect(onReset).toHaveBeenCalledOnce()
+  })
 })

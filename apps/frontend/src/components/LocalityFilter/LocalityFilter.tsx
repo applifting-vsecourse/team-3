@@ -46,6 +46,8 @@ type LocalityFilterProps = {
   onDraftChange?: (draft: string | undefined) => void
   /** On the lists and the landing page; without it „Zrušit výběr“ goes to Celé Česko. */
   localityDefault?: LocalityDefault
+  /** The list is limited to an area of the map instead (#56): the chip names it, e.g. „Výřez mapy“. */
+  areaLabel?: string
 }
 
 /** Chip „Brno“ › one locality or Celé Česko; a city includes its districts. */
@@ -56,6 +58,7 @@ export function LocalityFilter({
   applyLabel,
   onDraftChange,
   localityDefault,
+  areaLabel,
 }: LocalityFilterProps) {
   const current = value ?? ALL_LOCALITIES_SLUG
   const [isOpen, setIsOpen] = useState(false)
@@ -73,7 +76,7 @@ export function LocalityFilter({
   const cityReset = localityReset(draft, localities)
   const isResetToDefault = localityDefault && cityReset.label === "Zrušit výběr"
   const reset = isResetToDefault
-    ? { label: "Zrušit výběr", isDisabled: isDefault && draft === current }
+    ? { label: "Zrušit výběr", isDisabled: !areaLabel && isDefault && draft === current }
     : { label: cityReset.label, isDisabled: cityReset.slug === undefined }
   const updateDraft = (slug: string) => {
     setDraft(slug)
@@ -98,10 +101,10 @@ export function LocalityFilter({
       trigger={
         <FilterChip
           // the default is no filter: a light chip, dark only once picked
-          isSelected={Boolean(currentName) && !isDefault}
+          isSelected={Boolean(areaLabel) || (Boolean(currentName) && !isDefault)}
           filterName="Lokalita"
         >
-          {chipLabel ?? "Lokalita"}
+          {areaLabel ?? chipLabel ?? "Lokalita"}
         </FilterChip>
       }
       resetLabel={reset.label}
