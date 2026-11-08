@@ -25,16 +25,31 @@ export function BandTabs({ className, ...props }: ComponentProps<typeof TabsList
 type BandTabsItemProps = ComponentProps<typeof TabsTrigger> & {
   /** The number in the pill; left out while it is not known. */
   count?: number
+  /**
+   * `page`: the same tabs on the page's background (Figma Tab/Rychlý výběr, Pozadí=Světlé —
+   * „Pro tebe“ on the landing page, A-01p): the active one with a `foreground` underline.
+   */
+  surface?: "band" | "page"
 }
 
-export function BandTabsItem({ count, children, className, ...props }: BandTabsItemProps) {
+export function BandTabsItem({
+  count,
+  surface = "band",
+  children,
+  className,
+  ...props
+}: BandTabsItemProps) {
+  const isOnPage = surface === "page"
   return (
     <TabsTrigger
       className={cn(
-        "h-auto flex-none gap-1.5 rounded-none border-0 border-b-3 border-transparent px-0 pt-3 pb-2.5 text-body font-semibold text-on-hero-muted hover:text-on-hero",
-        // the active one: cream with the lime underline; the kit's line indicator and shadow are not used
-        "data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:text-on-hero",
-        "group-data-[variant=line]/tabs-list:data-[state=active]:after:opacity-0",
+        "h-auto flex-none gap-1.5 rounded-none border-0 border-b-3 border-transparent px-0 pt-3 pb-2.5 text-body font-semibold",
+        isOnPage
+          ? "text-muted-foreground hover:text-foreground data-[state=active]:border-foreground data-[state=active]:text-foreground"
+          : // the active one: cream with the lime underline
+            "text-on-hero-muted hover:text-on-hero data-[state=active]:border-primary data-[state=active]:text-on-hero",
+        // the kit's line indicator and shadow are not used
+        "data-[state=active]:bg-transparent group-data-[variant=line]/tabs-list:data-[state=active]:after:opacity-0",
         className,
       )}
       {...props}
@@ -43,7 +58,14 @@ export function BandTabsItem({ count, children, className, ...props }: BandTabsI
       {/* the space keeps „Moje 3“ apart for a screen reader; flex layout ignores it */}
       {count === undefined ? null : " "}
       {count === undefined ? null : (
-        <span className="rounded-full border border-on-hero-muted bg-hero-pattern px-1.5 py-px text-xs font-semibold text-on-hero">
+        <span
+          className={cn(
+            "rounded-full border px-1.5 py-px text-xs font-semibold",
+            isOnPage
+              ? "border-control-border bg-muted text-muted-foreground"
+              : "border-on-hero-muted bg-hero-pattern text-on-hero",
+          )}
+        >
           {count}
         </span>
       )}

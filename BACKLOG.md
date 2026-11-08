@@ -470,6 +470,7 @@ Doménová logika (čistá funkce + testy): `approvedCount`, `missingToMin = max
   - „Tyhle skupiny rozšiřují partu“ (PO 4. 11.): aktivní skupiny v okolí s nadcházející akcí, do kterých se dá přidat (veřejné) nebo požádat o členství (neveřejné), řazené podle nejbližší akce skupiny;
   - „Podle tvých zájmů“ jen pro přihlášeného: podle akcí, na kterých byl, nebo zájmů v profilu, jinak náhodný výběr.
 - Nepoužívej layout hero + tři karty (DESIGN.md).
+- API (#182): `GET /api/home?localityId=` vrací sekce už vybrané a seřazené (klíče `highlight`, `missing`, `weekend`, `interests`, `nearby`, `popular`, `wellRated`, `groups`), prázdné vynechá. Lokalita: `localityId` → domovská z profilu → celé Česko; městská část bere akce i skupiny z celého města („v okolí Prahy 3“, A-01pd), jen „Kousek od tebe“ měří od středu městské části; odhad podle IP (#55) se doplní v `resolveHomeLocalityId`. Jen akce, kam se dá ještě přihlásit (ne plné); „Od dobře hodnocených“ nejvýš jedna akce od organizátora; přihlášený nedostane vlastní akce ani ty, kde už má místo nebo žádost nebo kde ho organizátor zamítl či odebral (nová žádost nejde), ani skupiny, kde už je. Limity podle Figmy A-01d: panel 1, ostatní sekce 3. UI (#182): `/` bere sekce jen z `GET /api/home` (ne z `GET /api/events?sort=popular`), `?lokalita=` na `/` pošle `localityId` (do #55); přihlášený má sekce jako rychlé výběry „Pro tebe“ a odpověď je čerstvá 15 minut, aby se náhodný výběr „Podle tvých zájmů“ po návratu do okna nepřeházel (přihlášení na akci ji obnoví).
 
 **Hotovo, když:**
 
@@ -626,6 +627,7 @@ Doménová logika (čistá funkce + testy): `approvedCount`, `missingToMin = max
 
 - `POST /api/events/:id/message` (organizátor) – předmět + text, odešle e-mail všem `approved`.
 - FE: dialog ve správě akce. Limit 10 zpráv na akci za den (proti spamu).
+- **Jak je to hotové (#176, podle oznámení skupin #194):** `GET/POST /api/events/:id/messages` (množné číslo jako `/announcements`). Poslat smí jen organizátor (ne správce skupiny, který akci spravuje) zveřejněné, nezrušené akce (`403 NOT_ORGANIZER`, `409 EVENT_CANCELLED`), nejvýš 10 zpráv na akci za pražský kalendářní den (`429 MESSAGE_LIMIT`, kontrola pod zámkem řádku akce). Předmět nejvýš 120, text nejvýš 2000 znaků. E-mail (Figma E-01 typ 7, přes `NotificationService` po zápisu) dostanou jen schválení účastníci kromě organizátora. Číst je smí jen ti, kdo vidí „Kdo jde“ (#174, `403 NOT_PARTICIPANT`), u zrušené akce zůstanou ke čtení. FE: „Napsat účastníkům“ ve správě akce (D-04, D-04d), sekce „Zprávy od organizátora“ na detailu (A-05c).
 
 **Mimo rozsah:** chat u akce, odpovědi v aplikaci.
 

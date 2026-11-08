@@ -42,6 +42,13 @@ export function useUpdateGroup(id: string) {
  * Membership changes move the group's counts and the viewer's state, so the
  * detail (with its members) and the lists refetch.
  */
+/**
+ * The landing page's sections (#182) — „Tyhle skupiny rozšiřují partu“ leaves out the groups
+ * the user is in or waits for. The events feature's `homeKeys.all()`, which a feature can't
+ * import from another.
+ */
+const HOME_KEY = ["events", "list", "home"] as const
+
 function useMembershipMutation<Variables = void>(
   groupId: string,
   request: (variables: Variables) => Promise<unknown>,
@@ -53,6 +60,7 @@ function useMembershipMutation<Variables = void>(
       Promise.all([
         queryClient.invalidateQueries({ queryKey: groupKeys.detail(groupId) }),
         queryClient.invalidateQueries({ queryKey: groupKeys.lists() }),
+        queryClient.invalidateQueries({ queryKey: HOME_KEY }),
       ]),
   })
 }

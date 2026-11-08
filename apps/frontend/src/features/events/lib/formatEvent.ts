@@ -87,6 +87,12 @@ export function formatRequestTime(date: Date): string {
   return `Žádost z ${get("day")}. ${get("month")}. v ${timeFormat.format(date)}`
 }
 
+/** When the organizer wrote to the participants (#176, Figma A-05c): "pá 23. 10. v 16:20", Prague time. */
+export function formatMessageTime(date: Date): string {
+  const { weekday, day, month, time } = startParts(date)
+  return `${weekday} ${day}. ${month}. v ${time}`
+}
+
 /** When an event starts, inside a sentence of the request dialog (#175): "pá 23. 10. v 17:30". */
 export function formatRequestEventStart(date: Date): string {
   const { weekday, day, month, time } = startParts(date)

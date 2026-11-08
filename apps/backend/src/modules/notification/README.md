@@ -1,6 +1,6 @@
-# Upozornění k akcím (#177) a oznámení skupin (#194)
+# Upozornění k akcím (#177), zprávy organizátora (#176) a oznámení skupin (#194)
 
-E-maily o tom, co se stalo s akcí nebo s něčí účastí (B-040, B-041), a oznámení správce členům skupiny (#194). Služba, která změnu zapsala, po zápisu zavolá jedinou metodu:
+E-maily o tom, co se stalo s akcí nebo s něčí účastí (B-040, B-041), zprávy organizátora účastníkům (#176) a oznámení správce členům skupiny (#194). Služba, která změnu zapsala, po zápisu zavolá jedinou metodu:
 
 ```ts
 this.notifications.notify({ type: 'event-cancelled', eventId });
@@ -18,16 +18,21 @@ this.notifications.notify({ type: 'event-cancelled', eventId });
 | `request-received`   | organizátor; se zprávou žadatele (#175)                   | `EventsService.join` (žádost čeká na schválení)                    |
 | `participant-left`   | organizátor                                               | `EventsService.leave` (odhlásil se schválený účastník)             |
 | `group-announcement` | všichni aktivní členové skupiny, správci i autor          | `GroupsService.sendAnnouncement` (#194)                            |
+| `event-message`      | schválení účastníci, ne organizátor                       | `EventsService.sendMessage` (#176)                                 |
 
 Oznámení skupiny není o akci: e-mail má předmět „{skupina}: {předmět}“, nadpis a text jsou slova správce (odstavce podle prázdných řádků) a tlačítko „Stránka skupiny“ (Figma E-01, typ 8).
 
+Zpráva organizátora (#176) je jako oznámení skupiny jeho vlastními slovy: předmět „{akce}: {předmět}“, nadpis a text jsou slova organizátora a tlačítko „Detail akce“ (Figma E-01, typ 7). Dostanou ji jen schválení účastníci; čekající, zamítnutí, odebraní a odhlášení ne.
+
 Nikdo nedostane e-mail o tom, co udělal sám, s výjimkou oznámení skupiny: Figma D-08 slibuje e-mail všem aktivním členům a autor tak vidí, co členům přišlo. Zablokovaní (`blockedAt`) a smazaní (`deletedAt`) uživatelé e-mail nedostanou. Organizátor se o stažení čekající žádosti nedozví: žádost mu jen zmizí ze seznamu.
 
-## Jak přidat další druh (např. zprávu organizátora, #176)
+## Jak přidat další druh
 
 1. Přidej variantu do `Notification` v `domain/notification.ts`.
 2. V `NotificationService.audienceOf` řekni, kdo ji dostane.
 3. V `domain/messages.ts` (`composeMessage`) řekni, co se v e-mailu píše. Šablona `EventNotificationEmail` (`core/email/templates/`) se pro všechny druhy sdílí, mění se jen text.
+
+Druh s vlastním předmětem a textem od autora (zpráva organizátora `event-message`, oznámení skupiny `group-announcement`) nejde přes `composeMessage`: vyřaď ho z `EventNotification`, v `NotificationService.deliver` ho pošli do vlastní metody `prepare…` (najde záznam a příjemce v repozitáři) a e-mail mu poskládej vlastní funkcí v `domain/messages.ts` (`composeEventMessage`, `composeAnnouncement`).
 
 Texty jsou česky a tykáním; žádný text nepředpokládá pohlaví organizátora („žádost byla schválena“, ne „organizátor schválil“).
 
