@@ -592,4 +592,92 @@ describe('EventRepository: the request message stays with the organizer (#175)',
 
     expect(queries(prisma)).not.toContain('message');
   });
+  describe('createMessage (#176)', () => {
+    const since = new Date('2026-11-07T23:00:00.000Z');
+    const input = { subject: 'Sraz u vchodu', body: 'Vezmi si sálovky.' };
+    const created = {
+      id: 'm1',
+      ...input,
+      createdAt: since,
+      sender: { id: 'u1', name: 'Petra' },
+    };
+
+    const setup = (
+      event: { status: 'published' | 'cancelled' } | null,
+      sentToday: number,
+    ): ReturnType<typeof mockDeep<PrismaService>> => {
+      const prisma = mockDeep<PrismaService>();
+      // the callback form: the mock itself stands in for the transaction client
+      prisma.$transaction.mockImplementation(((
+        run: (tx: typeof prisma) => unknown,
+      ) => run(prisma)) as never);
+      prisma.event.findUnique.mockResolvedValue(event as never);
+      prisma.eventMessage.count.mockResolvedValue(sentToday);
+      prisma.eventMessage.create.mockResolvedValue(created as never);
+      return prisma;
+    };
+
+    it("locks the event, counts today's and writes when the decision allows", async () => {
+      const prisma = setup({ status: 'published' }, 9);
+      const decide = jest.fn().mockReturnValue({ ok: true });
+
+      await expect(
+        new EventRepository(prisma).createMessage(
+          'e1',
+          'u1',
+          input,
+          since,
+          decide,
+        ),
+      ).resolves.toEqual({ ok: true, message: created });
+      expect(prisma.$executeRaw).toHaveBeenCalledTimes(1);
+      expect(prisma.eventMessage.count).toHaveBeenCalledWith({
+        where: { eventId: 'e1', createdAt: { gte: since } },
+      });
+      expect(decide).toHaveBeenCalledWith({
+        eventStatus: 'published',
+        sentToday: 9,
+      });
+      expect(prisma.eventMessage.create).toHaveBeenCalledWith(
+        expect.objectContaining({
+          data: { eventId: 'e1', senderId: 'u1', ...input },
+        }),
+      );
+    });
+
+    it('writes nothing when the decision refuses', async () => {
+      const prisma = setup({ status: 'published' }, 10);
+
+      await expect(
+        new EventRepository(prisma).createMessage(
+          'e1',
+          'u1',
+          input,
+          since,
+          () => ({
+            ok: false,
+            refusal: 'MESSAGE_LIMIT',
+          }),
+        ),
+      ).resolves.toEqual({ ok: false, refusal: 'MESSAGE_LIMIT' });
+      expect(prisma.eventMessage.create).not.toHaveBeenCalled();
+    });
+
+    it('an event gone in the meantime is null', async () => {
+      const prisma = setup(null, 0);
+
+      await expect(
+        new EventRepository(prisma).createMessage(
+          'e1',
+          'u1',
+          input,
+          since,
+          () => ({
+            ok: true,
+          }),
+        ),
+      ).resolves.toBeNull();
+      expect(prisma.eventMessage.create).not.toHaveBeenCalled();
+    });
+  });
 });

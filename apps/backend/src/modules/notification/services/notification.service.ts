@@ -4,6 +4,7 @@ import { EventNotificationEmail } from '@/core/email/templates/event-notificatio
 import {
   composeAnnouncement,
   ComposedMessage,
+  composeEventMessage,
   composeMessage,
 } from '@/modules/notification/domain/messages';
 import {
@@ -23,10 +24,16 @@ type Audience = { recipients: Recipient[]; person: { name: string } | null };
 type Prepared = { recipients: Recipient[]; message: ComposedMessage };
 
 /** What a log line names: ids only, never an address. */
-const aboutOf = (notification: Notification): string =>
-  notification.type === 'group-announcement'
-    ? `oznámení ${notification.announcementId}`
-    : `akce ${notification.eventId}`;
+const aboutOf = (notification: Notification): string => {
+  switch (notification.type) {
+    case 'group-announcement':
+      return `oznámení ${notification.announcementId}`;
+    case 'event-message':
+      return `akce ${notification.eventId}, zpráva ${notification.messageId}`;
+    default:
+      return `akce ${notification.eventId}`;
+  }
+};
 
 /** Provider messages, arbitrary names and unknown codes can contain addresses or credentials. */
 const loggedCodes = new Set([
@@ -91,7 +98,9 @@ export class NotificationService {
       const prepared =
         notification.type === 'group-announcement'
           ? await this.prepareAnnouncement(notification.announcementId)
-          : await this.prepareEventNotification(notification);
+          : notification.type === 'event-message'
+            ? await this.prepareEventMessage(notification.messageId)
+            : await this.prepareEventNotification(notification);
       if (!prepared || prepared.recipients.length === 0) return;
 
       const { recipients, message } = prepared;
@@ -140,6 +149,25 @@ export class NotificationService {
         announcement.group.id,
       ),
       message: composeAnnouncement(announcement, this.config.frontendUrl),
+    };
+  }
+
+  /**
+   * The organizer's message (#176) goes to every approved participant of
+   * the event, not to the organizer who wrote it, and not to anyone waiting,
+   * rejected or removed. Null when it is gone.
+   */
+  private async prepareEventMessage(
+    messageId: string,
+  ): Promise<Prepared | null> {
+    const message = await this.repository.findEventMessage(messageId);
+    if (!message) return null;
+    return {
+      recipients: await this.repository.findApprovedParticipants(
+        message.event.id,
+        message.senderId,
+      ),
+      message: composeEventMessage(message, this.config.frontendUrl),
     };
   }
 
