@@ -2,7 +2,9 @@ import { plainToInstance } from 'class-transformer';
 import { validateSync } from 'class-validator';
 import { HomeEventsQueryDto } from './home-events.query.dto';
 
-const parse = (query: Record<string, unknown>) => {
+const parse = (
+  query: Record<string, unknown>,
+): { dto: HomeEventsQueryDto; invalid: string[] } => {
   const dto = plainToInstance(HomeEventsQueryDto, query);
   return {
     dto,
