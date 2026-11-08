@@ -25,6 +25,7 @@ import {
   ParticipationStatus,
   RequestsState,
 } from '@/modules/event/domain/participation';
+import { summarize } from '@/modules/event/domain/summary';
 import { requestMessageFor } from '@/shared/request-message/request-message';
 import { Injectable } from '@nestjs/common';
 import { buildGroupEventsWhere } from './group-events-where';
@@ -49,6 +50,7 @@ type PublicEventRow = Prisma.EventGetPayload<{
 const toPublicEvent = (event: PublicEventRow, now: Date): PublicEvent => ({
   id: event.id,
   title: event.title,
+  summary: summarize(event.description),
   startsAt: event.startsAt,
   endsAt: event.endsAt,
   address: event.address,

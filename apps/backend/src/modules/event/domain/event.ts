@@ -29,6 +29,8 @@ export type PublicEventSort = (typeof PUBLIC_EVENT_SORTS)[number];
 export type PublicEvent = {
   id: string;
   title: string;
+  /** The start of the description for the map preview (#56, `summarize`); null without one. */
+  summary: string | null;
   startsAt: Date;
   endsAt: Date | null;
   address: string;

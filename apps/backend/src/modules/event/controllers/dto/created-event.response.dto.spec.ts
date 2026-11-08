@@ -5,6 +5,7 @@ import { CreatedEventResponseDto } from './created-event.response.dto';
 const created: EventDetailView = {
   id: 'cm-e1',
   title: 'Deskovky po práci',
+  summary: null,
   startsAt: new Date('2026-11-02T17:00:00.000Z'),
   endsAt: null,
   address: 'Herna Karlín, Křižíkova 52, Praha 8',
