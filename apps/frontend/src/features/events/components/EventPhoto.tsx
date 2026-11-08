@@ -58,9 +58,15 @@ export function EventPhoto({ event, variant }: EventPhotoProps) {
         <img
           src={photo.src}
           srcSet={photo.srcSet}
-          // the grid card is up to a third of the 1200 grid, a row card's photo 104 px
+          // a grid card is full width on a phone, a third of the 1200 grid on desktop; only
+          // `responsive` is a 104 px row on a phone
           sizes={
-            variant === "row" || variant === "past" ? "104px" : "(min-width: 48rem) 400px, 104px"
+            {
+              row: "104px",
+              past: "104px",
+              grid: "(min-width: 48rem) 400px, 100vw",
+              responsive: "(min-width: 48rem) 400px, 104px",
+            }[variant]
           }
           alt=""
           loading="lazy"

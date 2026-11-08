@@ -14,9 +14,10 @@ const alertVariants = cva(
         destructive:
           "border-destructive bg-card text-destructive *:data-[slot=alert-description]:text-foreground *:data-[slot=alert-title]:font-semibold [&>svg]:text-current",
         // Figma: Alert, tones Info (ověření e-mailu, čekající žádost) and Neutral (poznámka)
-        info: "border-0 bg-secondary text-secondary-foreground has-[>svg]:grid-cols-[calc(var(--spacing)*5)_1fr] *:data-[slot=alert-description]:text-secondary-foreground *:data-[slot=alert-title]:font-semibold [&>svg]:size-5 [&>svg]:translate-y-0",
+        // every secondary surface carries its tile-border (DESIGN.md › Colour)
+        info: "border-tile-border bg-secondary text-secondary-foreground has-[>svg]:grid-cols-[calc(var(--spacing)*5)_1fr] *:data-[slot=alert-description]:text-secondary-foreground *:data-[slot=alert-title]:font-semibold [&>svg]:size-5 [&>svg]:translate-y-0",
         neutral:
-          "border-0 bg-muted text-foreground has-[>svg]:grid-cols-[calc(var(--spacing)*5)_1fr] *:data-[slot=alert-description]:text-foreground *:data-[slot=alert-title]:font-semibold [&>svg]:size-5 [&>svg]:translate-y-0",
+          "border-border bg-muted text-foreground has-[>svg]:grid-cols-[calc(var(--spacing)*5)_1fr] *:data-[slot=alert-description]:text-foreground *:data-[slot=alert-title]:font-semibold [&>svg]:size-5 [&>svg]:translate-y-0",
       },
     },
     defaultVariants: {

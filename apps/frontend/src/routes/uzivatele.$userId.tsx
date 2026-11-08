@@ -31,7 +31,6 @@ function PublicUserPage() {
             <PastEventCard
               event={event}
               // a visitor's own rating isn't part of the public profile: the event's average instead
-              rating={{ kind: "open" }}
               detail={summaryLabel(event.rating)}
             />
           )}

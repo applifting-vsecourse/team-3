@@ -44,6 +44,8 @@ type EventCardProps = {
   linkTo?: "detail" | "manage"
   /** h3 under a section heading. */
   titleAs?: "h2" | "h3"
+  /** The management's card leaves the occupancy to the big bar under it (Figma D-03). */
+  hasBar?: boolean
   className?: string
 }
 
@@ -65,11 +67,13 @@ export function EventCard({
   rowTail,
   linkTo = "detail",
   titleAs: Title = "h2",
+  hasBar = true,
   className,
 }: EventCardProps) {
   const isCancelled = event.status === "cancelled"
   const { time } = eventDateParts(event.startsAt)
   const place = placeName(event.address)
+  const cardNumbers = numbers ?? (isCancelled ? occupancyCount(event) : occupancyBesideBadge(event))
   const rowLine = [rowLead, time, ...(rowTail ? [rowTail] : [place, event.locality.name])]
     .filter(Boolean)
     .join(" · ")
@@ -80,7 +84,7 @@ export function EventCard({
       onMouseLeave={onMouseLeave}
       className={cn(
         "relative rounded-2xl border border-card-border bg-card text-card-foreground transition-colors hover:border-foreground",
-        "has-[a:focus-visible]:ring-[3px] has-[a:focus-visible]:ring-ring/50",
+        "has-[a:focus-visible]:ring-[3px] has-[a:focus-visible]:ring-ring",
         isHighlighted && "ring-2 ring-foreground",
         {
           row: "flex items-center gap-3 p-3",
@@ -159,18 +163,31 @@ export function EventCard({
           }
         >
           <StatusBadge status={status ?? capacityStatus(event)} />
-          {variant === "row" ? null : (
-            <span
-              className={cn(
-                "truncate text-caption font-medium text-muted-foreground",
-                variant === "responsive" && "hidden md:inline",
-              )}
-            >
-              {numbers ?? (isCancelled ? occupancyCount(event) : occupancyBesideBadge(event))}
-            </span>
+          {/* the row card draws the numbers only as the bar, so a screen reader still gets them
+              (a past event says who came in its line) */}
+          {variant === "row" && status?.kind === "past" ? null : (
+            <>
+              {/* the row card and a phone show the numbers only to a screen reader — without
+                  „chybí N“ when the line already starts with it (DESIGN.md › Occupancy in words) */}
+              <span
+                className={cn(
+                  "truncate text-caption font-medium text-muted-foreground",
+                  {
+                    row: "sr-only",
+                    grid: null,
+                    responsive: rowLead ? "hidden md:inline" : "max-md:sr-only",
+                  }[variant],
+                )}
+              >
+                {variant === "row" && rowLead ? occupancyBesideBadge(event) : cardNumbers}
+              </span>
+              {variant === "responsive" && rowLead ? (
+                <span className="sr-only md:hidden">{occupancyBesideBadge(event)}</span>
+              ) : null}
+            </>
           )}
-          {/* a cancelled event no longer fills up */}
-          {isCancelled ? null : (
+          {/* a cancelled or past event no longer fills up */}
+          {!hasBar || isCancelled || status?.kind === "past" ? null : (
             <CapacityBar
               variant="compact"
               approvedCount={event.approvedCount}

@@ -10,18 +10,19 @@ import { EventPhoto } from "@/features/events/components/EventPhoto"
 import { formatEventDay, formatEventStart, placeName } from "@/features/events/lib/formatEvent"
 
 /**
- * Where the user's rating of a past event stands (Figma Karta akce/Proběhlá řádek):
- * given, still to give (#66), or nothing to rate — the event didn't take place.
+ * Where the user's rating of a past event stands (Figma Karta akce/Proběhlá řádek): given
+ * or still to give (#66). A cancelled event has nothing to rate — its `status` says so.
  */
-export type PastRating = { kind: "given"; stars: number } | { kind: "open" } | { kind: "cancelled" }
+export type PastRating = { kind: "given"; stars: number } | { kind: "open" }
 
 type PastEventCardProps = {
   /** Only what the card shows, so a profile can send less than a whole event (#179). */
   event: Pick<
     PublicEvent,
     "id" | "title" | "startsAt" | "address" | "activity" | "locality" | "approvedCount"
-  >
-  rating: PastRating
+  > & { status?: "published" | "cancelled" }
+  /** Ignored for a cancelled event, which didn't take place. */
+  rating?: PastRating
   /** After how many came, e.g. the event's rating on a public profile: „★ 4,5 (3 hodnocení)“ (#179). */
   detail?: string
   /** „Ohodnotit →“ for an open rating; the page builds the link (C-03, #66). */
@@ -40,14 +41,15 @@ export function PastEventCard({
   detail,
   titleAs: Title = "h3",
 }: PastEventCardProps) {
-  const isCancelled = rating.kind === "cancelled"
+  // from the event, not the rating: a cancelled event never offers „Ohodnotit“
+  const isCancelled = event.status === "cancelled"
   const line = [formatEventDay(event.startsAt), placeName(event.address), event.locality.name].join(
     " · ",
   )
   const attendance = [
     isCancelled
       ? "Akce se nekonala"
-      : rating.kind === "given"
+      : rating?.kind === "given"
         ? `${gatheredLabel(event.approvedCount)} · tvoje ★ ${rating.stars}`
         : gatheredLabel(event.approvedCount),
     detail,
@@ -56,7 +58,7 @@ export function PastEventCard({
     .join(" · ")
 
   return (
-    <article className="relative flex items-center gap-3 rounded-2xl border border-card-border bg-card p-3 text-card-foreground has-[a:focus-visible]:ring-[3px] has-[a:focus-visible]:ring-ring/50">
+    <article className="relative flex items-center gap-3 rounded-2xl border border-card-border bg-card p-3 text-card-foreground has-[a:focus-visible]:ring-[3px] has-[a:focus-visible]:ring-ring">
       <EventPhoto
         event={event}
         variant="past"
@@ -81,7 +83,7 @@ export function PastEventCard({
         <div className="flex items-center gap-2 pt-1">
           <StatusBadge status={{ kind: isCancelled ? "cancelled" : "past" }} />
           <span className="truncate text-caption text-muted-foreground">{attendance}</span>
-          {rating.kind === "open" && rateAction ? (
+          {!isCancelled && rating?.kind === "open" && rateAction ? (
             // above the card's stretched link, so it stays its own target
             <span className="relative ml-auto shrink-0 text-sm font-semibold">{rateAction}</span>
           ) : null}

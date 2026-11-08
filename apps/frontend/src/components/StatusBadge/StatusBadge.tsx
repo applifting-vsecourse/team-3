@@ -6,6 +6,7 @@ export type CapacityStatus =
   | { kind: "free"; freeSpots: number }
   | { kind: "full" }
   | { kind: "cancelled" }
+  // a past event on its group's page (Figma A-08e)
   | { kind: "past" }
 
 /** The user's own place, in „Moje akce“ (C-01): „Jdu“, „Čeká na schválení“. */
@@ -37,12 +38,12 @@ const label = (status: BadgeStatus): string => {
       return "Plno"
     case "cancelled":
       return "Zrušeno"
+    case "past":
+      return "Proběhlo"
     case "going":
       return "Jdu"
     case "pending":
       return "Čeká na schválení"
-    case "past":
-      return "Proběhlo"
   }
 }
 

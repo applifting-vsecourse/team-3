@@ -50,17 +50,21 @@ describe("PastEventCard", () => {
     expect(screen.getByRole("link", { name: "Ohodnotit →" })).toBeInTheDocument()
   })
 
-  it("cancelled: „Zrušeno“ and that it didn't take place", async () => {
+  it("cancelled: „Zrušeno“ and that it didn't take place, from the event's status", async () => {
     await renderWithRouter(
       <PastEventCard
-        event={volleyball()}
-        rating={{ kind: "cancelled" }}
+        event={{ ...volleyball(), status: "cancelled" }}
+        // whatever the rating says, a cancelled event has nothing to rate
+        rating={{ kind: "open" }}
+        rateAction={<a href="/hodnoceni">Ohodnotit →</a>}
       />,
     )
 
     expect(screen.getByText("Zrušeno")).toBeInTheDocument()
     expect(screen.getByText("Akce se nekonala")).toBeInTheDocument()
     expect(screen.queryByText(/Sešlo se/)).not.toBeInTheDocument()
+    expect(screen.queryByText("Proběhlo")).not.toBeInTheDocument()
+    expect(screen.queryByRole("link", { name: "Ohodnotit →" })).not.toBeInTheDocument()
   })
 
   it("adds the page's detail after how many came, e.g. the event's rating (#179)", async () => {

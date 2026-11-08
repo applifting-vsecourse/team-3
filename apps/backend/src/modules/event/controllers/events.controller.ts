@@ -82,7 +82,7 @@ export class EventsController {
   @ApiCookieAuth()
   @ApiOperation({
     summary:
-      'Create an event; the organizer is the signed-in user (B-021), with a verified e-mail',
+      "Create an event; the organizer is the signed-in user (B-021), with a verified e-mail. With groupId it is the group's event, created by any of its admins (B-055)",
   })
   @ApiResponse({ status: 201, type: CreatedEventResponseDto })
   @ApiResponse({
@@ -93,7 +93,12 @@ export class EventsController {
   @ApiResponse({ status: 401, description: 'Not signed in' })
   @ApiResponse({
     status: 403,
-    description: 'EMAIL_NOT_VERIFIED, or USER_BLOCKED',
+    description:
+      'EMAIL_NOT_VERIFIED, USER_BLOCKED, or NOT_GROUP_ADMIN for a group event',
+  })
+  @ApiResponse({
+    status: 409,
+    description: 'GROUP_INACTIVE: the group is deactivated',
   })
   async create(
     @Body() body: CreateEventDto,
@@ -113,6 +118,8 @@ export class EventsController {
         minParticipants: body.minParticipants,
         maxParticipants: body.maxParticipants,
         approvalMode: body.approvalMode,
+        groupId: body.groupId ?? null,
+        visibility: body.visibility ?? 'public',
       },
       user.id,
     );
@@ -132,9 +139,17 @@ export class EventsController {
   })
   @ApiResponse({ status: 200, type: EventDetailResponseDto })
   @ApiResponse({
-    status: 404,
+    status: 401,
+    description: 'UNAUTHENTICATED: a members-only event and no session',
+  })
+  @ApiResponse({
+    status: 403,
     description:
-      'Unknown, hidden or deleted event, or a members-only event and the caller is not a member',
+      'MEMBERS_ONLY with `groupId` only: a members-only event and the caller is not an active member of its group (B-026)',
+  })
+  @ApiResponse({
+    status: 404,
+    description: 'Unknown, hidden or deleted event',
   })
   async detail(
     @Param('id') id: string,
@@ -158,7 +173,11 @@ export class EventsController {
   @ApiResponse({ status: 200, type: EventDetailResponseDto })
   @ApiResponse({ status: 400, description: 'Missing or too long reason' })
   @ApiResponse({ status: 401, description: 'Not signed in' })
-  @ApiResponse({ status: 403, description: 'NOT_ORGANIZER' })
+  @ApiResponse({
+    status: 403,
+    description:
+      'NOT_ORGANIZER, or MEMBERS_ONLY (a members-only event, the caller is not a member)',
+  })
   @ApiResponse({ status: 404, description: 'No such event for this user' })
   @ApiResponse({ status: 409, description: 'EVENT_CANCELLED or EVENT_STARTED' })
   async cancel(
@@ -181,7 +200,11 @@ export class EventsController {
   })
   @ApiResponse({ status: 200, type: EventParticipantsResponseDto })
   @ApiResponse({ status: 401, description: 'Not signed in' })
-  @ApiResponse({ status: 403, description: 'NOT_ORGANIZER' })
+  @ApiResponse({
+    status: 403,
+    description:
+      'NOT_ORGANIZER, or MEMBERS_ONLY (a members-only event, the caller is not a member)',
+  })
   @ApiResponse({ status: 404, description: 'No such event for this user' })
   async participants(
     @Param('id') id: string,
@@ -205,7 +228,8 @@ export class EventsController {
   @ApiResponse({ status: 401, description: 'Not signed in' })
   @ApiResponse({
     status: 403,
-    description: 'NOT_ORGANIZER, EMAIL_NOT_VERIFIED or USER_BLOCKED',
+    description:
+      'NOT_ORGANIZER, EMAIL_NOT_VERIFIED, USER_BLOCKED, or MEMBERS_ONLY (a members-only event, the caller is not a member)',
   })
   @ApiResponse({ status: 404, description: 'No such event for this user' })
   @ApiResponse({
@@ -240,7 +264,11 @@ export class EventsController {
   @ApiResponse({ status: 200, type: EventParticipantsResponseDto })
   @ApiResponse({ status: 400, description: 'Missing or invalid userIds' })
   @ApiResponse({ status: 401, description: 'Not signed in' })
-  @ApiResponse({ status: 403, description: 'NOT_ORGANIZER' })
+  @ApiResponse({
+    status: 403,
+    description:
+      'NOT_ORGANIZER, or MEMBERS_ONLY (a members-only event, the caller is not a member)',
+  })
   @ApiResponse({ status: 404, description: 'No such event for this user' })
   @ApiResponse({
     status: 409,
@@ -278,7 +306,8 @@ export class EventsController {
   @ApiResponse({ status: 401, description: 'Not signed in' })
   @ApiResponse({
     status: 403,
-    description: 'EMAIL_NOT_VERIFIED, or USER_BLOCKED',
+    description:
+      'EMAIL_NOT_VERIFIED, USER_BLOCKED, or MEMBERS_ONLY (a members-only event, the caller is not a member)',
   })
   @ApiResponse({ status: 404, description: 'No such event for this user' })
   @ApiResponse({
@@ -307,6 +336,11 @@ export class EventsController {
   })
   @ApiResponse({ status: 200, type: EventDetailResponseDto })
   @ApiResponse({ status: 401, description: 'Not signed in' })
+  @ApiResponse({
+    status: 403,
+    description:
+      'MEMBERS_ONLY (a members-only event, the caller is not a member)',
+  })
   @ApiResponse({ status: 404, description: 'No such event for this user' })
   @ApiResponse({ status: 409, description: 'NOT_JOINED or EVENT_STARTED' })
   async leave(
@@ -334,7 +368,8 @@ export class EventsController {
   @ApiResponse({ status: 401, description: 'Not signed in' })
   @ApiResponse({
     status: 403,
-    description: 'NOT_ORGANIZER, EMAIL_NOT_VERIFIED or USER_BLOCKED',
+    description:
+      'NOT_ORGANIZER, EMAIL_NOT_VERIFIED, USER_BLOCKED, or MEMBERS_ONLY (a members-only event, the caller is not a member)',
   })
   @ApiResponse({ status: 404, description: 'No such event for this user' })
   @ApiResponse({ status: 409, description: 'EVENT_CANCELLED' })

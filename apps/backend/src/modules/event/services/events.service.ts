@@ -4,6 +4,7 @@ import {
   EventDetail,
   EventDetailView,
   EventManagementView,
+  GroupEvents,
   MyEvent,
   MyEventsTab,
   NewEvent,
@@ -16,11 +17,12 @@ import {
   lifecycleRefusal,
   UpdateRefusal,
 } from '@/modules/event/domain/event-update';
-import { rankByInterest } from '@/modules/event/domain/interest';
 import {
-  canSeeParticipants,
-  ParticipantsViewer,
-} from '@/modules/event/domain/participant-visibility';
+  canManageEvent,
+  EventViewer,
+} from '@/modules/event/domain/event-viewer';
+import { rankByInterest } from '@/modules/event/domain/interest';
+import { canSeeParticipants } from '@/modules/event/domain/participant-visibility';
 import {
   decideJoin,
   decideLeave,
@@ -35,6 +37,7 @@ import {
   HttpException,
   Injectable,
   NotFoundException,
+  UnauthorizedException,
 } from '@nestjs/common';
 
 /** Shown as they are in the app (409 with the code). */
@@ -48,6 +51,12 @@ const REFUSAL_MESSAGES: Record<ParticipationRefusal, string> = {
   NOT_JOINED: 'Na akci nemáš místo ani žádost.',
   NOT_PENDING: 'Žádost už není aktuální: mezitím byla vyřízená, nebo stažená.',
 };
+
+const groupInactive = (): ConflictException =>
+  new ConflictException({
+    code: 'GROUP_INACTIVE',
+    message: 'Skupina už není aktivní.',
+  });
 
 const refused = (refusal: ParticipationRefusal): ConflictException =>
   new ConflictException({ code: refusal, message: REFUSAL_MESSAGES[refusal] });
@@ -76,6 +85,8 @@ export const PUBLIC_EVENTS_LIMIT = 200;
 // query must stay bounded however many events exist.
 export const SCAN_LIMIT = 2000;
 export const MY_EVENTS_LIMIT = 200;
+// Per section of a group's page; the endpoint is public, so it stays bounded.
+export const GROUP_EVENTS_LIMIT = 50;
 
 @Injectable()
 export class EventsService {
@@ -136,14 +147,44 @@ export class EventsService {
   }
 
   /**
+   * A group's upcoming and past events for its page (B-055, Figma A-08e),
+   * for visitors too. Members-only events only for an active member or
+   * admin; `viewerId` is the session's user.
+   */
+  async getGroupEvents(
+    groupId: string,
+    viewerId: string | null,
+    now: Date = new Date(),
+  ): Promise<GroupEvents> {
+    const includeMembersOnly =
+      viewerId !== null &&
+      (await this.eventRepository.findActiveGroupRole(groupId, viewerId)) !==
+        null;
+    const query = {
+      groupId,
+      includeMembersOnly,
+      now,
+      limit: GROUP_EVENTS_LIMIT,
+    };
+    const [upcoming, past] = await Promise.all([
+      this.eventRepository.findGroupEvents({ ...query, when: 'upcoming' }),
+      this.eventRepository.findGroupEvents({ ...query, when: 'past' }),
+    ]);
+    return { upcoming, past };
+  }
+
+  /**
    * One event for its detail page (B-026), for visitors too: a shared link
-   * opens without signing in. Unknown, hidden and deleted events, and a
-   * members-only event for anyone outside the group, are all 404, so the
-   * response doesn't reveal that such an event exists.
+   * opens without signing in. Unknown, hidden and deleted events are 404.
+   * A members-only event is 401 for a visitor, who signs in and comes back,
+   * and 403 MEMBERS_ONLY with just the `groupId` for a signed-in user outside
+   * the group, so the app can show the way into the group (A-05i, review
+   * #215): nothing else about the event leaves.
    *
    * The names of who is coming go only to the organizer, an approved
    * participant and the group's members and admins (#174); everyone else
-   * gets `participants: null` and sees the occupancy. `viewerId` is always
+   * gets `participants: null` and sees the occupancy. `canManage` tells the
+   * organizer and the group's admins apart (B-055). `viewerId` is always
    * the session's user, never something from the request.
    */
   async getEventDetail(
@@ -160,7 +201,7 @@ export class EventsService {
     // lookup serves both canView and the names. Keep the two together.
     const viewer = viewerId ? await this.viewerOf(event, viewerId) : null;
     if (!this.canView(event, viewer)) {
-      throw new NotFoundException('Akce neexistuje.');
+      throw this.membersOnly(event, viewer);
     }
     const participants = canSeeParticipants(viewer)
       ? await this.eventRepository.findApprovedParticipants(event.id)
@@ -173,12 +214,15 @@ export class EventsService {
       participants,
       myParticipation,
       viewerSignedIn: viewer !== null,
+      canManage: canManageEvent(viewer),
     };
   }
 
   /**
    * Creates an event of the signed-in user (B-021). The organizer is always
    * `organizerId` from the session, never something from the request body.
+   * A group's event (B-055) is created by any active admin of an active
+   * group, with the group's activity; only it may be members-only.
    * Returns the new event as its detail shows it to the organizer.
    */
   async createEvent(
@@ -202,8 +246,11 @@ export class EventsService {
     if (problems.length > 0) {
       throw new BadRequestException(problems);
     }
+    await this.assertCanCreateFor(event, organizerId);
 
     const id = await this.eventRepository.createEvent(event, organizerId);
+    // deactivated between the check and the write (e.g. in another tab)
+    if (id === null) throw groupInactive();
     return this.getEventDetail(id, organizerId, now);
   }
 
@@ -219,13 +266,8 @@ export class EventsService {
     reason: string,
     now: Date = new Date(),
   ): Promise<EventDetailView> {
-    const event = await this.getEventDetail(id, userId, now); // 404 first
-    if (event.organizer.id !== userId) {
-      throw new ForbiddenException({
-        code: 'NOT_ORGANIZER',
-        message: 'Akci může zrušit jen její organizátor.',
-      });
-    }
+    const event = await this.getEventDetail(id, userId, now); // 404 or MEMBERS_ONLY first
+    this.assertCanManage(event, 'Akci může zrušit jen její organizátor.');
     this.assertCancellable(event, now);
     if (!(await this.eventRepository.cancelEvent(id, reason, now))) {
       // changed between the check and the write (e.g. cancelled in another tab)
@@ -246,13 +288,8 @@ export class EventsService {
     changes: EventChanges,
     now: Date = new Date(),
   ): Promise<EventDetailView> {
-    const event = await this.getEventDetail(id, userId, now); // 404 first
-    if (event.organizer.id !== userId) {
-      throw new ForbiddenException({
-        code: 'NOT_ORGANIZER',
-        message: 'Upravit akci může jen její organizátor.',
-      });
-    }
+    const event = await this.getEventDetail(id, userId, now); // 404 or MEMBERS_ONLY first
+    this.assertCanManage(event, 'Upravit akci může jen její organizátor.');
     // fail fast, before the field checks; checked again under the lock
     const refusal = lifecycleRefusal(event, now);
     if (refusal) throw updateRefused(refusal);
@@ -284,10 +321,9 @@ export class EventsService {
     userId: string,
     now: Date = new Date(),
   ): Promise<EventManagementView> {
-    const event = await this.getEventDetail(eventId, userId, now); // 404 first
-    this.assertOrganizer(
+    const event = await this.getEventDetail(eventId, userId, now); // 404 or MEMBERS_ONLY first
+    this.assertCanManage(
       event,
-      userId,
       'Účastníky akce spravuje jen její organizátor.',
     );
     return {
@@ -308,10 +344,9 @@ export class EventsService {
     decision: 'approve' | 'reject',
     now: Date = new Date(),
   ): Promise<EventManagementView> {
-    const event = await this.getEventDetail(eventId, userId, now); // 404 first
-    this.assertOrganizer(
+    const event = await this.getEventDetail(eventId, userId, now); // 404 or MEMBERS_ONLY first
+    this.assertCanManage(
       event,
-      userId,
       'Žádosti o účast vyřizuje jen organizátor akce.',
     );
     const result = await this.eventRepository.decideRequests(
@@ -326,13 +361,44 @@ export class EventsService {
     return this.getParticipants(eventId, userId, now);
   }
 
-  private assertOrganizer(
-    event: EventDetail,
-    userId: string,
-    message: string,
-  ): void {
-    if (event.organizer.id !== userId) {
+  /**
+   * The organizer, or for a group's event any of its admins (B-055); the
+   * message speaks of the organizer, which a group's event has in the group.
+   */
+  private assertCanManage(event: EventDetailView, message: string): void {
+    if (!event.canManage) {
       throw new ForbiddenException({ code: 'NOT_ORGANIZER', message });
+    }
+  }
+
+  private async assertCanCreateFor(
+    event: NewEvent,
+    userId: string,
+  ): Promise<void> {
+    if (!event.groupId) {
+      if (event.visibility === 'members') {
+        throw new BadRequestException([
+          'Jen pro členy může být jen akce skupiny.',
+        ]);
+      }
+      return;
+    }
+    const group = await this.eventRepository.findGroupForEvent(
+      event.groupId,
+      userId,
+    );
+    if (!group) throw new BadRequestException(['Neznámá skupina.']);
+    // fail fast; checked again under the group's lock when writing
+    if (group.status !== 'active') throw groupInactive();
+    if (group.role !== 'admin') {
+      throw new ForbiddenException({
+        code: 'NOT_GROUP_ADMIN',
+        message: 'Akci skupiny zakládá jen její správce.',
+      });
+    }
+    // the form locks the activity to the group's; the server holds to it too
+    if (event.activityId !== group.activityId) {
+      throw new BadRequestException(['Akce skupiny má aktivitu skupiny.']);
     }
   }
 
@@ -362,7 +428,8 @@ export class EventsService {
     message: string | null = null,
     now: Date = new Date(),
   ): Promise<EventDetailView> {
-    await this.getEventDetail(eventId, userId, now); // 404 if the user can't see it
+    // 404, or 403 MEMBERS_ONLY for a members-only event outside the group
+    await this.getEventDetail(eventId, userId, now);
     const decision = await this.eventRepository.join(
       eventId,
       userId,
@@ -391,23 +458,51 @@ export class EventsService {
     return this.getEventDetail(eventId, userId, now);
   }
 
-  /** What the server knows about a signed-in viewer of the event. */
+  /**
+   * What the server knows about a signed-in viewer of the event. The group's
+   * status doesn't count, on purpose (review #264): a deactivated group's
+   * members still see its members-only events, past ones are their history
+   * (Figma A-08), and its admins still manage them, which changes nothing
+   * once the upcoming ones are cancelled.
+   */
   private async viewerOf(
     event: EventDetail,
     viewerId: string,
-  ): Promise<NonNullable<ParticipantsViewer>> {
+  ): Promise<NonNullable<EventViewer>> {
     const isOrganizer = event.organizer.id === viewerId;
-    const [participation, isGroupMember] = await Promise.all([
+    const [participation, groupRole] = await Promise.all([
       this.eventRepository.findParticipationStatus(event.id, viewerId),
-      // admins are active members too; pending and blocked ones are not
+      // pending and blocked members have no role here
       event.group && !isOrganizer
-        ? this.eventRepository.isActiveGroupMember(event.group.id, viewerId)
-        : false,
+        ? this.eventRepository.findActiveGroupRole(event.group.id, viewerId)
+        : null,
     ]);
-    return { isOrganizer, participation, isGroupMember };
+    return {
+      isOrganizer,
+      participation,
+      // admins are active members too
+      isGroupMember: groupRole !== null,
+      isGroupAdmin: groupRole === 'admin',
+    };
   }
 
-  private canView(event: EventDetail, viewer: ParticipantsViewer): boolean {
+  private membersOnly(event: EventDetail, viewer: EventViewer): HttpException {
+    // a members-only event always has a group; without one it is nobody's
+    if (!event.group) return new NotFoundException('Akce neexistuje.');
+    if (!viewer) {
+      return new UnauthorizedException({
+        code: 'UNAUTHENTICATED',
+        message: 'Akce je jen pro členy skupiny. Přihlas se.',
+      });
+    }
+    return new ForbiddenException({
+      code: 'MEMBERS_ONLY',
+      message: 'Akce je jen pro členy skupiny.',
+      groupId: event.group.id,
+    });
+  }
+
+  private canView(event: EventDetail, viewer: EventViewer): boolean {
     // a private event is reachable by anyone with the link
     if (event.visibility !== 'members') return true;
     return viewer !== null && (viewer.isOrganizer || viewer.isGroupMember);

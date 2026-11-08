@@ -30,12 +30,15 @@ function EditEventPage() {
   const { eventId } = Route.useParams()
   const session = useSession()
   const viewerId = session.isPending ? undefined : (session.user?.id ?? null)
-  const { event, isPending, isNotFound, error } = useEventDetail(eventId, viewerId)
+  const { event, isPending, isNotFound, membersOnlyGroupId, error } = useEventDetail(
+    eventId,
+    viewerId,
+  )
   const { catalog, queries } = useCatalog()
   const updateEvent = useUpdateEvent(eventId, session.user?.id ?? "")
   const leaveForm = useLeaveEditForm(eventId)
 
-  const refusal = event ? editRefusal(event, session.user?.id) : null
+  const refusal = event ? editRefusal(event) : null
 
   return (
     <>
@@ -61,6 +64,11 @@ function EditEventPage() {
             <Alert variant="destructive">
               <AlertTitle>Akci se nepodařilo načíst</AlertTitle>
               <AlertDescription>Zkontroluj připojení a zkus to znovu.</AlertDescription>
+            </Alert>
+          ) : membersOnlyGroupId ? (
+            // a members-only event of a group the user isn't in
+            <Alert>
+              <AlertTitle>Upravit akci může jen její organizátor nebo správce skupiny.</AlertTitle>
             </Alert>
           ) : isPending || !event ? (
             <Skeleton className="h-96 w-full" />
