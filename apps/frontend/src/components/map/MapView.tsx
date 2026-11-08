@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from "react"
+import { useEffect, useMemo, useState } from "react"
 import { divIcon, latLngBounds, type Map as LeafletMap } from "leaflet"
 import { RotateCw } from "lucide-react"
 import {
@@ -19,6 +19,7 @@ import { cn } from "@/lib/utils"
 
 import { CLUSTER_SIZE, clusterHtml, pinHtml, pinSize, type PinVariant } from "./mapPin"
 import { PinClusters } from "./pinClusters"
+import { createUserMoveTracker } from "./userMoveTracker"
 
 export type MapPinData = {
   id: string
@@ -297,8 +298,9 @@ const areaOf = (map: LeafletMap): MapArea => {
 
 /**
  * A tap on the map itself, and moves the user made. Fitting the view to the
- * pins or to an area moves the map too; only a move that follows the user's
- * own pointer, wheel, touch or key counts, so the button never appears by itself.
+ * pins or to an area moves the map too; only a move that starts during or
+ * right after the user's own pointer, wheel or key counts (`createUserMoveTracker`),
+ * so the button never appears by itself — not even after a tap on a pin.
  */
 function MapEvents({
   onMapClick,
@@ -307,27 +309,33 @@ function MapEvents({
   onMapClick?: () => void
   onUserMove?: (area: MapArea) => void
 }) {
-  const isUserMoving = useRef(false)
+  const [tracker] = useState(createUserMoveTracker)
   const map = useMapEvents({
     click: () => onMapClick?.(),
+    movestart: () => tracker.moveStart(),
     moveend: () => {
-      if (!isUserMoving.current) return
-      isUserMoving.current = false
-      onUserMove?.(areaOf(map))
+      if (tracker.moveEnd()) onUserMove?.(areaOf(map))
     },
   })
 
   useEffect(() => {
     const container = map.getContainer()
-    const markUser = () => {
-      isUserMoving.current = true
-    }
-    const events = ["pointerdown", "wheel", "touchstart", "keydown"] as const
-    for (const event of events) container.addEventListener(event, markUser, { passive: true })
+    const listeners = [
+      ["pointerdown", tracker.pointerDown],
+      ["pointerup", tracker.pointerUp],
+      ["pointercancel", tracker.pointerUp],
+      ["wheel", tracker.input],
+      ["keydown", tracker.input],
+    ] as const
+    // capture: a pin or a cluster must not hide the pointer from the map
+    const options = { passive: true, capture: true }
+    for (const [event, listener] of listeners) container.addEventListener(event, listener, options)
     return () => {
-      for (const event of events) container.removeEventListener(event, markUser)
+      for (const [event, listener] of listeners) {
+        container.removeEventListener(event, listener, options)
+      }
     }
-  }, [map])
+  }, [map, tracker])
 
   return null
 }
