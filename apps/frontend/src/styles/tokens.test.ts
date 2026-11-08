@@ -1,5 +1,5 @@
-import { readFileSync } from "node:fs"
-import { resolve } from "node:path"
+import { readdirSync, readFileSync } from "node:fs"
+import { join, resolve } from "node:path"
 import { describe, expect, it } from "vitest"
 
 // DESIGN.md › Accessibility: text contrast at least 4.5:1, and the tokens are
@@ -175,5 +175,18 @@ describe.each([
     expect(
       Math.max(contrast(tokens.foreground!, surface), contrast(tokens[gap]!, surface)),
     ).toBeGreaterThanOrEqual(3)
+  })
+})
+
+// DESIGN.md › Colour, #201: dark mode comes from the .dark tokens alone. A kit control with its
+// own dark: shades drifts from Figma, and every recoloured state on top of it would have to
+// restate them. `pnpm dlx shadcn add` brings them back, so they are stripped on arrival.
+describe("kit in components/ui", () => {
+  const dir = resolve(process.cwd(), "src/components/ui")
+  const files = readdirSync(dir).filter((name) => name.endsWith(".tsx"))
+
+  it.each(files)("%s has no dark: classes", (name) => {
+    const source = readFileSync(join(dir, name), "utf8")
+    expect(source.match(/\bdark:[^\s"'`]+/g) ?? []).toEqual([])
   })
 })
