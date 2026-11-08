@@ -9,6 +9,7 @@ import { renderWithRouter } from "@/test/renderWithRouter"
 
 import { GoogleSignIn } from "@/features/auth/components/GoogleSignIn"
 import { authClient } from "@/features/auth/lib/auth-client"
+import type { GooglePage } from "@/features/auth/lib/callback-url"
 
 vi.mock("@/features/auth/lib/auth-client", () => ({
   authClient: {
@@ -28,11 +29,14 @@ const social = vi.mocked(authClient.signIn.social)
 const providers = (hasGoogle: boolean) =>
   get.mockReturnValue({ json: () => Promise.resolve({ google: hasGoogle }) } as never)
 
-const renderGoogle = async (from?: string) => {
+const renderGoogle = async (from?: string, startedOn: GooglePage = "/login") => {
   const queryClient = new QueryClient()
   const view = await renderWithRouter(
     <QueryClientProvider client={queryClient}>
-      <GoogleSignIn from={from} />
+      <GoogleSignIn
+        from={from}
+        startedOn={startedOn}
+      />
     </QueryClientProvider>,
   )
   return { queryClient, ...view }
@@ -93,6 +97,20 @@ describe("GoogleSignIn (#154)", () => {
       provider: "google",
       callbackURL: `${origin}/akce/e1`,
       errorCallbackURL: `${origin}/login?from=%2Fakce%2Fe1`,
+    })
+  })
+
+  it("from /signup comes back to /signup when not signed in (#198)", async () => {
+    providers(true)
+    await renderGoogle("/akce/e1", "/signup")
+
+    await userEvent.click(await button())
+
+    const origin = window.location.origin
+    expect(social).toHaveBeenCalledWith({
+      provider: "google",
+      callbackURL: `${origin}/akce/e1`,
+      errorCallbackURL: `${origin}/signup?from=%2Fakce%2Fe1`,
     })
   })
 

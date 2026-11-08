@@ -9,6 +9,7 @@ export const ROUTES = {
   groups: "/skupiny",
   profile: "/profil",
   editProfile: "/profil/upravit",
+  userProfile: "/uzivatele/$userId",
   login: "/login",
   signup: "/signup",
   forgotPassword: "/zapomenute-heslo",

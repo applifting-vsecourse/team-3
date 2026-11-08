@@ -23,6 +23,7 @@ import { Route as ProtectedPagesMojeAkceRouteImport } from './routes/_ProtectedP
 import { Route as AkceEventIdRouteImport } from './routes/akce_.$eventId'
 import { Route as SkupinyIndexRouteImport } from './routes/skupiny.index'
 import { Route as SkupinyGroupIdRouteImport } from './routes/skupiny.$groupId'
+import { Route as UzivateleUserIdRouteImport } from './routes/uzivatele.$userId'
 import { Route as ProtectedPagesAkceNovaRouteImport } from './routes/_ProtectedPages/akce.nova'
 import { Route as ProtectedPagesProfilIndexRouteImport } from './routes/_ProtectedPages/profil.index'
 import { Route as ProtectedPagesProfilUpravitRouteImport } from './routes/_ProtectedPages/profil.upravit'
@@ -102,6 +103,11 @@ const SkupinyGroupIdRoute = SkupinyGroupIdRouteImport.update({
   path: '/skupiny/$groupId',
   getParentRoute: () => rootRouteImport,
 } as any)
+const UzivateleUserIdRoute = UzivateleUserIdRouteImport.update({
+  id: '/uzivatele/$userId',
+  path: '/uzivatele/$userId',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ProtectedPagesAkceNovaRoute = ProtectedPagesAkceNovaRouteImport.update({
   id: '/akce/nova',
   path: '/akce/nova',
@@ -169,6 +175,7 @@ export interface FileRoutesByFullPath {
   '/moje-akce': typeof ProtectedPagesMojeAkceRoute
   '/akce/$eventId': typeof AkceEventIdRoute
   '/skupiny/$groupId': typeof SkupinyGroupIdRoute
+  '/uzivatele/$userId': typeof UzivateleUserIdRoute
   '/skupiny/': typeof SkupinyIndexRoute
   '/akce/nova': typeof ProtectedPagesAkceNovaRoute
   '/profil/upravit': typeof ProtectedPagesProfilUpravitRoute
@@ -193,6 +200,7 @@ export interface FileRoutesByTo {
   '/moje-akce': typeof ProtectedPagesMojeAkceRoute
   '/akce/$eventId': typeof AkceEventIdRoute
   '/skupiny/$groupId': typeof SkupinyGroupIdRoute
+  '/uzivatele/$userId': typeof UzivateleUserIdRoute
   '/skupiny': typeof SkupinyIndexRoute
   '/akce/nova': typeof ProtectedPagesAkceNovaRoute
   '/profil/upravit': typeof ProtectedPagesProfilUpravitRoute
@@ -219,6 +227,7 @@ export interface FileRoutesById {
   '/_ProtectedPages/moje-akce': typeof ProtectedPagesMojeAkceRoute
   '/akce_/$eventId': typeof AkceEventIdRoute
   '/skupiny/$groupId': typeof SkupinyGroupIdRoute
+  '/uzivatele/$userId': typeof UzivateleUserIdRoute
   '/skupiny/': typeof SkupinyIndexRoute
   '/_ProtectedPages/akce/nova': typeof ProtectedPagesAkceNovaRoute
   '/_ProtectedPages/profil/upravit': typeof ProtectedPagesProfilUpravitRoute
@@ -245,6 +254,7 @@ export interface FileRouteTypes {
     | '/moje-akce'
     | '/akce/$eventId'
     | '/skupiny/$groupId'
+    | '/uzivatele/$userId'
     | '/skupiny/'
     | '/akce/nova'
     | '/profil/upravit'
@@ -269,6 +279,7 @@ export interface FileRouteTypes {
     | '/moje-akce'
     | '/akce/$eventId'
     | '/skupiny/$groupId'
+    | '/uzivatele/$userId'
     | '/skupiny'
     | '/akce/nova'
     | '/profil/upravit'
@@ -294,6 +305,7 @@ export interface FileRouteTypes {
     | '/_ProtectedPages/moje-akce'
     | '/akce_/$eventId'
     | '/skupiny/$groupId'
+    | '/uzivatele/$userId'
     | '/skupiny/'
     | '/_ProtectedPages/akce/nova'
     | '/_ProtectedPages/profil/upravit'
@@ -319,6 +331,7 @@ export interface RootRouteChildren {
   ZapomenuteHesloRoute: typeof ZapomenuteHesloRoute
   AkceEventIdRoute: typeof AkceEventIdRoute
   SkupinyGroupIdRoute: typeof SkupinyGroupIdRoute
+  UzivateleUserIdRoute: typeof UzivateleUserIdRoute
   SkupinyIndexRoute: typeof SkupinyIndexRoute
 }
 
@@ -420,6 +433,13 @@ declare module '@tanstack/react-router' {
       path: '/skupiny/$groupId'
       fullPath: '/skupiny/$groupId'
       preLoaderRoute: typeof SkupinyGroupIdRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/uzivatele/$userId': {
+      id: '/uzivatele/$userId'
+      path: '/uzivatele/$userId'
+      fullPath: '/uzivatele/$userId'
+      preLoaderRoute: typeof UzivateleUserIdRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/_ProtectedPages/akce/nova': {
@@ -534,6 +554,7 @@ const rootRouteChildren: RootRouteChildren = {
   ZapomenuteHesloRoute: ZapomenuteHesloRoute,
   AkceEventIdRoute: AkceEventIdRoute,
   SkupinyGroupIdRoute: SkupinyGroupIdRoute,
+  UzivateleUserIdRoute: UzivateleUserIdRoute,
   SkupinyIndexRoute: SkupinyIndexRoute,
 }
 export const routeTree = rootRouteImport
