@@ -12,6 +12,7 @@ import {
   formatEventTime,
   formatRequestEventStart,
   formatRequestTime,
+  formatStartInSentence,
   groupEventTail,
   pastEventFacts,
   placeName,
@@ -134,5 +135,29 @@ describe("formatRequestEventStart (#175)", () => {
   it("is the start inside a sentence, in Prague time", () => {
     expect(formatRequestEventStart(new Date("2026-10-23T15:30:00.000Z"))).toBe("pá 23. 10. v 17:30")
     expect(formatRequestEventStart(new Date("2026-10-26T07:00:00.000Z"))).toBe("po 26. 10. v 8:00")
+  })
+})
+
+describe("formatStartInSentence", () => {
+  // Fri 23. 10. 2026 17:30 Prague time
+  const start = new Date("2026-10-23T15:30:00.000Z")
+
+  it.each([
+    ["2026-10-23T06:00:00.000Z", "dnes v 17:30"],
+    ["2026-10-22T21:30:00.000Z", "zítra v 17:30"],
+    ["2026-10-19T08:00:00.000Z", "v pátek v 17:30"],
+    ["2026-10-16T08:00:00.000Z", "23. 10. v 17:30"],
+  ])("from %s: „%s“", (now, text) => {
+    expect(formatStartInSentence(start, new Date(now))).toBe(text)
+  })
+
+  it("names the day with its preposition (ve středu, ve čtvrtek)", () => {
+    const monday = new Date("2026-10-19T08:00:00.000Z")
+    expect(formatStartInSentence(new Date("2026-10-21T16:00:00.000Z"), monday)).toBe(
+      "ve středu v 18:00",
+    )
+    expect(formatStartInSentence(new Date("2026-10-22T16:00:00.000Z"), monday)).toBe(
+      "ve čtvrtek v 18:00",
+    )
   })
 })

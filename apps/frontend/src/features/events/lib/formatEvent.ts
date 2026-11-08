@@ -87,6 +87,38 @@ export function formatRequestEventStart(date: Date): string {
   return `${get("weekday")} ${get("day")}. ${get("month")}. v ${get("hour")}:${get("minute")}`
 }
 
+const pragueDayFormat = new Intl.DateTimeFormat("en-CA", { timeZone: PRAGUE_TZ })
+const pragueDay = (date: Date): number => Date.parse(pragueDayFormat.format(date))
+const DAY_MS = 24 * 60 * 60 * 1000
+// „v pondělí“… with the preposition each day takes
+const ON_WEEKDAY = [
+  "v neděli",
+  "v pondělí",
+  "v úterý",
+  "ve středu",
+  "ve čtvrtek",
+  "v pátek",
+  "v sobotu",
+]
+
+/**
+ * When an event starts, said as in a sentence (Figma C-01d: „Nejbližší: florbal v sobotu
+ * v 19:00“): „dnes v 19:00“, „zítra v 19:00“, the weekday within a week, else „23. 10. v 19:00“.
+ */
+export function formatStartInSentence(date: Date, now: Date): string {
+  const days = Math.round((pragueDay(date) - pragueDay(now)) / DAY_MS)
+  const time = timeFormat.format(date)
+  if (days === 0) return `dnes v ${time}`
+  if (days === 1) return `zítra v ${time}`
+  if (days > 1 && days < 7) {
+    return `${ON_WEEKDAY[new Date(pragueDay(date)).getUTCDay()]} v ${time}`
+  }
+  const parts = dayMonthFormat.formatToParts(date)
+  const get = (type: Intl.DateTimeFormatPartTypes) =>
+    parts.find((part) => part.type === type)?.value ?? ""
+  return `${get("day")}. ${get("month")}. v ${time}`
+}
+
 // a Prague day `YYYY-MM-DD` is read as a UTC date, so the time zone can't move it
 const formDayFormat = new Intl.DateTimeFormat("cs-CZ", {
   timeZone: "UTC",
