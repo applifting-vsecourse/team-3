@@ -1,6 +1,6 @@
 import type { ReactNode } from "react"
 import { Link } from "@tanstack/react-router"
-import { CalendarDays, Lock, MapPin, RefreshCw, UserCheck } from "lucide-react"
+import { Ban, CalendarDays, Lock, MapPin, RefreshCw, UserCheck } from "lucide-react"
 
 import { ROUTES } from "@/app/routes"
 import { ActivityTile } from "@/components/ActivityTile/ActivityTile"
@@ -156,7 +156,9 @@ export function EventDetailView({
   )
   const capacity = isCancelled ? (
     // instead of the capacity: „Chybí ještě 2“ would read as if it still happens
-    <Alert>
+    // (Figma A-05 · Stavy › Zrušená akce, Alert Destructive)
+    <Alert variant="destructive">
+      <Ban />
       <AlertTitle>Akce je zrušená</AlertTitle>
       {event.cancelReason ? (
         <AlertDescription className="whitespace-pre-line">{event.cancelReason}</AlertDescription>
