@@ -29,8 +29,17 @@ export function ipToHex(ip: string): string | null {
     rest === undefined
       ? headGroups
       : [...headGroups, ...Array<string>(missing).fill('0'), ...restGroups];
-  return groups.map((group) => group.padStart(4, '0').toLowerCase()).join('');
+  const hex = groups
+    .map((group) => group.padStart(4, '0').toLowerCase())
+    .join('');
+  // IPv4-mapped written out in full („0:0:0:0:0:ffff:1.2.3.4“): IPv4 too (review #274)
+  return hex.startsWith(IPV4_MAPPED_PREFIX)
+    ? hex.slice(IPV4_MAPPED_PREFIX.length)
+    : hex;
 }
+
+/** ::ffff:0:0/96 as hex: the first 24 of the 32 digits. */
+const IPV4_MAPPED_PREFIX = '00000000000000000000ffff';
 
 function ipv4ToHex(ip: string): string {
   return ip

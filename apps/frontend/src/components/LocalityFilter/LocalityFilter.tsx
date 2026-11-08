@@ -74,7 +74,7 @@ export function LocalityFilter({
   // follows what is picked: a district goes back to its city, anything else to the
   // visitor's default (or Celé Česko without one)
   const cityReset = localityReset(draft, localities)
-  const isResetToDefault = localityDefault && cityReset.label === "Zrušit výběr"
+  const isResetToDefault = localityDefault && !cityReset.isDistrict
   const reset = isResetToDefault
     ? { label: "Zrušit výběr", isDisabled: !areaLabel && isDefault && draft === current }
     : { label: cityReset.label, isDisabled: cityReset.slug === undefined }

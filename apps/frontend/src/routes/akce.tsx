@@ -78,11 +78,16 @@ function EventsPage() {
   }, [selectedEvent])
 
   // replace: changing a filter shouldn't fill the back button with filter states
+  // A filter only, nothing remembered: e.g. „… v celém Česku“ from an empty list widens it
+  // this once (review #274). A locality replaces the searched area (and the other way round).
   const setSearch = (patch: Partial<EventsSearch>) => {
-    // a locality replaces the searched area (and the other way round)
-    if (patch.lokalita !== undefined) shownLocality.pick(patch.lokalita)
     const withArea = patch.lokalita !== undefined ? { ...patch, oblast: undefined } : patch
     void navigate({ search: (prev) => ({ ...prev, ...withArea }), replace: true })
+  }
+  // a pick in the locality chip: remembered in this browser (#55)
+  const pickLocality = (lokalita: string) => {
+    shownLocality.pick(lokalita)
+    setSearch({ lokalita })
   }
   // also the remembered locality: back to the visitor's default (#55)
   const clearFilters = () => {
@@ -141,6 +146,7 @@ function EventsPage() {
               search={search}
               catalog={catalog}
               onChange={setSearch}
+              onLocalityChange={pickLocality}
               onClearAll={canClear ? clearFilters : undefined}
               localityDefault={localityDefault(shownLocality, clearLocality)}
               isFloating={!isDesktop && !isListExpanded}

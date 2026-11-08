@@ -59,9 +59,14 @@ function GroupsPage() {
   const myGroupsCount = myGroupsQuery.data?.length
 
   // replace: changing a filter shouldn't fill the back button with filter states
-  const setSearch = (patch: Partial<GroupsSearch>) => {
-    if (patch.lokalita !== undefined) shownLocality.pick(patch.lokalita)
+  // a filter only, nothing remembered: e.g. „… v celém Česku“ from an empty list widens it
+  // this once (review #274)
+  const setSearch = (patch: Partial<GroupsSearch>) =>
     void navigate({ search: (prev) => ({ ...prev, ...patch }), replace: true })
+  // a pick in the locality chip: remembered in this browser (#55)
+  const pickLocality = (lokalita: string) => {
+    shownLocality.pick(lokalita)
+    setSearch({ lokalita })
   }
   // also the remembered locality: back to the visitor's default (#55); the tab stays
   const clearFilters = () => {
@@ -82,6 +87,7 @@ function GroupsPage() {
         search={search}
         catalog={catalog}
         onChange={setSearch}
+        onLocalityChange={pickLocality}
         onClearAll={canClear ? clearFilters : undefined}
         localityDefault={localityDefault(shownLocality, clearLocality)}
       />

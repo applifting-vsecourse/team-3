@@ -1,3 +1,6 @@
+import { distanceKm } from '@/shared/geo/distance';
+import { foldText } from '@/shared/text/fold-text';
+
 export type Town = { slug: string; name: string; lat: number; lng: number };
 
 /** One row of DB-IP's „IP to City Lite“ CSV. */
@@ -49,45 +52,31 @@ export function parseDbIpLine(line: string): DbIpRow | null {
   return { start, end, country, city, lat: Number(lat), lng: Number(lng) };
 }
 
-const normalize = (name: string): string =>
-  name
-    .normalize('NFD')
-    .replace(/\p{Diacritic}/gu, '')
-    .toLowerCase()
-    .trim();
-
-/** Great-circle distance in km. */
-export function distanceKm(
-  a: { lat: number; lng: number },
-  b: { lat: number; lng: number },
-): number {
-  const rad = Math.PI / 180;
-  const dLat = (b.lat - a.lat) * rad;
-  const dLng = (b.lng - a.lng) * rad;
-  const h =
-    Math.sin(dLat / 2) ** 2 +
-    Math.cos(a.lat * rad) * Math.cos(b.lat * rad) * Math.sin(dLng / 2) ** 2;
-  return 2 * 6371 * Math.asin(Math.sqrt(h));
-}
-
 const nearest = (towns: readonly Town[], row: DbIpRow): Town =>
   towns.reduce((best, town) =>
     distanceKm(town, row) < distanceKm(best, row) ? town : best,
   );
 
 /**
- * The catalog town for a row: Prague and its parts („Jinonice (Prague)“,
- * „Stodůlky (Praha 5)“) are Praha, a row named like a town is that town,
- * anything else the nearest town. By name first, because Prague's outskirts
- * lie closer to the centre of a neighbouring town than to Prague's.
+ * Prague or a part of it („Jinonice (Prague)“, „Stodůlky (Praha 5)“), not
+ * the districts around it: „Černošice (Praha-západ)“ and „Brandýs nad Labem
+ * (Praha-východ)“ lie outside Prague (review #274).
+ */
+const PRAGUE = /\b(prague|praha)\b(?![-\s]*(z[aá]pad|v[yý]chod|west|east))/iu;
+
+/**
+ * The catalog town for a row: Prague and its parts are Praha, a row named
+ * like a town is that town, anything else the nearest town. By name first,
+ * because Prague's outskirts lie closer to the centre of a neighbouring town
+ * than to Prague's.
  */
 export function townFor(row: DbIpRow, towns: readonly Town[]): Town {
-  if (/\b(prague|praha)\b/i.test(row.city)) {
+  if (PRAGUE.test(row.city)) {
     const praha = towns.find((town) => town.slug === 'praha');
     if (praha) return praha;
   }
-  const name = normalize(row.city);
-  const named = towns.filter((town) => normalize(town.name) === name);
+  const name = foldText(row.city.trim());
+  const named = towns.filter((town) => foldText(town.name.trim()) === name);
   if (named.length > 0) {
     const best = nearest(named, row);
     if (distanceKm(best, row) <= SAME_NAME_MAX_KM) return best;

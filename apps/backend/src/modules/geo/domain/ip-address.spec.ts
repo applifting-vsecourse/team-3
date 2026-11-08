@@ -9,6 +9,8 @@ describe('ipToHex', () => {
   it('treats an IPv4-mapped IPv6 address as IPv4', () => {
     expect(ipToHex('::ffff:88.102.204.10')).toBe('5866cc0a');
     expect(ipToHex('::FFFF:1.2.3.4')).toBe('01020304');
+    expect(ipToHex('0:0:0:0:0:ffff:88.102.204.10')).toBe('5866cc0a');
+    expect(ipToHex('::ffff:5866:cc0a')).toBe('5866cc0a');
   });
 
   it('expands IPv6 to 32 hex digits', () => {

@@ -60,6 +60,12 @@ describe('GeoService.defaultLocality', () => {
     expect(repository.findHomeLocality).toHaveBeenCalledTimes(1);
   });
 
+  it('looks a guessed town up in the database once, not on every request', async () => {
+    await service.defaultLocality(null, BRNO_IP);
+    await service.defaultLocality(null, BRNO_IP);
+    expect(repository.findLocalityBySlug).toHaveBeenCalledTimes(1);
+  });
+
   it('falls back to all of Czechia when the IP says nothing', async () => {
     for (const ip of ['127.0.0.1', '8.8.8.8', 'unknown', undefined]) {
       await expect(service.defaultLocality(null, ip)).resolves.toEqual({

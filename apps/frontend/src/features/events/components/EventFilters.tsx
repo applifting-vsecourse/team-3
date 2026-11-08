@@ -20,6 +20,8 @@ type EventFiltersProps = {
   search: EventsSearch
   catalog: { localities: Locality[]; categories: ActivityCategory[] } | undefined
   onChange: (patch: Partial<EventsSearch>) => void
+  /** A pick in the locality chip, which the page remembers (#55); without it, `onChange`. */
+  onLocalityChange?: (slug: string) => void
   /** „Zrušit vše“; only when something was picked (a default locality isn't). */
   onClearAll?: () => void
   /** The visitor's default locality on the chip (#55). */
@@ -35,6 +37,7 @@ export function EventFilters({
   catalog,
   onChange,
   onClearAll,
+  onLocalityChange,
   localityDefault,
   isFloating,
   className,
@@ -45,15 +48,16 @@ export function EventFilters({
       aria-label="Filtry"
       className={cn("flex items-center gap-2", isFloating && "*:shadow-md", className)}
     >
-      {catalog ? (
+      {/* until the default locality is known, no name: never „Celé Česko“ for a moment */}
+      {catalog && search.lokalita !== undefined ? (
         <EventLocalityFilter
           search={search}
           localities={catalog.localities}
-          onChange={(lokalita) => onChange({ lokalita })}
+          onChange={onLocalityChange ?? ((lokalita) => onChange({ lokalita }))}
           localityDefault={localityDefault}
         />
       ) : (
-        // keeps the bar from shifting while the catalog loads
+        // keeps the bar from shifting while the catalog or the default locality loads
         <FilterChip disabled>Lokalita</FilterChip>
       )}
       <DateFilter
@@ -101,7 +105,7 @@ function EventLocalityFilter({
 }: {
   search: EventsSearch
   localities: Locality[]
-  onChange: (lokalita: string | undefined) => void
+  onChange: (lokalita: string) => void
   localityDefault?: LocalityDefault
 }) {
   const [draft, setDraft] = useState<string>()

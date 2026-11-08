@@ -70,6 +70,18 @@ describe('townFor', () => {
     ).toBe('praha');
   });
 
+  it('keeps the districts around Prague out of Praha (Praha-západ, Praha-východ)', () => {
+    expect(
+      townFor(row('Černošice (Praha-západ)', 49.9601, 14.3197), towns).slug,
+    ).toBe('cernosice');
+    expect(
+      townFor(row('Okolí (Praha-Východ)', 49.961, 14.32), towns).slug,
+    ).toBe('cernosice');
+    expect(
+      townFor(row('Kunratice (Praha 4)', 50.0137, 14.4793), towns).slug,
+    ).toBe('praha');
+  });
+
   it('takes a town of the same name, ignoring diacritics', () => {
     expect(townFor(row('Cernosice', 49.96, 14.32), towns).slug).toBe(
       'cernosice',

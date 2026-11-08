@@ -16,6 +16,8 @@ type GroupFiltersProps = {
   search: GroupsSearch
   catalog: Catalog | undefined
   onChange: (patch: Partial<GroupsSearch>) => void
+  /** A pick in the locality chip, which the page remembers (#55); without it, `onChange`. */
+  onLocalityChange?: (slug: string) => void
   /** „Zrušit vše“; only when something was picked (a default locality isn't). */
   onClearAll?: () => void
   /** The visitor's default locality on the chip (#55). */
@@ -28,6 +30,7 @@ export function GroupFilters({
   catalog,
   onChange,
   onClearAll,
+  onLocalityChange,
   localityDefault,
 }: GroupFiltersProps) {
   return (
@@ -43,12 +46,17 @@ export function GroupFilters({
             catalog={catalog}
             onChange={onChange}
           />
-          <GroupLocalityFilter
-            search={search}
-            catalog={catalog}
-            onChange={(lokalita) => onChange({ lokalita })}
-            localityDefault={localityDefault}
-          />
+          {/* until the default locality is known, no name: never „Celé Česko“ for a moment */}
+          {search.lokalita !== undefined ? (
+            <GroupLocalityFilter
+              search={search}
+              catalog={catalog}
+              onChange={onLocalityChange ?? ((lokalita) => onChange({ lokalita }))}
+              localityDefault={localityDefault}
+            />
+          ) : (
+            <FilterChip disabled>Lokalita</FilterChip>
+          )}
         </>
       ) : (
         // keeps the bar from shifting while the catalog loads
@@ -84,7 +92,7 @@ function GroupLocalityFilter({
 }: {
   search: GroupsSearch
   catalog: Catalog
-  onChange: (lokalita: string | undefined) => void
+  onChange: (lokalita: string) => void
   localityDefault?: LocalityDefault
 }) {
   const [draft, setDraft] = useState<string>()

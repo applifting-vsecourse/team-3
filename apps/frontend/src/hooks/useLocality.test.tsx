@@ -6,7 +6,10 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest"
 import { api } from "@/lib/api-client"
 import type * as ApiClient from "@/lib/api-client"
 import { authKeys } from "@/lib/auth-keys"
-import { getRememberedLocality } from "@/lib/catalog/rememberedLocality"
+import {
+  getRememberedLocality,
+  resetRememberedLocalityMemory,
+} from "@/lib/catalog/rememberedLocality"
 
 import { useLocality } from "./useLocality"
 
@@ -57,6 +60,7 @@ const memoryStorage = () => {
 
 describe("useLocality", () => {
   beforeEach(() => {
+    resetRememberedLocalityMemory()
     vi.stubGlobal("localStorage", memoryStorage())
     get.mockReset()
     answerDefault(answer({ locality: brno, source: "ip" }))
@@ -150,6 +154,7 @@ describe("useLocality", () => {
 
 describe("useLocality without storage (a private window)", () => {
   beforeEach(() => {
+    resetRememberedLocalityMemory()
     vi.stubGlobal("localStorage", {
       getItem: () => {
         throw new Error("blocked")
@@ -166,11 +171,14 @@ describe("useLocality without storage (a private window)", () => {
   })
   afterEach(() => vi.unstubAllGlobals())
 
-  it("still shows the default and survives a pick", async () => {
+  it("still shows the default, and a pick holds in memory (the landing page has no URL)", async () => {
     const { result } = renderLocality(undefined)
     await waitFor(() => expect(result.current.slug).toBe("brno"))
 
     act(() => result.current.pick("ostrava"))
-    expect(result.current.slug).toBe("brno")
+    expect(result.current).toMatchObject({ slug: "ostrava", source: "remembered", isPicked: true })
+
+    act(() => result.current.forget())
+    expect(result.current).toMatchObject({ slug: "brno", isPicked: false })
   })
 })
