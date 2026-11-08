@@ -343,14 +343,14 @@ function JoinControl({
       )
     case "rejected":
       // Figma A-05 · Stavy › Žádost zamítnutá; a new request isn't possible (team, 4. 11.).
-      // Gender-neutral (DESIGN.md › Copy): „organizátor“ is the role, not a person.
+      // Hlas aplikace's wording: passive, so the organizer gets no gendered verb (DESIGN.md › Copy).
       return (
         <>
           <Alert variant="neutral">
             <Info />
             <AlertTitle>Tentokrát to nevyšlo</AlertTitle>
             <AlertDescription>
-              Na tuhle akci tě organizátor nepřijal. Mrkni na podobné akce v okolí.
+              Tvoje žádost o účast nebyla přijata. Mrkni na podobné akce v okolí.
             </AlertDescription>
           </Alert>
           <SimilarEvents

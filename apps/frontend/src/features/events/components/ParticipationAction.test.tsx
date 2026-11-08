@@ -297,7 +297,7 @@ describe("ParticipationAction", () => {
 
     expect(screen.getByText("Tentokrát to nevyšlo")).toBeInTheDocument()
     expect(
-      screen.getByText("Na tuhle akci tě organizátor nepřijal. Mrkni na podobné akce v okolí."),
+      screen.getByText("Tvoje žádost o účast nebyla přijata. Mrkni na podobné akce v okolí."),
     ).toBeInTheDocument()
     expect(screen.queryByRole("button", { name: "Poslat žádost" })).not.toBeInTheDocument()
     // not a dead end (UX audit U2): the same activity in the same locality
