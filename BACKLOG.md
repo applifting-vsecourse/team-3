@@ -362,7 +362,7 @@ Doménová logika (čistá funkce + testy): `approvedCount`, `missingToMin = max
 - Vrací jen `status = published`, `visibility = public`, `startsAt > now`. Nevrací soukromé a „jen pro členy“.
 - Každá položka: aktivita, název, termín, místo (lat/lng + adresa), `missingToMin`, `freeSpots`, `isFull`, organizátor (osoba nebo skupina), `isPromoted`.
 - `GET /api/events/map` – stejné filtry, odlehčené body pro mapu (bez stránkování, limit 500).
-- Stav po #57: `q` hledá v názvu, názvu aktivity a `Activity.keywords` bez diakritiky (všechna slova); `lat`+`lng` je bod pro `distanceKm` a `sort=distance`, `radiusKm` (1–100) okruh kolem něj. Databáze předfiltruje obdélníkem, přesnou vzdálenost, hledání a řazení dělá služba před limitem 200 (jako obsazenost). Stránkování ani `/events/map` zatím nejsou; FE ukáže „Víc než 200 akcí“.
+- Stav po #57: `q` hledá v názvu, názvu aktivity a `Activity.keywords` bez diakritiky (všechna slova); `lat`+`lng` je bod pro `distanceKm` a `sort=distance`, `radiusKm` (1–100) okruh kolem něj. Databáze předfiltruje obdélníkem, přesnou vzdálenost, hledání a řazení dělá služba před limitem 200 (jako obsazenost). Stránkování ani `/events/map` zatím nejsou; FE ukáže „Víc než 200 akcí“. Známé omezení: hledání (`q`) databáze neumí, služba prochází jen 2000 nejbližších termínů v lokalitě (u celého Česka v celé ČR, `SCAN_LIMIT`), takže při větším počtu akcí shodu s pozdějším termínem nenajde. Řešením je fulltext v databázi (sloupec bez diakritiky nebo `unaccent`).
 
 **Hotovo, když:**
 
