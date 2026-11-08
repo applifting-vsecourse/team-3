@@ -81,7 +81,10 @@ describe("activeFiltersLabel", () => {
 
   it("in a map area names the area, not the locality it replaced (#56)", () => {
     expect(
-      activeFiltersLabel({ lokalita: "bruntal", oblast: "17.3,49.9,17.7,50.1", kategorie: "hry" }, catalog),
+      activeFiltersLabel(
+        { lokalita: "bruntal", oblast: "17.3,49.9,17.7,50.1", kategorie: "hry" },
+        catalog,
+      ),
     ).toBe("Výřez mapy · Hry")
   })
 
