@@ -17,6 +17,7 @@ import { useSession } from "@/features/auth/hooks/useSession"
 import { redirectFrom } from "@/features/auth/lib/redirect"
 import { GroupEvents } from "@/features/events/components/GroupEvents"
 import { groupQueryOptions } from "@/features/groups/api/groupsQueryOptions"
+import { GroupAnnouncements } from "@/features/groups/components/GroupAnnouncements"
 import { GroupProfile } from "@/features/groups/components/GroupProfile"
 
 export const Route = createFileRoute("/skupiny/$groupId")({
@@ -33,6 +34,8 @@ function GroupPage() {
   const groupQuery = useQuery(groupQueryOptions(groupId, viewerId))
   const location = useLocation()
   const group = groupQuery.data
+  // announcements are for active members and admins only (#194)
+  const isMember = group?.viewerMembership?.status === "active"
   const isNotFound =
     groupQuery.error instanceof HTTPError && groupQuery.error.response.status === 404
 
@@ -52,6 +55,14 @@ function GroupPage() {
             group={group}
             isSignedIn={Boolean(user)}
             signInFrom={redirectFrom(location)}
+            announcements={
+              isMember && viewerId ? (
+                <GroupAnnouncements
+                  groupId={groupId}
+                  viewerId={viewerId}
+                />
+              ) : null
+            }
             events={
               <GroupEvents
                 groupId={groupId}

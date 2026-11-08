@@ -1,10 +1,13 @@
 import { describe, expect, it } from "vitest"
 
 import {
+  announcementRecipientsLabel,
+  formatAnnouncementTime,
   groupCountLabel,
   groupFacts,
   memberCountLabel,
   myGroupTypeLabel,
+  remainingAnnouncementsLabel,
   showGroupsLabel,
 } from "./formatGroup"
 
@@ -59,5 +62,37 @@ describe("myGroupTypeLabel", () => {
       "Neveřejná – žádost čeká na schválení",
     )
     expect(myGroupTypeLabel({ type: "public", membership: { status: "active" } })).toBe("Veřejná")
+  })
+})
+
+describe("announcements (#194)", () => {
+  it("the time is Prague time: 23:30 UTC in winter is already the next day", () => {
+    expect(formatAnnouncementTime(new Date("2026-10-22T18:10:00.000Z"))).toBe("čt 22. 10. v 20:10")
+    expect(formatAnnouncementTime(new Date("2026-11-07T23:30:00.000Z"))).toBe("ne 8. 11. v 0:30")
+  })
+
+  it.each([
+    [
+      0,
+      "Ve skupině zatím nikdo další není. Oznámení zůstane na stránce skupiny pro nové členy.",
+    ],
+    [
+      1,
+      "Oznámení přijde e-mailem 1 aktivnímu členovi a uvidí ho na stránce skupiny. Čekající žadatelé ho nedostanou.",
+    ],
+    [
+      4,
+      "Oznámení přijde e-mailem všem 4 aktivním členům a uvidí ho na stránce skupiny. Čekající žadatelé ho nedostanou.",
+    ],
+  ])("%i other members: %s", (count, label) => {
+    expect(announcementRecipientsLabel(count)).toBe(label)
+  })
+
+  it("says what is left of today's limit, and when nothing is", () => {
+    expect(remainingAnnouncementsLabel(3)).toBe("Dnes můžeš skupině poslat ještě 3 oznámení.")
+    expect(remainingAnnouncementsLabel(1)).toBe("Dnes můžeš skupině poslat ještě 1 oznámení.")
+    expect(remainingAnnouncementsLabel(0)).toBe(
+      "Dnes už skupině další oznámení poslat nemůžeš. Zkus to zítra.",
+    )
   })
 })

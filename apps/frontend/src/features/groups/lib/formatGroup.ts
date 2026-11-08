@@ -62,3 +62,40 @@ export const groupFacts = (group: {
   memberCount: number
 }): string =>
   `${group.activity.name} · ${group.locality.name} · ${memberCountLabel(group.memberCount)}`
+
+const announcementTimeFormat = new Intl.DateTimeFormat("cs-CZ", {
+  // a group meets in Prague, so its announcements are in Prague time wherever the browser is
+  timeZone: "Europe/Prague",
+  weekday: "short",
+  day: "numeric",
+  month: "numeric",
+  hour: "numeric",
+  minute: "2-digit",
+})
+
+/** When an announcement was sent (Figma A-08e): "čt 22. 10. v 20:10". */
+export function formatAnnouncementTime(date: Date): string {
+  const parts = announcementTimeFormat.formatToParts(date)
+  const get = (type: Intl.DateTimeFormatPartTypes) =>
+    parts.find((part) => part.type === type)?.value ?? ""
+  return `${get("weekday")} ${get("day")}. ${get("month")}. v ${get("hour")}:${get("minute")}`
+}
+
+/**
+ * Who gets an announcement (Figma D-08). `otherMembers`: the active members
+ * besides the admin writing it, who gets no e-mail of their own.
+ */
+export function announcementRecipientsLabel(otherMembers: number): string {
+  if (otherMembers <= 0) {
+    return "Ve skupině zatím nikdo další není. Oznámení zůstane na stránce skupiny pro nové členy."
+  }
+  const whom =
+    otherMembers === 1 ? "1 aktivnímu členovi" : `všem ${otherMembers} aktivním členům`
+  return `Oznámení přijde e-mailem ${whom} a uvidí ho na stránce skupiny. Čekající žadatelé ho nedostanou.`
+}
+
+/** Under the text (Figma D-08): what is left of today's limit; „oznámení“ is the same in every count. */
+export function remainingAnnouncementsLabel(remaining: number): string {
+  if (remaining <= 0) return "Dnes už skupině další oznámení poslat nemůžeš. Zkus to zítra."
+  return `Dnes můžeš skupině poslat ještě ${remaining} oznámení.`
+}

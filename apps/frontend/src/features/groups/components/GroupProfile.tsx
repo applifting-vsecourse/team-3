@@ -17,16 +17,24 @@ type GroupProfileProps = {
   signInFrom: string
   /** The group's upcoming and past events (#70, A-08e); the page builds them. */
   events?: ReactNode
+  /** The admins' announcements (#194, A-08e), only for members; the page builds them. */
+  announcements?: ReactNode
 }
 
 /**
  * The group page: activity, name, locality, type, approved members, admins
  * and description. Mobile (Figma A-08) stacks them with the action in a bar
  * above the bottom navigation; desktop (A-08d, like the event detail A-05d)
- * puts the facts and the action in a panel on the right. The group's
- * events follow the description (A-08e).
+ * puts the facts and the action in a panel on the right. A member sees the
+ * announcements after the description, then the group's events (A-08e).
  */
-export function GroupProfile({ group, isSignedIn, signInFrom, events }: GroupProfileProps) {
+export function GroupProfile({
+  group,
+  isSignedIn,
+  signInFrom,
+  events,
+  announcements,
+}: GroupProfileProps) {
   const isDesktop = useMediaQuery(DESKTOP_QUERY)
   const action = hasMembershipAction(group) ? (
     <GroupMembershipAction
@@ -42,6 +50,7 @@ export function GroupProfile({ group, isSignedIn, signInFrom, events }: GroupPro
         <div className="flex flex-col gap-6">
           <GroupHeading group={group} />
           <GroupAbout description={group.description} />
+          {announcements}
           <GroupAdmins admins={group.admins} />
           {events}
         </div>
@@ -60,6 +69,7 @@ export function GroupProfile({ group, isSignedIn, signInFrom, events }: GroupPro
       <GroupFacts group={group} />
       <GroupAdmins admins={group.admins} />
       <GroupAbout description={group.description} />
+      {announcements}
       {events}
       {action ? (
         // Figma: Lišta s akcí — above the bottom navigation
