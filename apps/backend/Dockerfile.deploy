@@ -65,8 +65,10 @@ COPY --from=builder /app/apps/backend/prisma ./apps/backend/prisma
 ARG CI_COMMIT_SHA
 ENV CI_COMMIT_SHA=$CI_COMMIT_SHA
 
-# This image runs on staging, which has no e-mail service. Delete for real production.
-ENV SIMULATED_INBOX=true
+# Simulated inbox on staging until real e-mail works (#165): the repo variable
+# SIMULATED_INBOX=false in deploy.yml turns it off. Delete for real production.
+ARG SIMULATED_INBOX="true"
+ENV SIMULATED_INBOX=$SIMULATED_INBOX
 # Swagger (/api/docs) and BetterAuth's reference page, kept on for the team on
 # staging (#229, N-9). Delete for real production.
 ENV API_DOCS=true
@@ -77,6 +79,27 @@ ENV SEED_DEMO_DATA=true
 # Anyone who can pull this image can read it: use a password for staging only.
 ARG SEED_DEMO_PASSWORD=""
 ENV SEED_DEMO_PASSWORD=$SEED_DEMO_PASSWORD
+# Google sign-in and real e-mail on staging (#165), from GitHub secrets and
+# variables via build-args in deploy.yml — the course's way: Coolify's own
+# variables are fixed. Empty = off (no Google button; e-mails only logged).
+# Anyone who can pull this image can read them: use staging-only keys.
+ARG GOOGLE_CLIENT_ID=""
+ENV GOOGLE_CLIENT_ID=$GOOGLE_CLIENT_ID
+ARG GOOGLE_CLIENT_SECRET=""
+ENV GOOGLE_CLIENT_SECRET=$GOOGLE_CLIENT_SECRET
+ARG SMTP_HOST=""
+ENV SMTP_HOST=$SMTP_HOST
+ARG SMTP_PORT="465"
+ENV SMTP_PORT=$SMTP_PORT
+ARG SMTP_SECURE="true"
+ENV SMTP_SECURE=$SMTP_SECURE
+ARG SMTP_USERNAME=""
+ENV SMTP_USERNAME=$SMTP_USERNAME
+ARG SMTP_PASSWORD=""
+ENV SMTP_PASSWORD=$SMTP_PASSWORD
+# Optional: without it SMTP sends from SMTP_USERNAME (#165)
+ARG EMAIL_FROM=""
+ENV EMAIL_FROM=$EMAIL_FROM
 
 USER node
 WORKDIR /app/apps/backend
