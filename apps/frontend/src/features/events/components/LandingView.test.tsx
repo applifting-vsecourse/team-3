@@ -1,6 +1,7 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query"
 import { screen, within } from "@testing-library/react"
-import { beforeEach, describe, expect, it, vi } from "vitest"
+import userEvent from "@testing-library/user-event"
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest"
 
 import { api } from "@/lib/api-client"
 import type * as ApiClient from "@/lib/api-client"
@@ -24,10 +25,19 @@ const localities = [
   { id: "l-brno", slug: "brno", name: "Brno", parentId: null, lat: 49.2, lng: 16.6 },
 ]
 
-const renderLanding = (isVisitor: boolean, session: "known" | "loading" = "known") =>
+const pick = vi.fn()
+
+const renderLanding = (
+  isVisitor: boolean,
+  session: "known" | "loading" = "known",
+  source: "home" | "ip" | "none" = "home",
+) =>
   renderWithRouter(
     <QueryClientProvider client={new QueryClient({ defaultOptions: { queries: { retry: 0 } } })}>
-      <LandingView isSignedIn={session === "loading" ? undefined : !isVisitor} />
+      <LandingView
+        isSignedIn={session === "loading" ? undefined : !isVisitor}
+        locality={{ slug: "praha", source, pick }}
+      />
     </QueryClientProvider>,
   )
 
@@ -35,6 +45,7 @@ const isPopularRequest = (options: unknown) =>
   (options as { searchParams?: { sort?: string } } | undefined)?.searchParams?.sort === "popular"
 
 describe("LandingView", () => {
+  afterEach(() => vi.unstubAllGlobals())
   beforeEach(() => {
     get.mockReset()
     get.mockImplementation(((path: string, options: unknown) =>
@@ -80,7 +91,7 @@ describe("LandingView", () => {
 
     expect(await screen.findByRole("link", { name: "Akce e1" })).toHaveAttribute("href", "/akce/e1")
     const nearest = screen.getByRole("region", { name: "Nejbližší akce" })
-    expect(within(nearest).getByText("Praha")).toBeInTheDocument()
+    expect(within(nearest).getByRole("button", { name: "Lokalita: Praha" })).toBeInTheDocument()
     expect(within(nearest).getAllByRole("link", { name: /^Akce e/ })).toHaveLength(3)
     // Praha includes its districts; the API resolves that from the city's id
     expect(get).toHaveBeenCalledWith("events", {
@@ -110,6 +121,32 @@ describe("LandingView", () => {
     expect(within(popular).getByText("Celé Česko")).toBeInTheDocument()
     // no locality: the API ranks all of Czechia
     expect(get).toHaveBeenCalledWith("events", { searchParams: { sort: "popular", limit: 6 } })
+  })
+
+  it("says the locality is a guess when it comes from the IP, and lets it be changed", async () => {
+    // desktop: the locality panel opens as a popover
+    vi.stubGlobal("matchMedia", (query: string) => ({
+      matches: true,
+      media: query,
+      addEventListener: vi.fn(),
+      removeEventListener: vi.fn(),
+    }))
+    await renderLanding(true, "known", "ip")
+
+    const nearest = screen.getByRole("region", { name: "Nejbližší akce" })
+    expect(within(nearest).getByText("Odhad podle tvé IP adresy.")).toBeInTheDocument()
+    await userEvent.click(await within(nearest).findByRole("button", { name: "Lokalita: Praha" }))
+    const panel = await screen.findByRole("dialog", { name: "Lokalita" })
+    await userEvent.click(within(panel).getByRole("option", { name: "Brno" }))
+    await userEvent.click(within(panel).getByRole("button", { name: "Zobrazit akce" }))
+    expect(pick).toHaveBeenCalledWith("brno")
+  })
+
+  it("doesn't call a home locality a guess", async () => {
+    await renderLanding(true)
+
+    expect(await screen.findByRole("button", { name: "Lokalita: Praha" })).toBeInTheDocument()
+    expect(screen.queryByText("Odhad podle tvé IP adresy.")).not.toBeInTheDocument()
   })
 
   it("invites a visitor to sign up", async () => {

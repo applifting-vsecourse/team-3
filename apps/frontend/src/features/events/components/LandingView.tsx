@@ -4,7 +4,7 @@ import { ChevronRight } from "lucide-react"
 import { ROUTES } from "@/app/routes"
 import { PageBand } from "@/components/PageBand/PageBand"
 import { Button } from "@/components/ui/button"
-import { DEFAULT_LOCALITY_SLUG } from "@/lib/catalog/localityOptions"
+import type { LocalityState } from "@/hooks/useLocality"
 import { PAGE } from "@/lib/pageLayout"
 import { cn } from "@/lib/utils"
 
@@ -27,16 +27,19 @@ type LandingViewProps = {
    * up (#36) and the events people are interested in (#156) are for a known visitor only.
    */
   isSignedIn: boolean | undefined
+  /** Where the nearest events are from: the visitor's default or pick (useLocality, #55). */
+  locality: Pick<LocalityState, "slug" | "source" | "pick">
 }
 
 /**
  * Landing page (US-01, #36; Figma A-01, A-01d). Desktop: the intro and the
  * steps on the left, the nearest events on the right, a visitor gets the
  * popular events from all of Czechia over the whole width below. Mobile:
- * intro, events, steps, popular events. The locality is always Praha for
- * now; guessing it from the IP and changing it here is #55.
+ * intro, events, steps, popular events. The nearest events start in the
+ * visitor's locality — home, else guessed from the IP, else all of Czechia —
+ * and the chip changes it (#55).
  */
-export function LandingView({ isSignedIn }: LandingViewProps) {
+export function LandingView({ isSignedIn, locality }: LandingViewProps) {
   const isVisitor = isSignedIn === false
   const allEventsLink = (
     <Button
@@ -94,7 +97,7 @@ export function LandingView({ isSignedIn }: LandingViewProps) {
 
         <div className="lg:col-start-2 lg:row-span-2 lg:row-start-1">
           <NearestEvents
-            localitySlug={DEFAULT_LOCALITY_SLUG}
+            locality={locality}
             footer={allEventsLink}
           />
         </div>
