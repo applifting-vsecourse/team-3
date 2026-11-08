@@ -1,34 +1,45 @@
 /**
- * Map pin markup (Figma: Map pin). The paths come from the Figma component;
- * colours are token classes, never hex (DESIGN.md › Colour):
- * - default: dark pin
- * - highlighted: larger lime pin — an event that still misses people; its
- *   outline and dot are primary-foreground, dark in both themes like text on lime
- * - full: muted pin
+ * Map pin markup (Figma: Map pin, #249). Every unselected pin is one size and
+ * tells its state only by colour (DESIGN.md › Map pin and cluster). The paths
+ * come from the Figma component; colours are token classes, never hex
+ * (DESIGN.md › Colour):
+ * - default: dark pin (light in dark mode) — Volná místa
+ * - highlighted: lime pin — an event that still misses people; its outline
+ *   and dot are primary-foreground, dark in both themes like text on lime, so
+ *   its edge keeps 3:1 against the light map where lime alone would not
+ * - full: muted pin — Plno; with an occupancy filter the API sends no full events
  */
 export type PinVariant = "default" | "highlighted" | "full"
 
-const SMALL = { width: 30, height: 37.5 }
-const LARGE = { width: 40, height: 50 }
+// Figma: Map pin 32 × 40
+const PIN = { width: 32, height: 40 }
 
-export const pinSize = (variant: PinVariant) => (variant === "highlighted" ? LARGE : SMALL)
+/**
+ * The marker's box: the pin centred in a 40 × 40 target (DESIGN.md › Accessibility),
+ * its tip on the bottom edge, so the anchor is the bottom centre.
+ */
+export const PIN_BOX = { width: 40, height: 40 }
 
-const smallPin = (body: string) =>
-  `<svg width="30" height="37.5" viewBox="0 0 30 37.5" fill="none" aria-hidden="true">` +
-  `<path class="${body} stroke-background" stroke-width="2.5" d="M15 36.25C15 36.25 27.5 24.375 27.5 14.375C27.5 7.125 21.875 1.875 15 1.875C8.125 1.875 2.5 7.125 2.5 14.375C2.5 24.375 15 36.25 15 36.25Z"/>` +
-  `<path class="fill-background" d="M15 19.375C17.7614 19.375 20 17.1364 20 14.375C20 11.6136 17.7614 9.375 15 9.375C12.2386 9.375 10 11.6136 10 14.375C10 17.1364 12.2386 19.375 15 19.375Z"/>` +
-  `</svg>`
+const pinSvg = (viewBox: string, paths: string) =>
+  `<svg width="${PIN.width}" height="${PIN.height}" viewBox="${viewBox}" fill="none" aria-hidden="true">${paths}</svg>`
 
-const largePin =
-  `<svg width="40" height="50" viewBox="0 0 40 50" fill="none" aria-hidden="true">` +
+const darkPin = (body: string) =>
+  pinSvg(
+    "0 0 30 37.5",
+    `<path class="${body} stroke-background" stroke-width="2.5" d="M15 36.25C15 36.25 27.5 24.375 27.5 14.375C27.5 7.125 21.875 1.875 15 1.875C8.125 1.875 2.5 7.125 2.5 14.375C2.5 24.375 15 36.25 15 36.25Z"/>` +
+      `<path class="fill-background" d="M15 19.375C17.7614 19.375 20 17.1364 20 14.375C20 11.6136 17.7614 9.375 15 9.375C12.2386 9.375 10 11.6136 10 14.375C10 17.1364 12.2386 19.375 15 19.375Z"/>`,
+  )
+
+const limePin = pinSvg(
+  "0 0 40 50",
   `<path class="fill-primary stroke-primary-foreground" stroke-width="3.33333" d="M20 48.3333C20 48.3333 36.6667 32.5 36.6667 19.1667C36.6667 9.5 29.1667 2.5 20 2.5C10.8333 2.5 3.33333 9.5 3.33333 19.1667C3.33333 32.5 20 48.3333 20 48.3333Z"/>` +
-  `<path class="fill-primary-foreground" d="M20 25.8333C23.6819 25.8333 26.6667 22.8486 26.6667 19.1667C26.6667 15.4848 23.6819 12.5 20 12.5C16.3181 12.5 13.3333 15.4848 13.3333 19.1667C13.3333 22.8486 16.3181 25.8333 20 25.8333Z"/>` +
-  `</svg>`
+    `<path class="fill-primary-foreground" d="M20 25.8333C23.6819 25.8333 26.6667 22.8486 26.6667 19.1667C26.6667 15.4848 23.6819 12.5 20 12.5C16.3181 12.5 13.3333 15.4848 13.3333 19.1667C13.3333 22.8486 16.3181 25.8333 20 25.8333Z"/>`,
+)
 
 const SVG: Record<PinVariant, string> = {
-  default: smallPin("fill-foreground"),
-  highlighted: largePin,
-  full: smallPin("fill-muted-foreground"),
+  default: darkPin("fill-foreground"),
+  highlighted: limePin,
+  full: darkPin("fill-muted-foreground"),
 }
 
 const escapeHtml = (text: string) => text.replace(/[&<>"']/g, (c) => `&#${c.charCodeAt(0)};`)
@@ -49,9 +60,8 @@ const SELECTED_OUTLINE = [
  * (`isSelected`, #56: the one bigger pin, its preview open).
  */
 export function pinHtml(variant: PinVariant, label?: string, { isSelected = false } = {}): string {
-  const { width, height } = pinSize(variant)
   // above the grown pin, not into it
-  const tipOffset = isSelected ? Math.round(height * (SELECTED_SCALE - 1)) + 4 : 4
+  const tipOffset = isSelected ? Math.round(PIN.height * (SELECTED_SCALE - 1)) + 4 : 4
   const tip = label
     ? `<span class="absolute bottom-full left-1/2 -translate-x-1/2 rounded-lg bg-foreground px-3 py-1 text-xs font-medium whitespace-nowrap text-background shadow-md" style="margin-bottom:${tipOffset}px">${escapeHtml(label)}</span>`
     : ""
@@ -59,7 +69,8 @@ export function pinHtml(variant: PinVariant, label?: string, { isSelected = fals
   const svg = isSelected
     ? `<span class="block origin-bottom" style="transform:scale(${SELECTED_SCALE});filter:${SELECTED_OUTLINE}">${SVG[variant]}</span>`
     : SVG[variant]
-  return `<span class="relative block" style="width:${width}px">${tip}${svg}</span>`
+  // the pin stands on the bottom centre of its 40 × 40 target
+  return `<span class="relative flex items-end justify-center" style="width:${PIN_BOX.width}px;height:${PIN_BOX.height}px">${tip}${svg}</span>`
 }
 
 /** Figma: Map cluster — 44 px, the count on `foreground`, a `background` edge. */

@@ -17,7 +17,7 @@ import "./map.css"
 import { Button } from "@/components/ui/button"
 import { cn } from "@/lib/utils"
 
-import { CLUSTER_SIZE, clusterHtml, pinHtml, pinSize, type PinVariant } from "./mapPin"
+import { CLUSTER_SIZE, clusterHtml, PIN_BOX, pinHtml, type PinVariant } from "./mapPin"
 import { PinClusters } from "./pinClusters"
 import { createUserMoveTracker } from "./userMoveTracker"
 
@@ -223,7 +223,7 @@ type PinProps = {
 
 function Pin({ pin, isHighlighted, isSelected, onClick }: PinProps) {
   const icon = useMemo(() => {
-    const { width, height } = pinSize(pin.variant)
+    const { width, height } = PIN_BOX
     return divIcon({
       html: pinHtml(pin.variant, isHighlighted || isSelected ? pin.label : undefined, {
         isSelected,

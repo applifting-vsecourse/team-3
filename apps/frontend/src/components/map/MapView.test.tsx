@@ -3,7 +3,7 @@ import { resolve } from "node:path"
 import { render, screen } from "@testing-library/react"
 import { describe, expect, it } from "vitest"
 
-import { clusterHtml, pinHtml } from "./mapPin"
+import { clusterHtml, PIN_BOX, pinHtml } from "./mapPin"
 import { MapView } from "./MapView"
 
 const praha = { lat: 50.0755, lng: 14.4378 }
@@ -99,6 +99,15 @@ describe("pinHtml", () => {
     }
     expect(pinHtml("highlighted")).toContain("fill-primary")
     expect(pinHtml("full")).toContain("fill-muted-foreground")
+  })
+
+  it("draws every state one size, 32 × 40 in a 40 × 40 target (#249)", () => {
+    for (const variant of ["default", "highlighted", "full"] as const) {
+      const html = pinHtml(variant)
+      expect(html).toContain('<svg width="32" height="40"')
+      expect(html).toContain("width:40px;height:40px")
+    }
+    expect(PIN_BOX).toEqual({ width: 40, height: 40 })
   })
 
   it("grows a selected pin and keeps its tip on the place", () => {
