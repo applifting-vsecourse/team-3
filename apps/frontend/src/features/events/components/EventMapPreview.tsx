@@ -3,7 +3,7 @@ import { EventCard } from "@/features/events/components/EventCard"
 
 type EventMapPreviewProps = {
   event: PublicEvent
-  /** Phone: the list's row card above the bottom navigation; desktop: the bigger card with a line of the description. */
+  /** Phone: the list's row card above the bottom navigation; desktop: the bigger card. Both with the start of the description. */
   isDesktop: boolean
 }
 
@@ -26,7 +26,7 @@ export function EventMapPreview({ event, isDesktop }: EventMapPreviewProps) {
       <EventCard
         event={event}
         variant={isDesktop ? "grid" : "row"}
-        summary={isDesktop ? event.summary : undefined}
+        summary={event.summary}
         titleAs="h2"
       />
     </section>

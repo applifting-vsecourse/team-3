@@ -30,7 +30,7 @@ describe("EventMapPreview (#56)", () => {
     expect(within(preview).getByText(event.summary!)).toBeInTheDocument()
   })
 
-  it("phone: the list's row card, without the description", async () => {
+  it("phone: the list's row card with the time and place, and the description under them", async () => {
     await renderWithRouter(
       <EventMapPreview
         event={event}
@@ -40,6 +40,10 @@ describe("EventMapPreview (#56)", () => {
 
     const preview = screen.getByRole("region", { name: "Náhled akce" })
     expect(within(preview).getByRole("link", { name: event.title })).toBeInTheDocument()
-    expect(within(preview).queryByText(event.summary!)).not.toBeInTheDocument()
+    const line = within(preview).getByText(/^17:30 · /)
+    const summary = within(preview).getByText(event.summary!)
+    // the time and the place first, the description after them, at most two lines
+    expect(line.compareDocumentPosition(summary) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
+    expect(summary).toHaveClass("line-clamp-2")
   })
 })

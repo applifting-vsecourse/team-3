@@ -47,8 +47,9 @@ type EventCardProps = {
   /** The management's card leaves the occupancy to the big bar under it (Figma D-03). */
   hasBar?: boolean
   /**
-   * The grid card's line under the title: the start of the description instead of the place,
-   * as in the map preview (Figma A-03ad, #56).
+   * The start of the description, in the map preview (#56): the grid card shows it under the
+   * title instead of the place (Figma A-03ad); the row card in two lines under its line, so
+   * the time and the place stay (a phone's preview).
    */
   summary?: string | null
   className?: string
@@ -149,6 +150,9 @@ export function EventCard({
             {rowLine}
           </p>
         )}
+        {variant === "row" && summary ? (
+          <p className="line-clamp-2 text-caption text-muted-foreground">{summary}</p>
+        ) : null}
         {variant === "row" ? null : summary ? (
           <p className="line-clamp-2 text-sm text-muted-foreground">{summary}</p>
         ) : (
