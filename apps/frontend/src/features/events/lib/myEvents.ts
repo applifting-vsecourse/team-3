@@ -1,7 +1,12 @@
 import { z } from "zod"
 
 import type { BadgeStatus } from "@/components/StatusBadge/StatusBadge"
-import { occupancyBesideBadge, occupancyCount, occupancySummary } from "@/lib/occupancy"
+import {
+  missingLabel,
+  occupancyBesideBadge,
+  occupancyCount,
+  occupancySummary,
+} from "@/lib/occupancy"
 
 import type { MyEvent } from "@/features/events/api/eventSchemas"
 import { capacityStatus } from "@/features/events/lib/formatEvent"
@@ -42,7 +47,7 @@ export function attendingNumbers(event: MyEvent): string {
 /** A row card in Přihlášen starts its line with how many are missing: „chybí 1 · 18:00 · …“ (C-01). */
 export function attendingRowLead(event: MyEvent): string | undefined {
   return event.status !== "cancelled" && event.missingToMin > 0
-    ? `chybí ${event.missingToMin}`
+    ? missingLabel(event.missingToMin)
     : undefined
 }
 

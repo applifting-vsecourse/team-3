@@ -7,6 +7,7 @@ import {
   gatheredLabel,
   happeningThanks,
   isMinimumReachedByLast,
+  missingLabel,
   occupancyBesideBadge,
   occupancyCount,
   occupancyState,
@@ -90,6 +91,12 @@ describe("occupancyBesideBadge", () => {
   it("from the minimum the count with the minimum too", () => {
     expect(occupancyBesideBadge(occupancy(4, 4, 12))).toBe("4 z 12 · min. 4")
     expect(occupancyBesideBadge(occupancy(12, 4, 12))).toBe("12 z 12 · min. 4")
+  })
+})
+
+describe("missingLabel", () => {
+  it("says how many are missing, inside a line", () => {
+    expect(missingLabel(1)).toBe("chybí 1")
   })
 })
 

@@ -62,6 +62,9 @@ export function occupancyStatus(occupancy: Occupancy): string {
 export const occupancyBesideBadge = (occupancy: Occupancy): string =>
   `${occupancyCount(occupancy)} · min. ${occupancy.minParticipants}`
 
+/** How many are missing to the minimum, inside a line: „chybí 1“ (C-01, the map's pin). */
+export const missingLabel = (missingToMin: number): string => `chybí ${missingToMin}`
+
 /**
  * The occupancy in one line where no capacity badge says it (a card in
  * Přihlášen shows „Jdu“): „5 z 12 · min. 3“; below the minimum it starts with
@@ -70,7 +73,7 @@ export const occupancyBesideBadge = (occupancy: Occupancy): string =>
 export function occupancySummary(occupancy: Occupancy): string {
   const line = occupancyBesideBadge(occupancy)
   return occupancyState(occupancy) === "missing"
-    ? `chybí ${occupancy.missingToMin} · ${line}`
+    ? `${missingLabel(occupancy.missingToMin)} · ${line}`
     : line
 }
 
