@@ -8,6 +8,7 @@ import {
 } from '@/modules/event/domain/capacity';
 import {
   PUBLIC_EVENT_SORTS,
+  PublicEventFilters,
   PublicEventSort,
 } from '@/modules/event/domain/event';
 import { PUBLIC_EVENTS_LIMIT } from '@/modules/event/services/events.service';
@@ -236,3 +237,22 @@ export class ListEventsQueryDto {
   @Max(PUBLIC_EVENTS_LIMIT)
   limit?: number;
 }
+
+/** The domain filters of a list query; GET /events and GET /home/events read it alike. */
+export const toPublicEventFilters = (
+  query: ListEventsQueryDto,
+): PublicEventFilters => ({
+  localityId: query.localityId,
+  dateFrom: query.dateFrom,
+  dateTo: query.dateTo,
+  activityIds: query.activityId,
+  categoryIds: query.categoryId,
+  capacity: query.capacity,
+  bbox: query.bbox ? parseBoundingBox(query.bbox) : undefined,
+  q: query.q,
+  point:
+    query.lat !== undefined && query.lng !== undefined
+      ? { lat: query.lat, lng: query.lng }
+      : undefined,
+  radiusKm: query.radiusKm,
+});
