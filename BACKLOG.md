@@ -690,6 +690,7 @@ Doménová logika (čistá funkce + testy): `approvedCount`, `missingToMin = max
 - Správce: odebrat člena, zablokovat (blokovaný nevidí akce skupiny a nemůže se znovu přidat).
 - Člen: `POST /:id/leave` kdykoli (poslední správce nejdřív musí jmenovat jiného, viz B-054).
 - FE: tlačítka na stránce skupiny, záložka **Členové** a **Žádosti** pro správce.
+- **Oznámení členům (#194, vzor B-042):** `GET/POST /api/groups/:id/announcements`. Poslat smí jen správce aktivní skupiny, nejvýš 3 oznámení na skupinu za pražský kalendářní den (`429 ANNOUNCEMENT_LIMIT`, kontrola pod zámkem řádku skupiny). E-mail dostanou aktivní členové včetně ostatních správců, ne autor. Číst je smí jen aktivní členové a správci (`403 NOT_GROUP_MEMBER`), u deaktivované skupiny zůstanou ke čtení. FE: „Napsat členům“ ve správě (D-08), sekce „Oznámení“ na stránce skupiny (A-08e).
 
 **Hotovo, když:**
 
