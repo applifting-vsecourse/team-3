@@ -64,8 +64,11 @@ const COLUMN_HEADING = "hidden text-lg font-semibold tracking-tight md:block"
 
 type GroupFormProps = {
   catalog: Catalog
-  /** Editing: the group's current values; founding: nothing is preselected. */
-  initialValues?: GroupInput
+  /**
+   * Editing: the group's current values; founding: nothing, or the activity and locality an
+   * empty list didn't find (Figma A-07e).
+   */
+  initialValues?: Partial<GroupInput>
   submitLabel: string
   /** Under the fields, e.g. „Zakladatel se stane správcem skupiny.“ */
   note?: string
