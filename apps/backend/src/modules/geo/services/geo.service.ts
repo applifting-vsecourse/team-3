@@ -21,10 +21,25 @@ export type DefaultLocality = {
  */
 @Injectable()
 export class GeoService {
+  /**
+   * The table's towns by slug, looked up once each (review #274): they come
+   * from the seed and don't change while the app runs. Only found ones are
+   * kept, so a town seeded later is still found.
+   */
+  private readonly guessedTowns = new Map<string, Locality>();
+
   constructor(
     private readonly repository: GeoRepository,
     @Inject(IP_LOCALITY_TABLE) private readonly table: IpLocalityTable | null,
   ) {}
+
+  private async townBySlug(slug: string): Promise<Locality | null> {
+    const cached = this.guessedTowns.get(slug);
+    if (cached) return cached;
+    const town = await this.repository.findLocalityBySlug(slug);
+    if (town) this.guessedTowns.set(slug, town);
+    return town;
+  }
 
   async defaultLocality(
     viewer: Identity | null,
@@ -36,7 +51,7 @@ export class GeoService {
     }
 
     const slug = ip ? this.table?.slugFor(ip) : undefined;
-    const guess = slug ? await this.repository.findLocalityBySlug(slug) : null;
+    const guess = slug ? await this.townBySlug(slug) : null;
     if (guess) return { locality: guess, source: 'ip' };
 
     return { locality: null, source: 'none' };
