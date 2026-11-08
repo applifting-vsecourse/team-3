@@ -129,7 +129,8 @@ export function SendAnnouncementButton({
             })}
             className="flex flex-col gap-4"
           >
-            <DialogHeader>
+            {/* Figma D-08: on a phone too the title is left-aligned and the buttons sit side by side */}
+            <DialogHeader className="text-left">
               <DialogTitle>Napsat členům</DialogTitle>
               <DialogDescription>{announcementRecipientsLabel(memberCount)}</DialogDescription>
             </DialogHeader>
@@ -169,7 +170,7 @@ export function SendAnnouncementButton({
                 </FormItem>
               )}
             />
-            <DialogFooter>
+            <DialogFooter className="flex-row justify-end">
               <DialogClose asChild>
                 <Button
                   type="button"
