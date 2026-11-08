@@ -5,7 +5,6 @@
     "backend": "pnpm --filter backend",
     "frontend": "pnpm --filter frontend",
     "env:check": "node scripts/check-env.js",
-    "test:deploy-config": "node --test scripts/sync-staging-auth-mail.test.mjs",
     "dev": "run-s env:check \"backend docker:up:wait\" \"backend migrate\" \"backend seed\" dev:servers",
     "dev:servers": "run-p \"backend start:dev\" \"frontend dev\"",
     "dev:down": "pnpm backend docker:down",

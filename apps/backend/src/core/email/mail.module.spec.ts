@@ -118,6 +118,25 @@ describe('MailModule', () => {
     }
   });
 
+  // What Dockerfile.deploy bakes in when the GitHub secrets and variables are
+  // not set yet (#165): the backend must start and keep the simulated inbox.
+  it('the staging image without keys starts and keeps the simulated inbox', async () => {
+    const config = await environmentConfig({
+      SIMULATED_INBOX: 'true',
+      GOOGLE_CLIENT_ID: '',
+      GOOGLE_CLIENT_SECRET: '',
+      SMTP_HOST: '',
+      SMTP_PORT: '465',
+      SMTP_SECURE: 'true',
+      SMTP_USERNAME: '',
+      SMTP_PASSWORD: '',
+      EMAIL_FROM: '',
+    });
+    const { inbox } = await compile(config);
+
+    expect(inbox).not.toBeNull();
+  });
+
   it.each([undefined, '', '   ', 'HobbyHub <sender@example.com>'])(
     'SMTP uses its username unless EMAIL_FROM is explicit (%s)',
     async (from) => {

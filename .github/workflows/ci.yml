@@ -42,9 +42,6 @@ jobs:
       - name: Test backend
         run: pnpm backend test
 
-      - name: Test deployment configuration
-        run: pnpm test:deploy-config
-
       - name: Test frontend
         run: pnpm frontend test:ci
 

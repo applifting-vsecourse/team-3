@@ -2,36 +2,16 @@ name: Build & Deploy
 on:
   push:
     branches: [main]
-  workflow_dispatch:
-    inputs:
-      inspect_only:
-        description: 'Read-only backend discovery (no builds, pushes, env updates or deploys)'
-        type: boolean
-        default: false
-permissions:
-  contents: read
+  workflow_dispatch: {}
 env:
   COURSE_DOMAIN: vsepractical.applifting.dev
   REGISTRY: registry.vsepractical.applifting.dev
 jobs:
-  inspect-staging:
-    if: github.event_name == 'workflow_dispatch' && inputs.inspect_only && github.ref == 'refs/heads/main'
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - name: Inspect staging backend without changes
-        env:
-          COOLIFY_WEBHOOK: ${{ secrets.COOLIFY_WEBHOOK }}
-          COOLIFY_TOKEN: ${{ secrets.COOLIFY_TOKEN }}
-        run: |
-          REPO_NAME="${GITHUB_REPOSITORY##*/}"
-          OWNER="${GITHUB_REPOSITORY_OWNER,,}"
-          if [ "$REPO_NAME" = "edu-template" ]; then SLUG="$OWNER"; else SLUG="${REPO_NAME,,}"; fi
-          export EXPECTED_BACKEND_IMAGE="$REGISTRY/$SLUG-backend"
-          node scripts/sync-staging-auth-mail.mjs --inspect
   build-and-deploy:
-    if: github.ref == 'refs/heads/main' && (github.event_name != 'workflow_dispatch' || !inputs.inspect_only)
     runs-on: ubuntu-latest
+    env:
+      COOLIFY_WEBHOOK: ${{ secrets.COOLIFY_WEBHOOK }}
+      COOLIFY_TOKEN: ${{ secrets.COOLIFY_TOKEN }}
     steps:
       - uses: actions/checkout@v4
       - name: Determine slug
@@ -57,6 +37,15 @@ jobs:
           build-args: |
             CI_COMMIT_SHA=${{ github.sha }}
             SEED_DEMO_PASSWORD=${{ secrets.SEED_DEMO_PASSWORD }}
+            GOOGLE_CLIENT_ID=${{ secrets.GOOGLE_CLIENT_ID }}
+            GOOGLE_CLIENT_SECRET=${{ secrets.GOOGLE_CLIENT_SECRET }}
+            SMTP_USERNAME=${{ secrets.SMTP_USERNAME }}
+            SMTP_PASSWORD=${{ secrets.SMTP_PASSWORD }}
+            SMTP_HOST=${{ vars.SMTP_HOST }}
+            SMTP_PORT=${{ vars.SMTP_PORT || '465' }}
+            SMTP_SECURE=${{ vars.SMTP_SECURE || 'true' }}
+            EMAIL_FROM=${{ vars.EMAIL_FROM }}
+            SIMULATED_INBOX=${{ vars.SIMULATED_INBOX || 'true' }}
           tags: ${{ env.REGISTRY }}/${{ steps.slug.outputs.slug }}-backend:latest
       - name: Build & push frontend
         uses: docker/build-push-action@v6
@@ -68,28 +57,7 @@ jobs:
             VITE_API_URL=${{ steps.slug.outputs.url }}/api
             VITE_BETTER_AUTH_URL=${{ steps.slug.outputs.url }}
           tags: ${{ env.REGISTRY }}/${{ steps.slug.outputs.slug }}-frontend:latest
-      # Opt in after OAuth/SMTP credentials are stored. Resource discovery is
-      # read-only; an ambiguous or unsupported target fails before any update.
-      # A failure (e.g. the token lacks the rights) must not stop the deploy:
-      # the step turns orange and the app deploys with its previous settings.
-      - name: Configure staging Google and Gmail SMTP at runtime
-        if: vars.STAGING_AUTH_MAIL_CONFIGURED == 'true'
-        continue-on-error: true
-        env:
-          COOLIFY_WEBHOOK: ${{ secrets.COOLIFY_WEBHOOK }}
-          COOLIFY_TOKEN: ${{ secrets.COOLIFY_TOKEN }}
-          EXPECTED_BACKEND_IMAGE: ${{ env.REGISTRY }}/${{ steps.slug.outputs.slug }}-backend
-          GOOGLE_CLIENT_ID: ${{ secrets.GOOGLE_CLIENT_ID }}
-          GOOGLE_CLIENT_SECRET: ${{ secrets.GOOGLE_CLIENT_SECRET }}
-          SMTP_USERNAME: ${{ secrets.SMTP_USERNAME }}
-          SMTP_PASSWORD: ${{ secrets.SMTP_PASSWORD }}
-          EMAIL_FROM: ${{ secrets.EMAIL_FROM }}
-        run: node scripts/sync-staging-auth-mail.mjs
       - name: Trigger Coolify deploy
-        env:
-          COOLIFY_WEBHOOK: ${{ secrets.COOLIFY_WEBHOOK }}
-          COOLIFY_TOKEN: ${{ secrets.COOLIFY_TOKEN }}
+        if: env.COOLIFY_WEBHOOK != ''
         run: |
-          if [ -n "$COOLIFY_WEBHOOK" ]; then
-            curl -fsS --output /dev/null -X POST -H "Authorization: Bearer $COOLIFY_TOKEN" "$COOLIFY_WEBHOOK"
-          fi
+          curl -fsS -X POST -H "Authorization: Bearer $COOLIFY_TOKEN" "$COOLIFY_WEBHOOK"

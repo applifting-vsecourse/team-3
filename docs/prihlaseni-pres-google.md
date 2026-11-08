@@ -14,13 +14,11 @@ Tlačítko „Pokračovat přes Google“ na `/login` a `/signup` se ukáže jen
 
 Redirect URI je vždy `BACKEND_URL` + `/api/auth/callback/google` a musí sedět přesně, jinak Google vrátí chybu `redirect_uri_mismatch`. Pro lokální vývoj přidej ke stejnému klientovi i `http://localhost:3050` (origin) a `http://localhost:4050/api/auth/callback/google` (redirect URI) a proměnné dej do `apps/backend/.env`.
 
-## 2. Proměnné na stagingu (Coolify)
+## 2. Proměnné na stagingu
 
-**Stav #165:** dostupný API token neumožňuje ani čtení potřebných metadat (`HTTP 403`, `missing-read-permission`) a tým nemá administrátorský přístup k platformě. Připravená integrace proto zatím nemůže konfiguraci předat. [Výsledek inspekce a omezení](staging-auth-mail.md#stav-ověření) jsou součástí návodu; samotné uložení secrets nestačí.
+Klíče jdou z GitHub secrets přes build-args do image (`deploy.yml` → `Dockerfile.deploy`), do Coolify se nic nezadává. Postup krok za krokem je v [návodu pro #165](staging-auth-mail.md).
 
-Přesný postup pro Google, Gmail SMTP, předávání z GitHub Actions do skutečného runtime backendu a funkční testy je v [návodu pro #165](staging-auth-mail.md). Samotné uložení GitHub secrets ani úspěšný webhook hodnoty backendu nepředá. Čtecí režim workflow identifikuje backend podle image a prostředí; před aktivací musí být ověřeno předávání proměnných do jeho kontejneru.
-
-Vypnutí: smaž jednu z proměnných (nebo ji nech prázdnou) a restartuj backend – tlačítko zmizí.
+Vypnutí: smaž jeden ze secrets a spusť **Build & Deploy** znovu – tlačítko zmizí.
 
 ## Jak se přihlášení chová
 
