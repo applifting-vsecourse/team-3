@@ -8,6 +8,7 @@ import type * as ApiClient from "@/lib/api-client"
 import { renderWithRouter } from "@/test/renderWithRouter"
 
 import type { PublicEvent } from "@/features/events/api/eventSchemas"
+import { homeKeys } from "@/features/events/api/homeQueryOptions"
 import { LandingView } from "@/features/events/components/LandingView"
 import { anEvent } from "@/features/events/test/anEvent"
 
@@ -110,10 +111,13 @@ type RenderOptions = {
   localitySlug?: string
 }
 
+let queryClient: QueryClient
+
 const renderLanding = ({ session = "visitor", localitySlug }: RenderOptions = {}) => {
   const isSignedIn = session === "loading" ? undefined : session === "signedIn"
+  queryClient = new QueryClient({ defaultOptions: { queries: { retry: 0 } } })
   return renderWithRouter(
-    <QueryClientProvider client={new QueryClient({ defaultOptions: { queries: { retry: 0 } } })}>
+    <QueryClientProvider client={queryClient}>
       <LandingView
         isSignedIn={isSignedIn}
         viewerId={isSignedIn ? "u-jakub" : null}
@@ -316,6 +320,20 @@ describe("LandingView", () => {
       // no section headings beyond the page's own blocks
       expect(screen.queryByRole("heading", { name: "Tady chybíš" })).not.toBeInTheDocument()
     })
+  })
+
+  it("a failed refetch keeps the loaded panel and sections (review #263)", async () => {
+    await renderLanding()
+    await screen.findByRole("heading", { name: "Tady chybíš" })
+
+    home = new Error("offline")
+    // as on window focus or after a mutation's invalidation
+    await queryClient.refetchQueries()
+
+    expect(queryClient.getQueryState(homeKeys.home(null, null))?.status).toBe("error")
+    expect(screen.getByRole("link", { name: "Volejbal na Pankráci" })).toBeInTheDocument()
+    expect(screen.getByRole("heading", { name: "Tady chybíš" })).toBeInTheDocument()
+    expect(screen.queryByRole("alert")).not.toBeInTheDocument()
   })
 
   it("an error says so in the panel's place and retries", async () => {

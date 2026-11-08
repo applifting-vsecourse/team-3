@@ -8,7 +8,7 @@ import { groupsSchema } from "@/features/groups/api/groupSchemas"
 import { GroupCard } from "@/features/groups/components/GroupCard"
 
 type RecruitingGroupsProps = {
-  /** The groups section of GET /api/home, checked here against GET /api/groups' shape. */
+  /** The groups section of GET /api/home, checked here against GET /api/groups' shape; if it doesn't fit, no section. */
   groups: unknown[]
   /** `?lokalita=` of „Všechny skupiny“: the page's locality. */
   lokalita: string
@@ -19,8 +19,10 @@ type RecruitingGroupsProps = {
  * active groups nearby with an upcoming event, to join or ask to join, as group cards.
  */
 export function RecruitingGroups({ groups: input, lokalita }: RecruitingGroupsProps) {
-  const groups = useMemo(() => groupsSchema.parse(input), [input])
-  if (groups.length === 0) return null
+  const parsed = useMemo(() => groupsSchema.safeParse(input), [input])
+  // groups the page can't read are left out rather than taking the landing page down
+  if (!parsed.success || parsed.data.length === 0) return null
+  const groups = parsed.data
   return (
     <HomeSection
       heading={{ before: "Tyhle skupiny ", keyword: "rozšiřují", after: " partu" }}

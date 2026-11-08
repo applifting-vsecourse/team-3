@@ -49,4 +49,15 @@ describe("RecruitingGroups", () => {
 
     expect(screen.queryByRole("heading")).not.toBeInTheDocument()
   })
+
+  it("groups it can't read leave the section out instead of taking the page down", async () => {
+    await renderWithRouter(
+      <RecruitingGroups
+        groups={[{ id: "g1" }]}
+        lokalita="praha"
+      />,
+    )
+
+    expect(screen.queryByRole("heading")).not.toBeInTheDocument()
+  })
 })

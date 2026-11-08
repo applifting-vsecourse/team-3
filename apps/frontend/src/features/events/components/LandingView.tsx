@@ -118,15 +118,16 @@ export function LandingView({
             : "Volejbal, deskovky, běh… Najdi akci ve svém okolí, nebo založ vlastní a lidi se přidají."
         }
         aside={
-          homeQuery.isError ? (
-            <MissingOnePanelError onRetry={() => void homeQuery.refetch()} />
-          ) : home ? (
+          // loaded data stays when a refetch (window focus, invalidation) fails
+          home ? (
             <Panel
               home={home}
               isSignedIn={Boolean(isSignedIn)}
               localities={localities}
               now={now}
             />
+          ) : homeQuery.isError ? (
+            <MissingOnePanelError onRetry={() => void homeQuery.refetch()} />
           ) : (
             <MissingOnePanelSkeleton />
           )
@@ -155,11 +156,7 @@ export function LandingView({
         </div>
       </PageBand>
       <div className={cn(PAGE, "flex-1 gap-12 md:gap-16 md:pt-16 md:pb-16")}>
-        {homeQuery.isError ? (
-          isVisitor ? (
-            <HowItWorks />
-          ) : null
-        ) : home ? (
+        {home ? (
           <Sections
             home={home}
             isVisitor={isVisitor}
@@ -167,6 +164,10 @@ export function LandingView({
             now={now}
             renderGroups={renderGroups}
           />
+        ) : homeQuery.isError ? (
+          isVisitor ? (
+            <HowItWorks />
+          ) : null
         ) : (
           <SectionSkeleton />
         )}
