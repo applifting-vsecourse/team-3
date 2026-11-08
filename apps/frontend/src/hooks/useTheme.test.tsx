@@ -26,21 +26,21 @@ describe("ThemeProvider", () => {
   })
 
   // jsdom has no stylesheet, so the token is set inline the way global.css would resolve it
-  it("copies --background into both theme-color metas when the mode class changes", async () => {
+  it("copies --hero into both theme-color metas when the mode class changes", async () => {
     document.head.insertAdjacentHTML(
       "beforeend",
-      '<meta name="theme-color" content="#ffffff" media="(prefers-color-scheme: light)">' +
-        '<meta name="theme-color" content="#0f1612" media="(prefers-color-scheme: dark)">',
+      '<meta name="theme-color" content="#0f3626" media="(prefers-color-scheme: light)">' +
+        '<meta name="theme-color" content="#133624" media="(prefers-color-scheme: dark)">',
     )
     const root = document.documentElement
-    root.style.setProperty("--background", "#ffffff")
+    root.style.setProperty("--hero", "#0f3626")
     render(<ThemeProvider>obsah</ThemeProvider>)
 
-    root.style.setProperty("--background", "#0f1612")
+    root.style.setProperty("--hero", "#133624")
     root.classList.add("dark")
 
     await waitFor(() => {
-      expect(metas().map((meta) => meta.getAttribute("content"))).toEqual(["#0f1612", "#0f1612"])
+      expect(metas().map((meta) => meta.getAttribute("content"))).toEqual(["#133624", "#133624"])
     })
   })
 })

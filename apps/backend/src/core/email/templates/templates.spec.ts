@@ -33,8 +33,8 @@ describe('account e-mails', () => {
     expect(
       html.match(/https:\/\/api\.example\/verify\?token=abc/g),
     ).toHaveLength(2);
-    // --primary (#b6f24a) as Tailwind inlines it
-    expect(html).toContain('background-color:rgb(182,242,74)');
+    // --primary (#b9f53c) as Tailwind inlines it
+    expect(html).toContain('background-color:rgb(185,245,60)');
     expect(html).not.toMatch(/Verify|Welcome/);
   });
 
@@ -51,7 +51,7 @@ describe('account e-mails', () => {
     expect(
       html.match(/https:\/\/hobbyhub\.example\/reset-password\?token=t0k3n/g),
     ).toHaveLength(2);
-    expect(html).toContain('background-color:rgb(182,242,74)');
+    expect(html).toContain('background-color:rgb(185,245,60)');
     expect(html).not.toMatch(/Reset your password|Hi /);
   });
 });

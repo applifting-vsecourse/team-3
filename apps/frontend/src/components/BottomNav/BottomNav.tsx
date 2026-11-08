@@ -90,9 +90,11 @@ function BottomNavLink({ section, icon, children, ...props }: BottomNavLinkProps
       // Same data-status approach as HeaderNavLink: the indicator pill and the
       // label react to the router's active state via group-data variants. The
       // icon inherits this colour: inactive icon and label are both muted (Figma Nav/Bottom).
-      className="group flex flex-1 flex-col items-center gap-0.5 text-xs font-medium text-muted-foreground data-[status=active]:font-semibold data-[status=active]:text-foreground"
+      className="group flex flex-1 flex-col items-center gap-0.5 text-caption font-medium text-muted-foreground data-[status=active]:font-semibold data-[status=active]:text-foreground"
     >
-      <span className="flex h-7 w-13 items-center justify-center rounded-full group-data-[status=active]:bg-primary group-data-[status=active]:text-primary-foreground">
+      {/* lime on the light page carries its primary-edge outline (DESIGN.md › Colour); the border
+          is there inactive too, transparent, so the pill does not shift */}
+      <span className="flex h-7 w-13 items-center justify-center rounded-full border border-transparent group-data-[status=active]:border-primary-edge group-data-[status=active]:bg-primary group-data-[status=active]:text-primary-foreground">
         {icon}
       </span>
       {children}

@@ -4,6 +4,7 @@ import { RefreshCw } from "lucide-react"
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 import { Button } from "@/components/ui/button"
 import { Skeleton } from "@/components/ui/skeleton"
+import { cn } from "@/lib/utils"
 
 import type { PublicEvent } from "@/features/events/api/eventSchemas"
 import { EventCard } from "@/features/events/components/EventCard"
@@ -150,14 +151,30 @@ export function EventList({
   )
 }
 
-export function EventCardSkeleton({ isPeekEnd }: { isPeekEnd?: boolean }) {
+/** The shape of an EventCard while it loads, row or grid as the card it stands for. */
+export function EventCardSkeleton({
+  isPeekEnd,
+  variant = "row",
+}: {
+  isPeekEnd?: boolean
+  variant?: "row" | "responsive"
+}) {
+  const isResponsive = variant === "responsive"
   return (
     <div
       data-peek-end={isPeekEnd ? "" : undefined}
-      className="flex items-center gap-3 rounded-lg border border-border p-3"
+      className={cn(
+        "flex items-center gap-3 rounded-2xl border border-card-border p-3",
+        isResponsive && "md:flex-col md:items-stretch md:gap-0 md:overflow-hidden md:p-0",
+      )}
     >
-      <Skeleton className="size-16 rounded-lg" />
-      <div className="flex flex-1 flex-col gap-2">
+      <Skeleton
+        className={cn(
+          "size-26 shrink-0 rounded-xl",
+          isResponsive && "md:h-50 md:w-full md:rounded-none",
+        )}
+      />
+      <div className={cn("flex flex-1 flex-col gap-2", isResponsive && "md:p-5")}>
         <Skeleton className="h-4 w-3/4" />
         <Skeleton className="h-3 w-1/2" />
         <Skeleton className="h-3 w-1/3" />

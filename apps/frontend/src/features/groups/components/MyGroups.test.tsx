@@ -93,7 +93,11 @@ describe("MyGroups", () => {
     respond([])
     await renderMine()
 
-    expect(await screen.findByText("Zatím nejsi v žádné skupině.")).toBeInTheDocument()
+    expect(
+      await screen.findByText(
+        "Zatím nejsi v žádné skupině. Najdi partu, se kterou se budete potkávat pravidelně.",
+      ),
+    ).toBeInTheDocument()
     expect(screen.getByRole("link", { name: "Projít všechny skupiny" })).toHaveAttribute(
       "href",
       "/skupiny",
