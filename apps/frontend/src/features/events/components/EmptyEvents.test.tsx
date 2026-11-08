@@ -25,15 +25,20 @@ const categories: ActivityCategory[] = [
 ]
 const catalog = { localities, categories }
 
-// How many events all of Czechia has for the same filters; a locality has none.
+// How many events all of Czechia has for the same filters; a locality has `inLocality`,
+// a map area (#56) none.
 let everywhere = 5
+let inLocality = 0
 // When set, holds the count of all of Czechia back, as a slow network does.
 let countGate: Promise<void> | undefined
 const get = vi.fn((path: string, options?: { searchParams?: URLSearchParams }) => ({
   json: () => {
     if (path === "localities") return Promise.resolve(localities)
     if (path === "activities") return Promise.resolve(categories)
-    if (options?.searchParams?.has("localityId")) return Promise.resolve([])
+    if (options?.searchParams?.has("bbox")) return Promise.resolve([])
+    if (options?.searchParams?.has("localityId")) {
+      return Promise.resolve(Array.from({ length: inLocality }, (_, i) => anEvent({ id: `l${i}` })))
+    }
     const events = () => Array.from({ length: everywhere }, (_, i) => anEvent({ id: `e${i}` }))
     return countGate ? countGate.then(events) : Promise.resolve(events())
   },
@@ -74,6 +79,15 @@ describe("activeFiltersLabel", () => {
     ).toBe("Bruntál · Šipky a bowling · 1.–7. 11. · Chybí lidé")
   })
 
+  it("in a map area names the area, not the locality it replaced (#56)", () => {
+    expect(
+      activeFiltersLabel(
+        { lokalita: "bruntal", oblast: "17.3,49.9,17.7,50.1", kategorie: "hry" },
+        catalog,
+      ),
+    ).toBe("Výřez mapy · Hry")
+  })
+
   it("names the shown locality, Celé Česko without one", () => {
     expect(activeFiltersLabel({ lokalita: "praha" }, catalog)).toBe("Praha")
     expect(activeFiltersLabel({}, catalog)).toBe("Celé Česko")
@@ -86,6 +100,7 @@ describe("activeFiltersLabel", () => {
 describe("EmptyEvents", () => {
   beforeEach(() => {
     everywhere = 5
+    inLocality = 0
     countGate = undefined
     get.mockClear()
   })
@@ -112,6 +127,36 @@ describe("EmptyEvents", () => {
     const eventCalls = get.mock.calls.filter(([path]) => path === "events")
     expect(eventCalls.at(-1)?.[1]?.searchParams?.toString()).toBe("activityId=a-sipky")
     expect(screen.queryByRole("button", { name: "Zrušit ostatní filtry" })).not.toBeInTheDocument()
+  })
+
+  it("in a map area: offers the same filters in the whole locality, without the area (#56)", async () => {
+    inLocality = 3
+    const { onSearchChange } = await renderEmpty({
+      lokalita: "bruntal",
+      oblast: "17.3,49.9,17.7,50.1",
+      aktivita: "sipky-a-bowling",
+    })
+
+    expect(screen.getByText("Výřez mapy · Šipky a bowling")).toBeInTheDocument()
+    await userEvent.click(
+      await screen.findByRole("button", { name: "Zobrazit 3 akce v lokalitě Bruntál" }),
+    )
+    expect(onSearchChange).toHaveBeenCalledWith({ oblast: undefined })
+    // the count is the list's request without the area
+    const eventCalls = get.mock.calls.filter(([path]) => path === "events")
+    expect(eventCalls.at(-1)?.[1]?.searchParams?.has("bbox")).toBe(false)
+  })
+
+  it("in a map area of all of Czechia: offers all of Czechia without the area", async () => {
+    const { onSearchChange } = await renderEmpty({
+      lokalita: "cele-cesko",
+      oblast: "17.3,49.9,17.7,50.1",
+    })
+
+    await userEvent.click(
+      await screen.findByRole("button", { name: "Zobrazit 5 akcí v celém Česku" }),
+    )
+    expect(onSearchChange).toHaveBeenCalledWith({ oblast: undefined })
   })
 
   it("nothing anywhere: drops the other filters and keeps the locality", async () => {

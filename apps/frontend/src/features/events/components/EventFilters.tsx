@@ -120,6 +120,7 @@ function EventLocalityFilter({
       onDraftChange={setDraft}
       applyLabel={applyLabel}
       localityDefault={localityDefault}
+      areaLabel={search.oblast ? "Výřez mapy" : undefined}
     />
   )
 }

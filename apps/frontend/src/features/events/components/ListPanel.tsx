@@ -30,6 +30,8 @@ type ListPanelProps = {
    * sit above it. Pass a stable function (a state setter), it is an effect dependency.
    */
   onVisibleHeightChange?: (px: number) => void
+  /** Phone: an event's preview takes the sheet's place (Figma A-03a, #56). Desktop: always shown. */
+  isHidden?: boolean
   children: ReactNode
 }
 
@@ -57,6 +59,7 @@ export function ListPanel({
   onSnapChange,
   scrollResetKey,
   onVisibleHeightChange,
+  isHidden = false,
   children,
 }: ListPanelProps) {
   const isDesktop = useMediaQuery(DESKTOP_QUERY)
@@ -261,6 +264,7 @@ export function ListPanel({
         dragOffset === null &&
           "transition-transform duration-300 ease-out motion-reduce:transition-none",
         "md:static md:z-auto md:my-8 md:w-96 md:shrink-0 md:touch-auto md:rounded-none md:shadow-none md:select-auto md:after:hidden lg:w-130",
+        isHidden && "max-md:hidden",
       )}
     >
       <button

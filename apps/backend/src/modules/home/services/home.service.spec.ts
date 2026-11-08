@@ -33,6 +33,7 @@ const anEvent = (
 ): PublicEvent => ({
   id,
   title: `Akce ${id}`,
+  summary: null,
   startsAt: new Date('2026-11-05T16:00:00.000Z'),
   endsAt: null,
   address: 'Praha',

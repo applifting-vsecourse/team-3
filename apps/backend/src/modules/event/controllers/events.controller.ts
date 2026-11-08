@@ -1,3 +1,4 @@
+import { parseBoundingBox } from '@/modules/event/domain/bounding-box';
 import { EventsService } from '@/modules/event/services/events.service';
 import { OptionalUser } from '@/shared/auth/decorators/optional-user.decorator';
 import { User } from '@/shared/auth/decorators/user.decorator';
@@ -76,6 +77,7 @@ export class EventsController {
         activityIds: query.activityId,
         categoryIds: query.categoryId,
         capacity: query.capacity,
+        bbox: query.bbox ? parseBoundingBox(query.bbox) : undefined,
       },
       { sort: query.sort, limit: query.limit },
     );

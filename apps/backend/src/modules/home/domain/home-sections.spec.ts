@@ -34,6 +34,7 @@ const anEvent = (id: string, spec: EventSpec = {}): PublicEvent => {
   return {
     id,
     title: `Akce ${id}`,
+    summary: null,
     startsAt: new Date(spec.startsAt ?? '2026-11-05T16:00:00.000Z'),
     endsAt: null,
     address: 'Praha',

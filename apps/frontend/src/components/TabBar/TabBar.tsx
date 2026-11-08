@@ -11,7 +11,11 @@ import { cn } from "@/lib/utils"
 export function TabBar({ className, ...props }: ComponentProps<typeof TabsList>) {
   return (
     <TabsList
-      className={cn("h-auto w-full gap-0 rounded-none bg-transparent p-0", className)}
+      className={cn(
+        // the kit's h-9 is behind a variant: replaced with the same one (see BandTabs)
+        "h-auto w-full gap-0 rounded-none bg-transparent p-0 group-data-[orientation=horizontal]/tabs:h-auto",
+        className,
+      )}
       {...props}
     />
   )

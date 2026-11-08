@@ -117,6 +117,15 @@ export class PublicEventResponseDto {
   @ApiProperty()
   isPromoted!: boolean;
 
+  @ApiProperty({
+    type: String,
+    nullable: true,
+    example: 'Kolem 8 km po Letné a Stromovce, tempo pohodové…',
+    description:
+      'The start of the description, at most 160 characters cut at a word (the map preview); null without one',
+  })
+  summary!: string | null;
+
   static fromDomain(event: PublicEvent): PublicEventResponseDto {
     return {
       id: event.id,
@@ -137,6 +146,7 @@ export class PublicEventResponseDto {
       freeSpots: event.capacity.freeSpots,
       isFull: event.capacity.isFull,
       isPromoted: event.isPromoted,
+      summary: event.summary,
     };
   }
 }

@@ -24,6 +24,13 @@ describe('ListEventsQueryDto', () => {
     ]);
   });
 
+  it('accepts a bbox west,south,east,north and rejects a malformed or inverted one', () => {
+    expect(parse({ bbox: '14.3,50.0,14.6,50.15' }).invalid).toEqual([]);
+    expect(parse({ bbox: '14.6,50.0,14.3,50.15' }).invalid).toEqual(['bbox']);
+    expect(parse({ bbox: '14.3,50.0' }).invalid).toEqual(['bbox']);
+    expect(parse({ bbox: 'praha' }).invalid).toEqual(['bbox']);
+  });
+
   it('accepts capacity free or missing and rejects anything else', () => {
     expect(parse({ capacity: 'free' }).dto.capacity).toBe('free');
     expect(parse({ capacity: 'missing' }).invalid).toEqual([]);

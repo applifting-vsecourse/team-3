@@ -4,7 +4,13 @@ import type { ActivityCategory, Locality } from "@/lib/catalog/catalogSchemas"
 
 import { toSearchParams } from "@/features/events/api/eventsQueryOptions"
 
-import { eventsSearchSchema, hasActiveFilters, toEventFilters } from "./eventsSearch"
+import {
+  eventsSearchSchema,
+  hasActiveFilters,
+  toEventFilters,
+  toMapArea,
+  toOblast,
+} from "./eventsSearch"
 
 const locality = (slug: string, parentId: string | null = null): Locality => ({
   id: `l-${slug}`,
@@ -149,5 +155,36 @@ describe("toSearchParams", () => {
 
   it("sends nothing for empty filters", () => {
     expect(toSearchParams({ activityIds: [], categoryIds: [] }).toString()).toBe("")
+  })
+})
+
+describe("?oblast= (#56)", () => {
+  it("keeps a valid area and drops a malformed one", () => {
+    expect(eventsSearchSchema.parse({ oblast: "14.3,50,14.6,50.15" }).oblast).toBe(
+      "14.3,50,14.6,50.15",
+    )
+    expect(eventsSearchSchema.parse({ oblast: "praha" }).oblast).toBeUndefined()
+  })
+
+  it("drops an area the API would refuse, so a hand-edited URL is no error", () => {
+    expect(eventsSearchSchema.parse({ oblast: "14.6,50,14.3,50.15" }).oblast).toBeUndefined()
+    expect(eventsSearchSchema.parse({ oblast: "14.3,95,14.6,96" }).oblast).toBeUndefined()
+  })
+
+  it("asks for the area instead of the locality", () => {
+    expect(
+      toEventFilters({ lokalita: "praha", oblast: "16.5,49.1,16.7,49.3" }, catalog),
+    ).toMatchObject({ localityId: undefined, bbox: "16.5,49.1,16.7,49.3" })
+  })
+
+  it("is a filter „Zrušit vše“ clears", () => {
+    expect(hasActiveFilters({ oblast: "16.5,49.1,16.7,49.3" })).toBe(true)
+  })
+
+  it("turns into the map's area and back", () => {
+    const area = { west: 16.5, south: 49.1, east: 16.7, north: 49.3 }
+    expect(toMapArea(toOblast(area))).toEqual(area)
+    expect(toMapArea("16.7,49.1,16.5,49.3")).toBeUndefined()
+    expect(toMapArea(undefined)).toBeUndefined()
   })
 })

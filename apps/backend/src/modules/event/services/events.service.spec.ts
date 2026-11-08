@@ -36,6 +36,7 @@ const now = new Date('2026-10-23T08:00:00.000Z');
 const anEvent = (id: string, approvedCount: number): PublicEvent => ({
   id,
   title: `Akce ${id}`,
+  summary: null,
   startsAt: new Date('2026-10-24T16:00:00.000Z'),
   endsAt: null,
   address: 'Herna Karlín, Křižíkova 52, Praha 8',

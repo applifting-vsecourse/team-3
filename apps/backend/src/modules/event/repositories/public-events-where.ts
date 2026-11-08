@@ -41,6 +41,15 @@ export const buildPublicEventsWhere = (
     });
   }
 
+  // the place of the event, not its locality: the map shows events where they happen
+  if (filters.bbox) {
+    const { west, south, east, north } = filters.bbox;
+    conditions.push({
+      lat: { gte: south, lte: north },
+      lng: { gte: west, lte: east },
+    });
+  }
+
   const activityIds = filters.activityIds ?? [];
   const categoryIds = filters.categoryIds ?? [];
   if (activityIds.length > 0 || categoryIds.length > 0) {

@@ -1,3 +1,4 @@
+import { BoundingBox } from './bounding-box';
 import { Capacity, CapacityFilter } from './capacity';
 
 /** Filters of the public event list (B-023, sprint 2 version). */
@@ -13,6 +14,11 @@ export type PublicEventFilters = {
   categoryIds?: string[];
   /** `free`: not full yet; `missing`: still missing people to reach the minimum. */
   capacity?: CapacityFilter;
+  /**
+   * Only events whose place is in the map's visible area (#56); adds up with the locality (AND).
+   * /akce sends no locality with it: there the area replaces the locality.
+   */
+  bbox?: BoundingBox;
 };
 
 /**
@@ -26,6 +32,8 @@ export type PublicEventSort = (typeof PUBLIC_EVENT_SORTS)[number];
 export type PublicEvent = {
   id: string;
   title: string;
+  /** The start of the description for the map preview (#56, `summarize`); null without one. */
+  summary: string | null;
   startsAt: Date;
   endsAt: Date | null;
   address: string;
