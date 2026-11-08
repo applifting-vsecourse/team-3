@@ -82,4 +82,17 @@ describe("EventCard", () => {
     expect(screen.getByText("2 z 12")).toBeInTheDocument()
     expect(container.querySelector("[data-slot=capacity-track]")).toBeNull()
   })
+
+  it("a past event (its group's page, A-08e) has no bar", async () => {
+    const { container } = await renderWithRouter(
+      <EventCard
+        event={anEvent()}
+        status={{ kind: "past" }}
+        rowTail="sešlo se 6"
+      />,
+    )
+
+    expect(screen.getByText("Proběhlo")).toBeInTheDocument()
+    expect(container.querySelector("[data-slot=capacity-track]")).toBeNull()
+  })
 })

@@ -1,6 +1,6 @@
 import { useState, type ComponentProps } from "react"
 import { Link } from "@tanstack/react-router"
-import { Info, Loader2, LogOut, X } from "lucide-react"
+import { Info, Loader2, LogOut, Plus, X } from "lucide-react"
 import { toast } from "sonner"
 
 import { ROUTES } from "@/app/routes"
@@ -27,6 +27,8 @@ type GroupMembershipActionProps = {
   isSignedIn: boolean
   /** Login's `from`, so a visitor who signs in to join comes back to the group. */
   signInFrom: string
+  /** The public group's join button; „Přidat se ke skupině“ away from its page (A-05i). */
+  joinLabel?: string
 }
 
 const showError = (error: Error) => toast.error(error.message)
@@ -40,6 +42,7 @@ export function GroupMembershipAction({
   group,
   isSignedIn,
   signInFrom,
+  joinLabel = "Přidat se",
 }: GroupMembershipActionProps) {
   const join = useJoinGroup(group.id)
   const leave = useLeaveGroup(group.id)
@@ -63,14 +66,30 @@ export function GroupMembershipAction({
 
   if (membership?.status === "active" && membership.role === "admin") {
     return (
-      <MainButton asChild>
-        <Link
-          to="/skupiny/$groupId/sprava"
-          params={{ groupId: group.id }}
+      <div className="flex flex-col gap-2">
+        <MainButton asChild>
+          <Link
+            to="/skupiny/$groupId/sprava"
+            params={{ groupId: group.id }}
+          >
+            Spravovat skupinu
+          </Link>
+        </MainButton>
+        {/* Figma D-01g: only admins create the group's events (#70) */}
+        <Button
+          asChild
+          variant="outline"
+          size="lg"
         >
-          Spravovat skupinu
-        </Link>
-      </MainButton>
+          <Link
+            to="/skupiny/$groupId/akce/nova"
+            params={{ groupId: group.id }}
+          >
+            <Plus aria-hidden />
+            Založit akci skupiny
+          </Link>
+        </Button>
+      </div>
     )
   }
 
@@ -147,7 +166,7 @@ export function GroupMembershipAction({
         onClick={() => join.mutate(undefined, { onError: showError })}
       >
         {join.isPending ? <Loader2 className="animate-spin" /> : null}
-        Přidat se
+        {joinLabel}
       </MainButton>
     </div>
   )

@@ -5,6 +5,8 @@ import {
   EventDetail,
   EventParticipant,
   EventRequest,
+  GroupEvent,
+  GroupEventsWhen,
   MyEvent,
   MyEventsTab,
   NewEvent,
@@ -25,6 +27,7 @@ import {
 } from '@/modules/event/domain/participation';
 import { requestMessageFor } from '@/shared/request-message/request-message';
 import { Injectable } from '@nestjs/common';
+import { buildGroupEventsWhere } from './group-events-where';
 import { buildMyEventsWhere } from './my-events-where';
 import { buildPublicEventsWhere } from './public-events-where';
 
@@ -163,6 +166,32 @@ export class EventRepository {
   }
 
   /**
+   * A section of a group's page (B-055), at most `limit`: upcoming soonest
+   * first, past the latest first.
+   */
+  async findGroupEvents(query: {
+    groupId: string;
+    when: GroupEventsWhen;
+    includeMembersOnly: boolean;
+    now: Date;
+    limit: number;
+  }): Promise<GroupEvent[]> {
+    const { groupId, when, includeMembersOnly, now } = query;
+    const order = when === 'upcoming' ? 'asc' : 'desc';
+    const events = await this.prisma.event.findMany({
+      where: buildGroupEventsWhere(groupId, when, { includeMembersOnly }, now),
+      include: publicEventInclude,
+      orderBy: [{ startsAt: order }, { id: order }],
+      take: query.limit,
+    });
+    return events.map((event) => ({
+      ...toPublicEvent(event, now),
+      // the group's events are public or members-only (createEvent)
+      visibility: event.visibility === 'members' ? 'members' : 'public',
+    }));
+  }
+
+  /**
    * Any event by id, whatever its status and visibility; who may see it is
    * the service's call.
    */
@@ -225,13 +254,64 @@ export class EventRepository {
     return { activity: activity > 0, locality: locality > 0 };
   }
 
-  /** A new public, published event of a person (B-021); returns its id. */
-  async createEvent(event: NewEvent, organizerUserId: string): Promise<string> {
-    const created = await this.prisma.event.create({
-      data: { ...event, organizerUserId },
-      select: { id: true },
+  /**
+   * What creating an event of the group needs to know (B-055): its activity,
+   * whether it is active and the user's role in it while their membership is
+   * active. Null for no such group.
+   */
+  async findGroupForEvent(
+    groupId: string,
+    userId: string,
+  ): Promise<{
+    activityId: string;
+    status: 'active' | 'inactive';
+    role: 'admin' | 'member' | null;
+  } | null> {
+    const group = await this.prisma.group.findUnique({
+      where: { id: groupId },
+      select: {
+        activityId: true,
+        status: true,
+        members: {
+          where: { userId, status: 'active' },
+          select: { role: true },
+        },
+      },
     });
-    return created.id;
+    if (!group) return null;
+    return {
+      activityId: group.activityId,
+      status: group.status,
+      role: group.members[0]?.role ?? null,
+    };
+  }
+
+  /** A new published event of a person or a group (B-021, B-055); returns its id. */
+  /**
+   * A group's event is written under a row lock on the group (review #264):
+   * deactivating updates that row, so the two can't overlap. Created first,
+   * the event is there when the deactivation cancels the group's events;
+   * deactivated first, nothing is written and the answer is null.
+   */
+  async createEvent(
+    event: NewEvent,
+    organizerUserId: string,
+  ): Promise<string | null> {
+    return this.prisma.$transaction(async (tx) => {
+      if (event.groupId) {
+        await tx.$executeRaw`SELECT 1 FROM "group" WHERE "id" = ${event.groupId} FOR UPDATE`;
+        const group = await tx.group.findUnique({
+          where: { id: event.groupId },
+          select: { status: true },
+        });
+        if (group?.status !== 'active') return null;
+      }
+      const created = await tx.event.create({
+        data: { ...event, organizerUserId },
+        select: { id: true },
+      });
+      return created.id;
+    });
   }
 
   /**
@@ -445,11 +525,18 @@ export class EventRepository {
     });
   }
 
-  async isActiveGroupMember(groupId: string, userId: string): Promise<boolean> {
+  /**
+   * The user's role in the group while their membership is active; null for
+   * a pending, blocked or no membership.
+   */
+  async findActiveGroupRole(
+    groupId: string,
+    userId: string,
+  ): Promise<'admin' | 'member' | null> {
     const member = await this.prisma.groupMember.findUnique({
       where: { groupId_userId: { groupId, userId } },
-      select: { status: true },
+      select: { role: true, status: true },
     });
-    return member?.status === 'active';
+    return member?.status === 'active' ? member.role : null;
   }
 }

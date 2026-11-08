@@ -1,6 +1,6 @@
 import type { ReactNode } from "react"
 import { Link } from "@tanstack/react-router"
-import { CalendarDays, MapPin, RefreshCw, UserCheck } from "lucide-react"
+import { CalendarDays, Lock, MapPin, RefreshCw, UserCheck } from "lucide-react"
 
 import { ROUTES } from "@/app/routes"
 import { ActivityTile } from "@/components/ActivityTile/ActivityTile"
@@ -23,7 +23,7 @@ import { approvalModeLabel, formatEventTime, placeName } from "@/features/events
 type EventDetailViewProps = {
   event?: EventDetail
   isLoading?: boolean
-  /** Unknown, hidden, or members-only and the viewer is outside the group (API 404). */
+  /** Unknown, hidden or deleted (API 404). */
   isNotFound?: boolean
   error?: Error
   onRetry?: () => void
@@ -33,6 +33,8 @@ type EventDetailViewProps = {
   organizerActions?: ReactNode
   /** For tests; the event is over once its end (or, without one, its start) is past it. */
   now?: Date
+  /** For a group's event, the group's card and admins under „Pořádá“ (A-05g); the page builds it. */
+  organizerGroup?: ReactNode
 }
 
 /**
@@ -52,6 +54,7 @@ export function EventDetailView({
   participation,
   organizerActions,
   now = new Date(),
+  organizerGroup,
 }: EventDetailViewProps) {
   const isDesktop = useMediaQuery(DESKTOP_QUERY)
 
@@ -144,6 +147,15 @@ export function EventDetailView({
       >
         {approvalModeLabel(event.approvalMode)}
       </DetailRow>
+      {event.group ? (
+        // Figma A-05g: a group's event says who sees it (B-055)
+        <DetailRow
+          icon={Lock}
+          label="Kdo akci vidí"
+        >
+          {event.visibility === "members" ? "Jen pro členy skupiny" : "Veřejná"}
+        </DetailRow>
+      ) : null}
     </dl>
   )
   const map = (
@@ -164,7 +176,12 @@ export function EventDetailView({
       />
     </div>
   )
-  const organizer = <EventOrganizer event={event} />
+  const organizer = (
+    <EventOrganizer
+      event={event}
+      group={organizerGroup}
+    />
+  )
   const about = event.description ? (
     <section className="flex flex-col gap-2">
       <h2 className="text-lg font-semibold tracking-tight">O akci</h2>
@@ -231,8 +248,37 @@ export function EventDetailView({
   )
 }
 
-/** Figma: „Pořádá“ and a Person row ending with a hairline, as „Spravuje“ on a group. */
-function EventOrganizer({ event }: { event: EventDetail }) {
+/**
+ * Figma: „Pořádá“ and a Person row ending with a hairline, as „Spravuje“ on
+ * a group. A group's event (A-05g, B-055) has the group's card, linking to
+ * its page, and under it who runs the group.
+ */
+function EventOrganizer({ event, group }: { event: EventDetail; group?: ReactNode }) {
+  if (event.group) {
+    return (
+      <section
+        aria-labelledby="event-organizer"
+        className="flex flex-col gap-2"
+      >
+        <h2
+          id="event-organizer"
+          className="text-xs font-medium text-muted-foreground"
+        >
+          Pořádá
+        </h2>
+        {group ?? (
+          // until the group loads (or if it doesn't), its name still leads to it
+          <Link
+            to="/skupiny/$groupId"
+            params={{ groupId: event.group.id }}
+            className="rounded-2xl border border-card-border bg-card p-3 font-semibold text-card-foreground hover:border-foreground"
+          >
+            {event.group.name}
+          </Link>
+        )}
+      </section>
+    )
+  }
   return (
     <section
       aria-labelledby="event-organizer"
@@ -245,25 +291,14 @@ function EventOrganizer({ event }: { event: EventDetail }) {
         Pořádá
       </h2>
       <div className="border-b border-border py-3">
-        {/* a group's event is organized by the group (B-055); links come with
-            the group detail and public profiles */}
-        {event.group ? (
-          <PersonRow
-            name={event.group.name}
-            description="Skupina"
-          />
-        ) : (
-          // „Pořádá“ above already names the role, and every organizer has a
-          // verified e-mail (VerifiedUserGuard), so the second line says only
-          // what the viewer can't tell otherwise: who decides on a request.
-          // A verb, not „Organizátor“, so it fits any name (DESIGN.md › Copy).
-          <PersonRow
-            name={event.organizer.name}
-            description={
-              event.approvalMode === "approval" ? "Schvaluje žádosti o účast" : undefined
-            }
-          />
-        )}
+        {/* „Pořádá“ above already names the role, and every organizer has a
+            verified e-mail (VerifiedUserGuard), so the second line says only
+            what the viewer can't tell otherwise: who decides on a request.
+            A verb, not „Organizátor“, so it fits any name (DESIGN.md › Copy). */}
+        <PersonRow
+          name={event.organizer.name}
+          description={event.approvalMode === "approval" ? "Schvaluje žádosti o účast" : undefined}
+        />
       </div>
     </section>
   )
@@ -273,9 +308,7 @@ function EventNotFound() {
   return (
     <section className="flex flex-col items-center gap-3 py-16 text-center">
       <h1 className="text-2xl font-semibold tracking-tight">Akce nenalezena</h1>
-      <p className="text-muted-foreground">
-        Odkaz je neplatný, nebo je akce jen pro členy skupiny.
-      </p>
+      <p className="text-muted-foreground">Odkaz je neplatný, nebo akce neexistuje.</p>
       <Button
         asChild
         className="mt-3"

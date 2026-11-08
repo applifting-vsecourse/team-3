@@ -1,6 +1,6 @@
 import type { CapacityStatus } from "@/components/StatusBadge/StatusBadge"
 
-import type { PublicEvent } from "@/features/events/api/eventSchemas"
+import type { GroupEvent, PublicEvent } from "@/features/events/api/eventSchemas"
 
 // Events happen in Prague, so their time is Prague time wherever the browser is.
 const PRAGUE_TZ = "Europe/Prague"
@@ -117,6 +117,30 @@ export function capacityStatus(event: PublicEvent): CapacityStatus {
   if (event.isFull) return { kind: "full" }
   if (event.missingToMin > 0) return { kind: "missing", missing: event.missingToMin }
   return { kind: "free", freeSpots: event.freeSpots }
+}
+
+/**
+ * The row card's line on the group's page (A-08e) after the time: a members-only event says
+ * so after its place; others keep the card's own „místo · městská část“.
+ */
+export const groupEventTail = (event: GroupEvent): string | undefined =>
+  event.visibility === "members"
+    ? `${placeName(event.address)} · ${event.locality.name} · jen pro členy`
+    : undefined
+
+/**
+ * A past event on the group's page (A-08e), who came: „sešlo se 6“,
+ * „sešli se 3“, „sešel se 1“; members-only says so as upcoming ones do.
+ */
+export function pastEventFacts(event: GroupEvent): string {
+  const count = event.approvedCount
+  const came =
+    count === 1
+      ? "sešel se 1"
+      : count >= 2 && count <= 4
+        ? `sešli se ${count}`
+        : `sešlo se ${count}`
+  return event.visibility === "members" ? `${came} · jen pro členy` : came
 }
 
 /**

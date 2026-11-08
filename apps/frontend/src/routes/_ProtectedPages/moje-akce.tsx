@@ -22,7 +22,7 @@ export const Route = createFileRoute("/_ProtectedPages/moje-akce")({
 
 /**
  * Figma C-01, C-02, C-01d, C-02d (B-035, #44): the events I go to and the ones I organize,
- * soonest first. Proběhlé comes with #61, my groups' events with #70.
+ * soonest first; Pořádám has the events of the groups I run too (#70). Proběhlé comes with #61.
  */
 function MyEventsPage() {
   const { tab = "prihlasen" } = Route.useSearch()

@@ -31,6 +31,7 @@ const created: EventDetailView = {
   participants: [],
   myParticipation: null,
   viewerSignedIn: true,
+  canManage: true,
 };
 
 describe('CreatedEventResponseDto', () => {

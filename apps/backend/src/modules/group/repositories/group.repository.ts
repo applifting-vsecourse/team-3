@@ -1,6 +1,7 @@
 import { PrismaService } from '@/core/prisma/prisma.service';
 import { Prisma } from '@/generated/prisma/client';
 import {
+  GROUP_INACTIVE_CANCEL_REASON,
   GroupDetail,
   GroupFilters,
   GroupInput,
@@ -184,7 +185,11 @@ export class GroupRepository {
     });
   }
 
-  /** Deactivates the group and removes its waiting requests, in one write. */
+  /**
+   * Deactivates the group, removes its waiting requests and cancels its
+   * upcoming events with a reason (B-051, B-055), in one write. Past events
+   * stay as they are, in the group's history.
+   */
   async deactivateGroup(id: string, at: Date): Promise<void> {
     await this.prisma.$transaction([
       this.prisma.group.update({
@@ -193,6 +198,14 @@ export class GroupRepository {
       }),
       this.prisma.groupMember.deleteMany({
         where: { groupId: id, status: 'pending' },
+      }),
+      this.prisma.event.updateMany({
+        where: { groupId: id, status: 'published', startsAt: { gt: at } },
+        data: {
+          status: 'cancelled',
+          cancelReason: GROUP_INACTIVE_CANCEL_REASON,
+          cancelledAt: at,
+        },
       }),
     ]);
   }

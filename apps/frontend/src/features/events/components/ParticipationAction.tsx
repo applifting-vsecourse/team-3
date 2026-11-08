@@ -63,8 +63,8 @@ export function ParticipationAction({
 }: ParticipationActionProps) {
   const isOrganizer = viewer !== null && event.organizer.id === viewer.id
   // in every state: who was coming still matters once the event is cancelled
-  // or has started (#43)
-  const manage = isOrganizer ? <ManageLink eventId={event.id} /> : null
+  // or has started (#43); the group's admins manage its events too (B-055)
+  const manage = event.canManage ? <ManageLink eventId={event.id} /> : null
 
   if (event.status === "cancelled") return manage ? <Row>{manage}</Row> : null
   if (event.startsAt <= now) {

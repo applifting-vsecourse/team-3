@@ -149,9 +149,10 @@ function MyEventsEmpty({ children }: { children: ReactNode }) {
 }
 
 /**
- * Pořádám (Figma C-02): the events I created, soonest first, cancelled ones
- * with their label. The strip on top sums up the requests to decide; a card
- * opens the event's management. „Založit akci“ is the page's, in both tabs.
+ * Pořádám (Figma C-02): the events I created and those of the groups I run
+ * (#70), soonest first, cancelled ones with their label. The strip on top
+ * sums up the requests to decide; a card opens the event's management.
+ * „Založit akci“ is the page's, in both tabs.
  */
 export function OrganizingEvents({ viewerId }: { viewerId: string }) {
   const { events, isPending, error, retry } = useMyEvents("organizing", viewerId)

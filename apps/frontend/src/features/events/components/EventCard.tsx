@@ -169,8 +169,8 @@ export function EventCard({
               {numbers ?? (isCancelled ? occupancyCount(event) : occupancyBesideBadge(event))}
             </span>
           )}
-          {/* a cancelled event no longer fills up */}
-          {isCancelled ? null : (
+          {/* a cancelled or past event no longer fills up */}
+          {isCancelled || status?.kind === "past" ? null : (
             <CapacityBar
               variant="compact"
               approvedCount={event.approvedCount}

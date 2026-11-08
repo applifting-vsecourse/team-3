@@ -12,6 +12,8 @@ import {
   formatEventTime,
   formatRequestEventStart,
   formatRequestTime,
+  groupEventTail,
+  pastEventFacts,
   placeName,
 } from "./formatEvent"
 
@@ -80,6 +82,32 @@ describe("eventDateParts", () => {
 describe("formatEventDay", () => {
   it("a past event's day without the time", () => {
     expect(formatEventDay(new Date("2026-10-19T16:00:00.000Z"))).toBe("Po 19. 10.")
+  })
+})
+
+describe("groupEventTail (#70)", () => {
+  it("a members-only event says so after its place, a public one keeps the card's line", () => {
+    expect(groupEventTail({ ...anEvent(), visibility: "members" })).toBe(
+      "Kavárna Pražírna · Praha 8 · jen pro členy",
+    )
+    expect(groupEventTail({ ...anEvent(), visibility: "public" })).toBeUndefined()
+  })
+})
+
+describe("pastEventFacts (#70)", () => {
+  it.each([
+    [6, "sešlo se 6"],
+    [3, "sešli se 3"],
+    [1, "sešel se 1"],
+    [0, "sešlo se 0"],
+  ])("%i came: „%s“", (approvedCount, label) => {
+    expect(pastEventFacts({ ...anEvent({ approvedCount }), visibility: "public" })).toBe(label)
+  })
+
+  it("members-only says so", () => {
+    expect(pastEventFacts({ ...anEvent({ approvedCount: 6 }), visibility: "members" })).toBe(
+      "sešlo se 6 · jen pro členy",
+    )
   })
 })
 

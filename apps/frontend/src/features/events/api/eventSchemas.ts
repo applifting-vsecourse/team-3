@@ -43,6 +43,8 @@ export type EventParticipant = z.infer<typeof eventParticipantSchema>
 export const eventDetailSchema = publicEventSchema.extend({
   description: z.string().nullable(),
   approvalMode: z.enum(["open", "approval"]),
+  /** `private`: through its link only; `members`: only the group's members (B-055). */
+  visibility: z.enum(["public", "private", "members"]),
   status: z.enum(["published", "cancelled"]),
   cancelReason: z.string().nullable(),
   /** Approved participants, only for those taking part (#174); null for anyone else, who gets only the occupancy. */
@@ -51,6 +53,8 @@ export const eventDetailSchema = publicEventSchema.extend({
   myParticipation: z.enum(["pending", "approved", "rejected", "removed"]).nullable(),
   /** Whether the API saw a valid session; false with a cached user = the session expired. */
   viewerSignedIn: z.boolean(),
+  /** The organizer or, for a group's event, any of the group's admins (B-055). */
+  canManage: z.boolean(),
 })
 
 export type EventDetail = z.infer<typeof eventDetailSchema>
@@ -70,7 +74,10 @@ export const eventParticipantsSchema = z.object({
   requests: z.array(eventRequestSchema),
 })
 
-/** Tabs of „Moje akce“ in the API (B-035); Proběhlé comes with #61. */
+/**
+ * Tabs of „Moje akce“ in the API (B-035); `organizing` has the events of the
+ * groups I run too (#70). Proběhlé comes with #61.
+ */
 export type MyEventsTab = "attending" | "organizing"
 
 /** GET /api/me/events?tab= — an event with the user's place in it. */
@@ -84,6 +91,19 @@ export const myEventSchema = publicEventSchema.extend({
 export const myEventsSchema = z.array(myEventSchema)
 
 export type MyEvent = z.infer<typeof myEventSchema>
+
+/** An event on its group's page (B-055): members-only ones are marked. */
+export const groupEventSchema = publicEventSchema.extend({
+  visibility: z.enum(["public", "members"]),
+})
+
+export type GroupEvent = z.infer<typeof groupEventSchema>
+
+/** GET /api/groups/:id/events — upcoming soonest first, past the latest first (Figma A-08e). */
+export const groupEventsSchema = z.object({
+  upcoming: z.array(groupEventSchema),
+  past: z.array(groupEventSchema),
+})
 
 /** POST /api/events answers with the detail and the link to share (B-021). */
 export const createdEventSchema = eventDetailSchema.extend({ shareUrl: z.string() })
@@ -109,6 +129,10 @@ export type EventInput = {
   minParticipants: number
   maxParticipants: number
   approvalMode: "open" | "approval"
+  /** A group's event (B-055), created by one of its admins; only when creating. */
+  groupId?: string
+  /** `members`: only the group's members see it and join it; only with `groupId`. */
+  visibility?: "public" | "members"
 }
 
 /** Query parameters of GET /api/events, already resolved to ids. */
