@@ -19,7 +19,7 @@ type GroupListProps = {
   error?: Error
   onRetry?: () => void
   /** What an empty list says and offers (EmptyGroups, Figma A-07e); the page builds it. */
-  empty?: ReactNode
+  empty: ReactNode
 }
 
 /** The list of /skupiny (Figma A-07, A-07d) with its loading, empty and error states. */
@@ -64,11 +64,7 @@ export function GroupList({ groups, isLoading, error, onRetry, empty }: GroupLis
     <div className="flex flex-col gap-4">
       <p className="text-sm font-semibold">{groupCountLabel(groups.length)}</p>
       {groups.length === 0 ? (
-        (empty ?? (
-          <p className="py-8 text-center text-sm text-muted-foreground">
-            V této lokalitě zatím žádná skupina není.
-          </p>
-        ))
+        empty
       ) : (
         <ul className={GROUP_GRID}>
           {groups.map((group) => (

@@ -12,14 +12,8 @@ import { cn } from "@/lib/utils"
 
 import { useSession } from "@/features/auth/hooks/useSession"
 import { AttendingEvents, OrganizingEvents } from "@/features/events/components/MyEvents"
-import { useMyEvents } from "@/features/events/hooks/useMyEvents"
-import {
-  attendingLine,
-  attendingSections,
-  myEventsSearchSchema,
-  organizingLine,
-  organizingSections,
-} from "@/features/events/lib/myEvents"
+import { useAttendingEvents, useOrganizingEvents } from "@/features/events/hooks/useMyEvents"
+import { attendingLine, myEventsSearchSchema, organizingLine } from "@/features/events/lib/myEvents"
 
 export const Route = createFileRoute("/_ProtectedPages/moje-akce")({
   component: MyEventsPage,
@@ -37,13 +31,13 @@ function MyEventsPage() {
   // the protected layout lets only a signed-in user in; the session is cached by then
   const viewerId = user?.id ?? ""
   // for the counts on the tabs; the same queries fill the tabs themselves
-  const attending = useMyEvents("attending", viewerId).events
-  const organizing = useMyEvents("organizing", viewerId).events
+  const attending = useAttendingEvents(viewerId)
+  const organizing = useOrganizingEvents(viewerId)
   // the events I go to, without the cancelled ones (the count in Figma C-01)
-  const sections = attending ? attendingSections(attending) : undefined
-  const attendingCount = sections && sections.pending.length + sections.approved.length
+  const attendingCount =
+    attending.sections && attending.sections.pending.length + attending.sections.approved.length
   // the upcoming ones, as in Přihlášen (Figma C-02: Nadcházející)
-  const organizingCount = organizing && organizingSections(organizing).upcoming.length
+  const organizingCount = organizing.sections?.upcoming.length
 
   return (
     <>
@@ -65,7 +59,9 @@ function MyEventsPage() {
           title="Moje akce"
           // Figma C-01d, C-02d: the nearest event, or the requests waiting
           description={
-            tab === "poradam" ? organizingLine(organizing) : attendingLine(attending, new Date())
+            tab === "poradam"
+              ? organizingLine(organizing.events)
+              : attendingLine(attending.events, new Date())
           }
           action={
             // the page's primary in both tabs, like „Založit skupinu“ on Skupiny (C-01, C-01d)

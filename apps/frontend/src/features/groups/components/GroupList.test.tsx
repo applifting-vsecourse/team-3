@@ -32,6 +32,7 @@ describe("GroupList", () => {
   it("shows the count and each group with its facts and type", () => {
     render(
       <GroupList
+        empty={null}
         groups={[
           aGroup(),
           aGroup({ id: "g2", name: "Deskovky Vinohrady", type: "closed", memberCount: 4 }),
@@ -49,11 +50,8 @@ describe("GroupList", () => {
     expect(screen.getByText("Neveřejná – žádost o členství")).toBeInTheDocument()
   })
 
-  it("empty: the page's empty state, or one sentence about the place", () => {
-    const { rerender } = render(<GroupList groups={[]} />)
-    expect(screen.getByText("V této lokalitě zatím žádná skupina není.")).toBeInTheDocument()
-
-    rerender(
+  it("empty: the page's empty state", () => {
+    render(
       <GroupList
         groups={[]}
         empty={<p>Nic tu není.</p>}
@@ -65,6 +63,7 @@ describe("GroupList", () => {
   it("loading", () => {
     render(
       <GroupList
+        empty={null}
         groups={[]}
         isLoading
       />,
@@ -77,6 +76,7 @@ describe("GroupList", () => {
     const onRetry = vi.fn()
     render(
       <GroupList
+        empty={null}
         groups={[]}
         error={new Error("HTTP 500")}
         onRetry={onRetry}
