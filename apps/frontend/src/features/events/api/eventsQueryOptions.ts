@@ -45,6 +45,7 @@ export const toSearchParams = (filters: EventFilters): URLSearchParams => {
   for (const id of filters.activityIds) params.append("activityId", id)
   for (const id of filters.categoryIds) params.append("categoryId", id)
   if (filters.capacity) params.set("capacity", filters.capacity)
+  if (filters.bbox) params.set("bbox", filters.bbox)
   return params
 }
 

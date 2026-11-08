@@ -1,5 +1,6 @@
 import { z } from "zod"
 
+import type { MapArea } from "@/components/map/MapView"
 import {
   catalogSearchShape,
   hasCatalogFilters,
@@ -10,6 +11,9 @@ import {
 import type { EventFilters } from "@/features/events/api/eventSchemas"
 
 const DAY = /^\d{4}-\d{2}-\d{2}$/
+const NUMBER = String.raw`-?\d{1,3}(?:\.\d{1,8})?`
+// ?oblast=west,south,east,north — the map's area after „Hledat v této oblasti“ (#56)
+const AREA = new RegExp(`^${NUMBER},${NUMBER},${NUMBER},${NUMBER}$`)
 
 /** ?obsazenost= values; Czech in the URL like the other filters, English in the API. */
 export const OCCUPANCY = ["volna", "chybi"] as const
@@ -28,6 +32,7 @@ export const eventsSearchSchema = z.object({
   do: z.string().regex(DAY).optional().catch(undefined),
   // volna = not full yet, chybi = still missing people (a subset of volna)
   obsazenost: z.enum(OCCUPANCY).optional().catch(undefined),
+  oblast: z.string().regex(AREA).optional().catch(undefined),
 })
 
 export type EventsSearch = z.infer<typeof eventsSearchSchema>
@@ -37,7 +42,8 @@ export const hasActiveFilters = (search: EventsSearch): boolean =>
   hasCatalogFilters(search) ||
   search.od !== undefined ||
   search.do !== undefined ||
-  search.obsazenost !== undefined
+  search.obsazenost !== undefined ||
+  search.oblast !== undefined
 
 /**
  * Turns the URL's slugs into the API's ids. Slugs the catalog doesn't know
@@ -47,10 +53,29 @@ export function toEventFilters(search: EventsSearch, catalog: Catalog): EventFil
   // An inverted range in a hand-edited URL would be a 400; keep just the start.
   const dateTo = search.od && search.do && search.do < search.od ? undefined : search.do
 
+  const filters = toCatalogFilters(search, catalog)
   return {
-    ...toCatalogFilters(search, catalog),
+    ...filters,
+    // the area replaces the locality: moving the map from Praha to Brno would otherwise find nothing
+    localityId: search.oblast ? undefined : filters.localityId,
     dateFrom: search.od,
     dateTo,
     capacity: search.obsazenost && CAPACITY_OF[search.obsazenost],
+    bbox: search.oblast,
   }
 }
+
+/** `?oblast=` as the map's area; undefined without one or with corners out of order. */
+export function toMapArea(oblast: string | undefined): MapArea | undefined {
+  if (!oblast) return undefined
+  const [west, south, east, north] = oblast.split(",").map(Number) as [
+    number,
+    number,
+    number,
+    number,
+  ]
+  return west < east && south < north ? { west, south, east, north } : undefined
+}
+
+export const toOblast = (area: MapArea): string =>
+  [area.west, area.south, area.east, area.north].join(",")

@@ -29,6 +29,8 @@ export const publicEventSchema = z.object({
   freeSpots: z.number(),
   isFull: z.boolean(),
   isPromoted: z.boolean(),
+  // the start of the description for the map preview (#56); null without one
+  summary: z.string().nullable(),
 })
 
 export const publicEventsSchema = z.array(publicEventSchema)
@@ -144,4 +146,6 @@ export type EventFilters = {
   categoryIds: string[]
   /** free: not full yet; missing: still missing people to reach the minimum */
   capacity?: "free" | "missing"
+  /** „Hledat v této oblasti“ (#56): west,south,east,north */
+  bbox?: string
 }
