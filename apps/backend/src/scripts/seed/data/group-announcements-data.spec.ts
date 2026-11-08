@@ -33,7 +33,7 @@ describe('group announcements in the seed (#194)', () => {
   });
 
   it('demo: Jakub is a member where Tomáš wrote, and only waits in the closed group', () => {
-    const membershipOf = (groupKey: string) =>
+    const membershipOf = (groupKey: string): string | undefined =>
       allGroups
         .find((g) => g.key === groupKey)
         ?.members.find((m) => m.userKey === 'uzivatel')?.status;

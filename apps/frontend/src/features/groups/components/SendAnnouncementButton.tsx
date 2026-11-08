@@ -55,7 +55,10 @@ const schema = z.object({
     .string()
     .trim()
     .min(1, "Napiš text oznámení")
-    .max(ANNOUNCEMENT_BODY_MAX_LENGTH, `Text může mít nejvýš ${ANNOUNCEMENT_BODY_MAX_LENGTH} znaků`),
+    .max(
+      ANNOUNCEMENT_BODY_MAX_LENGTH,
+      `Text může mít nejvýš ${ANNOUNCEMENT_BODY_MAX_LENGTH} znaků`,
+    ),
 })
 
 type FormValues = z.input<typeof schema>

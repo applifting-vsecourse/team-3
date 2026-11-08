@@ -89,8 +89,7 @@ export function announcementRecipientsLabel(otherMembers: number): string {
   if (otherMembers <= 0) {
     return "Ve skupině zatím nikdo další není. Oznámení zůstane na stránce skupiny pro nové členy."
   }
-  const whom =
-    otherMembers === 1 ? "1 aktivnímu členovi" : `všem ${otherMembers} aktivním členům`
+  const whom = otherMembers === 1 ? "1 aktivnímu členovi" : `všem ${otherMembers} aktivním členům`
   return `Oznámení přijde e-mailem ${whom} a uvidí ho na stránce skupiny. Čekající žadatelé ho nedostanou.`
 }
 
