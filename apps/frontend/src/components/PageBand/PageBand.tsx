@@ -139,7 +139,8 @@ export function PageBand({
       {isSection || isDetail ? <LogoMotif /> : null}
       {isHero ? <HeroMotif /> : null}
       {/* a phone has the corner motif on the landing page too (Figma A-01 › Motiv loga (návrh 16)) */}
-      {isDetail || isHero ? <CornerMotif /> : null}
+      {/* the landing page keeps it until its big motif shows (lg), the detail until md (review #263) */}
+      {isDetail || isHero ? <CornerMotif isUntilLg={isHero} /> : null}
       <div
         className={cn(
           "relative mx-auto flex w-full max-w-7xl flex-col px-4 md:px-10",
@@ -219,14 +220,17 @@ function HeroMotif() {
  * past the edge (Figma A-05 › Motiv loga (návrh 16)); from `md` the big motif takes over (xl).
  * Decoration — hidden from assistive tech.
  */
-function CornerMotif() {
+function CornerMotif({ isUntilLg = false }: { isUntilLg?: boolean }) {
   return (
     <svg
       aria-hidden="true"
       viewBox="0 0 194 194"
       width={194}
       height={194}
-      className="pointer-events-none absolute -top-4 -right-22 md:hidden"
+      className={cn(
+        "pointer-events-none absolute -top-4 -right-22",
+        isUntilLg ? "lg:hidden" : "md:hidden",
+      )}
     >
       <circle
         cx="45"

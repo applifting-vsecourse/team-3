@@ -307,6 +307,15 @@ describe("LandingView", () => {
       )
     })
 
+    it("signed in, speaks only of the events one can join (review #263)", async () => {
+      home = { locality: null, sections: [{ key: "weekend", events: events("Víkend") }] }
+      await renderLanding({ session: "signedIn" })
+
+      expect(
+        await screen.findByText(/Akce v okolí, kam se můžeš přidat, mají svoje minimum\./),
+      ).toBeInTheDocument()
+    })
+
     it.each([
       [false, "Zaregistrovat se", "/signup"],
       [true, "Založit akci", "/akce/nova"],

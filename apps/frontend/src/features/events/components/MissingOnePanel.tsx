@@ -154,7 +154,12 @@ export function EmptyMissingOnePanel({
           <PanelLabel>Teď nikde nikdo nechybí</PanelLabel>
           <h2 className="type-feature">Všechny party jsou kompletní</h2>
           <p className="text-body">
-            Všechny akce v okolí mají svoje minimum. Mrkni, kde jsou ještě volná místa.
+            {/* signed in, the page leaves out events one already goes to: those may still miss
+                people (review #263) */}
+            {isSignedIn
+              ? "Akce v okolí, kam se můžeš přidat, mají svoje minimum."
+              : "Všechny akce v okolí mají svoje minimum."}{" "}
+            Mrkni, kde jsou ještě volná místa.
           </p>
           <PanelButton>
             <Link
