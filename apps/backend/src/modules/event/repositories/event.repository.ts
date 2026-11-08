@@ -64,6 +64,7 @@ const toPublicEvent = (event: PublicEventRow, now: Date): PublicEvent => ({
   id: event.id,
   title: event.title,
   summary: summarize(event.description),
+  distanceKm: null,
   startsAt: event.startsAt,
   endsAt: event.endsAt,
   address: event.address,
@@ -73,6 +74,7 @@ const toPublicEvent = (event: PublicEventRow, now: Date): PublicEvent => ({
     id: event.activity.id,
     slug: event.activity.slug,
     name: event.activity.name,
+    keywords: event.activity.keywords,
     category: {
       id: event.activity.category.id,
       slug: event.activity.category.slug,

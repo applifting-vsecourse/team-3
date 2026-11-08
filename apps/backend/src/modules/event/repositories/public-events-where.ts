@@ -1,4 +1,5 @@
 import { Prisma } from '@/generated/prisma/client';
+import { boxAround } from '@/modules/event/domain/distance';
 import { PublicEventFilters } from '@/modules/event/domain/event';
 import {
   startOfNextPragueDay,
@@ -44,6 +45,18 @@ export const buildPublicEventsWhere = (
   // the place of the event, not its locality: the map shows events where they happen
   if (filters.bbox) {
     const { west, south, east, north } = filters.bbox;
+    conditions.push({
+      lat: { gte: south, lte: north },
+      lng: { gte: west, lte: east },
+    });
+  }
+
+  // the circle's rectangle; the service checks the exact distance (#57)
+  if (filters.point && filters.radiusKm) {
+    const { west, south, east, north } = boxAround(
+      filters.point,
+      filters.radiusKm,
+    );
     conditions.push({
       lat: { gte: south, lte: north },
       lng: { gte: west, lte: east },

@@ -78,6 +78,12 @@ export class EventsController {
         categoryIds: query.categoryId,
         capacity: query.capacity,
         bbox: query.bbox ? parseBoundingBox(query.bbox) : undefined,
+        q: query.q,
+        point:
+          query.lat !== undefined && query.lng !== undefined
+            ? { lat: query.lat, lng: query.lng }
+            : undefined,
+        radiusKm: query.radiusKm,
       },
       { sort: query.sort, limit: query.limit },
     );

@@ -1,4 +1,5 @@
 import { matchesCapacity } from '@/modules/event/domain/capacity';
+import { distanceKm, GeoPoint } from '@/modules/event/domain/distance';
 import {
   EventChanges,
   EventDetail,
@@ -12,6 +13,7 @@ import {
   PublicEventFilters,
   PublicEventSort,
 } from '@/modules/event/domain/event';
+import { matchesSearch } from '@/modules/event/domain/event-search';
 import {
   canReadMessages,
   canSendMessages,
@@ -115,6 +117,24 @@ export const PUBLIC_EVENTS_LIMIT = 200;
 // query must stay bounded however many events exist.
 export const SCAN_LIMIT = 2000;
 export const MY_EVENTS_LIMIT = 200;
+
+/** Each event's distance from the point, to one decimal (#57); unchanged without a point. */
+const withDistance = (
+  events: PublicEvent[],
+  point: GeoPoint | undefined,
+): PublicEvent[] =>
+  point
+    ? events.map((event) => ({
+        ...event,
+        distanceKm: Math.round(distanceKm(point, event) * 10) / 10,
+      }))
+    : events;
+
+/** Nearest first; equally far soonest first (the input is soonest first, the sort is stable). */
+const byDistance = (events: PublicEvent[]): PublicEvent[] =>
+  [...events].sort(
+    (a, b) => (a.distanceKm ?? Infinity) - (b.distanceKm ?? Infinity),
+  );
 // Per section of a group's page; the endpoint is public, so it stays bounded.
 export const GROUP_EVENTS_LIMIT = 50;
 
@@ -137,14 +157,21 @@ export class EventsService {
     }: { sort?: PublicEventSort; limit?: number } = {},
     now: Date = new Date(),
   ): Promise<PublicEvent[]> {
-    const { capacity } = filters;
-    if (!capacity && sort === 'date') {
-      return this.eventRepository.findPublicEvents({ filters, now, limit });
+    const { capacity, q, point, radiusKm } = filters;
+    const isSearch = Boolean(q?.trim());
+    if (!capacity && !isSearch && !radiusKm && sort === 'date') {
+      const events = await this.eventRepository.findPublicEvents({
+        filters,
+        now,
+        limit,
+      });
+      return withDistance(events, point);
     }
     // The capacity filter compares approved participations with the minimum and
-    // maximum, and interest counts waiting requests too; the event query can do
-    // neither. Filter and rank first, then cut, or matching and popular events
-    // could fall behind the limit.
+    // maximum, interest counts waiting requests too, the search ignores
+    // diacritics and the circle needs the exact distance (#57); the event query
+    // can do none of it. Filter and rank first, then cut, or matching, popular
+    // and near events could fall behind the limit.
     const [events, interest] = await Promise.all([
       this.eventRepository.findPublicEvents({
         filters,
@@ -155,10 +182,18 @@ export class EventsService {
         ? this.eventRepository.countInterest(filters, now)
         : null,
     ]);
-    const matching = capacity
-      ? events.filter((event) => matchesCapacity(event.capacity, capacity))
-      : events;
-    const ordered = interest ? rankByInterest(matching, interest) : matching;
+    const matching = withDistance(events, point).filter(
+      (event) =>
+        (!capacity || matchesCapacity(event.capacity, capacity)) &&
+        (!isSearch || matchesSearch(event, q!)) &&
+        (!radiusKm ||
+          (event.distanceKm !== null && event.distanceKm <= radiusKm)),
+    );
+    const ordered = interest
+      ? rankByInterest(matching, interest)
+      : sort === 'distance'
+        ? byDistance(matching)
+        : matching;
     return ordered.slice(0, limit);
   }
 
