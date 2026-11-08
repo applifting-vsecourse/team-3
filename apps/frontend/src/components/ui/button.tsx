@@ -15,7 +15,7 @@ const buttonVariants = cva(
         destructive:
           "bg-destructive text-destructive-foreground hover:bg-destructive-hover focus-visible:ring-destructive/20",
         outline:
-          "border border-control-border bg-background hover:bg-accent hover:text-accent-foreground",
+          "border border-control-border bg-transparent hover:bg-accent hover:text-accent-foreground",
         secondary: "bg-secondary text-secondary-foreground hover:bg-secondary/80",
         ghost: "hover:bg-accent hover:text-accent-foreground",
         // Lime fails contrast as text (DESIGN.md › Colour), so links stay foreground.
