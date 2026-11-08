@@ -78,6 +78,22 @@ export function occupancySummary(occupancy: Occupancy): string {
 }
 
 /**
+ * The occupancy at the end of the detail band's line (Figma A-05d, A-05c): „do minima chybí 1“,
+ * „6 z 10, minimum je naplněné“, „10 z 10, plno“. Numbers, not words (DESIGN.md › Copy) —
+ * Figma's „chybí jeden“ is the sample text.
+ */
+export function occupancyInBand(occupancy: Occupancy): string {
+  switch (occupancyState(occupancy)) {
+    case "missing":
+      return `do minima ${missingLabel(occupancy.missingToMin)}`
+    case "free":
+      return `${occupancyCount(occupancy)}, minimum je naplněné`
+    case "full":
+      return `${occupancyCount(occupancy)}, plno`
+  }
+}
+
+/**
  * The detail as the API answers a sign-up: this very place reached the minimum when the
  * approved count is now exactly the minimum (DESIGN.md › Máš místo, Figma A-05c).
  */

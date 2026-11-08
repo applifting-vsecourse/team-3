@@ -10,6 +10,7 @@ import {
   missingLabel,
   occupancyBesideBadge,
   occupancyCount,
+  occupancyInBand,
   occupancyState,
   occupancyStatus,
   occupancySummary,
@@ -115,6 +116,22 @@ describe("occupancySummary", () => {
   it("from the minimum the count with the minimum", () => {
     expect(occupancySummary(occupancy(6, 6, 12))).toBe("6 z 12 · min. 6")
     expect(occupancySummary(occupancy(12, 6, 12))).toBe("12 z 12 · min. 6")
+  })
+})
+
+describe("occupancyInBand", () => {
+  // Figma A-05d, A-05c
+  it("below the minimum how many are missing, from the API", () => {
+    expect(occupancyInBand(occupancy(5, 6, 10))).toBe("do minima chybí 1")
+    expect(occupancyInBand(occupancy(5, 6, 10, { missingToMin: 2 }))).toBe("do minima chybí 2")
+  })
+
+  it("from the minimum the count, and that the minimum is reached", () => {
+    expect(occupancyInBand(occupancy(6, 6, 10))).toBe("6 z 10, minimum je naplněné")
+  })
+
+  it("full says so", () => {
+    expect(occupancyInBand(occupancy(10, 6, 10))).toBe("10 z 10, plno")
   })
 })
 
