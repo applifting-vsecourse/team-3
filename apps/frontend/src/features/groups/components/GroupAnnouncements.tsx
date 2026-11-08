@@ -13,8 +13,8 @@ type GroupAnnouncementsProps = {
   groupId: string
   /** The signed-in member; the page renders this only for an active member or admin. */
   viewerId: string
-  /** An admin writes the announcements, so the empty state tells them where. */
-  isAdmin?: boolean
+  /** An admin of an active group writes the announcements, so the empty state tells them where. */
+  canSend?: boolean
 }
 
 /**
@@ -25,7 +25,7 @@ type GroupAnnouncementsProps = {
 export function GroupAnnouncements({
   groupId,
   viewerId,
-  isAdmin = false,
+  canSend = false,
 }: GroupAnnouncementsProps) {
   const headingId = useId()
   const query = useQuery(groupAnnouncementsQueryOptions(groupId, viewerId))
@@ -71,7 +71,7 @@ export function GroupAnnouncements({
         </div>
       ) : announcements.length === 0 ? (
         <p className="text-muted-foreground">
-          {isAdmin
+          {canSend
             ? "Zatím tu žádné oznámení není. Členům napíšeš přes „Napsat členům“ ve správě skupiny."
             : "Zatím tu žádné oznámení není. Až správce skupiny něco napíše, uvidíš to tady a přijde ti to e-mailem."}
         </p>

@@ -34,7 +34,7 @@ function GroupPage() {
   const groupQuery = useQuery(groupQueryOptions(groupId, viewerId))
   const location = useLocation()
   const group = groupQuery.data
-  // announcements are for active members and admins only (#194)
+  // announcements are for active members and admins only; only an admin of an active group sends them (#194)
   const isMember = group?.viewerMembership?.status === "active"
   const isNotFound =
     groupQuery.error instanceof HTTPError && groupQuery.error.response.status === 404
@@ -54,7 +54,7 @@ function GroupPage() {
                 <GroupAnnouncements
                   groupId={groupId}
                   viewerId={viewerId}
-                  isAdmin={group.viewerMembership?.role === "admin"}
+                  canSend={group.viewerMembership?.role === "admin" && group.status === "active"}
                 />
               ) : null
             }

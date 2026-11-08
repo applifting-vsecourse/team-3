@@ -26,7 +26,7 @@ const announcements = [
   },
 ]
 
-const renderSection = ({ isAdmin = false } = {}) =>
+const renderSection = ({ canSend = false } = {}) =>
   render(
     <QueryClientProvider
       client={new QueryClient({ defaultOptions: { queries: { retry: false } } })}
@@ -34,7 +34,7 @@ const renderSection = ({ isAdmin = false } = {}) =>
       <GroupAnnouncements
         groupId="g-florbal"
         viewerId="u-jakub"
-        isAdmin={isAdmin}
+        canSend={canSend}
       />
     </QueryClientProvider>,
   )
@@ -78,7 +78,7 @@ describe("GroupAnnouncements (#194)", () => {
     api.get.mockReturnValue({
       json: () => Promise.resolve({ announcements: [], total: 0, remainingToday: 10 }),
     })
-    renderSection({ isAdmin: true })
+    renderSection({ canSend: true })
 
     expect(await screen.findByText(/přes „Napsat členům“ ve správě skupiny/)).toBeInTheDocument()
     expect(screen.queryByText(/Až správce skupiny něco napíše/)).not.toBeInTheDocument()
