@@ -177,6 +177,8 @@ function ManageEventPage() {
                 </Alert>
               ) : (
                 <CapacityBar
+                  // the summary has no panel: the bar lies on the page (D-03, D-03d)
+                  surface="background"
                   approvedCount={event.approvedCount}
                   minParticipants={event.minParticipants}
                   maxParticipants={event.maxParticipants}
