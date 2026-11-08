@@ -235,15 +235,16 @@ export class GroupsService {
         message: 'Oznámení vidí jen členové skupiny',
       });
     }
-    const [announcements, remainingToday] = await Promise.all([
+    const [announcements, total, remainingToday] = await Promise.all([
       this.groupRepository.findAnnouncements(groupId, ANNOUNCEMENTS_SHOWN),
+      this.groupRepository.countAnnouncements(groupId),
       canSendAnnouncements(group, group.viewerMembership)
         ? this.groupRepository
             .countAnnouncementsSince(groupId, startOfPragueDayOf(now))
             .then(remainingAnnouncements)
         : null,
     ]);
-    return { announcements, remainingToday };
+    return { announcements, total, remainingToday };
   }
 
   /**

@@ -84,6 +84,8 @@ export const announcementSchema = z.object({
 export const groupAnnouncementsSchema = z.object({
   /** Newest first. */
   announcements: z.array(announcementSchema),
+  /** All the group's announcements; the list holds only the latest 50. */
+  total: z.number(),
   /** How many more the viewer may send today; null unless they are an admin of an active group. */
   remainingToday: z.number().nullable(),
 })

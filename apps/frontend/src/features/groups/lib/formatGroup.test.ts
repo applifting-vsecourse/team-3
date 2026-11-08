@@ -74,7 +74,10 @@ describe("announcements (#194)", () => {
 
   it.each([
     // only the admin: nobody else to write to
-    [1, "Ve skupině zatím nikdo další není. Oznámení zůstane na stránce skupiny pro nové členy."],
+    [
+      1,
+      "Ve skupině zatím nikdo další není. E-mail přijde jen tobě a oznámení zůstane na stránce skupiny pro nové členy.",
+    ],
     [
       2,
       "Oznámení přijde e-mailem všem 2 aktivním členům a uvidí ho na stránce skupiny. Čekající žadatelé ho nedostanou.",

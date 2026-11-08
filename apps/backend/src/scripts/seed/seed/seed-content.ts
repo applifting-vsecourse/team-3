@@ -255,7 +255,7 @@ export async function findLegacySeedContent(
 
 /**
  * Smaže akce a skupiny, které vložil předchozí seed; účasti, členství, obě
- * hodnocení, zprávy a záznamy upozornění zmizí kaskádou, u plateb se `eventId`
+ * hodnocení, zprávy, oznámení skupin a záznamy upozornění zmizí kaskádou, u plateb se `eventId`
  * vynuluje. Cizí akci v seedové skupině (tester po #70) nesmaže, jen ji od
  * skupiny odpojí, jinak by smazání skupiny zastavil `onDelete: Restrict`.
  * Do logu jde, co zmizí a co ze seedových účtů zůstává, ať je to na stagingu vidět.

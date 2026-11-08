@@ -268,6 +268,11 @@ export class GroupRepository {
     });
   }
 
+  /** How many announcements the group has sent in all (the count in the section's heading). */
+  async countAnnouncements(groupId: string): Promise<number> {
+    return this.prisma.groupAnnouncement.count({ where: { groupId } });
+  }
+
   /** How many announcements the group has sent since `since` (the daily limit). */
   async countAnnouncementsSince(groupId: string, since: Date): Promise<number> {
     return this.prisma.groupAnnouncement.count({

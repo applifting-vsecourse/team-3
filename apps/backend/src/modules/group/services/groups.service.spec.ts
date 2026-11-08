@@ -437,11 +437,13 @@ describe('GroupsService', () => {
           viewerMembership: member,
         });
         repository.findAnnouncements.mockResolvedValue([announcement]);
+        repository.countAnnouncements.mockResolvedValue(70);
 
         await expect(
           service.getAnnouncements('g1', 'u-jakub', now),
         ).resolves.toEqual({
           announcements: [announcement],
+          total: 70,
           remainingToday: null,
         });
         expect(repository.findAnnouncements).toHaveBeenCalledWith('g1', 50);
@@ -474,11 +476,13 @@ describe('GroupsService', () => {
           viewerMembership: admin,
         });
         repository.findAnnouncements.mockResolvedValue([announcement]);
+        repository.countAnnouncements.mockResolvedValue(1);
 
         await expect(
           service.getAnnouncements('g1', 'u-petra', now),
         ).resolves.toEqual({
           announcements: [announcement],
+          total: 1,
           remainingToday: null,
         });
       });

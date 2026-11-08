@@ -61,7 +61,8 @@ const schema = z.object({
     ),
 })
 
-type FormValues = z.input<typeof schema>
+type FormInput = z.input<typeof schema>
+type FormOutput = z.output<typeof schema>
 
 type SendAnnouncementButtonProps = {
   groupId: string
@@ -89,7 +90,9 @@ export function SendAnnouncementButton({
   const send = useSendAnnouncement(groupId)
   const announcementsQuery = useQuery(groupAnnouncementsQueryOptions(groupId, viewerId))
   const remainingToday = announcementsQuery.data?.remainingToday
-  const form = useForm<FormValues>({
+  // today's limit is used up: the dialog says so, and sending would only end in 429
+  const isLimitReached = remainingToday === 0
+  const form = useForm<FormInput, unknown, FormOutput>({
     resolver: zodResolver(schema),
     defaultValues: { subject: "", body: "" },
   })
@@ -117,7 +120,7 @@ export function SendAnnouncementButton({
             noValidate
             onSubmit={form.handleSubmit(async (values) => {
               try {
-                await send.mutateAsync(schema.parse(values))
+                await send.mutateAsync(values)
               } catch (error) {
                 // the text stays in the dialog to try again
                 toast.error((error as Error).message)
@@ -185,7 +188,7 @@ export function SendAnnouncementButton({
                 type="submit"
                 size="lg"
                 className="h-11"
-                disabled={send.isPending}
+                disabled={send.isPending || isLimitReached}
               >
                 {send.isPending ? <Loader2 className="size-4 animate-spin" /> : null}
                 Odeslat

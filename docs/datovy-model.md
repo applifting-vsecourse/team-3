@@ -18,6 +18,7 @@ Schéma vzniklo v rámci #47 (testovací data), protože bez něj nešla data na
 | `Group`             | `group`              | Skupina (veřejná / neveřejná, aktivní / deaktivovaná)                                    | B-050               | ano      |
 | `GroupMember`       | `group_member`       | Členství a role ve skupině                                                               | B-050               | ano      |
 | `EventMessage`      | `event_message`      | Zpráva organizátora účastníkům (limit 10 za den)                                         | B-042               | ne       |
+| `GroupAnnouncement` | `group_announcement` | Oznámení správce členům skupiny (limit 10 za den na skupinu)                             | #194                | ne       |
 | `NotificationLog`   | `notification_log`   | Záznam o odeslaném plánovaném e-mailu, aby nepřišel dvakrát                              | B-043               | ne       |
 | `Rating`            | `rating`             | Hodnocení akce a organizátora od účastníka                                               | B-060               | ne       |
 | `ParticipantRating` | `participant_rating` | Hodnocení účastníka organizátorem akce                                                   | B-060, #180         | ne       |
@@ -102,6 +103,8 @@ erDiagram
     User ||--o{ GroupMember : "je členem"
     Event ||--o{ EventMessage : "zprávy"
     User ||--o{ EventMessage : "poslal"
+    Group ||--o{ GroupAnnouncement : "oznámení"
+    User ||--o{ GroupAnnouncement : "poslal"
     Event |o--o{ NotificationLog : "e-maily"
     User |o--o{ NotificationLog : "příjemce"
 
@@ -164,6 +167,14 @@ erDiagram
         string senderId FK
         string subject
         string body
+    }
+    GroupAnnouncement {
+        string id PK
+        string groupId FK
+        string senderId FK
+        string subject
+        string body
+        datetime createdAt
     }
     NotificationLog {
         string id PK

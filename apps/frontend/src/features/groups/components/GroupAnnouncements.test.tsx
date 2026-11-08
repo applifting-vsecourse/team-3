@@ -26,7 +26,7 @@ const announcements = [
   },
 ]
 
-const renderSection = () =>
+const renderSection = ({ isAdmin = false } = {}) =>
   render(
     <QueryClientProvider
       client={new QueryClient({ defaultOptions: { queries: { retry: false } } })}
@@ -34,13 +34,14 @@ const renderSection = () =>
       <GroupAnnouncements
         groupId="g-florbal"
         viewerId="u-jakub"
+        isAdmin={isAdmin}
       />
     </QueryClientProvider>,
   )
 
 beforeEach(() => {
   api.get.mockReset().mockReturnValue({
-    json: () => Promise.resolve({ announcements, remainingToday: null }),
+    json: () => Promise.resolve({ announcements, total: 2, remainingToday: null }),
   })
 })
 
@@ -65,12 +66,31 @@ describe("GroupAnnouncements (#194)", () => {
 
   it("none yet says what would be here", async () => {
     api.get.mockReturnValue({
-      json: () => Promise.resolve({ announcements: [], remainingToday: null }),
+      json: () => Promise.resolve({ announcements: [], total: 0, remainingToday: null }),
     })
     renderSection()
 
-    expect(await screen.findByText(/Zatím tu žádné oznámení není\./)).toBeInTheDocument()
+    expect(await screen.findByText(/Až správce skupiny něco napíše/)).toBeInTheDocument()
     expect(screen.getByRole("region", { name: "Oznámení" })).toBeInTheDocument()
+  })
+
+  it("an admin's empty section points to „Napsat členům“ instead of waiting for an admin", async () => {
+    api.get.mockReturnValue({
+      json: () => Promise.resolve({ announcements: [], total: 0, remainingToday: 10 }),
+    })
+    renderSection({ isAdmin: true })
+
+    expect(await screen.findByText(/přes „Napsat členům“ ve správě skupiny/)).toBeInTheDocument()
+    expect(screen.queryByText(/Až správce skupiny něco napíše/)).not.toBeInTheDocument()
+  })
+
+  it("the heading counts all of them, not only the latest 50 in the list", async () => {
+    api.get.mockReturnValue({
+      json: () => Promise.resolve({ announcements, total: 70, remainingToday: null }),
+    })
+    renderSection()
+
+    expect(await screen.findByRole("region", { name: "Oznámení (70)" })).toBeInTheDocument()
   })
 
   it("shows it is loading", () => {

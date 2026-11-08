@@ -54,6 +54,7 @@ function GroupPage() {
                 <GroupAnnouncements
                   groupId={groupId}
                   viewerId={viewerId}
+                  isAdmin={group.viewerMembership?.role === "admin"}
                 />
               ) : null
             }

@@ -21,7 +21,7 @@ const sent = {
 }
 
 const answer = (remainingToday: number | null) => ({
-  json: () => Promise.resolve({ announcements: [], remainingToday }),
+  json: () => Promise.resolve({ announcements: [], total: 0, remainingToday }),
 })
 
 const renderButton = (queryClient = new QueryClient()) =>
@@ -119,7 +119,7 @@ describe("SendAnnouncementButton (#194)", () => {
     expect(within(dialog).getByLabelText("Text")).toHaveValue("Přes svátky se nehraje.")
   })
 
-  it("with today's limit used up, it says so under the text", async () => {
+  it("with today's limit used up, it says so under the text and „Odeslat“ is off", async () => {
     api.get.mockReturnValue(answer(0))
     renderButton()
     const dialog = await openDialog()
@@ -129,5 +129,6 @@ describe("SendAnnouncementButton (#194)", () => {
         "Dnes už skupině další oznámení poslat nemůžeš. Zkus to zítra.",
       ),
     ).toBeInTheDocument()
+    expect(within(dialog).getByRole("button", { name: "Odeslat" })).toBeDisabled()
   })
 })

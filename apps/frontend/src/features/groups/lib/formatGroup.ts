@@ -103,7 +103,7 @@ export function formatAnnouncementTime(date: Date): string {
  */
 export function announcementRecipientsLabel(memberCount: number): string {
   if (memberCount <= 1) {
-    return "Ve skupině zatím nikdo další není. Oznámení zůstane na stránce skupiny pro nové členy."
+    return "Ve skupině zatím nikdo další není. E-mail přijde jen tobě a oznámení zůstane na stránce skupiny pro nové členy."
   }
   return `Oznámení přijde e-mailem všem ${memberCount} aktivním členům a uvidí ho na stránce skupiny. Čekající žadatelé ho nedostanou.`
 }

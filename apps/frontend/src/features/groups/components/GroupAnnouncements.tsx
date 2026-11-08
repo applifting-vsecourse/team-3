@@ -13,6 +13,8 @@ type GroupAnnouncementsProps = {
   groupId: string
   /** The signed-in member; the page renders this only for an active member or admin. */
   viewerId: string
+  /** An admin writes the announcements, so the empty state tells them where. */
+  isAdmin?: boolean
 }
 
 /**
@@ -20,10 +22,16 @@ type GroupAnnouncementsProps = {
  * announced, newest first, each as it came by e-mail — who and when, the
  * subject and the text as they wrote it. Only for members and admins.
  */
-export function GroupAnnouncements({ groupId, viewerId }: GroupAnnouncementsProps) {
+export function GroupAnnouncements({
+  groupId,
+  viewerId,
+  isAdmin = false,
+}: GroupAnnouncementsProps) {
   const headingId = useId()
   const query = useQuery(groupAnnouncementsQueryOptions(groupId, viewerId))
   const announcements = query.data?.announcements
+  // the list holds the latest 50, the heading counts them all
+  const total = query.data?.total
 
   return (
     <section
@@ -34,7 +42,7 @@ export function GroupAnnouncements({ groupId, viewerId }: GroupAnnouncementsProp
         id={headingId}
         className="text-lg font-semibold tracking-tight"
       >
-        {announcements?.length ? `Oznámení (${announcements.length})` : "Oznámení"}
+        {total ? `Oznámení (${total})` : "Oznámení"}
       </h2>
       {query.error ? (
         <Alert variant="destructive">
@@ -63,8 +71,9 @@ export function GroupAnnouncements({ groupId, viewerId }: GroupAnnouncementsProp
         </div>
       ) : announcements.length === 0 ? (
         <p className="text-muted-foreground">
-          Zatím tu žádné oznámení není. Až správce skupiny něco napíše, uvidíš to tady a přijde ti
-          to e-mailem.
+          {isAdmin
+            ? "Zatím tu žádné oznámení není. Členům napíšeš přes „Napsat členům“ ve správě skupiny."
+            : "Zatím tu žádné oznámení není. Až správce skupiny něco napíše, uvidíš to tady a přijde ti to e-mailem."}
         </p>
       ) : (
         <ul className="flex flex-col gap-3">

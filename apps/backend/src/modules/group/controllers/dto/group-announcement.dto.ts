@@ -86,6 +86,13 @@ export class GroupAnnouncementsResponseDto {
   announcements!: GroupAnnouncementDto[];
 
   @ApiProperty({
+    description:
+      'All announcements of the group, also the older ones beyond the list',
+    example: 3,
+  })
+  total!: number;
+
+  @ApiProperty({
     type: Number,
     nullable: true,
     description:
@@ -96,10 +103,12 @@ export class GroupAnnouncementsResponseDto {
 
   static fromDomain({
     announcements,
+    total,
     remainingToday,
   }: GroupAnnouncements): GroupAnnouncementsResponseDto {
     return {
       announcements: announcements.map(GroupAnnouncementDto.fromDomain),
+      total,
       remainingToday,
     };
   }

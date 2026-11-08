@@ -26,8 +26,10 @@ export type GroupAnnouncement = {
 };
 
 export type GroupAnnouncements = {
-  /** Newest first. */
+  /** Newest first, at most ANNOUNCEMENTS_SHOWN. */
   announcements: GroupAnnouncement[];
+  /** All the group's announcements, also the older ones not in the list (the heading's count). */
+  total: number;
   /** How many more the viewer may send today; null unless they may send at all. */
   remainingToday: number | null;
 };
