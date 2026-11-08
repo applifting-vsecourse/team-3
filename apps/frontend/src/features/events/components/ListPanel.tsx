@@ -292,7 +292,9 @@ export function ListPanel({
           "min-h-0 flex-1 px-4",
           // only the pulled-up list scrolls (and leaves room for the „Mapa“ button)
           snap === "list" ? "overflow-y-auto overscroll-contain pb-16" : "overflow-hidden",
-          "md:overflow-y-auto md:p-0 md:pr-3",
+          // p-1 / -ml-1: room for the selected card's ring and the focus ring, which the scroller
+          // would clip on the left; the cards still line up with the filters
+          "md:-ml-1 md:overflow-y-auto md:p-1 md:pr-3",
         )}
       >
         <div ref={contentRef}>{children}</div>
