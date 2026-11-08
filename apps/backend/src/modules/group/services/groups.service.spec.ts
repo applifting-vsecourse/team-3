@@ -459,7 +459,7 @@ describe('GroupsService', () => {
 
         await expect(
           service.getAnnouncements('g1', 'u-petra', now),
-        ).resolves.toMatchObject({ remainingToday: 2 });
+        ).resolves.toMatchObject({ remainingToday: 9 });
         expect(repository.countAnnouncementsSince).toHaveBeenCalledWith(
           'g1',
           pragueMidnight,
@@ -568,11 +568,11 @@ describe('GroupsService', () => {
         ).rejects.toBeInstanceOf(NotFoundException);
       });
 
-      it('the fourth of the day is 429 ANNOUNCEMENT_LIMIT and no e-mail goes out', async () => {
+      it('the eleventh of the day is 429 ANNOUNCEMENT_LIMIT and no e-mail goes out', async () => {
         const { repository, notifications, service } = asAdmin();
         repository.createAnnouncement.mockImplementation(
           async (_g, _u, _i, _since, decide) => {
-            const decision = decide({ groupStatus: 'active', sentToday: 3 });
+            const decision = decide({ groupStatus: 'active', sentToday: 10 });
             if (!decision.ok) return decision;
             return { ok: true, announcement };
           },

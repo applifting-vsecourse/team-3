@@ -56,18 +56,18 @@ describe('announcements (#194)', () => {
 
   describe('the daily limit', () => {
     it(`is ${ANNOUNCEMENTS_PER_DAY} a day and never goes below zero`, () => {
-      expect(remainingAnnouncements(0)).toBe(3);
-      expect(remainingAnnouncements(2)).toBe(1);
-      expect(remainingAnnouncements(3)).toBe(0);
-      expect(remainingAnnouncements(7)).toBe(0);
+      expect(remainingAnnouncements(0)).toBe(10);
+      expect(remainingAnnouncements(9)).toBe(1);
+      expect(remainingAnnouncements(10)).toBe(0);
+      expect(remainingAnnouncements(14)).toBe(0);
     });
 
     it('lets the last one of the day through and refuses the next', () => {
       expect(
-        decideAnnouncement({ groupStatus: 'active', sentToday: 2 }),
+        decideAnnouncement({ groupStatus: 'active', sentToday: 9 }),
       ).toEqual({ ok: true });
       expect(
-        decideAnnouncement({ groupStatus: 'active', sentToday: 3 }),
+        decideAnnouncement({ groupStatus: 'active', sentToday: 10 }),
       ).toEqual({ ok: false, refusal: 'ANNOUNCEMENT_LIMIT' });
     });
 

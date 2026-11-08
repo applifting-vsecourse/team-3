@@ -257,7 +257,7 @@ export class GroupsController {
   @ApiCookieAuth()
   @ApiOperation({
     summary:
-      'Send an announcement to every active member by e-mail and show it on the group page (#194); only an admin, at most 3 a day',
+      'Send an announcement to every active member by e-mail and show it on the group page (#194); only an admin, at most 10 a day',
   })
   @ApiResponse({ status: 201, type: GroupAnnouncementDto })
   @ApiResponse({
@@ -270,7 +270,7 @@ export class GroupsController {
   @ApiResponse({ status: 409, description: 'GROUP_INACTIVE' })
   @ApiResponse({
     status: 429,
-    description: 'ANNOUNCEMENT_LIMIT: the group sent 3 today (Prague day)',
+    description: 'ANNOUNCEMENT_LIMIT: the group sent 10 today (Prague day)',
   })
   async sendAnnouncement(
     @Param('id') id: string,

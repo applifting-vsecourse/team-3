@@ -4,11 +4,10 @@ import { Membership } from './group';
 export const ANNOUNCEMENT_SUBJECT_MAX_LENGTH = 120;
 export const ANNOUNCEMENT_BODY_MAX_LENGTH = 2000;
 /**
- * Announcements a group may send in one Prague calendar day (#194). Each goes
- * to every member's inbox, so the limit is lower than the 10 messages an
- * organizer may send to one event's participants (#176).
+ * Announcements a group may send in one Prague calendar day (#194, Figma
+ * D-08): the same as an organizer's messages to one event (#176).
  */
-export const ANNOUNCEMENTS_PER_DAY = 3;
+export const ANNOUNCEMENTS_PER_DAY = 10;
 /** The group page shows the latest ones; older announcements stay in the members' e-mail. */
 export const ANNOUNCEMENTS_SHOWN = 50;
 

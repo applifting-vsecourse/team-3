@@ -161,7 +161,7 @@ describe('GroupRepository: the request message stays with the admins (#175)', ()
     };
 
     it("locks the group, counts today's and writes when the decision allows", async () => {
-      const prisma = setup({ status: 'active', sentToday: 2 });
+      const prisma = setup({ status: 'active', sentToday: 9 });
       const decide = jest.fn().mockReturnValue({ ok: true });
 
       await expect(
@@ -179,7 +179,7 @@ describe('GroupRepository: the request message stays with the admins (#175)', ()
       });
       expect(decide).toHaveBeenCalledWith({
         groupStatus: 'active',
-        sentToday: 2,
+        sentToday: 9,
       });
       expect(prisma.groupAnnouncement.create).toHaveBeenCalledWith(
         expect.objectContaining({
@@ -189,7 +189,7 @@ describe('GroupRepository: the request message stays with the admins (#175)', ()
     });
 
     it('writes nothing when the decision refuses', async () => {
-      const prisma = setup({ status: 'active', sentToday: 3 });
+      const prisma = setup({ status: 'active', sentToday: 10 });
 
       await expect(
         new GroupRepository(prisma).createAnnouncement(

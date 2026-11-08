@@ -248,8 +248,8 @@ export class GroupsService {
 
   /**
    * „Napsat členům“ (#194, Figma D-08): only an admin of an active group,
-   * at most ANNOUNCEMENTS_PER_DAY in a Prague calendar day. Every other
-   * active member gets it by e-mail.
+   * at most ANNOUNCEMENTS_PER_DAY in a Prague calendar day. Every active
+   * member gets it by e-mail, the author too (Figma D-08).
    */
   async sendAnnouncement(
     groupId: string,
