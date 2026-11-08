@@ -1,7 +1,7 @@
 import { z } from "zod"
 
 import { splitSlugs, type Catalog } from "@/lib/catalog/catalogSearch"
-import { ALL_LOCALITIES_SLUG } from "@/lib/catalog/localityOptions"
+import { ALL_LOCALITIES_SLUG, DEFAULT_LOCALITY_SLUG } from "@/lib/catalog/localityOptions"
 
 import type { GroupInput } from "@/features/groups/api/groupSchemas"
 
@@ -32,18 +32,18 @@ export function newGroupPrefill(search: NewGroupSearch, catalog: Catalog): Parti
 
 /**
  * Where „Založit skupinu“ in an empty list leads: the one activity and the locality picked,
- * so the form starts with them. Several activities, a whole category or the whole country
- * leave that field to choose.
+ * so the form starts with them. Without a locality in the URL the list shows the default one,
+ * so that is the one filled in (review #269). Several activities, a whole category or the
+ * whole country leave that field to choose.
  */
 export function newGroupSearchFrom(search: {
   aktivita?: string
   lokalita?: string
 }): NewGroupSearch {
   const activities = splitSlugs(search.aktivita)
+  const lokalita = search.lokalita ?? DEFAULT_LOCALITY_SLUG
   return {
     ...(activities.length === 1 ? { aktivita: activities[0] } : {}),
-    ...(search.lokalita && search.lokalita !== ALL_LOCALITIES_SLUG
-      ? { lokalita: search.lokalita }
-      : {}),
+    ...(lokalita !== ALL_LOCALITIES_SLUG ? { lokalita } : {}),
   }
 }
