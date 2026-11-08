@@ -106,6 +106,11 @@ V produkci se simulovaná schránka ani demo účty nezapnou samy. Staging je m�
 
 Dokud je schránka zapnutá, jde na stagingu ověřit cizí adresu. Google se ale k existujícímu účtu nepřipojí, takže účet takhle převzít nejde.
 
+**Limity simulované schránky (#236)** platí, jen dokud je schránka zapnutá (staging). Zůstávají dvě slabiny, které odstraní až její vypnutí:
+
+- Kdo pošle 20 pokusů se špatným heslem na cizí adresu, zamkne majiteli schránku na 10 minut. Úspěšný pokus počítadlo vynuluje, ale zamčenou schránku neotevře.
+- Počítadla drží nejvýš 10 000 klíčů a plné počítadlo nový klíč odmítne, aby zahlcení nevynulovalo běžící limity. Když se naplní počítadlo IP adres, dostane na 10 minut 429 každá nová IP, tedy všichni noví návštěvníci schránky, nejen útočník.
+
 **N-3** je opravené v #234 a #235: v produkci seed založí demo účty jen s heslem z GitHub secretu `SEED_DEMO_PASSWORD`, ne s heslem z repa. Účtům, které heslo z repa ještě měly, ho seed vyměnil a ukončil jejich session. Na stagingu ověřeno 4. 11.: heslo z repa se nepřihlásí. Heslo ze secretu je uvnitř image stejně jako ostatní klíče (viz výše), proto platí jen pro staging. Před skutečnou produkcí je potřeba smazat řádek `SEED_DEMO_DATA=true`.
 
 ### Zbývá u N-5
@@ -127,6 +132,7 @@ Z kódu nejde zjistit a tým nemá přístup do Coolify. Ověří to Tomáš Kl�
 - Backend nesmí být dostupný přímo mimo proxy.
 - Proxy musí přepisovat hlavičku `X-Forwarded-For`, jinak nemusí správně fungovat rate limit přihlášení.
 - Před backendem je právě jedna proxy (`TRUST_PROXY_HOPS=1`). Při víc proxy by limit simulované schránky počítal adresu vnější proxy, ne klienta.
+- Po nasazení #236 nemá žádný uživatel s neověřeným e-mailem platnou session (migrace `20261107120000_end_unverified_sessions`). Dotaz musí vrátit 0: `SELECT count(*) FROM "session" s JOIN "user" u ON u."id" = s."userId" WHERE u."emailVerified" = false AND s."expiresAt" > now();`
 - `FRONTEND_URL` a `BACKEND_URL` musí odpovídat skutečným adresám, jinak ochrana z #140 odmítne všechny zápisy.
 
 **Superadmin:** na stagingu není nastavený `SUPERADMIN_EMAIL` ani `SUPERADMIN_PASSWORD`, takže se superadmin nezaložil (seed to hlásí v logu, ověřeno 2. 11.). Výchozí heslo z `.env.example` tam proto nehrozí. Účet superadmina by dnes ani neměl práva navíc, protože administrace (B-063) ještě neexistuje. Než v aplikaci vznikne prostředí a speciální práva pro superadmina, je potřeba ho na stagingu nastavit se silným heslem, které není v repu.
