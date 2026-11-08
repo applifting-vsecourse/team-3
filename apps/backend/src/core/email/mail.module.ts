@@ -44,7 +44,8 @@ const simulatedInboxProvider: Provider = {
         if (config.resendApiKey) {
           return ResendAdapterFactory.create({
             apiKey: config.resendApiKey,
-            from: config.emailFrom,
+            from:
+              config.emailFrom?.trim() || 'HobbyHub <onboarding@resend.dev>',
           });
         }
         if (config.smtpHost && config.smtpUsername && config.smtpPassword) {
@@ -54,6 +55,7 @@ const simulatedInboxProvider: Provider = {
             secure: config.smtpSecure,
             user: config.smtpUsername,
             pass: config.smtpPassword,
+            from: config.emailFrom,
           });
         }
         return ConsoleMailerAdapterFactory.create(

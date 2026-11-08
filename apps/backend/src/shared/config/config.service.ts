@@ -7,6 +7,7 @@ import {
   IsNotEmpty,
   IsOptional,
   IsSemVer,
+  IsString,
   IsUrl,
   Min,
 } from 'class-validator';
@@ -83,12 +84,11 @@ export class Config {
   @IsOptional()
   readonly resendApiKey?: string;
 
-  @Env('EMAIL_FROM', {
-    expose: true,
-    defaultValue: 'HobbyHub <onboarding@resend.dev>',
-  })
-  @IsNotEmpty()
-  readonly emailFrom!: string;
+  // Each transport supplies its own default when no sender is configured.
+  @Env('EMAIL_FROM', { expose: true })
+  @IsOptional()
+  @IsString()
+  readonly emailFrom?: string;
 
   @Env('SMTP_HOST', { expose: true })
   @IsOptional()
