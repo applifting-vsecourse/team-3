@@ -23,6 +23,12 @@ export const Route = createFileRoute("/skupiny/$groupId")({
   component: GroupPage,
 })
 
+const GROUPS_BACK = {
+  to: ROUTES.groups,
+  fallbackLabel: "Všechny skupiny",
+  label: "Skupiny",
+} as const
+
 /** Figma A-08, A-08d, A-08e. Public: visitors see the page without an account. */
 function GroupPage() {
   const { groupId } = Route.useParams()
@@ -40,13 +46,7 @@ function GroupPage() {
     <>
       <Seo title={group?.name ?? (isNotFound ? "Skupina nenalezena" : "Skupina")} />
       <AppHeader />
-      <main className={cn(PAGE, "flex-1 gap-4")}>
-        <BackLink
-          to={ROUTES.groups}
-          fallbackLabel="Všechny skupiny"
-          label="Skupiny"
-        />
-
+      <main className="flex-1">
         {group ? (
           <GroupProfile
             group={group}
@@ -60,21 +60,27 @@ function GroupPage() {
               />
             }
           />
-        ) : groupQuery.error ? (
-          <GroupError
-            isNotFound={isNotFound}
-            onRetry={() => void groupQuery.refetch()}
-          />
         ) : (
-          <div
-            className="flex flex-col gap-6"
-            aria-busy
-            aria-label="Načítám skupinu"
-          >
-            <h1 className="sr-only">Skupina</h1>
-            <Skeleton className="size-16 rounded-lg" />
-            <Skeleton className="h-9 w-3/4" />
-            <Skeleton className="h-32 w-full" />
+          // before there is a band: the column with the way back
+          <div className={cn(PAGE, "gap-4")}>
+            <BackLink {...GROUPS_BACK} />
+            {groupQuery.error ? (
+              <GroupError
+                isNotFound={isNotFound}
+                onRetry={() => void groupQuery.refetch()}
+              />
+            ) : (
+              <div
+                className="flex flex-col gap-6"
+                aria-busy
+                aria-label="Načítám skupinu"
+              >
+                <h1 className="sr-only">Skupina</h1>
+                <Skeleton className="size-16 rounded-lg" />
+                <Skeleton className="h-9 w-3/4" />
+                <Skeleton className="h-32 w-full" />
+              </div>
+            )}
           </div>
         )}
       </main>
