@@ -1,8 +1,8 @@
 import { ActivityCategory } from '@/modules/catalog/domain/activity';
-import { distanceKm } from '@/shared/geo/distance';
-import { foldText } from '@/shared/text/fold-text';
 import { Locality } from '@/modules/catalog/domain/locality';
 import { CatalogRepository } from '@/modules/catalog/repositories/catalog.repository';
+import { distanceKm } from '@/shared/geo/distance';
+import { foldText } from '@/shared/text/fold-text';
 import { Injectable } from '@nestjs/common';
 
 // Enough for a city with all its districts (Praha + Praha 1–22). Only a search
@@ -86,4 +86,3 @@ export class CatalogService {
 
 /** Two places of the same name this close are one place. */
 const SAME_PLACE_KM = 10;
-
