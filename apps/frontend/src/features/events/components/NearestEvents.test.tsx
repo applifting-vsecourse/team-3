@@ -20,10 +20,17 @@ const get = vi.mocked(api.get)
 const asJson = (body: unknown) =>
   ({ json: () => Promise.resolve(JSON.parse(JSON.stringify(body))) }) as never
 
-const renderNearest = (props: { localitySlug?: string } = {}) =>
+const renderNearest = ({ localitySlug }: { localitySlug?: string | null } = {}) =>
   renderWithRouter(
     <QueryClientProvider client={new QueryClient({ defaultOptions: { queries: { retry: 0 } } })}>
-      <NearestEvents {...props} />
+      <NearestEvents
+        // null: the landing page's default locality is still loading
+        locality={
+          localitySlug === undefined
+            ? undefined
+            : { slug: localitySlug ?? undefined, source: "home", pick: vi.fn() }
+        }
+      />
     </QueryClientProvider>,
   )
 
@@ -92,6 +99,26 @@ describe("NearestEvents", () => {
     expect(await screen.findByRole("link", { name: "Deskovky" })).toBeInTheDocument()
     expect(get).toHaveBeenCalledWith("events", { searchParams: new URLSearchParams() })
     expect(screen.queryByText("Praha")).not.toBeInTheDocument()
+  })
+
+  it("asks for nothing while the default locality is still loading", async () => {
+    get.mockImplementation(((path: string) =>
+      path === "localities" ? asJson([]) : asJson([anEvent({ title: "Deskovky" })])) as never)
+
+    await renderNearest({ localitySlug: null })
+
+    expect(await screen.findByLabelText("Načítám akce")).toBeInTheDocument()
+    expect(get).not.toHaveBeenCalledWith("events", expect.anything())
+  })
+
+  it("with Celé Česko asks for all events", async () => {
+    get.mockImplementation(((path: string) =>
+      path === "localities" ? asJson([]) : asJson([anEvent({ title: "Deskovky" })])) as never)
+
+    await renderNearest({ localitySlug: "cele-cesko" })
+
+    expect(await screen.findByRole("link", { name: "Deskovky" })).toBeInTheDocument()
+    expect(get).toHaveBeenCalledWith("events", { searchParams: new URLSearchParams() })
   })
 
   it("when the localities fail, offers to try again and then loads the events", async () => {
