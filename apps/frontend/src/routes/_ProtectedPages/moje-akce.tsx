@@ -13,7 +13,13 @@ import { cn } from "@/lib/utils"
 import { useSession } from "@/features/auth/hooks/useSession"
 import { AttendingEvents, OrganizingEvents } from "@/features/events/components/MyEvents"
 import { useMyEvents } from "@/features/events/hooks/useMyEvents"
-import { attendingSections, myEventsSearchSchema } from "@/features/events/lib/myEvents"
+import {
+  attendingLine,
+  attendingSections,
+  myEventsSearchSchema,
+  organizingLine,
+  organizingSections,
+} from "@/features/events/lib/myEvents"
 
 export const Route = createFileRoute("/_ProtectedPages/moje-akce")({
   component: MyEventsPage,
@@ -36,6 +42,8 @@ function MyEventsPage() {
   // the events I go to, without the cancelled ones (the count in Figma C-01)
   const sections = attending ? attendingSections(attending) : undefined
   const attendingCount = sections && sections.pending.length + sections.approved.length
+  // the upcoming ones, as in Přihlášen (Figma C-02: Nadcházející)
+  const organizingCount = organizing && organizingSections(organizing).upcoming.length
 
   return (
     <>
@@ -55,10 +63,9 @@ function MyEventsPage() {
           variant="section"
           isMarkFull
           title="Moje akce"
+          // Figma C-01d, C-02d: the nearest event, or the requests waiting
           description={
-            tab === "poradam"
-              ? "Akce, které pořádáš, od nejbližší."
-              : "Akce, kam jdeš, a ty, kde čekáš na schválení."
+            tab === "poradam" ? organizingLine(organizing) : attendingLine(attending, new Date())
           }
           action={
             // the page's primary in both tabs, like „Založit skupinu“ on Skupiny (C-01, C-01d)
@@ -84,7 +91,7 @@ function MyEventsPage() {
             </BandTabsItem>
             <BandTabsItem
               value="poradam"
-              count={organizing?.length}
+              count={organizingCount}
             >
               Pořádám
             </BandTabsItem>

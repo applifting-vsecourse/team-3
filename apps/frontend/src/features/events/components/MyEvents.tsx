@@ -17,6 +17,7 @@ import {
   attendingStatus,
   organizingNumbers,
   organizingRowTail,
+  organizingSections,
   organizingStatus,
   pendingRequestsSummary,
 } from "@/features/events/lib/myEvents"
@@ -41,13 +42,19 @@ export function AttendingEvents({ viewerId }: { viewerId: string }) {
     <div className="flex flex-col gap-6">
       {/* nothing to go to, even when cancelled events are left below (#183) */}
       {pending.length + approved.length === 0 ? (
+        // Hlas aplikace: where people are missing is where to go next
         <MyEventsEmpty>
-          <p>Zatím nejdeš na žádnou akci.</p>
+          <p>Zatím nejdeš na žádnou akci. Mrkni, komu v okolí chybí lidé.</p>
           <Button
             asChild
             variant="outline"
           >
-            <Link to={ROUTES.events}>Projít akce</Link>
+            <Link
+              to={ROUTES.events}
+              search={{ obsazenost: "chybi" }}
+            >
+              Projít akce
+            </Link>
           </Button>
         </MyEventsEmpty>
       ) : null}
@@ -74,32 +81,39 @@ export function AttendingEvents({ viewerId }: { viewerId: string }) {
 }
 
 function AttendingSection({ title, events }: { title: string; events: MyEvent[] }) {
+  return (
+    <EventsSection title={title}>
+      {events.map((event) => (
+        <li key={event.id}>
+          <EventCard
+            event={event}
+            variant="responsive"
+            status={attendingStatus(event)}
+            numbers={attendingNumbers(event)}
+            rowLead={attendingRowLead(event)}
+            titleAs="h3"
+          />
+        </li>
+      ))}
+    </EventsSection>
+  )
+}
+
+/** A section of cards under its heading, Figma Display/Feature („Potvrzené (5)“, C-01, C-01d). */
+function EventsSection({ title, children }: { title: string; children: ReactNode }) {
   const headingId = useId()
   return (
     <section
       aria-labelledby={headingId}
-      className="flex flex-col gap-3"
+      className="flex flex-col gap-3 md:gap-4"
     >
       <h2
         id={headingId}
-        className="text-lg font-semibold tracking-tight"
+        className="type-feature"
       >
         {title}
       </h2>
-      <ul className={GRID}>
-        {events.map((event) => (
-          <li key={event.id}>
-            <EventCard
-              event={event}
-              variant="responsive"
-              status={attendingStatus(event)}
-              numbers={attendingNumbers(event)}
-              rowLead={attendingRowLead(event)}
-              titleAs="h3"
-            />
-          </li>
-        ))}
-      </ul>
+      <ul className={GRID}>{children}</ul>
     </section>
   )
 }
@@ -150,13 +164,14 @@ function MyEventsEmpty({ children }: { children: ReactNode }) {
 
 /**
  * Pořádám (Figma C-02): the events I created and those of the groups I run
- * (#70), soonest first, cancelled ones with their label. The strip on top
- * sums up the requests to decide; a card opens the event's management.
- * „Založit akci“ is the page's, in both tabs.
+ * (#70), soonest first — Nadcházející, then Zrušené (decided 4. 11.). The
+ * strip on top sums up the requests to decide; a card opens the event's
+ * management. „Založit akci“ is the page's, in both tabs.
  */
 export function OrganizingEvents({ viewerId }: { viewerId: string }) {
   const { events, isPending, error, retry } = useMyEvents("organizing", viewerId)
   const summary = events ? pendingRequestsSummary(events) : null
+  const { upcoming, cancelled } = organizingSections(events ?? [])
 
   return (
     <div className="flex flex-col gap-6">
@@ -165,8 +180,9 @@ export function OrganizingEvents({ viewerId }: { viewerId: string }) {
       ) : isPending || !events ? (
         <MyEventsLoading />
       ) : events.length === 0 ? (
+        // Hlas aplikace; „Založit akci“ is right there, in the band or floating
         <MyEventsEmpty>
-          <p>Zatím nepořádáš žádnou akci.</p>
+          <p>Zatím nepořádáš žádnou akci. Stačí název, místo a čas – parta se sejde.</p>
         </MyEventsEmpty>
       ) : (
         <>
@@ -180,20 +196,28 @@ export function OrganizingEvents({ viewerId }: { viewerId: string }) {
               <AlertDescription>{summary.events}</AlertDescription>
             </Alert>
           ) : null}
-          <ul className={GRID}>
-            {events.map((event) => (
-              <li key={event.id}>
-                <EventCard
-                  event={event}
-                  variant="responsive"
-                  status={organizingStatus(event)}
-                  numbers={organizingNumbers(event)}
-                  rowTail={organizingRowTail(event)}
-                  linkTo="manage"
-                />
-              </li>
-            ))}
-          </ul>
+          {Object.entries({ Nadcházející: upcoming, Zrušené: cancelled }).map(([name, list]) =>
+            list.length > 0 ? (
+              <EventsSection
+                key={name}
+                title={`${name} (${list.length})`}
+              >
+                {list.map((event) => (
+                  <li key={event.id}>
+                    <EventCard
+                      event={event}
+                      variant="responsive"
+                      status={organizingStatus(event)}
+                      numbers={organizingNumbers(event)}
+                      rowTail={organizingRowTail(event)}
+                      linkTo="manage"
+                      titleAs="h3"
+                    />
+                  </li>
+                ))}
+              </EventsSection>
+            ) : null,
+          )}
         </>
       )}
     </div>
