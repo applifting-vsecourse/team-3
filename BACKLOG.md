@@ -362,11 +362,12 @@ Doménová logika (čistá funkce + testy): `approvedCount`, `missingToMin = max
 - Vrací jen `status = published`, `visibility = public`, `startsAt > now`. Nevrací soukromé a „jen pro členy“.
 - Každá položka: aktivita, název, termín, místo (lat/lng + adresa), `missingToMin`, `freeSpots`, `isFull`, organizátor (osoba nebo skupina), `isPromoted`.
 - `GET /api/events/map` – stejné filtry, odlehčené body pro mapu (bez stránkování, limit 500).
+- Stav po #57: `q` hledá v názvu, názvu aktivity a `Activity.keywords` bez diakritiky (všechna slova); `lat`+`lng` je bod pro `distanceKm` a `sort=distance`, `radiusKm` (1–100) okruh kolem něj. Databáze předfiltruje obdélníkem, přesnou vzdálenost, hledání a řazení dělá služba před limitem 200 (jako obsazenost). Stránkování ani `/events/map` zatím nejsou; FE ukáže „Víc než 200 akcí“.
 
 **Hotovo, když:**
 
 - [ ] Testy, že proběhlé, zrušené, soukromé a members-only akce se ve výpisu neobjeví.
-- [ ] Řazení podle vzdálenosti funguje vůči zadanému bodu.
+- [x] Řazení podle vzdálenosti funguje vůči zadanému bodu.
 - [ ] Test, že `categoryId` vrátí akce všech aktivit kategorie a `capacity=free` jen akce, které nejsou plné, `capacity=missing` jen akce, kterým chybí lidé.
 
 ---
@@ -431,8 +432,8 @@ Doménová logika (čistá funkce + testy): `approvedCount`, `missingToMin = max
 **Hotovo, když:**
 
 - [x] Při 500 bodech je mapa čitelná díky shlukům.
-- [ ] Hledání najde akci podle názvu i klíčového slova aktivity bez ohledu na velikost písmen a diakritiku.
-- [ ] Testy where-builderu pro okolí.
+- [x] Hledání najde akci podle názvu i klíčového slova aktivity bez ohledu na velikost písmen a diakritiku.
+- [x] Testy where-builderu pro okolí.
 
 ---
 
