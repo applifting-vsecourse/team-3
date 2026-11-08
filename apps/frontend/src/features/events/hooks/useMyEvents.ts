@@ -1,9 +1,14 @@
-import { useMemo } from "react"
+import { useMemo, useState } from "react"
 import { useQuery } from "@tanstack/react-query"
 
-import type { MyEventsTab } from "@/features/events/api/eventSchemas"
+import type { MyEvent, MyEventsTab } from "@/features/events/api/eventSchemas"
 import { myEventsQueryOptions } from "@/features/events/api/eventsQueryOptions"
-import { attendingSections, organizingSections } from "@/features/events/lib/myEvents"
+import {
+  attendingSections,
+  initialMyEventsTab,
+  organizingSections,
+  type MyEventsTabName,
+} from "@/features/events/lib/myEvents"
 
 /** A tab of „Moje akce“ for the signed-in user (B-035). */
 export function useMyEvents(tab: MyEventsTab, viewerId: string) {
@@ -38,4 +43,24 @@ export function useOrganizingEvents(viewerId: string) {
     [result.events],
   )
   return { ...result, sections }
+}
+
+type TabData = { events?: MyEvent[]; isPending: boolean }
+
+/**
+ * The tab Moje akce shows (#188): the one in the URL, else the one picked for this visit by
+ * `initialMyEventsTab`. It is picked once, when the data first tell: a refetch or a live
+ * refresh that changes the requests doesn't move the user to the other tab. Undefined until
+ * then, so Přihlášen never flashes before Pořádám.
+ */
+export function useMyEventsTab(
+  urlTab: MyEventsTabName | undefined,
+  attending: TabData,
+  organizing: TabData,
+): MyEventsTabName | undefined {
+  const [picked, setPicked] = useState<MyEventsTabName>()
+  const candidate = picked ?? initialMyEventsTab(attending, organizing)
+  // React's „storing information from previous renders“: set once, during the render
+  if (picked === undefined && candidate !== undefined) setPicked(candidate)
+  return urlTab ?? candidate
 }

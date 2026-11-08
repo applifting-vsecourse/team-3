@@ -11,8 +11,16 @@ import { PAGE } from "@/lib/pageLayout"
 import { cn } from "@/lib/utils"
 
 import { useSession } from "@/features/auth/hooks/useSession"
-import { AttendingEvents, OrganizingEvents } from "@/features/events/components/MyEvents"
-import { useAttendingEvents, useOrganizingEvents } from "@/features/events/hooks/useMyEvents"
+import {
+  AttendingEvents,
+  MyEventsLoading,
+  OrganizingEvents,
+} from "@/features/events/components/MyEvents"
+import {
+  useAttendingEvents,
+  useMyEventsTab,
+  useOrganizingEvents,
+} from "@/features/events/hooks/useMyEvents"
 import { attendingLine, myEventsSearchSchema, organizingLine } from "@/features/events/lib/myEvents"
 
 export const Route = createFileRoute("/_ProtectedPages/moje-akce")({
@@ -25,7 +33,7 @@ export const Route = createFileRoute("/_ProtectedPages/moje-akce")({
  * soonest first; Pořádám has the events of the groups I run too (#70). Proběhlé comes with #61.
  */
 function MyEventsPage() {
-  const { tab = "prihlasen" } = Route.useSearch()
+  const search = Route.useSearch()
   const navigate = Route.useNavigate()
   const { user } = useSession()
   // the protected layout lets only a signed-in user in; the session is cached by then
@@ -38,16 +46,20 @@ function MyEventsPage() {
     attending.sections && attending.sections.pending.length + attending.sections.approved.length
   // the upcoming ones, as in Přihlášen (Figma C-02: Nadcházející)
   const organizingCount = organizing.sections?.upcoming.length
+  // ?tab, else Pořádám when requests wait or there is only something to run (#188)
+  const tab = useMyEventsTab(search.tab, attending, organizing)
 
   return (
     <>
       <Seo title="Moje akce" />
       <Tabs
-        value={tab}
-        // replace: switching tabs shouldn't fill the back button
+        // none selected while the tab is being picked
+        value={tab ?? ""}
+        // replace: switching tabs shouldn't fill the back button. The tab chosen goes to the
+        // URL, so it stays whatever the requests do and a reload keeps it.
         onValueChange={(value) =>
           void navigate({
-            search: value === "poradam" ? { tab: "poradam" } : {},
+            search: { tab: value === "poradam" ? "poradam" : "prihlasen" },
             replace: true,
           })
         }
@@ -61,7 +73,10 @@ function MyEventsPage() {
           description={
             tab === "poradam"
               ? organizingLine(organizing.events)
-              : attendingLine(attending.events, new Date())
+              : tab === "prihlasen"
+                ? attendingLine(attending.events, new Date())
+                : // keeps the line's height while the tab is picked
+                  "\u00a0"
           }
           action={
             // the page's primary in both tabs, like „Založit skupinu“ on Skupiny (C-01, C-01d)
@@ -100,7 +115,9 @@ function MyEventsPage() {
             "pb-24",
           )}
         >
-          {user ? (
+          {user && tab === undefined ? (
+            <MyEventsLoading />
+          ) : user ? (
             <>
               <TabsContent value="prihlasen">
                 <AttendingEvents viewerId={user.id} />
