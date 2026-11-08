@@ -106,8 +106,10 @@ function EventsPage() {
   // the order and the distances need the chosen locality's centre (#57)
   const center = catalog ? localityCenter(search, catalog) : undefined
   const sort = catalog ? effectiveSort(search, catalog) : "termin"
-  const isDistanceShown = Boolean(search.okoli && center)
-  // phone: the header's „Hledat“ opens the search above the chips; a search in the URL keeps it
+  // with okolí, or ordered by distance: an order the cards don't explain looks random (review #279)
+  const isDistanceShown = Boolean(center) && (search.okoli !== undefined || sort === "vzdalenost")
+  // phone: the header's „Hledat“ opens the search above the chips; a search in the URL keeps
+  // it open, so closing it also ends the search (review #279)
   const [isSearchOpened, setIsSearchOpened] = useState(false)
   const hasSearchRow = !isDesktop && (isSearchOpened || search.q !== undefined)
   const searchField = (isAutoFocused = false) => (
@@ -135,7 +137,14 @@ function EventsPage() {
           <Button
             variant="ghost"
             aria-expanded={hasSearchRow}
-            onClick={() => setIsSearchOpened((isOpen) => !isOpen)}
+            onClick={() => {
+              if (!hasSearchRow) {
+                setIsSearchOpened(true)
+                return
+              }
+              setIsSearchOpened(false)
+              if (search.q !== undefined) setSearch({ q: undefined })
+            }}
             className="h-10 gap-1.5 px-2"
           >
             <Search />
