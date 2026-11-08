@@ -1,8 +1,13 @@
 import { EmailService } from '@/core/email/interfaces/email-service.interface';
 import { renderEmail } from '@/core/email/render';
 import { EventNotificationEmail } from '@/core/email/templates/event-notification';
-import { composeMessage } from '@/modules/notification/domain/messages';
 import {
+  composeAnnouncement,
+  ComposedMessage,
+  composeMessage,
+} from '@/modules/notification/domain/messages';
+import {
+  EventNotification,
   Notification,
   NotifiedEvent,
   Recipient,
@@ -13,6 +18,15 @@ import { Inject, Injectable, Logger } from '@nestjs/common';
 
 /** Who gets the notification, and who it is about. */
 type Audience = { recipients: Recipient[]; person: { name: string } | null };
+
+/** The e-mail and who it goes to. */
+type Prepared = { recipients: Recipient[]; message: ComposedMessage };
+
+/** What a log line names: ids only, never an address. */
+const aboutOf = (notification: Notification): string =>
+  notification.type === 'group-announcement'
+    ? `oznámení ${notification.announcementId}`
+    : `akce ${notification.eventId}`;
 
 /** Provider messages, arbitrary names and unknown codes can contain addresses or credentials. */
 const loggedCodes = new Set([
@@ -74,16 +88,13 @@ export class NotificationService {
    */
   async deliver(notification: Notification): Promise<void> {
     try {
-      const event = await this.repository.findEvent(notification.eventId);
-      if (!event) return;
-      const { recipients, person } = await this.audienceOf(notification, event);
-      if (recipients.length === 0) return;
+      const prepared =
+        notification.type === 'group-announcement'
+          ? await this.prepareAnnouncement(notification.announcementId)
+          : await this.prepareEventNotification(notification);
+      if (!prepared || prepared.recipients.length === 0) return;
 
-      const message = composeMessage(notification, {
-        event,
-        person,
-        frontendUrl: this.config.frontendUrl,
-      });
+      const { recipients, message } = prepared;
       const html = await renderEmail(EventNotificationEmail, message.email);
       // one by one: the mail provider's rate limit counts, and nobody waits
       for (const recipient of recipients) {
@@ -91,9 +102,45 @@ export class NotificationService {
       }
     } catch (error) {
       this.logger.error(
-        `Upozornění ${notification.type} (akce ${notification.eventId}) se nepodařilo připravit: ${describeError(error)}`,
+        `Upozornění ${notification.type} (${aboutOf(notification)}) se nepodařilo připravit: ${describeError(error)}`,
       );
     }
+  }
+
+  /** Null when the event is gone or there is nobody to tell. */
+  private async prepareEventNotification(
+    notification: EventNotification,
+  ): Promise<Prepared | null> {
+    const event = await this.repository.findEvent(notification.eventId);
+    if (!event) return null;
+    const { recipients, person } = await this.audienceOf(notification, event);
+    if (recipients.length === 0) return null;
+    return {
+      recipients,
+      message: composeMessage(notification, {
+        event,
+        person,
+        frontendUrl: this.config.frontendUrl,
+      }),
+    };
+  }
+
+  /**
+   * A group announcement (#194) goes to every active member of the group,
+   * admins included, except the admin who wrote it. Null when it is gone.
+   */
+  private async prepareAnnouncement(
+    announcementId: string,
+  ): Promise<Prepared | null> {
+    const announcement = await this.repository.findAnnouncement(announcementId);
+    if (!announcement) return null;
+    return {
+      recipients: await this.repository.findActiveMembers(
+        announcement.group.id,
+        announcement.senderId,
+      ),
+      message: composeAnnouncement(announcement, this.config.frontendUrl),
+    };
   }
 
   private async send(
@@ -106,7 +153,7 @@ export class NotificationService {
       await this.email.sendEmail(recipient.email, subject, html);
     } catch (error) {
       this.logger.warn(
-        `E-mail ${notification.type} (akce ${notification.eventId}) pro uživatele ${recipient.id} se nepodařilo odeslat: ${describeError(error)}`,
+        `E-mail ${notification.type} (${aboutOf(notification)}) pro uživatele ${recipient.id} se nepodařilo odeslat: ${describeError(error)}`,
       );
     }
   }
@@ -118,7 +165,7 @@ export class NotificationService {
    * themselves.
    */
   private async audienceOf(
-    notification: Notification,
+    notification: EventNotification,
     event: NotifiedEvent,
   ): Promise<Audience> {
     switch (notification.type) {

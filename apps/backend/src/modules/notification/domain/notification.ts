@@ -15,6 +15,15 @@ export type NotifiedEvent = {
   organizerId: string;
 };
 
+/** What the e-mail of a group announcement needs to know of it (#194). */
+export type NotifiedAnnouncement = {
+  id: string;
+  subject: string;
+  body: string;
+  senderId: string;
+  group: { id: string; name: string };
+};
+
 /** When an event takes place. */
 export type EventWhen = { startsAt: Date; endsAt: Date | null };
 
@@ -58,6 +67,14 @@ export type Notification =
   /** Everyone with a place or a request hears the event is cancelled, and why. */
   | { type: 'event-cancelled'; eventId: string }
   /** The organizer hears a participant gave up their place. */
-  | { type: 'participant-left'; eventId: string; participantId: string };
+  | { type: 'participant-left'; eventId: string; participantId: string }
+  /** Every active member of the group hears what its admin announced (#194). */
+  | { type: 'group-announcement'; announcementId: string };
+
+/** The notifications about an event: all but the group announcement. */
+export type EventNotification = Exclude<
+  Notification,
+  { type: 'group-announcement' }
+>;
 
 export type NotificationType = Notification['type'];

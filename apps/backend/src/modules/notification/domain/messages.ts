@@ -1,6 +1,11 @@
 import { EventNotificationEmailProps } from '@/core/email/templates/event-notification';
 import { formatRange } from './format-when';
-import { EventChange, Notification, NotifiedEvent } from './notification';
+import {
+  EventChange,
+  EventNotification,
+  NotifiedAnnouncement,
+  NotifiedEvent,
+} from './notification';
 
 /** What the e-mail needs besides the notification itself. */
 export type MessageContext = {
@@ -58,7 +63,7 @@ const whatChanged = (change: EventChange): string =>
  * the organizer's to its management where there is something to do.
  */
 export const composeMessage = (
-  notification: Notification,
+  notification: EventNotification,
   { event, person, frontendUrl }: MessageContext,
 ): ComposedMessage => {
   const title = quoted(event.title);
@@ -171,3 +176,39 @@ export const composeMessage = (
       };
   }
 };
+
+// the mail client's preview line: the start of the text, on one line
+const PREVIEW_LENGTH = 140;
+const previewOf = (text: string): string => {
+  const line = text.replace(/\s+/g, ' ').trim();
+  return line.length > PREVIEW_LENGTH
+    ? `${line.slice(0, PREVIEW_LENGTH - 1).trimEnd()}…`
+    : line;
+};
+
+/**
+ * A group announcement (#194, Figma E-01 type 8): the subject names the
+ * group, the heading and the text are the admin's own words, kept as they
+ * wrote them (paragraphs split at blank lines), and the button leads to the
+ * group's page, where the announcement is too.
+ */
+export const composeAnnouncement = (
+  announcement: NotifiedAnnouncement,
+  frontendUrl: string,
+): ComposedMessage => ({
+  subject: `${announcement.group.name}: ${announcement.subject}`,
+  email: {
+    preview: previewOf(announcement.body),
+    heading: announcement.subject,
+    paragraphs: announcement.body
+      .split(/\n\s*\n/)
+      .map((paragraph) => paragraph.trim())
+      .filter(Boolean),
+    details: [],
+    quote: null,
+    action: {
+      label: 'Stránka skupiny',
+      url: new URL(`/skupiny/${announcement.group.id}`, frontendUrl).toString(),
+    },
+  },
+});

@@ -26,6 +26,7 @@ import {
   MembershipError,
 } from '@/modules/group/domain/membership';
 import { GroupRepository } from '@/modules/group/repositories/group.repository';
+import { NotificationService } from '@/modules/notification/services/notification.service';
 import {
   BadRequestException,
   ConflictException,
@@ -83,7 +84,10 @@ export const GROUPS_LIMIT = 200;
 
 @Injectable()
 export class GroupsService {
-  constructor(private readonly groupRepository: GroupRepository) {}
+  constructor(
+    private readonly groupRepository: GroupRepository,
+    private readonly notifications: NotificationService,
+  ) {}
 
   /** Active public and closed groups matching the filters, by name. */
   async getActiveGroups(filters: GroupFilters): Promise<GroupSummary[]> {
@@ -244,7 +248,8 @@ export class GroupsService {
 
   /**
    * „Napsat členům“ (#194, Figma D-08): only an admin of an active group,
-   * at most ANNOUNCEMENTS_PER_DAY in a Prague calendar day.
+   * at most ANNOUNCEMENTS_PER_DAY in a Prague calendar day. Every other
+   * active member gets it by e-mail.
    */
   async sendAnnouncement(
     groupId: string,
@@ -266,6 +271,11 @@ export class GroupsService {
       decideAnnouncement,
     );
     if (!result.ok) throw ANNOUNCEMENT_REFUSALS[result.refusal]();
+    // after the write: the members get the e-mail, the admin doesn't wait for it
+    this.notifications.notify({
+      type: 'group-announcement',
+      announcementId: result.announcement.id,
+    });
     return result.announcement;
   }
 

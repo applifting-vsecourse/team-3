@@ -1,5 +1,6 @@
 import { GroupDetail, GroupInput } from '@/modules/group/domain/group';
 import { GroupRepository } from '@/modules/group/repositories/group.repository';
+import { NotificationService } from '@/modules/notification/services/notification.service';
 import {
   BadRequestException,
   ConflictException,
@@ -38,11 +39,17 @@ const aGroup = (id: string): GroupDetail => ({
 
 const setup = (): {
   repository: MockProxy<GroupRepository>;
+  notifications: MockProxy<NotificationService>;
   service: GroupsService;
 } => {
   const repository = mock<GroupRepository>();
   repository.catalogHas.mockResolvedValue({ activity: true, locality: true });
-  return { repository, service: new GroupsService(repository) };
+  const notifications = mock<NotificationService>();
+  return {
+    repository,
+    notifications,
+    service: new GroupsService(repository, notifications),
+  };
 };
 
 describe('GroupsService', () => {
@@ -506,8 +513,8 @@ describe('GroupsService', () => {
         return context;
       };
 
-      it('an admin sends it; the limit counts from Prague midnight', async () => {
-        const { repository, service } = asAdmin();
+      it('an admin sends it; the limit counts from Prague midnight and the members get an e-mail', async () => {
+        const { repository, notifications, service } = asAdmin();
         repository.createAnnouncement.mockResolvedValue({
           ok: true,
           announcement,
@@ -523,6 +530,10 @@ describe('GroupsService', () => {
           pragueMidnight,
           expect.any(Function),
         );
+        expect(notifications.notify).toHaveBeenCalledWith({
+          type: 'group-announcement',
+          announcementId: 'an1',
+        });
       });
 
       it('a member who is not an admin gets 403 and nothing is written', async () => {
@@ -557,8 +568,8 @@ describe('GroupsService', () => {
         ).rejects.toBeInstanceOf(NotFoundException);
       });
 
-      it('the fourth of the day is 429 ANNOUNCEMENT_LIMIT', async () => {
-        const { repository, service } = asAdmin();
+      it('the fourth of the day is 429 ANNOUNCEMENT_LIMIT and no e-mail goes out', async () => {
+        const { repository, notifications, service } = asAdmin();
         repository.createAnnouncement.mockImplementation(
           async (_g, _u, _i, _since, decide) => {
             const decision = decide({ groupStatus: 'active', sentToday: 3 });
@@ -575,6 +586,7 @@ describe('GroupsService', () => {
         expect((error as HttpException).getResponse()).toMatchObject({
           code: 'ANNOUNCEMENT_LIMIT',
         });
+        expect(notifications.notify).not.toHaveBeenCalled();
       });
 
       it('deactivated under the lock in the meantime is 409 GROUP_INACTIVE', async () => {
