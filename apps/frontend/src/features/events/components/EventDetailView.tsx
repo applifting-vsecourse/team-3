@@ -25,7 +25,12 @@ import type { EventDetail } from "@/features/events/api/eventSchemas"
 import { EventFacts } from "@/features/events/components/EventFacts"
 import { EventParticipants } from "@/features/events/components/EventParticipants"
 import { ShareEventButton } from "@/features/events/components/ShareEventButton"
-import { eventDateParts, formatEventStart, placeName } from "@/features/events/lib/formatEvent"
+import {
+  eventDateParts,
+  formatEventStart,
+  isEventOver,
+  placeName,
+} from "@/features/events/lib/formatEvent"
 
 export type EventBack = Omit<BackLinkProps, "isIconOnlyOnMobile">
 
@@ -126,7 +131,7 @@ export function EventDetailView({
   const isCancelled = event.status === "cancelled"
   // the minimum is reached, so the event happens (DESIGN.md › Koná se stamp); a past one
   // says „Proběhlo“ instead (Figma A-05h)
-  const isOver = (event.endsAt ?? event.startsAt) <= now
+  const isOver = isEventOver(event, now)
   const isHappening = !isCancelled && !isOver && event.missingToMin === 0
   // Figma A-05d, A-05c: „Ne 25. 10. · 18:00 · Tělocvična ZŠ Na Pankráci · Praha 4 · do minima chybí 1“
   const line = [

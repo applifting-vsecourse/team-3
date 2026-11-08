@@ -331,13 +331,44 @@ describe("ParticipationAction", () => {
 
   it("once over, it says when it was and how many came (Figma A-05 · Stavy › Proběhlá akce)", async () => {
     await renderAction(
-      { approvedCount: 8, endsAt: afterNow },
+      { approvedCount: 8, missingToMin: 0, endsAt: afterNow },
       { viewer: null, now: new Date("2026-10-24T08:00:00.000Z") },
     )
 
-    expect(screen.getByText("Akce proběhla pá 23. 10.")).toBeInTheDocument()
-    expect(screen.getByText("Sešlo se 8 lidí. Podobné akce najdeš v Akcích.")).toBeInTheDocument()
+    expect(screen.getByText("Akce proběhla v pá 23. 10.")).toBeInTheDocument()
+    expect(screen.getByText(/^Sešlo se 8 lidí\./)).toBeInTheDocument()
+    // a way on, not just a sentence about it (review #269)
+    expect(screen.getByRole("link", { name: "Podobné akce najdeš v Akcích" })).toHaveAttribute(
+      "href",
+      "/akce?lokalita=praha-8&aktivita=jazykovy-tandem",
+    )
     expect(screen.queryByRole("button")).not.toBeInTheDocument()
+  })
+
+  it.each([
+    [{ approvedCount: 0, missingToMin: 4 }, "Nikdo se nepřihlásil."],
+    [{ approvedCount: 3, missingToMin: 1 }, "Do minima chyběl 1 člověk."],
+  ])(
+    "over without its minimum %o: it didn't take place — „%s“ (review #269)",
+    async (numbers, line) => {
+      await renderAction(
+        { ...numbers, endsAt: afterNow },
+        { viewer: null, now: new Date("2026-10-24T08:00:00.000Z") },
+      )
+
+      expect(screen.getByText("Akce se v pá 23. 10. nekonala")).toBeInTheDocument()
+      expect(screen.getByRole("alert")).toHaveTextContent(line)
+      expect(screen.getByRole("alert")).not.toHaveTextContent(/Sešl/)
+    },
+  )
+
+  it("without an end time, at 18:05 it has started, not finished (review #269)", async () => {
+    await renderAction(
+      { myParticipation: "approved", endsAt: null },
+      { now: new Date("2026-10-23T16:05:00.000Z") },
+    )
+
+    expect(screen.getByText("Akce už začala. Máš na ní místo.")).toBeInTheDocument()
   })
 
   it("leaving in progress: „Odhlásit se“ can't be sent twice", async () => {

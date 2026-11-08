@@ -93,9 +93,36 @@ export function formatRequestEventStart(date: Date): string {
   return `${weekday} ${day}. ${month}. v ${time}`
 }
 
+const DAY_MS = 24 * 60 * 60 * 1000
 const pragueDayFormat = new Intl.DateTimeFormat("en-CA", { timeZone: PRAGUE_TZ })
 const pragueDay = (date: Date): number => Date.parse(pragueDayFormat.format(date))
-const DAY_MS = 24 * 60 * 60 * 1000
+
+const offsetFormat = new Intl.DateTimeFormat("en-US", {
+  timeZone: PRAGUE_TZ,
+  timeZoneName: "longOffset",
+})
+
+/** Prague's offset from UTC at that moment, in minutes (60 in winter, 120 in summer). */
+function pragueOffsetMinutes(date: Date): number {
+  const name = offsetFormat.formatToParts(date).find((part) => part.type === "timeZoneName")
+  const match = /GMT([+-])(\d{2}):(\d{2})/.exec(name?.value ?? "")
+  if (!match) return 0
+  return (match[1] === "-" ? -1 : 1) * (Number(match[2]) * 60 + Number(match[3]))
+}
+
+/** Midnight at the end of the Prague day the moment falls on. */
+export function endOfPragueDay(date: Date): Date {
+  const nextDayUtc = pragueDay(date) + DAY_MS
+  return new Date(nextDayUtc - pragueOffsetMinutes(new Date(nextDayUtc)) * 60 * 1000)
+}
+
+/**
+ * Whether an event is over: past its end, or — without one — past the end of its day. An
+ * 18:00 event with no end time is still going at 18:05 (review #269), so it doesn't read
+ * „Akce proběhla“ while people are there.
+ */
+export const isEventOver = (event: { startsAt: Date; endsAt: Date | null }, now: Date): boolean =>
+  (event.endsAt ?? endOfPragueDay(event.startsAt)) <= now
 // „v pondělí“… with the preposition each day takes
 const ON_WEEKDAY = [
   "v neděli",

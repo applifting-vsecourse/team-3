@@ -17,11 +17,20 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog"
 import { inSentence } from "@/lib/inSentence"
-import { gatheredLabel, happeningThanks, isMinimumReachedByLast } from "@/lib/occupancy"
+import {
+  gatheredLabel,
+  happeningThanks,
+  isMinimumReachedByLast,
+  missedMinimumLabel,
+} from "@/lib/occupancy"
 
 import type { EventDetail } from "@/features/events/api/eventSchemas"
 import { HasPlace } from "@/features/events/components/HasPlace"
-import { formatEventDay, formatRequestEventStart } from "@/features/events/lib/formatEvent"
+import {
+  formatEventDay,
+  formatRequestEventStart,
+  isEventOver,
+} from "@/features/events/lib/formatEvent"
 
 export type Viewer = { id: string; emailVerified: boolean }
 
@@ -71,16 +80,28 @@ export function ParticipationAction({
   const manage = event.canManage ? <ManageLink eventId={event.id} /> : null
 
   if (event.status === "cancelled") return manage ? <Row>{manage}</Row> : null
-  if ((event.endsAt ?? event.startsAt) <= now) {
-    // Figma A-05 · Stavy › Proběhlá akce
+  if (isEventOver(event, now)) {
+    // Figma A-05 · Stavy › Proběhlá akce; an event whose minimum never came didn't take place
+    const day = inSentence(formatEventDay(event.startsAt))
+    const hasHappened = event.missingToMin === 0
     return (
       <Row>
         {manage}
         <Alert variant="neutral">
           <Info />
-          <AlertTitle>Akce proběhla {inSentence(formatEventDay(event.startsAt))}</AlertTitle>
+          <AlertTitle>
+            {hasHappened ? `Akce proběhla v ${day}` : `Akce se v ${day} nekonala`}
+          </AlertTitle>
           <AlertDescription>
-            {gatheredLabel(event.approvedCount)}. Podobné akce najdeš v Akcích.
+            {hasHappened ? `${gatheredLabel(event.approvedCount)}.` : missedMinimumLabel(event)}{" "}
+            <Link
+              to={ROUTES.events}
+              search={similarEventsSearch(event)}
+              className="font-medium underline underline-offset-4"
+            >
+              Podobné akce najdeš v Akcích
+            </Link>
+            .
           </AlertDescription>
         </Alert>
       </Row>
@@ -517,6 +538,12 @@ function Note({ children }: { children: string }) {
   return <p className="text-sm text-muted-foreground">{children}</p>
 }
 
+/** /akce with the same activity in the same locality (UX audit U2). */
+const similarEventsSearch = (event: EventDetail) => ({
+  lokalita: event.locality.slug,
+  aktivita: event.activity.slug,
+})
+
 /**
  * „Podobné akce v okolí“ (Figma A-05 · Stavy, UX audit U2): /akce with the same activity in
  * the same locality, so a full event or a rejected request isn't a dead end.
@@ -537,7 +564,7 @@ function SimilarEvents({
     >
       <Link
         to={ROUTES.events}
-        search={{ lokalita: event.locality.slug, aktivita: event.activity.slug }}
+        search={similarEventsSearch(event)}
       >
         Podobné akce v okolí
       </Link>

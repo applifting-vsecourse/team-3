@@ -7,6 +7,7 @@ import {
   gatheredLabel,
   happeningThanks,
   isMinimumReachedByLast,
+  missedMinimumLabel,
   missingLabel,
   occupancyBesideBadge,
   occupancyCount,
@@ -160,5 +161,16 @@ describe("gatheredLabel", () => {
       "Sešli se 3 lidé",
       "Sešlo se 5 lidí",
     ])
+  })
+})
+
+describe("missedMinimumLabel (review #269)", () => {
+  it.each([
+    [0, 4, "Nikdo se nepřihlásil."],
+    [3, 1, "Do minima chyběl 1 člověk."],
+    [2, 2, "Do minima chyběli 2 lidé."],
+    [1, 5, "Do minima chybělo 5 lidí."],
+  ])("%i přihlášených, chybí %i: „%s“", (approvedCount, missingToMin, label) => {
+    expect(missedMinimumLabel({ approvedCount, missingToMin })).toBe(label)
   })
 })

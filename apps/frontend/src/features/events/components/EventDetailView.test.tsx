@@ -243,7 +243,8 @@ describe("EventDetailView", () => {
     await renderWithRouter(
       <EventDetailView
         event={event}
-        now={new Date((event.endsAt ?? event.startsAt).getTime() + 1)}
+        // without an end time it is over once its day ends (review #269)
+        now={new Date("2026-10-24T08:00:00.000Z")}
       />,
     )
 
