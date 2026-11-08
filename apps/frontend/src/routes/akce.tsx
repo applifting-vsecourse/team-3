@@ -172,8 +172,7 @@ function EventsPage() {
             <Button
               variant="outline"
               onClick={() => setPanelSnap("peek")}
-              // dark: the kit's outline is see-through in dark mode; this floats over cards
-              className="absolute bottom-4 left-4 z-20 h-11 bg-background shadow-md md:hidden dark:bg-background dark:hover:bg-accent"
+              className="absolute bottom-4 left-4 z-20 h-11 bg-background shadow-md md:hidden"
             >
               <MapIcon />
               Mapa
