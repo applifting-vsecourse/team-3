@@ -33,14 +33,35 @@ const SVG: Record<PinVariant, string> = {
 
 const escapeHtml = (text: string) => text.replace(/[&<>"']/g, (c) => `&#${c.charCodeAt(0)};`)
 
+// Figma: Map pin, vybraný — 1.3× bigger, with a shadow; the tip stays on the place.
+const SELECTED_SCALE = 1.3
+
 /**
  * HTML for a Leaflet divIcon. `label` (Figma: Popisek špendlíku) is shown
- * above the pin while its event card is hovered.
+ * above the pin while its event card is hovered or the pin is selected
+ * (`isSelected`, #56: the one bigger pin, its preview open).
  */
-export function pinHtml(variant: PinVariant, label?: string): string {
-  const { width } = pinSize(variant)
+export function pinHtml(variant: PinVariant, label?: string, { isSelected = false } = {}): string {
+  const { width, height } = pinSize(variant)
+  // above the grown pin, not into it
+  const tipOffset = isSelected ? Math.round(height * (SELECTED_SCALE - 1)) + 4 : 4
   const tip = label
-    ? `<span class="absolute bottom-full left-1/2 mb-1 -translate-x-1/2 rounded-lg bg-foreground px-3 py-1 text-xs font-medium whitespace-nowrap text-background shadow-md">${escapeHtml(label)}</span>`
+    ? `<span class="absolute bottom-full left-1/2 -translate-x-1/2 rounded-lg bg-foreground px-3 py-1 text-xs font-medium whitespace-nowrap text-background shadow-md" style="margin-bottom:${tipOffset}px">${escapeHtml(label)}</span>`
     : ""
-  return `<span class="relative block" style="width:${width}px">${tip}${SVG[variant]}</span>`
+  const svg = isSelected
+    ? `<span class="block origin-bottom drop-shadow-md" style="transform:scale(${SELECTED_SCALE})">${SVG[variant]}</span>`
+    : SVG[variant]
+  return `<span class="relative block" style="width:${width}px">${tip}${svg}</span>`
+}
+
+/** Figma: Map cluster — 44 px, the count on `foreground`, a `background` edge. */
+export const CLUSTER_SIZE = 44
+
+/**
+ * A cluster of nearby pins (#56): the count, and a lime ring when it holds an
+ * event that still misses people (DESIGN.md › Map pin and cluster).
+ */
+export function clusterHtml(count: number, hasMissing: boolean): string {
+  const ring = hasMissing ? " ring-3 ring-primary" : ""
+  return `<span class="flex size-11 items-center justify-center rounded-full border-3 border-background bg-foreground text-sm font-semibold text-background shadow-md${ring}">${count}</span>`
 }
