@@ -31,6 +31,8 @@ export const publicEventSchema = z.object({
   isPromoted: z.boolean(),
   // the start of the description for the map preview (#56); null without one
   summary: z.string().nullable(),
+  // km from the chosen locality's centre when the request gave it (okolí, distance order; #57)
+  distanceKm: z.number().nullable(),
 })
 
 export const publicEventsSchema = z.array(publicEventSchema)
@@ -176,4 +178,13 @@ export type EventFilters = {
   capacity?: "free" | "missing"
   /** „Hledat v této oblasti“ (#56): west,south,east,north */
   bbox?: string
+  /** Words in the title or the activity's keywords, without diacritics (#57). */
+  q?: string
+  /** The point distances are measured from: the chosen locality's centre (#57). */
+  lat?: number
+  lng?: number
+  /** „Okolí +10 km“: at most this far from lat,lng (#57). */
+  radiusKm?: number
+  /** Nearest to lat,lng first (#57); soonest first without it. */
+  sort?: "distance"
 }

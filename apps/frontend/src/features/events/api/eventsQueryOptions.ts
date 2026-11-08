@@ -49,6 +49,13 @@ export const toSearchParams = (filters: EventFilters): URLSearchParams => {
   for (const id of filters.categoryIds) params.append("categoryId", id)
   if (filters.capacity) params.set("capacity", filters.capacity)
   if (filters.bbox) params.set("bbox", filters.bbox)
+  if (filters.q) params.set("q", filters.q)
+  if (filters.lat !== undefined && filters.lng !== undefined) {
+    params.set("lat", String(filters.lat))
+    params.set("lng", String(filters.lng))
+  }
+  if (filters.radiusKm) params.set("radiusKm", String(filters.radiusKm))
+  if (filters.sort) params.set("sort", filters.sort)
   return params
 }
 

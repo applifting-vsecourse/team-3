@@ -5,6 +5,7 @@ import type { ActivityCategory, Locality } from "@/lib/catalog/catalogSchemas"
 import { toSearchParams } from "@/features/events/api/eventsQueryOptions"
 
 import {
+  effectiveSort,
   eventsSearchSchema,
   hasActiveFilters,
   toEventFilters,
@@ -186,5 +187,63 @@ describe("?oblast= (#56)", () => {
     expect(toMapArea(toOblast(area))).toEqual(area)
     expect(toMapArea("16.7,49.1,16.5,49.3")).toBeUndefined()
     expect(toMapArea(undefined)).toBeUndefined()
+  })
+})
+
+describe("search, okolí and order (#57)", () => {
+  const praha8 = catalog.localities.find((l) => l.slug === "praha-8")!
+
+  it("keeps a search, trimmed, and drops an empty or too long one", () => {
+    expect(eventsSearchSchema.parse({ q: "  volejbal " }).q).toBe("volejbal")
+    expect(eventsSearchSchema.parse({ q: "   " }).q).toBeUndefined()
+    expect(eventsSearchSchema.parse({ q: "x".repeat(101) }).q).toBeUndefined()
+    expect(toEventFilters({ q: "volejbal" }, catalog).q).toBe("volejbal")
+  })
+
+  it("okolí asks for the circle around the locality's centre instead of the locality", () => {
+    expect(toEventFilters({ lokalita: "praha-8", okoli: "10" }, catalog)).toMatchObject({
+      localityId: undefined,
+      lat: praha8.lat,
+      lng: praha8.lng,
+      radiusKm: 10,
+      sort: "distance",
+    })
+  })
+
+  it("orders nearest first with okolí unless soonest is picked", () => {
+    expect(effectiveSort({ lokalita: "praha-8", okoli: "25" }, catalog)).toBe("vzdalenost")
+    expect(effectiveSort({ lokalita: "praha-8", okoli: "25", razeni: "termin" }, catalog)).toBe(
+      "termin",
+    )
+    expect(
+      toEventFilters({ lokalita: "praha-8", okoli: "25", razeni: "termin" }, catalog).sort,
+    ).toBeUndefined()
+  })
+
+  it("the distance order alone keeps the locality and sends its centre", () => {
+    expect(toEventFilters({ lokalita: "praha-8", razeni: "vzdalenost" }, catalog)).toMatchObject({
+      localityId: praha8.id,
+      lat: praha8.lat,
+      radiusKm: undefined,
+      sort: "distance",
+    })
+  })
+
+  it("has no okolí and no distance in all of Czechia or in a map area", () => {
+    for (const search of [
+      { lokalita: "cele-cesko", okoli: "10" as const, razeni: "vzdalenost" as const },
+      { lokalita: "praha-8", oblast: "14.3,50,14.6,50.15", okoli: "10" as const },
+    ]) {
+      const filters = toEventFilters(search, catalog)
+      expect(filters).toMatchObject({ radiusKm: undefined, sort: undefined })
+      expect(filters.lat).toBeUndefined()
+      expect(effectiveSort(search, catalog)).toBe("termin")
+    }
+  })
+
+  it("counts the search and okolí as filters, not the order", () => {
+    expect(hasActiveFilters({ q: "kviz" })).toBe(true)
+    expect(hasActiveFilters({ okoli: "10" })).toBe(true)
+    expect(hasActiveFilters({ razeni: "vzdalenost" })).toBe(false)
   })
 })
