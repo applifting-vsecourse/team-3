@@ -80,7 +80,7 @@ export function EventCard({
       onMouseLeave={onMouseLeave}
       className={cn(
         "relative rounded-2xl border border-card-border bg-card text-card-foreground transition-colors hover:border-foreground",
-        "has-[a:focus-visible]:ring-[3px] has-[a:focus-visible]:ring-ring/50",
+        "has-[a:focus-visible]:ring-[3px] has-[a:focus-visible]:ring-ring",
         isHighlighted && "ring-2 ring-foreground",
         {
           row: "flex items-center gap-3 p-3",
@@ -159,11 +159,13 @@ export function EventCard({
           }
         >
           <StatusBadge status={status ?? capacityStatus(event)} />
-          {variant === "row" ? null : (
+          {/* the row card draws the numbers only as the bar, so a screen reader still gets them
+              (a past event says who came in its line) */}
+          {variant === "row" && status?.kind === "past" ? null : (
             <span
               className={cn(
                 "truncate text-caption font-medium text-muted-foreground",
-                variant === "responsive" && "hidden md:inline",
+                { row: "sr-only", grid: null, responsive: "max-md:sr-only" }[variant],
               )}
             >
               {numbers ?? (isCancelled ? occupancyCount(event) : occupancyBesideBadge(event))}

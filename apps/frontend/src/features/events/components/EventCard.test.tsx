@@ -25,7 +25,8 @@ describe("EventCard", () => {
     expect(photo.querySelector("img")).toHaveClass("saturate-86", "contrast-110")
     expect(within(photo).getByText("23")).toHaveClass("type-date-s")
     expect(screen.getByText("17:30 · Kavárna Pražírna · Praha 8")).toBeInTheDocument()
-    expect(screen.queryByText("4 z 12 · min. 4")).not.toBeInTheDocument()
+    // drawn only as the bar, but a screen reader gets the numbers (review #259)
+    expect(screen.getByText("4 z 12 · min. 4")).toHaveClass("sr-only")
     expect(container.querySelector("[data-slot=capacity-track]")).toHaveClass("h-1.5")
   })
 
