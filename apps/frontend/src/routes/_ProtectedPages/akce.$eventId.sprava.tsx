@@ -110,6 +110,7 @@ function ManageEventPage() {
             isHeading
             action={
               <ShareEventButton
+                event={event}
                 label="Sdílet"
                 shouldUseShareSheet
               />
@@ -210,7 +211,12 @@ function ManageEventPage() {
                     </Link>
                   </Button>
                 ) : null}
-                {isDesktop ? <ShareEventButton label="Sdílet odkaz" /> : null}
+                {isDesktop ? (
+                  <ShareEventButton
+                    event={event}
+                    label="Sdílet odkaz"
+                  />
+                ) : null}
                 {canEdit ? (
                   <CancelEventDialog
                     triggerVariant={isDesktop ? "ghost" : "outline"}

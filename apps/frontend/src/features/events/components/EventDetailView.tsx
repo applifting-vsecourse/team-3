@@ -253,7 +253,10 @@ export function EventDetailView({
               {facts}
               {map}
               {participation}
-              <ShareEventButton label="Sdílet odkaz" />
+              <ShareEventButton
+                event={event}
+                label="Sdílet odkaz"
+              />
               {organizerActions}
             </section>
           </article>
@@ -270,6 +273,7 @@ export function EventDetailView({
         label="Detail akce"
         action={
           <ShareEventButton
+            event={event}
             label="Sdílet"
             shouldUseShareSheet
           />
