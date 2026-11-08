@@ -105,6 +105,7 @@ describe("pinHtml", () => {
     const html = pinHtml("default", "Deskovky", { isSelected: true })
     expect(html).toContain("scale(1.3)")
     expect(html).toContain("origin-bottom")
+    expect(html).toContain("var(--ring)")
     expect(html).toContain("Deskovky")
   })
 

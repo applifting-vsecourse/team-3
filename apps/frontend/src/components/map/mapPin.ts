@@ -33,8 +33,15 @@ const SVG: Record<PinVariant, string> = {
 
 const escapeHtml = (text: string) => text.replace(/[&<>"']/g, (c) => `&#${c.charCodeAt(0)};`)
 
-// Figma: Map pin, vybraný — 1.3× bigger, with a shadow; the tip stays on the place.
+// Figma: Map pin, vybraný — 1.3× bigger, a focus-style ring and a shadow; the tip stays on the place.
 const SELECTED_SCALE = 1.3
+const SELECTED_OUTLINE = [
+  "drop-shadow(1.5px 0 0 var(--ring))",
+  "drop-shadow(-1.5px 0 0 var(--ring))",
+  "drop-shadow(0 1.5px 0 var(--ring))",
+  "drop-shadow(0 -1.5px 0 var(--ring))",
+  "drop-shadow(0 4px 6px color-mix(in srgb, var(--foreground) 25%, transparent))",
+].join(" ")
 
 /**
  * HTML for a Leaflet divIcon. `label` (Figma: Popisek špendlíku) is shown
@@ -48,8 +55,9 @@ export function pinHtml(variant: PinVariant, label?: string, { isSelected = fals
   const tip = label
     ? `<span class="absolute bottom-full left-1/2 -translate-x-1/2 rounded-lg bg-foreground px-3 py-1 text-xs font-medium whitespace-nowrap text-background shadow-md" style="margin-bottom:${tipOffset}px">${escapeHtml(label)}</span>`
     : ""
+  // the focus-style ring follows the pin's shape: its outline in `ring` on four sides, then a shadow
   const svg = isSelected
-    ? `<span class="block origin-bottom drop-shadow-md" style="transform:scale(${SELECTED_SCALE})">${SVG[variant]}</span>`
+    ? `<span class="block origin-bottom" style="transform:scale(${SELECTED_SCALE});filter:${SELECTED_OUTLINE}">${SVG[variant]}</span>`
     : SVG[variant]
   return `<span class="relative block" style="width:${width}px">${tip}${svg}</span>`
 }
