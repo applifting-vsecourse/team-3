@@ -3,13 +3,16 @@ import { Link } from "@tanstack/react-router"
 import { Ban, CalendarDays, Lock, MapPin, RefreshCw, UserCheck } from "lucide-react"
 
 import { ROUTES } from "@/app/routes"
-import { ActivityTile } from "@/components/ActivityTile/ActivityTile"
+import { ActivityPhoto } from "@/components/ActivityPhoto/ActivityPhoto"
 import { BackLink, type BackLinkProps } from "@/components/BackLink/BackLink"
 import { CapacityBar } from "@/components/CapacityBar/CapacityBar"
+import { DateTile } from "@/components/DateTile/DateTile"
 import { DetailRow } from "@/components/DetailRow/DetailRow"
 import { HappeningStamp } from "@/components/HappeningStamp/HappeningStamp"
 import { MapView } from "@/components/map/MapView"
+import { BandActivity } from "@/components/PageBand/BandActivity"
 import { PageBand } from "@/components/PageBand/PageBand"
+import { SubBar } from "@/components/PageBand/SubBar"
 import { PersonRow } from "@/components/PersonRow/PersonRow"
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 import { Button } from "@/components/ui/button"
@@ -21,10 +24,10 @@ import { cn } from "@/lib/utils"
 
 import type { EventDetail } from "@/features/events/api/eventSchemas"
 import { EventParticipants } from "@/features/events/components/EventParticipants"
-import { EventPhoto } from "@/features/events/components/EventPhoto"
 import { ShareEventButton } from "@/features/events/components/ShareEventButton"
 import {
   approvalModeLabel,
+  eventDateParts,
   formatEventStart,
   formatEventTime,
   placeName,
@@ -145,7 +148,7 @@ export function EventDetailView({
       variant="detail"
       back={back}
       title={event.title}
-      eyebrow={<EventActivity event={event} />}
+      eyebrow={<BandActivity activity={event.activity} />}
       description={
         <>
           {/* before the line on desktop (A-05c); under the title on a phone (A-05) */}
@@ -241,6 +244,18 @@ export function EventDetailView({
     </section>
   ) : null
   // without the names (#174) the count and when the names show (Figma A-05, A-05d)
+  const date = eventDateParts(event.startsAt)
+  const photo = (
+    <ActivityPhoto slug={event.activity.slug}>
+      <DateTile
+        weekday={date.weekday}
+        day={date.day}
+        time={date.time}
+        size="l"
+        className="absolute bottom-4 left-4"
+      />
+    </ActivityPhoto>
+  )
   const participants = isCancelled ? null : (
     <EventParticipants
       approvedCount={event.approvedCount}
@@ -260,10 +275,7 @@ export function EventDetailView({
         <div className={PAGE}>
           <article className="grid grid-cols-[minmax(0,1fr)_auto] items-start gap-12">
             <div className="flex flex-col gap-6">
-              <EventPhoto
-                event={event}
-                variant="detail"
-              />
+              {photo}
               {about}
               {participants}
               {organizer}
@@ -289,21 +301,17 @@ export function EventDetailView({
   return (
     <>
       {/* Figma Header/Sub: back, what the page is and „Sdílet“; the photo comes before the band */}
-      <div className="flex h-14 items-center gap-1 border-b border-band-edge on-hero pr-2 pl-4">
-        <BackLink
-          {...back}
-          isIconOnlyOnMobile
-        />
-        <p className="min-w-0 flex-1 truncate text-sm font-semibold">Detail akce</p>
-        <ShareEventButton
-          label="Sdílet"
-          shouldUseShareSheet
-        />
-      </div>
-      <EventPhoto
-        event={event}
-        variant="detail"
+      <SubBar
+        back={back}
+        label="Detail akce"
+        action={
+          <ShareEventButton
+            label="Sdílet"
+            shouldUseShareSheet
+          />
+        }
       />
+      {photo}
       {band}
       <article className="flex flex-col gap-5 px-4 pt-5">
         <section
@@ -325,22 +333,6 @@ export function EventDetailView({
         </div>
       </article>
     </>
-  )
-}
-
-/** The activity above the title, on the band (Figma A-05d › Aktivita). */
-function EventActivity({ event }: { event: EventDetail }) {
-  return (
-    <div className="flex items-center gap-3">
-      <ActivityTile
-        icon={event.activity.category.icon}
-        className="size-11 border-on-hero-muted bg-transparent text-on-hero"
-      />
-      <div className="flex flex-col gap-0.5 text-sm">
-        <span className="font-semibold text-on-hero">{event.activity.name}</span>
-        <span className="text-on-hero-muted">{event.activity.category.name}</span>
-      </div>
-    </div>
   )
 }
 
