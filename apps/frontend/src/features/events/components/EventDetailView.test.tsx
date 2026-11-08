@@ -125,6 +125,27 @@ describe("EventDetailView", () => {
     expect(screen.getByText("Ty, Jana Svobodová, Tomáš Dvořák, Marek Novák")).toBeInTheDocument()
   })
 
+  it("a cancelled event without the names promises none", async () => {
+    await renderWithRouter(
+      <EventDetailView
+        event={anEventDetail({ status: "cancelled", cancelReason: "Prší.", participants: null })}
+      />,
+    )
+
+    expect(screen.queryByRole("heading", { name: /Kdo jde/ })).not.toBeInTheDocument()
+  })
+
+  it("nobody joined yet: says so to a visitor too, instead of promising names (review #269)", async () => {
+    await renderWithRouter(
+      <EventDetailView
+        event={anEventDetail({ approvedCount: 0, missingToMin: 4, participants: null })}
+      />,
+    )
+
+    expect(screen.getByText("Zatím se nikdo nepřihlásil.")).toBeInTheDocument()
+    expect(screen.queryByText(/Jména uvidíš/)).not.toBeInTheDocument()
+  })
+
   it("says when nobody has joined yet", async () => {
     await renderWithRouter(
       <EventDetailView
@@ -192,7 +213,8 @@ describe("EventDetailView", () => {
 
     expect(screen.getByText(/ · akce je zrušená$/)).toBeInTheDocument()
     expect(screen.getByText("Akce je zrušená")).toBeInTheDocument()
-    expect(screen.queryByRole("heading", { name: /Kdo jde/ })).not.toBeInTheDocument()
+    // who was coming still matters to those who had the names (#43); review #269
+    expect(screen.getByRole("heading", { name: /Kdo jde/ })).toBeInTheDocument()
     expect(screen.getByText("Herna má zavřeno.")).toBeInTheDocument()
     expect(screen.queryByText("4 z 12")).not.toBeInTheDocument()
     expect(screen.queryByText("min. 4")).not.toBeInTheDocument()

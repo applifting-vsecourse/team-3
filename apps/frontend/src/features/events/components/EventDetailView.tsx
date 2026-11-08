@@ -220,15 +220,18 @@ export function EventDetailView({
       />
     </ActivityPhoto>
   )
-  const participants = isCancelled ? null : (
-    <EventParticipants
-      approvedCount={event.approvedCount}
-      maxParticipants={event.maxParticipants}
-      participants={event.participants}
-      isWaitingForApproval={event.myParticipation === "pending"}
-      viewerId={viewerId}
-    />
-  )
+  // a cancelled event still shows who was coming to those who get the names (#43, #183);
+  // there is just nothing to promise about names to anyone else
+  const participants =
+    isCancelled && !event.participants ? null : (
+      <EventParticipants
+        approvedCount={event.approvedCount}
+        maxParticipants={event.maxParticipants}
+        participants={event.participants}
+        isWaitingForApproval={event.myParticipation === "pending"}
+        viewerId={viewerId}
+      />
+    )
 
   // Figma lays the two out differently (as the group page, A-08 / A-08d), so
   // each gets its own order rather than one order bent by the grid.

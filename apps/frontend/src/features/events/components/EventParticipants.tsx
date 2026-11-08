@@ -43,15 +43,16 @@ export function EventParticipants({
       <h2 className="type-card-heading">
         Kdo jde · {occupancyCount({ approvedCount, maxParticipants })}
       </h2>
-      {!people ? (
+      {/* nobody yet, whoever looks: no names to promise (review #269) */}
+      {approvedCount === 0 ? (
+        <p className="text-sm text-muted-foreground">Zatím se nikdo nepřihlásil.</p>
+      ) : !people ? (
         // Figma A-05d adds „Do minima chybí jeden.“; the bar and the band already say it
         <p className="text-sm text-muted-foreground">
           {isWaitingForApproval
             ? "Jména uvidíš, až tě organizátor schválí."
             : "Jména uvidíš, až budeš na akci."}
         </p>
-      ) : people.length === 0 ? (
-        <p className="text-sm text-muted-foreground">Zatím se nikdo nepřihlásil.</p>
       ) : (
         <>
           <ul className="flex flex-wrap gap-2">
