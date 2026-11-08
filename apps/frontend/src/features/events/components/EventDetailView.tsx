@@ -117,6 +117,8 @@ export function EventDetailView({
     </Alert>
   ) : (
     <CapacityBar
+      // a phone has no panel: the bar lies on the page
+      surface={isDesktop ? "card" : "background"}
       approvedCount={event.approvedCount}
       minParticipants={event.minParticipants}
       maxParticipants={event.maxParticipants}

@@ -9,6 +9,11 @@ type CapacityBarProps = Occupancy & {
    * the 6 px track and the marker; the badge and the numbers beside it say the rest.
    */
   variant?: "detail" | "compact"
+  /**
+   * What the bar lies on, for the gap around the marker (Figma Tick): a card or the desktop
+   * panel, or the page — the detail on a phone has no panel (DESIGN.md › Layout).
+   */
+  surface?: "card" | "background"
   className?: string
 }
 
@@ -19,7 +24,12 @@ const percent = (part: number, whole: number) =>
  * The main brand element of an event (Figma: Capacity bar, DESIGN.md › Capacity bar): approved
  * of maximum as the fill, hatched until the minimum is reached; the minimum as a marker.
  */
-export function CapacityBar({ variant = "detail", className, ...occupancy }: CapacityBarProps) {
+export function CapacityBar({
+  variant = "detail",
+  surface = "card",
+  className,
+  ...occupancy
+}: CapacityBarProps) {
   const { approvedCount, minParticipants, maxParticipants } = occupancy
   const state = occupancyState(occupancy)
   const isFull = state === "full"
@@ -48,14 +58,15 @@ export function CapacityBar({ variant = "detail", className, ...occupancy }: Cap
     </div>
   )
 
-  // after the fill, so it is drawn above it; the card-coloured ring is a gap that keeps it
-  // visible on the track, the hatch and lime in both modes (tokens.test.ts)
+  // after the fill, so it is drawn above it; the ring in the surface's colour is a gap that
+  // keeps it visible on the track, the hatch and lime in both modes (tokens.test.ts)
   const marker = isFull ? null : (
     <div
       aria-hidden
       data-slot="capacity-tick"
       className={cn(
-        "absolute -translate-x-1/2 rounded-xs bg-foreground ring-2 ring-card",
+        "absolute -translate-x-1/2 rounded-xs bg-foreground ring-2",
+        surface === "card" ? "ring-card" : "ring-background",
         isCompact ? "top-0 h-3.5 w-0.5" : "-top-1 h-5.5 w-0.75",
       )}
       style={{ left: `${minPct}%` }}
