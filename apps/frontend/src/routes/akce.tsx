@@ -66,11 +66,12 @@ function EventsPage() {
   const locality = catalog?.localities.find((l) => l.slug === search.lokalita)
   const isMapVisible = isDesktop || !isListExpanded
 
-  // Escape closes the preview, like a tap into the map
+  // Escape closes the preview, like a tap into the map — unless it closed an open panel or
+  // menu first (the kit's layers prevent the default of the Escape they handle)
   useEffect(() => {
     if (!selectedEvent) return
     const onKey = (event: KeyboardEvent) => {
-      if (event.key === "Escape") setSelectedId(undefined)
+      if (event.key === "Escape" && !event.defaultPrevented) setSelectedId(undefined)
     }
     window.addEventListener("keydown", onKey)
     return () => window.removeEventListener("keydown", onKey)
