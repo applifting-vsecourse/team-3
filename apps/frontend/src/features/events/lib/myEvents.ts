@@ -1,6 +1,7 @@
 import { z } from "zod"
 
 import type { BadgeStatus } from "@/components/StatusBadge/StatusBadge"
+import { inSentence } from "@/lib/inSentence"
 import {
   missingLabel,
   occupancyBesideBadge,
@@ -136,8 +137,7 @@ export function attendingLine(events: MyEvent[] | undefined, now: Date): string 
     ?.filter((event) => event.status !== "cancelled" && event.startsAt > now)
     .toSorted((a, b) => a.startsAt.getTime() - b.startsAt.getTime())[0]
   if (!nearest) return line
-  const activity = nearest.activity.name
-  return `${line} Nejbližší: ${activity.charAt(0).toLowerCase()}${activity.slice(1)} ${formatStartInSentence(nearest.startsAt, now)}.`
+  return `${line} Nejbližší: ${inSentence(nearest.activity.name)} ${formatStartInSentence(nearest.startsAt, now)}.`
 }
 
 /** The band's line in Pořádám (Figma C-02d): „… Na schválení čekají 4 žádosti.“ when any wait. */

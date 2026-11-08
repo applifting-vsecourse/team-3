@@ -234,6 +234,14 @@ describe("band lines (Figma C-01d, C-02d)", () => {
     )
   })
 
+  it("keeps an acronym in the activity's name („RPG“, review #269)", () => {
+    const rpg = aMyEvent({
+      activity: { ...aMyEvent().activity, name: "RPG (D&D apod.)" },
+    })
+
+    expect(attendingLine([rpg], monday)).toMatch(/Nejbližší: RPG \(D&D apod\.\) v pátek/)
+  })
+
   it("Přihlášen without an event to go to says only what the tab holds", () => {
     expect(attendingLine([], monday)).toBe("Akce, kam jdeš, a ty, kde čekáš na schválení.")
     expect(attendingLine(undefined, monday)).toBe("Akce, kam jdeš, a ty, kde čekáš na schválení.")

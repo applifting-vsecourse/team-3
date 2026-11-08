@@ -16,6 +16,7 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog"
+import { inSentence } from "@/lib/inSentence"
 import { gatheredLabel, happeningThanks, isMinimumReachedByLast } from "@/lib/occupancy"
 
 import type { EventDetail } from "@/features/events/api/eventSchemas"
@@ -77,7 +78,7 @@ export function ParticipationAction({
         {manage}
         <Alert variant="neutral">
           <Info />
-          <AlertTitle>Akce proběhla {lowerFirst(formatEventDay(event.startsAt))}</AlertTitle>
+          <AlertTitle>Akce proběhla {inSentence(formatEventDay(event.startsAt))}</AlertTitle>
           <AlertDescription>
             {gatheredLabel(event.approvedCount)}. Podobné akce najdeš v Akcích.
           </AlertDescription>
@@ -543,5 +544,3 @@ function SimilarEvents({
     </Button>
   )
 }
-
-const lowerFirst = (text: string): string => `${text.charAt(0).toLowerCase()}${text.slice(1)}`

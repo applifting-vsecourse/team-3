@@ -1,3 +1,5 @@
+import { inSentence } from "@/lib/inSentence"
+
 /**
  * How full an event is, in words (#189, Figma 4. 11.). The card, the detail
  * and Moje akce all say it with these, so one number never means two things:
@@ -110,7 +112,7 @@ export function happeningThanks({
 }: Pick<Occupancy, "approvedCount" | "minParticipants">): string {
   if (approvedCount === 1) return "Díky tobě se akce koná."
   const gathered = gatheredLabel(approvedCount)
-  return `Díky tobě se akce koná – ${gathered.charAt(0).toLowerCase()}${gathered.slice(1)}, minimum je ${minParticipants}.`
+  return `Díky tobě se akce koná – ${inSentence(gathered)}, minimum je ${minParticipants}.`
 }
 
 /** How many came: „Sešlo se 5 lidí“, „Sešli se 3 lidé“, „Sešel se 1 člověk“ (Figma Karta akce/Proběhlá řádek). */
