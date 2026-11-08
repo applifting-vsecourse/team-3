@@ -167,6 +167,12 @@ export type EventInput = {
   visibility?: "public" | "members"
 }
 
+/**
+ * GET /api/events returns at most this many (backend PUBLIC_EVENTS_LIMIT): a list this long
+ * may have more, so it says „Víc než 200 akcí“ (Figma A-02 · celé Česko, comment in #55).
+ */
+export const PUBLIC_EVENTS_LIMIT = 200
+
 /** Query parameters of GET /api/events, already resolved to ids. */
 export type EventFilters = {
   localityId?: string

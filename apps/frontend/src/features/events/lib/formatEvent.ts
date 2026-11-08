@@ -1,6 +1,10 @@
 import type { CapacityStatus } from "@/components/StatusBadge/StatusBadge"
 
-import type { GroupEvent, PublicEvent } from "@/features/events/api/eventSchemas"
+import {
+  PUBLIC_EVENTS_LIMIT,
+  type GroupEvent,
+  type PublicEvent,
+} from "@/features/events/api/eventSchemas"
 
 // Events happen in Prague, so their time is Prague time wherever the browser is.
 const PRAGUE_TZ = "Europe/Prague"
@@ -220,13 +224,16 @@ export function pastEventFacts(event: GroupEvent): string {
  */
 export function showEventsLabel(count: number | undefined): string {
   if (count === undefined) return "Zobrazit akce"
+  // the API's limit: there may be more (#57)
+  if (count >= PUBLIC_EVENTS_LIMIT) return `Zobrazit víc než ${PUBLIC_EVENTS_LIMIT} akcí`
   if (count === 1) return "Zobrazit 1 akci"
   if (count >= 2 && count <= 4) return `Zobrazit ${count} akce`
   return `Zobrazit ${count} akcí`
 }
 
-/** "1 akce", "3 akce", "24 akcí" */
+/** "1 akce", "3 akce", "24 akcí"; "Víc než 200 akcí" at the API's limit (#57) */
 export function eventCountLabel(count: number): string {
+  if (count >= PUBLIC_EVENTS_LIMIT) return `Víc než ${PUBLIC_EVENTS_LIMIT} akcí`
   if (count === 1) return "1 akce"
   if (count >= 2 && count <= 4) return `${count} akce`
   return `${count} akcí`

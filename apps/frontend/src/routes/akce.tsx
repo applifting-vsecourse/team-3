@@ -18,10 +18,13 @@ import { EventList } from "@/features/events/components/EventList"
 import { EventMapPreview } from "@/features/events/components/EventMapPreview"
 import { EventsMap } from "@/features/events/components/EventsMap"
 import { ListPanel, type PanelSnap } from "@/features/events/components/ListPanel"
+import { SortMenu } from "@/features/events/components/SortMenu"
 import { useEvents } from "@/features/events/hooks/useEvents"
 import {
+  effectiveSort,
   eventsSearchSchema,
   hasActiveFilters,
+  localityCenter,
   toMapArea,
   toOblast,
   type EventsSearch,
@@ -99,6 +102,10 @@ function EventsPage() {
     void navigate({ search: {}, replace: true })
   }
   const canClear = hasActiveFilters(urlSearch) || shownLocality.isPicked
+  // the order and the distances need the chosen locality's centre (#57)
+  const center = catalog ? localityCenter(search, catalog) : undefined
+  const sort = catalog ? effectiveSort(search, catalog) : "termin"
+  const isDistanceShown = Boolean(search.okoli && center)
   // „Zrušit výběr“ in the locality panel: back to the default, the other filters stay
   const clearLocality = () => {
     shownLocality.forget()
@@ -179,6 +186,20 @@ function EventsPage() {
                 highlightedId={highlightedId ?? selectedEvent?.id}
                 onHighlight={setHighlightedId}
                 onClearFilters={canClear ? clearFilters : undefined}
+                sortControl={
+                  <SortMenu
+                    value={sort}
+                    isDistanceAvailable={Boolean(center)}
+                    // the order okolí implies stays out of the URL
+                    onChange={(razeni) =>
+                      setSearch({
+                        razeni:
+                          razeni === (search.okoli ? "vzdalenost" : "termin") ? undefined : razeni,
+                      })
+                    }
+                  />
+                }
+                isDistanceShown={isDistanceShown}
                 empty={
                   <EmptyEvents
                     search={search}
