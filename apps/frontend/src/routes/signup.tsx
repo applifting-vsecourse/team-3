@@ -10,13 +10,16 @@ import { authSessionQueryOptions } from "@/features/auth/api/authSessionQueryOpt
 import { GoogleSignIn } from "@/features/auth/components/GoogleSignIn"
 import { SignUpForm, type SignUpValues } from "@/features/auth/components/SignUpForm"
 import { useSignUp } from "@/features/auth/hooks/useSignUp"
+import { googleSignInErrorMessage } from "@/features/auth/lib/auth-errors"
 import { safeRedirect } from "@/features/auth/lib/redirect"
 import { NearestEvents } from "@/features/events/components/NearestEvents"
 
-// `from`: the page to come back to, e.g. the event (B-012)
+// `from`: the page to come back to, e.g. the event (B-012); `error`: why
+// Google sent the user back here without signing in (#198), as on /login
 const signUpSearchParamsSchema = z.object({
   // TanStack parses `?from=123` into a number: such a `from` is dropped, not an error page
   from: z.string().optional().catch(undefined),
+  error: z.string().optional().catch(undefined),
 })
 
 export const Route = createFileRoute("/signup")({
@@ -31,10 +34,12 @@ export const Route = createFileRoute("/signup")({
 })
 
 function SignUpPage() {
-  const { from } = Route.useSearch()
+  const { from, error } = Route.useSearch()
   const navigate = useNavigate()
   const signUp = useSignUp()
-  const [errorMessage, setErrorMessage] = useState<string | null>(null)
+  const [errorMessage, setErrorMessage] = useState<string | null>(
+    error ? googleSignInErrorMessage(error, "signup") : null,
+  )
 
   const handleSubmit = async (values: SignUpValues) => {
     setErrorMessage(null)
@@ -77,7 +82,10 @@ function SignUpPage() {
           errorMessage={errorMessage}
           onSubmit={handleSubmit}
         />
-        <GoogleSignIn from={from} />
+        <GoogleSignIn
+          from={from}
+          startedOn={ROUTES.signup}
+        />
       </AuthLayout>
     </>
   )

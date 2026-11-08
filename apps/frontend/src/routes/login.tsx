@@ -93,7 +93,10 @@ function LoginPage() {
             Zapomenuté heslo?
           </Link>
         </p>
-        <GoogleSignIn from={from} />
+        <GoogleSignIn
+          from={from}
+          startedOn={ROUTES.login}
+        />
       </AuthLayout>
     </>
   )
