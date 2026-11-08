@@ -32,11 +32,9 @@ export function BandTabsItem({ count, children, className, ...props }: BandTabsI
     <TabsTrigger
       className={cn(
         "h-auto flex-none gap-1.5 rounded-none border-0 border-b-3 border-transparent px-0 pt-3 pb-2.5 text-body font-semibold text-on-hero-muted hover:text-on-hero",
-        // the active one: cream with the lime underline; the kit's dark: classes are restated
-        // (DESIGN.md › Colour), its line indicator and shadow are not used
+        // the active one: cream with the lime underline; the kit's line indicator and shadow are not used
         "data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:text-on-hero",
-        "dark:text-on-hero-muted dark:hover:text-on-hero dark:data-[state=active]:border-primary dark:data-[state=active]:bg-transparent dark:data-[state=active]:text-on-hero",
-        "group-data-[variant=line]/tabs-list:data-[state=active]:after:opacity-0 dark:group-data-[variant=line]/tabs-list:data-[state=active]:border-primary",
+        "group-data-[variant=line]/tabs-list:data-[state=active]:after:opacity-0",
         className,
       )}
       {...props}
