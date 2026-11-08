@@ -36,4 +36,19 @@ describe("BandTabs", () => {
     expect(inactive).toHaveClass("font-medium", "text-on-hero-muted")
     expect(screen.getByText("4")).toHaveClass("group-data-[state=active]/tab:text-on-hero")
   })
+
+  it("is as tall as its tabs, so the lime underline isn't clipped", () => {
+    render(
+      <Tabs value="moje">
+        <BandTabs>
+          <BandTabsItem value="moje">Moje</BandTabsItem>
+        </BandTabs>
+      </Tabs>,
+    )
+
+    // the kit fixes the strip at h-9 behind a variant; a plain h-auto would not replace it
+    const strip = screen.getByRole("tablist")
+    expect(strip).not.toHaveClass("group-data-[orientation=horizontal]/tabs:h-9")
+    expect(strip).toHaveClass("group-data-[orientation=horizontal]/tabs:h-auto")
+  })
 })

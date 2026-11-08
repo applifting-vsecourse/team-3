@@ -13,6 +13,10 @@ export function BandTabs({ className, ...props }: ComponentProps<typeof TabsList
     <TabsList
       variant="line"
       className={cn(
+        // The kit's height is h-9 behind a variant, which a plain h-auto doesn't replace
+        // (tailwind-merge sees no conflict, the variant wins): the 36 px strip clipped the
+        // tabs and their lime underline. So the height is replaced with the same variant.
+        "group-data-[orientation=horizontal]/tabs:h-auto",
         // the scroll strip reaches the screen edge on a phone (-mx-4 px-4), like Figma A-02
         "-mx-4 h-auto w-auto max-w-none justify-start gap-6 overflow-x-auto rounded-none p-0 px-4 md:mx-0 md:gap-7 md:px-0",
         className,
