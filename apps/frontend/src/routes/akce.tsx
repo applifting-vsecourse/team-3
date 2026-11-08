@@ -60,9 +60,14 @@ function EventsPage() {
   const isMapVisible = isDesktop || !isListExpanded
 
   // replace: changing a filter shouldn't fill the back button with filter states
-  const setSearch = (patch: Partial<EventsSearch>) => {
-    if (patch.lokalita !== undefined) shownLocality.pick(patch.lokalita)
+  // a filter only, nothing remembered: e.g. „… v celém Česku“ from an empty list widens it
+  // this once (review #274)
+  const setSearch = (patch: Partial<EventsSearch>) =>
     void navigate({ search: (prev) => ({ ...prev, ...patch }), replace: true })
+  // a pick in the locality chip: remembered in this browser (#55)
+  const pickLocality = (lokalita: string) => {
+    shownLocality.pick(lokalita)
+    setSearch({ lokalita })
   }
   // also the remembered locality: back to the visitor's default (#55)
   const clearFilters = () => {
@@ -116,6 +121,7 @@ function EventsPage() {
               search={search}
               catalog={catalog}
               onChange={setSearch}
+              onLocalityChange={pickLocality}
               onClearAll={canClear ? clearFilters : undefined}
               localityDefault={localityDefault(shownLocality, clearLocality)}
               isFloating={!isDesktop && !isListExpanded}
