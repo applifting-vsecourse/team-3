@@ -66,6 +66,18 @@ export function PrivacyNotice() {
             Přihlášení přes Google probíhá u Googlu, takže Google ví, že se do HobbyHubu
             přihlašuješ.
           </li>
+          <li>
+            Podle IP adresy odhadneme, ve kterém městě jsi, aby seznamy akcí a skupin začínaly ve
+            tvém okolí. Odhad děláme u sebe z tabulky{" "}
+            <a
+              href="https://db-ip.com"
+              className="font-medium text-foreground underline underline-offset-4"
+            >
+              IP Geolocation by DB-IP
+            </a>{" "}
+            (licence CC BY 4.0). Adresu ani odhad nikam neukládáme. Lokalitu, kterou si vybereš, si
+            pamatuje jen tvůj prohlížeč.
+          </li>
           <li>Reklamní ani analytické cookies nepoužíváme.</li>
         </LegalList>
       </LegalSection>

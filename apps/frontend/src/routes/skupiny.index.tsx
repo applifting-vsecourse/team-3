@@ -8,6 +8,7 @@ import { PageBand } from "@/components/PageBand/PageBand"
 import { Seo } from "@/components/Seo"
 import { Button } from "@/components/ui/button"
 import { Tabs, TabsContent } from "@/components/ui/tabs"
+import { localityDefault, useLocality } from "@/hooks/useLocality"
 import { PAGE } from "@/lib/pageLayout"
 import { cn } from "@/lib/utils"
 
@@ -19,7 +20,11 @@ import { GroupFilters } from "@/features/groups/components/GroupFilters"
 import { GroupList } from "@/features/groups/components/GroupList"
 import { MyGroups } from "@/features/groups/components/MyGroups"
 import { useGroups } from "@/features/groups/hooks/useGroups"
-import { groupsSearchSchema, type GroupsSearch } from "@/features/groups/lib/groupsSearch"
+import {
+  groupsSearchSchema,
+  hasActiveFilters,
+  type GroupsSearch,
+} from "@/features/groups/lib/groupsSearch"
 
 export const Route = createFileRoute("/skupiny/")({
   component: GroupsPage,
@@ -33,10 +38,19 @@ export const Route = createFileRoute("/skupiny/")({
  * (A-07m, A-07md; #118), kept in the URL as `?tab=moje`.
  */
 function GroupsPage() {
-  const search = Route.useSearch()
+  const urlSearch = Route.useSearch()
   const navigate = Route.useNavigate()
-  const { user } = useSession()
-  const { groups, catalog, isPending, error, retry } = useGroups(search)
+  const { user, isPending: isSessionPending } = useSession()
+  const shownLocality = useLocality(
+    urlSearch.lokalita,
+    isSessionPending ? undefined : (user?.id ?? null),
+  )
+  // the filters as shown: the visitor's default locality (#55) when the URL has none
+  const search = { ...urlSearch, lokalita: shownLocality.slug }
+  const { groups, catalog, isPending, error, retry } = useGroups(search, {
+    // nothing for all of Czechia first while the default locality loads
+    isEnabled: shownLocality.slug !== undefined,
+  })
   // for the count on the tab; the same query fills the tab itself
   const myGroupsQuery = useQuery({
     ...myGroupsQueryOptions(user?.id ?? ""),
@@ -45,9 +59,26 @@ function GroupsPage() {
   const myGroupsCount = myGroupsQuery.data?.length
 
   // replace: changing a filter shouldn't fill the back button with filter states
+  // a filter only, nothing remembered: e.g. „… v celém Česku“ from an empty list widens it
+  // this once (review #274)
   const setSearch = (patch: Partial<GroupsSearch>) =>
     void navigate({ search: (prev) => ({ ...prev, ...patch }), replace: true })
-  const clearFilters = () => void navigate({ search: {}, replace: true })
+  // a pick in the locality chip: remembered in this browser (#55)
+  const pickLocality = (lokalita: string) => {
+    shownLocality.pick(lokalita)
+    setSearch({ lokalita })
+  }
+  // also the remembered locality: back to the visitor's default (#55); the tab stays
+  const clearFilters = () => {
+    shownLocality.forget()
+    void navigate({ search: { tab: urlSearch.tab }, replace: true })
+  }
+  const canClear = hasActiveFilters(urlSearch) || shownLocality.isPicked
+  // „Zrušit výběr“ in the locality panel: back to the default, the other filters stay
+  const clearLocality = () => {
+    shownLocality.forget()
+    void navigate({ search: (prev) => ({ ...prev, lokalita: undefined }), replace: true })
+  }
 
   // „Všechny“, and the whole page for a visitor, who has no tabs
   const allGroups = (
@@ -56,7 +87,9 @@ function GroupsPage() {
         search={search}
         catalog={catalog}
         onChange={setSearch}
-        onClearAll={clearFilters}
+        onLocalityChange={pickLocality}
+        onClearAll={canClear ? clearFilters : undefined}
+        localityDefault={localityDefault(shownLocality, clearLocality)}
       />
       <GroupList
         groups={groups ?? []}

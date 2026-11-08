@@ -460,7 +460,9 @@ Doménová logika (čistá funkce + testy): `approvedCount`, `missingToMin = max
 `US-01` · FS · M · závisí na: B-023, B-026
 
 - Výchozí lokalita na `/`, `/akce` a `/skupiny` (tým 28. 10., #55): domovská lokalita z profilu → jinak odhad podle IP → když selže, **celé Česko** (ne Praha). „Zrušit vše“ zruší všechny filtry včetně lokality a vrátí výchozí.
-- `GET /api/geo/locality` – odhad lokality podle IP (viz otevřené otázky). IP ani výsledek se **neukládají** (ani do logů). Když nejde zjistit → celé Česko.
+- `GET /api/geo/locality` – výchozí lokalita: domovská z profilu, jinak odhad podle IP (Q2), jinak `null` = celé Česko; `source` říká odkud (`home` / `ip` / `none`). IP ani výsledek se **neukládají** (ani do logů), odpověď má `Cache-Control: private, no-store`.
+- Odhad: tabulka českých rozsahů z DB-IP „IP to City Lite“ (CC BY 4.0) přiřazených k městům katalogu, v repu `modules/geo/data/ip-localities-cz.txt`; obnoví ji `pnpm backend geo:build` (DB-IP vydává jednou měsíčně). Zdroj je uvedený v Ochraně osobních údajů.
+- Ruční volba lokality se pamatuje jen v prohlížeči (`localStorage`), bez registrace; „Zrušit vše“ ji zapomene.
 - Stránka `/` podle Figmy A-01 / A-01d (návštěvník) a A-01p / A-01pd (přihlášený): pás s panelem „Teď chybí jeden“, sekce Tady chybíš, Jak to funguje, Tento víkend, Kousek od tebe, O tyhle akce je zájem, Od dobře hodnocených organizátorů, Tyhle skupiny rozšiřují partu, výzva „Nic pro tebe?“ (#182). Pravidla v `docs/ux-audit.md` › Úvodní stránka:
   - akce se ukáže jen v první sekci, kam patří (panel nahoře je první);
   - akce jen pro členy na úvodní stránce nikdy nejsou;
@@ -472,7 +474,7 @@ Doménová logika (čistá funkce + testy): `approvedCount`, `missingToMin = max
 
 **Hotovo, když:**
 
-- [ ] Test: služba při chybě geolokace vrátí celé Česko; přihlášený s domovskou lokalitou dostane ji.
+- [x] Test: služba při chybě geolokace vrátí celé Česko; přihlášený s domovskou lokalitou dostane ji.
 
 ---
 
@@ -938,7 +940,7 @@ Dokud tým nebo PO nerozhodne jinak, agent použije výchozí volbu.
 | #   | Otázka                                                                            | Výchozí volba                                                                              | Kdo rozhodne |
 | --- | --------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------ | ------------ |
 | Q1  | Mapa a našeptávač míst (poznámky zmiňují Google Maps)                             | Leaflet + OSM, místo klikem do mapy + textová adresa, lokality z vlastního číselníku       | Tým          |
-| Q2  | Služba pro odhad lokality z IP                                                    | Jednoduchá offline databáze (např. GeoLite2 City), při chybě celé Česko (tým 28. 10.)      | Tým          |
+| Q2  | Služba pro odhad lokality z IP                                                    | Offline tabulka z DB-IP Lite (CC BY 4.0) v repu, při chybě celé Česko (tým 28. 10., #55)   | Tým          |
 | Q3  | Nahrávání fotek (profil, skupina)                                                 | V MVP jen URL obrázku                                                                      | Tým          |
 | Q4  | Podle čeho vybírat akce na úvodní stránce (F-68)                                  | Nejbližší termín v lokalitě, topované první; sekce podle #182, pravidla v docs/ux-audit.md | PO           |
 | Q5  | Text obchodních podmínek a zásad ochrany údajů (F-65)                             | Placeholder                                                                                | PO           |

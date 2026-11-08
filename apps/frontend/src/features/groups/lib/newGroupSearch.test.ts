@@ -1,7 +1,6 @@
 import { describe, expect, it } from "vitest"
 
 import type { Catalog } from "@/lib/catalog/catalogSearch"
-import { DEFAULT_LOCALITY_SLUG } from "@/lib/catalog/localityOptions"
 
 import { newGroupPrefill, newGroupSearchFrom, newGroupSearchSchema } from "./newGroupSearch"
 
@@ -28,10 +27,9 @@ describe("newGroupSearchFrom (Figma A-07e)", () => {
     })
   })
 
-  it("without a locality in the URL takes the default one the list shows", () => {
+  it("without a locality leaves that field to choose", () => {
     expect(newGroupSearchFrom({ aktivita: "komunitni-zahrada" })).toEqual({
       aktivita: "komunitni-zahrada",
-      lokalita: DEFAULT_LOCALITY_SLUG,
     })
   })
 

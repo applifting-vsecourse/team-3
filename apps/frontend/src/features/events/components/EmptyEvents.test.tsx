@@ -74,8 +74,9 @@ describe("activeFiltersLabel", () => {
     ).toBe("Bruntál · Šipky a bowling · 1.–7. 11. · Chybí lidé")
   })
 
-  it("Praha without a parameter, Celé Česko by its name", () => {
-    expect(activeFiltersLabel({}, catalog)).toBe("Praha")
+  it("names the shown locality, Celé Česko without one", () => {
+    expect(activeFiltersLabel({ lokalita: "praha" }, catalog)).toBe("Praha")
+    expect(activeFiltersLabel({}, catalog)).toBe("Celé Česko")
     expect(activeFiltersLabel({ lokalita: "cele-cesko", kategorie: "hry" }, catalog)).toBe(
       "Celé Česko · Hry",
     )

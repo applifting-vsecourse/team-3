@@ -2,7 +2,7 @@ import { render, screen, within } from "@testing-library/react"
 import userEvent from "@testing-library/user-event"
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest"
 
-import { LocalityFilter } from "@/components/LocalityFilter/LocalityFilter"
+import { LocalityFilter, type LocalityDefault } from "@/components/LocalityFilter/LocalityFilter"
 import type { Locality } from "@/lib/catalog/catalogSchemas"
 
 const locality = (slug: string, name: string, parentId: string | null = null): Locality => ({
@@ -20,9 +20,12 @@ const localities = [
   locality("brno", "Brno"),
   locality("bruntal", "Bruntál"),
   locality("ceska-lipa", "Česká Lípa"),
+  locality("cernovice", "Černovice"),
+  locality("sezimovo-usti", "Sezimovo Ústí"),
+  locality("nova-paka", "Nová Paka"),
 ]
 
-const renderFilter = (value: string | undefined) => {
+const renderFilter = (value: string | undefined, localityDefault?: LocalityDefault) => {
   const onChange = vi.fn()
   render(
     <LocalityFilter
@@ -30,6 +33,7 @@ const renderFilter = (value: string | undefined) => {
       localities={localities}
       onChange={onChange}
       applyLabel="Zobrazit akce"
+      localityDefault={localityDefault}
     />,
   )
   return { onChange }
@@ -53,7 +57,7 @@ describe("LocalityFilter", () => {
   afterEach(() => vi.unstubAllGlobals())
 
   it("offers Celé Česko first, above Praha", async () => {
-    renderFilter(undefined)
+    renderFilter("praha")
     const panel = await openPanel("Lokalita: Praha")
 
     const [first, second] = within(panel).getAllByRole("option")
@@ -71,7 +75,7 @@ describe("LocalityFilter", () => {
   })
 
   it("Praha itself: „Zrušit výběr“ shows all of Czechia too", async () => {
-    const { onChange } = renderFilter(undefined)
+    const { onChange } = renderFilter("praha")
     const panel = await openPanel("Lokalita: Praha")
 
     await userEvent.click(within(panel).getByRole("button", { name: "Zrušit výběr" }))
@@ -83,7 +87,7 @@ describe("LocalityFilter", () => {
     const panel = await openPanel("Lokalita: Praha 8")
 
     await userEvent.click(within(panel).getByRole("button", { name: "Celá Praha" }))
-    expect(onChange).toHaveBeenCalledWith(undefined)
+    expect(onChange).toHaveBeenCalledWith("praha")
   })
 
   it("the reset follows the row being picked, before it is applied", async () => {
@@ -103,7 +107,7 @@ describe("LocalityFilter", () => {
   })
 
   it("opens with the focus in the search field, so typing a town finds it", async () => {
-    renderFilter(undefined)
+    renderFilter("praha")
     const panel = await openPanel("Lokalita: Praha")
 
     expect(within(panel).getByRole("combobox", { name: "Hledat lokalitu" })).toHaveFocus()
@@ -140,8 +144,28 @@ describe("LocalityFilter", () => {
     expect(list.scrollTop).toBe(0)
   })
 
+  it("ranks a name starting with the text first, then a word in it, then anywhere", async () => {
+    renderFilter("praha")
+    const panel = await openPanel("Lokalita: Praha")
+
+    await userEvent.keyboard("nov")
+    expect(
+      within(panel)
+        .getAllByRole("option")
+        .map((option) => option.textContent),
+    ).toEqual(["Nová Paka", "Černovice"])
+
+    await userEvent.clear(within(panel).getByRole("combobox", { name: "Hledat lokalitu" }))
+    await userEvent.keyboard("ust")
+    expect(
+      within(panel)
+        .getAllByRole("option")
+        .map((option) => option.textContent),
+    ).toEqual(["Sezimovo Ústí"])
+  })
+
   it("a town comes before Celé Česko: „česk“ is on its way to Česká Lípa", async () => {
-    const { onChange } = renderFilter(undefined)
+    const { onChange } = renderFilter("praha")
     const panel = await openPanel("Lokalita: Praha")
 
     await userEvent.keyboard("česk")
@@ -153,5 +177,47 @@ describe("LocalityFilter", () => {
     await userEvent.keyboard("{Enter}")
     await userEvent.click(within(panel).getByRole("button", { name: "Zobrazit akce" }))
     expect(onChange).toHaveBeenCalledWith("ceska-lipa")
+  })
+
+  describe("with the visitor's default locality (#55)", () => {
+    it("shows the default on a light chip with where it came from", () => {
+      renderFilter("praha", { isDefault: true, hint: "podle polohy", onReset: vi.fn() })
+
+      const chip = screen.getByRole("button", { name: "Lokalita: Praha · podle polohy" })
+      expect(chip).not.toHaveClass("bg-foreground")
+    })
+
+    it("shows a pick on the dark chip, without the hint", () => {
+      renderFilter("brno", { isDefault: false, onReset: vi.fn() })
+
+      expect(screen.getByRole("button", { name: "Lokalita: Brno" })).toHaveClass("bg-foreground")
+    })
+
+    it("„Zrušit výběr“ goes back to the default, not to Celé Česko", async () => {
+      const onReset = vi.fn()
+      const { onChange } = renderFilter("brno", { isDefault: false, onReset })
+      const panel = await openPanel("Lokalita: Brno")
+
+      await userEvent.click(within(panel).getByRole("button", { name: "Zrušit výběr" }))
+      expect(onReset).toHaveBeenCalledOnce()
+      expect(onChange).not.toHaveBeenCalled()
+    })
+
+    it("has nothing to reset on the default", async () => {
+      renderFilter("praha", { isDefault: true, onReset: vi.fn() })
+      const panel = await openPanel("Lokalita: Praha")
+
+      expect(within(panel).getByRole("button", { name: "Zrušit výběr" })).toBeDisabled()
+    })
+
+    it("a district still goes back to its city", async () => {
+      const onReset = vi.fn()
+      const { onChange } = renderFilter("praha-8", { isDefault: false, onReset })
+      const panel = await openPanel("Lokalita: Praha 8")
+
+      await userEvent.click(within(panel).getByRole("button", { name: "Celá Praha" }))
+      expect(onChange).toHaveBeenCalledWith("praha")
+      expect(onReset).not.toHaveBeenCalled()
+    })
   })
 })
