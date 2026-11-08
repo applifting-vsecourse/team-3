@@ -81,6 +81,12 @@ const searchField = () => screen.getByRole("combobox", { name: "Hledat aktivitu"
 const optionNames = () => screen.queryAllByRole("option").map((option) => option.textContent)
 
 describe("ActivityCombobox", () => {
+  it("is filled like the other fields, not a see-through outline button (#201)", () => {
+    render(<Field />)
+
+    expect(screen.getByRole("combobox")).toHaveClass("bg-card")
+  })
+
   it("lists the activities under their categories", async () => {
     render(<Field />)
 

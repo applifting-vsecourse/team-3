@@ -37,14 +37,19 @@ export const resendFrom = (location: ParsedLocation): string | undefined => {
   return redirectFrom(location)
 }
 
+/** #198: the page the Google button is on, where an error leads back to. */
+export type GooglePage = typeof ROUTES.login | typeof ROUTES.signup
+
 /**
  * #154: where Google sends the user back, through the backend — so absolute,
  * like afterVerificationUrl. Signed in: `from`, only a path in this app, as
- * after signing in with the password. Not signed in: the sign-in page with
- * BetterAuth's `?error=`, keeping `from` for the next attempt.
+ * after signing in with the password. Not signed in: the page it started on
+ * (#198: /signup too) with BetterAuth's `?error=`, keeping `from` for the
+ * next attempt. An error raised before BetterAuth reads this goes to /login
+ * (the backend's onAPIError.errorURL).
  */
-export const googleCallbackUrls = (from?: string) => {
-  const errorCallbackURL = new URL(ROUTES.login, window.location.origin)
+export const googleCallbackUrls = (from?: string, startedOn: GooglePage = ROUTES.login) => {
+  const errorCallbackURL = new URL(startedOn, window.location.origin)
   if (from) errorCallbackURL.searchParams.set("from", from)
   return {
     callbackURL: new URL(safeRedirect(from, ROUTES.events), window.location.origin).toString(),

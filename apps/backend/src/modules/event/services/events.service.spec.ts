@@ -1,23 +1,34 @@
+import { EmailService } from '@/core/email/interfaces/email-service.interface';
 import { computeCapacity } from '@/modules/event/domain/capacity';
 import {
   EventDetail,
   NewEvent,
   PublicEvent,
 } from '@/modules/event/domain/event';
+import { JoinState } from '@/modules/event/domain/participation';
 import { EventRepository } from '@/modules/event/repositories/event.repository';
+import { NotificationRepository } from '@/modules/notification/repositories/notification.repository';
+import { NotificationService } from '@/modules/notification/services/notification.service';
+import { Config } from '@/shared/config/config.service';
 import {
   BadRequestException,
   ConflictException,
   ForbiddenException,
+  Logger,
   NotFoundException,
+  UnauthorizedException,
 } from '@nestjs/common';
 import { mock, MockProxy } from 'jest-mock-extended';
 import {
   EventsService,
+  GROUP_EVENTS_LIMIT,
   MY_EVENTS_LIMIT,
   PUBLIC_EVENTS_LIMIT,
   SCAN_LIMIT,
 } from './events.service';
+
+// the real NotificationService is built in one test; its mails are never rendered here
+jest.mock('@/core/email/render', () => ({ renderEmail: jest.fn() }));
 
 const now = new Date('2026-10-23T08:00:00.000Z');
 
@@ -53,7 +64,7 @@ describe('EventsService', () => {
     const events = [anEvent('e1', 2)];
     repository.findPublicEvents.mockResolvedValue(events);
 
-    const service = new EventsService(repository);
+    const service = new EventsService(repository, mock<NotificationService>());
     const filters = { localityId: 'l-praha', dateFrom: '2026-10-24' };
 
     await expect(service.getPublicEvents(filters, {}, now)).resolves.toEqual(
@@ -75,7 +86,7 @@ describe('EventsService', () => {
       anEvent('full', 6),
     ]);
 
-    const service = new EventsService(repository);
+    const service = new EventsService(repository, mock<NotificationService>());
     const result = await service.getPublicEvents(
       { capacity: 'missing' },
       {},
@@ -97,7 +108,7 @@ describe('EventsService', () => {
       anEvent('full', 6),
     ]);
 
-    const service = new EventsService(repository);
+    const service = new EventsService(repository, mock<NotificationService>());
     const result = await service.getPublicEvents({ capacity: 'free' }, {}, now);
 
     expect(result.map((event) => event.id)).toEqual([
@@ -117,7 +128,7 @@ describe('EventsService', () => {
     );
     repository.findPublicEvents.mockResolvedValue([...complete, ...missing]);
 
-    const service = new EventsService(repository);
+    const service = new EventsService(repository, mock<NotificationService>());
     const result = await service.getPublicEvents(
       { capacity: 'missing' },
       {},
@@ -137,7 +148,7 @@ describe('EventsService', () => {
     const repository = mock<EventRepository>();
     repository.findPublicEvents.mockResolvedValue([anEvent('e1', 2)]);
 
-    const service = new EventsService(repository);
+    const service = new EventsService(repository, mock<NotificationService>());
     await service.getPublicEvents({}, { limit: 6 }, now);
 
     expect(repository.findPublicEvents).toHaveBeenCalledWith({
@@ -164,7 +175,10 @@ describe('EventsService', () => {
       );
       const filters = { localityId: 'l-praha' };
 
-      const service = new EventsService(repository);
+      const service = new EventsService(
+        repository,
+        mock<NotificationService>(),
+      );
       const result = await service.getPublicEvents(
         filters,
         { sort: 'popular', limit: 3 },
@@ -195,7 +209,10 @@ describe('EventsService', () => {
         ]),
       );
 
-      const service = new EventsService(repository);
+      const service = new EventsService(
+        repository,
+        mock<NotificationService>(),
+      );
       const result = await service.getPublicEvents(
         { capacity: 'free' },
         { sort: 'popular' },
@@ -220,6 +237,10 @@ const aDetail = (overrides: Partial<EventDetail> = {}): EventDetail => ({
   ...overrides,
 });
 
+// someone else (u1) created it; u9 is in the group
+const groupEventDetail = (): EventDetail =>
+  aDetail({ group: { id: 'g1', name: 'Deskovkáři Karlín' } });
+
 const participants = [
   { id: 'u2', name: 'Jana' },
   { id: 'u3', name: 'Tomáš' },
@@ -233,8 +254,11 @@ describe('EventsService.getEventDetail', () => {
     repository.findEventDetail.mockResolvedValue(detail);
     repository.findApprovedParticipants.mockResolvedValue(participants);
     repository.findParticipationStatus.mockResolvedValue(null);
-    repository.isActiveGroupMember.mockResolvedValue(false);
-    return { repository, service: new EventsService(repository) };
+    repository.findActiveGroupRole.mockResolvedValue(null);
+    return {
+      repository,
+      service: new EventsService(repository, mock<NotificationService>()),
+    };
   };
 
   it('a visitor gets the count, not the names', async () => {
@@ -314,20 +338,22 @@ describe('EventsService.getEventDetail', () => {
       },
     );
 
-    it("an active member or admin of the event's group, without a place", async () => {
-      // admins are active members with another role; the check is the same
-      const { repository, service } = setup(groupEvent());
-      repository.isActiveGroupMember.mockResolvedValue(true);
+    it.each(['member', 'admin'] as const)(
+      "an active %s of the event's group, without a place",
+      async (role) => {
+        const { repository, service } = setup(groupEvent());
+        repository.findActiveGroupRole.mockResolvedValue(role);
 
-      const result = await service.getEventDetail('e1', 'u9', now);
+        const result = await service.getEventDetail('e1', 'u9', now);
 
-      expect(result.participants).toEqual(participants);
-      expect(repository.isActiveGroupMember).toHaveBeenCalledWith('g1', 'u9');
-    });
+        expect(result.participants).toEqual(participants);
+        expect(repository.findActiveGroupRole).toHaveBeenCalledWith('g1', 'u9');
+      },
+    );
 
     it("not a pending, blocked or former member of the event's group", async () => {
       const { repository, service } = setup(groupEvent());
-      repository.isActiveGroupMember.mockResolvedValue(false);
+      repository.findActiveGroupRole.mockResolvedValue(null);
 
       const result = await service.getEventDetail('e1', 'u9', now);
 
@@ -341,7 +367,7 @@ describe('EventsService.getEventDetail', () => {
       const result = await service.getEventDetail('e1', null, now);
 
       expect(result.participants).toBeNull();
-      expect(repository.isActiveGroupMember).not.toHaveBeenCalled();
+      expect(repository.findActiveGroupRole).not.toHaveBeenCalled();
       expect(repository.findParticipationStatus).not.toHaveBeenCalled();
     });
 
@@ -409,27 +435,41 @@ describe('EventsService.getEventDetail', () => {
         group: { id: 'g1', name: 'Deskovkáři Karlín' },
       });
 
-    it('is 404 for a visitor', async () => {
+    it('is 401 UNAUTHENTICATED for a visitor, without the group', async () => {
       const { repository, service } = setup(membersOnly());
 
-      await expect(service.getEventDetail('e1', null, now)).rejects.toThrow(
-        NotFoundException,
-      );
-      expect(repository.isActiveGroupMember).not.toHaveBeenCalled();
+      const error = (await service
+        .getEventDetail('e1', null, now)
+        .catch((e: unknown) => e)) as UnauthorizedException;
+
+      expect(error).toBeInstanceOf(UnauthorizedException);
+      expect(error.getResponse()).toEqual({
+        code: 'UNAUTHENTICATED',
+        message: expect.any(String),
+      });
+      expect(repository.findActiveGroupRole).not.toHaveBeenCalled();
     });
 
-    it('is 404 for a signed-in user outside the group', async () => {
+    it('is 403 MEMBERS_ONLY with only the groupId for a signed-in user outside the group', async () => {
       const { repository, service } = setup(membersOnly());
 
-      await expect(service.getEventDetail('e1', 'u9', now)).rejects.toThrow(
-        NotFoundException,
-      );
-      expect(repository.isActiveGroupMember).toHaveBeenCalledWith('g1', 'u9');
+      const error = (await service
+        .getEventDetail('e1', 'u9', now)
+        .catch((e: unknown) => e)) as ForbiddenException;
+
+      expect(error).toBeInstanceOf(ForbiddenException);
+      // nothing about the event itself (B-026, review #215)
+      expect(error.getResponse()).toEqual({
+        code: 'MEMBERS_ONLY',
+        message: expect.any(String),
+        groupId: 'g1',
+      });
+      expect(repository.findActiveGroupRole).toHaveBeenCalledWith('g1', 'u9');
     });
 
     it('is shown to an active member of the group, with the names', async () => {
       const { repository, service } = setup(membersOnly());
-      repository.isActiveGroupMember.mockResolvedValue(true);
+      repository.findActiveGroupRole.mockResolvedValue('member');
 
       const result = await service.getEventDetail('e1', 'u9', now);
 
@@ -443,7 +483,7 @@ describe('EventsService.getEventDetail', () => {
       await expect(
         service.getEventDetail('e1', 'u1', now),
       ).resolves.toMatchObject({ id: 'e1' });
-      expect(repository.isActiveGroupMember).not.toHaveBeenCalled();
+      expect(repository.findActiveGroupRole).not.toHaveBeenCalled();
     });
 
     it('without a group is 404 for anyone but its organizer', async () => {
@@ -472,6 +512,8 @@ describe('EventsService.createEvent', () => {
     minParticipants: 3,
     maxParticipants: 6,
     approvalMode: 'open',
+    groupId: null,
+    visibility: 'public',
     ...overrides,
   });
 
@@ -488,7 +530,10 @@ describe('EventsService.createEvent', () => {
       aDetail({ id: 'e-new', organizer: { id: 'u1', name: 'Petra' } }),
     );
     repository.findApprovedParticipants.mockResolvedValue([]);
-    return { repository, service: new EventsService(repository) };
+    return {
+      repository,
+      service: new EventsService(repository, mock<NotificationService>()),
+    };
   };
 
   it('creates the event with the signed-in user as organizer and returns its detail', async () => {
@@ -523,17 +568,120 @@ describe('EventsService.createEvent', () => {
     expect(JSON.stringify(error.getResponse())).toContain('Neznámá aktivita.');
     expect(repository.createEvent).not.toHaveBeenCalled();
   });
+
+  it("a person's own event cannot be members-only (400)", async () => {
+    const { repository, service } = setup();
+
+    await expect(
+      service.createEvent(newEvent({ visibility: 'members' }), 'u1', now),
+    ).rejects.toThrow(BadRequestException);
+    expect(repository.createEvent).not.toHaveBeenCalled();
+  });
+
+  describe("a group's event (B-055)", () => {
+    const groupEvent = (overrides: Partial<NewEvent> = {}): NewEvent =>
+      newEvent({ groupId: 'g1', visibility: 'members', ...overrides });
+
+    const group = {
+      activityId: 'a-deskove-hry',
+      status: 'active' as const,
+      role: 'admin' as const,
+    };
+
+    it('an admin of the group creates it, members-only too', async () => {
+      const { repository, service } = setup();
+      repository.findGroupForEvent.mockResolvedValue(group);
+      const event = groupEvent();
+
+      await service.createEvent(event, 'u1', now);
+
+      expect(repository.findGroupForEvent).toHaveBeenCalledWith('g1', 'u1');
+      expect(repository.createEvent).toHaveBeenCalledWith(event, 'u1');
+    });
+
+    it.each([
+      ['a regular member', 'member'],
+      ['someone outside the group', null],
+    ] as const)('%s gets 403 NOT_GROUP_ADMIN', async (_who, role) => {
+      const { repository, service } = setup();
+      repository.findGroupForEvent.mockResolvedValue({ ...group, role });
+
+      const error = (await service
+        .createEvent(groupEvent(), 'u9', now)
+        .catch((e: unknown) => e)) as ForbiddenException;
+
+      expect(error).toBeInstanceOf(ForbiddenException);
+      expect(error.getResponse()).toMatchObject({ code: 'NOT_GROUP_ADMIN' });
+      expect(repository.createEvent).not.toHaveBeenCalled();
+    });
+
+    it('a deactivated group is 409 GROUP_INACTIVE', async () => {
+      const { repository, service } = setup();
+      repository.findGroupForEvent.mockResolvedValue({
+        ...group,
+        status: 'inactive',
+      });
+
+      await expect(
+        service.createEvent(groupEvent(), 'u1', now),
+      ).rejects.toThrow(ConflictException);
+      expect(repository.createEvent).not.toHaveBeenCalled();
+    });
+
+    it('a group deactivated between the check and the write is 409, not a published event (review #264)', async () => {
+      const { repository, service } = setup();
+      repository.findGroupForEvent.mockResolvedValue(group);
+      repository.createEvent.mockResolvedValue(null);
+
+      const error = (await service
+        .createEvent(groupEvent(), 'u1', now)
+        .catch((e: unknown) => e)) as ConflictException;
+
+      expect(error).toBeInstanceOf(ConflictException);
+      expect(error.getResponse()).toMatchObject({ code: 'GROUP_INACTIVE' });
+      expect(repository.findEventDetail).not.toHaveBeenCalled();
+    });
+
+    it('an unknown group is 400', async () => {
+      const { repository, service } = setup();
+      repository.findGroupForEvent.mockResolvedValue(null);
+
+      await expect(
+        service.createEvent(groupEvent(), 'u1', now),
+      ).rejects.toThrow(BadRequestException);
+      expect(repository.createEvent).not.toHaveBeenCalled();
+    });
+
+    it("another activity than the group's is 400", async () => {
+      const { repository, service } = setup();
+      repository.findGroupForEvent.mockResolvedValue(group);
+
+      await expect(
+        service.createEvent(groupEvent({ activityId: 'a-sachy' }), 'u1', now),
+      ).rejects.toThrow(BadRequestException);
+      expect(repository.createEvent).not.toHaveBeenCalled();
+    });
+  });
 });
 
 describe('EventsService.cancelEvent', () => {
   const setup = (
     detail: EventDetail = aDetail(),
-  ): { repository: MockProxy<EventRepository>; service: EventsService } => {
+  ): {
+    repository: MockProxy<EventRepository>;
+    notifications: MockProxy<NotificationService>;
+    service: EventsService;
+  } => {
     const repository = mock<EventRepository>();
     repository.findEventDetail.mockResolvedValue(detail);
     repository.findApprovedParticipants.mockResolvedValue(participants);
     repository.cancelEvent.mockResolvedValue(true);
-    return { repository, service: new EventsService(repository) };
+    const notifications = mock<NotificationService>();
+    return {
+      repository,
+      notifications,
+      service: new EventsService(repository, notifications),
+    };
   };
 
   it('of two cancels at once, the one that lost the write gets 409', async () => {
@@ -570,6 +718,20 @@ describe('EventsService.cancelEvent', () => {
     expect(repository.cancelEvent).not.toHaveBeenCalled();
   });
 
+  it("any admin of the event's group cancels it, not a regular member (B-055)", async () => {
+    const admin = setup(groupEventDetail());
+    admin.repository.findActiveGroupRole.mockResolvedValue('admin');
+    await admin.service.cancelEvent('e1', 'u9', 'Herna má zavřeno.', now);
+    expect(admin.repository.cancelEvent).toHaveBeenCalled();
+
+    const member = setup(groupEventDetail());
+    member.repository.findActiveGroupRole.mockResolvedValue('member');
+    await expect(
+      member.service.cancelEvent('e1', 'u9', 'Nechci', now),
+    ).rejects.toThrow(ForbiddenException);
+    expect(member.repository.cancelEvent).not.toHaveBeenCalled();
+  });
+
   it('an already cancelled or started event is 409', async () => {
     const cancelled = setup(aDetail({ status: 'cancelled' }));
     await expect(
@@ -596,13 +758,22 @@ describe('EventsService.cancelEvent', () => {
 describe('EventsService participation', () => {
   const setup = (
     detail: EventDetail = aDetail(),
-  ): { repository: MockProxy<EventRepository>; service: EventsService } => {
+  ): {
+    repository: MockProxy<EventRepository>;
+    notifications: MockProxy<NotificationService>;
+    service: EventsService;
+  } => {
     const repository = mock<EventRepository>();
     repository.findEventDetail.mockResolvedValue(detail);
     repository.findApprovedParticipants.mockResolvedValue(participants);
     repository.findParticipationStatus.mockResolvedValue(null);
-    repository.isActiveGroupMember.mockResolvedValue(false);
-    return { repository, service: new EventsService(repository) };
+    repository.findActiveGroupRole.mockResolvedValue(null);
+    const notifications = mock<NotificationService>();
+    return {
+      repository,
+      notifications,
+      service: new EventsService(repository, notifications),
+    };
   };
 
   it('the detail tells a signed-in user their own participation; a withdrawn one is none', async () => {
@@ -664,13 +835,13 @@ describe('EventsService participation', () => {
     });
   });
 
-  it('an event the user may not see is 404, and nothing is joined', async () => {
+  it('a members-only event of a group the user is not in is 403, and nothing is joined', async () => {
     const { repository, service } = setup(
       aDetail({ visibility: 'members', group: { id: 'g1', name: 'Skupina' } }),
     );
 
     await expect(service.join('e1', 'u9', null, now)).rejects.toThrow(
-      NotFoundException,
+      ForbiddenException,
     );
     expect(repository.join).not.toHaveBeenCalled();
   });
@@ -698,7 +869,11 @@ describe('EventsService participation', () => {
 describe('EventsService.updateEvent', () => {
   const setup = (
     detail: EventDetail = aDetail(),
-  ): { repository: MockProxy<EventRepository>; service: EventsService } => {
+  ): {
+    repository: MockProxy<EventRepository>;
+    notifications: MockProxy<NotificationService>;
+    service: EventsService;
+  } => {
     const repository = mock<EventRepository>();
     repository.findEventDetail.mockResolvedValue(detail);
     repository.findApprovedParticipants.mockResolvedValue(participants);
@@ -718,7 +893,12 @@ describe('EventsService.updateEvent', () => {
         maxParticipants: 6,
       }),
     );
-    return { repository, service: new EventsService(repository) };
+    const notifications = mock<NotificationService>();
+    return {
+      repository,
+      notifications,
+      service: new EventsService(repository, notifications),
+    };
   };
 
   it('the organizer changes the event and gets the updated detail', async () => {
@@ -742,6 +922,20 @@ describe('EventsService.updateEvent', () => {
         maxParticipants: 6,
       }),
     ).toEqual({ ok: true, data: changes });
+  });
+
+  it("any admin of the event's group changes it, not a regular member (B-055)", async () => {
+    const admin = setup(groupEventDetail());
+    admin.repository.findActiveGroupRole.mockResolvedValue('admin');
+    await admin.service.updateEvent('e1', 'u9', { title: 'Nově' }, now);
+    expect(admin.repository.updateEvent).toHaveBeenCalled();
+
+    const member = setup(groupEventDetail());
+    member.repository.findActiveGroupRole.mockResolvedValue('member');
+    await expect(
+      member.service.updateEvent('e1', 'u9', { title: 'Nově' }, now),
+    ).rejects.toThrow(ForbiddenException);
+    expect(member.repository.updateEvent).not.toHaveBeenCalled();
   });
 
   it('an edit that waited for the lock behind a cancel is 409, not written', async () => {
@@ -838,7 +1032,10 @@ describe('EventsService.getParticipants', () => {
     repository.findApprovedParticipants.mockResolvedValue(participants);
     repository.findParticipationStatus.mockResolvedValue(null);
     repository.findPendingRequests.mockResolvedValue(requests);
-    return { repository, service: new EventsService(repository) };
+    return {
+      repository,
+      service: new EventsService(repository, mock<NotificationService>()),
+    };
   };
 
   it('the organizer gets the approved participants and the waiting requests', async () => {
@@ -848,6 +1045,21 @@ describe('EventsService.getParticipants', () => {
       participants,
       requests,
     });
+  });
+
+  it("any admin of the event's group gets them too, a regular member 403 (B-055)", async () => {
+    const admin = setup(groupEventDetail());
+    admin.repository.findActiveGroupRole.mockResolvedValue('admin');
+    await expect(
+      admin.service.getParticipants('e1', 'u9', now),
+    ).resolves.toEqual({ participants, requests });
+
+    const member = setup(groupEventDetail());
+    member.repository.findActiveGroupRole.mockResolvedValue('member');
+    await expect(
+      member.service.getParticipants('e1', 'u9', now),
+    ).rejects.toThrow(ForbiddenException);
+    expect(member.repository.findPendingRequests).not.toHaveBeenCalled();
   });
 
   it('a cancelled event still shows who was coming', async () => {
@@ -882,6 +1094,67 @@ describe('EventsService.getParticipants', () => {
   });
 });
 
+describe('EventsService.getGroupEvents (B-055)', () => {
+  const setup = (): {
+    repository: MockProxy<EventRepository>;
+    service: EventsService;
+  } => {
+    const repository = mock<EventRepository>();
+    repository.findGroupEvents.mockImplementation(async ({ when }) => [
+      { ...anEvent(when, 2), visibility: 'public' },
+    ]);
+    return {
+      repository,
+      service: new EventsService(repository, mock<NotificationService>()),
+    };
+  };
+
+  it('loads the upcoming and the past section, with the limit', async () => {
+    const { repository, service } = setup();
+    repository.findActiveGroupRole.mockResolvedValue(null);
+
+    const result = await service.getGroupEvents('g1', 'u9', now);
+
+    expect(result.upcoming.map((event) => event.id)).toEqual(['upcoming']);
+    expect(result.past.map((event) => event.id)).toEqual(['past']);
+    for (const when of ['upcoming', 'past']) {
+      expect(repository.findGroupEvents).toHaveBeenCalledWith({
+        groupId: 'g1',
+        when,
+        includeMembersOnly: false,
+        now,
+        limit: GROUP_EVENTS_LIMIT,
+      });
+    }
+  });
+
+  it.each(['member', 'admin'] as const)(
+    'an active %s gets the members-only events too',
+    async (role) => {
+      const { repository, service } = setup();
+      repository.findActiveGroupRole.mockResolvedValue(role);
+
+      await service.getGroupEvents('g1', 'u9', now);
+
+      expect(repository.findActiveGroupRole).toHaveBeenCalledWith('g1', 'u9');
+      expect(repository.findGroupEvents).toHaveBeenCalledWith(
+        expect.objectContaining({ includeMembersOnly: true }),
+      );
+    },
+  );
+
+  it('a visitor does not, and no membership is looked up', async () => {
+    const { repository, service } = setup();
+
+    await service.getGroupEvents('g1', null, now);
+
+    expect(repository.findActiveGroupRole).not.toHaveBeenCalled();
+    expect(repository.findGroupEvents).toHaveBeenCalledWith(
+      expect.objectContaining({ includeMembersOnly: false }),
+    );
+  });
+});
+
 describe('EventsService.getMyEvents', () => {
   it('asks the repository for the tab of the signed-in user, with the limit', async () => {
     const repository = mock<EventRepository>();
@@ -896,7 +1169,11 @@ describe('EventsService.getMyEvents', () => {
     repository.findMyEvents.mockResolvedValue(events);
 
     await expect(
-      new EventsService(repository).getMyEvents('u1', 'attending', now),
+      new EventsService(repository, mock<NotificationService>()).getMyEvents(
+        'u1',
+        'attending',
+        now,
+      ),
     ).resolves.toEqual(events);
     expect(repository.findMyEvents).toHaveBeenCalledWith({
       tab: 'attending',
@@ -910,7 +1187,11 @@ describe('EventsService.getMyEvents', () => {
 describe('EventsService.decideRequests (#53)', () => {
   const setup = (
     detail: EventDetail = aDetail({ approvalMode: 'approval' }),
-  ): { repository: MockProxy<EventRepository>; service: EventsService } => {
+  ): {
+    repository: MockProxy<EventRepository>;
+    notifications: MockProxy<NotificationService>;
+    service: EventsService;
+  } => {
     const repository = mock<EventRepository>();
     repository.findEventDetail.mockResolvedValue(detail);
     repository.findApprovedParticipants.mockResolvedValue(participants);
@@ -927,7 +1208,12 @@ describe('EventsService.decideRequests (#53)', () => {
           requestStatuses: userIds.map(() => 'pending'),
         }),
     );
-    return { repository, service: new EventsService(repository) };
+    const notifications = mock<NotificationService>();
+    return {
+      repository,
+      notifications,
+      service: new EventsService(repository, notifications),
+    };
   };
 
   it('the organizer approves a request and gets the lists as they are now', async () => {
@@ -1031,5 +1317,386 @@ describe('EventsService.decideRequests (#53)', () => {
 
     expect(error).toBeInstanceOf(NotFoundException);
     expect(error.message).toBe('Akce neexistuje.');
+  });
+});
+
+describe('EventsService notifications (#177)', () => {
+  const startsAt = aDetail().startsAt;
+  const joinState = (approvalMode: 'open' | 'approval'): JoinState => ({
+    eventStatus: 'published',
+    startsAt,
+    approvalMode,
+    maxParticipants: 6,
+    isOrganizer: false,
+    existingStatus: null,
+    approvedCount: 2,
+  });
+
+  const setup = (
+    detail: EventDetail = aDetail(),
+  ): {
+    repository: MockProxy<EventRepository>;
+    notifications: MockProxy<NotificationService>;
+    service: EventsService;
+  } => {
+    const repository = mock<EventRepository>();
+    repository.findEventDetail.mockResolvedValue(detail);
+    repository.findApprovedParticipants.mockResolvedValue(participants);
+    repository.findParticipationStatus.mockResolvedValue(null);
+    repository.findPendingRequests.mockResolvedValue([]);
+    repository.catalogRefsExist.mockResolvedValue({
+      activity: true,
+      locality: true,
+    });
+    repository.cancelEvent.mockResolvedValue(true);
+    repository.leave.mockResolvedValue({ ok: true });
+    repository.join.mockImplementation(async (_e, _u, _m, decide) =>
+      decide(joinState('approval')),
+    );
+    repository.updateEvent.mockImplementation(async (_id, decide) =>
+      decide({
+        status: detail.status,
+        startsAt: detail.startsAt,
+        endsAt: detail.endsAt,
+        approvedCount: 2,
+        minParticipants: 3,
+        maxParticipants: 6,
+      }),
+    );
+    repository.decideRequests.mockImplementation(
+      async (_id, userIds, _outcome, decide) =>
+        decide({
+          eventStatus: 'published',
+          startsAt,
+          maxParticipants: 6,
+          approvedCount: 2,
+          requestStatuses: userIds.map(() => 'pending'),
+        }),
+    );
+    const notifications = mock<NotificationService>();
+    return {
+      repository,
+      notifications,
+      service: new EventsService(repository, notifications),
+    };
+  };
+
+  describe('cancelling', () => {
+    it('tells the participants once the cancel is written', async () => {
+      const { notifications, service } = setup();
+
+      await service.cancelEvent('e1', 'u1', 'Herna má zavřeno.', now);
+
+      expect(notifications.notify).toHaveBeenCalledTimes(1);
+      expect(notifications.notify).toHaveBeenCalledWith({
+        type: 'event-cancelled',
+        eventId: 'e1',
+      });
+    });
+
+    it('says nothing when it lost the write to another cancel, or was refused', async () => {
+      const lost = setup();
+      lost.repository.cancelEvent.mockResolvedValue(false);
+      lost.repository.findEventDetail
+        .mockResolvedValueOnce(aDetail())
+        .mockResolvedValue(aDetail({ status: 'cancelled' }));
+      await expect(
+        lost.service.cancelEvent('e1', 'u1', 'Druhý pokus', now),
+      ).rejects.toThrow(ConflictException);
+
+      const stranger = setup();
+      await expect(
+        stranger.service.cancelEvent('e1', 'u9', 'Nechci', now),
+      ).rejects.toThrow(ForbiddenException);
+
+      expect(lost.notifications.notify).not.toHaveBeenCalled();
+      expect(stranger.notifications.notify).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('changing the event', () => {
+    const changed = (overrides: Partial<EventDetail>): EventDetail =>
+      aDetail(overrides);
+
+    it('a new start tells the participants when it was and when it is', async () => {
+      const { repository, notifications, service } = setup();
+      const newStart = new Date('2026-10-25T16:00:00.000Z');
+      repository.findEventDetail
+        .mockResolvedValueOnce(aDetail())
+        .mockResolvedValue(changed({ startsAt: newStart }));
+
+      await service.updateEvent('e1', 'u1', { startsAt: newStart }, now);
+
+      expect(notifications.notify).toHaveBeenCalledWith({
+        type: 'event-changed',
+        eventId: 'e1',
+        change: {
+          when: {
+            from: { startsAt, endsAt: null },
+            to: { startsAt: newStart, endsAt: null },
+          },
+          place: null,
+        },
+      });
+    });
+
+    it('a new address tells them where it was and where it is', async () => {
+      const { repository, notifications, service } = setup();
+      repository.findEventDetail
+        .mockResolvedValueOnce(aDetail())
+        .mockResolvedValue(changed({ address: 'Kavárna Louvre, Praha 1' }));
+
+      await service.updateEvent(
+        'e1',
+        'u1',
+        { address: 'Kavárna Louvre, Praha 1' },
+        now,
+      );
+
+      expect(notifications.notify).toHaveBeenCalledWith({
+        type: 'event-changed',
+        eventId: 'e1',
+        change: {
+          when: null,
+          place: {
+            from: 'Herna Karlín, Křižíkova 52, Praha 8',
+            to: 'Kavárna Louvre, Praha 1',
+          },
+        },
+      });
+    });
+
+    it('a new title or a higher maximum is nobody’s news', async () => {
+      const { repository, notifications, service } = setup();
+      repository.findEventDetail
+        .mockResolvedValueOnce(aDetail())
+        .mockResolvedValue(changed({ title: 'Deskovky ve středu' }));
+
+      await service.updateEvent(
+        'e1',
+        'u1',
+        { title: 'Deskovky ve středu', maxParticipants: 8 },
+        now,
+      );
+
+      expect(notifications.notify).not.toHaveBeenCalled();
+    });
+
+    it('a refused change says nothing', async () => {
+      const { notifications, service } = setup(
+        aDetail({ status: 'cancelled' }),
+      );
+
+      await expect(
+        service.updateEvent('e1', 'u1', { title: 'Nový' }, now),
+      ).rejects.toThrow(ConflictException);
+
+      expect(notifications.notify).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('deciding requests', () => {
+    it('approving tells the applicants once each', async () => {
+      const { notifications, service } = setup();
+
+      await service.decideRequests(
+        'e1',
+        'u1',
+        ['u5', 'u6', 'u5'],
+        'approve',
+        now,
+      );
+
+      expect(notifications.notify).toHaveBeenCalledTimes(1);
+      expect(notifications.notify).toHaveBeenCalledWith({
+        type: 'request-decided',
+        eventId: 'e1',
+        userIds: ['u5', 'u6'],
+        outcome: 'approved',
+      });
+    });
+
+    it('rejecting tells them it was rejected', async () => {
+      const { notifications, service } = setup();
+
+      await service.decideRequests('e1', 'u1', ['u5'], 'reject', now);
+
+      expect(notifications.notify).toHaveBeenCalledWith({
+        type: 'request-decided',
+        eventId: 'e1',
+        userIds: ['u5'],
+        outcome: 'rejected',
+      });
+    });
+
+    it('a refused decision (a full event, someone else) says nothing', async () => {
+      const full = setup();
+      full.repository.decideRequests.mockResolvedValue({
+        ok: false,
+        refusal: 'EVENT_FULL',
+      });
+      await expect(
+        full.service.decideRequests('e1', 'u1', ['u5'], 'approve', now),
+      ).rejects.toThrow(ConflictException);
+
+      const stranger = setup();
+      await expect(
+        stranger.service.decideRequests('e1', 'u5', ['u5'], 'approve', now),
+      ).rejects.toThrow(ForbiddenException);
+
+      expect(full.notifications.notify).not.toHaveBeenCalled();
+      expect(stranger.notifications.notify).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('joining', () => {
+    it('a request tells the organizer, with what the applicant wrote', async () => {
+      const { notifications, service } = setup(
+        aDetail({ approvalMode: 'approval' }),
+      );
+
+      await service.join('e1', 'u9', 'Hraju rád a pozvu kamaráda.', now);
+
+      expect(notifications.notify).toHaveBeenCalledWith({
+        type: 'request-received',
+        eventId: 'e1',
+        applicantId: 'u9',
+        message: 'Hraju rád a pozvu kamaráda.',
+      });
+    });
+
+    it('joining at once has nobody to tell', async () => {
+      const { repository, notifications, service } = setup();
+      repository.join.mockImplementation(async (_e, _u, _m, decide) =>
+        decide(joinState('open')),
+      );
+
+      await service.join('e1', 'u9', null, now);
+
+      expect(notifications.notify).not.toHaveBeenCalled();
+    });
+
+    it('a refused request says nothing', async () => {
+      const { repository, notifications, service } = setup();
+      repository.join.mockResolvedValue({ ok: false, refusal: 'EVENT_FULL' });
+
+      await expect(service.join('e1', 'u9', null, now)).rejects.toThrow(
+        ConflictException,
+      );
+
+      expect(notifications.notify).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('leaving', () => {
+    // the repository decides under its row lock with the status it reads there
+    const leavingFrom = (
+      repository: ReturnType<typeof setup>['repository'],
+      existingStatus: 'approved' | 'pending',
+    ): void => {
+      repository.leave.mockImplementation((_eventId, _userId, decide) =>
+        Promise.resolve(
+          decide({
+            startsAt: new Date(now.getTime() + 86_400_000),
+            existingStatus,
+          }),
+        ),
+      );
+    };
+
+    it('a participant leaving tells the organizer', async () => {
+      const { repository, notifications, service } = setup();
+      leavingFrom(repository, 'approved');
+
+      await service.leave('e1', 'u9', now);
+
+      expect(notifications.notify).toHaveBeenCalledWith({
+        type: 'participant-left',
+        eventId: 'e1',
+        participantId: 'u9',
+      });
+    });
+
+    it('withdrawing a request tells nobody: it just leaves the list', async () => {
+      const { repository, notifications, service } = setup();
+      leavingFrom(repository, 'pending');
+
+      await service.leave('e1', 'u9', now);
+
+      expect(notifications.notify).not.toHaveBeenCalled();
+    });
+
+    it('a request approved just before leaving still tells the organizer', async () => {
+      const { repository, notifications, service } = setup();
+      // the detail read before the lock still says pending
+      repository.findParticipationStatus.mockResolvedValue('pending');
+      leavingFrom(repository, 'approved');
+
+      await service.leave('e1', 'u9', now);
+
+      expect(notifications.notify).toHaveBeenCalledWith(
+        expect.objectContaining({ type: 'participant-left' }),
+      );
+    });
+
+    it('leaving when not in says nothing', async () => {
+      const { repository, notifications, service } = setup();
+      repository.leave.mockResolvedValue({ ok: false, refusal: 'NOT_JOINED' });
+
+      await expect(service.leave('e1', 'u9', now)).rejects.toThrow(
+        ConflictException,
+      );
+
+      expect(notifications.notify).not.toHaveBeenCalled();
+    });
+  });
+
+  it('a mail that fails to go out never breaks what the user did', async () => {
+    const warned = jest.spyOn(Logger.prototype, 'warn').mockImplementation();
+    const repository = mock<EventRepository>();
+    repository.findEventDetail.mockResolvedValue(aDetail());
+    repository.findApprovedParticipants.mockResolvedValue(participants);
+    repository.findParticipationStatus.mockResolvedValue(null);
+    repository.cancelEvent.mockResolvedValue(true);
+    // the real service: the event and its audience load, the mail provider fails
+    const notificationRepository = mock<NotificationRepository>();
+    notificationRepository.findEvent.mockResolvedValue({
+      id: 'e1',
+      title: 'Deskovky ve středu',
+      startsAt: new Date('2026-11-11T17:00:00.000Z'),
+      endsAt: null,
+      address: 'Herna Karlín, Praha 8',
+      cancelReason: 'Herna má zavřeno.',
+      approvedCount: 2,
+      maxParticipants: 6,
+      organizerId: 'u1',
+    });
+    notificationRepository.findAudience.mockResolvedValue([
+      { id: 'u2', name: 'Jana', email: 'jana@example.com' },
+      { id: 'u3', name: 'Tomáš', email: 'tomas@example.com' },
+    ]);
+    const email = mock<EmailService>();
+    email.sendEmail.mockRejectedValue(new Error('smtp down'));
+    const notifications = new NotificationService(
+      notificationRepository,
+      email,
+      { frontendUrl: 'https://hobbyhub.example' } as Config,
+    );
+    const service = new EventsService(repository, notifications);
+
+    await expect(
+      service.cancelEvent('e1', 'u1', 'Herna má zavřeno.', now),
+    ).resolves.toMatchObject({ id: 'e1' });
+    // let the mails go out, and fail, after the response
+    for (let i = 0; i < 10 && email.sendEmail.mock.calls.length < 2; i++)
+      await new Promise((resolve) => setImmediate(resolve));
+    // one failed mail doesn't stop the next; each failure is logged, not thrown
+    expect(email.sendEmail.mock.calls.map(([to]) => to)).toEqual([
+      'jana@example.com',
+      'tomas@example.com',
+    ]);
+    await new Promise((resolve) => setImmediate(resolve));
+    expect(warned).toHaveBeenCalledTimes(2);
+    warned.mockRestore();
   });
 });

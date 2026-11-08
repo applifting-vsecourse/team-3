@@ -6,6 +6,7 @@ import { GroupModule } from './modules/group/group.module';
 import { HomeModule } from './modules/home/home.module';
 import { SignInProvidersModule } from './modules/sign-in-providers/sign-in-providers.module';
 import { SimulatedInboxModule } from './modules/simulated-inbox/simulated-inbox.module';
+import { UserModule } from './modules/user/user.module';
 import { WelcomeModule } from './modules/welcome/welcome.module';
 import { AuthModule } from './shared/auth/auth.module';
 import { Config } from './shared/config/config.service';
@@ -20,6 +21,7 @@ const imports = [
   HomeModule,
   SimulatedInboxModule,
   SignInProvidersModule,
+  UserModule,
 ];
 
 @Module({

@@ -161,12 +161,21 @@ describe("GroupMembershipAction", () => {
     expect(screen.getByRole("button", { name: "Odejít ze skupiny" })).toBeEnabled()
   })
 
-  it("an admin goes to the management", async () => {
+  it("an admin goes to the management, or creates an event of the group (#70)", async () => {
     await render(as({ role: "admin", status: "active" }))
     expect(screen.getByRole("link", { name: "Spravovat skupinu" })).toHaveAttribute(
       "href",
       "/skupiny/g-florbal/sprava",
     )
+    expect(screen.getByRole("link", { name: "Založit akci skupiny" })).toHaveAttribute(
+      "href",
+      "/skupiny/g-florbal/akce/nova",
+    )
+  })
+
+  it("a regular member is not offered to create the group's events", async () => {
+    await render(as({ role: "member", status: "active" }))
+    expect(screen.queryByRole("link", { name: "Založit akci skupiny" })).not.toBeInTheDocument()
   })
 
   it("a deactivated group says so and offers nothing (#54)", async () => {

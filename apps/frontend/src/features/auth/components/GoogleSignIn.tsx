@@ -10,10 +10,13 @@ import { Separator } from "@/components/ui/separator"
 import { signInProvidersQueryOptions } from "@/features/auth/api/signInProviders"
 import { GoogleMark } from "@/features/auth/components/GoogleMark"
 import { useGoogleSignIn } from "@/features/auth/hooks/useGoogleSignIn"
+import type { GooglePage } from "@/features/auth/lib/callback-url"
 
 type GoogleSignInProps = {
   /** The page to come back to once signed in (B-012), as on the form. */
   from?: string
+  /** The page it is on: Google's errors lead back there (#198). */
+  startedOn: GooglePage
 }
 
 /**
@@ -23,9 +26,9 @@ type GoogleSignInProps = {
  * Google can make a new account from either page, so both say what continuing
  * agrees to (#153's consent, its time stored by the server).
  */
-export function GoogleSignIn({ from }: GoogleSignInProps) {
+export function GoogleSignIn({ from, startedOn }: GoogleSignInProps) {
   const providers = useQuery(signInProvidersQueryOptions())
-  const googleSignIn = useGoogleSignIn()
+  const googleSignIn = useGoogleSignIn(startedOn)
 
   if (!providers.data?.google) return null
 

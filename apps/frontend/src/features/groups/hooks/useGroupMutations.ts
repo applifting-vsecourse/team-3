@@ -2,7 +2,12 @@ import { useMutation, useQueryClient } from "@tanstack/react-query"
 
 import { api } from "@/lib/api-client"
 
-import { groupDetailSchema, type GroupInput } from "@/features/groups/api/groupSchemas"
+import {
+  announcementSchema,
+  groupDetailSchema,
+  type AnnouncementInput,
+  type GroupInput,
+} from "@/features/groups/api/groupSchemas"
 import { groupKeys } from "@/features/groups/api/groupsQueryOptions"
 
 /** POST /api/groups; the signed-in founder becomes the group's admin. */
@@ -73,6 +78,39 @@ export const useDecideRequest = (groupId: string) =>
       api.post(`groups/${groupId}/requests/${userId}/${decision}`),
   )
 
-/** „Deaktivovat skupinu“ (B-051): only an admin; the group becomes read-only. */
-export const useDeactivateGroup = (groupId: string) =>
-  useMembershipMutation(groupId, () => api.post(`groups/${groupId}/deactivate`))
+/**
+ * „Deaktivovat skupinu“ (B-051): only an admin; the group becomes read-only
+ * and its upcoming events are cancelled (#70), so every event query goes
+ * stale too. `["events"]` is the events feature's `eventKeys.all()`, which a
+ * feature can't import from another.
+ */
+export function useDeactivateGroup(groupId: string) {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: () => api.post(`groups/${groupId}/deactivate`),
+    onSettled: () =>
+      Promise.all([
+        queryClient.invalidateQueries({ queryKey: groupKeys.detail(groupId) }),
+        queryClient.invalidateQueries({ queryKey: groupKeys.lists() }),
+        queryClient.invalidateQueries({ queryKey: ["events"] }),
+      ]),
+  })
+}
+
+/**
+ * „Napsat členům“ (#194, Figma D-08): only an admin; the members get it by
+ * e-mail. The group's announcements refetch, with what is left of today's limit.
+ */
+export function useSendAnnouncement(groupId: string) {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: async (input: AnnouncementInput) =>
+      announcementSchema.parse(
+        await api.post(`groups/${groupId}/announcements`, { json: input }).json(),
+      ),
+    onSettled: () =>
+      queryClient.invalidateQueries({
+        queryKey: [...groupKeys.detail(groupId), "announcements"],
+      }),
+  })
+}

@@ -4,6 +4,9 @@ import { Pencil } from "lucide-react"
 import { toast } from "sonner"
 
 import { BackLink } from "@/components/BackLink/BackLink"
+import { BandActivity } from "@/components/PageBand/BandActivity"
+import { PageBand } from "@/components/PageBand/PageBand"
+import { SubBar } from "@/components/PageBand/SubBar"
 import { Seo } from "@/components/Seo"
 import { Button } from "@/components/ui/button"
 import { DESKTOP_QUERY, useMediaQuery } from "@/hooks/useMediaQuery"
@@ -18,9 +21,10 @@ import { CatalogState } from "@/features/groups/components/CatalogState"
 import { DeactivateGroupButton } from "@/features/groups/components/DeactivateGroupButton"
 import { GroupCard } from "@/features/groups/components/GroupCard"
 import { GroupManagement } from "@/features/groups/components/GroupManagement"
-import { GroupFacts, GroupHeading } from "@/features/groups/components/GroupSummary"
+import { GroupFacts } from "@/features/groups/components/GroupSummary"
 import { InactiveGroupNotice } from "@/features/groups/components/InactiveGroupNotice"
-import { GROUP_TYPE_FOR_ADMIN } from "@/features/groups/lib/formatGroup"
+import { SendAnnouncementButton } from "@/features/groups/components/SendAnnouncementButton"
+import { GROUP_TYPE_FOR_ADMIN, groupBandLine } from "@/features/groups/lib/formatGroup"
 
 export const Route = createFileRoute("/_ProtectedPages/skupiny/$groupId/sprava")({
   component: ManageGroupPage,
@@ -30,6 +34,10 @@ export const Route = createFileRoute("/_ProtectedPages/skupiny/$groupId/sprava")
  * Figma D-07 (mobile) and D-07d (desktop), the admin's entry from the group
  * page: requests and members (#46), editing and deactivation (#54). A
  * deactivated group is read-only, so its management is closed.
+ *
+ * Desktop starts with the band, as the group page (A-08d): the activity, the name and one
+ * line ending „Spravuješ ty“. A phone has no band: the bar „Správa skupiny“, then the
+ * group's card (D-07).
  */
 function ManageGroupPage() {
   const { groupId } = Route.useParams()
@@ -43,6 +51,12 @@ function ManageGroupPage() {
   const isAdmin =
     group?.viewerMembership?.role === "admin" && group.viewerMembership.status === "active"
   const navigate = useNavigate()
+  const isManaging = group !== undefined && group.status !== "inactive" && isAdmin
+  const back = {
+    to: "/skupiny/$groupId",
+    params: { groupId },
+    fallbackLabel: "Stránka skupiny",
+  } as const
   const onDeactivated = () => {
     toast.success("Skupina je deaktivovaná")
     void navigate({ to: "/skupiny/$groupId", params: { groupId } })
@@ -51,13 +65,26 @@ function ManageGroupPage() {
   return (
     <>
       <Seo title="Správa skupiny" />
+      {isManaging ? (
+        isDesktop ? (
+          <PageBand
+            variant="detail"
+            back={back}
+            title={group.name}
+            eyebrow={<BandActivity activity={group.activity} />}
+            // Figma D-07d: „Neveřejná skupina · Praha 9 · 5 členů · Spravuješ ty“
+            description={`${groupBandLine(group)} · Spravuješ ty`}
+          />
+        ) : (
+          <SubBar
+            back={back}
+            label="Správa skupiny"
+            isHeading
+          />
+        )
+      ) : null}
       <div className={cn(PAGE, "gap-4")}>
-        <BackLink
-          to="/skupiny/$groupId"
-          params={{ groupId }}
-          fallbackLabel="Skupina"
-          label="Skupina"
-        />
+        {isManaging ? null : <BackLink {...back} />}
         {group?.status === "inactive" ? (
           <InactiveGroupNotice />
         ) : group && !isAdmin ? (
@@ -66,12 +93,19 @@ function ManageGroupPage() {
           // D-07d: the group's summary on the left, requests and members on the right
           <div className="grid grid-cols-[minmax(0,27.5rem)_minmax(0,1fr)] items-start gap-12">
             <section className="flex flex-col gap-5">
-              <GroupHeading group={group} />
               <GroupFacts
                 group={group}
                 typeLabels={GROUP_TYPE_FOR_ADMIN}
               />
               <div className="flex flex-wrap gap-2">
+                {/* Figma D-07d: „Napsat členům“ opens D-08d (#194) */}
+                {viewerId ? (
+                  <SendAnnouncementButton
+                    groupId={groupId}
+                    viewerId={viewerId}
+                    memberCount={group.memberCount}
+                  />
+                ) : null}
                 <EditButton groupId={groupId} />
                 <DeactivateGroupButton
                   groupId={groupId}
@@ -88,6 +122,7 @@ function ManageGroupPage() {
         ) : group ? (
           <ManageMobile
             group={group}
+            viewerId={viewerId}
             onDeactivated={onDeactivated}
           />
         ) : (
@@ -102,16 +137,32 @@ function ManageGroupPage() {
 }
 
 /** D-07: the group's card, requests and members, then the group's actions. */
-function ManageMobile({ group, onDeactivated }: { group: GroupDetail; onDeactivated: () => void }) {
+function ManageMobile({
+  group,
+  viewerId,
+  onDeactivated,
+}: {
+  group: GroupDetail
+  viewerId: string | null | undefined
+  onDeactivated: () => void
+}) {
   return (
     <>
-      <h1 className="text-3xl font-semibold tracking-tight">Správa skupiny</h1>
       <GroupCard group={group} />
       <GroupManagement
         groupId={group.id}
         isDesktop={false}
       />
       <div className="flex flex-col gap-2 py-4">
+        {/* Figma D-07: „Napsat členům“ opens D-08 (#194) */}
+        {viewerId ? (
+          <SendAnnouncementButton
+            groupId={group.id}
+            viewerId={viewerId}
+            memberCount={group.memberCount}
+            className="w-full"
+          />
+        ) : null}
         <EditButton
           groupId={group.id}
           className="w-full"

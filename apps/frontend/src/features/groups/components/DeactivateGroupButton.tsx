@@ -57,8 +57,9 @@ export function DeactivateGroupButton({
         <DialogHeader>
           <DialogTitle>Deaktivovat skupinu?</DialogTitle>
           <DialogDescription>
-            {groupName} zmizí z hledání a nikdo nový se do ní nepřidá. Skupina se nemaže, členové i
-            historie zůstanou.
+            {/* Figma D-07a; „a členům přijde e-mail“ waits for the e-mail service (#177) */}
+            {groupName} zmizí z hledání a nikdo nový se nepřidá. Nadcházející akce skupiny se zruší.
+            Členové i proběhlé akce zůstanou.
           </DialogDescription>
         </DialogHeader>
         <DialogFooter>

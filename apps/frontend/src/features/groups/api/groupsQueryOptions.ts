@@ -3,6 +3,7 @@ import { keepPreviousData, queryOptions, skipToken } from "@tanstack/react-query
 import { api } from "@/lib/api-client"
 
 import {
+  groupAnnouncementsSchema,
   groupDetailSchema,
   groupMembersSchema,
   groupsSchema,
@@ -19,6 +20,9 @@ export const groupKeys = {
   details: () => [...groupKeys.all(), "detail"] as const,
   detail: (id: string) => [...groupKeys.details(), id] as const,
   members: (id: string) => [...groupKeys.detail(id), "members"] as const,
+  // under detail(id): joining or leaving refreshes them with the group
+  announcements: (id: string, viewerId: string | null) =>
+    [...groupKeys.detail(id), "announcements", viewerId] as const,
 }
 
 // Repeated keys (activityId=a&activityId=b) — the API doesn't take activityId[].
@@ -73,4 +77,23 @@ export const myGroupsQueryOptions = (viewerId: string) =>
   queryOptions({
     queryKey: groupKeys.mine(viewerId),
     queryFn: async () => myGroupsSchema.parse(await api.get("me/groups").json()),
+  })
+
+/**
+ * The group's announcements (#194); the API answers 403 to anyone but an
+ * active member or admin, so the page asks only for them. The viewer is in
+ * the key: an admin's answer also carries what is left of today's limit.
+ */
+export const groupAnnouncementsQueryOptions = (
+  id: string,
+  viewerId: string | null | undefined,
+  { isEnabled = true } = {},
+) =>
+  queryOptions({
+    queryKey: groupKeys.announcements(id, viewerId ?? null),
+    queryFn:
+      isEnabled && viewerId
+        ? async () =>
+            groupAnnouncementsSchema.parse(await api.get(`groups/${id}/announcements`).json())
+        : skipToken,
   })

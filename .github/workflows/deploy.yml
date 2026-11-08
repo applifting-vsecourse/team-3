@@ -37,6 +37,15 @@ jobs:
           build-args: |
             CI_COMMIT_SHA=${{ github.sha }}
             SEED_DEMO_PASSWORD=${{ secrets.SEED_DEMO_PASSWORD }}
+            GOOGLE_CLIENT_ID=${{ secrets.GOOGLE_CLIENT_ID }}
+            GOOGLE_CLIENT_SECRET=${{ secrets.GOOGLE_CLIENT_SECRET }}
+            SMTP_USERNAME=${{ secrets.SMTP_USERNAME }}
+            SMTP_PASSWORD=${{ secrets.SMTP_PASSWORD }}
+            SMTP_HOST=${{ vars.SMTP_HOST }}
+            SMTP_PORT=${{ vars.SMTP_PORT || '465' }}
+            SMTP_SECURE=${{ vars.SMTP_SECURE || 'true' }}
+            EMAIL_FROM=${{ vars.EMAIL_FROM }}
+            SIMULATED_INBOX=${{ vars.SIMULATED_INBOX || 'true' }}
           tags: ${{ env.REGISTRY }}/${{ steps.slug.outputs.slug }}-backend:latest
       - name: Build & push frontend
         uses: docker/build-push-action@v6

@@ -3,6 +3,7 @@ import {
   pragueWeekendOf,
   startOfNextPragueDay,
   startOfPragueDay,
+  startOfPragueDayOf,
 } from './prague-day';
 
 describe('startOfPragueDay', () => {
@@ -103,5 +104,22 @@ describe('pragueWeekendOf', () => {
     ],
   ])('%s → %s to %s', (_, now, dateFrom, dateTo) => {
     expect(pragueWeekendOf(new Date(now))).toEqual({ dateFrom, dateTo });
+  });
+});
+
+describe('pragueDayOf / startOfPragueDayOf', () => {
+  it('after midnight in Prague it is already the next day, though UTC still says the old one', () => {
+    // 23:30 UTC on 7 Nov = 00:30 on 8 Nov in Prague (winter time)
+    const instant = new Date('2026-11-07T23:30:00.000Z');
+    expect(pragueDayOf(instant)).toBe('2026-11-08');
+    expect(startOfPragueDayOf(instant).toISOString()).toBe(
+      '2026-11-07T23:00:00.000Z',
+    );
+  });
+
+  it('in summer time the day starts two hours before UTC midnight', () => {
+    expect(
+      startOfPragueDayOf(new Date('2026-07-15T12:00:00.000Z')).toISOString(),
+    ).toBe('2026-07-14T22:00:00.000Z');
   });
 });

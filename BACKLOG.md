@@ -311,7 +311,7 @@ Prisma model `Event`:
 - `title`, `description?`, `activityId`, `startsAt`, `endsAt?`, `lat`, `lng`, `address`, `localityId`
 - `minParticipants`, `maxParticipants`, `price?` (Kč, celé číslo), `level?` (začátečník / pokročilý / všichni), `equipment?`
 - `approvalMode` (`open` výchozí / `approval`), `visibility` (`public` / `private` / `members`)
-- `organizerUserId` (zakladatel), `groupId?` (akce skupiny – doplní B-055)
+- `organizerUserId` (zakladatel), `groupId?` (akce skupiny, B-055)
 - `status` (`published` / `cancelled` / `hidden` / `deleted`), `cancelReason?`, `cancelledAt?`
 - `promotedUntil?` (topování, B-073)
 
@@ -440,7 +440,7 @@ Doménová logika (čistá funkce + testy): `approvedCount`, `missingToMin = max
 
 `US-03` · FS · M · závisí na: B-023
 
-- `GET /api/events/:id` bez přihlášení. Vrací i soukromé akce (soukromá = dostupná přes odkaz). Members-only akce (rozhodnuto 4. 11., upřesněno v review #215): nepřihlášenému vrací 401 `UNAUTHENTICATED` a FE ho pošle na přihlášení s návratem na akci (B-012); přihlášenému nečlenovi 403 `MEMBERS_ONLY` jen s `groupId` – žádný údaj o akci (název, čas, místo, účastníci) ani o skupině navíc; FE si skupinu načte z `GET /api/groups/:id` (B-052, ten je veřejný) a ukáže stránku s cestou do skupiny (A-05i). Zrušenou akci vrací se štítkem a důvodem; `hidden`/`deleted` vrací 404. Swagger v `events.controller.ts` dnes u members-only uvádí 404 – změní se na 401 a 403.
+- `GET /api/events/:id` bez přihlášení. Vrací i soukromé akce (soukromá = dostupná přes odkaz). Members-only akce (rozhodnuto 4. 11., upřesněno v review #215): nepřihlášenému vrací 401 `UNAUTHENTICATED` a FE ho pošle na přihlášení s návratem na akci (B-012); přihlášenému nečlenovi 403 `MEMBERS_ONLY` jen s `groupId` – žádný údaj o akci (název, čas, místo, účastníci) ani o skupině navíc; FE si skupinu načte z `GET /api/groups/:id` (B-052, ten je veřejný) a ukáže stránku s cestou do skupiny (A-05i). Zrušenou akci vrací se štítkem a důvodem; `hidden`/`deleted` vrací 404. Totéž 403 vrací i přihlášení, odhlášení a správa akce, které detail načítají nejdřív (Swagger v `events.controller.ts`, #70).
 - Proč 403 s `groupId` a ne 404 (review #215): odkaz na akci jen pro členy pošle nečlenovi člen skupiny, a 404 by z něj udělal slepou uličku bez cesty do skupiny (A-05i). Prozradí se jen to, že akce s tímhle `id` existuje a která skupina ji pořádá. `id` je `cuid`, takže akce nejde hádat ani procházet, a skupina je veřejná (stránka skupiny i `GET /api/groups/:id` bez přihlášení). Nepřihlášený nedostane ani `groupId`. Bezpečnostní audit (#172, PR #223) tenhle případ neřeší; kdyby nález přibyl, platí audit.
 - „Kdo jde“ bez jmen (Figma A-05, A-05a–c; review #215): kdo jména nevidí, dostane sekci „Kdo jde · N z M“ jen s počtem a jednou větou, kdy jména uvidí – „Jména uvidíš, až budeš na akci.“, u čekající žádosti „Jména uvidíš, až tě organizátor schválí.“ Bez seznamu jmen a avatarů. Mění test v `EventDetailView.test.tsx`, který dnes hlídá, že se sekce neukáže (#195).
 - Jména přihlášených (`participants`) vrací API jen organizátorovi, uživateli se schválenou účastí a u akce skupiny aktivním členům a správcům skupiny (PO 28. 10., #174). Rozhoduje server podle session, nikdy podle požadavku. Ostatní dostanou `participants: null` a vidí jen obsazenost („Chybí ještě X“ / „N volných míst“ / „Plno“): návštěvník, přihlášený bez účasti, čekající žadatel, kdo se odhlásil nebo byl odebrán či zamítnut, a čekající nebo zablokovaný člen skupiny. Sekce „Kdo jde“ jim ukáže jen počet a větu, kdy jména uvidí (níž).
@@ -480,7 +480,7 @@ Doménová logika (čistá funkce + testy): `approvedCount`, `missingToMin = max
 
 `US-13` · FS · M · závisí na: B-022, B-026
 
-- `PATCH /api/events/:id` jen pro organizátora (u akce skupiny pro správce – doplní B-055) a jen do začátku akce. Maximum nejde snížit pod počet schválených.
+- `PATCH /api/events/:id` jen pro organizátora, u akce skupiny i pro jejího správce (`canManageEvent`, B-055) a jen do začátku akce. Maximum nejde snížit pod počet schválených.
 - `POST /api/events/:id/cancel` s povinným důvodem → `status = cancelled`. Akce zmizí z výpisu, přes odkaz má štítek „Zrušeno“.
 - Aplikace akci sama neruší ani při nenaplnění minima.
 - Změna termínu nebo místa a zrušení vyvolá doménovou událost pro e-maily (odesílání doplní B-041).
@@ -551,7 +551,7 @@ Doménová logika (čistá funkce + testy): `approvedCount`, `missingToMin = max
 - `GET /api/events/:id/participants` – organizátor vidí čekající (s profilem a zprávou) a schválené.
 - `POST /api/events/:id/participants/approve` a `/reject` s polem `userIds[]` (jednotlivě i hromadně). Schválit nad kapacitu nejde – celé hromadné schválení selže s `EVENT_FULL`, nic se nezmění.
 - `POST /api/events/:id/participants/:userId/remove` → `removed`.
-- Oprávnění: organizátor akce (správci skupiny doplní B-055).
+- Oprávnění: organizátor akce, u akce skupiny i její správci (`canManageEvent`, B-055).
 
 **Hotovo, když:**
 
@@ -662,7 +662,7 @@ Doménová logika (čistá funkce + testy): `approvedCount`, `missingToMin = max
 
 - `POST /api/groups` (`VerifiedUserGuard`), zakladatel se stane správcem. `PATCH` a `POST /:id/deactivate` jen správce.
 - Skupina se nemaže ani neruší, jen **deaktivuje** (PO 19. 10.; v UI „Deaktivovat skupinu“, ne „Zrušit“, aby se to nepletlo se zrušením akce): `status = inactive`, `deactivatedAt`, skupina zmizí z hledání, nejde se do ní přidat, stránka skupiny ukazuje „Skupina už není aktivní“. Všem aktivním členům kromě správce, který deaktivoval, přijde e-mail „Skupina už není aktivní“ (E-01 typ 10); přihlášení na zrušené veřejné akce skupiny, kteří nejsou členy, dostanou e-mail o zrušení akce.
-- Nadcházející akce skupiny se zruší s důvodem „Skupina už není aktivní“, proběhlé zůstanou v historii. Akce skupin přibudou až s B-055, zrušení akcí doplní B-055.
+- Nadcházející akce skupiny se zruší s důvodem „Skupina už není aktivní“, proběhlé zůstanou v historii. Zrušení je ve stejné transakci jako deaktivace (B-055, #70).
 - FE: formulář `/skupiny/nova`, úprava a deaktivace v dialogu s potvrzením (tlačítko `destructive`).
 
 **Hotovo, když:**
@@ -691,6 +691,7 @@ Doménová logika (čistá funkce + testy): `approvedCount`, `missingToMin = max
 - Správce: odebrat člena, zablokovat (blokovaný nevidí akce skupiny a nemůže se znovu přidat).
 - Člen: `POST /:id/leave` kdykoli (poslední správce nejdřív musí jmenovat jiného, viz B-054).
 - FE: tlačítka na stránce skupiny, záložka **Členové** a **Žádosti** pro správce.
+- **Oznámení členům (#194, vzor B-042):** `GET/POST /api/groups/:id/announcements`. Poslat smí jen správce aktivní skupiny, nejvýš 10 oznámení na skupinu za pražský kalendářní den (Figma D-08) (`429 ANNOUNCEMENT_LIMIT`, kontrola pod zámkem řádku skupiny). E-mail dostanou všichni aktivní členové včetně správců i autora (Figma D-08: „všem N aktivním členům“). Číst je smí jen aktivní členové a správci (`403 NOT_GROUP_MEMBER`), u deaktivované skupiny zůstanou ke čtení. FE: „Napsat členům“ ve správě (D-08), sekce „Oznámení“ na stránce skupiny (A-08e).
 
 **Hotovo, když:**
 

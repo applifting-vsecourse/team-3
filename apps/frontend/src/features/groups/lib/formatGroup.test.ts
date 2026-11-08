@@ -1,10 +1,14 @@
 import { describe, expect, it } from "vitest"
 
 import {
+  announcementRecipientsLabel,
+  formatAnnouncementTime,
+  groupBandLine,
   groupCountLabel,
   groupFacts,
   memberCountLabel,
   myGroupTypeLabel,
+  remainingAnnouncementsLabel,
   showGroupsLabel,
 } from "./formatGroup"
 
@@ -59,5 +63,49 @@ describe("myGroupTypeLabel", () => {
       "Neveřejná – žádost čeká na schválení",
     )
     expect(myGroupTypeLabel({ type: "public", membership: { status: "active" } })).toBe("Veřejná")
+  })
+})
+
+describe("announcements (#194)", () => {
+  it("the time is Prague time: 23:30 UTC in winter is already the next day", () => {
+    expect(formatAnnouncementTime(new Date("2026-10-22T18:10:00.000Z"))).toBe("čt 22. 10. v 20:10")
+    expect(formatAnnouncementTime(new Date("2026-11-07T23:30:00.000Z"))).toBe("ne 8. 11. v 0:30")
+  })
+
+  it.each([
+    // only the admin: nobody else to write to
+    [
+      1,
+      "Ve skupině zatím nikdo další není. E-mail přijde jen tobě a oznámení zůstane na stránce skupiny pro nové členy.",
+    ],
+    [
+      2,
+      "Oznámení přijde e-mailem všem 2 aktivním členům a uvidí ho na stránce skupiny. Čekající žadatelé ho nedostanou.",
+    ],
+    [
+      5,
+      "Oznámení přijde e-mailem všem 5 aktivním členům a uvidí ho na stránce skupiny. Čekající žadatelé ho nedostanou.",
+    ],
+  ])("%i active members, the admin included: %s", (count, label) => {
+    expect(announcementRecipientsLabel(count)).toBe(label)
+  })
+
+  it("says what is left of today's limit, and when nothing is", () => {
+    expect(remainingAnnouncementsLabel(3)).toBe("Dnes můžeš skupině poslat ještě 3 oznámení.")
+    expect(remainingAnnouncementsLabel(1)).toBe("Dnes můžeš skupině poslat ještě 1 oznámení.")
+    expect(remainingAnnouncementsLabel(0)).toBe(
+      "Dnes už skupině další oznámení poslat nemůžeš. Zkus to zítra.",
+    )
+  })
+})
+
+describe("groupBandLine (Figma A-08d)", () => {
+  it("type, locality and members", () => {
+    expect(groupBandLine({ type: "closed", locality: { name: "Praha 2" }, memberCount: 5 })).toBe(
+      "Neveřejná skupina · Praha 2 · 5 členů",
+    )
+    expect(groupBandLine({ type: "public", locality: { name: "Brno" }, memberCount: 1 })).toBe(
+      "Veřejná skupina · Brno · 1 člen",
+    )
   })
 })

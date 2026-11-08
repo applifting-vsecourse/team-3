@@ -133,7 +133,7 @@ Z kódu nejde zjistit a tým nemá přístup do Coolify. Ověří to Tomáš Kl�
 ## Co je v pořádku
 
 - **Oprávnění:** všechny controllery prošly kontrolou. Uživatel se bere ze session a akce i skupiny hlídají organizátora a správce.
-- **Osobní údaje:** API o lidech vrací jen `id` a jméno, e-mail vidí jen jeho majitel. Zprávu k žádosti (#243) vidí jen organizátor akce nebo správci skupiny, a jen dokud žádost čeká.
+- **Osobní údaje:** API o lidech vrací jen `id` a jméno, e-mail vidí jen jeho majitel. Zprávu k žádosti (#243) vidí v aplikaci jen organizátor akce nebo správci skupiny, a jen dokud žádost čeká. Organizátorovi akce ji navíc pošle e-mail o nové žádosti (#177), takže mu ve schránce zůstane i po rozhodnutí. Dokud na stagingu neposílá e-maily SMTP (#165), zapisuje se u každého upozornění do logu adresa příjemce a předmět s názvem akce (N-6). U oznámení skupiny (#194) je v předmětu i text, který napsal správce („{skupina}: {předmět}“), takže do logu jde u každého příjemce volný text od uživatele.
 - **Vstupy:** DTO odmítají neznámá pole a seznamy mají strop. Raw SQL je parametrizované.
 - **Přihlášení:** platnost tokenů, ochranu přihlášení limitem a kontrolu uniklých hesel agent v kódu našel.
 - **XSS a přesměrování:** aplikace nepoužívá `dangerouslySetInnerHTML` a návratové adresy prochází přes `safeRedirect`.
