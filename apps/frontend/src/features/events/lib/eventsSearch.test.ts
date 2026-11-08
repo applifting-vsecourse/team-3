@@ -5,9 +5,13 @@ import type { ActivityCategory, Locality } from "@/lib/catalog/catalogSchemas"
 import { toSearchParams } from "@/features/events/api/eventsQueryOptions"
 
 import {
+  changesPick,
   effectiveSort,
   eventsSearchSchema,
   hasActiveFilters,
+  hasFiltersBeyondPick,
+  isAllEvents,
+  pickSearch,
   toEventFilters,
   toMapArea,
   toOblast,
@@ -245,5 +249,56 @@ describe("search, okolí and order (#57)", () => {
     expect(hasActiveFilters({ q: "kviz" })).toBe(true)
     expect(hasActiveFilters({ okoli: "10" })).toBe(true)
     expect(hasActiveFilters({ razeni: "vzdalenost" })).toBe(false)
+  })
+})
+
+describe("quick picks (#250)", () => {
+  // Wednesday 11. 11. 2026: the weekend is 14.–15. 11.
+  const now = new Date("2026-11-11T10:00:00.000Z")
+
+  it("a tab keeps the locality and okolí and sets its own filters", () => {
+    const search = { lokalita: "praha-8", okoli: "25" as const, q: "kviz", kategorie: "hry" }
+    expect(pickSearch("tento-vikend", search, now)).toEqual({
+      lokalita: "praha-8",
+      okoli: "25",
+      od: "2026-11-14",
+      do: "2026-11-15",
+      vyber: "tento-vikend",
+    })
+    expect(pickSearch("tady-chybis", { lokalita: "praha-8" }, now)).toMatchObject({
+      obsazenost: "chybi",
+      okoli: "10",
+      vyber: "tady-chybis",
+    })
+    expect(pickSearch(undefined, search, now)).toEqual({ lokalita: "praha-8", okoli: "25" })
+  })
+
+  it("changing a filter the pick set leaves the pick, another filter keeps it", () => {
+    const search = pickSearch("tady-chybis", { lokalita: "praha-8" }, now)
+    expect(changesPick(search, { obsazenost: undefined }, now)).toBe(true)
+    expect(changesPick(search, { okoli: "50" }, now)).toBe(true)
+    expect(changesPick(search, { kategorie: "hry" }, now)).toBe(false)
+    expect(changesPick(search, { lokalita: "brno" }, now)).toBe(false)
+  })
+
+  it("„Zrušit vše“ only for a filter beyond the pick", () => {
+    const search = pickSearch("tento-vikend", { lokalita: "praha-8" }, now)
+    expect(hasFiltersBeyondPick(search, now)).toBe(false)
+    expect(hasFiltersBeyondPick({ ...search, aktivita: "volejbal" }, now)).toBe(true)
+  })
+
+  it("„Všechny akce“ is active with just the locality and okolí", () => {
+    expect(isAllEvents({ lokalita: "praha-8", okoli: "10" })).toBe(true)
+    expect(isAllEvents({ lokalita: "praha-8", q: "kviz" })).toBe(false)
+    expect(isAllEvents({ vyber: "tento-vikend" })).toBe(false)
+  })
+
+  it("asks for the personal parts of a pick", () => {
+    expect(toEventFilters({ vyber: "tady-chybis" }, catalog)).toMatchObject({
+      interests: true,
+      notJoined: true,
+    })
+    expect(toEventFilters({ vyber: "od-hodnocenych" }, catalog)).toMatchObject({ wellRated: true })
+    expect(toEventFilters({ vyber: "tento-vikend" }, catalog).interests).toBeUndefined()
   })
 })

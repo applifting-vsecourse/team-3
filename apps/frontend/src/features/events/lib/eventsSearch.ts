@@ -10,6 +10,7 @@ import {
 import { ALL_LOCALITIES_SLUG } from "@/lib/catalog/localityOptions"
 
 import type { EventFilters } from "@/features/events/api/eventSchemas"
+import { isoDay, weekendDays } from "@/features/events/lib/homeCopy"
 
 const DAY = /^\d{4}-\d{2}-\d{2}$/
 // ?oblast=west,south,east,north — the map's area after „Hledat v této oblasti“ (#56).
@@ -25,6 +26,19 @@ const CAPACITY_OF = { volna: "free", chybi: "missing" } as const
 /** ?okoli= km around the chosen locality's centre (#57, Figma A-02gd); none = just the locality. */
 export const RADII = ["10", "25", "50"] as const
 export type Radius = (typeof RADII)[number]
+
+/**
+ * ?vyber= — the quick picks in the band of /akce (#250, Figma A-02d; DESIGN.md › Quick picks).
+ * None is „Všechny akce“: the locality, with okolí when it is on.
+ */
+export const PICKS = [
+  "tady-chybis",
+  "tento-vikend",
+  "podle-zajmu",
+  "kousek-od-tebe",
+  "od-hodnocenych",
+] as const
+export type QuickPick = (typeof PICKS)[number]
 
 /** ?razeni= (#57, Figma A-02j); without it soonest first, or nearest first with okolí. */
 export const SORTS = ["termin", "vzdalenost"] as const
@@ -59,6 +73,7 @@ export const eventsSearchSchema = z.object({
     .catch(undefined),
   okoli: z.enum(RADII).optional().catch(undefined),
   razeni: z.enum(SORTS).optional().catch(undefined),
+  vyber: z.enum(PICKS).optional().catch(undefined),
 })
 
 export type EventsSearch = z.infer<typeof eventsSearchSchema>
@@ -99,7 +114,100 @@ export function toEventFilters(search: EventsSearch, catalog: Catalog): EventFil
     ...(center && (radiusKm || sort === "vzdalenost") ? { lat: center.lat, lng: center.lng } : {}),
     radiusKm,
     sort: sort === "vzdalenost" ? "distance" : undefined,
+    ...(search.vyber ? PICK_FLAGS[search.vyber] : {}),
   }
+}
+
+/** What a pick asks GET /api/home/events for besides the filters (#250). */
+const PICK_FLAGS: Record<
+  QuickPick,
+  Partial<Record<"interests" | "wellRated" | "notJoined", true>>
+> = {
+  // Figma A-02d: chybí lidé + okolí + Moje zájmy, without events one already goes to
+  "tady-chybis": { interests: true, notJoined: true },
+  "tento-vikend": {},
+  "podle-zajmu": { interests: true },
+  "kousek-od-tebe": {},
+  "od-hodnocenych": { wellRated: true },
+}
+
+// okolí a pick turns on when none is (Figma A-02gd: „Praha 8 · +10 km“)
+const DEFAULT_RADIUS: Radius = "10"
+
+/**
+ * The filters a pick sets (Figma A-02d: „Výběr jen nastaví stávající filtry“); its personal
+ * parts come with `vyber` itself. `okoli` keeps the one already on.
+ */
+export function pickPreset(
+  pick: QuickPick,
+  okoli: Radius | undefined,
+  now: Date,
+): Partial<EventsSearch> {
+  switch (pick) {
+    case "tady-chybis":
+      return { obsazenost: "chybi", okoli: okoli ?? DEFAULT_RADIUS }
+    case "tento-vikend": {
+      const { from, to } = weekendDays(now)
+      return { od: isoDay(from), do: isoDay(to) }
+    }
+    case "kousek-od-tebe":
+      return { okoli: okoli ?? DEFAULT_RADIUS }
+    case "podle-zajmu":
+    case "od-hodnocenych":
+      return {}
+  }
+}
+
+const PICK_FILTER_KEYS = [
+  "od",
+  "do",
+  "kategorie",
+  "aktivita",
+  "obsazenost",
+  "oblast",
+  "q",
+  "okoli",
+] as const
+
+/**
+ * The URL a pick leads to: the locality and okolí stay, the other filters give way to the
+ * pick's. Without a pick „Všechny akce“.
+ */
+export function pickSearch(
+  pick: QuickPick | undefined,
+  search: EventsSearch,
+  now: Date,
+): EventsSearch {
+  const base = { lokalita: search.lokalita, okoli: search.okoli }
+  return pick ? { ...base, ...pickPreset(pick, search.okoli, now), vyber: pick } : base
+}
+
+/** Whether a change touches what the pick set; then the pick no longer holds (Figma A-02d). */
+export function changesPick(
+  search: EventsSearch,
+  patch: Partial<EventsSearch>,
+  now: Date,
+): boolean {
+  if (!search.vyber) return false
+  const preset = pickPreset(search.vyber, search.okoli, now)
+  return Object.keys(patch).some(
+    (key) =>
+      key in preset && patch[key as keyof EventsSearch] !== preset[key as keyof EventsSearch],
+  )
+}
+
+/**
+ * „Všechny akce“ is the active tab: no pick and no filter but the locality and its okolí,
+ * which hold for every tab (team 4. 11.).
+ */
+export const isAllEvents = (search: EventsSearch): boolean =>
+  !search.vyber && PICK_FILTER_KEYS.every((key) => key === "okoli" || search[key] === undefined)
+
+/** Filters set by hand beyond the pick's: then „Zrušit vše“ has something to clear (#250). */
+export function hasFiltersBeyondPick(search: EventsSearch, now: Date): boolean {
+  if (!search.vyber) return hasActiveFilters(search)
+  const preset = pickPreset(search.vyber, search.okoli, now)
+  return PICK_FILTER_KEYS.some((key) => search[key] !== undefined && search[key] !== preset[key])
 }
 
 /**

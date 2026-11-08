@@ -193,4 +193,13 @@ export type EventFilters = {
   radiusKm?: number
   /** Nearest to lat,lng first (#57); soonest first without it. */
   sort?: "distance"
+  /**
+   * The quick picks' personal parts (#250), decided from the session by GET /api/home/events:
+   * the activities of one's interests, well rated organizers, no events one already goes to.
+   */
+  interests?: boolean
+  wellRated?: boolean
+  notJoined?: boolean
+  /** Not sent: the personal parts differ per user, so the cache keeps them apart. */
+  viewerId?: string | null
 }

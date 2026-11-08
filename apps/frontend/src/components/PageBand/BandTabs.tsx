@@ -29,7 +29,7 @@ export function BandTabs({ className, ...props }: ComponentProps<typeof TabsList
 
 type BandTabsItemProps = ComponentProps<typeof TabsTrigger> & {
   /** The number in the pill; left out while it is not known. */
-  count?: number
+  count?: number | string
   /**
    * `page`: the same tabs on the page's background (Figma Tab/Rychlý výběr, Pozadí=Světlé —
    * „Pro tebe“ on the landing page, A-01p): the active one with a `foreground` underline.
