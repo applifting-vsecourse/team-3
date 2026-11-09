@@ -6,11 +6,15 @@ updates:
       interval: weekly
     # Security fixes open their own PRs; routine bumps are grouped to keep the board readable.
     groups:
-      # NestJS packages only work on the same major, so they move together, majors included.
+      # NestJS packages only work on the same major, so their minor and patch updates move together.
       nestjs:
         patterns: ['@nestjs/*']
       minor-and-patch:
         update-types: [minor, patch]
+    # NestJS 12 needs the backend on ESM (Jest cannot require it) — a planned migration, not a bump.
+    ignore:
+      - dependency-name: '@nestjs/*'
+        update-types: [version-update:semver-major]
     open-pull-requests-limit: 5
 
   - package-ecosystem: docker
