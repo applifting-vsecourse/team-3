@@ -46,7 +46,7 @@ describe("GroupList", () => {
       "/skupiny/g1",
     )
     expect(screen.getByText("Florbal · Praha 9 · 8 členů")).toBeInTheDocument()
-    expect(screen.getByText("Veřejná")).toBeInTheDocument()
+    expect(screen.getByText("Veřejná – přidáš se rovnou")).toBeInTheDocument()
     expect(screen.getByText("Neveřejná – žádost o členství")).toBeInTheDocument()
   })
 

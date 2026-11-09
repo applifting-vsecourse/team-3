@@ -27,7 +27,7 @@ export function showGroupsLabel(count: number | undefined): string {
 
 /** On a card (Figma: Group card/List). */
 export const GROUP_TYPE_SHORT: Record<GroupType, string> = {
-  public: "Veřejná",
+  public: "Veřejná – přidáš se rovnou",
   closed: "Neveřejná – žádost o členství",
 }
 
