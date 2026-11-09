@@ -18,8 +18,9 @@ export function BandTabs({ className, ...props }: ComponentProps<typeof TabsList
         // tabs and their lime underline. So the height is replaced with the same variant.
         "group-data-[orientation=horizontal]/tabs:h-auto",
         // the scroll strip reaches the screen edge on a phone (-mx-4 px-4), like Figma A-02; it
-        // scrolls sideways only, without a visible scrollbar (like the filter chips)
-        "-mx-4 h-auto w-auto max-w-none [scrollbar-width:none] justify-start gap-6 overflow-x-auto overflow-y-hidden rounded-none p-0 px-4 md:mx-0 md:gap-7 md:px-0 [&::-webkit-scrollbar]:hidden",
+        // scrolls sideways only, without a visible scrollbar (like the filter chips); on desktop
+        // 4 px either side for the focus frame of the first and last tab
+        "-mx-4 h-auto w-auto max-w-none [scrollbar-width:none] justify-start gap-6 overflow-x-auto overflow-y-hidden rounded-none p-0 px-4 md:-mx-1 md:gap-7 md:px-1 [&::-webkit-scrollbar]:hidden",
         className,
       )}
       {...props}
@@ -50,11 +51,12 @@ export function BandTabsItem({
       className={cn(
         // the kit's line indicator and shadow are not used; it sits 5 px below the tab and made
         // the strip scroll, so it is hidden too
-        "group/tab h-auto flex-none gap-1.5 rounded-none border-0 border-b-3 border-transparent pt-3 pb-2.5 text-body after:hidden",
-        // the focus ring drawn inside the tab: the strip scrolls sideways, so the kit's ring
-        // outside it lost its top and bottom and only two lines at the sides were left; px-1
-        // keeps the text off it, -mx-1 keeps the tabs where they were
-        "-mx-1 px-1 focus-visible:ring-0 focus-visible:outline-2 focus-visible:-outline-offset-2",
+        "group/tab h-auto flex-none gap-1.5 rounded-none border-0 border-b-3 border-transparent px-0 pt-3 pb-2.5 text-body after:hidden",
+        // The focus ring as a frame 4 px into the gap beside the tab, as tall as the tab: the
+        // strip scrolls sideways and the band clips, so the kit's ring outside the tab lost its
+        // top and bottom and only two lines at the sides were left. Not padding: the lime
+        // underline is the tab's border and would grow wider than the text.
+        "before:pointer-events-none before:absolute before:-inset-x-1 before:inset-y-0 before:rounded-sm before:border-2 before:border-ring before:opacity-0 focus-visible:ring-0 focus-visible:outline-none focus-visible:before:opacity-100",
         isOnPage
           ? // like the band: inactive medium, the pill follows the state
             "font-medium text-muted-foreground hover:text-foreground data-[state=active]:border-foreground data-[state=active]:font-semibold data-[state=active]:text-foreground"

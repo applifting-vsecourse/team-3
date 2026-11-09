@@ -55,7 +55,7 @@ describe("BandTabs", () => {
     expect(screen.getByRole("tab", { name: "Moje" })).toHaveClass("after:hidden")
   })
 
-  it("draws the focus ring inside the tab, where the scroll strip doesn't clip it", () => {
+  it("draws the focus ring as a frame the scroll strip doesn't clip, the underline as wide as the text", () => {
     render(
       <Tabs value="moje">
         <BandTabs>
@@ -66,7 +66,13 @@ describe("BandTabs", () => {
 
     // outside the tab only its sides survived the strip's overflow: two lines, no ring
     const tab = screen.getByRole("tab", { name: "Moje" })
-    expect(tab).toHaveClass("focus-visible:-outline-offset-2", "focus-visible:ring-0")
+    expect(tab).toHaveClass(
+      "before:inset-y-0",
+      "before:border-ring",
+      "focus-visible:before:opacity-100",
+    )
     expect(tab).not.toHaveClass("focus-visible:ring-[3px]")
+    // padding would widen the lime underline, which is the tab's border
+    expect(tab).toHaveClass("px-0")
   })
 })
