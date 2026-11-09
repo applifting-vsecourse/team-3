@@ -36,12 +36,16 @@ Secrets i variables jsou v repu na GitHubu v **Settings → Secrets and variable
 
 3. **Variables** (netajné):
 
-   | Název        | Hodnota                                                                      |
-   | ------------ | ---------------------------------------------------------------------------- |
-   | `SMTP_HOST`  | `smtp.gmail.com`                                                             |
-   | `EMAIL_FROM` | volitelné, např. `HobbyHub <adresa Gmailu>`; bez něj odesílá `SMTP_USERNAME` |
+   | Název         | Hodnota                                                                      |
+   | ------------- | ---------------------------------------------------------------------------- |
+   | `SMTP_HOST`   | `smtp.gmail.com`                                                             |
+   | `EMAIL_FROM`  | volitelné, např. `HobbyHub <adresa Gmailu>`; bez něj odesílá `SMTP_USERNAME` |
+   | `SMTP_PORT`   | `587`                                                                        |
+   | `SMTP_SECURE` | `false`                                                                      |
 
-   `SMTP_PORT` (465) a `SMTP_SECURE` (true) mají výchozí hodnoty, není potřeba je zadávat.
+   Port 465 (výchozí) je ze stagingu blokovaný, spojení skončí `Connection timeout`. Na 587 se spojení po připojení přepne na TLS (STARTTLS), `SMTP_SECURE=false` tedy neznamená nešifrovaně.
+
+   Heslo aplikace Google nenabídne, když je dvoufázové ověření jen přes passkey (přidat telefon nebo Authenticator), a u čerstvě založeného účtu někdy až po čase.
 
 4. **Run workflow**, pak ověřit: registrace s vlastním e-mailem → ověřovací e-mail přijde do schránky (zkontrolovat i spam).
 
