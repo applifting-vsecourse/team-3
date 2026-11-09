@@ -1,4 +1,5 @@
 import {
+  groupRatingSummary,
   OrganizerRatingRow,
   organizerRatingSummary,
   participantRatingSummary,
@@ -98,5 +99,39 @@ describe('participantRatingSummary (#180)', () => {
         { stars: 1, deletedAt },
       ]),
     ).toEqual({ average: 4, count: 1 });
+  });
+});
+
+describe('groupRatingSummary', () => {
+  const row = (
+    organizerStars: number,
+    groupId: string | null,
+    deleted = false,
+  ): OrganizerRatingRow => ({
+    organizerStars,
+    deletedAt: deleted ? deletedAt : null,
+    event: { groupId },
+  });
+
+  it("counts only the group's events, without deleted ratings", () => {
+    expect(
+      groupRatingSummary(
+        [
+          row(5, 'g1'),
+          row(4, 'g1'),
+          row(1, 'g1', true),
+          row(1, 'g2'),
+          row(1, null),
+        ],
+        'g1',
+      ),
+    ).toEqual({ average: 4.5, count: 2 });
+  });
+
+  it('a group without ratings has none', () => {
+    expect(groupRatingSummary([row(5, null)], 'g1')).toEqual({
+      average: null,
+      count: 0,
+    });
   });
 });

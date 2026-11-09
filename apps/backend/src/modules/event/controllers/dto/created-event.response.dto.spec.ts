@@ -5,6 +5,8 @@ import { CreatedEventResponseDto } from './created-event.response.dto';
 const created: EventDetailView = {
   id: 'cm-e1',
   title: 'Deskovky po práci',
+  summary: null,
+  distanceKm: null,
   startsAt: new Date('2026-11-02T17:00:00.000Z'),
   endsAt: null,
   address: 'Herna Karlín, Křižíkova 52, Praha 8',
@@ -14,6 +16,7 @@ const created: EventDetailView = {
     id: 'a1',
     slug: 'deskove-hry',
     name: 'Deskové hry',
+    keywords: ['deskovky'],
     category: { id: 'c1', slug: 'hry', name: 'Hry', icon: 'dice' },
   },
   locality: { id: 'l1', slug: 'praha-8', name: 'Praha 8' },

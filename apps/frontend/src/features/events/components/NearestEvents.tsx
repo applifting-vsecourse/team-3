@@ -2,9 +2,12 @@ import { useId, type ReactNode } from "react"
 import { useQuery } from "@tanstack/react-query"
 import { MapPin, RefreshCw } from "lucide-react"
 
+import { LocalityFilter } from "@/components/LocalityFilter/LocalityFilter"
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 import { Button } from "@/components/ui/button"
+import { localityDefault, type LocalityState } from "@/hooks/useLocality"
 import { localitiesQueryOptions } from "@/lib/catalog/catalogQueryOptions"
+import { ALL_LOCALITIES_SLUG } from "@/lib/catalog/localityOptions"
 
 import type { EventFilters } from "@/features/events/api/eventSchemas"
 import { eventsQueryOptions } from "@/features/events/api/eventsQueryOptions"
@@ -18,10 +21,11 @@ const NO_FILTERS = { activityIds: [], categoryIds: [] }
 
 type NearestEventsProps = {
   /**
-   * Only events in this locality (a city includes its districts), e.g.
-   * "praha". Without it, the whole public list.
+   * The landing page's locality (useLocality, #55): only its events (a city
+   * includes its districts), changeable with the locality chip. Without it,
+   * the whole public list and no chip (sign-in, sign-up).
    */
-  localitySlug?: string
+  locality?: LocalityState
   /** Under the list, e.g. a link to all events. */
   footer?: ReactNode
 }
@@ -31,17 +35,19 @@ type NearestEventsProps = {
  * sign-up forms on desktop (Figma B-01d, B-03d), what the account is for,
  * and on the landing page (A-01, A-01d). A card opens the event's detail.
  */
-export function NearestEvents({ localitySlug, footer }: NearestEventsProps) {
+export function NearestEvents({ locality: shown, footer }: NearestEventsProps) {
   const headingId = useId()
+  const localitySlug = shown?.slug
   const localitiesQuery = useQuery({
     ...localitiesQueryOptions(),
-    enabled: localitySlug !== undefined,
+    enabled: shown !== undefined,
   })
-  const locality =
-    localitySlug === undefined
+  const locality = localitiesQuery.data?.find((l) => l.slug === localitySlug)
+  // nothing for all of Czechia first while the default locality loads
+  const filters =
+    shown && localitySlug === undefined
       ? undefined
-      : localitiesQuery.data?.find((l) => l.slug === localitySlug)
-  const filters = resolveFilters(localitySlug, localitiesQuery.data, locality)
+      : resolveFilters(localitySlug, localitiesQuery.data, locality)
   const eventsQuery = useQuery(eventsQueryOptions(filters))
   const events = filters ? eventsQuery.data?.slice(0, NEAREST_COUNT) : undefined
   const error = localitiesQuery.error ?? eventsQuery.error
@@ -58,8 +64,17 @@ export function NearestEvents({ localitySlug, footer }: NearestEventsProps) {
         >
           Nejbližší akce
         </h2>
-        {/* From the resolved locality, so the label can't name a place the list isn't for. */}
-        {locality ? (
+        {shown && localitySlug && localitiesQuery.data ? (
+          <LocalityFilter
+            value={localitySlug}
+            localities={localitiesQuery.data}
+            onChange={shown.pick}
+            applyLabel="Zobrazit akce"
+            // a guess says so on the chip, „Praha · podle polohy“ (wireframe A-01: „odhad z IP“)
+            localityDefault={localityDefault(shown, shown.forget)}
+          />
+        ) : /* From the resolved locality, so the label can't name a place the list isn't for. */
+        locality ? (
           <span className="flex items-center gap-1 text-sm text-muted-foreground">
             <MapPin
               className="size-4"
@@ -126,7 +141,7 @@ function resolveFilters(
   localities: unknown[] | undefined,
   locality: { id: string } | undefined,
 ): EventFilters | undefined {
-  if (localitySlug === undefined) return NO_FILTERS
+  if (localitySlug === undefined || localitySlug === ALL_LOCALITIES_SLUG) return NO_FILTERS
   if (!localities) return undefined
   return locality ? { ...NO_FILTERS, localityId: locality.id } : NO_FILTERS
 }

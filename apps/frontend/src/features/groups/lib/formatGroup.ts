@@ -27,7 +27,7 @@ export function showGroupsLabel(count: number | undefined): string {
 
 /** On a card (Figma: Group card/List). */
 export const GROUP_TYPE_SHORT: Record<GroupType, string> = {
-  public: "Veřejná",
+  public: "Veřejná – přidáš se rovnou",
   closed: "Neveřejná – žádost o členství",
 }
 
@@ -78,3 +78,38 @@ export const groupBandLine = (group: {
   [GROUP_TYPE_IN_BAND[group.type], group.locality.name, memberCountLabel(group.memberCount)].join(
     " · ",
   )
+
+const announcementTimeFormat = new Intl.DateTimeFormat("cs-CZ", {
+  // a group meets in Prague, so its announcements are in Prague time wherever the browser is
+  timeZone: "Europe/Prague",
+  weekday: "short",
+  day: "numeric",
+  month: "numeric",
+  hour: "numeric",
+  minute: "2-digit",
+})
+
+/** When an announcement was sent (Figma A-08e): "čt 22. 10. v 20:10". */
+export function formatAnnouncementTime(date: Date): string {
+  const parts = announcementTimeFormat.formatToParts(date)
+  const get = (type: Intl.DateTimeFormatPartTypes) =>
+    parts.find((part) => part.type === type)?.value ?? ""
+  return `${get("weekday")} ${get("day")}. ${get("month")}. v ${get("hour")}:${get("minute")}`
+}
+
+/**
+ * Who gets an announcement (Figma D-08): every active member, the admin
+ * writing it included (`memberCount`).
+ */
+export function announcementRecipientsLabel(memberCount: number): string {
+  if (memberCount <= 1) {
+    return "Ve skupině zatím nikdo další není. E-mail přijde jen tobě a oznámení zůstane na stránce skupiny pro nové členy."
+  }
+  return `Oznámení přijde e-mailem všem ${memberCount} aktivním členům a uvidí ho na stránce skupiny. Čekající žadatelé ho nedostanou.`
+}
+
+/** Under the text (Figma D-08): what is left of today's limit; „oznámení“ is the same in every count. */
+export function remainingAnnouncementsLabel(remaining: number): string {
+  if (remaining <= 0) return "Dnes už skupině další oznámení poslat nemůžeš. Zkus to zítra."
+  return `Dnes můžeš skupině poslat ještě ${remaining} oznámení.`
+}

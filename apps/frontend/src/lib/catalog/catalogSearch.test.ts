@@ -48,11 +48,10 @@ describe("slug lists", () => {
 })
 
 describe("hasCatalogFilters", () => {
-  it("Praha is the default, not a filter", () => {
+  it("counts any locality in the URL, Praha too (#55: no fixed default)", () => {
     expect(hasCatalogFilters({})).toBe(false)
-    expect(hasCatalogFilters({ lokalita: "praha" })).toBe(false)
+    expect(hasCatalogFilters({ lokalita: "praha" })).toBe(true)
     expect(hasCatalogFilters({ lokalita: "brno" })).toBe(true)
-    // the whole of Czechia instead of the default Praha is a filter too
     expect(hasCatalogFilters({ lokalita: "cele-cesko" })).toBe(true)
     expect(hasCatalogFilters({ kategorie: "hry" })).toBe(true)
     expect(hasCatalogFilters({ aktivita: "sachy" })).toBe(true)
@@ -60,9 +59,9 @@ describe("hasCatalogFilters", () => {
 })
 
 describe("toCatalogFilters", () => {
-  it("without a locality uses Praha", () => {
+  it("without a locality filters no locality, not Praha (#55)", () => {
     expect(toCatalogFilters({}, catalog)).toEqual({
-      localityId: "l-praha",
+      localityId: undefined,
       activityIds: [],
       categoryIds: [],
     })

@@ -7,7 +7,7 @@ Kdo nález opraví, změní ve stejném PR i jeho stav v tomto reportu.
 ## Shrnutí
 
 - **Node.js:** aplikace běžela na `node:24-alpine` bez pevné verze, takže nebylo jisté, zda obsahuje opravu CVE-2026-111497 (Brotli). Verze je teď pevně 24.22.2 (#196) a na stagingu je ověřená z logu backendu.
-- **Balíčky:** `pnpm audit` hlásil 10 critical a 55 high. Po aktualizaci (#196) je 0 critical a 0 high, zbývá 5 moderate a 1 low.
+- **Balíčky:** `pnpm audit` hlásil 10 critical a 55 high. Po aktualizaci (#196) a vynucení `js-yaml` přes override (#283) je 0 critical a 0 high, zbývá 4 moderate a 1 low.
 - **Kód:** nezávislá analýza nenašla žádný kritický nález, přístup k cizím datům (IDOR) ani SQL injection. Našla 1 vysoký, 4 střední a 8 nízkých nálezů. Vysoký nález (CSRF) je opravený v #140. Ze čtyř středních jsou N-3 a N-4 opravené, u N-2 a N-5 zbývá část popsaná níže. Z nízkých jsou N-6 a N-9 opravené v #240.
 - **Dřívější nálezy:** S-1, S-2, S-4 a S-5 jsou opravené, S-3 má issue (#226).
 - **Průběžná kontrola:** přibyl Dependabot a CodeQL (#196).
@@ -54,21 +54,20 @@ Na `node:24.22.2-alpine` jsme přešli, protože to byla v době opravy nejnově
 | --------- | ---- | --- |
 | critical  | 10   | 0   |
 | high      | 55   | 0   |
-| moderate  | 61   | 5   |
+| moderate  | 61   | 4   |
 | low       | 14   | 1   |
 
 Nejzávažnější opravené položky: `better-auth` (přihlášení za jiného uživatele), `next` (spuštění kódu; v aplikaci se nepoužívá, do stromu se dostal jen jako volitelná závislost `better-auth`), `proxy-addr`, `handlebars`, `shell-quote`, `multer`, `nodemailer`.
 
-Přes `pnpm.overrides` jsou vynucené `next` a `multer`, protože je jinak drží starší verze závislostí. Až to `@nestjs/platform-express` a `better-auth` vyřeší samy, je možné override odebrat.
+Přes `pnpm.overrides` jsou vynucené `next`, `multer` a `js-yaml` pod `@nestjs/swagger`, protože je jinak drží starší verze závislostí. Až to `@nestjs/platform-express`, `better-auth` a `@nestjs/swagger` vyřeší samy, je možné override odebrat. `js-yaml` 5.5.0 místo 5.3.0 opravuje [GHSA-r3ph-w7gj-g6xm](https://github.com/advisories/GHSA-r3ph-w7gj-g6xm). Upgrade na NestJS 12 zatím neplánujeme (#231). Až přijde, override `@nestjs/swagger>js-yaml` je potřeba odebrat, jinak by natvrdo držel `js-yaml` 5.x.
 
-`pnpm audit` počítá výskyty, proto 5 moderate znamená tři balíčky. Po první aktualizaci hlásil jen `js-yaml`, `minimatch` a `glob` přibyly s novými upozorněními v registru. Od 4. 11. registr nehlásí `minimatch` 3.1.5, proto 5 místo 6; lockfile se nezměnil.
+`pnpm audit` počítá výskyty, proto 4 moderate znamenají dva balíčky (`minimatch` a `glob`, každý dvakrát). `js-yaml` je od 9. 11. vynucený na 5.5.0 a z výpisu zmizel.
 
-| Co zůstává                                                                                   | Závažnost | Důvod                                                                                                                                    |
-| -------------------------------------------------------------------------------------------- | --------- | ---------------------------------------------------------------------------------------------------------------------------------------- |
-| `js-yaml` 5.3.0 ([GHSA-r3ph-w7gj-g6xm](https://github.com/advisories/GHSA-r3ph-w7gj-g6xm))   | moderate  | Přichází přes `@nestjs/swagger` 11. Řeší #231: `@nestjs/swagger` 12 ho povýší na 5.5.0 (opraveno od 5.4.1), záložně override (neověřeno) |
-| `minimatch` ([GHSA-g3hv-75wg-m249](https://github.com/advisories/GHSA-g3hv-75wg-m249))       | moderate  | Přichází přes `react-email`, `@nestjs/cli`, `jest` a `npm-run-all`; oprava je až v nové hlavní verzi                                     |
-| `glob` ([GHSA-3g3m-2fjr-6pw4](https://github.com/advisories/GHSA-3g3m-2fjr-6pw4))            | moderate  | Přichází přes `react-email`, `@nestjs/cli` a `jest`; oprava je až v nové hlavní verzi                                                    |
-| `deepmerge` 4.3.1 ([GHSA-gcqx-w48m-w2h4](https://github.com/advisories/GHSA-gcqx-w48m-w2h4)) | low       | Opravená verze neexistuje; jen vývojový nástroj `@nestjs/cli`                                                                            |
+| Co zůstává                                                                                   | Závažnost | Důvod                                                                                                |
+| -------------------------------------------------------------------------------------------- | --------- | ---------------------------------------------------------------------------------------------------- |
+| `minimatch` ([GHSA-g3hv-75wg-m249](https://github.com/advisories/GHSA-g3hv-75wg-m249))       | moderate  | Přichází přes `react-email`, `@nestjs/cli`, `jest` a `npm-run-all`; oprava je až v nové hlavní verzi |
+| `glob` ([GHSA-3g3m-2fjr-6pw4](https://github.com/advisories/GHSA-3g3m-2fjr-6pw4))            | moderate  | Přichází přes `react-email`, `@nestjs/cli` a `jest`; oprava je až v nové hlavní verzi                |
+| `deepmerge` 4.3.1 ([GHSA-gcqx-w48m-w2h4](https://github.com/advisories/GHSA-gcqx-w48m-w2h4)) | low       | Opravená verze neexistuje; jen vývojový nástroj `@nestjs/cli`                                        |
 
 ## Nálezy v kódu
 
@@ -140,7 +139,7 @@ Z kódu nejde zjistit a tým nemá přístup do Coolify. Ověří to Tomáš Kl�
 ## Co je v pořádku
 
 - **Oprávnění:** všechny controllery prošly kontrolou. Uživatel se bere ze session a akce i skupiny hlídají organizátora a správce.
-- **Osobní údaje:** API o lidech vrací jen `id` a jméno, e-mail vidí jen jeho majitel. Zprávu k žádosti (#243) vidí v aplikaci jen organizátor akce nebo správci skupiny, a jen dokud žádost čeká. Organizátorovi akce ji navíc pošle e-mail o nové žádosti (#177), takže mu ve schránce zůstane i po rozhodnutí. Dokud na stagingu neposílá e-maily SMTP (#165), zapisuje se u každého upozornění do logu adresa příjemce a předmět s názvem akce (N-6).
+- **Osobní údaje:** API o lidech vrací jen `id` a jméno, e-mail vidí jen jeho majitel. Zprávu k žádosti (#243) vidí v aplikaci jen organizátor akce nebo správci skupiny, a jen dokud žádost čeká. Organizátorovi akce ji navíc pošle e-mail o nové žádosti (#177), takže mu ve schránce zůstane i po rozhodnutí. Dokud na stagingu neposílá e-maily SMTP (#165), zapisuje se u každého upozornění do logu adresa příjemce a předmět s názvem akce (N-6). U oznámení skupiny (#194) je v předmětu i text, který napsal správce („{skupina}: {předmět}“), takže do logu jde u každého příjemce volný text od uživatele.
 - **Vstupy:** DTO odmítají neznámá pole a seznamy mají strop. Raw SQL je parametrizované.
 - **Přihlášení:** platnost tokenů, ochranu přihlášení limitem a kontrolu uniklých hesel agent v kódu našel.
 - **XSS a přesměrování:** aplikace nepoužívá `dangerouslySetInnerHTML` a návratové adresy prochází přes `safeRedirect`.

@@ -33,10 +33,10 @@ describe("EventDetailView", () => {
     // Figma: Activity tile with the activity and its category
     expect(screen.getByText("Jazykový tandem")).toBeInTheDocument()
     expect(screen.getByText(/Procvičte si angličtinu/)).toBeInTheDocument()
-    expect(screen.getByText("Pá 23. 10. · 17:30")).toBeInTheDocument()
+    expect(screen.getByText("Pá 23. 10. 2026 · 17:30")).toBeInTheDocument()
     expect(screen.getByText("Kavárna Pražírna, Dělnická 12, Praha 8")).toBeInTheDocument()
     expect(screen.getByLabelText("Místo akce na mapě")).toBeInTheDocument()
-    expect(screen.getByText("Bez schválení")).toBeInTheDocument()
+    expect(screen.getByText("Bez schválení – kdo se přihlásí, je na akci")).toBeInTheDocument()
     // the organizer's name opens their public profile (#179)
     expect(screen.getByRole("link", { name: "Petra" })).toHaveAttribute("href", "/uzivatele/u1")
     // „Pořádá“ names the role; no „Organizátor“ under a woman's name, no

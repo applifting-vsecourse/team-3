@@ -1,6 +1,11 @@
 import { PrismaService } from '@/core/prisma/prisma.service';
 import { Prisma } from '@/generated/prisma/client';
 import {
+  AnnouncementInput,
+  AnnouncementRefusal,
+  GroupAnnouncement,
+} from '@/modules/group/domain/announcement';
+import {
   GROUP_INACTIVE_CANCEL_REASON,
   GroupDetail,
   GroupFilters,
@@ -9,6 +14,7 @@ import {
   Membership,
   MembershipStatus,
   MyGroup,
+  RecruitingGroup,
 } from '@/modules/group/domain/group';
 import {
   GroupMemberEntry,
@@ -18,6 +24,10 @@ import { requestMessageFor } from '@/shared/request-message/request-message';
 import { Injectable } from '@nestjs/common';
 import { buildActiveGroupsWhere } from './active-groups-where';
 import { buildMyGroupsWhere } from './my-groups-where';
+import {
+  buildRecruitingGroupsWhere,
+  upcomingGroupEventWhere,
+} from './recruiting-groups-where';
 
 const summaryInclude = {
   activity: { include: { category: true } },
@@ -38,6 +48,14 @@ const detailInclude = {
 } satisfies Prisma.GroupInclude;
 
 type DetailRow = Prisma.GroupGetPayload<{ include: typeof detailInclude }>;
+
+const announcementSelect = {
+  id: true,
+  subject: true,
+  body: true,
+  createdAt: true,
+  sender: { select: { id: true, name: true } },
+} satisfies Prisma.GroupAnnouncementSelect;
 
 const toSummary = (group: SummaryRow): GroupSummary => ({
   id: group.id,
@@ -79,6 +97,37 @@ export class GroupRepository {
       take: query.limit,
     });
     return groups.map(toSummary);
+  }
+
+  /**
+   * Groups that meet and look for members (#182), each with the start of its
+   * next event; unordered, the landing page orders them. At most `limit`.
+   */
+  async findRecruitingGroups(query: {
+    localityId?: string;
+    viewerId: string | null;
+    now: Date;
+    limit: number;
+  }): Promise<RecruitingGroup[]> {
+    const groups = await this.prisma.group.findMany({
+      where: buildRecruitingGroupsWhere(query, query.now),
+      include: {
+        ...summaryInclude,
+        events: {
+          where: upcomingGroupEventWhere(query.now),
+          select: { startsAt: true },
+          orderBy: { startsAt: 'asc' },
+          take: 1,
+        },
+      },
+      orderBy: { id: 'asc' },
+      take: query.limit,
+    });
+    return groups.flatMap((group) => {
+      const [next] = group.events;
+      // the where guarantees one; a race with a cancellation drops the group
+      return next ? [{ ...toSummary(group), nextEventAt: next.startsAt }] : [];
+    });
   }
 
   /** „Moje skupiny“ (B-056), each with my own membership; the service sorts them. */
@@ -239,6 +288,72 @@ export class GroupRepository {
         .map(entry),
       members: rows.filter((row) => row.status === 'active').map(entry),
     };
+  }
+
+  /** The group's announcements, newest first, at most `limit` (#194). */
+  async findAnnouncements(
+    groupId: string,
+    limit: number,
+  ): Promise<GroupAnnouncement[]> {
+    return this.prisma.groupAnnouncement.findMany({
+      where: { groupId },
+      select: announcementSelect,
+      // id breaks ties of two in the same millisecond
+      orderBy: [{ createdAt: 'desc' }, { id: 'desc' }],
+      take: limit,
+    });
+  }
+
+  /** How many announcements the group has sent in all (the count in the section's heading). */
+  async countAnnouncements(groupId: string): Promise<number> {
+    return this.prisma.groupAnnouncement.count({ where: { groupId } });
+  }
+
+  /** How many announcements the group has sent since `since` (the daily limit). */
+  async countAnnouncementsSince(groupId: string, since: Date): Promise<number> {
+    return this.prisma.groupAnnouncement.count({
+      where: { groupId, createdAt: { gte: since } },
+    });
+  }
+
+  /**
+   * Writes the announcement under a row lock on the group, like a group's
+   * event (review #264): a deactivation or another announcement at the same
+   * moment waits, so `decide` sees the state that holds when it is written
+   * and the daily limit can't be overrun by two clicks at once.
+   */
+  async createAnnouncement(
+    groupId: string,
+    senderId: string,
+    input: AnnouncementInput,
+    since: Date,
+    decide: (state: {
+      groupStatus: 'active' | 'inactive';
+      sentToday: number;
+    }) => { ok: true } | { ok: false; refusal: AnnouncementRefusal },
+  ): Promise<
+    | { ok: true; announcement: GroupAnnouncement }
+    | { ok: false; refusal: AnnouncementRefusal }
+  > {
+    return this.prisma.$transaction(async (tx) => {
+      await tx.$executeRaw`SELECT 1 FROM "group" WHERE "id" = ${groupId} FOR UPDATE`;
+      const [group, sentToday] = await Promise.all([
+        tx.group.findUniqueOrThrow({
+          where: { id: groupId },
+          select: { status: true },
+        }),
+        tx.groupAnnouncement.count({
+          where: { groupId, createdAt: { gte: since } },
+        }),
+      ]);
+      const decision = decide({ groupStatus: group.status, sentToday });
+      if (!decision.ok) return decision;
+      const announcement = await tx.groupAnnouncement.create({
+        data: { groupId, senderId, ...input },
+        select: announcementSelect,
+      });
+      return { ok: true, announcement };
+    });
   }
 
   async isActiveAdmin(groupId: string, userId: string): Promise<boolean> {

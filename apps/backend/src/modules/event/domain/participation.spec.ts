@@ -3,6 +3,7 @@ import {
   decideLeave,
   decideRequests,
   JoinState,
+  NO_NEW_REQUEST_STATUSES,
   RequestsState,
 } from './participation';
 
@@ -87,6 +88,22 @@ describe('decideJoin', () => {
     expect(
       decideJoin(state({ isOrganizer: true, approvedCount: 6 }), now),
     ).toEqual({ ok: false, refusal: 'EVENT_FULL' });
+  });
+});
+
+describe('NO_NEW_REQUEST_STATUSES (#182)', () => {
+  it('are exactly the statuses decideJoin refuses a new request for', () => {
+    const statuses = [
+      'pending',
+      'approved',
+      'rejected',
+      'withdrawn',
+      'removed',
+    ] as const;
+    const refused = statuses.filter(
+      (existingStatus) => !decideJoin(state({ existingStatus }), now).ok,
+    );
+    expect([...NO_NEW_REQUEST_STATUSES].sort()).toEqual([...refused].sort());
   });
 });
 

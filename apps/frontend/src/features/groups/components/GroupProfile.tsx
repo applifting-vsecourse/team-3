@@ -25,6 +25,8 @@ type GroupProfileProps = {
   signInFrom: string
   /** The group's upcoming and past events (#70, A-08e); the page builds them. */
   events?: ReactNode
+  /** The admins' announcements (#194, A-08e), only for members; the page builds them. */
+  announcements?: ReactNode
 }
 
 /** Back to the list of groups — the group page and its loading or error states. */
@@ -40,10 +42,17 @@ export const GROUPS_BACK: Omit<BackLinkProps, "isIconOnlyOnMobile"> = {
  * the activity's photo (without a date) under the bar on a phone, at the top
  * of the content on desktop. Then the facts, admins and description; mobile
  * stacks them with the action in a bar above the bottom navigation, desktop
- * puts the facts and the action in a panel on the right. The group's events
- * follow the description (A-08e).
+ * puts the facts and the action in a panel on the right. A member sees the
+ * announcements after the description, then the group's events (A-08e); on
+ * desktop the admins follow the events (A-08ed).
  */
-export function GroupProfile({ group, isSignedIn, signInFrom, events }: GroupProfileProps) {
+export function GroupProfile({
+  group,
+  isSignedIn,
+  signInFrom,
+  events,
+  announcements,
+}: GroupProfileProps) {
   const isDesktop = useMediaQuery(DESKTOP_QUERY)
   const action = hasMembershipAction(group) ? (
     <GroupMembershipAction
@@ -77,8 +86,10 @@ export function GroupProfile({ group, isSignedIn, signInFrom, events }: GroupPro
             <div className="flex flex-col gap-6">
               {photo}
               <GroupAbout description={group.description} />
-              <GroupAdmins admins={group.admins} />
+              {announcements}
               {events}
+              {/* A-08ed: on desktop who runs the group comes after its events */}
+              <GroupAdmins admins={group.admins} />
             </div>
             {/* Figma: Panel skupiny */}
             <div className="flex w-100 flex-col gap-4 rounded-2xl border border-card-border bg-card p-6 text-card-foreground">
@@ -103,6 +114,7 @@ export function GroupProfile({ group, isSignedIn, signInFrom, events }: GroupPro
         <GroupFacts group={group} />
         <GroupAdmins admins={group.admins} />
         <GroupAbout description={group.description} />
+        {announcements}
         {events}
         {action ? (
           // Figma: Lišta s akcí — above the bottom navigation

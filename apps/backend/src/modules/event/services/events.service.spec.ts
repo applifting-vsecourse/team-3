@@ -14,6 +14,7 @@ import {
   BadRequestException,
   ConflictException,
   ForbiddenException,
+  HttpException,
   Logger,
   NotFoundException,
   UnauthorizedException,
@@ -35,6 +36,8 @@ const now = new Date('2026-10-23T08:00:00.000Z');
 const anEvent = (id: string, approvedCount: number): PublicEvent => ({
   id,
   title: `Akce ${id}`,
+  summary: null,
+  distanceKm: null,
   startsAt: new Date('2026-10-24T16:00:00.000Z'),
   endsAt: null,
   address: 'Herna Karlín, Křižíkova 52, Praha 8',
@@ -44,6 +47,7 @@ const anEvent = (id: string, approvedCount: number): PublicEvent => ({
     id: 'a-deskove-hry',
     slug: 'deskove-hry',
     name: 'Deskové hry',
+    keywords: ['deskovky'],
     category: { id: 'c-hry', slug: 'hry', name: 'Hry', icon: 'dice' },
   },
   locality: { id: 'l-praha-8', slug: 'praha-8', name: 'Praha 8' },
@@ -116,6 +120,145 @@ describe('EventsService', () => {
       'at-minimum',
       'one-place-left',
     ]);
+  });
+
+  describe('search and distance (#57)', () => {
+    const at = (
+      id: string,
+      lat: number,
+      lng: number,
+      title = `Akce ${id}`,
+    ): PublicEvent => ({
+      ...anEvent(id, 2),
+      title,
+      lat,
+      lng,
+    });
+    const praha8 = { lat: 50.1103, lng: 14.4734 };
+
+    it('finds by the title and the activity keywords without diacritics, before the limit', async () => {
+      const repository = mock<EventRepository>();
+      const others = Array.from({ length: PUBLIC_EVENTS_LIMIT }, (_, i) => ({
+        ...at(`other-${i}`, 50.1, 14.47, 'Kvíz'),
+        activity: {
+          ...anEvent('x', 1).activity,
+          name: 'Pub kvíz',
+          keywords: ['kviz'],
+        },
+      }));
+      repository.findPublicEvents.mockResolvedValue([
+        ...others,
+        at('beh', 50.1, 14.47, 'Večerní běh Letnou'),
+        {
+          ...at('desk', 50.1, 14.47, 'Středa'),
+          activity: { ...anEvent('x', 1).activity, keywords: ['deskovky'] },
+        },
+      ]);
+      const service = new EventsService(
+        repository,
+        mock<NotificationService>(),
+      );
+
+      const byTitle = await service.getPublicEvents({ q: 'BEH letn' }, {}, now);
+      expect(byTitle.map((event) => event.id)).toEqual(['beh']);
+      expect(repository.findPublicEvents).toHaveBeenCalledWith(
+        expect.objectContaining({ limit: SCAN_LIMIT }),
+      );
+      const byKeyword = await service.getPublicEvents(
+        { q: 'deskovk' },
+        {},
+        now,
+      );
+      expect(byKeyword.map((event) => event.id)).toContain('desk');
+    });
+
+    it('keeps the circle exact and gives each event its distance', async () => {
+      const repository = mock<EventRepository>();
+      repository.findPublicEvents.mockResolvedValue([
+        at('letna', 50.0985, 14.4222), // 3.9 km
+        at('corner', 50.19, 14.6), // inside the rectangle, 12.6 km away
+      ]);
+      const service = new EventsService(
+        repository,
+        mock<NotificationService>(),
+      );
+
+      const result = await service.getPublicEvents(
+        { point: praha8, radiusKm: 10 },
+        {},
+        now,
+      );
+
+      expect(result).toEqual([
+        expect.objectContaining({ id: 'letna', distanceKm: 3.9 }),
+      ]);
+    });
+
+    it('compares the exact distance with the circle, rounds only the answer', async () => {
+      const repository = mock<EventRepository>();
+      // 10.04 km due north: shown as 10 km, but outside „+10 km“
+      const north = (km: number): number =>
+        praha8.lat + (km / 6371) * (180 / Math.PI);
+      repository.findPublicEvents.mockResolvedValue([
+        at('edge-in', north(9.96), praha8.lng),
+        at('edge-out', north(10.04), praha8.lng),
+      ]);
+      const service = new EventsService(
+        repository,
+        mock<NotificationService>(),
+      );
+
+      const result = await service.getPublicEvents(
+        { point: praha8, radiusKm: 10 },
+        {},
+        now,
+      );
+
+      expect(result.map((event) => [event.id, event.distanceKm])).toEqual([
+        ['edge-in', 10],
+      ]);
+    });
+
+    it('orders by distance, nearest first', async () => {
+      const repository = mock<EventRepository>();
+      repository.findPublicEvents.mockResolvedValue([
+        at('far', 50.0985, 14.4222),
+        at('near', 50.111, 14.474),
+      ]);
+      const service = new EventsService(
+        repository,
+        mock<NotificationService>(),
+      );
+
+      const result = await service.getPublicEvents(
+        { point: praha8 },
+        { sort: 'distance' },
+        now,
+      );
+
+      expect(result.map((event) => [event.id, event.distanceKm])).toEqual([
+        ['near', 0.1],
+        ['far', 3.9],
+      ]);
+    });
+
+    it('gives distances on the plain list too, without scanning', async () => {
+      const repository = mock<EventRepository>();
+      repository.findPublicEvents.mockResolvedValue([
+        at('letna', 50.0985, 14.4222),
+      ]);
+      const service = new EventsService(
+        repository,
+        mock<NotificationService>(),
+      );
+
+      const result = await service.getPublicEvents({ point: praha8 }, {}, now);
+
+      expect(result[0].distanceKm).toBe(3.9);
+      expect(repository.findPublicEvents).toHaveBeenCalledWith(
+        expect.objectContaining({ limit: PUBLIC_EVENTS_LIMIT }),
+      );
+    });
   });
 
   it('the capacity filter applies before the limit, so matches are not cut off', async () => {
@@ -1698,5 +1841,279 @@ describe('EventsService notifications (#177)', () => {
     await new Promise((resolve) => setImmediate(resolve));
     expect(warned).toHaveBeenCalledTimes(2);
     warned.mockRestore();
+  });
+});
+
+describe('EventsService messages to the participants (#176)', () => {
+  // 00:30 on 8 Nov in Prague, still 7 Nov in UTC: the day began at 23:00 UTC
+  const later = new Date('2026-11-07T23:30:00.000Z');
+  const pragueMidnight = new Date('2026-11-07T23:00:00.000Z');
+  const message = {
+    id: 'm1',
+    subject: 'Hrajeme v malé herně',
+    body: 'Sraz v 17:50 u vchodu.',
+    createdAt: later,
+    sender: { id: 'u1', name: 'Petra' },
+  };
+  const input = { subject: message.subject, body: message.body };
+  const groupEvent = (overrides: Partial<EventDetail> = {}): EventDetail =>
+    aDetail({ group: { id: 'g1', name: 'Deskovkáři Karlín' }, ...overrides });
+
+  const setup = (
+    detail: EventDetail | null = aDetail(),
+  ): {
+    repository: MockProxy<EventRepository>;
+    notifications: MockProxy<NotificationService>;
+    service: EventsService;
+  } => {
+    const repository = mock<EventRepository>();
+    repository.findEventDetail.mockResolvedValue(detail);
+    repository.findParticipationStatus.mockResolvedValue(null);
+    repository.findActiveGroupRole.mockResolvedValue(null);
+    repository.findMessages.mockResolvedValue([message]);
+    repository.countMessages.mockResolvedValue(1);
+    repository.countMessagesSince.mockResolvedValue(0);
+    const notifications = mock<NotificationService>();
+    return {
+      repository,
+      notifications,
+      service: new EventsService(repository, notifications),
+    };
+  };
+
+  const errorOf = (promise: Promise<unknown>): Promise<unknown> =>
+    promise.catch((e: unknown) => e);
+
+  describe('getMessages: who reads them, as who sees „Kdo jde“ (#174)', () => {
+    it('the organizer, with what is left of today counted from Prague midnight', async () => {
+      const { repository, service } = setup();
+      repository.countMessagesSince.mockResolvedValue(3);
+
+      await expect(service.getMessages('e1', 'u1', later)).resolves.toEqual({
+        messages: [message],
+        total: 1,
+        remainingToday: 7,
+      });
+      expect(repository.findMessages).toHaveBeenCalledWith('e1', 50);
+      expect(repository.countMessagesSince).toHaveBeenCalledWith(
+        'e1',
+        pragueMidnight,
+      );
+    });
+
+    it('an approved participant, without a count to send', async () => {
+      const { repository, service } = setup();
+      repository.findParticipationStatus.mockResolvedValue('approved');
+
+      await expect(service.getMessages('e1', 'u2', later)).resolves.toEqual({
+        messages: [message],
+        total: 1,
+        remainingToday: null,
+      });
+      expect(repository.countMessagesSince).not.toHaveBeenCalled();
+    });
+
+    it("a group's member or admin, also without a count to send", async () => {
+      const { repository, service } = setup(groupEvent());
+      repository.findActiveGroupRole.mockResolvedValue('admin');
+
+      await expect(service.getMessages('e1', 'u7', later)).resolves.toEqual(
+        expect.objectContaining({ remainingToday: null }),
+      );
+    });
+
+    it("at a cancelled event they stay readable, but the organizer can't send more", async () => {
+      const { service } = setup(aDetail({ status: 'cancelled' }));
+
+      await expect(service.getMessages('e1', 'u1', later)).resolves.toEqual({
+        messages: [message],
+        total: 1,
+        remainingToday: null,
+      });
+    });
+
+    it.each([null, 'pending', 'rejected', 'removed', 'withdrawn'] as const)(
+      'someone with participation %s gets 403 NOT_PARTICIPANT',
+      async (status) => {
+        const { repository, service } = setup();
+        repository.findParticipationStatus.mockResolvedValue(status);
+
+        const error = await errorOf(service.getMessages('e1', 'u9', later));
+        expect(error).toBeInstanceOf(ForbiddenException);
+        expect((error as ForbiddenException).getResponse()).toMatchObject({
+          code: 'NOT_PARTICIPANT',
+        });
+        expect(repository.findMessages).not.toHaveBeenCalled();
+      },
+    );
+
+    it('a members-only event outside the group is 403 MEMBERS_ONLY, an unknown one 404', async () => {
+      const outside = setup(groupEvent({ visibility: 'members' }));
+      const error = await errorOf(
+        outside.service.getMessages('e1', 'u9', later),
+      );
+      expect((error as ForbiddenException).getResponse()).toMatchObject({
+        code: 'MEMBERS_ONLY',
+      });
+
+      const unknown = setup(null);
+      await expect(
+        unknown.service.getMessages('nope', 'u1', later),
+      ).rejects.toBeInstanceOf(NotFoundException);
+    });
+  });
+
+  describe('sendMessage: only the organizer', () => {
+    it('writes it, with the limit counted from Prague midnight, then e-mails the participants', async () => {
+      const { repository, notifications, service } = setup();
+      repository.createMessage.mockResolvedValue({ ok: true, message });
+
+      await expect(
+        service.sendMessage('e1', 'u1', input, later),
+      ).resolves.toEqual(message);
+      expect(repository.createMessage).toHaveBeenCalledWith(
+        'e1',
+        'u1',
+        input,
+        pragueMidnight,
+        expect.any(Function),
+      );
+      expect(notifications.notify).toHaveBeenCalledWith({
+        type: 'event-message',
+        eventId: 'e1',
+        messageId: 'm1',
+      });
+    });
+
+    it.each([
+      ['an approved participant', 'approved', null],
+      ['a stranger', null, null],
+      ["the group's admin who manages the event", null, 'admin'],
+    ] as const)(
+      '%s gets 403 NOT_ORGANIZER and nothing is written',
+      async (_who, participation, groupRole) => {
+        const { repository, notifications, service } = setup(groupEvent());
+        repository.findParticipationStatus.mockResolvedValue(participation);
+        repository.findActiveGroupRole.mockResolvedValue(groupRole);
+
+        const error = await errorOf(
+          service.sendMessage('e1', 'u9', input, later),
+        );
+        expect(error).toBeInstanceOf(ForbiddenException);
+        expect((error as ForbiddenException).getResponse()).toMatchObject({
+          code: 'NOT_ORGANIZER',
+        });
+        expect(repository.createMessage).not.toHaveBeenCalled();
+        expect(notifications.notify).not.toHaveBeenCalled();
+      },
+    );
+
+    it('a cancelled event is 409 EVENT_CANCELLED before anything is written', async () => {
+      const { repository, service } = setup(aDetail({ status: 'cancelled' }));
+
+      const error = await errorOf(
+        service.sendMessage('e1', 'u1', input, later),
+      );
+      expect(error).toBeInstanceOf(ConflictException);
+      expect((error as ConflictException).getResponse()).toMatchObject({
+        code: 'EVENT_CANCELLED',
+      });
+      expect(repository.createMessage).not.toHaveBeenCalled();
+    });
+
+    it('the eleventh of the day is 429 MESSAGE_LIMIT and no e-mail goes out', async () => {
+      const { repository, notifications, service } = setup();
+      repository.createMessage.mockImplementation(
+        async (_e, _u, _i, _since, decide) => {
+          const decision = decide({ eventStatus: 'published', sentToday: 10 });
+          if (!decision.ok) return decision;
+          return { ok: true, message };
+        },
+      );
+
+      const error = await errorOf(
+        service.sendMessage('e1', 'u1', input, later),
+      );
+      expect(error).toBeInstanceOf(HttpException);
+      expect((error as HttpException).getStatus()).toBe(429);
+      expect((error as HttpException).getResponse()).toMatchObject({
+        code: 'MESSAGE_LIMIT',
+        message: 'Dnes už k akci další zprávu poslat nemůžeš. Zkus to zítra.',
+      });
+      expect(notifications.notify).not.toHaveBeenCalled();
+    });
+
+    it('the tenth of the day still goes', async () => {
+      const { repository, service } = setup();
+      repository.createMessage.mockImplementation(
+        async (_e, _u, _i, _since, decide) => {
+          const decision = decide({ eventStatus: 'published', sentToday: 9 });
+          if (!decision.ok) return decision;
+          return { ok: true, message };
+        },
+      );
+
+      await expect(
+        service.sendMessage('e1', 'u1', input, later),
+      ).resolves.toEqual(message);
+    });
+
+    it('cancelled under the lock in the meantime is 409 EVENT_CANCELLED', async () => {
+      const { repository, notifications, service } = setup();
+      repository.createMessage.mockImplementation(
+        async (_e, _u, _i, _since, decide) => {
+          const decision = decide({ eventStatus: 'cancelled', sentToday: 0 });
+          if (!decision.ok) return decision;
+          return { ok: true, message };
+        },
+      );
+
+      await expect(
+        service.sendMessage('e1', 'u1', input, later),
+      ).rejects.toBeInstanceOf(ConflictException);
+      expect(notifications.notify).not.toHaveBeenCalled();
+    });
+
+    it('a failing e-mail does not break sending: the message is written and answered first', async () => {
+      const warned = jest.spyOn(Logger.prototype, 'warn').mockImplementation();
+      const { repository } = setup();
+      repository.createMessage.mockResolvedValue({ ok: true, message });
+      // the real service: the message and its recipients load, the mail provider fails
+      const notificationRepository = mock<NotificationRepository>();
+      notificationRepository.findEventMessage.mockResolvedValue({
+        id: 'm1',
+        subject: message.subject,
+        body: message.body,
+        senderId: 'u1',
+        event: { id: 'e1', title: 'Akce e1' },
+      });
+      notificationRepository.findApprovedParticipants.mockResolvedValue([
+        { id: 'u2', name: 'Jana', email: 'jana@example.com' },
+        { id: 'u3', name: 'Tomáš', email: 'tomas@example.com' },
+      ]);
+      const email = mock<EmailService>();
+      email.sendEmail.mockRejectedValue(new Error('smtp down'));
+      const service = new EventsService(
+        repository,
+        new NotificationService(notificationRepository, email, {
+          frontendUrl: 'https://hobbyhub.example',
+        } as Config),
+      );
+
+      await expect(
+        service.sendMessage('e1', 'u1', input, later),
+      ).resolves.toEqual(message);
+      // nothing was sent before the answer; the mails go out (and fail) afterwards
+      expect(email.sendEmail).not.toHaveBeenCalled();
+      for (let i = 0; i < 10 && email.sendEmail.mock.calls.length < 2; i++)
+        await new Promise((resolve) => setImmediate(resolve));
+      expect(email.sendEmail.mock.calls.map(([to]) => to)).toEqual([
+        'jana@example.com',
+        'tomas@example.com',
+      ]);
+      await new Promise((resolve) => setImmediate(resolve));
+      expect(warned).toHaveBeenCalledTimes(2);
+      warned.mockRestore();
+    });
   });
 });

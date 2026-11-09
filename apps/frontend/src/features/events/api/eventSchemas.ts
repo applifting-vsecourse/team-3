@@ -29,6 +29,10 @@ export const publicEventSchema = z.object({
   freeSpots: z.number(),
   isFull: z.boolean(),
   isPromoted: z.boolean(),
+  // the start of the description for the map preview (#56); null without one
+  summary: z.string().nullable(),
+  // km from the chosen locality's centre when the request gave it (okolí, distance order; #57)
+  distanceKm: z.number().nullable(),
 })
 
 export const publicEventsSchema = z.array(publicEventSchema)
@@ -58,6 +62,34 @@ export const eventDetailSchema = publicEventSchema.extend({
 })
 
 export type EventDetail = z.infer<typeof eventDetailSchema>
+
+// Same limits as the API (CreateEventMessageDto, #176).
+export const MESSAGE_SUBJECT_MAX_LENGTH = 120
+export const MESSAGE_BODY_MAX_LENGTH = 2000
+
+export const eventMessageSchema = z.object({
+  id: z.string(),
+  subject: z.string(),
+  body: z.string(),
+  createdAt: z.coerce.date(),
+  sender: z.object({ id: z.string(), name: z.string() }),
+})
+
+/** GET /api/events/:id/messages, only for those who see „Kdo jde“ (#174, #176). */
+export const eventMessagesSchema = z.object({
+  /** Newest first. */
+  messages: z.array(eventMessageSchema),
+  /** All the event's messages; the list holds only the latest 50. */
+  total: z.number(),
+  /** How many more the viewer may send today; null unless they are the organizer of a published event. */
+  remainingToday: z.number().nullable(),
+})
+
+export type EventMessage = z.infer<typeof eventMessageSchema>
+export type EventMessages = z.infer<typeof eventMessagesSchema>
+
+/** Body of POST /api/events/:id/messages (Figma D-04). */
+export type EventMessageInput = { subject: string; body: string }
 
 const eventRequestSchema = eventParticipantSchema.extend({
   requestedAt: z.coerce.date(),
@@ -135,6 +167,12 @@ export type EventInput = {
   visibility?: "public" | "members"
 }
 
+/**
+ * GET /api/events returns at most this many (backend PUBLIC_EVENTS_LIMIT): a list this long
+ * may have more, so it says „Víc než 200 akcí“ (Figma A-02 · celé Česko, comment in #55).
+ */
+export const PUBLIC_EVENTS_LIMIT = 200
+
 /** Query parameters of GET /api/events, already resolved to ids. */
 export type EventFilters = {
   localityId?: string
@@ -144,4 +182,24 @@ export type EventFilters = {
   categoryIds: string[]
   /** free: not full yet; missing: still missing people to reach the minimum */
   capacity?: "free" | "missing"
+  /** „Hledat v této oblasti“ (#56): west,south,east,north */
+  bbox?: string
+  /** Words in the title or the activity's keywords, without diacritics (#57). */
+  q?: string
+  /** The point distances are measured from: the chosen locality's centre (#57). */
+  lat?: number
+  lng?: number
+  /** „Okolí +10 km“: at most this far from lat,lng (#57). */
+  radiusKm?: number
+  /** Nearest to lat,lng first (#57); soonest first without it. */
+  sort?: "distance"
+  /**
+   * The quick picks' personal parts (#250), decided from the session by GET /api/home/events:
+   * the activities of one's interests, well rated organizers, no events one already goes to.
+   */
+  interests?: boolean
+  wellRated?: boolean
+  notJoined?: boolean
+  /** Not sent: the personal parts differ per user, so the cache keeps them apart. */
+  viewerId?: string | null
 }

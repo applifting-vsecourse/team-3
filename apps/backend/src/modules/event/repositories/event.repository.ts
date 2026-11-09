@@ -14,6 +14,11 @@ import {
   PublicEventFilters,
 } from '@/modules/event/domain/event';
 import {
+  EventMessage,
+  MessageInput,
+  MessageRefusal,
+} from '@/modules/event/domain/event-message';
+import {
   UpdateDecision,
   UpdateState,
 } from '@/modules/event/domain/event-update';
@@ -25,6 +30,7 @@ import {
   ParticipationStatus,
   RequestsState,
 } from '@/modules/event/domain/participation';
+import { summarize } from '@/modules/event/domain/summary';
 import { requestMessageFor } from '@/shared/request-message/request-message';
 import { Injectable } from '@nestjs/common';
 import { buildGroupEventsWhere } from './group-events-where';
@@ -46,9 +52,19 @@ type PublicEventRow = Prisma.EventGetPayload<{
   include: typeof publicEventInclude;
 }>;
 
+const messageSelect = {
+  id: true,
+  subject: true,
+  body: true,
+  createdAt: true,
+  sender: { select: { id: true, name: true } },
+} satisfies Prisma.EventMessageSelect;
+
 const toPublicEvent = (event: PublicEventRow, now: Date): PublicEvent => ({
   id: event.id,
   title: event.title,
+  summary: summarize(event.description),
+  distanceKm: null,
   startsAt: event.startsAt,
   endsAt: event.endsAt,
   address: event.address,
@@ -58,6 +74,7 @@ const toPublicEvent = (event: PublicEventRow, now: Date): PublicEvent => ({
     id: event.activity.id,
     slug: event.activity.slug,
     name: event.activity.name,
+    keywords: event.activity.keywords,
     category: {
       id: event.activity.category.id,
       slug: event.activity.category.slug,
@@ -522,6 +539,71 @@ export class EventRepository {
       if (!decision.ok) return decision;
       await tx.event.update({ where: { id }, data: decision.data });
       return decision;
+    });
+  }
+
+  /** The event's messages to its participants, newest first, at most `limit` (#176). */
+  async findMessages(eventId: string, limit: number): Promise<EventMessage[]> {
+    return this.prisma.eventMessage.findMany({
+      where: { eventId },
+      select: messageSelect,
+      // id breaks ties of two in the same millisecond
+      orderBy: [{ createdAt: 'desc' }, { id: 'desc' }],
+      take: limit,
+    });
+  }
+
+  /** How many messages the event has in all (the count in the section's heading). */
+  async countMessages(eventId: string): Promise<number> {
+    return this.prisma.eventMessage.count({ where: { eventId } });
+  }
+
+  /** How many messages the event has sent since `since` (the daily limit). */
+  async countMessagesSince(eventId: string, since: Date): Promise<number> {
+    return this.prisma.eventMessage.count({
+      where: { eventId, createdAt: { gte: since } },
+    });
+  }
+
+  /**
+   * Writes the message under a row lock on the event, like joining: a cancel
+   * or another message at the same moment waits, so `decide` sees the state
+   * that holds when it is written and the daily limit can't be overrun by two
+   * clicks at once. Null when the event is gone.
+   */
+  async createMessage(
+    eventId: string,
+    senderId: string,
+    input: MessageInput,
+    since: Date,
+    decide: (state: {
+      eventStatus: 'published' | 'cancelled' | 'hidden' | 'deleted';
+      sentToday: number;
+    }) => { ok: true } | { ok: false; refusal: MessageRefusal },
+  ): Promise<
+    | { ok: true; message: EventMessage }
+    | { ok: false; refusal: MessageRefusal }
+    | null
+  > {
+    return this.prisma.$transaction(async (tx) => {
+      await tx.$executeRaw`SELECT 1 FROM "event" WHERE "id" = ${eventId} FOR UPDATE`;
+      const [event, sentToday] = await Promise.all([
+        tx.event.findUnique({
+          where: { id: eventId },
+          select: { status: true },
+        }),
+        tx.eventMessage.count({
+          where: { eventId, createdAt: { gte: since } },
+        }),
+      ]);
+      if (!event) return null;
+      const decision = decide({ eventStatus: event.status, sentToday });
+      if (!decision.ok) return decision;
+      const message = await tx.eventMessage.create({
+        data: { eventId, senderId, ...input },
+        select: messageSelect,
+      });
+      return { ok: true, message };
     });
   }
 

@@ -25,6 +25,11 @@ import {
   ApiResponse,
   ApiTags,
 } from '@nestjs/swagger';
+import {
+  CreateGroupAnnouncementDto,
+  GroupAnnouncementDto,
+  GroupAnnouncementsResponseDto,
+} from './dto/group-announcement.dto';
 import { CreateGroupDto, UpdateGroupDto } from './dto/group-input.dto';
 import {
   GroupMembersResponseDto,
@@ -228,6 +233,62 @@ export class GroupsController {
     @User() user: Identity,
   ): Promise<void> {
     await this.groupsService.rejectRequest(id, user.id, userId);
+  }
+
+  @Get(':id/announcements')
+  @UseGuards(AuthenticatedUserGuard)
+  @ApiCookieAuth()
+  @ApiOperation({
+    summary:
+      "The group's announcements, newest first (#194); only its active members and admins",
+  })
+  @ApiResponse({ status: 200, type: GroupAnnouncementsResponseDto })
+  @ApiResponse({ status: 401, description: 'Not signed in' })
+  @ApiResponse({
+    status: 403,
+    description: 'NOT_GROUP_MEMBER: not an active member of the group',
+  })
+  @ApiResponse({ status: 404, description: 'No such group' })
+  async announcements(
+    @Param('id') id: string,
+    @User() user: Identity,
+  ): Promise<GroupAnnouncementsResponseDto> {
+    return GroupAnnouncementsResponseDto.fromDomain(
+      await this.groupsService.getAnnouncements(id, user.id),
+    );
+  }
+
+  @Post(':id/announcements')
+  @UseGuards(AuthenticatedUserGuard)
+  @ApiCookieAuth()
+  @ApiOperation({
+    summary:
+      'Send an announcement to every active member by e-mail and show it on the group page (#194); only an admin, at most 10 a day',
+  })
+  @ApiResponse({ status: 201, type: GroupAnnouncementDto })
+  @ApiResponse({
+    status: 400,
+    description: 'Missing subject or text, or too long',
+  })
+  @ApiResponse({ status: 401, description: 'Not signed in' })
+  @ApiResponse({ status: 403, description: 'Not an admin of the group' })
+  @ApiResponse({ status: 404, description: 'No such group' })
+  @ApiResponse({ status: 409, description: 'GROUP_INACTIVE' })
+  @ApiResponse({
+    status: 429,
+    description: 'ANNOUNCEMENT_LIMIT: the group sent 10 today (Prague day)',
+  })
+  async sendAnnouncement(
+    @Param('id') id: string,
+    @Body() body: CreateGroupAnnouncementDto,
+    @User() user: Identity,
+  ): Promise<GroupAnnouncementDto> {
+    return GroupAnnouncementDto.fromDomain(
+      await this.groupsService.sendAnnouncement(id, user.id, {
+        subject: body.subject,
+        body: body.body,
+      }),
+    );
   }
 
   @Post(':id/deactivate')

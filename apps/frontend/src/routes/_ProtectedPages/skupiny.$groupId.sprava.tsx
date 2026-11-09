@@ -23,6 +23,7 @@ import { GroupCard } from "@/features/groups/components/GroupCard"
 import { GroupManagement } from "@/features/groups/components/GroupManagement"
 import { GroupFacts } from "@/features/groups/components/GroupSummary"
 import { InactiveGroupNotice } from "@/features/groups/components/InactiveGroupNotice"
+import { SendAnnouncementButton } from "@/features/groups/components/SendAnnouncementButton"
 import { GROUP_TYPE_FOR_ADMIN, groupBandLine } from "@/features/groups/lib/formatGroup"
 
 export const Route = createFileRoute("/_ProtectedPages/skupiny/$groupId/sprava")({
@@ -97,6 +98,14 @@ function ManageGroupPage() {
                 typeLabels={GROUP_TYPE_FOR_ADMIN}
               />
               <div className="flex flex-wrap gap-2">
+                {/* Figma D-07d: „Napsat členům“ opens D-08d (#194) */}
+                {viewerId ? (
+                  <SendAnnouncementButton
+                    groupId={groupId}
+                    viewerId={viewerId}
+                    memberCount={group.memberCount}
+                  />
+                ) : null}
                 <EditButton groupId={groupId} />
                 <DeactivateGroupButton
                   groupId={groupId}
@@ -113,6 +122,7 @@ function ManageGroupPage() {
         ) : group ? (
           <ManageMobile
             group={group}
+            viewerId={viewerId}
             onDeactivated={onDeactivated}
           />
         ) : (
@@ -127,7 +137,15 @@ function ManageGroupPage() {
 }
 
 /** D-07: the group's card, requests and members, then the group's actions. */
-function ManageMobile({ group, onDeactivated }: { group: GroupDetail; onDeactivated: () => void }) {
+function ManageMobile({
+  group,
+  viewerId,
+  onDeactivated,
+}: {
+  group: GroupDetail
+  viewerId: string | null | undefined
+  onDeactivated: () => void
+}) {
   return (
     <>
       <GroupCard group={group} />
@@ -136,6 +154,15 @@ function ManageMobile({ group, onDeactivated }: { group: GroupDetail; onDeactiva
         isDesktop={false}
       />
       <div className="flex flex-col gap-2 py-4">
+        {/* Figma D-07: „Napsat členům“ opens D-08 (#194) */}
+        {viewerId ? (
+          <SendAnnouncementButton
+            groupId={group.id}
+            viewerId={viewerId}
+            memberCount={group.memberCount}
+            className="w-full"
+          />
+        ) : null}
         <EditButton
           groupId={group.id}
           className="w-full"

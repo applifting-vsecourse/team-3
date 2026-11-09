@@ -1,5 +1,5 @@
-import { readFileSync } from "node:fs"
-import { resolve } from "node:path"
+import { readdirSync, readFileSync } from "node:fs"
+import { join, resolve } from "node:path"
 import { describe, expect, it } from "vitest"
 
 // DESIGN.md › Accessibility: text contrast at least 4.5:1, and the tokens are
@@ -79,11 +79,13 @@ const TEXT_PAIRS: [string, string][] = [
   ["destructive-foreground", "destructive"], // destructive button
   ["on-hero", "hero"], // H1 on the band
   ["on-hero-muted", "hero"], // supporting line on the band
+  ["primary", "hero"], // lime text on the landing band: „Třeba ty.“, „Jak to funguje“ (#182)
   ["on-hero", "hero-pattern"], // header item and button hover on the band (the on-hero utility)
   ["badge-neutral-foreground", "badge-neutral"], // „Plno“, „Čeká na schválení“
   ["avatar-self-foreground", "avatar-self"], // the „ty“ avatar
   ["highlight-text", "background"], // section keyword (lime word in dark mode)
   ["highlight-text", "highlight-marker"], // …over its marker in light mode
+  ["accent-foreground", "accent"], // hovered or active row in a list or menu
 ]
 
 // DESIGN.md › Colour: every non-text element and every surface edge at least 3:1 against
@@ -120,6 +122,18 @@ describe.each([
 
   it.each(EDGE_PAIRS)("%s against %s is at least 3:1", (element, surround) => {
     expect(contrast(tokens[element]!, tokens[surround]!)).toBeGreaterThanOrEqual(3)
+  })
+
+  // A surface, not an edge, so not 3:1 — but the row under the pointer or the keyboard in a
+  // panel must stand out from it (dark `muted` was 1.05:1 on `card`).
+  it("the hover surface (accent) stands out from a card or panel", () => {
+    expect(contrast(tokens.accent!, tokens.card!)).toBeGreaterThanOrEqual(1.25)
+  })
+
+  // The quiet surfaces (the Detail row's icon box, empty bars, banners) must stay visible on a
+  // card: dark `muted` was 1.05:1 and the icon box was only a smudge behind the icon.
+  it("a quiet surface (muted) stands out from a card or panel", () => {
+    expect(contrast(tokens.muted!, tokens.card!)).toBeGreaterThanOrEqual(1.25)
   })
 
   it("destructive-foreground on the destructive hover is at least 4.5:1", () => {
@@ -175,5 +189,18 @@ describe.each([
     expect(
       Math.max(contrast(tokens.foreground!, surface), contrast(tokens[gap]!, surface)),
     ).toBeGreaterThanOrEqual(3)
+  })
+})
+
+// DESIGN.md › Colour, #201: dark mode comes from the .dark tokens alone. A kit control with its
+// own dark: shades drifts from Figma, and every recoloured state on top of it would have to
+// restate them. `pnpm dlx shadcn add` brings them back, so they are stripped on arrival.
+describe("kit in components/ui", () => {
+  const dir = resolve(process.cwd(), "src/components/ui")
+  const files = readdirSync(dir).filter((name) => name.endsWith(".tsx"))
+
+  it.each(files)("%s has no dark: classes", (name) => {
+    const source = readFileSync(join(dir, name), "utf8")
+    expect(source.match(/\bdark:[^\s"'`]+/g) ?? []).toEqual([])
   })
 })

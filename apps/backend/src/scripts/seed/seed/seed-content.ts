@@ -18,9 +18,9 @@ import {
  * Verze testovacích dat (#181). PR, který změní data v `data/`, číslo zvedne a staging
  * po deployi data vymění sám. 1 = data před #181 (bez verze v databázi), 2 = verze
  * dat a opravy z #167, 3 = krajská města, akce skupin a další proběhlé akce (#181),
- * 4 = komentáře k hodnocení účastníků (PO 4. 11.).
+ * 4 = komentáře k hodnocení účastníků (PO 4. 11.), 5 = oznámení skupin (#194).
  */
-export const SEED_DATA_VERSION = 4;
+export const SEED_DATA_VERSION = 5;
 
 /** Řádek `SeedState` s verzí testovacích dat. */
 export const SEED_STATE_KEY = 'demo';
@@ -193,6 +193,7 @@ export async function seedContent(
 
       await tx.group.createMany({ data: rows.groups });
       await tx.groupMember.createMany({ data: rows.groupMembers });
+      await tx.groupAnnouncement.createMany({ data: rows.groupAnnouncements });
       await tx.event.createMany({ data: rows.events });
       await tx.participation.createMany({ data: rows.participations });
       await tx.rating.createMany({ data: rows.ratings });
@@ -265,7 +266,7 @@ export async function findLegacySeedContent(
 
 /**
  * Smaže akce a skupiny, které vložil předchozí seed; účasti, členství, obě
- * hodnocení, zprávy a záznamy upozornění zmizí kaskádou, u plateb se `eventId`
+ * hodnocení, zprávy, oznámení skupin a záznamy upozornění zmizí kaskádou, u plateb se `eventId`
  * vynuluje. Cizí akci v seedové skupině (tester po #70) nesmaže, jen ji od
  * skupiny odpojí, jinak by smazání skupiny zastavil `onDelete: Restrict`.
  * Do logu jde, co zmizí a co ze seedových účtů zůstává, ať je to na stagingu vidět.

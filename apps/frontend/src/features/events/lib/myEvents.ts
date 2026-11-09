@@ -53,14 +53,39 @@ export function attendingRowLead(event: MyEvent): string | undefined {
 }
 
 /**
- * The tab in the URL, as Figma names it: `/moje-akce` is Přihlášen,
- * `/moje-akce?tab=poradam` Pořádám. Anything else falls back to Přihlášen.
+ * The tab in the URL, as Figma names it: `?tab=prihlasen` is Přihlášen, `?tab=poradam`
+ * Pořádám. Without one (or with anything else) the page picks the tab itself (#188).
  */
 export const myEventsSearchSchema = z.object({
-  tab: z.enum(["poradam"]).optional().catch(undefined),
+  tab: z.enum(["prihlasen", "poradam"]).optional().catch(undefined),
 })
 
 export type MyEventsSearch = z.infer<typeof myEventsSearchSchema>
+export type MyEventsTabName = NonNullable<MyEventsSearch["tab"]>
+
+/** A tab's events as far as they are known: still loading, or loaded (`events`), or failed. */
+type TabData = { events?: MyEvent[]; isPending: boolean }
+
+/**
+ * The tab `/moje-akce` opens on without `?tab` (#188): Pořádám while requests wait there —
+ * known as soon as Pořádám is, without waiting for Přihlášen — or when there is nothing to go
+ * to and something to run; otherwise Přihlášen. Undefined while it can't be told yet. The
+ * „nothing“ and „something“ are what the tabs count (cancelled events left out); a tab that
+ * failed to load counts as unknown, so it never sends anyone to Pořádám.
+ */
+export function initialMyEventsTab(
+  attending: TabData,
+  organizing: TabData,
+): MyEventsTabName | undefined {
+  if (organizing.events && pendingRequestsSummary(organizing.events)) return "poradam"
+  if (attending.isPending || organizing.isPending) return undefined
+  const going = attending.events && attendingSections(attending.events)
+  const isAttendingNothing =
+    going !== undefined && going.pending.length + going.approved.length === 0
+  const isOrganizingSomething =
+    organizing.events !== undefined && organizingSections(organizing.events).upcoming.length > 0
+  return isAttendingNothing && isOrganizingSomething ? "poradam" : "prihlasen"
+}
 
 /** "1 žádost", "2 žádosti", "5 žádostí" */
 export function requestCountLabel(count: number): string {

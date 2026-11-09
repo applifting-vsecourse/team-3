@@ -10,6 +10,7 @@ import {
   demoUsers,
 } from '@/scripts/seed/data/demo-data';
 import { toEventRow, toGroupRow } from '@/scripts/seed/data/demo-rows';
+import { groupAnnouncements } from '@/scripts/seed/data/group-announcements-data';
 import { groupEvents } from '@/scripts/seed/data/group-events-data';
 import { generatedPastEvents } from '@/scripts/seed/data/past-data';
 import { pastEvents, toPastEventRow } from '@/scripts/seed/data/rating-data';
@@ -29,6 +30,7 @@ export type ContentRefs = {
 export type ContentRows = {
   groups: Prisma.GroupCreateManyInput[];
   groupMembers: Prisma.GroupMemberCreateManyInput[];
+  groupAnnouncements: Prisma.GroupAnnouncementCreateManyInput[];
   events: Prisma.EventCreateManyInput[];
   participations: Prisma.ParticipationCreateManyInput[];
   ratings: Prisma.RatingCreateManyInput[];
@@ -37,7 +39,7 @@ export type ContentRows = {
 
 /**
  * Celý obsah seedu (demo #47, komunita #150 s krajskými městy #181, akce skupin,
- * proběhlé akce a hodnocení #180 a #181) jako řádky po tabulkách. Id si seed vygeneruje sám, takže vazby (člen → skupina,
+ * oznámení skupin #194, proběhlé akce a hodnocení #180 a #181) jako řádky po tabulkách. Id si seed vygeneruje sám, takže vazby (člen → skupina,
  * účast → akce) jsou hotové předem a každá tabulka jde vložit jedním `createMany`.
  * Čistá funkce bez Prismy, aby šla otestovat.
  */
@@ -46,6 +48,7 @@ export function buildContentRows(refs: ContentRefs): ContentRows {
   const rows: ContentRows = {
     groups: [],
     groupMembers: [],
+    groupAnnouncements: [],
     events: [],
     participations: [],
     ratings: [],
@@ -84,6 +87,19 @@ export function buildContentRows(refs: ContentRefs): ContentRows {
         message: member.message,
       })),
     );
+  }
+
+  // #194: deleted with their group when the seed data is replaced
+  for (const announcement of groupAnnouncements) {
+    rows.groupAnnouncements.push({
+      groupId: groupId(announcement.groupKey)!,
+      senderId: userId(announcement.senderKey),
+      subject: announcement.subject,
+      body: announcement.body,
+      createdAt: new Date(
+        now.getTime() - announcement.daysAgo * 24 * 60 * 60 * 1000,
+      ),
+    });
   }
 
   for (const event of [...demoEvents, ...communityEvents, ...groupEvents].map(

@@ -18,6 +18,7 @@ import {
   isEventOver,
   pastEventFacts,
   placeName,
+  showEventsLabel,
 } from "./formatEvent"
 
 describe("formatEventStart", () => {
@@ -47,11 +48,23 @@ describe("formatEventTime", () => {
       "Pá 23. 10. · 17:30 – So 24. 10. · 0:30",
     )
   })
+
+  it("adds the year for the „Kdy“ row (Figma A-05d)", () => {
+    expect(formatEventTime(start, new Date("2026-10-23T17:30:00.000Z"), { hasYear: true })).toBe(
+      "Pá 23. 10. 2026 · 17:30–19:30",
+    )
+    // the year is Prague's: 23:30 UTC on New Year's Eve is already 2027 there
+    expect(
+      formatEventTime(new Date("2026-12-31T20:00:00.000Z"), new Date("2026-12-31T23:30:00.000Z"), {
+        hasYear: true,
+      }),
+    ).toBe("Čt 31. 12. 2026 · 21:00 – Pá 1. 1. 2027 · 0:30")
+  })
 })
 
 describe("approvalModeLabel", () => {
   it("names both ways of joining", () => {
-    expect(approvalModeLabel("open")).toBe("Bez schválení")
+    expect(approvalModeLabel("open")).toBe("Bez schválení – kdo se přihlásí, je na akci")
     expect(approvalModeLabel("approval")).toBe("Se schválením organizátora")
   })
 })
@@ -186,5 +199,14 @@ describe("isEventOver (review #269)", () => {
     const endsAt = new Date("2026-10-23T18:00:00.000Z")
     expect(isEventOver({ startsAt, endsAt }, new Date("2026-10-23T17:59:00.000Z"))).toBe(false)
     expect(isEventOver({ startsAt, endsAt }, endsAt)).toBe(true)
+  })
+})
+
+describe("counts at the API's limit (#57)", () => {
+  it("says there may be more than 200", () => {
+    expect(eventCountLabel(199)).toBe("199 akcí")
+    expect(eventCountLabel(200)).toBe("Víc než 200 akcí")
+    expect(showEventsLabel(200)).toBe("Zobrazit víc než 200 akcí")
+    expect(showEventsLabel(3)).toBe("Zobrazit 3 akce")
   })
 })
