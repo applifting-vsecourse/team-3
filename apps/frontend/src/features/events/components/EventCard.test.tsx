@@ -7,7 +7,8 @@ import { EventCard } from "@/features/events/components/EventCard"
 import { anEvent } from "@/features/events/test/anEvent"
 
 const florbal = { id: "a-florbal", slug: "florbal", name: "Florbal" }
-const fishing = { id: "a-rybareni", slug: "rybareni", name: "Rybaření" }
+// a catalog activity newer than its photo in the library
+const newActivity = { id: "a-nova", slug: "nova-aktivita", name: "Nová aktivita" }
 const withActivity = (activity: typeof florbal) => {
   const event = anEvent()
   return { ...event, activity: { ...activity, category: event.activity.category } }
@@ -50,7 +51,7 @@ describe("EventCard", () => {
   })
 
   it("an activity without a photo in the library shows its Activity tile", async () => {
-    const { container } = await renderWithRouter(<EventCard event={withActivity(fishing)} />)
+    const { container } = await renderWithRouter(<EventCard event={withActivity(newActivity)} />)
 
     const photo = container.querySelector<HTMLElement>("[data-slot=event-photo]")!
     expect(photo.querySelector("img")).toBeNull()

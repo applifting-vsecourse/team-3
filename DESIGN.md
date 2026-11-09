@@ -24,7 +24,7 @@ These are rules, not suggestions. When a rule and a "nicer looking" idea disagre
 | ------------------------------------------------- | --------------------------------- | --------------------------------- | ------------------------------------------------------------------------- |
 | `background` / `foreground`                       | `#f4f1e8` / `#14201a`             | `#0f1612` / `#eef3ea`             | Page and body text                                                        |
 | `card`                                            | `#ffffff`                         | `#162c20`                         | Cards and panels, always with `card-border`                               |
-| `muted` / `muted-foreground`                      | `#e8e2d2` / `#505e56`             | `#1c2620` / `#a3afa6`             | Quiet surfaces / supporting text                                          |
+| `muted` / `muted-foreground`                      | `#e8e2d2` / `#505e56`             | `#2c3d33` / `#a3afa6`             | Quiet surfaces / supporting text                                          |
 | `primary` / `primary-foreground`                  | `#b9f53c` / `#14201a`             | same                              | Lime fill / text on it                                                    |
 | `primary-edge`                                    | `#265212`                         | = `primary`                       | Outline of lime on light surfaces                                         |
 | `secondary` / `secondary-foreground`              | `#e3f3cb` / `#265212`             | `#24402f` / `#eef3ea`             | Quiet green surfaces                                                      |
@@ -48,7 +48,7 @@ These are rules, not suggestions. When a rule and a "nicer looking" idea disagre
 
 The page sets `color-scheme` to match the theme, so native scrollbars and form controls are dark in dark mode.
 
-**Kit aliases.** The vendored kit reads shadcn's own names; `global.css` keeps them and points them at the tokens above, so the kit restyles without edits: `input` = `input-border`, `popover` = `card`, `card-foreground` = `popover-foreground` = `foreground`, `accent` / `accent-foreground` = `muted` / `foreground` (hover in buttons, menus, selects, the calendar, and the active row of a list) — in dark mode `accent` is its own `#2e4b3a`, because `muted` is 1.05:1 on a dark card and the hovered or keyboard-active row disappeared (tokens.test.ts wants at least 1.25:1 on `card`), `destructive-hover` is mixed from `destructive`. They are part of the contract — never delete them as unused.
+**Kit aliases.** The vendored kit reads shadcn's own names; `global.css` keeps them and points them at the tokens above, so the kit restyles without edits: `input` = `input-border`, `popover` = `card`, `card-foreground` = `popover-foreground` = `foreground`, `accent` / `accent-foreground` = `muted` / `foreground` (hover in buttons, menus, selects, the calendar, and the active row of a list) — in dark mode `accent` is its own `#2e4b3a`, because the hovered row must differ from a keyboard-highlighted `muted` one; `destructive-hover` is mixed from `destructive`. Both `muted` (the Detail row's icon box, empty bars, banners) and `accent` must stay visible on a card: tokens.test.ts wants at least 1.25:1 on `card` in both themes. They are part of the contract — never delete them as unused.
 
 Tokens under `color/_archiv/*` in Figma belong to archived screens only — do not add them to `global.css`.
 

@@ -6,11 +6,18 @@ import { HeaderMenu } from "@/features/auth/components/HeaderMenu"
 import { useSession } from "@/features/auth/hooks/useSession"
 
 /** The header with what depends on the session: the user menu and „Moje akce“. */
-export function AppHeader({ screenAction }: { screenAction?: ReactNode } = {}) {
+export function AppHeader({
+  screenAction,
+  isSignInOnMobile = false,
+}: {
+  screenAction?: ReactNode
+  /** „Přihlásit se“ in the header on a phone too: the landing page (Figma A-01). */
+  isSignInOnMobile?: boolean
+} = {}) {
   const { user } = useSession()
   return (
     <Header
-      userMenu={<HeaderMenu />}
+      userMenu={<HeaderMenu isSignInOnMobile={isSignInOnMobile} />}
       isSignedIn={Boolean(user)}
       screenAction={screenAction}
     />

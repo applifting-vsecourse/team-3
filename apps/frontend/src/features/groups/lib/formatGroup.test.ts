@@ -62,7 +62,9 @@ describe("myGroupTypeLabel", () => {
     expect(myGroupTypeLabel({ type: "closed", membership: { status: "pending" } })).toBe(
       "Neveřejná – žádost čeká na schválení",
     )
-    expect(myGroupTypeLabel({ type: "public", membership: { status: "active" } })).toBe("Veřejná")
+    expect(myGroupTypeLabel({ type: "public", membership: { status: "active" } })).toBe(
+      "Veřejná – přidáš se rovnou",
+    )
   })
 })
 

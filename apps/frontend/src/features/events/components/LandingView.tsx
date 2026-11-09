@@ -155,7 +155,9 @@ export function LandingView({
           )}
         </div>
       </PageBand>
-      <div className={cn(PAGE, "flex-1 gap-12 md:gap-16 md:pt-16 md:pb-16")}>
+      {/* Figma A-01: 32 px around and between the sections on a phone; A-01d: 72 px under the
+          band and at the bottom, 96 px between the sections, 128 before „Nic pro tebe?“ */}
+      <div className={cn(PAGE, "flex-1 gap-8 pt-8 pb-8 md:gap-24 md:pt-18 md:pb-18")}>
         {home ? (
           <Sections
             home={home}

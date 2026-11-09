@@ -1,4 +1,6 @@
-@import "@fontsource-variable/bricolage-grotesque";
+/* with the optical size axis: the browser sets it to the font size, as Figma does — the
+   default file is fixed at opsz 14, ~10 % wider at the display sizes than the design */
+@import "@fontsource-variable/bricolage-grotesque/opsz.css";
 @import "@fontsource-variable/geist";
 @import "tailwindcss";
 @plugin "tailwindcss-animate";
@@ -170,13 +172,13 @@
   --background: #0f1612;
   --foreground: #eef3ea;
   --card: #162c20;
-  --muted: #1c2620;
+  --muted: #2c3d33;
   --muted-foreground: #a3afa6;
   --primary-edge: var(--primary);
   --secondary: #24402f;
   --secondary-foreground: #eef3ea;
-  /* hover and the active row in lists and menus: `muted` is 1.05:1 on a dark card, so the row
-     under the pointer or the keyboard was invisible; this one is 1.5:1 on card, 1.9:1 on page */
+  /* hover and the active row in lists and menus: its own shade, so the row under the pointer
+     differs from a keyboard-highlighted `muted` one; 1.5:1 on card, 1.9:1 on page */
   --accent: #2e4b3a;
   --tile-border: #7d8a82;
   /* lighter than in light mode: #b42318 is too dark as error text on a dark card */
