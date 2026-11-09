@@ -307,16 +307,31 @@ function Cluster({ lat, lng, count, hasMissing, onClick }: ClusterProps) {
   )
 }
 
-const areaOf = (map: LeafletMap): MapArea => {
-  const bounds = map.getBounds()
+/**
+ * The view as an area the API takes. Zoomed far out, or panned past the date line, Leaflet
+ * reports longitudes beyond ±180° (latitudes too), which the URL schema would drop and
+ * „Hledat v této oblasti“ would do nothing; the area is cut to the Earth (review #276).
+ */
+export const toArea = ({ west, south, east, north }: MapArea): MapArea => {
+  const clamp = (degrees: number, limit: number) => Math.min(limit, Math.max(-limit, degrees))
   // four decimals are ~10 m: enough for a map view, short in the URL
   const round = (degrees: number) => Math.round(degrees * 10_000) / 10_000
   return {
-    west: round(bounds.getWest()),
-    south: round(bounds.getSouth()),
-    east: round(bounds.getEast()),
-    north: round(bounds.getNorth()),
+    west: round(clamp(west, 180)),
+    south: round(clamp(south, 90)),
+    east: round(clamp(east, 180)),
+    north: round(clamp(north, 90)),
   }
+}
+
+const areaOf = (map: LeafletMap): MapArea => {
+  const bounds = map.getBounds()
+  return toArea({
+    west: bounds.getWest(),
+    south: bounds.getSouth(),
+    east: bounds.getEast(),
+    north: bounds.getNorth(),
+  })
 }
 
 /**
