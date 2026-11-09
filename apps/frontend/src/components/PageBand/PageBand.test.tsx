@@ -34,6 +34,18 @@ describe("PageBand", () => {
     expect(screen.getByRole("link", { name: "Moje akce" })).toHaveAttribute("href", "/moje-akce")
   })
 
+  it("puts the leading picture before the title, outside its name (#178)", async () => {
+    await renderWithRouter(
+      <PageBand
+        title="Jana Nová"
+        leading={<span aria-hidden="true">JN</span>}
+      />,
+    )
+
+    const heading = screen.getByRole("heading", { level: 1, name: "Jana Nová" })
+    expect(heading.previousElementSibling).toHaveTextContent("JN")
+  })
+
   it("the logo motif is decoration", async () => {
     const { container } = await renderWithRouter(
       <PageBand

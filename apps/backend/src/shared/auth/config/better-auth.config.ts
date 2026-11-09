@@ -26,6 +26,7 @@ export const betterAuthCoreConfig: BetterAuthOptions = {
     }),
   },
   user: {
+    changeEmail: { enabled: true, updateEmailWithoutVerification: false },
     additionalFields: {
       role: {
         type: 'string',

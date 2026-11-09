@@ -11,6 +11,8 @@ const MESSAGES: Record<string, string> = {
   // the same for a wrong e-mail and a wrong password: it doesn't tell which accounts exist
   INVALID_EMAIL_OR_PASSWORD: "Nesprávný e-mail nebo heslo.",
   INVALID_EMAIL: "Zadej platný e-mail.",
+  // a wrong current password when changing it (#178)
+  INVALID_PASSWORD: "Současné heslo nesedí.",
   USER_ALREADY_EXISTS: "Účet s tímto e-mailem už existuje. Přihlas se, nebo si obnov heslo.",
   USER_ALREADY_EXISTS_USE_ANOTHER_EMAIL:
     "Účet s tímto e-mailem už existuje. Přihlas se, nebo si obnov heslo.",
