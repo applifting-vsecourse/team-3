@@ -18,7 +18,8 @@ const DOTS = [
 
 /**
  * The brand mark (Figma Logo/Mark, Logo/Mark/Plná parta): three dots and an empty ring —
- * the group missing one, and that one is you (DESIGN.md › Logo). Decorative: the name
+ * the group missing one, and that one is you (DESIGN.md › Logo). Off the band the empty
+ * ring is dashed. Decorative: the name
  * next to it or the heading says what it is.
  */
 export function LogoMark({
@@ -67,6 +68,9 @@ export function LogoMark({
               "origin-center transform-fill motion-safe:duration-500 motion-safe:animate-in motion-safe:zoom-in-0",
           )}
           strokeWidth="1.5"
+          // the missing one is a dashed ring, eight dashes round (Figma „Logo – chybí jeden“,
+          // A-01, A-01d); on the band the ring stays whole and lime
+          {...(isFull ? {} : { pathLength: 16, strokeDasharray: "1 1" })}
         />
       )}
     </svg>
