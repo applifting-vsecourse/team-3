@@ -60,6 +60,8 @@ beforeEach(() => {
 })
 afterEach(() => {
   vi.unstubAllGlobals()
+  // the spies on scrollIntoView and setTimeout
+  vi.restoreAllMocks()
 })
 
 describe("GroupForm", () => {
@@ -85,17 +87,48 @@ describe("GroupForm", () => {
     expect(screen.getByRole("radio", { name: /Neveřejná/ })).not.toBeChecked()
   })
 
-  it("a failed submit scrolls to the first invalid field and focuses it (#190)", async () => {
+  it("a failed submit scrolls to the first invalid field and focuses it once the scroll ends (#190)", async () => {
     renderForm()
-    const scrollIntoView = vi.spyOn(Element.prototype, "scrollIntoView").mockClear()
+    const scrollIntoView = vi.spyOn(Element.prototype, "scrollIntoView")
 
     await userEvent.click(screen.getByRole("button", { name: "Založit skupinu" }))
 
     const name = screen.getByLabelText("Název skupiny *")
-    await waitFor(() => expect(name).toHaveFocus())
-    expect(scrollIntoView).toHaveBeenCalledOnce()
+    await waitFor(() => expect(scrollIntoView).toHaveBeenCalledOnce())
     expect(scrollIntoView.mock.contexts[0]).toBe(name)
     expect(scrollIntoView).toHaveBeenCalledWith({ behavior: "smooth", block: "center" })
+    // focusing now would open the keyboard and iOS Safari would cut the scroll short
+    expect(name).not.toHaveFocus()
+
+    window.dispatchEvent(new Event("scrollend"))
+
+    expect(name).toHaveFocus()
+  })
+
+  it("without a scrollend (Safari, nothing to scroll) the field is focused after 400 ms", async () => {
+    renderForm()
+    const scrollIntoView = vi.spyOn(Element.prototype, "scrollIntoView")
+    const setTimeout = vi.spyOn(window, "setTimeout")
+
+    await userEvent.click(screen.getByRole("button", { name: "Založit skupinu" }))
+
+    const name = screen.getByLabelText("Název skupiny *")
+    await waitFor(() => expect(scrollIntoView).toHaveBeenCalledOnce())
+    expect(setTimeout).toHaveBeenCalledWith(expect.any(Function), 400)
+    expect(name).not.toHaveFocus()
+    await waitFor(() => expect(name).toHaveFocus())
+  })
+
+  it("a field tapped while the page scrolls keeps the focus", async () => {
+    renderForm()
+    const scrollIntoView = vi.spyOn(Element.prototype, "scrollIntoView")
+
+    await userEvent.click(screen.getByRole("button", { name: "Založit skupinu" }))
+    await waitFor(() => expect(scrollIntoView).toHaveBeenCalledOnce())
+    await userEvent.click(screen.getByLabelText("Popis"))
+    window.dispatchEvent(new Event("scrollend"))
+
+    expect(screen.getByLabelText("Popis")).toHaveFocus()
   })
 
   it("a valid name moves the focus on to the next invalid field, the activity", async () => {
@@ -107,19 +140,21 @@ describe("GroupForm", () => {
     await waitFor(() => expect(screen.getByRole("combobox", { name: "Aktivita *" })).toHaveFocus())
   })
 
-  it("with reduced motion it jumps to the field instead of scrolling smoothly", async () => {
+  it("with reduced motion it jumps to the field and focuses it at once", async () => {
     vi.stubGlobal("matchMedia", (query: string) => ({
       matches: query === "(prefers-reduced-motion: reduce)",
       addEventListener: vi.fn(),
       removeEventListener: vi.fn(),
     }))
     renderForm()
-    const scrollIntoView = vi.spyOn(Element.prototype, "scrollIntoView").mockClear()
+    const scrollIntoView = vi.spyOn(Element.prototype, "scrollIntoView")
 
     await userEvent.click(screen.getByRole("button", { name: "Založit skupinu" }))
 
-    await waitFor(() => expect(screen.getByLabelText("Název skupiny *")).toHaveFocus())
+    await waitFor(() => expect(scrollIntoView).toHaveBeenCalledOnce())
     expect(scrollIntoView).toHaveBeenCalledWith({ behavior: "auto", block: "center" })
+    // no smooth scroll to wait for
+    expect(screen.getByLabelText("Název skupiny *")).toHaveFocus()
   })
 
   it("founding: the activity and the locality are found by typing", async () => {

@@ -3,6 +3,9 @@ import { useSyncExternalStore } from "react"
 /** Tailwind's `md` breakpoint: desktop layout from here up. */
 export const DESKTOP_QUERY = "(min-width: 768px)"
 
+/** The visitor asked the system for less motion: no smooth scrolling. */
+export const REDUCED_MOTION_QUERY = "(prefers-reduced-motion: reduce)"
+
 /**
  * A mouse or a trackpad, not a finger: focusing a field there pops up no
  * on-screen keyboard (a narrow desktop window, a tablet with a trackpad).
