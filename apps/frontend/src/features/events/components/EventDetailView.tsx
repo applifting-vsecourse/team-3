@@ -24,6 +24,7 @@ import { cn } from "@/lib/utils"
 import type { EventDetail } from "@/features/events/api/eventSchemas"
 import { EventFacts } from "@/features/events/components/EventFacts"
 import { EventParticipants } from "@/features/events/components/EventParticipants"
+import { toPin } from "@/features/events/components/EventsMap"
 import { ShareEventButton } from "@/features/events/components/ShareEventButton"
 import {
   eventDateParts,
@@ -191,10 +192,10 @@ export function EventDetailView({
         center={{ lat: event.lat, lng: event.lng }}
         pins={[
           {
-            id: event.id,
-            lat: event.lat,
-            lng: event.lng,
-            variant: "default",
+            // the pin says the state as on the list's map: lime while people are missing
+            // (Figma A-05d); a cancelled event no longer misses anyone
+            ...toPin(event),
+            ...(isCancelled ? { variant: "default" as const } : {}),
             label: placeName(event.address),
           },
         ]}
@@ -254,10 +255,11 @@ export function EventDetailView({
               {participants}
               {organizer}
             </div>
-            {/* Figma: Panel akce */}
+            {/* Figma: Panel akce — the buttons first, „Sdílet odkaz“ among them, the action's
+                note last (A-05d, A-05ad): the action's column is laid into the panel's */}
             <section
               aria-label="Termín, místo a účast"
-              className="flex w-100 flex-col gap-4 rounded-2xl border border-card-border bg-card p-6 text-card-foreground"
+              className="flex w-100 flex-col gap-4 rounded-2xl border border-card-border bg-card p-6 text-card-foreground [&_[data-slot=participation-note]]:order-last [&>[data-slot=participation]]:contents"
             >
               {capacity}
               {facts}
