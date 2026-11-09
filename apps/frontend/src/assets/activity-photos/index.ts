@@ -1,7 +1,7 @@
 // The activity photo library (DESIGN.md › Event card): one photo per activity, by its slug,
 // never an organizer's upload. Each in two widths, `<slug>-480.webp` and `<slug>-960.webp`.
-// Today the sample photos from Figma (HobbyHub-design); an activity without one shows its
-// Activity tile instead. Adding a photo is adding the two files — see README.md here.
+// Every catalog activity has one; an activity added before its photo shows its Activity tile
+// instead. Adding a photo is adding the two files — see README.md here.
 const files = import.meta.glob<string>("./*.webp", {
   eager: true,
   query: "?url",
