@@ -14,12 +14,17 @@ type SubBarProps = {
 
 /**
  * A detail's bar on a phone (Figma Header/Sub): the arrow, what the page is and its action,
- * on the band's colour; the photo and the band with the title follow (A-05, A-08).
+ * on the band's colour; the photo and the band with the title follow (A-05, A-08). It takes the
+ * header's place: the header steps aside while a bar is on the page (`Header`), and the bar stays
+ * at the top as the header would.
  */
 export function SubBar({ back, label, action, isHeading = false }: SubBarProps) {
   const Label = isHeading ? "h1" : "p"
   return (
-    <div className="flex h-14 items-center gap-1 border-b border-band-edge on-hero pr-2 pl-4">
+    <div
+      data-slot="sub-bar"
+      className="sticky top-0 z-40 flex h-14 items-center gap-1 border-b border-band-edge on-hero pr-2 pl-4"
+    >
       <BackLink
         {...back}
         isIconOnlyOnMobile
