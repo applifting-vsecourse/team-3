@@ -49,6 +49,8 @@ const anEvent = (overrides: Partial<ProfileEvent>): ProfileEvent => ({
   freeSpots: 7,
   isFull: false,
   isPromoted: false,
+  summary: null,
+  distanceKm: null,
   status: "published",
   localityName: "Praha 7",
   participation: null,

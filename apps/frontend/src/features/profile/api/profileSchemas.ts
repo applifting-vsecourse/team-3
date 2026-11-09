@@ -48,6 +48,9 @@ const profileEventSchema = z.object({
   freeSpots: z.number(),
   isFull: z.boolean(),
   isPromoted: z.boolean(),
+  // as in GET /api/events (#56, #57); the profile sends no point, so distanceKm is null
+  summary: z.string().nullable(),
+  distanceKm: z.number().nullable(),
   status: z.enum(["published", "cancelled"]),
   localityName: z.string(),
   participation: z.enum(["approved", "pending"]).nullable(),
