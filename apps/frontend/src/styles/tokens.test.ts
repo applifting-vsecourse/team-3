@@ -130,6 +130,12 @@ describe.each([
     expect(contrast(tokens.accent!, tokens.card!)).toBeGreaterThanOrEqual(1.25)
   })
 
+  // The quiet surfaces (the Detail row's icon box, empty bars, banners) must stay visible on a
+  // card: dark `muted` was 1.05:1 and the icon box was only a smudge behind the icon.
+  it("a quiet surface (muted) stands out from a card or panel", () => {
+    expect(contrast(tokens.muted!, tokens.card!)).toBeGreaterThanOrEqual(1.25)
+  })
+
   it("destructive-foreground on the destructive hover is at least 4.5:1", () => {
     const [, share = "", other = ""] =
       /--color-destructive-hover:\s*color-mix\(in srgb, var\(--destructive\) (\d+)%, var\(--([\w-]+)\)\)/.exec(
