@@ -8,8 +8,8 @@ const MARGIN_DEGREES = 1e-7;
 
 /**
  * Great-circle (haversine) distance in km. One formula for the whole backend:
- * the catalog's „same place“ check, the IP table's nearest town (#55) and the
- * events' okolí (#57).
+ * the catalog's „same place“ check, the IP table's nearest town (#55), the
+ * events' okolí (#57) and the landing page's „Kousek od tebe“ (#263).
  */
 export function distanceKm(a: LatLng, b: LatLng): number {
   const rad = DEGREE;

@@ -4,7 +4,6 @@ import { RecruitingGroup } from '@/modules/group/domain/group';
 import { RatingSummary } from '@/modules/rating/domain/rating-summary';
 import {
   buildHomeEventSections,
-  distanceKm,
   HOME_GROUPS_LIMIT,
   HomeEventsInput,
   isWellRated,
@@ -458,17 +457,6 @@ describe('ratingKeyOf', () => {
     expect(
       ratingKeyOf(anEvent('e', { organizerId: 'u1', groupId: 'g1' })),
     ).toBe('group:g1');
-  });
-});
-
-describe('distanceKm', () => {
-  it('Praha – Brno is about 185 km', () => {
-    const km = distanceKm(
-      { lat: 50.0755, lng: 14.4378 },
-      { lat: 49.1951, lng: 16.6068 },
-    );
-    expect(km).toBeGreaterThan(180);
-    expect(km).toBeLessThan(190);
   });
 });
 
