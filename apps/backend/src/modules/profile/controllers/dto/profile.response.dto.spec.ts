@@ -6,6 +6,7 @@ describe('ProfileOverviewResponseDto (#178)', () => {
     const event = {
       id: 'e1',
       title: 'Deskovky',
+      summary: null,
       startsAt: new Date('2026-11-10T16:00:00.000Z'),
       endsAt: null,
       address: 'Herna Karlín, Křižíkova 52, Praha 8',
@@ -15,6 +16,7 @@ describe('ProfileOverviewResponseDto (#178)', () => {
         id: 'a1',
         slug: 'deskove-hry',
         name: 'Deskové hry',
+        keywords: [],
         category: { id: 'c1', slug: 'hry', name: 'Hry', icon: 'dice' },
       },
       locality: { id: 'l1', slug: 'praha-8', name: 'Praha 8' },
@@ -29,6 +31,7 @@ describe('ProfileOverviewResponseDto (#178)', () => {
         isFull: false,
       },
       isPromoted: false,
+      distanceKm: null,
       status: 'published' as const,
       localityName: 'Praha 8',
       participation: 'approved' as const,
