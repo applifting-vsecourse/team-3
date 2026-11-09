@@ -1,5 +1,5 @@
 import { Link } from "@tanstack/react-router"
-import { LogOut } from "lucide-react"
+import { LogOut, UserRound } from "lucide-react"
 
 import { ROUTES } from "@/app/routes"
 import { Avatar, AvatarFallback } from "@/components/ui/avatar"
@@ -80,6 +80,13 @@ export function HeaderMenu({
           </div>
         </DropdownMenuLabel>
         <DropdownMenuSeparator />
+        {/* on a phone the profile is in the bottom navigation; on desktop only here (#178) */}
+        <DropdownMenuItem asChild>
+          <Link to={ROUTES.profile}>
+            <UserRound className="size-4" />
+            Můj profil
+          </Link>
+        </DropdownMenuItem>
         <DropdownMenuItem
           onSelect={() => signOut.mutate()}
           disabled={signOut.isPending}
