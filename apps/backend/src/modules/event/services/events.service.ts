@@ -12,7 +12,6 @@ import {
   PublicEventFilters,
   PublicEventSort,
 } from '@/modules/event/domain/event';
-import { matchesSearch } from '@/modules/event/domain/event-search';
 import {
   canReadMessages,
   canSendMessages,
@@ -24,6 +23,7 @@ import {
   MESSAGES_SHOWN,
   remainingMessages,
 } from '@/modules/event/domain/event-message';
+import { matchesSearch } from '@/modules/event/domain/event-search';
 import {
   decideUpdate,
   lifecycleRefusal,
@@ -127,7 +127,10 @@ const withDistance = (
   point: LatLng | undefined,
 ): PublicEvent[] =>
   point
-    ? events.map((event) => ({ ...event, distanceKm: distanceKm(point, event) }))
+    ? events.map((event) => ({
+        ...event,
+        distanceKm: distanceKm(point, event),
+      }))
     : events;
 
 /**

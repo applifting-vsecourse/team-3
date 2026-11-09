@@ -1,10 +1,10 @@
 import { Prisma } from '@/generated/prisma/client';
-import { boxAround } from '@/shared/geo/distance';
 import { PublicEventFilters } from '@/modules/event/domain/event';
 import {
   startOfNextPragueDay,
   startOfPragueDay,
 } from '@/modules/event/domain/prague-day';
+import { boxAround } from '@/shared/geo/distance';
 
 /**
  * Prisma `where` for the public event list. A pure function so it can be

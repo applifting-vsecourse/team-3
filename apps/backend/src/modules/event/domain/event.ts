@@ -1,6 +1,6 @@
+import { LatLng } from '@/shared/geo/distance';
 import { BoundingBox } from './bounding-box';
 import { Capacity, CapacityFilter } from './capacity';
-import { LatLng } from '@/shared/geo/distance';
 
 /** Filters of the public event list (B-023, sprint 2 version). */
 export type PublicEventFilters = {

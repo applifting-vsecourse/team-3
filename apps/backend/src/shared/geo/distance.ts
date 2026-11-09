@@ -34,9 +34,7 @@ export function boxAround(
   const angle = radiusKm / EARTH_RADIUS_KM;
   const dLat = angle / DEGREE + MARGIN_DEGREES;
   const dLng =
-    Math.asin(
-      Math.min(1, Math.sin(angle) / Math.cos(center.lat * DEGREE)),
-    ) /
+    Math.asin(Math.min(1, Math.sin(angle) / Math.cos(center.lat * DEGREE))) /
       DEGREE +
     MARGIN_DEGREES;
   return {
