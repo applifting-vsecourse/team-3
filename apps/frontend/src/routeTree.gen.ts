@@ -20,12 +20,13 @@ import { Route as ResetPasswordRouteImport } from './routes/reset-password'
 import { Route as SignupRouteImport } from './routes/signup'
 import { Route as ZapomenuteHesloRouteImport } from './routes/zapomenute-heslo'
 import { Route as ProtectedPagesMojeAkceRouteImport } from './routes/_ProtectedPages/moje-akce'
-import { Route as ProtectedPagesProfilRouteImport } from './routes/_ProtectedPages/profil'
 import { Route as AkceEventIdRouteImport } from './routes/akce_.$eventId'
 import { Route as SkupinyIndexRouteImport } from './routes/skupiny.index'
 import { Route as SkupinyGroupIdRouteImport } from './routes/skupiny.$groupId'
 import { Route as UzivateleUserIdRouteImport } from './routes/uzivatele.$userId'
 import { Route as ProtectedPagesAkceNovaRouteImport } from './routes/_ProtectedPages/akce.nova'
+import { Route as ProtectedPagesProfilIndexRouteImport } from './routes/_ProtectedPages/profil.index'
+import { Route as ProtectedPagesProfilUpravitRouteImport } from './routes/_ProtectedPages/profil.upravit'
 import { Route as ProtectedPagesSkupinyNovaRouteImport } from './routes/_ProtectedPages/skupiny.nova'
 import { Route as ProtectedPagesAkceEventIdSpravaRouteImport } from './routes/_ProtectedPages/akce.$eventId.sprava'
 import { Route as ProtectedPagesAkceEventIdUpravitRouteImport } from './routes/_ProtectedPages/akce.$eventId.upravit'
@@ -87,11 +88,6 @@ const ProtectedPagesMojeAkceRoute = ProtectedPagesMojeAkceRouteImport.update({
   path: '/moje-akce',
   getParentRoute: () => ProtectedPagesRoute,
 } as any)
-const ProtectedPagesProfilRoute = ProtectedPagesProfilRouteImport.update({
-  id: '/profil',
-  path: '/profil',
-  getParentRoute: () => ProtectedPagesRoute,
-} as any)
 const AkceEventIdRoute = AkceEventIdRouteImport.update({
   id: '/akce_/$eventId',
   path: '/akce/$eventId',
@@ -117,6 +113,18 @@ const ProtectedPagesAkceNovaRoute = ProtectedPagesAkceNovaRouteImport.update({
   path: '/akce/nova',
   getParentRoute: () => ProtectedPagesRoute,
 } as any)
+const ProtectedPagesProfilIndexRoute =
+  ProtectedPagesProfilIndexRouteImport.update({
+    id: '/profil/',
+    path: '/profil/',
+    getParentRoute: () => ProtectedPagesRoute,
+  } as any)
+const ProtectedPagesProfilUpravitRoute =
+  ProtectedPagesProfilUpravitRouteImport.update({
+    id: '/profil/upravit',
+    path: '/profil/upravit',
+    getParentRoute: () => ProtectedPagesRoute,
+  } as any)
 const ProtectedPagesSkupinyNovaRoute =
   ProtectedPagesSkupinyNovaRouteImport.update({
     id: '/skupiny/nova',
@@ -165,13 +173,14 @@ export interface FileRoutesByFullPath {
   '/signup': typeof SignupRoute
   '/zapomenute-heslo': typeof ZapomenuteHesloRoute
   '/moje-akce': typeof ProtectedPagesMojeAkceRoute
-  '/profil': typeof ProtectedPagesProfilRoute
   '/akce/$eventId': typeof AkceEventIdRoute
   '/skupiny/$groupId': typeof SkupinyGroupIdRoute
   '/uzivatele/$userId': typeof UzivateleUserIdRoute
   '/skupiny/': typeof SkupinyIndexRoute
   '/akce/nova': typeof ProtectedPagesAkceNovaRoute
+  '/profil/upravit': typeof ProtectedPagesProfilUpravitRoute
   '/skupiny/nova': typeof ProtectedPagesSkupinyNovaRoute
+  '/profil/': typeof ProtectedPagesProfilIndexRoute
   '/akce/$eventId/sprava': typeof ProtectedPagesAkceEventIdSpravaRoute
   '/akce/$eventId/upravit': typeof ProtectedPagesAkceEventIdUpravitRoute
   '/skupiny/$groupId/sprava': typeof ProtectedPagesSkupinyGroupIdSpravaRoute
@@ -189,13 +198,14 @@ export interface FileRoutesByTo {
   '/signup': typeof SignupRoute
   '/zapomenute-heslo': typeof ZapomenuteHesloRoute
   '/moje-akce': typeof ProtectedPagesMojeAkceRoute
-  '/profil': typeof ProtectedPagesProfilRoute
   '/akce/$eventId': typeof AkceEventIdRoute
   '/skupiny/$groupId': typeof SkupinyGroupIdRoute
   '/uzivatele/$userId': typeof UzivateleUserIdRoute
   '/skupiny': typeof SkupinyIndexRoute
   '/akce/nova': typeof ProtectedPagesAkceNovaRoute
+  '/profil/upravit': typeof ProtectedPagesProfilUpravitRoute
   '/skupiny/nova': typeof ProtectedPagesSkupinyNovaRoute
+  '/profil': typeof ProtectedPagesProfilIndexRoute
   '/akce/$eventId/sprava': typeof ProtectedPagesAkceEventIdSpravaRoute
   '/akce/$eventId/upravit': typeof ProtectedPagesAkceEventIdUpravitRoute
   '/skupiny/$groupId/sprava': typeof ProtectedPagesSkupinyGroupIdSpravaRoute
@@ -215,13 +225,14 @@ export interface FileRoutesById {
   '/signup': typeof SignupRoute
   '/zapomenute-heslo': typeof ZapomenuteHesloRoute
   '/_ProtectedPages/moje-akce': typeof ProtectedPagesMojeAkceRoute
-  '/_ProtectedPages/profil': typeof ProtectedPagesProfilRoute
   '/akce_/$eventId': typeof AkceEventIdRoute
   '/skupiny/$groupId': typeof SkupinyGroupIdRoute
   '/uzivatele/$userId': typeof UzivateleUserIdRoute
   '/skupiny/': typeof SkupinyIndexRoute
   '/_ProtectedPages/akce/nova': typeof ProtectedPagesAkceNovaRoute
+  '/_ProtectedPages/profil/upravit': typeof ProtectedPagesProfilUpravitRoute
   '/_ProtectedPages/skupiny/nova': typeof ProtectedPagesSkupinyNovaRoute
+  '/_ProtectedPages/profil/': typeof ProtectedPagesProfilIndexRoute
   '/_ProtectedPages/akce/$eventId/sprava': typeof ProtectedPagesAkceEventIdSpravaRoute
   '/_ProtectedPages/akce/$eventId/upravit': typeof ProtectedPagesAkceEventIdUpravitRoute
   '/_ProtectedPages/skupiny/$groupId/sprava': typeof ProtectedPagesSkupinyGroupIdSpravaRoute
@@ -241,13 +252,14 @@ export interface FileRouteTypes {
     | '/signup'
     | '/zapomenute-heslo'
     | '/moje-akce'
-    | '/profil'
     | '/akce/$eventId'
     | '/skupiny/$groupId'
     | '/uzivatele/$userId'
     | '/skupiny/'
     | '/akce/nova'
+    | '/profil/upravit'
     | '/skupiny/nova'
+    | '/profil/'
     | '/akce/$eventId/sprava'
     | '/akce/$eventId/upravit'
     | '/skupiny/$groupId/sprava'
@@ -265,13 +277,14 @@ export interface FileRouteTypes {
     | '/signup'
     | '/zapomenute-heslo'
     | '/moje-akce'
-    | '/profil'
     | '/akce/$eventId'
     | '/skupiny/$groupId'
     | '/uzivatele/$userId'
     | '/skupiny'
     | '/akce/nova'
+    | '/profil/upravit'
     | '/skupiny/nova'
+    | '/profil'
     | '/akce/$eventId/sprava'
     | '/akce/$eventId/upravit'
     | '/skupiny/$groupId/sprava'
@@ -290,13 +303,14 @@ export interface FileRouteTypes {
     | '/signup'
     | '/zapomenute-heslo'
     | '/_ProtectedPages/moje-akce'
-    | '/_ProtectedPages/profil'
     | '/akce_/$eventId'
     | '/skupiny/$groupId'
     | '/uzivatele/$userId'
     | '/skupiny/'
     | '/_ProtectedPages/akce/nova'
+    | '/_ProtectedPages/profil/upravit'
     | '/_ProtectedPages/skupiny/nova'
+    | '/_ProtectedPages/profil/'
     | '/_ProtectedPages/akce/$eventId/sprava'
     | '/_ProtectedPages/akce/$eventId/upravit'
     | '/_ProtectedPages/skupiny/$groupId/sprava'
@@ -400,13 +414,6 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ProtectedPagesMojeAkceRouteImport
       parentRoute: typeof ProtectedPagesRoute
     }
-    '/_ProtectedPages/profil': {
-      id: '/_ProtectedPages/profil'
-      path: '/profil'
-      fullPath: '/profil'
-      preLoaderRoute: typeof ProtectedPagesProfilRouteImport
-      parentRoute: typeof ProtectedPagesRoute
-    }
     '/akce_/$eventId': {
       id: '/akce_/$eventId'
       path: '/akce/$eventId'
@@ -440,6 +447,20 @@ declare module '@tanstack/react-router' {
       path: '/akce/nova'
       fullPath: '/akce/nova'
       preLoaderRoute: typeof ProtectedPagesAkceNovaRouteImport
+      parentRoute: typeof ProtectedPagesRoute
+    }
+    '/_ProtectedPages/profil/': {
+      id: '/_ProtectedPages/profil/'
+      path: '/profil'
+      fullPath: '/profil/'
+      preLoaderRoute: typeof ProtectedPagesProfilIndexRouteImport
+      parentRoute: typeof ProtectedPagesRoute
+    }
+    '/_ProtectedPages/profil/upravit': {
+      id: '/_ProtectedPages/profil/upravit'
+      path: '/profil/upravit'
+      fullPath: '/profil/upravit'
+      preLoaderRoute: typeof ProtectedPagesProfilUpravitRouteImport
       parentRoute: typeof ProtectedPagesRoute
     }
     '/_ProtectedPages/skupiny/nova': {
@@ -489,9 +510,10 @@ declare module '@tanstack/react-router' {
 
 interface ProtectedPagesRouteChildren {
   ProtectedPagesMojeAkceRoute: typeof ProtectedPagesMojeAkceRoute
-  ProtectedPagesProfilRoute: typeof ProtectedPagesProfilRoute
   ProtectedPagesAkceNovaRoute: typeof ProtectedPagesAkceNovaRoute
+  ProtectedPagesProfilUpravitRoute: typeof ProtectedPagesProfilUpravitRoute
   ProtectedPagesSkupinyNovaRoute: typeof ProtectedPagesSkupinyNovaRoute
+  ProtectedPagesProfilIndexRoute: typeof ProtectedPagesProfilIndexRoute
   ProtectedPagesAkceEventIdSpravaRoute: typeof ProtectedPagesAkceEventIdSpravaRoute
   ProtectedPagesAkceEventIdUpravitRoute: typeof ProtectedPagesAkceEventIdUpravitRoute
   ProtectedPagesSkupinyGroupIdSpravaRoute: typeof ProtectedPagesSkupinyGroupIdSpravaRoute
@@ -501,9 +523,10 @@ interface ProtectedPagesRouteChildren {
 
 const ProtectedPagesRouteChildren: ProtectedPagesRouteChildren = {
   ProtectedPagesMojeAkceRoute: ProtectedPagesMojeAkceRoute,
-  ProtectedPagesProfilRoute: ProtectedPagesProfilRoute,
   ProtectedPagesAkceNovaRoute: ProtectedPagesAkceNovaRoute,
+  ProtectedPagesProfilUpravitRoute: ProtectedPagesProfilUpravitRoute,
   ProtectedPagesSkupinyNovaRoute: ProtectedPagesSkupinyNovaRoute,
+  ProtectedPagesProfilIndexRoute: ProtectedPagesProfilIndexRoute,
   ProtectedPagesAkceEventIdSpravaRoute: ProtectedPagesAkceEventIdSpravaRoute,
   ProtectedPagesAkceEventIdUpravitRoute: ProtectedPagesAkceEventIdUpravitRoute,
   ProtectedPagesSkupinyGroupIdSpravaRoute:

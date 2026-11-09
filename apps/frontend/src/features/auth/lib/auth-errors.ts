@@ -13,6 +13,11 @@ const MESSAGES: Record<string, string> = {
   INVALID_EMAIL: "Zadej platný e-mail.",
   // #236: only a verified e-mail signs in; the sign-in page shows „Ověř si e-mail“ instead
   EMAIL_NOT_VERIFIED: "Nejdřív si ověř e-mail. Otevři odkaz z e-mailu, nebo si pošli nový.",
+  // a wrong current password when changing it (#178)
+  INVALID_PASSWORD: "Současné heslo nesedí.",
+  USER_ALREADY_EXISTS: "Účet s tímto e-mailem už existuje. Přihlas se, nebo si obnov heslo.",
+  USER_ALREADY_EXISTS_USE_ANOTHER_EMAIL:
+    "Účet s tímto e-mailem už existuje. Přihlas se, nebo si obnov heslo.",
   // our own check (B-010), the API says why in Czech already
   WEAK_PASSWORD: "Heslo musí mít aspoň 10 znaků a obsahovat písmeno i číslici.",
   // the password is among leaked ones (Have I Been Pwned): sign-up, change and reset (#153)

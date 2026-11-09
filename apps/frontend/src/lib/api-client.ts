@@ -67,4 +67,15 @@ const httpErrorMessage = (error: HTTPError): string => {
   return apiMessage(error.data) ?? `Něco se nepovedlo (chyba ${status}). Zkus to znovu.`
 }
 
+/**
+ * The code of the API's refusal (`{ code: "UNKNOWN_LOCALITY", message }`), for
+ * a form that shows it at the field it is about (DESIGN.md › Forms).
+ */
+export const apiErrorCode = (error: unknown): string | undefined => {
+  if (!(error instanceof HTTPError)) return undefined
+  const data: unknown = error.data
+  if (typeof data !== "object" || data === null || !("code" in data)) return undefined
+  return typeof data.code === "string" ? data.code : undefined
+}
+
 export { HTTPError }
