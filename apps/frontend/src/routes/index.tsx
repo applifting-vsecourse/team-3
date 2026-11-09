@@ -36,7 +36,7 @@ function LandingPage() {
   return (
     <>
       <Seo />
-      <AppHeader />
+      <AppHeader isSignInOnMobile />
       {/* Wait for the session and the default locality, so a signed-in user never sees the
           invitation flash and the sections never swap from one locality to another. */}
       <LandingView
