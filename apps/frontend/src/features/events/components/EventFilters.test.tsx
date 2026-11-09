@@ -170,6 +170,19 @@ describe("EventFilters", () => {
     expect(onChange).toHaveBeenCalledWith({ lokalita: "praha", okoli: "10" })
   })
 
+  it("goes back to „Jen obec“ after a radius was picked (#57)", async () => {
+    const { onChange } = renderFilters({ search: { lokalita: "praha", okoli: "10" } })
+
+    await userEvent.click(screen.getByRole("button", { name: "Lokalita: Praha · +10 km" }))
+    const panel = await screen.findByRole("dialog", { name: "Lokalita" })
+    const okoli = within(panel).getByRole("radiogroup", { name: "Okolí" })
+    await userEvent.click(within(okoli).getByRole("radio", { name: "Jen obec" }))
+    expect(within(okoli).getByRole("radio", { name: "Jen obec" })).toBeChecked()
+
+    await userEvent.click(within(panel).getByRole("button", { name: /^Zobrazit/ }))
+    expect(onChange).toHaveBeenCalledWith({ lokalita: "praha" })
+  })
+
   it("names okolí on a dark chip", () => {
     renderFilters({ search: { lokalita: "praha-8", okoli: "25" } })
 

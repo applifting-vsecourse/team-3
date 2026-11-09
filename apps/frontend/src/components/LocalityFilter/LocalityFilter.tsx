@@ -103,7 +103,9 @@ export function LocalityFilter({
     : { label: cityReset.label, isDisabled: cityReset.slug === undefined }
   const radiusFor = (slug: string, km: string | undefined) =>
     slug === ALL_LOCALITIES_SLUG ? undefined : km
-  const updateDraft = (slug: string, km = draftRadius) => {
+  // km is explicit, not a default: „Jen obec“ is undefined, which a default would turn back
+  // into the radius picked before
+  const updateDraft = (slug: string, km: string | undefined) => {
     setDraft(slug)
     setDraftRadius(km)
     onDraftChange?.({ slug, radius: radiusFor(slug, km) })
@@ -153,7 +155,7 @@ export function LocalityFilter({
       <LocalitySearch
         localities={localities}
         draft={draft}
-        onPick={(slug) => updateDraft(slug)}
+        onPick={(slug) => updateDraft(slug, draftRadius)}
         inputRef={searchRef}
         between={
           radius ? (
