@@ -4,7 +4,7 @@ import { render, screen } from "@testing-library/react"
 import { describe, expect, it } from "vitest"
 
 import { clusterHtml, PIN_BOX, pinHtml } from "./mapPin"
-import { MapView, viewKey } from "./MapView"
+import { MapView, toArea, viewKey } from "./MapView"
 
 const praha = { lat: 50.0755, lng: 14.4378 }
 
@@ -156,5 +156,25 @@ describe("clusterHtml", () => {
     expect(clusterHtml(16, true)).toContain("ring-primary")
     expect(clusterHtml(16, false)).not.toContain("ring-primary")
     expect(clusterHtml(16, false)).not.toMatch(/#[0-9a-f]{3,6}\b|rgb\(/i)
+  })
+})
+
+describe("toArea (review #276)", () => {
+  it("cuts a view zoomed out past the Earth's edges to the Earth", () => {
+    expect(toArea({ west: -250.123456, south: -95, east: 310, north: 91 })).toEqual({
+      west: -180,
+      south: -90,
+      east: 180,
+      north: 90,
+    })
+  })
+
+  it("keeps an ordinary view, rounded to four decimals", () => {
+    expect(toArea({ west: 14.123456, south: 50.000049, east: 14.6, north: 50.2 })).toEqual({
+      west: 14.1235,
+      south: 50,
+      east: 14.6,
+      north: 50.2,
+    })
   })
 })

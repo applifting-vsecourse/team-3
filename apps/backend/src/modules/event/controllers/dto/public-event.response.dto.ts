@@ -126,6 +126,15 @@ export class PublicEventResponseDto {
   })
   summary!: string | null;
 
+  @ApiProperty({
+    type: Number,
+    nullable: true,
+    example: 1.3,
+    description:
+      'Km from the point given by lat and lng (the chosen locality, #57), one decimal; null without one',
+  })
+  distanceKm!: number | null;
+
   static fromDomain(event: PublicEvent): PublicEventResponseDto {
     return {
       id: event.id,
@@ -135,7 +144,13 @@ export class PublicEventResponseDto {
       address: event.address,
       lat: event.lat,
       lng: event.lng,
-      activity: event.activity,
+      // the keywords are for the search only
+      activity: {
+        id: event.activity.id,
+        slug: event.activity.slug,
+        name: event.activity.name,
+        category: event.activity.category,
+      },
       locality: event.locality,
       organizer: event.organizer,
       group: event.group,
@@ -147,6 +162,7 @@ export class PublicEventResponseDto {
       isFull: event.capacity.isFull,
       isPromoted: event.isPromoted,
       summary: event.summary,
+      distanceKm: event.distanceKm,
     };
   }
 }

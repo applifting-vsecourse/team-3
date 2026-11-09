@@ -23,6 +23,7 @@ import {
   MESSAGES_SHOWN,
   remainingMessages,
 } from '@/modules/event/domain/event-message';
+import { matchesSearch } from '@/modules/event/domain/event-search';
 import {
   decideUpdate,
   lifecycleRefusal,
@@ -45,6 +46,7 @@ import { startOfPragueDayOf } from '@/modules/event/domain/prague-day';
 import { EventRepository } from '@/modules/event/repositories/event.repository';
 import { summarizeChange } from '@/modules/notification/domain/event-change';
 import { NotificationService } from '@/modules/notification/services/notification.service';
+import { distanceKm, LatLng } from '@/shared/geo/distance';
 import {
   BadRequestException,
   ConflictException,
@@ -110,11 +112,41 @@ const messageRefused = (refusal: MessageRefusal): HttpException =>
 // One endpoint serves both the list and the map in sprint 2, without paging
 // (deviation from B-023, which has paging and a separate /events/map).
 export const PUBLIC_EVENTS_LIMIT = 200;
-// Safety cap for the capacity filter and the popular order, which have to load
-// events before filtering or ranking them. The endpoint is public, so the
-// query must stay bounded however many events exist.
+// Safety cap for the filters and orders the database can't do (capacity, the
+// search, okolí, popular), which have to load events before filtering or
+// ranking them. The endpoint is public, so the query must stay bounded however
+// many events exist. Known limit: the search (`q`) only looks through the
+// SCAN_LIMIT soonest events of the locality (or of the whole country), so a
+// match further in the future can be missed once there are more (BACKLOG B-023).
 export const SCAN_LIMIT = 2000;
 export const MY_EVENTS_LIMIT = 200;
+
+/** Each event's exact distance from the point (#57); unchanged without a point. */
+const withDistance = (
+  events: PublicEvent[],
+  point: LatLng | undefined,
+): PublicEvent[] =>
+  point
+    ? events.map((event) => ({
+        ...event,
+        distanceKm: distanceKm(point, event),
+      }))
+    : events;
+
+/**
+ * The distance as the card shows it, to one decimal. Only for the response:
+ * the circle compares the exact distance, or 10.04 km would pass „+10 km“.
+ */
+const roundDistance = (event: PublicEvent): PublicEvent =>
+  event.distanceKm === null
+    ? event
+    : { ...event, distanceKm: Math.round(event.distanceKm * 10) / 10 };
+
+/** Nearest first; equally far soonest first (the input is soonest first, the sort is stable). */
+const byDistance = (events: PublicEvent[]): PublicEvent[] =>
+  [...events].sort(
+    (a, b) => (a.distanceKm ?? Infinity) - (b.distanceKm ?? Infinity),
+  );
 // Per section of a group's page; the endpoint is public, so it stays bounded.
 export const GROUP_EVENTS_LIMIT = 50;
 
@@ -137,14 +169,21 @@ export class EventsService {
     }: { sort?: PublicEventSort; limit?: number } = {},
     now: Date = new Date(),
   ): Promise<PublicEvent[]> {
-    const { capacity } = filters;
-    if (!capacity && sort === 'date') {
-      return this.eventRepository.findPublicEvents({ filters, now, limit });
+    const { capacity, q, point, radiusKm } = filters;
+    const isSearch = Boolean(q?.trim());
+    if (!capacity && !isSearch && !radiusKm && sort === 'date') {
+      const events = await this.eventRepository.findPublicEvents({
+        filters,
+        now,
+        limit,
+      });
+      return withDistance(events, point).map(roundDistance);
     }
     // The capacity filter compares approved participations with the minimum and
-    // maximum, and interest counts waiting requests too; the event query can do
-    // neither. Filter and rank first, then cut, or matching and popular events
-    // could fall behind the limit.
+    // maximum, interest counts waiting requests too, the search ignores
+    // diacritics and the circle needs the exact distance (#57); the event query
+    // can do none of it. Filter and rank first, then cut, or matching, popular
+    // and near events could fall behind the limit.
     const [events, interest] = await Promise.all([
       this.eventRepository.findPublicEvents({
         filters,
@@ -155,11 +194,19 @@ export class EventsService {
         ? this.eventRepository.countInterest(filters, now)
         : null,
     ]);
-    const matching = capacity
-      ? events.filter((event) => matchesCapacity(event.capacity, capacity))
-      : events;
-    const ordered = interest ? rankByInterest(matching, interest) : matching;
-    return ordered.slice(0, limit);
+    const matching = withDistance(events, point).filter(
+      (event) =>
+        (!capacity || matchesCapacity(event.capacity, capacity)) &&
+        (!isSearch || matchesSearch(event, q!)) &&
+        (!radiusKm ||
+          (event.distanceKm !== null && event.distanceKm <= radiusKm)),
+    );
+    const ordered = interest
+      ? rankByInterest(matching, interest)
+      : sort === 'distance'
+        ? byDistance(matching)
+        : matching;
+    return ordered.slice(0, limit).map(roundDistance);
   }
 
   /**

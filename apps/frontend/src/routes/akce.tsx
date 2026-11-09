@@ -1,10 +1,12 @@
-import { useEffect, useState, type CSSProperties } from "react"
+import { useEffect, useMemo, useState, type CSSProperties } from "react"
 import { createFileRoute } from "@tanstack/react-router"
-import { Map as MapIcon } from "lucide-react"
+import { Map as MapIcon, Search } from "lucide-react"
 
+import { BandTabs, BandTabsItem } from "@/components/PageBand/BandTabs"
 import { PageBand } from "@/components/PageBand/PageBand"
 import { Seo } from "@/components/Seo"
 import { Button } from "@/components/ui/button"
+import { Tabs } from "@/components/ui/tabs"
 import { localityDefault, useLocality } from "@/hooks/useLocality"
 import { DESKTOP_QUERY, useMediaQuery } from "@/hooks/useMediaQuery"
 import { ALL_LOCALITIES_SLUG } from "@/lib/catalog/localityOptions"
@@ -16,16 +18,38 @@ import { EmptyEvents } from "@/features/events/components/EmptyEvents"
 import { EventFilters } from "@/features/events/components/EventFilters"
 import { EventList } from "@/features/events/components/EventList"
 import { EventMapPreview } from "@/features/events/components/EventMapPreview"
+import { EventSearch } from "@/features/events/components/EventSearch"
 import { EventsMap } from "@/features/events/components/EventsMap"
 import { ListPanel, type PanelSnap } from "@/features/events/components/ListPanel"
-import { useEvents } from "@/features/events/hooks/useEvents"
+import { SortMenu } from "@/features/events/components/SortMenu"
+import { EventsViewerContext, useEvents } from "@/features/events/hooks/useEvents"
+import { usePickCounts } from "@/features/events/hooks/usePickCounts"
 import {
+  changesPick,
+  effectiveSort,
   eventsSearchSchema,
   hasActiveFilters,
+  hasFiltersBeyondPick,
+  isAllEvents,
+  localityCenter,
+  pickSearch,
   toMapArea,
   toOblast,
   type EventsSearch,
+  type QuickPick,
+  type Radius,
 } from "@/features/events/lib/eventsSearch"
+
+// DESIGN.md › Quick picks, in this order (Figma A-02d)
+const PICK_TABS: { pick: QuickPick | undefined; label: string }[] = [
+  { pick: undefined, label: "Všechny akce" },
+  { pick: "tady-chybis", label: "Tady chybíš" },
+  { pick: "tento-vikend", label: "Tento víkend" },
+  { pick: "podle-zajmu", label: "Podle tvých zájmů" },
+  { pick: "kousek-od-tebe", label: "Kousek od tebe" },
+  { pick: "od-hodnocenych", label: "Od dobře hodnocených" },
+]
+const ALL_EVENTS_TAB = "vsechny"
 
 // Celé Česko, and until the locality is known: the whole country in view
 const CZECHIA_CENTER = { lat: 49.8, lng: 15.5, zoom: 7 }
@@ -42,6 +66,8 @@ export const Route = createFileRoute("/akce")({
  */
 function EventsPage() {
   const urlSearch = Route.useSearch()
+  // one moment for the page: „Tento víkend“ and the picks' dates don't shift while it is open
+  const now = useMemo(() => new Date(), [])
   const navigate = Route.useNavigate()
   const session = useSession()
   const shownLocality = useLocality(
@@ -83,54 +109,148 @@ function EventsPage() {
   // replace: changing a filter shouldn't fill the back button with filter states
   // A filter only, nothing remembered: e.g. „… v celém Česku“ from an empty list widens it
   // this once (review #274). A locality replaces the searched area (and the other way round).
+  // Changing a filter the quick pick set leaves the pick (Figma A-02d, #250). Any change closes
+  // the map preview, or Praha → Brno → Praha would open it again by itself (review #276).
   const setSearch = (patch: Partial<EventsSearch>) => {
+    setSelectedId(undefined)
     const withArea = patch.lokalita !== undefined ? { ...patch, oblast: undefined } : patch
-    void navigate({ search: (prev) => ({ ...prev, ...withArea }), replace: true })
+    const withPick = changesPick(urlSearch, withArea, now)
+      ? { ...withArea, vyber: undefined }
+      : withArea
+    void navigate({ search: (prev) => ({ ...prev, ...withPick }), replace: true })
   }
-  // a pick in the locality chip: remembered in this browser (#55)
-  const pickLocality = (lokalita: string) => {
+  // a tab: the locality and okolí stay, the other filters give way to the pick's
+  const selectPick = (pick: QuickPick | undefined) => {
+    setSelectedId(undefined)
+    void navigate({ search: pickSearch(pick, urlSearch, now), replace: true })
+  }
+  // a pick in the locality chip: remembered in this browser (#55), with its okolí (#57)
+  const pickLocality = (lokalita: string, okoli?: Radius) => {
     shownLocality.pick(lokalita)
-    setSearch({ lokalita })
+    setSearch({ lokalita, okoli })
   }
-  // also the remembered locality: back to the visitor's default (#55)
+  // also the remembered locality: back to the visitor's default (#55); with a pick back to
+  // the pick as it was chosen (Figma A-02d)
   const clearFilters = () => {
-    shownLocality.forget()
-    void navigate({ search: {}, replace: true })
-  }
-  const canClear = hasActiveFilters(urlSearch) || shownLocality.isPicked
-  // „Zrušit výběr“ in the locality panel: back to the default, the other filters stay
-  const clearLocality = () => {
+    setSelectedId(undefined)
     shownLocality.forget()
     void navigate({
-      search: (prev) => ({ ...prev, lokalita: undefined, oblast: undefined }),
+      search: urlSearch.vyber ? pickSearch(urlSearch.vyber, {}, now) : {},
+      replace: true,
+    })
+  }
+  const canClear =
+    (urlSearch.vyber ? hasFiltersBeyondPick(urlSearch, now) : hasActiveFilters(urlSearch)) ||
+    shownLocality.isPicked
+  // the order and the distances need the chosen locality's centre (#57)
+  const center = catalog ? localityCenter(search, catalog) : undefined
+  const sort = catalog ? effectiveSort(search, catalog) : "termin"
+  // with okolí, or ordered by distance: an order the cards don't explain looks random (review #279)
+  const isDistanceShown = Boolean(center) && (search.okoli !== undefined || sort === "vzdalenost")
+  // the quick picks (#250): „Podle tvých zájmů“ for a signed-in user, „Kousek od tebe“ with a
+  // centre to measure from (Figma A-02 · celé Česko has none)
+  const tabs = PICK_TABS.filter(
+    ({ pick }) =>
+      (pick !== "podle-zajmu" || Boolean(session.user)) &&
+      (pick !== "kousek-od-tebe" || Boolean(center)),
+  )
+  const counts = usePickCounts(
+    tabs.map(({ pick }) => ({ ...pickSearch(pick, urlSearch, now), lokalita: search.lokalita })),
+    { isEnabled: shownLocality.slug !== undefined },
+  )
+  const activeTab = urlSearch.vyber ?? (isAllEvents(urlSearch) ? ALL_EVENTS_TAB : "")
+  const title = urlSearch.vyber
+    ? (PICK_TABS.find(({ pick }) => pick === urlSearch.vyber)?.label ?? "Akce")
+    : isAllEvents(urlSearch)
+      ? "Akce"
+      : "Akce podle tvých filtrů"
+  // phone: the header's „Hledat“ opens the search above the chips; a search in the URL keeps
+  // it open, so closing it also ends the search (review #279)
+  const [isSearchOpened, setIsSearchOpened] = useState(false)
+  const hasSearchRow = !isDesktop && (isSearchOpened || search.q !== undefined)
+  const searchField = (isAutoFocused = false) => (
+    <EventSearch
+      value={search.q}
+      onChange={(q) => setSearch({ q })}
+      isAutoFocused={isAutoFocused}
+    />
+  )
+  // „Zrušit výběr“ in the locality panel: back to the default, the other filters stay
+  const clearLocality = () => {
+    setSelectedId(undefined)
+    shownLocality.forget()
+    void navigate({
+      search: (prev) => ({ ...prev, lokalita: undefined, oblast: undefined, okoli: undefined }),
       replace: true,
     })
   }
 
   return (
-    <>
+    // the quick picks' personal parts differ per user: their cache too (#250)
+    <EventsViewerContext value={session.user?.id ?? null}>
       <Seo title="Akce" />
-      <AppHeader />
+      <AppHeader
+        screenAction={
+          // Figma A-02: the magnifier in the phone's header (#57)
+          <Button
+            variant="ghost"
+            aria-expanded={hasSearchRow}
+            onClick={() => {
+              if (!hasSearchRow) {
+                setIsSearchOpened(true)
+                return
+              }
+              setIsSearchOpened(false)
+              if (search.q !== undefined) setSearch({ q: undefined })
+            }}
+            className="h-10 gap-1.5 px-2"
+          >
+            <Search />
+            Hledat
+          </Button>
+        }
+      />
       {/* the band and its H1 belong to main, as on every page; desktop: main takes exactly the
           rest of the viewport (basis-0 + min-h-0) */}
       <main className="flex flex-1 flex-col md:min-h-0 md:basis-0">
         {/* Figma A-02d: „Akce v Praze 3“ needs the locality in the locative, which the catalog
             does not have; the line under the title names it in the nominative. The
             quick picks come with #250. */}
-        <PageBand
-          variant="section"
-          title="Akce"
-          description={
-            area
-              ? "Nadcházející akce ve výřezu mapy."
-              : search.lokalita === ALL_LOCALITIES_SLUG
-                ? "Nadcházející akce v celém Česku."
-                : locality
-                  ? `Nadcházející akce v lokalitě ${locality.name}.`
-                  : // the line keeps its place until the catalog names the locality
-                    " "
+        {/* the quick picks as tabs on the band's edge (#250); a hand-changed filter leaves none active */}
+        <Tabs
+          value={activeTab}
+          onValueChange={(value) =>
+            selectPick(value === ALL_EVENTS_TAB ? undefined : (value as QuickPick))
           }
-        />
+          className="gap-0"
+        >
+          <PageBand
+            variant="section"
+            title={title}
+            description={
+              area
+                ? "Nadcházející akce ve výřezu mapy."
+                : search.lokalita === ALL_LOCALITIES_SLUG
+                  ? "Nadcházející akce v celém Česku."
+                  : locality
+                    ? `Nadcházející akce v lokalitě ${locality.name}.`
+                    : // the line keeps its place until the catalog names the locality
+                      " "
+            }
+          >
+            <BandTabs>
+              {tabs.map(({ pick, label }, index) => (
+                <BandTabsItem
+                  key={pick ?? ALL_EVENTS_TAB}
+                  value={pick ?? ALL_EVENTS_TAB}
+                  count={counts[index]}
+                >
+                  {label}
+                </BandTabsItem>
+              ))}
+            </BandTabs>
+          </PageBand>
+        </Tabs>
         {/* Desktop: the rest under the band, the list scrolls on its own and the map fills
             the height beside it. */}
         <div className="relative flex flex-1 flex-col overflow-hidden md:min-h-0 md:basis-0">
@@ -145,6 +265,9 @@ function EventsPage() {
               "md:static md:mx-auto md:w-full md:max-w-7xl md:border-b-0 md:bg-background",
             )}
           >
+            {hasSearchRow ? (
+              <div className="px-4 pt-3 md:hidden">{searchField(isSearchOpened)}</div>
+            ) : null}
             <EventFilters
               search={search}
               catalog={catalog}
@@ -153,6 +276,7 @@ function EventsPage() {
               onClearAll={canClear ? clearFilters : undefined}
               localityDefault={localityDefault(shownLocality, clearLocality)}
               isFloating={!isDesktop && !isListExpanded}
+              searchControl={isDesktop ? searchField() : undefined}
               // Chips scroll sideways on narrow screens without a visible scrollbar
               // (Figma A-02); a desktop scrollbar would also make the bar taller
               // and cover the top of the pulled-up list.
@@ -167,6 +291,7 @@ function EventsPage() {
               scrollResetKey={JSON.stringify(search)}
               onVisibleHeightChange={setPanelPeekHeight}
               isHidden={selectedEvent !== undefined}
+              hasSearchRow={hasSearchRow}
             >
               <EventList
                 events={events ?? []}
@@ -178,6 +303,20 @@ function EventsPage() {
                 highlightedId={highlightedId ?? selectedEvent?.id}
                 onHighlight={setHighlightedId}
                 onClearFilters={canClear ? clearFilters : undefined}
+                sortControl={
+                  <SortMenu
+                    value={sort}
+                    isDistanceAvailable={Boolean(center)}
+                    // the order okolí implies stays out of the URL
+                    onChange={(razeni) =>
+                      setSearch({
+                        razeni:
+                          razeni === (search.okoli ? "vzdalenost" : "termin") ? undefined : razeni,
+                      })
+                    }
+                  />
+                }
+                isDistanceShown={isDistanceShown}
                 empty={
                   <EmptyEvents
                     search={search}
@@ -260,6 +399,6 @@ function EventsPage() {
           ) : null}
         </div>
       </main>
-    </>
+    </EventsViewerContext>
   )
 }

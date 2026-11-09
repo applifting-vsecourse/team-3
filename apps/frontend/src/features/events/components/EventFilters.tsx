@@ -1,8 +1,12 @@
-import { useState } from "react"
+import { useState, type ReactNode } from "react"
 
 import { ActivityFilter } from "@/components/ActivityFilter/ActivityFilter"
 import { FilterChip } from "@/components/FilterChip/FilterChip"
-import { LocalityFilter, type LocalityDefault } from "@/components/LocalityFilter/LocalityFilter"
+import {
+  LocalityFilter,
+  type LocalityDefault,
+  type LocalityDraft,
+} from "@/components/LocalityFilter/LocalityFilter"
 import { Button } from "@/components/ui/button"
 import type { ActivitySelection } from "@/lib/catalog/activitySelection"
 import type { ActivityCategory, Locality } from "@/lib/catalog/catalogSchemas"
@@ -12,7 +16,7 @@ import { cn } from "@/lib/utils"
 import { DateFilter } from "@/features/events/components/DateFilter"
 import { OccupancyFilter } from "@/features/events/components/OccupancyFilter"
 import { useEvents } from "@/features/events/hooks/useEvents"
-import type { EventsSearch } from "@/features/events/lib/eventsSearch"
+import { RADII, type EventsSearch, type Radius } from "@/features/events/lib/eventsSearch"
 import { showEventsLabel } from "@/features/events/lib/formatEvent"
 
 type EventFiltersProps = {
@@ -20,14 +24,16 @@ type EventFiltersProps = {
   search: EventsSearch
   catalog: { localities: Locality[]; categories: ActivityCategory[] } | undefined
   onChange: (patch: Partial<EventsSearch>) => void
-  /** A pick in the locality chip, which the page remembers (#55); without it, `onChange`. */
-  onLocalityChange?: (slug: string) => void
+  /** A pick in the locality chip, which the page remembers (#55), with its okolí (#57); without it, `onChange`. */
+  onLocalityChange?: (slug: string, radius?: Radius) => void
   /** „Zrušit vše“; only when something was picked (a default locality isn't). */
   onClearAll?: () => void
   /** The visitor's default locality on the chip (#55). */
   localityDefault?: LocalityDefault
   /** Mobile: the chips float over the map (Figma A-02) and need their own shadow. */
   isFloating?: boolean
+  /** Desktop: the search at the right end of the bar (Figma A-02d, #57). */
+  searchControl?: ReactNode
   className?: string
 }
 
@@ -40,6 +46,7 @@ export function EventFilters({
   onLocalityChange,
   localityDefault,
   isFloating,
+  searchControl,
   className,
 }: EventFiltersProps) {
   return (
@@ -53,7 +60,7 @@ export function EventFilters({
         <EventLocalityFilter
           search={search}
           localities={catalog.localities}
-          onChange={onLocalityChange ?? ((lokalita) => onChange({ lokalita }))}
+          onChange={onLocalityChange ?? ((lokalita, okoli) => onChange({ lokalita, okoli }))}
           localityDefault={localityDefault}
         />
       ) : (
@@ -87,6 +94,9 @@ export function EventFilters({
           Zrušit vše
         </Button>
       ) : null}
+      {searchControl ? (
+        <div className="ml-auto hidden w-72 shrink-0 md:block">{searchControl}</div>
+      ) : null}
     </div>
   )
 }
@@ -105,19 +115,23 @@ function EventLocalityFilter({
 }: {
   search: EventsSearch
   localities: Locality[]
-  onChange: (lokalita: string) => void
+  onChange: (lokalita: string, okoli?: Radius) => void
   localityDefault?: LocalityDefault
 }) {
-  const [draft, setDraft] = useState<string>()
+  const [draft, setDraft] = useState<LocalityDraft>()
+  // the preview counts what the picked locality and okolí would show, without the map area
   const applyLabel = usePreviewLabel(
-    draft === undefined ? undefined : { ...search, lokalita: draft },
+    draft === undefined
+      ? undefined
+      : { ...search, lokalita: draft.slug, okoli: toRadius(draft.radius), oblast: undefined },
   )
   return (
     <LocalityFilter
       value={search.lokalita}
       localities={localities}
-      onChange={onChange}
+      onChange={(slug, km) => onChange(slug, toRadius(km))}
       onDraftChange={setDraft}
+      radius={{ value: search.okoli, options: RADII }}
       applyLabel={applyLabel}
       localityDefault={localityDefault}
       areaLabel={search.oblast ? "Výřez mapy" : undefined}
@@ -148,3 +162,7 @@ function EventActivityFilter({
     />
   )
 }
+
+/** A radius from the locality panel as ?okoli=; one it doesn't know is „Jen obec“. */
+const toRadius = (km: string | undefined): Radius | undefined =>
+  RADII.find((radius) => radius === km)

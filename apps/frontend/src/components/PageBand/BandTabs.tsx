@@ -28,8 +28,8 @@ export function BandTabs({ className, ...props }: ComponentProps<typeof TabsList
 }
 
 type BandTabsItemProps = ComponentProps<typeof TabsTrigger> & {
-  /** The number in the pill; left out while it is not known. */
-  count?: number
+  /** The number in the pill, or „200+“ at the API's limit; left out while it is not known. */
+  count?: number | string
   /**
    * `page`: the same tabs on the page's background (Figma Tab/Rychlý výběr, Pozadí=Světlé —
    * „Pro tebe“ on the landing page, A-01p): the active one with a `foreground` underline.
@@ -52,7 +52,8 @@ export function BandTabsItem({
         // the strip scroll, so it is hidden too
         "group/tab h-auto flex-none gap-1.5 rounded-none border-0 border-b-3 border-transparent px-0 pt-3 pb-2.5 text-body after:hidden",
         isOnPage
-          ? "font-semibold text-muted-foreground hover:text-foreground data-[state=active]:border-foreground data-[state=active]:text-foreground"
+          ? // like the band: inactive medium, the pill follows the state
+            "font-medium text-muted-foreground hover:text-foreground data-[state=active]:border-foreground data-[state=active]:font-semibold data-[state=active]:text-foreground"
           : // the active one: cream with the lime underline. Inactive: muted and medium, so the
             // active one differs by weight and pill, not only by the underline (on-hero vs
             // on-hero-muted is 1.5:1); group/tab lets the count pill follow the state
@@ -70,7 +71,7 @@ export function BandTabsItem({
           className={cn(
             "rounded-full border px-1.5 py-px text-xs font-semibold",
             isOnPage
-              ? "border-control-border bg-muted text-muted-foreground"
+              ? "border-control-border bg-muted text-muted-foreground group-data-[state=active]/tab:border-foreground group-data-[state=active]/tab:text-foreground"
               : "border-on-hero-muted bg-hero-pattern text-on-hero-muted group-data-[state=active]/tab:border-on-hero group-data-[state=active]/tab:text-on-hero",
           )}
         >

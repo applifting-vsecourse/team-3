@@ -1,7 +1,10 @@
 import { computeCapacity } from '@/modules/event/domain/capacity';
 import { PublicEvent } from '@/modules/event/domain/event';
 import { EventRepository } from '@/modules/event/repositories/event.repository';
-import { SCAN_LIMIT } from '@/modules/event/services/events.service';
+import {
+  EventsService,
+  SCAN_LIMIT,
+} from '@/modules/event/services/events.service';
 import { GroupRepository } from '@/modules/group/repositories/group.repository';
 import { HomeRepository } from '@/modules/home/repositories/home.repository';
 import { BadRequestException } from '@nestjs/common';
@@ -43,6 +46,7 @@ const anEvent = (
     id: 'a-volejbal',
     slug: 'volejbal',
     name: 'Volejbal',
+    keywords: [],
     category: { id: 'c-sport', slug: 'sport', name: 'Sport', icon: 'ball' },
   },
   locality: { id: PRAHA_3.id, slug: PRAHA_3.slug, name: PRAHA_3.name },
@@ -55,6 +59,7 @@ const anEvent = (
     approved,
   ),
   isPromoted: false,
+  distanceKm: null,
   ...extra,
 });
 
@@ -62,6 +67,7 @@ describe('HomeService', () => {
   let homeRepository: MockProxy<HomeRepository>;
   let eventRepository: MockProxy<EventRepository>;
   let groupRepository: MockProxy<GroupRepository>;
+  let eventsService: MockProxy<EventsService>;
   let service: HomeService;
 
   beforeEach(() => {
@@ -72,7 +78,13 @@ describe('HomeService', () => {
     eventRepository.countInterest.mockResolvedValue(new Map());
     groupRepository.findRecruitingGroups.mockResolvedValue([]);
     homeRepository.findRatingSummaries.mockResolvedValue(new Map());
-    service = new HomeService(homeRepository, eventRepository, groupRepository);
+    eventsService = mock<EventsService>();
+    service = new HomeService(
+      homeRepository,
+      eventRepository,
+      groupRepository,
+      eventsService,
+    );
   });
 
   it('a visitor without a locality: all of Czechia, nothing personal asked for', async () => {
@@ -251,6 +263,64 @@ describe('HomeService', () => {
     expect(home.sections[1]).toEqual({
       key: 'groups',
       groups: [expect.not.objectContaining({ nextEventAt: expect.anything() })],
+    });
+  });
+
+  describe('getPickedEvents (#250)', () => {
+    it('asks the event list for the filters, then keeps what the pick wants, then cuts', async () => {
+      eventsService.getPublicEvents.mockResolvedValue([
+        anEvent('mine', 1, { organizer: { id: 'u-me', name: 'Já' } }),
+        anEvent('joined', 1),
+        anEvent('tenis', 1, {
+          activity: { ...anEvent('x', 1).activity, id: 'a-tenis' },
+        }),
+        anEvent('volejbal', 1),
+      ]);
+      homeRepository.findViewer.mockResolvedValue({
+        homeLocalityId: null,
+        interestActivityIds: ['a-volejbal'],
+        joinedEventIds: ['joined'],
+      });
+
+      const events = await service.getPickedEvents(
+        { capacity: 'missing' },
+        { sort: 'distance', limit: 5 },
+        { interests: true, notJoined: true },
+        'u-me',
+        now,
+      );
+
+      expect(events.map((event) => event.id)).toEqual(['volejbal']);
+      expect(eventsService.getPublicEvents).toHaveBeenCalledWith(
+        { capacity: 'missing' },
+        { sort: 'distance', limit: SCAN_LIMIT },
+        now,
+      );
+      expect(homeRepository.findRatingSummaries).not.toHaveBeenCalled();
+    });
+
+    it('keeps only the well rated, by the summaries of their organizers and groups', async () => {
+      eventsService.getPublicEvents.mockResolvedValue([
+        anEvent('great', 1, { organizer: { id: 'u-great', name: 'A' } }),
+        anEvent('new', 1, { organizer: { id: 'u-new', name: 'B' } }),
+      ]);
+      homeRepository.findRatingSummaries.mockResolvedValue(
+        new Map([
+          ['user:u-great', { average: 4.8, count: 5 }],
+          ['user:u-new', { average: 5, count: 1 }],
+        ]),
+      );
+
+      const events = await service.getPickedEvents(
+        {},
+        {},
+        { wellRated: true },
+        null,
+        now,
+      );
+
+      expect(events.map((event) => event.id)).toEqual(['great']);
+      expect(homeRepository.findViewer).not.toHaveBeenCalled();
     });
   });
 });

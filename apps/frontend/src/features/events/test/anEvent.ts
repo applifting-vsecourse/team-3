@@ -5,6 +5,7 @@ export const anEvent = (overrides: Partial<PublicEvent> = {}): PublicEvent => ({
   id: "e1",
   title: "Language exchange: CZ/EN/ES",
   summary: null,
+  distanceKm: null,
   startsAt: new Date("2026-10-23T15:30:00.000Z"),
   endsAt: null,
   address: "Kavárna Pražírna, Dělnická 12, Praha 8",

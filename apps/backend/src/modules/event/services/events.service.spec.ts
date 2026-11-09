@@ -37,6 +37,7 @@ const anEvent = (id: string, approvedCount: number): PublicEvent => ({
   id,
   title: `Akce ${id}`,
   summary: null,
+  distanceKm: null,
   startsAt: new Date('2026-10-24T16:00:00.000Z'),
   endsAt: null,
   address: 'Herna Karlín, Křižíkova 52, Praha 8',
@@ -46,6 +47,7 @@ const anEvent = (id: string, approvedCount: number): PublicEvent => ({
     id: 'a-deskove-hry',
     slug: 'deskove-hry',
     name: 'Deskové hry',
+    keywords: ['deskovky'],
     category: { id: 'c-hry', slug: 'hry', name: 'Hry', icon: 'dice' },
   },
   locality: { id: 'l-praha-8', slug: 'praha-8', name: 'Praha 8' },
@@ -118,6 +120,145 @@ describe('EventsService', () => {
       'at-minimum',
       'one-place-left',
     ]);
+  });
+
+  describe('search and distance (#57)', () => {
+    const at = (
+      id: string,
+      lat: number,
+      lng: number,
+      title = `Akce ${id}`,
+    ): PublicEvent => ({
+      ...anEvent(id, 2),
+      title,
+      lat,
+      lng,
+    });
+    const praha8 = { lat: 50.1103, lng: 14.4734 };
+
+    it('finds by the title and the activity keywords without diacritics, before the limit', async () => {
+      const repository = mock<EventRepository>();
+      const others = Array.from({ length: PUBLIC_EVENTS_LIMIT }, (_, i) => ({
+        ...at(`other-${i}`, 50.1, 14.47, 'Kvíz'),
+        activity: {
+          ...anEvent('x', 1).activity,
+          name: 'Pub kvíz',
+          keywords: ['kviz'],
+        },
+      }));
+      repository.findPublicEvents.mockResolvedValue([
+        ...others,
+        at('beh', 50.1, 14.47, 'Večerní běh Letnou'),
+        {
+          ...at('desk', 50.1, 14.47, 'Středa'),
+          activity: { ...anEvent('x', 1).activity, keywords: ['deskovky'] },
+        },
+      ]);
+      const service = new EventsService(
+        repository,
+        mock<NotificationService>(),
+      );
+
+      const byTitle = await service.getPublicEvents({ q: 'BEH letn' }, {}, now);
+      expect(byTitle.map((event) => event.id)).toEqual(['beh']);
+      expect(repository.findPublicEvents).toHaveBeenCalledWith(
+        expect.objectContaining({ limit: SCAN_LIMIT }),
+      );
+      const byKeyword = await service.getPublicEvents(
+        { q: 'deskovk' },
+        {},
+        now,
+      );
+      expect(byKeyword.map((event) => event.id)).toContain('desk');
+    });
+
+    it('keeps the circle exact and gives each event its distance', async () => {
+      const repository = mock<EventRepository>();
+      repository.findPublicEvents.mockResolvedValue([
+        at('letna', 50.0985, 14.4222), // 3.9 km
+        at('corner', 50.19, 14.6), // inside the rectangle, 12.6 km away
+      ]);
+      const service = new EventsService(
+        repository,
+        mock<NotificationService>(),
+      );
+
+      const result = await service.getPublicEvents(
+        { point: praha8, radiusKm: 10 },
+        {},
+        now,
+      );
+
+      expect(result).toEqual([
+        expect.objectContaining({ id: 'letna', distanceKm: 3.9 }),
+      ]);
+    });
+
+    it('compares the exact distance with the circle, rounds only the answer', async () => {
+      const repository = mock<EventRepository>();
+      // 10.04 km due north: shown as 10 km, but outside „+10 km“
+      const north = (km: number): number =>
+        praha8.lat + (km / 6371) * (180 / Math.PI);
+      repository.findPublicEvents.mockResolvedValue([
+        at('edge-in', north(9.96), praha8.lng),
+        at('edge-out', north(10.04), praha8.lng),
+      ]);
+      const service = new EventsService(
+        repository,
+        mock<NotificationService>(),
+      );
+
+      const result = await service.getPublicEvents(
+        { point: praha8, radiusKm: 10 },
+        {},
+        now,
+      );
+
+      expect(result.map((event) => [event.id, event.distanceKm])).toEqual([
+        ['edge-in', 10],
+      ]);
+    });
+
+    it('orders by distance, nearest first', async () => {
+      const repository = mock<EventRepository>();
+      repository.findPublicEvents.mockResolvedValue([
+        at('far', 50.0985, 14.4222),
+        at('near', 50.111, 14.474),
+      ]);
+      const service = new EventsService(
+        repository,
+        mock<NotificationService>(),
+      );
+
+      const result = await service.getPublicEvents(
+        { point: praha8 },
+        { sort: 'distance' },
+        now,
+      );
+
+      expect(result.map((event) => [event.id, event.distanceKm])).toEqual([
+        ['near', 0.1],
+        ['far', 3.9],
+      ]);
+    });
+
+    it('gives distances on the plain list too, without scanning', async () => {
+      const repository = mock<EventRepository>();
+      repository.findPublicEvents.mockResolvedValue([
+        at('letna', 50.0985, 14.4222),
+      ]);
+      const service = new EventsService(
+        repository,
+        mock<NotificationService>(),
+      );
+
+      const result = await service.getPublicEvents({ point: praha8 }, {}, now);
+
+      expect(result[0].distanceKm).toBe(3.9);
+      expect(repository.findPublicEvents).toHaveBeenCalledWith(
+        expect.objectContaining({ limit: PUBLIC_EVENTS_LIMIT }),
+      );
+    });
   });
 
   it('the capacity filter applies before the limit, so matches are not cut off', async () => {

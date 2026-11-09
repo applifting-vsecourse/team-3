@@ -113,4 +113,25 @@ describe('buildPublicEventsWhere', () => {
       lng: { gte: 14.3, lte: 14.6 },
     });
   });
+
+  it('keeps to the rectangle around the circle, so the service checks fewer events (#57)', () => {
+    const conditions = conditionsOf({
+      point: { lat: 50, lng: 14 },
+      radiusKm: 10,
+    });
+    const box = conditions.find((c) => 'lat' in c) as {
+      lat: { gte: number; lte: number };
+      lng: { gte: number; lte: number };
+    };
+    expect(box.lat.gte).toBeCloseTo(49.91, 2);
+    expect(box.lat.lte).toBeCloseTo(50.09, 2);
+    expect(box.lng.gte).toBeLessThan(13.87);
+    expect(box.lng.lte).toBeGreaterThan(14.13);
+  });
+
+  it('a point alone (for distances) filters nothing', () => {
+    expect(conditionsOf({ point: { lat: 50, lng: 14 } })).toEqual([
+      VISIBLE_ONLY,
+    ]);
+  });
 });

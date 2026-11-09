@@ -4,7 +4,6 @@ import { RecruitingGroup } from '@/modules/group/domain/group';
 import { RatingSummary } from '@/modules/rating/domain/rating-summary';
 import {
   buildHomeEventSections,
-  distanceKm,
   HOME_GROUPS_LIMIT,
   HomeEventsInput,
   isWellRated,
@@ -44,6 +43,7 @@ const anEvent = (id: string, spec: EventSpec = {}): PublicEvent => {
       id: spec.activityId ?? 'a-volejbal',
       slug: 'volejbal',
       name: 'Volejbal',
+      keywords: [],
       category: { id: 'c-sport', slug: 'sport', name: 'Sport', icon: 'ball' },
     },
     locality: { id: 'l-praha-3', slug: 'praha-3', name: 'Praha 3' },
@@ -57,6 +57,7 @@ const anEvent = (id: string, spec: EventSpec = {}): PublicEvent => {
       spec.approved ?? min,
     ),
     isPromoted: false,
+    distanceKm: null,
   };
 };
 
@@ -456,17 +457,6 @@ describe('ratingKeyOf', () => {
     expect(
       ratingKeyOf(anEvent('e', { organizerId: 'u1', groupId: 'g1' })),
     ).toBe('group:g1');
-  });
-});
-
-describe('distanceKm', () => {
-  it('Praha – Brno is about 185 km', () => {
-    const km = distanceKm(
-      { lat: 50.0755, lng: 14.4378 },
-      { lat: 49.1951, lng: 16.6068 },
-    );
-    expect(km).toBeGreaterThan(180);
-    expect(km).toBeLessThan(190);
   });
 });
 

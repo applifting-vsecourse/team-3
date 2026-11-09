@@ -1,6 +1,14 @@
-import { PublicEvent } from '@/modules/event/domain/event';
+import {
+  PublicEvent,
+  PublicEventFilters,
+  PublicEventSort,
+} from '@/modules/event/domain/event';
 import { EventRepository } from '@/modules/event/repositories/event.repository';
-import { SCAN_LIMIT } from '@/modules/event/services/events.service';
+import {
+  EventsService,
+  PUBLIC_EVENTS_LIMIT,
+  SCAN_LIMIT,
+} from '@/modules/event/services/events.service';
 import { GroupSummary } from '@/modules/group/domain/group';
 import { GroupRepository } from '@/modules/group/repositories/group.repository';
 import {
@@ -13,6 +21,7 @@ import {
   HomeViewer,
   orderRecruitingGroups,
 } from '@/modules/home/domain/home-sections';
+import { keepPicked, PickFilters } from '@/modules/home/domain/picked-events';
 import { HomeRepository } from '@/modules/home/repositories/home.repository';
 import { BadRequestException, Injectable } from '@nestjs/common';
 
@@ -47,7 +56,48 @@ export class HomeService {
     private readonly homeRepository: HomeRepository,
     private readonly eventRepository: EventRepository,
     private readonly groupRepository: GroupRepository,
+    private readonly eventsService: EventsService,
   ) {}
+
+  /**
+   * A quick pick on /akce (#250): the ordinary list filters and order, then
+   * the personal parts with the landing page's rules (`keepPicked`), then the
+   * limit — so matching events never fall behind it. `viewerId` is always
+   * the session's user.
+   */
+  async getPickedEvents(
+    filters: PublicEventFilters,
+    options: { sort?: PublicEventSort; limit?: number },
+    picks: PickFilters,
+    viewerId: string | null,
+    now: Date = new Date(),
+  ): Promise<PublicEvent[]> {
+    const isPersonal = Boolean(picks.interests || picks.notJoined);
+    const [events, viewerData] = await Promise.all([
+      this.eventsService.getPublicEvents(
+        filters,
+        { sort: options.sort, limit: SCAN_LIMIT },
+        now,
+      ),
+      viewerId && isPersonal
+        ? this.homeRepository.findViewer(viewerId, now)
+        : null,
+    ]);
+    const viewer: HomeViewer | null = viewerId
+      ? {
+          id: viewerId,
+          interestActivityIds: viewerData?.interestActivityIds ?? [],
+          joinedEventIds: viewerData?.joinedEventIds ?? [],
+        }
+      : null;
+    const ratings = picks.wellRated
+      ? await this.homeRepository.findRatingSummaries(ratingOwnersOf(events))
+      : new Map();
+    return keepPicked(events, picks, viewer, ratings).slice(
+      0,
+      options.limit ?? PUBLIC_EVENTS_LIMIT,
+    );
+  }
 
   /**
    * The sections of the landing page (#182, B-027). `viewerId` is always the

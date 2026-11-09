@@ -1,4 +1,3 @@
-import { parseBoundingBox } from '@/modules/event/domain/bounding-box';
 import { EventsService } from '@/modules/event/services/events.service';
 import { OptionalUser } from '@/shared/auth/decorators/optional-user.decorator';
 import { User } from '@/shared/auth/decorators/user.decorator';
@@ -39,7 +38,10 @@ import {
   EventMessagesResponseDto,
 } from './dto/event-message.dto';
 import { EventParticipantsResponseDto } from './dto/event-participants.response.dto';
-import { ListEventsQueryDto } from './dto/list-events.query.dto';
+import {
+  ListEventsQueryDto,
+  toPublicEventFilters,
+} from './dto/list-events.query.dto';
 import { PublicEventResponseDto } from './dto/public-event.response.dto';
 import { UpdateEventDto } from './dto/update-event.dto';
 
@@ -70,15 +72,7 @@ export class EventsController {
     @Query() query: ListEventsQueryDto,
   ): Promise<PublicEventResponseDto[]> {
     const events = await this.eventsService.getPublicEvents(
-      {
-        localityId: query.localityId,
-        dateFrom: query.dateFrom,
-        dateTo: query.dateTo,
-        activityIds: query.activityId,
-        categoryIds: query.categoryId,
-        capacity: query.capacity,
-        bbox: query.bbox ? parseBoundingBox(query.bbox) : undefined,
-      },
+      toPublicEventFilters(query),
       { sort: query.sort, limit: query.limit },
     );
     return events.map(PublicEventResponseDto.fromDomain);

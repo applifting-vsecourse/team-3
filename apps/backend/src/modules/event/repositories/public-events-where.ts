@@ -4,6 +4,7 @@ import {
   startOfNextPragueDay,
   startOfPragueDay,
 } from '@/modules/event/domain/prague-day';
+import { boxAround } from '@/shared/geo/distance';
 
 /**
  * Prisma `where` for the public event list. A pure function so it can be
@@ -44,6 +45,18 @@ export const buildPublicEventsWhere = (
   // the place of the event, not its locality: the map shows events where they happen
   if (filters.bbox) {
     const { west, south, east, north } = filters.bbox;
+    conditions.push({
+      lat: { gte: south, lte: north },
+      lng: { gte: west, lte: east },
+    });
+  }
+
+  // the circle's rectangle; the service checks the exact distance (#57)
+  if (filters.point && filters.radiusKm) {
+    const { west, south, east, north } = boxAround(
+      filters.point,
+      filters.radiusKm,
+    );
     conditions.push({
       lat: { gte: south, lte: north },
       lng: { gte: west, lte: east },

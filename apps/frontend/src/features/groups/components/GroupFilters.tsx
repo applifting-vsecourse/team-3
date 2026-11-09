@@ -104,7 +104,7 @@ function GroupLocalityFilter({
       value={search.lokalita}
       localities={catalog.localities}
       onChange={onChange}
-      onDraftChange={setDraft}
+      onDraftChange={(next) => setDraft(next?.slug)}
       applyLabel={applyLabel}
       localityDefault={localityDefault}
     />

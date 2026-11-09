@@ -137,4 +137,15 @@ describe("EventCard", () => {
     expect(screen.getByText("Proběhlo")).toBeInTheDocument()
     expect(container.querySelector("[data-slot=capacity-track]")).toBeNull()
   })
+
+  it("ends the row line with the distance, in Czech decimals (#57)", async () => {
+    await renderWithRouter(
+      <EventCard
+        event={anEvent()}
+        distanceKm={1.3}
+      />,
+    )
+
+    expect(screen.getByText(/· 1,3 km$/)).toBeInTheDocument()
+  })
 })

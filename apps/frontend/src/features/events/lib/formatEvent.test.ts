@@ -18,6 +18,7 @@ import {
   isEventOver,
   pastEventFacts,
   placeName,
+  showEventsLabel,
 } from "./formatEvent"
 
 describe("formatEventStart", () => {
@@ -186,5 +187,14 @@ describe("isEventOver (review #269)", () => {
     const endsAt = new Date("2026-10-23T18:00:00.000Z")
     expect(isEventOver({ startsAt, endsAt }, new Date("2026-10-23T17:59:00.000Z"))).toBe(false)
     expect(isEventOver({ startsAt, endsAt }, endsAt)).toBe(true)
+  })
+})
+
+describe("counts at the API's limit (#57)", () => {
+  it("says there may be more than 200", () => {
+    expect(eventCountLabel(199)).toBe("199 akcí")
+    expect(eventCountLabel(200)).toBe("Víc než 200 akcí")
+    expect(showEventsLabel(200)).toBe("Zobrazit víc než 200 akcí")
+    expect(showEventsLabel(3)).toBe("Zobrazit 3 akce")
   })
 })

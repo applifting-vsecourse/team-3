@@ -1,3 +1,4 @@
+import { LatLng } from '@/shared/geo/distance';
 import { BoundingBox } from './bounding-box';
 import { Capacity, CapacityFilter } from './capacity';
 
@@ -19,13 +20,20 @@ export type PublicEventFilters = {
    * /akce sends no locality with it: there the area replaces the locality.
    */
   bbox?: BoundingBox;
+  /** Words found in the title, the activity's name or its keywords, without diacritics (#57). */
+  q?: string;
+  /** Where distances are measured from: the centre of the chosen locality (#57). */
+  point?: LatLng;
+  /** Only events at most this far from `point` („okolí +10 km“, #57). */
+  radiusKm?: number;
 };
 
 /**
  * Order of the public event list (B-023): `date` soonest first, the default;
- * `popular` the most interest first (#156, `rankByInterest`).
+ * `popular` the most interest first (#156, `rankByInterest`); `distance` the
+ * nearest to `point` first (#57).
  */
-export const PUBLIC_EVENT_SORTS = ['date', 'popular'] as const;
+export const PUBLIC_EVENT_SORTS = ['date', 'popular', 'distance'] as const;
 export type PublicEventSort = (typeof PUBLIC_EVENT_SORTS)[number];
 
 /** An event as listed publicly, on the list and on the map. */
@@ -43,6 +51,8 @@ export type PublicEvent = {
     id: string;
     slug: string;
     name: string;
+    /** What the search finds it by besides the name (#57); not in the API. */
+    keywords: string[];
     category: { id: string; slug: string; name: string; icon: string };
   };
   locality: { id: string; slug: string; name: string };
@@ -53,6 +63,8 @@ export type PublicEvent = {
   maxParticipants: number;
   capacity: Capacity;
   isPromoted: boolean;
+  /** From the filters' `point`, null without one (#57). */
+  distanceKm: number | null;
 };
 
 /** An approved participant, as listed on the event detail. */

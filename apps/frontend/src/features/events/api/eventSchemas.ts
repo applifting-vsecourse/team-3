@@ -31,6 +31,8 @@ export const publicEventSchema = z.object({
   isPromoted: z.boolean(),
   // the start of the description for the map preview (#56); null without one
   summary: z.string().nullable(),
+  // km from the chosen locality's centre when the request gave it (okolí, distance order; #57)
+  distanceKm: z.number().nullable(),
 })
 
 export const publicEventsSchema = z.array(publicEventSchema)
@@ -165,6 +167,12 @@ export type EventInput = {
   visibility?: "public" | "members"
 }
 
+/**
+ * GET /api/events returns at most this many (backend PUBLIC_EVENTS_LIMIT): a list this long
+ * may have more, so it says „Víc než 200 akcí“ (Figma A-02 · celé Česko, comment in #55).
+ */
+export const PUBLIC_EVENTS_LIMIT = 200
+
 /** Query parameters of GET /api/events, already resolved to ids. */
 export type EventFilters = {
   localityId?: string
@@ -176,4 +184,22 @@ export type EventFilters = {
   capacity?: "free" | "missing"
   /** „Hledat v této oblasti“ (#56): west,south,east,north */
   bbox?: string
+  /** Words in the title or the activity's keywords, without diacritics (#57). */
+  q?: string
+  /** The point distances are measured from: the chosen locality's centre (#57). */
+  lat?: number
+  lng?: number
+  /** „Okolí +10 km“: at most this far from lat,lng (#57). */
+  radiusKm?: number
+  /** Nearest to lat,lng first (#57); soonest first without it. */
+  sort?: "distance"
+  /**
+   * The quick picks' personal parts (#250), decided from the session by GET /api/home/events:
+   * the activities of one's interests, well rated organizers, no events one already goes to.
+   */
+  interests?: boolean
+  wellRated?: boolean
+  notJoined?: boolean
+  /** Not sent: the personal parts differ per user, so the cache keeps them apart. */
+  viewerId?: string | null
 }

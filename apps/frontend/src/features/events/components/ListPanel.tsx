@@ -32,6 +32,8 @@ type ListPanelProps = {
   onVisibleHeightChange?: (px: number) => void
   /** Phone: an event's preview takes the sheet's place (Figma A-03a, #56). Desktop: always shown. */
   isHidden?: boolean
+  /** Phone: the search row sits above the chips (#57), so the sheet starts lower. */
+  hasSearchRow?: boolean
   children: ReactNode
 }
 
@@ -60,6 +62,7 @@ export function ListPanel({
   scrollResetKey,
   onVisibleHeightChange,
   isHidden = false,
+  hasSearchRow = false,
   children,
 }: ListPanelProps) {
   const isDesktop = useMediaQuery(DESKTOP_QUERY)
@@ -256,7 +259,8 @@ export function ListPanel({
       }
       className={cn(
         // mobile: a sheet from under the filter chips to the bottom
-        "absolute inset-x-0 top-16 bottom-0 z-10 flex flex-col rounded-t-lg bg-background shadow-md",
+        "absolute inset-x-0 bottom-0 z-10 flex flex-col rounded-t-lg bg-background shadow-md",
+        hasSearchRow ? "top-30" : "top-16",
         // the sheet continues below its bottom edge, so the elastic give past the
         // top never uncovers the map underneath
         "after:absolute after:inset-x-0 after:top-full after:h-8 after:bg-background",
