@@ -15,12 +15,12 @@ class SimulatedEmailDto {
   html!: string;
 }
 
-/** GET /me/simulated-inbox (#58): what the console mailer would have sent. */
+/** POST /simulated-inbox (#58, #236): what the console mailer would have sent. */
 export class SimulatedInboxResponseDto {
   @ApiProperty({
     type: [SimulatedEmailDto],
     description:
-      'Verification e-mails to the signed-in user, newest first; may be empty',
+      'Verification e-mails to the account, newest first; may be empty',
   })
   messages!: SimulatedEmailDto[];
 

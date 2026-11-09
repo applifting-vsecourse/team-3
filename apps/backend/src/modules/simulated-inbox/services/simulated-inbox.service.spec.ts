@@ -5,12 +5,18 @@ import {
   emailFlowOptions,
   VERIFY_EMAIL_SUBJECT,
 } from '@/shared/auth/config/email-flows';
-import { Identity } from '@/shared/auth/domain/identity';
 import { USER_BLOCKED } from '@/shared/auth/guards/verified-user.guard';
+import { BetterAuth } from '@/shared/auth/providers/better-auth.provider';
 import { Config } from '@/shared/config/config.service';
-import { ForbiddenException, NotFoundException } from '@nestjs/common';
+import {
+  ForbiddenException,
+  NotFoundException,
+  UnauthorizedException,
+} from '@nestjs/common';
 import { mockDeep } from 'jest-mock-extended';
 import {
+  DUMMY_PASSWORD_HASH,
+  INVALID_EMAIL_OR_PASSWORD,
   SIMULATED_INBOX_OFF,
   SimulatedInboxService,
 } from './simulated-inbox.service';
@@ -37,15 +43,41 @@ jest.mock('@/shared/auth/providers/better-auth.provider', () => ({
   InjectBetterAuth: (): void => undefined,
 }));
 
-const eva = new Identity('u1', 'eva.mala@example.com', 'Eva Malá', 'user');
+const eva = { id: 'u1', email: 'eva.mala@example.com', name: 'Eva Malá' };
+// Eva's password and the „hash“ the stand-in for BetterAuth's verify accepts
+const credentials = { email: eva.email, password: 'hobbyhub-demo-2026' };
+const HASH = 'hash-of:hobbyhub-demo-2026';
 
 const setup = (
   inbox: SimulatedInbox | null,
-  blockedAt: Date | null = null,
-): SimulatedInboxService => {
+  {
+    blockedAt = null as Date | null,
+    emailVerified = false,
+    account = { password: HASH } as { password: string | null } | null,
+  } = {},
+): {
+  service: SimulatedInboxService;
+  prisma: ReturnType<typeof mockDeep<PrismaService>>;
+  verify: jest.Mock;
+} => {
   const prisma = mockDeep<PrismaService>();
-  prisma.user.findUnique.mockResolvedValue({ blockedAt } as never);
-  return new SimulatedInboxService(inbox, prisma);
+  prisma.account.findFirst.mockResolvedValue(
+    (account
+      ? { ...account, user: { email: eva.email, emailVerified, blockedAt } }
+      : null) as never,
+  );
+  const verify = jest.fn(
+    async ({ hash, password }: { hash: string; password: string }) =>
+      hash === `hash-of:${password}`,
+  );
+  const auth = {
+    $context: Promise.resolve({ password: { verify } }),
+  } as unknown as BetterAuth;
+  return {
+    service: new SimulatedInboxService(inbox, prisma, auth),
+    prisma,
+    verify,
+  };
 };
 
 describe('SimulatedInboxService', () => {
@@ -53,32 +85,90 @@ describe('SimulatedInboxService', () => {
   afterEach(() => jest.restoreAllMocks());
 
   it('is 404 SIMULATED_INBOX_OFF when e-mails really go out', async () => {
-    const error = await setup(null)
-      .getMessages(eva)
-      .catch((e) => e);
+    const { service, prisma } = setup(null);
+    const error = await service.getMessages(credentials).catch((e) => e);
 
     expect(error).toBeInstanceOf(NotFoundException);
     expect(error.getResponse()).toMatchObject({ code: SIMULATED_INBOX_OFF });
+    // where e-mails really go out, it tests no passwords at all
+    expect(prisma.account.findFirst).not.toHaveBeenCalled();
   });
 
-  it('gives the signed-in user their verification e-mails, newest first', async () => {
+  it('gives the account its verification e-mails, newest first, for the right password (#236: no session)', async () => {
     const inbox = new SimulatedInbox(VERIFY_EMAIL_SUBJECT);
     inbox.record(eva.email, VERIFY_EMAIL_SUBJECT, '<a>1</a>');
     inbox.record('jakub.kral@example.com', VERIFY_EMAIL_SUBJECT, '<a>J</a>');
     inbox.record(eva.email, VERIFY_EMAIL_SUBJECT, '<a>2</a>');
 
-    const messages = await setup(inbox).getMessages(eva);
+    const { service, prisma } = setup(inbox);
+    const messages = await service.getMessages({
+      ...credentials,
+      email: ' Eva.Mala@example.com ',
+    });
 
     expect(messages.map((message) => message.html)).toEqual([
       '<a>2</a>',
       '<a>1</a>',
     ]);
+    // the password of the e-mail-and-password account, the address as BetterAuth keeps it
+    expect(prisma.account.findFirst).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: { providerId: 'credential', user: { email: eva.email } },
+      }),
+    );
+  });
+
+  it.each([
+    ['a wrong password', { account: { password: HASH } }, 'jiné-heslo-2026'],
+    ['an unknown e-mail', { account: null }, credentials.password],
+    [
+      'an account without a password (Google)',
+      { account: { password: null } },
+      credentials.password,
+    ],
+    // only an unverified account needs it; answering would tell who has an account
+    [
+      'a verified account, even with the right password',
+      { emailVerified: true },
+      credentials.password,
+    ],
+  ])(
+    '%s is 401 INVALID_EMAIL_OR_PASSWORD, the same for each',
+    async (_, options, password) => {
+      const inbox = new SimulatedInbox(VERIFY_EMAIL_SUBJECT);
+      inbox.record(eva.email, VERIFY_EMAIL_SUBJECT, '<a>1</a>');
+
+      const error = await setup(inbox, options)
+        .service.getMessages({ ...credentials, password })
+        .catch((e) => e);
+
+      expect(error).toBeInstanceOf(UnauthorizedException);
+      expect(error.getResponse()).toMatchObject({
+        code: INVALID_EMAIL_OR_PASSWORD,
+      });
+    },
+  );
+
+  it('an unknown e-mail still checks a password, so it takes as long as a wrong one', async () => {
+    const { service, verify } = setup(
+      new SimulatedInbox(VERIFY_EMAIL_SUBJECT),
+      {
+        account: null,
+      },
+    );
+
+    await service.getMessages(credentials).catch(() => undefined);
+
+    expect(verify).toHaveBeenCalledWith({
+      hash: DUMMY_PASSWORD_HASH,
+      password: credentials.password,
+    });
   });
 
   it('a blocked user gets 403 USER_BLOCKED', async () => {
     const inbox = new SimulatedInbox(VERIFY_EMAIL_SUBJECT);
-    const error = await setup(inbox, new Date())
-      .getMessages(eva)
+    const error = await setup(inbox, { blockedAt: new Date() })
+      .service.getMessages(credentials)
       .catch((e) => e);
 
     expect(error).toBeInstanceOf(ForbiddenException);
@@ -105,7 +195,7 @@ describe('SimulatedInboxService', () => {
       undefined,
     );
 
-    const messages = await setup(inbox).getMessages(eva);
+    const messages = await setup(inbox).service.getMessages(credentials);
     expect(messages).toHaveLength(1);
     expect(messages[0].subject).toBe(VERIFY_EMAIL_SUBJECT);
     expect(JSON.stringify(messages)).not.toContain('reset-t0k3n');

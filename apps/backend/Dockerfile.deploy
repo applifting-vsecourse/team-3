@@ -69,6 +69,9 @@ ENV CI_COMMIT_SHA=$CI_COMMIT_SHA
 # SIMULATED_INBOX=false in deploy.yml turns it off. Delete for real production.
 ARG SIMULATED_INBOX="true"
 ENV SIMULATED_INBOX=$SIMULATED_INBOX
+# Coolify's proxy is the one hop in front: request.ip is the client's, as the
+# simulated inbox's limit per IP needs (#236). Check if the setup changes.
+ENV TRUST_PROXY_HOPS=1
 # Swagger (/api/docs) and BetterAuth's reference page, kept on for the team on
 # staging (#229, N-9). Delete for real production.
 ENV API_DOCS=true

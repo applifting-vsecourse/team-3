@@ -9,7 +9,7 @@ Kdo nález opraví, změní ve stejném PR i jeho stav v tomto reportu.
 - **Node.js:** aplikace běžela na `node:24-alpine` bez pevné verze, takže nebylo jisté, zda obsahuje opravu CVE-2026-111497 (Brotli). Verze je teď pevně 24.22.2 (#196) a na stagingu je ověřená z logu backendu.
 - **Balíčky:** `pnpm audit` hlásil 10 critical a 55 high. Po aktualizaci (#196) a vynucení `js-yaml` přes override (#283) je 0 critical a 0 high, zbývá 4 moderate a 1 low.
 - **Kód:** nezávislá analýza nenašla žádný kritický nález, přístup k cizím datům (IDOR) ani SQL injection. Našla 1 vysoký, 4 střední a 8 nízkých nálezů. Vysoký nález (CSRF) je opravený v #140. Ze čtyř středních jsou N-3 a N-4 opravené, u N-2 a N-5 zbývá část popsaná níže. Z nízkých jsou N-6 a N-9 opravené v #240.
-- **Dřívější nálezy:** S-1, S-2 a S-4 jsou opravené, S-3 a S-5 mají issue (#226, #236).
+- **Dřívější nálezy:** S-1, S-2, S-4 a S-5 jsou opravené, S-3 má issue (#226).
 - **Průběžná kontrola:** přibyl Dependabot a CodeQL (#196).
 
 ## Co ještě chybí
@@ -105,13 +105,18 @@ V produkci se simulovaná schránka ani demo účty nezapnou samy. Staging je m�
 
 Dokud je schránka zapnutá, jde na stagingu ověřit cizí adresu. Google se ale k existujícímu účtu nepřipojí, takže účet takhle převzít nejde.
 
+**Limity simulované schránky (#236)** platí, jen dokud je schránka zapnutá (staging). Zůstávají dvě slabiny, které odstraní až její vypnutí:
+
+- Kdo pošle 20 pokusů se špatným heslem na cizí adresu, zamkne majiteli schránku na 10 minut. Úspěšný pokus počítadlo vynuluje, ale zamčenou schránku neotevře.
+- Počítadla drží nejvýš 10 000 klíčů a plné počítadlo nový klíč odmítne, aby zahlcení nevynulovalo běžící limity. Když se naplní počítadlo IP adres, dostane na 10 minut 429 každá nová IP, tedy všichni noví návštěvníci schránky, nejen útočník.
+
 **N-3** je opravené v #234 a #235: v produkci seed založí demo účty jen s heslem z GitHub secretu `SEED_DEMO_PASSWORD`, ne s heslem z repa. Účtům, které heslo z repa ještě měly, ho seed vyměnil a ukončil jejich session. Na stagingu ověřeno 4. 11.: heslo z repa se nepřihlásí. Heslo ze secretu je uvnitř image stejně jako ostatní klíče (viz výše), proto platí jen pro staging. Před skutečnou produkcí je potřeba smazat řádek `SEED_DEMO_DATA=true`.
 
 ### Zbývá u N-5
 
 Přidat lokalitu teď může jen ověřený uživatel a nejvýš 20krát za hodinu. Limit se počítá na uživatele a po restartu backendu se vynuluje. Zůstává:
 
-- **Rate limit na zbytek `/api`:** ověřený uživatel může dál hromadně zakládat akce a skupiny. Limit podle IP jsme záměrně nepřidali: celá učebna na jedné Wi-Fi je jedna IP (viz #141) a backend nemá nastavené `trust proxy`, takže by mohl počítat všechny uživatele dohromady. Řeší #230.
+- **Rate limit na zbytek `/api`:** ověřený uživatel může dál hromadně zakládat akce a skupiny. Limit podle IP jsme záměrně nepřidali: celá učebna na jedné Wi-Fi je jedna IP (viz #141) a `trust proxy` je zatím nastavené jen na stagingu (`TRUST_PROXY_HOPS=1` v `Dockerfile.deploy`, kvůli limitu simulované schránky z #236). Řeší #230.
 - **Mazání lokalit:** už přidané lokality jde odstranit jen přímo v databázi, patří to k administraci (B-063).
 
 ### Zbývá u N-9
@@ -125,6 +130,8 @@ Z kódu nejde zjistit a tým nemá přístup do Coolify. Ověří to Tomáš Kl�
 - `BETTER_AUTH_SECRET` nastavuje Coolify, nesmí mít hodnotu z `.env.example`.
 - Backend nesmí být dostupný přímo mimo proxy.
 - Proxy musí přepisovat hlavičku `X-Forwarded-For`, jinak nemusí správně fungovat rate limit přihlášení.
+- Před backendem je právě jedna proxy (`TRUST_PROXY_HOPS=1`). Při víc proxy by limit simulované schránky počítal adresu vnější proxy, ne klienta.
+- Po nasazení #236 nemá žádný uživatel s neověřeným e-mailem platnou session (migrace `20261107120000_end_unverified_sessions`). Dotaz musí vrátit 0: `SELECT count(*) FROM "session" s JOIN "user" u ON u."id" = s."userId" WHERE u."emailVerified" = false AND s."expiresAt" > now();`
 - `FRONTEND_URL` a `BACKEND_URL` musí odpovídat skutečným adresám, jinak ochrana z #140 odmítne všechny zápisy.
 
 **Superadmin:** na stagingu není nastavený `SUPERADMIN_EMAIL` ani `SUPERADMIN_PASSWORD`, takže se superadmin nezaložil (seed to hlásí v logu, ověřeno 2. 11.). Výchozí heslo z `.env.example` tam proto nehrozí. Účet superadmina by dnes ani neměl práva navíc, protože administrace (B-063) ještě neexistuje. Než v aplikaci vznikne prostředí a speciální práva pro superadmina, je potřeba ho na stagingu nastavit se silným heslem, které není v repu.
@@ -148,11 +155,11 @@ Nálezy S-1 až S-5 pocházejí z nočního testování před Sprint Review 2. J
 | S-2 | `GET /api/events?dateTo=9999-12-31` vrací 500         | nízká     | Opraveno v #237; na stagingu ověřeno 4. 11. |
 | S-3 | Souběh při vyřizování žádostí o členství ve skupině   | nízká     | Otevřený, #226; viz níže                    |
 | S-4 | Zápisy do API z aplikací jiných týmů (CSRF)           | vysoká    | Opraveno v #140; stejný nález jako N-1      |
-| S-5 | Do skupiny se jde přidat i bez ověřeného e-mailu      | nízká     | Otevřený, #236; viz níže                    |
+| S-5 | Do skupiny se jde přidat i bez ověřeného e-mailu      | nízká     | Opraveno v #236; viz níže                   |
 
 **S-2:** `9999-12-31` prošlo validací a `startOfNextPragueDay` z něj počítal následující den v roce 10000, který neuměl zpracovat. #237 počítá půlnoc z čísel místo z řetězce, takže filtr vrací seznam akcí.
 
-**S-5:** založení skupiny ověřený e-mail vyžaduje, žádost o členství a vstup do skupiny jen přihlášení. V #46 to tak bylo zvoleno záměrně, Figma A-08 ale stav „neověřený e-mail“ má. Tým 3. 11. rozhodl, že před podáním žádosti o členství musí být e-mail ověřený, PO 4. 11. pravidlo rozšířil: přihlásit se jde jen s ověřeným e-mailem. Řeší #236.
+**S-5:** založení skupiny ověřený e-mail vyžaduje, žádost o členství a vstup do skupiny jen přihlášení. V #46 to tak bylo zvoleno záměrně, Figma A-08 ale stav „neověřený e-mail“ má. Tým 3. 11. rozhodl, že před podáním žádosti o členství musí být e-mail ověřený, PO 4. 11. pravidlo rozšířil: přihlásit se jde jen s ověřeným e-mailem. Opraveno v #236: BetterAuth neověřený e-mail nepřihlásí (403 `EMAIL_NOT_VERIFIED`) a po registraci session nezakládá, migrace ukončila session neověřených uživatelů a `POST /api/groups/:id/join` má navíc `VerifiedUserGuard` pro session, která by přesto zůstala. Odchod ze skupiny a stažení žádosti ověření nepotřebují.
 
 **S-3** je chyba ve skupinách, ne bezpečnostní díra: data neunikají. Odhalilo ji noční testování. Čtením kódu jsme ověřili, že tam pořád je, znovu jsme ji nevyvolávali:
 

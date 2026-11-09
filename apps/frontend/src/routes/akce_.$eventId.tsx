@@ -13,7 +13,6 @@ import { cn } from "@/lib/utils"
 import { AppHeader } from "@/features/auth/components/AppHeader"
 import { useSession } from "@/features/auth/hooks/useSession"
 import { redirectFrom } from "@/features/auth/lib/redirect"
-import { showVerifyEmailBanner } from "@/features/auth/lib/verify-email-banner"
 import { CancelEventDialog } from "@/features/events/components/CancelEventDialog"
 import { EventDetailView, EVENTS_BACK } from "@/features/events/components/EventDetailView"
 import { EventMessages } from "@/features/events/components/EventMessages"
@@ -111,14 +110,9 @@ function EventDetailPage() {
               event ? (
                 <ParticipationAction
                   event={event}
-                  viewer={
-                    session.user
-                      ? { id: session.user.id, emailVerified: session.user.emailVerified }
-                      : null
-                  }
+                  viewer={session.user ? { id: session.user.id } : null}
                   signInFrom={signInFrom}
                   isPending={join.isPending || leave.isPending}
-                  onVerifyEmail={showVerifyEmailBanner}
                   onJoin={(message) =>
                     join.mutateAsync(message).then(
                       (updated) => {

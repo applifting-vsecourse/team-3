@@ -203,7 +203,7 @@ Staging a CI/CD (F-59, F-60) už v repu jsou (`.github/workflows/ci.yml`, `deplo
 
 **Cíl:** Do aplikace se přihlásí jen uživatel s ověřeným e-mailem (PO 4. 11.), takže na akce i do skupin se vždy hlásí ověřený uživatel. Řeší S-5 (#236).
 
-- BetterAuth: ověřovací odkaz s platností 24 h (`EMAIL_VERIFICATION_TTL_SECONDS`, šablona `verify-email.tsx` už existuje), `requireEmailVerification: true` – neověřený se nepřihlásí (chyba `EMAIL_NOT_VERIFIED`, žádná session), po registraci se session nezakládá. Po kliknutí na odkaz je uživatel ověřený a rovnou přihlášený (`autoSignInAfterVerification`) a vrátí se přes `redirect` (B-012).
+- BetterAuth: ověřovací odkaz s platností 24 h (`EMAIL_VERIFICATION_TTL_SECONDS`, šablona `verify-email.tsx` už existuje), `requireEmailVerification: true` – neověřený se nepřihlásí (chyba `EMAIL_NOT_VERIFIED`, žádná session), po registraci se session nezakládá. Po kliknutí na odkaz je uživatel ověřený, vrátí se přes `redirect` (B-012) na stránku, odkud registrace vyšla, a v dialogu „E-mail je ověřený“ se přihlásí sám („Přihlásit se“, #197); `autoSignInAfterVerification` se nezapíná.
 - Kdo je přihlášený, je ověřený: e-mail se ověřuje při registraci a jinak session nevznikne. Při nasazení se smažou session všech uživatelů s `emailVerified = false` (migrace nebo skript v nasazení), takže neověřená session nezůstane ani z doby před změnou.
 - FE: po registraci i při pokusu o přihlášení s neověřeným e-mailem obrazovka „Ověř si e-mail“ (Figma B-01a, desktop dialog B-01ad) s „Poslat odkaz znovu“ (s limitem) a „Zpět na přihlášení“. Pruh „Ověř si e-mail“ (`VerifyEmailBanner`) a stavy „neověřený“ na detailu akce a ve formuláři akce se odstraní – přihlášený neověřený uživatel nenastane.
 - `VerifiedUserGuard` (vedle `authenticated-user.guard.ts`) zůstává jen jako obrana do hloubky: 403 `EMAIL_NOT_VERIFIED`, když `emailVerified = false`, a dál odmítá zablokovaného uživatele (`blockedAt`). Nové endpointy na něm nestojí – ověření zajišťuje přihlášení. Přihlášení přes Google: e-mail ověřil Google.
@@ -212,7 +212,7 @@ Staging a CI/CD (F-59, F-60) už v repu jsou (`.github/workflows/ci.yml`, `deplo
 **Hotovo, když:**
 
 - [ ] Test guardu: neověřený → 403, zablokovaný → 403, ověřený → projde.
-- [ ] Test přihlášení: neověřený e-mailem a heslem se nepřihlásí a nedostane session, ověřený ano; po ověření odkazem je přihlášený.
+- [ ] Test přihlášení: neověřený e-mailem a heslem se nepřihlásí a nedostane session, ověřený ano; po ověření odkazem se přihlásí.
 - [ ] Test registrace: po registraci uživatel není přihlášený a dostane ověřovací e-mail.
 - [ ] Test nasazení: po smazání neověřených session nemá žádný uživatel s `emailVerified = false` platnou session.
 - [ ] Test FE: po registraci i po odmítnutém přihlášení neověřeného obrazovka „Ověř si e-mail“ s novým odesláním odkazu.

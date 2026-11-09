@@ -19,11 +19,10 @@ export const afterVerificationUrl = (from?: string) => {
 }
 
 /**
- * The `from` of a link sent again from the banner or the dialog after an
- * expired link (#58, #155): the page it was asked for on. /email-overen only
- * passes through to its own `from`, but the banner is up there while the
- * session refreshes: that `from` then, so the new link doesn't lead back to
- * the error. The password pages are no place to come back to (and
+ * The `from` of a link sent again from the dialog after an expired link
+ * (#58, #155): the page it was asked for on. On /email-overen, which only
+ * passes through, its own `from`, so the new link doesn't lead back to the
+ * error. The password pages are no place to come back to (and
  * /reset-password carries a token).
  */
 export const resendFrom = (location: ParsedLocation): string | undefined => {

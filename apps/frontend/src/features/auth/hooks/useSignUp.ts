@@ -1,6 +1,4 @@
-import { useMutation, useQueryClient } from "@tanstack/react-query"
-
-import { authKeys } from "@/lib/auth-keys"
+import { useMutation } from "@tanstack/react-query"
 
 import { authClient } from "@/features/auth/lib/auth-client"
 import { toAuthRequestError } from "@/features/auth/lib/auth-errors"
@@ -20,11 +18,11 @@ export type SignUpInput = {
 type SignUpEmailBody = Parameters<typeof authClient.signUp.email>[0]
 
 export function useSignUp() {
-  const queryClient = useQueryClient()
-
   return useMutation({
     mutationFn: async (input: SignUpInput) => {
-      // BetterAuth handles the whole flow (and signs the user in by default)
+      // BetterAuth handles the whole flow and sends the verification e-mail;
+      // it makes no session (#236: only a verified e-mail signs in), and for
+      // an address that has an account already it answers the same way.
       // no username (B-010: name, e-mail, password); the column is optional
       // the client's type knows only BetterAuth's own fields, not our consents
       const body: SignUpEmailBody & Pick<SignUpInput, "termsAccepted" | "privacyAcknowledged"> = {
@@ -38,9 +36,6 @@ export function useSignUp() {
       }
       const { error } = await authClient.signUp.email(body)
       if (error) throw toAuthRequestError(error, "Registrace se nepovedla. Zkus to prosím znovu.")
-    },
-    onSuccess: async () => {
-      await queryClient.invalidateQueries({ queryKey: authKeys.session() })
     },
   })
 }

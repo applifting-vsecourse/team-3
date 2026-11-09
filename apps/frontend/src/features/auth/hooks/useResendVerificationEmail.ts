@@ -14,9 +14,9 @@ type ResendInput = {
 }
 
 /**
- * Sends a new verification link (it works for 24 hours, B-011). If the
- * e-mail was verified meanwhile, e.g. in another tab, it refreshes the session
- * instead, so the banner goes away.
+ * Sends a new verification link (it works for 24 hours, B-011); BetterAuth
+ * limits how often. If the e-mail was verified meanwhile, e.g. in another
+ * tab, it refreshes the session instead.
  */
 export function useResendVerificationEmail() {
   const queryClient = useQueryClient()

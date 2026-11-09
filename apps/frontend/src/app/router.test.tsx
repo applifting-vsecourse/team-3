@@ -114,7 +114,7 @@ describe("router", () => {
         })
 
         // the session was fetched anew before the dialog trusted it: success,
-        // never „not verified“ first, and the banner „Ověř si e-mail“ is gone
+        // never „not verified“ first
         expect(await screen.findByRole("dialog", { name: "E-mail je ověřený" })).toBeInTheDocument()
         expect(screen.queryByText("E-mail zatím není ověřený")).not.toBeInTheDocument()
         expect(screen.queryByText(/Ověř si e-mail/)).not.toBeInTheDocument()

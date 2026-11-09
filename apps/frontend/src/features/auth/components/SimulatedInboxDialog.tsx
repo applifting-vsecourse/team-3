@@ -13,10 +13,12 @@ import {
 import type { SimulatedEmail } from "@/features/auth/api/simulatedInbox"
 
 type SimulatedInboxDialogProps = {
-  /** Where the e-mail would have gone: the signed-in user's address. */
+  /** Where the e-mail would have gone: the address on „Ověř si e-mail“. */
   email: string
-  /** Newest first, as the API sends them. */
-  messages: SimulatedEmail[]
+  /** Newest first, as the API sends them; undefined while they load. */
+  messages: SimulatedEmail[] | undefined
+  /** Why the inbox didn't open, shown instead of the e-mail. */
+  errorMessage?: string
   /** Opening asks for the inbox again: the e-mail may have come after the last look. */
   onOpen: () => void
 }
@@ -26,8 +28,13 @@ type SimulatedInboxDialogProps = {
  * opens in the app instead, with its link. Only the newest one: it is the one
  * whose link works.
  */
-export function SimulatedInboxDialog({ email, messages, onOpen }: SimulatedInboxDialogProps) {
-  const [latest] = messages
+export function SimulatedInboxDialog({
+  email,
+  messages,
+  errorMessage,
+  onOpen,
+}: SimulatedInboxDialogProps) {
+  const latest = messages?.[0]
   return (
     <Dialog
       onOpenChange={(isOpen) => {
@@ -37,7 +44,7 @@ export function SimulatedInboxDialog({ email, messages, onOpen }: SimulatedInbox
       <DialogTrigger asChild>
         <Button
           variant="outline"
-          size="sm"
+          size="lg"
         >
           Otevřít e-mail (simulace)
         </Button>
@@ -49,7 +56,9 @@ export function SimulatedInboxDialog({ email, messages, onOpen }: SimulatedInbox
             Na tomhle prostředí se e-maily neodesílají – tady je, co by ti přišlo.
           </DialogDescription>
         </DialogHeader>
-        {latest ? (
+        {errorMessage ? (
+          <p role="alert">{errorMessage}</p>
+        ) : latest ? (
           <div className="flex flex-col gap-3">
             <div className="flex flex-col gap-1">
               <p className="font-semibold">{latest.subject}</p>
@@ -65,8 +74,10 @@ export function SimulatedInboxDialog({ email, messages, onOpen }: SimulatedInbox
               className="h-96 w-full rounded-lg border border-border"
             />
           </div>
-        ) : (
+        ) : messages ? (
           <p className="text-muted-foreground">Zatím tu nic není – pošli si odkaz znovu.</p>
+        ) : (
+          <p className="text-muted-foreground">Načítám e-mail…</p>
         )}
         <DialogFooter>
           <DialogClose asChild>

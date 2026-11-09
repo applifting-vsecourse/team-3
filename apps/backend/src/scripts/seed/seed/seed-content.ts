@@ -168,6 +168,17 @@ export async function seedContent(
           },
         });
       }
+      // #236: only a verified e-mail signs in. An account set back to
+      // unverified (a tester may have verified Eva meanwhile) is signed out.
+      await tx.session.deleteMany({
+        where: {
+          userId: {
+            in: seedAccounts
+              .filter((account) => !account.emailVerified)
+              .map((account) => userId(account.key)),
+          },
+        },
+      });
       await tx.userInterest.deleteMany({
         where: { userId: { in: accountIds } },
       });

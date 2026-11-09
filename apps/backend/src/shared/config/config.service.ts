@@ -3,11 +3,13 @@ import { Injectable } from '@nestjs/common';
 import {
   IsBoolean,
   IsIn,
+  IsInt,
   IsNotEmpty,
   IsOptional,
   IsSemVer,
   IsString,
   IsUrl,
+  Min,
 } from 'class-validator';
 
 /**
@@ -68,6 +70,15 @@ export class Config {
 
   @Env('PORT', { expose: true, defaultValue: 4050 })
   readonly port!: number;
+
+  // How many proxies in front of the backend add to X-Forwarded-For (Express
+  // `trust proxy`), so `request.ip` is the client's and a client can't set it
+  // (#236 review). 0 = none: the connection's address. Staging sets 1 in
+  // Dockerfile.deploy (Coolify's proxy). Never more than really are there.
+  @Env('TRUST_PROXY_HOPS', { expose: true, defaultValue: 0 })
+  @IsInt()
+  @Min(0)
+  readonly trustProxyHops!: number;
 
   @Env('RESEND_API_KEY')
   @IsOptional()
