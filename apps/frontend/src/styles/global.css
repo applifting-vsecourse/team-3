@@ -1,4 +1,6 @@
-@import "@fontsource-variable/bricolage-grotesque";
+/* with the optical size axis: the browser sets it to the font size, as Figma does — the
+   default file is fixed at opsz 14, ~10 % wider at the display sizes than the design */
+@import "@fontsource-variable/bricolage-grotesque/opsz.css";
 @import "@fontsource-variable/geist";
 @import "tailwindcss";
 @plugin "tailwindcss-animate";
