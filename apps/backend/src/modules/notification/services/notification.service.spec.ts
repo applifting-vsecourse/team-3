@@ -191,6 +191,158 @@ describe('NotificationService.deliver', () => {
     });
   });
 
+  describe('a group announcement (#194)', () => {
+    const announcement = {
+      id: 'an1',
+      subject: 'Přes svátky se nehraje',
+      body: 'Pauza do 6. 1.',
+      senderId: 'u1',
+      group: { id: 'g1', name: 'Florbal Podvinný mlýn' },
+    };
+
+    it('goes to every active member, the admin who wrote it too, with a link to the group', async () => {
+      const { repository, email, service } = setup();
+      repository.findAnnouncement.mockResolvedValue(announcement);
+      repository.findActiveMembers.mockResolvedValue([organizer, jana, tomas]);
+
+      await service.deliver({
+        type: 'group-announcement',
+        announcementId: 'an1',
+      });
+
+      expect(repository.findActiveMembers).toHaveBeenCalledWith('g1');
+      expect(repository.findEvent).not.toHaveBeenCalled();
+      expect(sentTo(email)).toEqual([organizer.email, jana.email, tomas.email]);
+      const [, subject, html] = email.sendEmail.mock.calls[0];
+      expect(subject).toBe('Florbal Podvinný mlýn: Přes svátky se nehraje');
+      expect(html).toContain(`${frontendUrl}/skupiny/g1`);
+      expect(html).toContain('Pauza do 6. 1.');
+    });
+
+    it('one that is gone sends nothing', async () => {
+      const { repository, email, service } = setup();
+      repository.findAnnouncement.mockResolvedValue(null);
+
+      await service.deliver({
+        type: 'group-announcement',
+        announcementId: 'an1',
+      });
+
+      expect(email.sendEmail).not.toHaveBeenCalled();
+    });
+
+    it('nobody to write to sends nothing', async () => {
+      const { repository, email, service } = setup();
+      repository.findAnnouncement.mockResolvedValue(announcement);
+      repository.findActiveMembers.mockResolvedValue([]);
+
+      await service.deliver({
+        type: 'group-announcement',
+        announcementId: 'an1',
+      });
+
+      expect(email.sendEmail).not.toHaveBeenCalled();
+    });
+
+    it('a failed lookup is logged with the announcement id, never thrown', async () => {
+      const { repository, service } = setup();
+      const error = jest
+        .spyOn(Logger.prototype, 'error')
+        .mockImplementation(() => undefined);
+      repository.findAnnouncement.mockRejectedValue(new Error('db down'));
+
+      await expect(
+        service.deliver({ type: 'group-announcement', announcementId: 'an1' }),
+      ).resolves.toBeUndefined();
+      expect(error).toHaveBeenCalledWith(
+        expect.stringContaining('oznámení an1'),
+      );
+      error.mockRestore();
+    });
+  });
+
+  describe("the organizer's message (#176)", () => {
+    const message = {
+      id: 'm1',
+      subject: 'Sraz u vchodu',
+      body: 'Sraz v 17:50 u vchodu.\n\nVezmi si sálovky.',
+      senderId: 'u1',
+      event: { id: 'e1', title: 'Deskovky ve středu' },
+    };
+
+    it('goes to the approved participants, not the organizer, with a link to the event', async () => {
+      const { repository, email, service } = setup();
+      repository.findEventMessage.mockResolvedValue(message);
+      repository.findApprovedParticipants.mockResolvedValue([jana, tomas]);
+
+      await service.deliver({
+        type: 'event-message',
+        eventId: 'e1',
+        messageId: 'm1',
+      });
+
+      // the organizer who wrote it is left out by the query
+      expect(repository.findApprovedParticipants).toHaveBeenCalledWith(
+        'e1',
+        'u1',
+      );
+      expect(repository.findAudience).not.toHaveBeenCalled();
+      expect(sentTo(email)).toEqual([jana.email, tomas.email]);
+      const [, subject, html] = email.sendEmail.mock.calls[0];
+      expect(subject).toBe('Deskovky ve středu: Sraz u vchodu');
+      expect(html).toContain(`${frontendUrl}/akce/e1`);
+      expect(html).toContain('Vezmi si sálovky.');
+    });
+
+    it('one that is gone sends nothing', async () => {
+      const { repository, email, service } = setup();
+      repository.findEventMessage.mockResolvedValue(null);
+
+      await service.deliver({
+        type: 'event-message',
+        eventId: 'e1',
+        messageId: 'm1',
+      });
+
+      expect(email.sendEmail).not.toHaveBeenCalled();
+    });
+
+    it('nobody approved yet sends nothing', async () => {
+      const { repository, email, service } = setup();
+      repository.findEventMessage.mockResolvedValue(message);
+      repository.findApprovedParticipants.mockResolvedValue([]);
+
+      await service.deliver({
+        type: 'event-message',
+        eventId: 'e1',
+        messageId: 'm1',
+      });
+
+      expect(email.sendEmail).not.toHaveBeenCalled();
+    });
+
+    it('one failed e-mail is logged and the others still go out', async () => {
+      const { repository, email, service } = setup();
+      const warn = jest
+        .spyOn(Logger.prototype, 'warn')
+        .mockImplementation(() => undefined);
+      repository.findEventMessage.mockResolvedValue(message);
+      repository.findApprovedParticipants.mockResolvedValue([jana, tomas]);
+      email.sendEmail.mockRejectedValueOnce(new Error('smtp down'));
+
+      await expect(
+        service.deliver({
+          type: 'event-message',
+          eventId: 'e1',
+          messageId: 'm1',
+        }),
+      ).resolves.toBeUndefined();
+      expect(sentTo(email)).toEqual([jana.email, tomas.email]);
+      expect(warn).toHaveBeenCalledWith(expect.stringContaining('zpráva m1'));
+      warn.mockRestore();
+    });
+  });
+
   describe('when there is nothing to send', () => {
     it('an event that is gone sends nothing', async () => {
       const { repository, email, service } = setup();

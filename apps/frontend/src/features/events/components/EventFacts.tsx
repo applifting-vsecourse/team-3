@@ -17,7 +17,8 @@ export function EventFacts({ event }: { event: EventDetail }) {
         label="Kdy"
       >
         <time dateTime={event.startsAt.toISOString()}>
-          {formatEventTime(event.startsAt, event.endsAt)}
+          {/* the full date with the year here (Figma A-05, A-05d); the band's line goes without it */}
+          {formatEventTime(event.startsAt, event.endsAt, { hasYear: true })}
         </time>
       </DetailRow>
       <DetailRow

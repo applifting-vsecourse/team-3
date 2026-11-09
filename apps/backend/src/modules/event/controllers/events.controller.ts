@@ -32,8 +32,16 @@ import { CreateEventDto } from './dto/create-event.dto';
 import { CreatedEventResponseDto } from './dto/created-event.response.dto';
 import { DecideRequestsDto } from './dto/decide-requests.dto';
 import { EventDetailResponseDto } from './dto/event-detail.response.dto';
+import {
+  CreateEventMessageDto,
+  EventMessageDto,
+  EventMessagesResponseDto,
+} from './dto/event-message.dto';
 import { EventParticipantsResponseDto } from './dto/event-participants.response.dto';
-import { ListEventsQueryDto } from './dto/list-events.query.dto';
+import {
+  ListEventsQueryDto,
+  toPublicEventFilters,
+} from './dto/list-events.query.dto';
 import { PublicEventResponseDto } from './dto/public-event.response.dto';
 import { UpdateEventDto } from './dto/update-event.dto';
 
@@ -64,14 +72,7 @@ export class EventsController {
     @Query() query: ListEventsQueryDto,
   ): Promise<PublicEventResponseDto[]> {
     const events = await this.eventsService.getPublicEvents(
-      {
-        localityId: query.localityId,
-        dateFrom: query.dateFrom,
-        dateTo: query.dateTo,
-        activityIds: query.activityId,
-        categoryIds: query.categoryId,
-        capacity: query.capacity,
-      },
+      toPublicEventFilters(query),
       { sort: query.sort, limit: query.limit },
     );
     return events.map(PublicEventResponseDto.fromDomain);
@@ -187,6 +188,79 @@ export class EventsController {
   ): Promise<EventDetailResponseDto> {
     return EventDetailResponseDto.fromDomain(
       await this.eventsService.cancelEvent(id, user.id, body.reason),
+    );
+  }
+
+  @Get(':id/messages')
+  @UseGuards(AuthenticatedUserGuard)
+  @ApiCookieAuth()
+  @ApiOperation({
+    summary:
+      "The organizer's messages to the participants, newest first (#176); only for those who see „Kdo jde“ (#174)",
+    description:
+      "Readable by the organizer, a user with an approved place and, for a group event, the group's active members and admins, " +
+      'decided from the session. A cancelled event keeps its messages. `remainingToday` only for the organizer of a published event.',
+  })
+  @ApiResponse({ status: 200, type: EventMessagesResponseDto })
+  @ApiResponse({ status: 401, description: 'Not signed in' })
+  @ApiResponse({
+    status: 403,
+    description:
+      'NOT_PARTICIPANT (not someone who sees „Kdo jde“), or MEMBERS_ONLY (a members-only event, the caller is not a member)',
+  })
+  @ApiResponse({
+    status: 404,
+    description: 'Unknown, hidden or deleted event',
+  })
+  async messages(
+    @Param('id') id: string,
+    @User() user: Identity,
+  ): Promise<EventMessagesResponseDto> {
+    return EventMessagesResponseDto.fromDomain(
+      await this.eventsService.getMessages(id, user.id),
+    );
+  }
+
+  @Post(':id/messages')
+  @UseGuards(AuthenticatedUserGuard)
+  @ApiCookieAuth()
+  @ApiOperation({
+    summary:
+      'Write to every approved participant by e-mail and show it on the detail (B-042, #176); only the organizer of a published event, at most 10 a day',
+    description:
+      'The e-mail goes after the message is saved and never fails the request. Waiting, rejected and removed people ' +
+      "don't get it, nor does the organizer. The limit counts the event's messages since midnight in Prague.",
+  })
+  @ApiResponse({ status: 201, type: EventMessageDto })
+  @ApiResponse({
+    status: 400,
+    description: 'Missing subject or text, or too long',
+  })
+  @ApiResponse({ status: 401, description: 'Not signed in' })
+  @ApiResponse({
+    status: 403,
+    description:
+      "NOT_ORGANIZER (a group's admin included), or MEMBERS_ONLY (a members-only event, the caller is not a member)",
+  })
+  @ApiResponse({
+    status: 404,
+    description: 'Unknown, hidden or deleted event',
+  })
+  @ApiResponse({ status: 409, description: 'EVENT_CANCELLED' })
+  @ApiResponse({
+    status: 429,
+    description: 'MESSAGE_LIMIT: the event sent 10 today (Prague day)',
+  })
+  async sendMessage(
+    @Param('id') id: string,
+    @Body() body: CreateEventMessageDto,
+    @User() user: Identity,
+  ): Promise<EventMessageDto> {
+    return EventMessageDto.fromDomain(
+      await this.eventsService.sendMessage(id, user.id, {
+        subject: body.subject,
+        body: body.body,
+      }),
     );
   }
 

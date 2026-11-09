@@ -24,6 +24,7 @@ import { cn } from "@/lib/utils"
 import type { EventDetail } from "@/features/events/api/eventSchemas"
 import { EventFacts } from "@/features/events/components/EventFacts"
 import { EventParticipants } from "@/features/events/components/EventParticipants"
+import { toPin } from "@/features/events/components/EventsMap"
 import { ShareEventButton } from "@/features/events/components/ShareEventButton"
 import {
   eventDateParts,
@@ -58,6 +59,8 @@ type EventDetailViewProps = {
   organizerGroup?: ReactNode
   /** The signed-in viewer, shown first as „Ty“ in „Kdo jde“ (Figma A-05c). */
   viewerId?: string | null
+  /** „Zprávy od organizátora“ between „O akci“ and „Kdo jde“ (#176, Figma A-05c); the page builds it. */
+  messages?: ReactNode
 }
 
 /**
@@ -82,6 +85,7 @@ export function EventDetailView({
   now = new Date(),
   organizerGroup,
   viewerId,
+  messages,
 }: EventDetailViewProps) {
   const isDesktop = useMediaQuery(DESKTOP_QUERY)
 
@@ -188,10 +192,10 @@ export function EventDetailView({
         center={{ lat: event.lat, lng: event.lng }}
         pins={[
           {
-            id: event.id,
-            lat: event.lat,
-            lng: event.lng,
-            variant: "default",
+            // the pin says the state as on the list's map: lime while people are missing
+            // (Figma A-05d); a cancelled event no longer misses anyone
+            ...toPin(event),
+            ...(isCancelled ? { variant: "default" as const } : {}),
             label: placeName(event.address),
           },
         ]}
@@ -247,13 +251,15 @@ export function EventDetailView({
             <div className="flex flex-col gap-6">
               {photo}
               {about}
+              {messages}
               {participants}
               {organizer}
             </div>
-            {/* Figma: Panel akce */}
+            {/* Figma: Panel akce — the buttons first, „Sdílet odkaz“ among them, the action's
+                note last (A-05d, A-05ad): the action's column is laid into the panel's */}
             <section
               aria-label="Termín, místo a účast"
-              className="flex w-100 flex-col gap-4 rounded-2xl border border-card-border bg-card p-6 text-card-foreground"
+              className="flex w-100 flex-col gap-4 rounded-2xl border border-card-border bg-card p-6 text-card-foreground [&_[data-slot=participation-note]]:order-last [&>[data-slot=participation]]:contents"
             >
               {capacity}
               {facts}
@@ -298,6 +304,7 @@ export function EventDetailView({
           {organizerActions}
         </section>
         {about}
+        {messages}
         {participants}
         {organizer}
         {/* Figma: Lišta s akcí — above the bottom navigation, it stays while

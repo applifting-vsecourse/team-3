@@ -1,5 +1,4 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router"
-import { toast } from "sonner"
 
 import { ROUTES } from "@/app/routes"
 import { PageBand } from "@/components/PageBand/PageBand"
@@ -10,6 +9,7 @@ import { FORM, PAGE } from "@/lib/pageLayout"
 import { cn } from "@/lib/utils"
 
 import { useSession } from "@/features/auth/hooks/useSession"
+import { announcePublished } from "@/features/events/components/announcePublished"
 import { EventForm } from "@/features/events/components/EventForm"
 import { useCreateEvent } from "@/features/events/hooks/useCreateEvent"
 import { CatalogState } from "@/features/groups/components/CatalogState"
@@ -56,7 +56,8 @@ function NewEventPage() {
               onSubmit={(input) =>
                 createEvent.mutate(input, {
                   onSuccess: (event) => {
-                    toast.success("Akce je zveřejněná.")
+                    // the detail as before; the toast leads on to Moje akce › Pořádám (#188)
+                    announcePublished()
                     // replace: „Zpět“ from the new event goes where the user came from, not to an empty form
                     void navigate({
                       to: ROUTES.eventDetail,

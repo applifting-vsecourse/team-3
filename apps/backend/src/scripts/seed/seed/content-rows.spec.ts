@@ -67,6 +67,19 @@ describe('buildContentRows', () => {
     expect(new Set(ids).size).toBe(ids.length);
   });
 
+  it("puts the groups' announcements in their groups, dated before the seed (#194)", () => {
+    const rows = build();
+    const groupIds = new Set(rows.groups.map((group) => group.id));
+
+    expect(rows.groupAnnouncements.length).toBeGreaterThan(0);
+    for (const announcement of rows.groupAnnouncements) {
+      expect(groupIds.has(announcement.groupId)).toBe(true);
+      expect(new Date(announcement.createdAt!).getTime()).toBeLessThan(
+        now.getTime(),
+      );
+    }
+  });
+
   it('links members and participations to rows of the same build', () => {
     const rows = build();
     const groupIds = new Set(rows.groups.map((g) => g.id));

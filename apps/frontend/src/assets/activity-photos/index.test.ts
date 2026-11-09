@@ -10,7 +10,8 @@ describe("activityPhoto", () => {
     expect(photo?.srcSet).toMatch(/florbal-480\.webp 480w, .*florbal-960\.webp 960w/)
   })
 
+  // every catalog activity has one; a new one may come before its photo
   it("has none for an activity the library doesn't cover yet", () => {
-    expect(activityPhoto("rybareni")).toBeUndefined()
+    expect(activityPhoto("nova-aktivita")).toBeUndefined()
   })
 })

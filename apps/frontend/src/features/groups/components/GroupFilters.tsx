@@ -2,24 +2,37 @@ import { useState } from "react"
 
 import { ActivityFilter } from "@/components/ActivityFilter/ActivityFilter"
 import { FilterChip } from "@/components/FilterChip/FilterChip"
-import { LocalityFilter } from "@/components/LocalityFilter/LocalityFilter"
+import { LocalityFilter, type LocalityDefault } from "@/components/LocalityFilter/LocalityFilter"
 import { Button } from "@/components/ui/button"
 import type { ActivitySelection } from "@/lib/catalog/activitySelection"
 import { toActivitySearch, toActivitySelection, type Catalog } from "@/lib/catalog/catalogSearch"
 
 import { useGroups } from "@/features/groups/hooks/useGroups"
 import { showGroupsLabel } from "@/features/groups/lib/formatGroup"
-import { hasActiveFilters, type GroupsSearch } from "@/features/groups/lib/groupsSearch"
+import type { GroupsSearch } from "@/features/groups/lib/groupsSearch"
 
 type GroupFiltersProps = {
+  /** The URL's filters with the shown locality in `lokalita`, the visitor's default included. */
   search: GroupsSearch
   catalog: Catalog | undefined
   onChange: (patch: Partial<GroupsSearch>) => void
-  onClearAll: () => void
+  /** A pick in the locality chip, which the page remembers (#55); without it, `onChange`. */
+  onLocalityChange?: (slug: string) => void
+  /** „Zrušit vše“; only when something was picked (a default locality isn't). */
+  onClearAll?: () => void
+  /** The visitor's default locality on the chip (#55). */
+  localityDefault?: LocalityDefault
 }
 
 /** The filter chips of /skupiny (Figma A-07): activity and locality, like on /akce. */
-export function GroupFilters({ search, catalog, onChange, onClearAll }: GroupFiltersProps) {
+export function GroupFilters({
+  search,
+  catalog,
+  onChange,
+  onClearAll,
+  onLocalityChange,
+  localityDefault,
+}: GroupFiltersProps) {
   return (
     <div
       role="group"
@@ -33,11 +46,17 @@ export function GroupFilters({ search, catalog, onChange, onClearAll }: GroupFil
             catalog={catalog}
             onChange={onChange}
           />
-          <GroupLocalityFilter
-            search={search}
-            catalog={catalog}
-            onChange={(lokalita) => onChange({ lokalita })}
-          />
+          {/* until the default locality is known, no name: never „Celé Česko“ for a moment */}
+          {search.lokalita !== undefined ? (
+            <GroupLocalityFilter
+              search={search}
+              catalog={catalog}
+              onChange={onLocalityChange ?? ((lokalita) => onChange({ lokalita }))}
+              localityDefault={localityDefault}
+            />
+          ) : (
+            <FilterChip disabled>Lokalita</FilterChip>
+          )}
         </>
       ) : (
         // keeps the bar from shifting while the catalog loads
@@ -46,7 +65,7 @@ export function GroupFilters({ search, catalog, onChange, onClearAll }: GroupFil
           <FilterChip disabled>Lokalita</FilterChip>
         </>
       )}
-      {hasActiveFilters(search) ? (
+      {onClearAll ? (
         <Button
           variant="ghost"
           className="h-9 shrink-0"
@@ -69,10 +88,12 @@ function GroupLocalityFilter({
   search,
   catalog,
   onChange,
+  localityDefault,
 }: {
   search: GroupsSearch
   catalog: Catalog
-  onChange: (lokalita: string | undefined) => void
+  onChange: (lokalita: string) => void
+  localityDefault?: LocalityDefault
 }) {
   const [draft, setDraft] = useState<string>()
   const applyLabel = usePreviewLabel(
@@ -83,8 +104,9 @@ function GroupLocalityFilter({
       value={search.lokalita}
       localities={catalog.localities}
       onChange={onChange}
-      onDraftChange={setDraft}
+      onDraftChange={(next) => setDraft(next?.slug)}
       applyLabel={applyLabel}
+      localityDefault={localityDefault}
     />
   )
 }

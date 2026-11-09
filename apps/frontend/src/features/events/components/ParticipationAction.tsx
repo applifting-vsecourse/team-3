@@ -530,12 +530,27 @@ function ManageLink({ eventId, isPrimary = false }: { eventId: string; isPrimary
 }
 
 // Stacked, the buttons take the width of the bar or the panel (Figma A-05, A-05d).
+// The desktop panel lays the column into its own and puts the notes after „Sdílet odkaz“.
 function Row({ children }: { children: ReactNode }) {
-  return <div className="flex flex-col gap-3">{children}</div>
+  return (
+    <div
+      data-slot="participation"
+      className="flex flex-col gap-3"
+    >
+      {children}
+    </div>
+  )
 }
 
 function Note({ children }: { children: string }) {
-  return <p className="text-sm text-muted-foreground">{children}</p>
+  return (
+    <p
+      data-slot="participation-note"
+      className="text-sm text-muted-foreground"
+    >
+      {children}
+    </p>
+  )
 }
 
 /** /akce with the same activity in the same locality (UX audit U2). */

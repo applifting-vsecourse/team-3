@@ -2,7 +2,9 @@ import { ConfigModule } from '@applifting-io/nestjs-decorated-config';
 import { Module } from '@nestjs/common';
 import { CatalogModule } from './modules/catalog/catalog.module';
 import { EventModule } from './modules/event/event.module';
+import { GeoModule } from './modules/geo/geo.module';
 import { GroupModule } from './modules/group/group.module';
+import { HomeModule } from './modules/home/home.module';
 import { ProfileModule } from './modules/profile/profile.module';
 import { SignInProvidersModule } from './modules/sign-in-providers/sign-in-providers.module';
 import { SimulatedInboxModule } from './modules/simulated-inbox/simulated-inbox.module';
@@ -18,6 +20,8 @@ const imports = [
   CatalogModule,
   EventModule,
   GroupModule,
+  GeoModule,
+  HomeModule,
   ProfileModule,
   SimulatedInboxModule,
   SignInProvidersModule,

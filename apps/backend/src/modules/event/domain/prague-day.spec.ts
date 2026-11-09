@@ -1,4 +1,10 @@
-import { startOfNextPragueDay, startOfPragueDay } from './prague-day';
+import {
+  pragueDayOf,
+  pragueWeekendOf,
+  startOfNextPragueDay,
+  startOfPragueDay,
+  startOfPragueDayOf,
+} from './prague-day';
 
 describe('startOfPragueDay', () => {
   it('summer time: midnight is 22:00 UTC the day before', () => {
@@ -58,5 +64,62 @@ describe('years 0–99', () => {
     expect(startOfPragueDay('0000-06-01').toISOString()).toBe(
       '0000-05-31T23:03:00.000Z',
     );
+  });
+});
+
+describe('pragueDayOf', () => {
+  it('late evening UTC is already the next day in Prague', () => {
+    expect(pragueDayOf(new Date('2026-11-06T23:30:00.000Z'))).toBe(
+      '2026-11-07',
+    );
+    expect(pragueDayOf(new Date('2026-11-06T22:30:00.000Z'))).toBe(
+      '2026-11-06',
+    );
+  });
+
+  it('follows summer time', () => {
+    expect(pragueDayOf(new Date('2026-07-01T22:30:00.000Z'))).toBe(
+      '2026-07-02',
+    );
+  });
+});
+
+describe('pragueWeekendOf', () => {
+  it.each([
+    ['Monday', '2026-11-02T10:00:00.000Z', '2026-11-07', '2026-11-08'],
+    ['Friday evening', '2026-11-06T20:00:00.000Z', '2026-11-07', '2026-11-08'],
+    // 23:30 UTC on Friday is Saturday 0:30 in Prague
+    [
+      'Saturday just after midnight',
+      '2026-11-06T23:30:00.000Z',
+      '2026-11-07',
+      '2026-11-08',
+    ],
+    ['Sunday', '2026-11-08T12:00:00.000Z', '2026-11-08', '2026-11-08'],
+    [
+      'a weekend across months',
+      '2026-10-29T12:00:00.000Z',
+      '2026-10-31',
+      '2026-11-01',
+    ],
+  ])('%s → %s to %s', (_, now, dateFrom, dateTo) => {
+    expect(pragueWeekendOf(new Date(now))).toEqual({ dateFrom, dateTo });
+  });
+});
+
+describe('pragueDayOf / startOfPragueDayOf', () => {
+  it('after midnight in Prague it is already the next day, though UTC still says the old one', () => {
+    // 23:30 UTC on 7 Nov = 00:30 on 8 Nov in Prague (winter time)
+    const instant = new Date('2026-11-07T23:30:00.000Z');
+    expect(pragueDayOf(instant)).toBe('2026-11-08');
+    expect(startOfPragueDayOf(instant).toISOString()).toBe(
+      '2026-11-07T23:00:00.000Z',
+    );
+  });
+
+  it('in summer time the day starts two hours before UTC midnight', () => {
+    expect(
+      startOfPragueDayOf(new Date('2026-07-15T12:00:00.000Z')).toISOString(),
+    ).toBe('2026-07-14T22:00:00.000Z');
   });
 });

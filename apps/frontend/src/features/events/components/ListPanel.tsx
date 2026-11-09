@@ -30,6 +30,10 @@ type ListPanelProps = {
    * sit above it. Pass a stable function (a state setter), it is an effect dependency.
    */
   onVisibleHeightChange?: (px: number) => void
+  /** Phone: an event's preview takes the sheet's place (Figma A-03a, #56). Desktop: always shown. */
+  isHidden?: boolean
+  /** Phone: the search row sits above the chips (#57), so the sheet starts lower. */
+  hasSearchRow?: boolean
   children: ReactNode
 }
 
@@ -57,6 +61,8 @@ export function ListPanel({
   onSnapChange,
   scrollResetKey,
   onVisibleHeightChange,
+  isHidden = false,
+  hasSearchRow = false,
   children,
 }: ListPanelProps) {
   const isDesktop = useMediaQuery(DESKTOP_QUERY)
@@ -253,7 +259,8 @@ export function ListPanel({
       }
       className={cn(
         // mobile: a sheet from under the filter chips to the bottom
-        "absolute inset-x-0 top-16 bottom-0 z-10 flex flex-col rounded-t-lg bg-background shadow-md",
+        "absolute inset-x-0 bottom-0 z-10 flex flex-col rounded-t-lg bg-background shadow-md",
+        hasSearchRow ? "top-30" : "top-16",
         // the sheet continues below its bottom edge, so the elastic give past the
         // top never uncovers the map underneath
         "after:absolute after:inset-x-0 after:top-full after:h-8 after:bg-background",
@@ -261,6 +268,7 @@ export function ListPanel({
         dragOffset === null &&
           "transition-transform duration-300 ease-out motion-reduce:transition-none",
         "md:static md:z-auto md:my-8 md:w-96 md:shrink-0 md:touch-auto md:rounded-none md:shadow-none md:select-auto md:after:hidden lg:w-130",
+        isHidden && "max-md:hidden",
       )}
     >
       <button
@@ -292,7 +300,9 @@ export function ListPanel({
           "min-h-0 flex-1 px-4",
           // only the pulled-up list scrolls (and leaves room for the „Mapa“ button)
           snap === "list" ? "overflow-y-auto overscroll-contain pb-16" : "overflow-hidden",
-          "md:overflow-y-auto md:p-0 md:pr-3",
+          // p-1 / -ml-1: room for the selected card's ring and the focus ring, which the scroller
+          // would clip on the left; the cards still line up with the filters
+          "md:-ml-1 md:overflow-y-auto md:p-1 md:pr-3",
         )}
       >
         <div ref={contentRef}>{children}</div>

@@ -1,6 +1,8 @@
 import { ActivityCategory } from '@/modules/catalog/domain/activity';
 import { Locality } from '@/modules/catalog/domain/locality';
 import { CatalogRepository } from '@/modules/catalog/repositories/catalog.repository';
+import { distanceKm } from '@/shared/geo/distance';
+import { foldText } from '@/shared/text/fold-text';
 import { Injectable } from '@nestjs/common';
 
 // Enough for a city with all its districts (Praha + Praha 1–22). Only a search
@@ -12,10 +14,7 @@ const collator = new Intl.Collator('cs', { numeric: true });
 
 /** "Plzeň" -> "plzen", the same shape as Locality.slug. */
 export const toSlug = (value: string): string =>
-  value
-    .normalize('NFKD')
-    .replace(/\p{Diacritic}/gu, '')
-    .toLowerCase()
+  foldText(value)
     .replace(/[^a-z0-9]+/g, '-')
     .replace(/^-+|-+$/g, '');
 
@@ -87,14 +86,3 @@ export class CatalogService {
 
 /** Two places of the same name this close are one place. */
 const SAME_PLACE_KM = 10;
-
-// equirectangular distance: plenty at the scale of Czechia
-const distanceKm = (
-  a: { lat: number; lng: number },
-  b: { lat: number; lng: number },
-): number => {
-  const toRad = Math.PI / 180;
-  const x = (b.lng - a.lng) * toRad * Math.cos(((a.lat + b.lat) / 2) * toRad);
-  const y = (b.lat - a.lat) * toRad;
-  return Math.hypot(x, y) * 6371;
-};

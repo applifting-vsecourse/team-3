@@ -116,7 +116,8 @@ function EventsSection({ title, children }: { title: string; children: ReactNode
   )
 }
 
-function MyEventsLoading() {
+/** The cards' places while a tab loads — also while the page picks its tab (#188). */
+export function MyEventsLoading() {
   return (
     <div
       className={GRID}

@@ -4,11 +4,7 @@ import { ROUTES } from "@/app/routes"
 import { Button } from "@/components/ui/button"
 import { selectionLabel } from "@/lib/catalog/activitySelection"
 import { toActivitySelection, type Catalog } from "@/lib/catalog/catalogSearch"
-import {
-  ALL_LOCALITIES_SLUG,
-  DEFAULT_LOCALITY_SLUG,
-  localityName,
-} from "@/lib/catalog/localityOptions"
+import { ALL_LOCALITIES_SLUG, localityName } from "@/lib/catalog/localityOptions"
 import { cn } from "@/lib/utils"
 
 import { occupancyLabel } from "@/features/events/components/OccupancyFilter"
@@ -28,9 +24,12 @@ type EmptyEventsProps = {
 
 /** The active filters as the chips name them: „Bruntál · Šipky a bowling · 1.–7. 11.“ */
 export function activeFiltersLabel(search: EventsSearch, catalog: Catalog | undefined): string {
-  const locality = catalog
-    ? localityName(search.lokalita ?? DEFAULT_LOCALITY_SLUG, catalog.localities)
-    : undefined
+  // the searched area replaces the locality, as on the locality chip (#56)
+  const locality = search.oblast
+    ? "Výřez mapy"
+    : catalog
+      ? localityName(search.lokalita ?? ALL_LOCALITIES_SLUG, catalog.localities)
+      : undefined
   const activity = catalog
     ? selectionLabel(toActivitySelection(search), catalog.categories)
     : undefined
@@ -51,28 +50,36 @@ const hasOtherFilters = (search: EventsSearch) =>
 
 /**
  * /akce without results (NN/g, Carbon: say why and offer a way on): the
- * filters that found nothing, then at most one way to widen the search — the
- * same filters in all of Czechia when that finds something, else dropping the
- * other filters — and „Založit akci“ for what nobody organizes yet.
+ * filters that found nothing, then at most one way to widen the search — out
+ * of the searched map area into the locality (#56), else the same filters in
+ * all of Czechia, when that finds something; else dropping the other filters —
+ * and „Založit akci“ for what nobody organizes yet.
  */
 export function EmptyEvents({ search, catalog, isVisitor, onSearchChange }: EmptyEventsProps) {
+  const isArea = search.oblast !== undefined
   const isEverywhere = search.lokalita === ALL_LOCALITIES_SLUG
+  // in a map area: the same filters in the locality (the area replaced it); else in all of Czechia
+  const wider: Partial<EventsSearch> = isArea
+    ? { oblast: undefined }
+    : { lokalita: ALL_LOCALITIES_SLUG }
+  const canWiden = isArea || !isEverywhere
   // the same preview as a filter panel's „Zobrazit N akcí“: one request, only for an empty list
-  const everywhere = useEvents(
-    { ...search, lokalita: ALL_LOCALITIES_SLUG },
-    { isEnabled: !isEverywhere },
-  )
+  const widened = useEvents({ ...search, ...wider }, { isEnabled: canWiden })
   // no buttons until the count is known, so none swaps under a finger
-  const isCounting = !isEverywhere && (everywhere.isPending || everywhere.isPlaceholderData)
-  const everywhereCount = isEverywhere || isCounting ? undefined : everywhere.events?.length
+  const isCounting = canWiden && (widened.isPending || widened.isPlaceholderData)
+  const widenedCount = !canWiden || isCounting ? undefined : widened.events?.length
+  const where =
+    isArea && !isEverywhere && catalog && search.lokalita
+      ? `v lokalitě ${localityName(search.lokalita, catalog.localities)}`
+      : "v celém Česku"
 
   const widen =
-    everywhereCount !== undefined && everywhereCount > 0 ? (
+    widenedCount !== undefined && widenedCount > 0 ? (
       <Button
         className="h-11"
-        onClick={() => onSearchChange({ lokalita: ALL_LOCALITIES_SLUG })}
+        onClick={() => onSearchChange(wider)}
       >
-        {`${showEventsLabel(everywhereCount)} v celém Česku`}
+        {`${showEventsLabel(widenedCount)} ${where}`}
       </Button>
     ) : !isCounting && hasOtherFilters(search) ? (
       <Button

@@ -132,4 +132,127 @@ describe('GroupRepository: the request message stays with the admins (#175)', ()
       ]),
     ).not.toContain('message');
   });
+
+  describe('findRecruitingGroups (#182)', () => {
+    const now = new Date('2026-11-07T10:00:00.000Z');
+    const row = (id: string, events: { startsAt: Date }[]): object => ({
+      id,
+      name: `Skupina ${id}`,
+      type: 'closed',
+      activity: {
+        id: 'a1',
+        slug: 'volejbal',
+        name: 'Volejbal',
+        category: { id: 'c1', slug: 'sport', name: 'Sport', icon: 'ball' },
+      },
+      locality: { id: 'l1', slug: 'praha-3', name: 'Praha 3' },
+      _count: { members: 4 },
+      events,
+    });
+
+    it('asks for the next upcoming event and returns its start with the summary', async () => {
+      const prisma = mockDeep<PrismaService>();
+      const next = new Date('2026-11-08T16:00:00.000Z');
+      prisma.group.findMany.mockResolvedValue([
+        row('g1', [{ startsAt: next }]),
+        row('g2', []),
+      ] as never);
+
+      const groups = await new GroupRepository(prisma).findRecruitingGroups({
+        localityId: 'l-praha',
+        viewerId: 'u1',
+        now,
+        limit: 50,
+      });
+
+      expect(groups).toEqual([
+        expect.objectContaining({
+          id: 'g1',
+          memberCount: 4,
+          nextEventAt: next,
+        }),
+      ]);
+      const args = prisma.group.findMany.mock.calls[0][0];
+      expect(args?.include?.events).toEqual({
+        where: { status: 'published', startsAt: { gt: now } },
+        select: { startsAt: true },
+        orderBy: { startsAt: 'asc' },
+        take: 1,
+      });
+      expect(args?.take).toBe(50);
+      // no member names nor anything else about people
+      expect(JSON.stringify(args?.include)).not.toMatch(/user/);
+    });
+  });
+
+  describe('createAnnouncement (#194)', () => {
+    const since = new Date('2026-11-07T23:00:00.000Z');
+    const input = { subject: 'Pauza', body: 'Přes svátky se nehraje.' };
+    const created = {
+      id: 'an1',
+      ...input,
+      createdAt: since,
+      sender: { id: 'u1', name: 'Petra' },
+    };
+
+    const setup = (state: {
+      status: 'active' | 'inactive';
+      sentToday: number;
+    }): ReturnType<typeof mockDeep<PrismaService>> => {
+      const prisma = mockDeep<PrismaService>();
+      // the callback form: the mock itself stands in for the transaction client
+      prisma.$transaction.mockImplementation(((
+        run: (tx: typeof prisma) => unknown,
+      ) => run(prisma)) as never);
+      prisma.group.findUniqueOrThrow.mockResolvedValue({
+        status: state.status,
+      } as never);
+      prisma.groupAnnouncement.count.mockResolvedValue(state.sentToday);
+      prisma.groupAnnouncement.create.mockResolvedValue(created as never);
+      return prisma;
+    };
+
+    it("locks the group, counts today's and writes when the decision allows", async () => {
+      const prisma = setup({ status: 'active', sentToday: 9 });
+      const decide = jest.fn().mockReturnValue({ ok: true });
+
+      await expect(
+        new GroupRepository(prisma).createAnnouncement(
+          'g1',
+          'u1',
+          input,
+          since,
+          decide,
+        ),
+      ).resolves.toEqual({ ok: true, announcement: created });
+      expect(prisma.$executeRaw).toHaveBeenCalledTimes(1);
+      expect(prisma.groupAnnouncement.count).toHaveBeenCalledWith({
+        where: { groupId: 'g1', createdAt: { gte: since } },
+      });
+      expect(decide).toHaveBeenCalledWith({
+        groupStatus: 'active',
+        sentToday: 9,
+      });
+      expect(prisma.groupAnnouncement.create).toHaveBeenCalledWith(
+        expect.objectContaining({
+          data: { groupId: 'g1', senderId: 'u1', ...input },
+        }),
+      );
+    });
+
+    it('writes nothing when the decision refuses', async () => {
+      const prisma = setup({ status: 'active', sentToday: 10 });
+
+      await expect(
+        new GroupRepository(prisma).createAnnouncement(
+          'g1',
+          'u1',
+          input,
+          since,
+          () => ({ ok: false, refusal: 'ANNOUNCEMENT_LIMIT' }),
+        ),
+      ).resolves.toEqual({ ok: false, refusal: 'ANNOUNCEMENT_LIMIT' });
+      expect(prisma.groupAnnouncement.create).not.toHaveBeenCalled();
+    });
+  });
 });

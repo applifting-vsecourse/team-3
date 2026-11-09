@@ -116,4 +116,81 @@ describe('NotificationRepository', () => {
       await expect(repository.findPersonName('u9')).resolves.toBeNull();
     });
   });
+
+  describe('group announcements (#194)', () => {
+    it('findAnnouncement gives what the e-mail says, with the group', async () => {
+      const prisma = mockDeep<PrismaService>();
+      const row = {
+        id: 'an1',
+        subject: 'Pauza',
+        body: 'Přes svátky se nehraje.',
+        senderId: 'u1',
+        group: { id: 'g1', name: 'Florbal Podvinný mlýn' },
+      };
+      prisma.groupAnnouncement.findUnique.mockResolvedValue(row as never);
+
+      await expect(
+        new NotificationRepository(prisma).findAnnouncement('an1'),
+      ).resolves.toEqual(row);
+    });
+
+    it('findActiveMembers is the active members, admins too, not blocked or deleted', async () => {
+      const prisma = mockDeep<PrismaService>();
+      const jana = { id: 'u2', name: 'Jana', email: 'jana@example.com' };
+      prisma.groupMember.findMany.mockResolvedValue([{ user: jana }] as never);
+
+      await expect(
+        new NotificationRepository(prisma).findActiveMembers('g1'),
+      ).resolves.toEqual([jana]);
+      expect(prisma.groupMember.findMany).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: {
+            groupId: 'g1',
+            status: 'active',
+            user: deliverable,
+          },
+        }),
+      );
+    });
+  });
+
+  describe("the organizer's message (#176)", () => {
+    it('findEventMessage gives what the e-mail says, with the event', async () => {
+      const prisma = mockDeep<PrismaService>();
+      const row = {
+        id: 'm1',
+        subject: 'Sraz u vchodu',
+        body: 'Vezmi si sálovky.',
+        senderId: 'u1',
+        event: { id: 'e1', title: 'Deskovky ve středu' },
+      };
+      prisma.eventMessage.findUnique.mockResolvedValue(row as never);
+
+      await expect(
+        new NotificationRepository(prisma).findEventMessage('m1'),
+      ).resolves.toEqual(row);
+    });
+
+    it('findApprovedParticipants is only the approved, without the organizer, not blocked or deleted', async () => {
+      const prisma = mockDeep<PrismaService>();
+      const jana = { id: 'u2', name: 'Jana', email: 'jana@example.com' };
+      prisma.participation.findMany.mockResolvedValue([
+        { user: jana },
+      ] as never);
+
+      await expect(
+        new NotificationRepository(prisma).findApprovedParticipants('e1', 'u1'),
+      ).resolves.toEqual([jana]);
+      expect(prisma.participation.findMany).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: {
+            eventId: 'e1',
+            status: 'approved',
+            userId: { not: 'u1' },
+            user: deliverable,
+          },
+        }),
+      );
+    });
+  });
 });

@@ -13,6 +13,18 @@ import {
   PublicEventSort,
 } from '@/modules/event/domain/event';
 import {
+  canReadMessages,
+  canSendMessages,
+  decideMessage,
+  EventMessage,
+  EventMessages,
+  MessageInput,
+  MessageRefusal,
+  MESSAGES_SHOWN,
+  remainingMessages,
+} from '@/modules/event/domain/event-message';
+import { matchesSearch } from '@/modules/event/domain/event-search';
+import {
   decideUpdate,
   lifecycleRefusal,
   UpdateRefusal,
@@ -30,14 +42,17 @@ import {
   ParticipationRefusal,
   type ParticipationStatus,
 } from '@/modules/event/domain/participation';
+import { startOfPragueDayOf } from '@/modules/event/domain/prague-day';
 import { EventRepository } from '@/modules/event/repositories/event.repository';
 import { summarizeChange } from '@/modules/notification/domain/event-change';
 import { NotificationService } from '@/modules/notification/services/notification.service';
+import { distanceKm, LatLng } from '@/shared/geo/distance';
 import {
   BadRequestException,
   ConflictException,
   ForbiddenException,
   HttpException,
+  HttpStatus,
   Injectable,
   NotFoundException,
   UnauthorizedException,
@@ -80,14 +95,58 @@ const updateRefused = (refusal: UpdateRefusal): HttpException => {
   }
 };
 
+const messageRefused = (refusal: MessageRefusal): HttpException =>
+  refusal === 'EVENT_CANCELLED'
+    ? new ConflictException({
+        code: refusal,
+        message: 'Zrušené akci už zprávu poslat nejde.',
+      })
+    : new HttpException(
+        {
+          code: refusal,
+          message: 'Dnes už k akci další zprávu poslat nemůžeš. Zkus to zítra.',
+        },
+        HttpStatus.TOO_MANY_REQUESTS,
+      );
+
 // One endpoint serves both the list and the map in sprint 2, without paging
 // (deviation from B-023, which has paging and a separate /events/map).
 export const PUBLIC_EVENTS_LIMIT = 200;
-// Safety cap for the capacity filter and the popular order, which have to load
-// events before filtering or ranking them. The endpoint is public, so the
-// query must stay bounded however many events exist.
+// Safety cap for the filters and orders the database can't do (capacity, the
+// search, okolí, popular), which have to load events before filtering or
+// ranking them. The endpoint is public, so the query must stay bounded however
+// many events exist. Known limit: the search (`q`) only looks through the
+// SCAN_LIMIT soonest events of the locality (or of the whole country), so a
+// match further in the future can be missed once there are more (BACKLOG B-023).
 export const SCAN_LIMIT = 2000;
 export const MY_EVENTS_LIMIT = 200;
+
+/** Each event's exact distance from the point (#57); unchanged without a point. */
+const withDistance = (
+  events: PublicEvent[],
+  point: LatLng | undefined,
+): PublicEvent[] =>
+  point
+    ? events.map((event) => ({
+        ...event,
+        distanceKm: distanceKm(point, event),
+      }))
+    : events;
+
+/**
+ * The distance as the card shows it, to one decimal. Only for the response:
+ * the circle compares the exact distance, or 10.04 km would pass „+10 km“.
+ */
+const roundDistance = (event: PublicEvent): PublicEvent =>
+  event.distanceKm === null
+    ? event
+    : { ...event, distanceKm: Math.round(event.distanceKm * 10) / 10 };
+
+/** Nearest first; equally far soonest first (the input is soonest first, the sort is stable). */
+const byDistance = (events: PublicEvent[]): PublicEvent[] =>
+  [...events].sort(
+    (a, b) => (a.distanceKm ?? Infinity) - (b.distanceKm ?? Infinity),
+  );
 // Per section of a group's page; the endpoint is public, so it stays bounded.
 export const GROUP_EVENTS_LIMIT = 50;
 
@@ -110,14 +169,21 @@ export class EventsService {
     }: { sort?: PublicEventSort; limit?: number } = {},
     now: Date = new Date(),
   ): Promise<PublicEvent[]> {
-    const { capacity } = filters;
-    if (!capacity && sort === 'date') {
-      return this.eventRepository.findPublicEvents({ filters, now, limit });
+    const { capacity, q, point, radiusKm } = filters;
+    const isSearch = Boolean(q?.trim());
+    if (!capacity && !isSearch && !radiusKm && sort === 'date') {
+      const events = await this.eventRepository.findPublicEvents({
+        filters,
+        now,
+        limit,
+      });
+      return withDistance(events, point).map(roundDistance);
     }
     // The capacity filter compares approved participations with the minimum and
-    // maximum, and interest counts waiting requests too; the event query can do
-    // neither. Filter and rank first, then cut, or matching and popular events
-    // could fall behind the limit.
+    // maximum, interest counts waiting requests too, the search ignores
+    // diacritics and the circle needs the exact distance (#57); the event query
+    // can do none of it. Filter and rank first, then cut, or matching, popular
+    // and near events could fall behind the limit.
     const [events, interest] = await Promise.all([
       this.eventRepository.findPublicEvents({
         filters,
@@ -128,11 +194,19 @@ export class EventsService {
         ? this.eventRepository.countInterest(filters, now)
         : null,
     ]);
-    const matching = capacity
-      ? events.filter((event) => matchesCapacity(event.capacity, capacity))
-      : events;
-    const ordered = interest ? rankByInterest(matching, interest) : matching;
-    return ordered.slice(0, limit);
+    const matching = withDistance(events, point).filter(
+      (event) =>
+        (!capacity || matchesCapacity(event.capacity, capacity)) &&
+        (!isSearch || matchesSearch(event, q!)) &&
+        (!radiusKm ||
+          (event.distanceKm !== null && event.distanceKm <= radiusKm)),
+    );
+    const ordered = interest
+      ? rankByInterest(matching, interest)
+      : sort === 'distance'
+        ? byDistance(matching)
+        : matching;
+    return ordered.slice(0, limit).map(roundDistance);
   }
 
   /**
@@ -198,17 +272,7 @@ export class EventsService {
     viewerId: string | null,
     now: Date = new Date(),
   ): Promise<EventDetailView> {
-    const event = await this.eventRepository.findEventDetail(id, now);
-    // a cancelled event stays reachable, with its reason (#52)
-    if (!event || event.status === 'hidden' || event.status === 'deleted') {
-      throw new NotFoundException('Akce neexistuje.');
-    }
-    // Who the viewer is comes first, before the 404 decision: one membership
-    // lookup serves both canView and the names. Keep the two together.
-    const viewer = viewerId ? await this.viewerOf(event, viewerId) : null;
-    if (!this.canView(event, viewer)) {
-      throw this.membersOnly(event, viewer);
-    }
+    const { event, viewer } = await this.findVisibleEvent(id, viewerId, now);
     const participants = canSeeParticipants(viewer)
       ? await this.eventRepository.findApprovedParticipants(event.id)
       : null;
@@ -222,6 +286,76 @@ export class EventsService {
       viewerSignedIn: viewer !== null,
       canManage: canManageEvent(viewer),
     };
+  }
+
+  /**
+   * The event's messages from its organizer (#176), newest first, for
+   * whoever sees „Kdo jde“ (#174); anyone else gets 403. The organizer of a
+   * published event also learns how many they may still send today. A
+   * cancelled event's messages stay readable.
+   */
+  async getMessages(
+    eventId: string,
+    userId: string,
+    now: Date = new Date(),
+  ): Promise<EventMessages> {
+    const { event, viewer } = await this.findVisibleEvent(eventId, userId, now);
+    if (!canReadMessages(viewer)) {
+      throw new ForbiddenException({
+        code: 'NOT_PARTICIPANT',
+        message: 'Zprávy od organizátora vidí jen ti, kdo na akci jdou.',
+      });
+    }
+    const [messages, total, remainingToday] = await Promise.all([
+      this.eventRepository.findMessages(eventId, MESSAGES_SHOWN),
+      this.eventRepository.countMessages(eventId),
+      canSendMessages(event, viewer)
+        ? this.eventRepository
+            .countMessagesSince(eventId, startOfPragueDayOf(now))
+            .then(remainingMessages)
+        : null,
+    ]);
+    return { messages, total, remainingToday };
+  }
+
+  /**
+   * „Napsat účastníkům“ (B-042, #176, Figma D-04): only the organizer of a
+   * published event, at most MESSAGES_PER_DAY in a Prague calendar day.
+   * Every approved participant gets it by e-mail, not the organizer.
+   */
+  async sendMessage(
+    eventId: string,
+    userId: string,
+    input: MessageInput,
+    now: Date = new Date(),
+  ): Promise<EventMessage> {
+    // 404, or 403 MEMBERS_ONLY for a members-only event outside the group
+    const { event, viewer } = await this.findVisibleEvent(eventId, userId, now);
+    if (!viewer?.isOrganizer) {
+      throw new ForbiddenException({
+        code: 'NOT_ORGANIZER',
+        message: 'Účastníkům může napsat jen organizátor akce.',
+      });
+    }
+    // fail fast; checked again under the lock
+    if (!canSendMessages(event, viewer))
+      throw messageRefused('EVENT_CANCELLED');
+    const result = await this.eventRepository.createMessage(
+      eventId,
+      userId,
+      input,
+      startOfPragueDayOf(now),
+      decideMessage,
+    );
+    if (!result) throw new NotFoundException('Akce neexistuje.');
+    if (!result.ok) throw messageRefused(result.refusal);
+    // after the write: the participants get the e-mail, the organizer doesn't wait for it
+    this.notifications.notify({
+      type: 'event-message',
+      eventId,
+      messageId: result.message.id,
+    });
+    return result.message;
   }
 
   /**
@@ -507,6 +641,30 @@ export class EventsService {
       });
     }
     return this.getEventDetail(eventId, userId, now);
+  }
+
+  /**
+   * The event and who is looking at it, once the viewer may see it at all:
+   * unknown, hidden and deleted events are 404, a members-only event outside
+   * the group 401/403 (see `getEventDetail`). Who the viewer is comes first,
+   * before the 404 decision: one membership lookup serves both canView and
+   * what the viewer may see. Keep the two together.
+   */
+  private async findVisibleEvent(
+    id: string,
+    viewerId: string | null,
+    now: Date,
+  ): Promise<{ event: EventDetail; viewer: EventViewer }> {
+    const event = await this.eventRepository.findEventDetail(id, now);
+    // a cancelled event stays reachable, with its reason (#52)
+    if (!event || event.status === 'hidden' || event.status === 'deleted') {
+      throw new NotFoundException('Akce neexistuje.');
+    }
+    const viewer = viewerId ? await this.viewerOf(event, viewerId) : null;
+    if (!this.canView(event, viewer)) {
+      throw this.membersOnly(event, viewer);
+    }
+    return { event, viewer };
   }
 
   /**

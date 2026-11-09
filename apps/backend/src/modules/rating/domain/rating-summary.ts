@@ -64,3 +64,20 @@ export function participantRatingSummary(
       .map((rating) => rating.stars),
   );
 }
+
+/**
+ * A group's rating as an organizer (B-060, #180): what participants gave in
+ * `Rating.organizerStars` at the group's events. Ratings a superadmin deleted
+ * don't count (B-063).
+ */
+export function groupRatingSummary(
+  ratings: OrganizerRatingRow[],
+  groupId: string,
+): RatingSummary {
+  return summarizeStars(
+    ratings
+      .filter((rating) => rating.deletedAt === null)
+      .filter((rating) => rating.event.groupId === groupId)
+      .map((rating) => rating.organizerStars),
+  );
+}

@@ -24,6 +24,44 @@ describe('ListEventsQueryDto', () => {
     ]);
   });
 
+  it('accepts a bbox west,south,east,north and rejects a malformed or inverted one', () => {
+    expect(parse({ bbox: '14.3,50.0,14.6,50.15' }).invalid).toEqual([]);
+    expect(parse({ bbox: '14.6,50.0,14.3,50.15' }).invalid).toEqual(['bbox']);
+    expect(parse({ bbox: '14.3,50.0' }).invalid).toEqual(['bbox']);
+    expect(parse({ bbox: 'praha' }).invalid).toEqual(['bbox']);
+  });
+
+  it('takes a search of at most 100 characters', () => {
+    expect(parse({ q: 'volejbal letna' }).invalid).toEqual([]);
+    expect(parse({ q: 'x'.repeat(101) }).invalid).toEqual(['q']);
+  });
+
+  it('wants lat and lng together, and both for a radius or the distance order', () => {
+    expect(
+      parse({ lat: '50.11', lng: '14.47', radiusKm: '10', sort: 'distance' })
+        .invalid,
+    ).toEqual([]);
+    expect(parse({ lat: '50.11', lng: '14.47' }).dto).toMatchObject({
+      lat: 50.11,
+      lng: 14.47,
+    });
+    expect(parse({ lat: '50.11' }).invalid).toEqual(['lat']);
+    expect(parse({ radiusKm: '10' }).invalid).toEqual(['radiusKm']);
+    expect(parse({ sort: 'distance' }).invalid).toEqual(['sort']);
+    expect(parse({ sort: 'nonsense', lat: '50', lng: '14' }).invalid).toEqual([
+      'sort',
+    ]);
+  });
+
+  it('keeps the radius between 1 and 100 km', () => {
+    expect(parse({ lat: '50', lng: '14', radiusKm: '0' }).invalid).toEqual([
+      'radiusKm',
+    ]);
+    expect(parse({ lat: '50', lng: '14', radiusKm: '101' }).invalid).toEqual([
+      'radiusKm',
+    ]);
+  });
+
   it('accepts capacity free or missing and rejects anything else', () => {
     expect(parse({ capacity: 'free' }).dto.capacity).toBe('free');
     expect(parse({ capacity: 'missing' }).invalid).toEqual([]);

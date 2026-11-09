@@ -362,11 +362,12 @@ Doménová logika (čistá funkce + testy): `approvedCount`, `missingToMin = max
 - Vrací jen `status = published`, `visibility = public`, `startsAt > now`. Nevrací soukromé a „jen pro členy“.
 - Každá položka: aktivita, název, termín, místo (lat/lng + adresa), `missingToMin`, `freeSpots`, `isFull`, organizátor (osoba nebo skupina), `isPromoted`.
 - `GET /api/events/map` – stejné filtry, odlehčené body pro mapu (bez stránkování, limit 500).
+- Stav po #57: `q` hledá v názvu, názvu aktivity a `Activity.keywords` bez diakritiky (všechna slova); `lat`+`lng` je bod pro `distanceKm` a `sort=distance`, `radiusKm` (1–100) okruh kolem něj. Databáze předfiltruje obdélníkem, přesnou vzdálenost, hledání a řazení dělá služba před limitem 200 (jako obsazenost). Stránkování ani `/events/map` zatím nejsou; FE ukáže „Víc než 200 akcí“. Známé omezení: hledání (`q`) databáze neumí, služba prochází jen 2000 nejbližších termínů v lokalitě (u celého Česka v celé ČR, `SCAN_LIMIT`), takže při větším počtu akcí shodu s pozdějším termínem nenajde. Řešením je fulltext v databázi (sloupec bez diakritiky nebo `unaccent`).
 
 **Hotovo, když:**
 
 - [ ] Testy, že proběhlé, zrušené, soukromé a members-only akce se ve výpisu neobjeví.
-- [ ] Řazení podle vzdálenosti funguje vůči zadanému bodu.
+- [x] Řazení podle vzdálenosti funguje vůči zadanému bodu.
 - [ ] Test, že `categoryId` vrátí akce všech aktivit kategorie a `capacity=free` jen akce, které nejsou plné, `capacity=missing` jen akce, kterým chybí lidé.
 
 ---
@@ -430,9 +431,9 @@ Doménová logika (čistá funkce + testy): `approvedCount`, `missingToMin = max
 
 **Hotovo, když:**
 
-- [ ] Při 500 bodech je mapa čitelná díky shlukům.
-- [ ] Hledání najde akci podle názvu i klíčového slova aktivity bez ohledu na velikost písmen a diakritiku.
-- [ ] Testy where-builderu pro okolí.
+- [x] Při 500 bodech je mapa čitelná díky shlukům.
+- [x] Hledání najde akci podle názvu i klíčového slova aktivity bez ohledu na velikost písmen a diakritiku.
+- [x] Testy where-builderu pro okolí.
 
 ---
 
@@ -460,7 +461,9 @@ Doménová logika (čistá funkce + testy): `approvedCount`, `missingToMin = max
 `US-01` · FS · M · závisí na: B-023, B-026
 
 - Výchozí lokalita na `/`, `/akce` a `/skupiny` (tým 28. 10., #55): domovská lokalita z profilu → jinak odhad podle IP → když selže, **celé Česko** (ne Praha). „Zrušit vše“ zruší všechny filtry včetně lokality a vrátí výchozí.
-- `GET /api/geo/locality` – odhad lokality podle IP (viz otevřené otázky). IP ani výsledek se **neukládají** (ani do logů). Když nejde zjistit → celé Česko.
+- `GET /api/geo/locality` – výchozí lokalita: domovská z profilu, jinak odhad podle IP (Q2), jinak `null` = celé Česko; `source` říká odkud (`home` / `ip` / `none`). IP ani výsledek se **neukládají** (ani do logů), odpověď má `Cache-Control: private, no-store`.
+- Odhad: tabulka českých rozsahů z DB-IP „IP to City Lite“ (CC BY 4.0) přiřazených k městům katalogu, v repu `modules/geo/data/ip-localities-cz.txt`; obnoví ji `pnpm backend geo:build` (DB-IP vydává jednou měsíčně). Zdroj je uvedený v Ochraně osobních údajů.
+- Ruční volba lokality se pamatuje jen v prohlížeči (`localStorage`), bez registrace; „Zrušit vše“ ji zapomene.
 - Stránka `/` podle Figmy A-01 / A-01d (návštěvník) a A-01p / A-01pd (přihlášený): pás s panelem „Teď chybí jeden“, sekce Tady chybíš, Jak to funguje, Tento víkend, Kousek od tebe, O tyhle akce je zájem, Od dobře hodnocených organizátorů, Tyhle skupiny rozšiřují partu, výzva „Nic pro tebe?“ (#182). Pravidla v `docs/ux-audit.md` › Úvodní stránka:
   - akce se ukáže jen v první sekci, kam patří (panel nahoře je první);
   - akce jen pro členy na úvodní stránce nikdy nejsou;
@@ -468,10 +471,11 @@ Doménová logika (čistá funkce + testy): `approvedCount`, `missingToMin = max
   - „Tyhle skupiny rozšiřují partu“ (PO 4. 11.): aktivní skupiny v okolí s nadcházející akcí, do kterých se dá přidat (veřejné) nebo požádat o členství (neveřejné), řazené podle nejbližší akce skupiny;
   - „Podle tvých zájmů“ jen pro přihlášeného: podle akcí, na kterých byl, nebo zájmů v profilu, jinak náhodný výběr.
 - Nepoužívej layout hero + tři karty (DESIGN.md).
+- API (#182): `GET /api/home?localityId=` vrací sekce už vybrané a seřazené (klíče `highlight`, `missing`, `weekend`, `interests`, `nearby`, `popular`, `wellRated`, `groups`), prázdné vynechá. Lokalita: `localityId` → domovská z profilu → celé Česko; městská část bere akce i skupiny z celého města („v okolí Prahy 3“, A-01pd), jen „Kousek od tebe“ měří od středu městské části; odhad podle IP (#55) se doplní v `resolveHomeLocalityId`. Jen akce, kam se dá ještě přihlásit (ne plné); „Od dobře hodnocených“ nejvýš jedna akce od organizátora; přihlášený nedostane vlastní akce ani ty, kde už má místo nebo žádost nebo kde ho organizátor zamítl či odebral (nová žádost nejde), ani skupiny, kde už je. Limity podle Figmy A-01d: panel 1, ostatní sekce 3. UI (#182): `/` bere sekce jen z `GET /api/home` (ne z `GET /api/events?sort=popular`), `?lokalita=` na `/` pošle `localityId` (do #55); přihlášený má sekce jako rychlé výběry „Pro tebe“ a odpověď je čerstvá 15 minut, aby se náhodný výběr „Podle tvých zájmů“ po návratu do okna nepřeházel (přihlášení na akci ji obnoví).
 
 **Hotovo, když:**
 
-- [ ] Test: služba při chybě geolokace vrátí celé Česko; přihlášený s domovskou lokalitou dostane ji.
+- [x] Test: služba při chybě geolokace vrátí celé Česko; přihlášený s domovskou lokalitou dostane ji.
 
 ---
 
@@ -624,6 +628,7 @@ Doménová logika (čistá funkce + testy): `approvedCount`, `missingToMin = max
 
 - `POST /api/events/:id/message` (organizátor) – předmět + text, odešle e-mail všem `approved`.
 - FE: dialog ve správě akce. Limit 10 zpráv na akci za den (proti spamu).
+- **Jak je to hotové (#176, podle oznámení skupin #194):** `GET/POST /api/events/:id/messages` (množné číslo jako `/announcements`). Poslat smí jen organizátor (ne správce skupiny, který akci spravuje) zveřejněné, nezrušené akce (`403 NOT_ORGANIZER`, `409 EVENT_CANCELLED`), nejvýš 10 zpráv na akci za pražský kalendářní den (`429 MESSAGE_LIMIT`, kontrola pod zámkem řádku akce). Předmět nejvýš 120, text nejvýš 2000 znaků. E-mail (Figma E-01 typ 7, přes `NotificationService` po zápisu) dostanou jen schválení účastníci kromě organizátora. Číst je smí jen ti, kdo vidí „Kdo jde“ (#174, `403 NOT_PARTICIPANT`), u zrušené akce zůstanou ke čtení. FE: „Napsat účastníkům“ ve správě akce (D-04, D-04d), sekce „Zprávy od organizátora“ na detailu (A-05c).
 
 **Mimo rozsah:** chat u akce, odpovědi v aplikaci.
 
@@ -690,6 +695,7 @@ Doménová logika (čistá funkce + testy): `approvedCount`, `missingToMin = max
 - Správce: odebrat člena, zablokovat (blokovaný nevidí akce skupiny a nemůže se znovu přidat).
 - Člen: `POST /:id/leave` kdykoli (poslední správce nejdřív musí jmenovat jiného, viz B-054).
 - FE: tlačítka na stránce skupiny, záložka **Členové** a **Žádosti** pro správce.
+- **Oznámení členům (#194, vzor B-042):** `GET/POST /api/groups/:id/announcements`. Poslat smí jen správce aktivní skupiny, nejvýš 10 oznámení na skupinu za pražský kalendářní den (Figma D-08) (`429 ANNOUNCEMENT_LIMIT`, kontrola pod zámkem řádku skupiny). E-mail dostanou všichni aktivní členové včetně správců i autora (Figma D-08: „všem N aktivním členům“). Číst je smí jen aktivní členové a správci (`403 NOT_GROUP_MEMBER`), u deaktivované skupiny zůstanou ke čtení. FE: „Napsat členům“ ve správě (D-08), sekce „Oznámení“ na stránce skupiny (A-08e).
 
 **Hotovo, když:**
 
@@ -935,7 +941,7 @@ Dokud tým nebo PO nerozhodne jinak, agent použije výchozí volbu.
 | #   | Otázka                                                                            | Výchozí volba                                                                              | Kdo rozhodne |
 | --- | --------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------ | ------------ |
 | Q1  | Mapa a našeptávač míst (poznámky zmiňují Google Maps)                             | Leaflet + OSM, místo klikem do mapy + textová adresa, lokality z vlastního číselníku       | Tým          |
-| Q2  | Služba pro odhad lokality z IP                                                    | Jednoduchá offline databáze (např. GeoLite2 City), při chybě celé Česko (tým 28. 10.)      | Tým          |
+| Q2  | Služba pro odhad lokality z IP                                                    | Offline tabulka z DB-IP Lite (CC BY 4.0) v repu, při chybě celé Česko (tým 28. 10., #55)   | Tým          |
 | Q3  | Nahrávání fotek (profil, skupina)                                                 | V MVP jen URL obrázku                                                                      | Tým          |
 | Q4  | Podle čeho vybírat akce na úvodní stránce (F-68)                                  | Nejbližší termín v lokalitě, topované první; sekce podle #182, pravidla v docs/ux-audit.md | PO           |
 | Q5  | Text obchodních podmínek a zásad ochrany údajů (F-65)                             | Placeholder                                                                                | PO           |

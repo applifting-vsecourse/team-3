@@ -1,6 +1,8 @@
 import { PrismaService } from '@/core/prisma/prisma.service';
 import {
+  NotifiedAnnouncement,
   NotifiedEvent,
+  NotifiedEventMessage,
   Recipient,
 } from '@/modules/notification/domain/notification';
 import { Injectable } from '@nestjs/common';
@@ -72,6 +74,74 @@ export class NotificationRepository {
       where: {
         eventId,
         status: { in: ['approved', 'pending'] },
+        userId: { not: exceptUserId },
+        user: deliverable,
+      },
+      select: { user: { select: recipientSelect } },
+      orderBy: { id: 'asc' },
+    });
+    return participations.map((participation) => participation.user);
+  }
+
+  /** What a group announcement's e-mail says (#194); null when it is gone. */
+  async findAnnouncement(id: string): Promise<NotifiedAnnouncement | null> {
+    return this.prisma.groupAnnouncement.findUnique({
+      where: { id },
+      select: {
+        id: true,
+        subject: true,
+        body: true,
+        senderId: true,
+        group: { select: { id: true, name: true } },
+      },
+    });
+  }
+
+  /**
+   * The group's active members, admins included (#194). A pending request
+   * or a block is not membership.
+   */
+  async findActiveMembers(groupId: string): Promise<Recipient[]> {
+    const members = await this.prisma.groupMember.findMany({
+      where: {
+        groupId,
+        status: 'active',
+        user: deliverable,
+      },
+      select: { user: { select: recipientSelect } },
+      orderBy: { id: 'asc' },
+    });
+    return members.map((member) => member.user);
+  }
+
+  /** What an organizer's message says, with its event (#176); null when it is gone. */
+  async findEventMessage(id: string): Promise<NotifiedEventMessage | null> {
+    return this.prisma.eventMessage.findUnique({
+      where: { id },
+      select: {
+        id: true,
+        subject: true,
+        body: true,
+        senderId: true,
+        event: { select: { id: true, title: true } },
+      },
+    });
+  }
+
+  /**
+   * The event's approved participants (#176), except `exceptUserId`: the
+   * organizer who wrote the message doesn't get it back, even when they
+   * signed up for their own event. Waiting, rejected, removed and withdrawn
+   * places don't count.
+   */
+  async findApprovedParticipants(
+    eventId: string,
+    exceptUserId: string,
+  ): Promise<Recipient[]> {
+    const participations = await this.prisma.participation.findMany({
+      where: {
+        eventId,
+        status: 'approved',
         userId: { not: exceptUserId },
         user: deliverable,
       },

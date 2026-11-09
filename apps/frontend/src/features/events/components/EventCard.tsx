@@ -46,6 +46,14 @@ type EventCardProps = {
   titleAs?: "h2" | "h3"
   /** The management's card leaves the occupancy to the big bar under it (Figma D-03). */
   hasBar?: boolean
+  /**
+   * The start of the description, in the map preview (#56): the grid card shows it under the
+   * title instead of the place (Figma A-03ad); the row card in two lines under its line, so
+   * the time and the place stay (a phone's preview).
+   */
+  summary?: string | null
+  /** With okolí: km from the chosen locality's centre at the end of the row line (#57, Figma A-02gd). */
+  distanceKm?: number | null
   className?: string
 }
 
@@ -68,13 +76,19 @@ export function EventCard({
   linkTo = "detail",
   titleAs: Title = "h2",
   hasBar = true,
+  summary,
+  distanceKm,
   className,
 }: EventCardProps) {
   const isCancelled = event.status === "cancelled"
   const { time } = eventDateParts(event.startsAt)
   const place = placeName(event.address)
   const cardNumbers = numbers ?? (isCancelled ? occupancyCount(event) : occupancyBesideBadge(event))
-  const rowLine = [rowLead, time, ...(rowTail ? [rowTail] : [place, event.locality.name])]
+  const distance =
+    distanceKm === null || distanceKm === undefined
+      ? undefined
+      : `${distanceKm.toLocaleString("cs", { maximumFractionDigits: 1 })} km`
+  const rowLine = [rowLead, time, ...(rowTail ? [rowTail] : [place, event.locality.name]), distance]
     .filter(Boolean)
     .join(" · ")
 
@@ -143,7 +157,12 @@ export function EventCard({
             {rowLine}
           </p>
         )}
-        {variant === "row" ? null : (
+        {variant === "row" && summary ? (
+          <p className="line-clamp-2 text-caption text-muted-foreground">{summary}</p>
+        ) : null}
+        {variant === "row" ? null : summary ? (
+          <p className="line-clamp-2 text-sm text-muted-foreground">{summary}</p>
+        ) : (
           <p
             className={cn(
               "truncate text-sm text-muted-foreground",

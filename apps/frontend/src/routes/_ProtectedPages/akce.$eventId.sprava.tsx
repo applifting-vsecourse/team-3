@@ -25,12 +25,14 @@ import { EventCard } from "@/features/events/components/EventCard"
 import { EventFacts } from "@/features/events/components/EventFacts"
 import { ManagedParticipants } from "@/features/events/components/ManagedParticipants"
 import { ManagedRequests } from "@/features/events/components/ManagedRequests"
+import { SendEventMessageButton } from "@/features/events/components/SendEventMessageButton"
 import { ShareEventButton } from "@/features/events/components/ShareEventButton"
 import { useCancelEvent } from "@/features/events/hooks/useCancelEvent"
 import { useDecideRequest } from "@/features/events/hooks/useDecideRequest"
 import { useEventDetail } from "@/features/events/hooks/useEventDetail"
 import { useEventParticipants } from "@/features/events/hooks/useEventParticipants"
 import { editRefusal } from "@/features/events/lib/editRefusal"
+import { canWriteToParticipants, messageRecipientCount } from "@/features/events/lib/eventMessages"
 import { formatEventTime } from "@/features/events/lib/formatEvent"
 import { showsRequests } from "@/features/events/lib/manageEvent"
 
@@ -234,6 +236,19 @@ function ManageEventPage() {
                   />
                 ) : null}
               </div>
+              {/* Figma D-03d, D-04: „Napsat účastníkům“ under the actions, the whole width;
+                  only the organizer of an event that isn't cancelled (#176) */}
+              {viewerId && canWriteToParticipants(event, viewerId) ? (
+                <SendEventMessageButton
+                  eventId={eventId}
+                  viewerId={viewerId}
+                  recipientCount={messageRecipientCount(
+                    participants.participants,
+                    event.organizer.id,
+                  )}
+                  className="w-full"
+                />
+              ) : null}
             </section>
             {/* the right column (D-03d): an event with approval adds the requests (#53),
                 unless it's cancelled — then only who was coming, read-only (#183) */}

@@ -16,7 +16,7 @@ import "./map.css"
 import { Button } from "@/components/ui/button"
 import { cn } from "@/lib/utils"
 
-import { pinHtml, pinSize } from "./mapPin"
+import { PIN_BOX, pinHtml } from "./mapPin"
 
 export type LatLng = { lat: number; lng: number }
 
@@ -65,7 +65,7 @@ export function LocationPicker({
     onChange(point)
   }
   const icon = useMemo(() => {
-    const { width, height } = pinSize("default")
+    const { width, height } = PIN_BOX
     return divIcon({
       html: pinHtml("default"),
       className: "",

@@ -1,6 +1,10 @@
 import type { CapacityStatus } from "@/components/StatusBadge/StatusBadge"
 
-import type { GroupEvent, PublicEvent } from "@/features/events/api/eventSchemas"
+import {
+  PUBLIC_EVENTS_LIMIT,
+  type GroupEvent,
+  type PublicEvent,
+} from "@/features/events/api/eventSchemas"
 
 // Events happen in Prague, so their time is Prague time wherever the browser is.
 const PRAGUE_TZ = "Europe/Prague"
@@ -60,17 +64,28 @@ const dayFormat = new Intl.DateTimeFormat("cs-CZ", {
   dateStyle: "short",
 })
 
+const yearFormat = new Intl.DateTimeFormat("cs-CZ", { timeZone: PRAGUE_TZ, year: "numeric" })
+
 /**
  * When an event happens, on its detail: "Pá 23. 10. · 17:30–19:30", with the
  * end's day when it ends on another day ("Pá 23. 10. · 22:00 – So 24. 10. · 2:00").
+ * `hasYear` for the „Kdy“ row (Figma A-05, A-05d): "Ne 25. 10. 2026 · 18:00–20:00".
  */
-export function formatEventTime(startsAt: Date, endsAt: Date | null): string {
-  const start = formatEventStart(startsAt)
+export function formatEventTime(
+  startsAt: Date,
+  endsAt: Date | null,
+  { hasYear = false }: { hasYear?: boolean } = {},
+): string {
+  const at = (date: Date) =>
+    hasYear
+      ? `${formatEventDay(date)} ${yearFormat.format(date)} · ${startParts(date).time}`
+      : formatEventStart(date)
+  const start = at(startsAt)
   if (!endsAt) return start
   if (dayFormat.format(startsAt) === dayFormat.format(endsAt)) {
     return `${start}–${timeFormat.format(endsAt)}`
   }
-  return `${start} – ${formatEventStart(endsAt)}`
+  return `${start} – ${at(endsAt)}`
 }
 
 const dayMonthFormat = new Intl.DateTimeFormat("cs-CZ", {
@@ -85,6 +100,12 @@ export function formatRequestTime(date: Date): string {
   const get = (type: Intl.DateTimeFormatPartTypes) =>
     parts.find((part) => part.type === type)?.value ?? ""
   return `Žádost z ${get("day")}. ${get("month")}. v ${timeFormat.format(date)}`
+}
+
+/** When the organizer wrote to the participants (#176, Figma A-05c): "pá 23. 10. v 16:20", Prague time. */
+export function formatMessageTime(date: Date): string {
+  const { weekday, day, month, time } = startParts(date)
+  return `${weekday} ${day}. ${month}. v ${time}`
 }
 
 /** When an event starts, inside a sentence of the request dialog (#175): "pá 23. 10. v 17:30". */
@@ -169,7 +190,8 @@ export function formatDay(day: string): string {
 }
 
 export const approvalModeLabel = (mode: "open" | "approval"): string =>
-  mode === "open" ? "Bez schválení" : "Se schválením organizátora"
+  // Figma A-05d: what it means for whoever joins, not just the mode
+  mode === "open" ? "Bez schválení – kdo se přihlásí, je na akci" : "Se schválením organizátora"
 
 /**
  * The place's name is the address up to the first comma
@@ -214,13 +236,16 @@ export function pastEventFacts(event: GroupEvent): string {
  */
 export function showEventsLabel(count: number | undefined): string {
   if (count === undefined) return "Zobrazit akce"
+  // the API's limit: there may be more (#57)
+  if (count >= PUBLIC_EVENTS_LIMIT) return `Zobrazit víc než ${PUBLIC_EVENTS_LIMIT} akcí`
   if (count === 1) return "Zobrazit 1 akci"
   if (count >= 2 && count <= 4) return `Zobrazit ${count} akce`
   return `Zobrazit ${count} akcí`
 }
 
-/** "1 akce", "3 akce", "24 akcí" */
+/** "1 akce", "3 akce", "24 akcí"; "Víc než 200 akcí" at the API's limit (#57) */
 export function eventCountLabel(count: number): string {
+  if (count >= PUBLIC_EVENTS_LIMIT) return `Víc než ${PUBLIC_EVENTS_LIMIT} akcí`
   if (count === 1) return "1 akce"
   if (count >= 2 && count <= 4) return `${count} akce`
   return `${count} akcí`

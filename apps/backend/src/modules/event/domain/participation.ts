@@ -23,6 +23,19 @@ export type JoinState = {
   approvedCount: number;
 };
 
+/**
+ * A participation in any of these keeps the user from asking to join again
+ * (`decideJoin`): they already have a place or a request, or the organizer
+ * rejected or removed them. Only a withdrawn one doesn't. Lists that offer
+ * events to join (#182) leave such events out.
+ */
+export const NO_NEW_REQUEST_STATUSES: ParticipationStatus[] = [
+  'approved',
+  'pending',
+  'rejected',
+  'removed',
+];
+
 export type JoinDecision =
   | { ok: true; status: 'approved' | 'pending' }
   | { ok: false; refusal: ParticipationRefusal };

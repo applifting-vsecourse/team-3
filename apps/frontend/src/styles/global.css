@@ -1,4 +1,6 @@
-@import "@fontsource-variable/bricolage-grotesque";
+/* with the optical size axis: the browser sets it to the font size, as Figma does — the
+   default file is fixed at opsz 14, ~10 % wider at the display sizes than the design */
+@import "@fontsource-variable/bricolage-grotesque/opsz.css";
 @import "@fontsource-variable/geist";
 @import "tailwindcss";
 @plugin "tailwindcss-animate";
@@ -89,6 +91,8 @@
 }
 
 :root {
+  /* Native scrollbars and form controls follow the theme (.dark switches it). */
+  color-scheme: light;
   /* Values from the Figma collection "HobbyHub tokens" (Light). Names match 1:1; where Figma
      aliases one token to another, so does var() here. */
   --font-sans: "Geist Variable", ui-sans-serif, system-ui, sans-serif;
@@ -164,14 +168,18 @@
    the aliases above resolve against these values only because .dark sits on <html>, the same
    element as :root — on a subtree they would inherit the light values already computed. */
 .dark {
+  color-scheme: dark;
   --background: #0f1612;
   --foreground: #eef3ea;
   --card: #162c20;
-  --muted: #1c2620;
+  --muted: #2c3d33;
   --muted-foreground: #a3afa6;
   --primary-edge: var(--primary);
   --secondary: #24402f;
   --secondary-foreground: #eef3ea;
+  /* hover and the active row in lists and menus: its own shade, so the row under the pointer
+     differs from a keyboard-highlighted `muted` one; 1.5:1 on card, 1.9:1 on page */
+  --accent: #2e4b3a;
   --tile-border: #7d8a82;
   /* lighter than in light mode: #b42318 is too dark as error text on a dark card */
   --destructive: #f97066;

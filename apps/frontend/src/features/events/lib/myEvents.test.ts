@@ -8,6 +8,8 @@ import {
   attendingRowLead,
   attendingSections,
   attendingStatus,
+  initialMyEventsTab,
+  myEventsSearchSchema,
   organizingLine,
   organizingNumbers,
   organizingRowTail,
@@ -254,5 +256,71 @@ describe("band lines (Figma C-01d, C-02d)", () => {
     [5, "Akce, které pořádáš, od nejbližší. Na schválení čeká 5 žádostí."],
   ])("Pořádám with %i requests: „%s“", (pendingRequests, line) => {
     expect(organizingLine([aMyEvent({ pendingRequests })])).toBe(line)
+  })
+})
+
+describe("myEventsSearchSchema", () => {
+  it.each([
+    ["prihlasen", "prihlasen"],
+    ["poradam", "poradam"],
+    ["neco", undefined],
+    [undefined, undefined],
+  ])("?tab=%s is %s", (tab, expected) => {
+    expect(myEventsSearchSchema.parse({ tab }).tab).toBe(expected)
+  })
+})
+
+describe("initialMyEventsTab (#188)", () => {
+  const loaded = (events: ReturnType<typeof aMyEvent>[]) => ({ events, isPending: false })
+  const loading = { events: undefined, isPending: true }
+  const failed = { events: undefined, isPending: false }
+  const going = aMyEvent({ id: "a1" })
+  const running = aMyEvent({ id: "o1", pendingRequests: 0 })
+  const withRequests = aMyEvent({ id: "o2", pendingRequests: 2 })
+
+  it("Pořádám while requests wait there, even with events to go to", () => {
+    expect(initialMyEventsTab(loaded([going]), loaded([running, withRequests]))).toBe("poradam")
+  })
+
+  it("knows that before Přihlášen has loaded, or when it failed", () => {
+    expect(initialMyEventsTab(loading, loaded([withRequests]))).toBe("poradam")
+    expect(initialMyEventsTab(failed, loaded([withRequests]))).toBe("poradam")
+  })
+
+  it("Pořádám with nothing to go to and something to run", () => {
+    expect(initialMyEventsTab(loaded([]), loaded([running]))).toBe("poradam")
+  })
+
+  it("Přihlášen with something to go to and no requests", () => {
+    expect(initialMyEventsTab(loaded([going]), loaded([running]))).toBe("prihlasen")
+    // a request of mine waiting counts as something to go to, as on the tab
+    expect(
+      initialMyEventsTab(loaded([aMyEvent({ myParticipation: "pending" })]), loaded([running])),
+    ).toBe("prihlasen")
+  })
+
+  it("Přihlášen when there is nothing anywhere", () => {
+    expect(initialMyEventsTab(loaded([]), loaded([]))).toBe("prihlasen")
+  })
+
+  it("counts what the tabs count: cancelled events are neither something to go to nor to run", () => {
+    const cancelled = { status: "cancelled" as const }
+    // only a cancelled event to go to: nothing to go to
+    expect(initialMyEventsTab(loaded([aMyEvent(cancelled)]), loaded([running]))).toBe("poradam")
+    // only a cancelled event to run, its requests no longer matter: nothing to run
+    expect(
+      initialMyEventsTab(loaded([]), loaded([aMyEvent({ ...cancelled, pendingRequests: 3 })])),
+    ).toBe("prihlasen")
+  })
+
+  it("waits while either tab loads, unless requests already tell", () => {
+    expect(initialMyEventsTab(loading, loaded([running]))).toBeUndefined()
+    expect(initialMyEventsTab(loaded([]), loading)).toBeUndefined()
+    expect(initialMyEventsTab(loading, loading)).toBeUndefined()
+  })
+
+  it("a tab that failed never sends anyone to Pořádám", () => {
+    expect(initialMyEventsTab(failed, loaded([running]))).toBe("prihlasen")
+    expect(initialMyEventsTab(loaded([]), failed)).toBe("prihlasen")
   })
 })

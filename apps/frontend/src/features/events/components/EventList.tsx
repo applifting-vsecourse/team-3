@@ -33,6 +33,10 @@ type EventListProps = {
    * the filters and ways on (/akce). Marks its own `data-peek-end`.
    */
   empty?: ReactNode
+  /** „Řadit: …“ beside the count (SortMenu, #57); a plain label without it. */
+  sortControl?: ReactNode
+  /** With okolí the cards say how far each event is (#57, Figma A-02gd). */
+  isDistanceShown?: boolean
 }
 
 export function EventList({
@@ -45,6 +49,8 @@ export function EventList({
   inertAfter,
   onClearFilters,
   empty,
+  sortControl,
+  isDistanceShown = false,
 }: EventListProps) {
   if (error) {
     return (
@@ -116,8 +122,9 @@ export function EventList({
             </>
           ) : null}
         </p>
-        {/* Other orders come in sprint 3 (#57); until then this is just a label. */}
-        <p className="text-xs font-medium text-muted-foreground">Řadit: nejbližší termín</p>
+        {sortControl ?? (
+          <p className="text-xs font-medium text-muted-foreground">Řadit: nejbližší termín</p>
+        )}
       </div>
 
       {events.length === 0 ? (
@@ -138,6 +145,7 @@ export function EventList({
               inert={inertAfter !== undefined && index >= inertAfter}
             >
               <EventCard
+                distanceKm={isDistanceShown ? event.distanceKm : undefined}
                 event={event}
                 isHighlighted={event.id === highlightedId}
                 onMouseEnter={() => onHighlight?.(event.id)}

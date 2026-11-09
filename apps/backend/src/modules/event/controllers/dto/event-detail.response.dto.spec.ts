@@ -5,6 +5,8 @@ import { EventDetailResponseDto } from './event-detail.response.dto';
 const aView = (overrides: Partial<EventDetailView> = {}): EventDetailView => ({
   id: 'e1',
   title: 'Deskovky po práci',
+  summary: null,
+  distanceKm: null,
   startsAt: new Date('2026-10-24T16:00:00.000Z'),
   endsAt: null,
   address: 'Herna Karlín, Křižíkova 52, Praha 8',
@@ -14,6 +16,7 @@ const aView = (overrides: Partial<EventDetailView> = {}): EventDetailView => ({
     id: 'a1',
     slug: 'deskove-hry',
     name: 'Deskové hry',
+    keywords: ['deskovky'],
     category: { id: 'c1', slug: 'hry', name: 'Hry', icon: 'dice' },
   },
   locality: { id: 'l1', slug: 'praha-8', name: 'Praha 8' },

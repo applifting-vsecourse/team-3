@@ -1,7 +1,7 @@
 import type { Locality } from "@/lib/catalog/catalogSchemas"
 
-/** Lists without ?lokalita= show Praha; Praha is the default, not an active filter. */
-export const DEFAULT_LOCALITY_SLUG = "praha"
+// The biggest city leads the picker; the lists' default is per visitor (useLocality, #55).
+export const PRAHA_SLUG = "praha"
 
 /** `?lokalita=cele-cesko`: no locality filter, the whole catalog of Czechia. */
 export const ALL_LOCALITIES_SLUG = "cele-cesko"
@@ -12,8 +12,8 @@ export type LocalityOption = Locality & { isDistrict: boolean }
 const collator = new Intl.Collator("cs", { numeric: true })
 
 /**
- * Localities for the picker: each city followed by its districts, the default
- * (Praha) first, then other cities alphabetically; districts in natural order
+ * Localities for the picker: each city followed by its districts, Praha
+ * first, then other cities alphabetically; districts in natural order
  * („Praha 2“ before „Praha 10“).
  */
 export function localityOptions(localities: Locality[]): LocalityOption[] {
@@ -21,7 +21,7 @@ export function localityOptions(localities: Locality[]): LocalityOption[] {
     .filter((l) => l.parentId === null)
     .sort(
       (a, b) =>
-        Number(b.slug === DEFAULT_LOCALITY_SLUG) - Number(a.slug === DEFAULT_LOCALITY_SLUG) ||
+        Number(b.slug === PRAHA_SLUG) - Number(a.slug === PRAHA_SLUG) ||
         collator.compare(a.name, b.name),
     )
   return cities.flatMap((city) => [
@@ -38,7 +38,7 @@ export const localityName = (slug: string, localities: Locality[]): string | und
   slug === ALL_LOCALITIES_SLUG ? ALL_LOCALITIES_NAME : localities.find((l) => l.slug === slug)?.name
 
 // Spelled out per city, so no grammatical gender is guessed from a name.
-const WHOLE_CITY: Record<string, string> = { praha: "Celá Praha" }
+const WHOLE_CITY: Record<string, string> = { [PRAHA_SLUG]: "Celá Praha" }
 
 /**
  * The locality panel's reset for what is picked: a district goes back to its
@@ -49,11 +49,18 @@ const WHOLE_CITY: Record<string, string> = { praha: "Celá Praha" }
 export function localityReset(
   slug: string,
   localities: Locality[],
-): { label: string; slug: string | undefined } {
+): { label: string; slug: string | undefined; isDistrict: boolean } {
   const parentId = localities.find((l) => l.slug === slug)?.parentId
   const city = parentId ? localities.find((l) => l.id === parentId) : undefined
-  if (city) return { label: WHOLE_CITY[city.slug] ?? `Celé město ${city.name}`, slug: city.slug }
+  if (city) {
+    return {
+      label: WHOLE_CITY[city.slug] ?? `Celé město ${city.name}`,
+      slug: city.slug,
+      isDistrict: true,
+    }
+  }
   return {
+    isDistrict: false,
     label: "Zrušit výběr",
     slug: slug === ALL_LOCALITIES_SLUG ? undefined : ALL_LOCALITIES_SLUG,
   }

@@ -59,11 +59,16 @@ describe("localityReset", () => {
   ]
 
   it("takes a district back to its whole city", () => {
-    expect(localityReset("praha-8", localities)).toEqual({ label: "Celá Praha", slug: "praha" })
+    expect(localityReset("praha-8", localities)).toEqual({
+      label: "Celá Praha",
+      slug: "praha",
+      isDistrict: true,
+    })
     // no gender guessed from the name
     expect(localityReset("brno-sever", localities)).toEqual({
       label: "Celé město Brno",
       slug: "brno",
+      isDistrict: true,
     })
   })
 
@@ -71,10 +76,12 @@ describe("localityReset", () => {
     expect(localityReset("bruntal", localities)).toEqual({
       label: "Zrušit výběr",
       slug: "cele-cesko",
+      isDistrict: false,
     })
     expect(localityReset("praha", localities)).toEqual({
       label: "Zrušit výběr",
       slug: "cele-cesko",
+      isDistrict: false,
     })
   })
 
@@ -82,6 +89,7 @@ describe("localityReset", () => {
     expect(localityReset("cele-cesko", localities)).toEqual({
       label: "Zrušit výběr",
       slug: undefined,
+      isDistrict: false,
     })
   })
 })
