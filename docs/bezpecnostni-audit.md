@@ -7,7 +7,7 @@ Kdo nález opraví, změní ve stejném PR i jeho stav v tomto reportu.
 ## Shrnutí
 
 - **Node.js:** aplikace běžela na `node:24-alpine` bez pevné verze, takže nebylo jisté, zda obsahuje opravu CVE-2026-111497 (Brotli). Verze je teď pevně 24.22.2 (#196) a na stagingu je ověřená z logu backendu.
-- **Balíčky:** `pnpm audit` hlásil 10 critical a 55 high. Po aktualizaci (#196) je 0 critical a 0 high, zbývá 4 moderate a 1 low.
+- **Balíčky:** `pnpm audit` hlásil 10 critical a 55 high. Po aktualizaci (#196) a vynucení `js-yaml` přes override (#283) je 0 critical a 0 high, zbývá 4 moderate a 1 low.
 - **Kód:** nezávislá analýza nenašla žádný kritický nález, přístup k cizím datům (IDOR) ani SQL injection. Našla 1 vysoký, 4 střední a 8 nízkých nálezů. Vysoký nález (CSRF) je opravený v #140. Ze čtyř středních jsou N-3 a N-4 opravené, u N-2 a N-5 zbývá část popsaná níže. Z nízkých jsou N-6 a N-9 opravené v #240.
 - **Dřívější nálezy:** S-1, S-2 a S-4 jsou opravené, S-3 a S-5 mají issue (#226, #236).
 - **Průběžná kontrola:** přibyl Dependabot a CodeQL (#196).
@@ -59,9 +59,9 @@ Na `node:24.22.2-alpine` jsme přešli, protože to byla v době opravy nejnově
 
 Nejzávažnější opravené položky: `better-auth` (přihlášení za jiného uživatele), `next` (spuštění kódu; v aplikaci se nepoužívá, do stromu se dostal jen jako volitelná závislost `better-auth`), `proxy-addr`, `handlebars`, `shell-quote`, `multer`, `nodemailer`.
 
-Přes `pnpm.overrides` jsou vynucené `next`, `multer` a `js-yaml` pod `@nestjs/swagger`, protože je jinak drží starší verze závislostí. Až to `@nestjs/platform-express`, `better-auth` a `@nestjs/swagger` vyřeší samy, je možné override odebrat. `js-yaml` 5.5.0 místo 5.3.0 opravuje [GHSA-r3ph-w7gj-g6xm](https://github.com/advisories/GHSA-r3ph-w7gj-g6xm); upgrade na `@nestjs/swagger` 12 je odložený (#231).
+Přes `pnpm.overrides` jsou vynucené `next`, `multer` a `js-yaml` pod `@nestjs/swagger`, protože je jinak drží starší verze závislostí. Až to `@nestjs/platform-express`, `better-auth` a `@nestjs/swagger` vyřeší samy, je možné override odebrat. `js-yaml` 5.5.0 místo 5.3.0 opravuje [GHSA-r3ph-w7gj-g6xm](https://github.com/advisories/GHSA-r3ph-w7gj-g6xm). Upgrade na NestJS 12 zatím neplánujeme (#231). Až přijde, override `@nestjs/swagger>js-yaml` je potřeba odebrat, jinak by natvrdo držel `js-yaml` 5.x.
 
-`pnpm audit` počítá výskyty, proto 4 moderate znamenají dva balíčky (`minimatch` a `glob`, každý dvakrát). Po první aktualizaci hlásil jen `js-yaml`, `minimatch` a `glob` přibyly s novými upozorněními v registru. Od 4. 11. registr nehlásí `minimatch` 3.1.5, proto 5 místo 6; od 9. 11. je `js-yaml` vynucený na 5.5.0, proto 4.
+`pnpm audit` počítá výskyty, proto 4 moderate znamenají dva balíčky (`minimatch` a `glob`, každý dvakrát). `js-yaml` je od 9. 11. vynucený na 5.5.0 a z výpisu zmizel.
 
 | Co zůstává                                                                                   | Závažnost | Důvod                                                                                                |
 | -------------------------------------------------------------------------------------------- | --------- | ---------------------------------------------------------------------------------------------------- |
