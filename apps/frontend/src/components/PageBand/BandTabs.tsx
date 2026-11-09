@@ -50,7 +50,11 @@ export function BandTabsItem({
       className={cn(
         // the kit's line indicator and shadow are not used; it sits 5 px below the tab and made
         // the strip scroll, so it is hidden too
-        "group/tab h-auto flex-none gap-1.5 rounded-none border-0 border-b-3 border-transparent px-0 pt-3 pb-2.5 text-body after:hidden",
+        "group/tab h-auto flex-none gap-1.5 rounded-none border-0 border-b-3 border-transparent pt-3 pb-2.5 text-body after:hidden",
+        // the focus ring drawn inside the tab: the strip scrolls sideways, so the kit's ring
+        // outside it lost its top and bottom and only two lines at the sides were left; px-1
+        // keeps the text off it, -mx-1 keeps the tabs where they were
+        "-mx-1 px-1 focus-visible:ring-0 focus-visible:outline-2 focus-visible:-outline-offset-2",
         isOnPage
           ? // like the band: inactive medium, the pill follows the state
             "font-medium text-muted-foreground hover:text-foreground data-[state=active]:border-foreground data-[state=active]:font-semibold data-[state=active]:text-foreground"

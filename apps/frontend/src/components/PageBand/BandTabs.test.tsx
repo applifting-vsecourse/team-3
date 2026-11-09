@@ -54,4 +54,19 @@ describe("BandTabs", () => {
     expect(strip).toHaveClass("overflow-y-hidden", "[scrollbar-width:none]")
     expect(screen.getByRole("tab", { name: "Moje" })).toHaveClass("after:hidden")
   })
+
+  it("draws the focus ring inside the tab, where the scroll strip doesn't clip it", () => {
+    render(
+      <Tabs value="moje">
+        <BandTabs>
+          <BandTabsItem value="moje">Moje</BandTabsItem>
+        </BandTabs>
+      </Tabs>,
+    )
+
+    // outside the tab only its sides survived the strip's overflow: two lines, no ring
+    const tab = screen.getByRole("tab", { name: "Moje" })
+    expect(tab).toHaveClass("focus-visible:-outline-offset-2", "focus-visible:ring-0")
+    expect(tab).not.toHaveClass("focus-visible:ring-[3px]")
+  })
 })
