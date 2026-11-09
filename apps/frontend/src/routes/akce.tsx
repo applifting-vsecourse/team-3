@@ -109,8 +109,10 @@ function EventsPage() {
   // replace: changing a filter shouldn't fill the back button with filter states
   // A filter only, nothing remembered: e.g. „… v celém Česku“ from an empty list widens it
   // this once (review #274). A locality replaces the searched area (and the other way round).
-  // Changing a filter the quick pick set leaves the pick (Figma A-02d, #250).
+  // Changing a filter the quick pick set leaves the pick (Figma A-02d, #250). Any change closes
+  // the map preview, or Praha → Brno → Praha would open it again by itself (review #276).
   const setSearch = (patch: Partial<EventsSearch>) => {
+    setSelectedId(undefined)
     const withArea = patch.lokalita !== undefined ? { ...patch, oblast: undefined } : patch
     const withPick = changesPick(urlSearch, withArea, now)
       ? { ...withArea, vyber: undefined }
@@ -130,6 +132,7 @@ function EventsPage() {
   // also the remembered locality: back to the visitor's default (#55); with a pick back to
   // the pick as it was chosen (Figma A-02d)
   const clearFilters = () => {
+    setSelectedId(undefined)
     shownLocality.forget()
     void navigate({
       search: urlSearch.vyber ? pickSearch(urlSearch.vyber, {}, now) : {},
@@ -174,6 +177,7 @@ function EventsPage() {
   )
   // „Zrušit výběr“ in the locality panel: back to the default, the other filters stay
   const clearLocality = () => {
+    setSelectedId(undefined)
     shownLocality.forget()
     void navigate({
       search: (prev) => ({ ...prev, lokalita: undefined, oblast: undefined, okoli: undefined }),
