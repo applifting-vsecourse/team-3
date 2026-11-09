@@ -1,4 +1,4 @@
-import { useId } from "react"
+import { useEffect, useId, useRef } from "react"
 import { zodResolver } from "@hookform/resolvers/zod"
 import { Loader2 } from "lucide-react"
 import { useForm } from "react-hook-form"
@@ -62,6 +62,25 @@ const TYPE_OPTIONS: { value: GroupType; title: string; hint: string }[] = [
 const COLUMN = "contents md:flex md:flex-col md:gap-5"
 const COLUMN_HEADING = "hidden text-lg font-semibold tracking-tight md:block"
 
+const REDUCED_MOTION_QUERY = "(prefers-reduced-motion: reduce)"
+
+/**
+ * After a failed submit an error under a field off-screen goes unnoticed (#190): scroll the
+ * first invalid field to the middle of the screen, clear of the sticky header, and focus it.
+ * `FormControl` marks invalid fields `aria-invalid`; DOM order is the reading order on desktop
+ * and, for every field that can still be invalid, on the phone too.
+ */
+function revealFirstInvalid(form: HTMLFormElement | null) {
+  const field = form?.querySelector<HTMLElement>('[aria-invalid="true"]')
+  if (!field) return
+  // jsdom (tests) has no matchMedia
+  const isReducedMotion =
+    typeof window.matchMedia === "function" && window.matchMedia(REDUCED_MOTION_QUERY).matches
+  field.scrollIntoView({ behavior: isReducedMotion ? "auto" : "smooth", block: "center" })
+  // focus() would jump there at once and cut the smooth scroll short
+  field.focus({ preventScroll: true })
+}
+
 type GroupFormProps = {
   catalog: Catalog
   /**
@@ -92,18 +111,28 @@ export function GroupForm({
   const whoId = useId()
   const form = useForm<FormValues>({
     resolver: zodResolver(schema),
+    // revealFirstInvalid focuses instead, after scrolling its own way
+    shouldFocusError: false,
     defaultValues: {
       name: initialValues?.name ?? "",
       activityId: initialValues?.activityId ?? "",
       localityId: initialValues?.localityId ?? "",
-      type: initialValues?.type,
+      // a new group is public unless the founder says otherwise (#190)
+      type: initialValues?.type ?? "public",
       description: initialValues?.description ?? "",
     },
   })
+  const formRef = useRef<HTMLFormElement>(null)
+  const { submitCount } = form.formState
+  // after the render that shows a submit's errors, so their fields are already marked
+  useEffect(() => {
+    if (submitCount > 0) revealFirstInvalid(formRef.current)
+  }, [submitCount])
 
   return (
     <Form {...form}>
       <form
+        ref={formRef}
         noValidate
         onSubmit={form.handleSubmit((values) =>
           onSubmit({
