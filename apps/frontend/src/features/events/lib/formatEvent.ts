@@ -64,17 +64,28 @@ const dayFormat = new Intl.DateTimeFormat("cs-CZ", {
   dateStyle: "short",
 })
 
+const yearFormat = new Intl.DateTimeFormat("cs-CZ", { timeZone: PRAGUE_TZ, year: "numeric" })
+
 /**
  * When an event happens, on its detail: "Pá 23. 10. · 17:30–19:30", with the
  * end's day when it ends on another day ("Pá 23. 10. · 22:00 – So 24. 10. · 2:00").
+ * `hasYear` for the „Kdy“ row (Figma A-05, A-05d): "Ne 25. 10. 2026 · 18:00–20:00".
  */
-export function formatEventTime(startsAt: Date, endsAt: Date | null): string {
-  const start = formatEventStart(startsAt)
+export function formatEventTime(
+  startsAt: Date,
+  endsAt: Date | null,
+  { hasYear = false }: { hasYear?: boolean } = {},
+): string {
+  const at = (date: Date) =>
+    hasYear
+      ? `${formatEventDay(date)} ${yearFormat.format(date)} · ${startParts(date).time}`
+      : formatEventStart(date)
+  const start = at(startsAt)
   if (!endsAt) return start
   if (dayFormat.format(startsAt) === dayFormat.format(endsAt)) {
     return `${start}–${timeFormat.format(endsAt)}`
   }
-  return `${start} – ${formatEventStart(endsAt)}`
+  return `${start} – ${at(endsAt)}`
 }
 
 const dayMonthFormat = new Intl.DateTimeFormat("cs-CZ", {
@@ -179,7 +190,8 @@ export function formatDay(day: string): string {
 }
 
 export const approvalModeLabel = (mode: "open" | "approval"): string =>
-  mode === "open" ? "Bez schválení" : "Se schválením organizátora"
+  // Figma A-05d: what it means for whoever joins, not just the mode
+  mode === "open" ? "Bez schválení – kdo se přihlásí, je na akci" : "Se schválením organizátora"
 
 /**
  * The place's name is the address up to the first comma
