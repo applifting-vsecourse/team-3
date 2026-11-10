@@ -1,5 +1,6 @@
 import { useEffect, useId, useMemo, useRef, useState, type Ref } from "react"
 import { zodResolver } from "@hookform/resolvers/zod"
+import { useQueryClient } from "@tanstack/react-query"
 import { ChevronDown, Loader2, Users } from "lucide-react"
 import { cs } from "react-day-picker/locale"
 import { useForm, useWatch } from "react-hook-form"
@@ -24,6 +25,8 @@ import { Input } from "@/components/ui/input"
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
 import { Textarea } from "@/components/ui/textarea"
+import { catalogKeys } from "@/lib/catalog/catalogQueryOptions"
+import type { Locality } from "@/lib/catalog/catalogSchemas"
 import type { Catalog } from "@/lib/catalog/catalogSearch"
 import { PRAHA_SLUG } from "@/lib/catalog/localityOptions"
 import { cn } from "@/lib/utils"
@@ -201,9 +204,10 @@ export function EventForm({
   const whatId = useId()
   const whereId = useId()
   const [isCalendarOpen, setIsCalendarOpen] = useState(false)
+  const queryClient = useQueryClient()
   const reverseRequest = useRef<AbortController | null>(null)
-  const suggestedAddress = useRef<string | null>(null)
   const [shouldCheckAddress, setCheckAddress] = useState(false)
+  const [isAddressLookupFailed, setAddressLookupFailed] = useState(false)
   useEffect(() => () => reverseRequest.current?.abort(), [])
   const [today] = useState(() => pragueToday())
   const isEdit = mode === "edit"
@@ -240,39 +244,43 @@ export function EventForm({
     catalog.localities.find((l) => l.slug === PRAHA_SLUG) ??
     catalog.localities[0] ?? { lat: 50.0755, lng: 14.4378 }
 
-  const pickPoint = async (point: { lat: number; lng: number }) => {
+  const pickPoint = async (point: { lat: number; lng: number }, shouldUpdateLocality = true) => {
     reverseRequest.current?.abort()
     const controller = new AbortController()
     reverseRequest.current = controller
-    const previousAddress = form.getValues("address")
-    const canFill = !previousAddress.trim() || previousAddress === suggestedAddress.current
     form.setValue("place", point, { shouldDirty: true, shouldValidate: form.formState.isSubmitted })
-    // A previous automatic address no longer describes this point.
-    if (canFill && previousAddress) form.setValue("address", "", { shouldDirty: true })
-    suggestedAddress.current = null
-    setCheckAddress(!canFill)
-    const timeout = setTimeout(() => controller.abort(), 5000)
+    // Once a different point is chosen, the previous address may be wrong.
+    form.setValue("address", "", { shouldDirty: true, shouldValidate: form.formState.isSubmitted })
+    setCheckAddress(false)
+    setAddressLookupFailed(false)
+    let isTimedOut = false
+    const timeout = setTimeout(() => {
+      isTimedOut = true
+      controller.abort()
+    }, 5000)
     try {
       const suggestion = await reverseAddress(point, controller.signal)
       if (controller.signal.aborted) return
       if (suggestion) {
-        const locality = localityOfAddress(
-          { ...suggestion, ...point },
-          catalog.localities,
-          form.getValues("localityId"),
-        )
-        if (locality) form.setValue("localityId", locality.id, { shouldDirty: true })
-        if (canFill) {
-          form.setValue("address", suggestion.address, {
-            shouldDirty: true,
-            shouldValidate: form.formState.isSubmitted,
+        if (shouldUpdateLocality) {
+          const locality = localityOfAddress({ ...suggestion, ...point }, catalog.localities, "", {
+            allowNearest: false,
           })
-          suggestedAddress.current = suggestion.address
-          setCheckAddress(true)
+          form.setValue("localityId", locality?.id ?? "", { shouldDirty: true })
         }
+        form.setValue("address", suggestion.address, {
+          shouldDirty: true,
+          shouldValidate: form.formState.isSubmitted,
+        })
+        setCheckAddress(true)
+      } else {
+        setAddressLookupFailed(true)
       }
     } catch {
       // An unavailable service must not stop a user from entering an address.
+      if (reverseRequest.current === controller && (!controller.signal.aborted || isTimedOut)) {
+        setAddressLookupFailed(true)
+      }
     } finally {
       clearTimeout(timeout)
       if (reverseRequest.current === controller) reverseRequest.current = null
@@ -634,8 +642,21 @@ export function EventForm({
                       ref={field.ref}
                       value={field.value}
                       onChange={(value) => {
+                        if (value === field.value) return
                         reverseRequest.current?.abort()
                         field.onChange(value)
+                        const localities = queryClient.getQueryData<Locality[]>(
+                          catalogKeys.localities(),
+                        )
+                        const selected =
+                          localities?.find((item) => item.id === value) ??
+                          catalog.localities.find((item) => item.id === value)
+                        if (selected) {
+                          void pickPoint({ lat: selected.lat, lng: selected.lng }, false)
+                        } else {
+                          form.setValue("place", null, { shouldDirty: true })
+                          form.setValue("address", "", { shouldDirty: true })
+                        }
                       }}
                       onBlur={field.onBlur}
                     />
@@ -689,8 +710,8 @@ export function EventForm({
                       {...field}
                       onChange={(value) => {
                         reverseRequest.current?.abort()
-                        suggestedAddress.current = null
                         setCheckAddress(false)
+                        setAddressLookupFailed(false)
                         field.onChange(value)
                       }}
                       near={place ?? mapCenter}
@@ -698,8 +719,8 @@ export function EventForm({
                       // when the catalog has a more precise one for it
                       onPick={(suggestion) => {
                         reverseRequest.current?.abort()
-                        suggestedAddress.current = suggestion.address
                         setCheckAddress(false)
+                        setAddressLookupFailed(false)
                         const options = {
                           shouldDirty: true,
                           shouldValidate: form.formState.isSubmitted,
@@ -710,17 +731,20 @@ export function EventForm({
                           { lat: suggestion.lat, lng: suggestion.lng },
                           options,
                         )
-                        const locality = localityOfAddress(
-                          suggestion,
-                          catalog.localities,
-                          form.getValues("localityId"),
-                        )
-                        if (locality) form.setValue("localityId", locality.id, options)
+                        const locality = localityOfAddress(suggestion, catalog.localities, "", {
+                          allowNearest: false,
+                        })
+                        form.setValue("localityId", locality?.id ?? "", options)
                       }}
                     />
                   </FormControl>
                   {shouldCheckAddress ? (
                     <FormDescription>Zkontroluj, že adresa odpovídá místu na mapě.</FormDescription>
+                  ) : null}
+                  {isAddressLookupFailed ? (
+                    <FormDescription>
+                      Adresu se nepodařilo najít. Zkontroluj lokalitu a zadej adresu ručně.
+                    </FormDescription>
                   ) : null}
                   <FormMessage />
                 </FormItem>

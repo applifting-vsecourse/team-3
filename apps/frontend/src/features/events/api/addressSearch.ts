@@ -161,16 +161,17 @@ export const localityOfAddress = (
   }: Pick<AddressSuggestion, "district" | "city"> & Partial<Pick<AddressSuggestion, "lat" | "lng">>,
   localities: Locality[],
   chosenId: string,
+  options: { allowNearest?: boolean } = {},
 ): Locality | undefined => {
   const point = lat !== undefined && lng !== undefined ? { lat, lng } : undefined
   // a town of the same name far away is another place (Planá u Tachova is not
   // Planá u Českých Budějovic); 25 km still covers the edge of Praha
   const isNear = (locality: Locality) => !point || distanceKm(point, locality) <= SAME_TOWN_KM
   const found =
-    localities.find((l) => l.parentId !== null && l.name === district) ??
+    localities.find((l) => l.parentId !== null && l.name === district && isNear(l)) ??
     // without a city, OpenStreetMap's district is the town
     localities.find((l) => l.parentId === null && l.name === (city ?? district) && isNear(l)) ??
-    (point ? nearestTown(point, localities) : undefined)
+    (point && options.allowNearest !== false ? nearestTown(point, localities) : undefined)
   const chosen = localities.find((l) => l.id === chosenId)
   if (!found || found.id === chosen?.id || chosen?.parentId === found.id) return undefined
   return found
@@ -180,6 +181,7 @@ export const addressSearchUrl = (text: string, near: LatLng): string => {
   const url = new URL(PHOTON_URL)
   url.searchParams.set("q", text)
   url.searchParams.set("limit", String(FETCHED))
+  url.searchParams.set("lang", "default")
   // results near the picked place or the chosen locality come first
   url.searchParams.set("lat", near.lat.toFixed(4))
   url.searchParams.set("lon", near.lng.toFixed(4))

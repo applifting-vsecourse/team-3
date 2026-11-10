@@ -183,6 +183,14 @@ describe("localityOfAddress – a village the catalog doesn't have", () => {
     ).toBe(letohrad)
   })
 
+  it("can require the actual municipality instead of silently choosing a nearby town", () => {
+    expect(
+      localityOfAddress({ city: "Dolní Dobrouč", lat: 49.993, lng: 16.497 }, localities, "", {
+        allowNearest: false,
+      }),
+    ).toBeUndefined()
+  })
+
   it("a town of the catalog wins over a nearer one by name", () => {
     expect(
       localityOfAddress(
@@ -218,6 +226,7 @@ describe("addressSearchUrl", () => {
 
     expect(url.origin + url.pathname).toBe("https://photon.komoot.io/api/")
     expect(url.searchParams.get("q")).toBe("Letenská 15")
+    expect(url.searchParams.get("lang")).toBe("default")
     expect(url.searchParams.get("lat")).toBe("50.1100")
     expect(url.searchParams.get("lon")).toBe("14.4700")
     expect(url.searchParams.get("bbox")).toBe("12.09,48.55,18.86,51.06")
