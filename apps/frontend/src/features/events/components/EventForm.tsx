@@ -1,4 +1,4 @@
-import { useId, useMemo, useState, type Ref } from "react"
+import { useEffect, useId, useMemo, useRef, useState, type Ref } from "react"
 import { zodResolver } from "@hookform/resolvers/zod"
 import { ChevronDown, Loader2, Users } from "lucide-react"
 import { cs } from "react-day-picker/locale"
@@ -28,7 +28,7 @@ import type { Catalog } from "@/lib/catalog/catalogSearch"
 import { PRAHA_SLUG } from "@/lib/catalog/localityOptions"
 import { cn } from "@/lib/utils"
 
-import { localityOfAddress } from "@/features/events/api/addressSearch"
+import { localityOfAddress, reverseAddress } from "@/features/events/api/addressSearch"
 import {
   EVENT_ADDRESS_MAX_LENGTH,
   EVENT_DESCRIPTION_MAX_LENGTH,
@@ -201,6 +201,10 @@ export function EventForm({
   const whatId = useId()
   const whereId = useId()
   const [isCalendarOpen, setIsCalendarOpen] = useState(false)
+  const reverseRequest = useRef<AbortController | null>(null)
+  const suggestedAddress = useRef<string | null>(null)
+  const [shouldCheckAddress, setCheckAddress] = useState(false)
+  useEffect(() => () => reverseRequest.current?.abort(), [])
   const [today] = useState(() => pragueToday())
   const isEdit = mode === "edit"
   const isGroupCreate = !isEdit && group !== undefined
@@ -235,6 +239,45 @@ export function EventForm({
     // before a locality is picked: the biggest city, as the picker lists it first
     catalog.localities.find((l) => l.slug === PRAHA_SLUG) ??
     catalog.localities[0] ?? { lat: 50.0755, lng: 14.4378 }
+
+  const pickPoint = async (point: { lat: number; lng: number }) => {
+    reverseRequest.current?.abort()
+    const controller = new AbortController()
+    reverseRequest.current = controller
+    const previousAddress = form.getValues("address")
+    const canFill = !previousAddress.trim() || previousAddress === suggestedAddress.current
+    form.setValue("place", point, { shouldDirty: true, shouldValidate: form.formState.isSubmitted })
+    // A previous automatic address no longer describes this point.
+    if (canFill && previousAddress) form.setValue("address", "", { shouldDirty: true })
+    suggestedAddress.current = null
+    setCheckAddress(!canFill)
+    const timeout = setTimeout(() => controller.abort(), 5000)
+    try {
+      const suggestion = await reverseAddress(point, controller.signal)
+      if (controller.signal.aborted) return
+      if (suggestion) {
+        const locality = localityOfAddress(
+          { ...suggestion, ...point },
+          catalog.localities,
+          form.getValues("localityId"),
+        )
+        if (locality) form.setValue("localityId", locality.id, { shouldDirty: true })
+        if (canFill) {
+          form.setValue("address", suggestion.address, {
+            shouldDirty: true,
+            shouldValidate: form.formState.isSubmitted,
+          })
+          suggestedAddress.current = suggestion.address
+          setCheckAddress(true)
+        }
+      }
+    } catch {
+      // An unavailable service must not stop a user from entering an address.
+    } finally {
+      clearTimeout(timeout)
+      if (reverseRequest.current === controller) reverseRequest.current = null
+    }
+  }
 
   return (
     <Form {...form}>
@@ -590,7 +633,10 @@ export function EventForm({
                       localities={catalog.localities}
                       ref={field.ref}
                       value={field.value}
-                      onChange={field.onChange}
+                      onChange={(value) => {
+                        reverseRequest.current?.abort()
+                        field.onChange(value)
+                      }}
                       onBlur={field.onBlur}
                     />
                   </FormControl>
@@ -616,7 +662,7 @@ export function EventForm({
                   </p>
                   <LocationPicker
                     value={field.value}
-                    onChange={(point) => field.onChange(point)}
+                    onChange={(point) => void pickPoint(point)}
                     center={mapCenter}
                     labelledBy={placeLabelId}
                     isInvalid={Boolean(fieldState.error)}
@@ -641,10 +687,19 @@ export function EventForm({
                       autoComplete="off"
                       className="h-11"
                       {...field}
+                      onChange={(value) => {
+                        reverseRequest.current?.abort()
+                        suggestedAddress.current = null
+                        setCheckAddress(false)
+                        field.onChange(value)
+                      }}
                       near={place ?? mapCenter}
                       // a picked address also moves the pin, and sets the locality
                       // when the catalog has a more precise one for it
                       onPick={(suggestion) => {
+                        reverseRequest.current?.abort()
+                        suggestedAddress.current = suggestion.address
+                        setCheckAddress(false)
                         const options = {
                           shouldDirty: true,
                           shouldValidate: form.formState.isSubmitted,
@@ -664,6 +719,9 @@ export function EventForm({
                       }}
                     />
                   </FormControl>
+                  {shouldCheckAddress ? (
+                    <FormDescription>Zkontroluj, že adresa odpovídá místu na mapě.</FormDescription>
+                  ) : null}
                   <FormMessage />
                 </FormItem>
               )}

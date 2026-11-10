@@ -1,5 +1,5 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query"
-import { render, screen, waitFor } from "@testing-library/react"
+import { act, render, screen, waitFor } from "@testing-library/react"
 import userEvent from "@testing-library/user-event"
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest"
 
@@ -119,6 +119,53 @@ afterEach(() => {
 })
 
 describe("EventForm", () => {
+  it("fills an empty address from the point selected on the map", async () => {
+    const addressAtCenter = {
+      ...krizikova,
+      geometry: { type: "Point", coordinates: [14.47, 50.11] },
+    }
+    answerAddresses(addressAtCenter)
+    renderForm({ initialValues: { localityId: "l-praha-8" } })
+
+    await userEvent.click(screen.getByRole("button", { name: "Umístit špendlík do středu mapy" }))
+
+    await waitFor(() =>
+      expect(screen.getByLabelText("Adresa *")).toHaveValue("Křižíkova 53/52, Praha 8 – Karlín"),
+    )
+    expect(screen.getByText("Zkontroluj, že adresa odpovídá místu na mapě.")).toBeInTheDocument()
+  })
+
+  it("does not overwrite an address typed while the reverse lookup is pending", async () => {
+    let resolveLookup!: (value: Response) => void
+    const result = new Promise<Response>((resolve) => {
+      resolveLookup = resolve
+    })
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(() => result),
+    )
+    renderForm({ initialValues: { localityId: "l-praha-8" } })
+    await userEvent.click(screen.getByRole("button", { name: "Umístit špendlík do středu mapy" }))
+    await userEvent.type(screen.getByLabelText("Adresa *"), "Moje místo")
+    await act(async () => {
+      resolveLookup(
+        Response.json({
+          features: [{ ...krizikova, geometry: { type: "Point", coordinates: [14.47, 50.11] } }],
+        }),
+      )
+      await result
+    })
+    expect(screen.getByLabelText("Adresa *")).toHaveValue("Moje místo")
+  })
+
+  it("keeps a manually entered address when a pin is placed", async () => {
+    answerAddresses({ ...krizikova, geometry: { type: "Point", coordinates: [14.47, 50.11] } })
+    renderForm({ initialValues: { localityId: "l-praha-8", address: "Vlastní místo" } })
+    await userEvent.click(screen.getByRole("button", { name: "Umístit špendlík do středu mapy" }))
+    expect(screen.getByLabelText("Adresa *")).toHaveValue("Vlastní místo")
+    expect(screen.getByText("Zkontroluj, že adresa odpovídá místu na mapě.")).toBeInTheDocument()
+  })
+
   it("an untouched form can be sent and says, under each field, what is missing", async () => {
     const { onSubmit } = renderForm()
 

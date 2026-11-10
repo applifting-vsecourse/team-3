@@ -189,6 +189,23 @@ export const addressSearchUrl = (text: string, near: LatLng): string => {
   return url.toString()
 }
 
+/** The nearest address is only a suggestion; a map point need not have an address. */
+export const reverseAddress = async (
+  point: LatLng,
+  signal: AbortSignal,
+): Promise<AddressSuggestion | undefined> => {
+  const url = new URL("https://photon.komoot.io/reverse")
+  url.searchParams.set("lat", String(point.lat))
+  url.searchParams.set("lon", String(point.lng))
+  url.searchParams.set("limit", "5")
+  const response = await fetch(url, { signal })
+  if (!response.ok) throw new Error(`Photon ${response.status}`)
+  // Do not present a distant street or building as the selected point's address.
+  return toAddressSuggestions(await response.json()).find(
+    (suggestion) => distanceKm(point, suggestion) <= 0.1,
+  )
+}
+
 const searchAddresses = async (
   text: string,
   near: LatLng,

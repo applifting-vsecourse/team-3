@@ -1,12 +1,15 @@
-import { describe, expect, it } from "vitest"
+import { afterEach, describe, expect, it, vi } from "vitest"
 
 import type { Locality } from "@/lib/catalog/catalogSchemas"
 
 import {
   addressSearchUrl,
   localityOfAddress,
+  reverseAddress,
   toAddressSuggestions,
 } from "@/features/events/api/addressSearch"
+
+afterEach(() => vi.unstubAllGlobals())
 
 const feature = (properties: Record<string, string>, [lng, lat] = [14.4, 50.1]) => ({
   type: "Feature",
@@ -219,6 +222,28 @@ describe("addressSearchUrl", () => {
     expect(url.searchParams.get("lon")).toBe("14.4700")
     expect(url.searchParams.get("bbox")).toBe("12.09,48.55,18.86,51.06")
     expect(url.searchParams.get("countrycode")).toBe("CZ")
+  })
+})
+
+describe("reverseAddress", () => {
+  it("looks up the selected point and accepts a nearby Czech address", async () => {
+    const fetchMock = vi.fn().mockResolvedValue(Response.json({ features: [letenska] }))
+    vi.stubGlobal("fetch", fetchMock)
+    const signal = new AbortController().signal
+    const result = await reverseAddress({ lat: 50.0891477, lng: 14.4072071 }, signal)
+    expect(result?.address).toBe("Letenská 525/15, Praha – Malá Strana")
+    const url = new URL(fetchMock.mock.calls[0]![0] as string)
+    expect(url.pathname).toBe("/reverse")
+    expect(url.searchParams.get("lat")).toBe("50.0891477")
+    expect(url.searchParams.get("lon")).toBe("14.4072071")
+    expect(fetchMock.mock.calls[0]![1]).toEqual({ signal })
+  })
+
+  it("does not fill a distant address", async () => {
+    vi.stubGlobal("fetch", vi.fn().mockResolvedValue(Response.json({ features: [letenska] })))
+    await expect(
+      reverseAddress({ lat: 50.11, lng: 14.47 }, new AbortController().signal),
+    ).resolves.toBeUndefined()
   })
 })
 
