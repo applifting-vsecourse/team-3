@@ -779,7 +779,7 @@ export function EventForm({
                         ? "Adresu se nepodařilo určit, proto jsme doplnili souřadnice. Můžeš je nahradit vlastním popisem místa. "
                         : null}
                       {nearbyLocality
-                        ? `Nejbližší lokalita v nabídce je ${nearbyLocality}. Zkontroluj, jestli odpovídá místu.`
+                        ? `Pro orientaci jsme zvolili lokalitu ${nearbyLocality}. Zkontroluj, jestli odpovídá místu.`
                         : null}
                     </FormDescription>
                   ) : null}

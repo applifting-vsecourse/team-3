@@ -135,7 +135,7 @@ describe("EventForm", () => {
       expect(screen.getByLabelText("Adresa *")).toHaveValue("GPS: 50.357300, 13.796900"),
     )
     expect(screen.getByRole("combobox", { name: "Lokalita *" })).toHaveTextContent("Louny")
-    expect(screen.getByText(/Nejbližší lokalita v nabídce je Louny/)).toBeInTheDocument()
+    expect(screen.getByText(/Pro orientaci jsme zvolili lokalitu Louny/)).toBeInTheDocument()
   })
   it("fills an empty address from the point selected on the map", async () => {
     const addressAtCenter = {
