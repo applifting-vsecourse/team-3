@@ -198,6 +198,8 @@ export const reverseAddress = async (
   url.searchParams.set("lat", String(point.lat))
   url.searchParams.set("lon", String(point.lng))
   url.searchParams.set("limit", "5")
+  // Use local OSM names even when the browser prefers another language.
+  url.searchParams.set("lang", "default")
   const response = await fetch(url, { signal })
   if (!response.ok) throw new Error(`Photon ${response.status}`)
   // Do not present a distant street or building as the selected point's address.

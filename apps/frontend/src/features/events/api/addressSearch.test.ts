@@ -236,6 +236,7 @@ describe("reverseAddress", () => {
     expect(url.pathname).toBe("/reverse")
     expect(url.searchParams.get("lat")).toBe("50.0891477")
     expect(url.searchParams.get("lon")).toBe("14.4072071")
+    expect(url.searchParams.get("lang")).toBe("default")
     expect(fetchMock.mock.calls[0]![1]).toEqual({ signal })
   })
 
