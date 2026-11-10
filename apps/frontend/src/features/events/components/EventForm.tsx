@@ -216,6 +216,7 @@ export function EventForm({
   const [isCoordinateAddress, setCoordinateAddress] = useState(false)
   const [nearbyLocality, setNearbyLocality] = useState<string | null>(null)
   const [isLocalityUnknown, setLocalityUnknown] = useState(false)
+  const [isCorrectingLocality, setCorrectingLocality] = useState(false)
   useEffect(() => () => reverseRequest.current?.abort(), [])
   const [today] = useState(() => pragueToday())
   const isEdit = mode === "edit"
@@ -267,13 +268,25 @@ export function EventForm({
       : selected && distanceKm(point, selected) <= 1
         ? selected
         : nearestTown(point, available)
-    const locality = exact ?? approximate
+    // A city-only result does not disprove a nearby selected district.
+    const locality = exact && !suggestion.district && selected?.parentId === exact.id && distanceKm(point, selected) <= 1
+      ? selected
+      : exact ?? approximate
     form.setValue("localityId", locality?.id ?? "", {
       shouldDirty: true,
       shouldValidate: form.formState.isSubmitted,
     })
     setNearbyLocality(approximate?.name ?? null)
     setLocalityUnknown(!locality)
+  }
+
+  const setApproximateLocality = (point: { lat: number; lng: number }) => {
+    const available = queryClient.getQueryData<Locality[]>(catalogKeys.localities()) ?? catalog.localities
+    const selected = available.find((item) => item.id === form.getValues("localityId"))
+    const nearest = selected && distanceKm(point, selected) <= 1 ? selected : nearestTown(point, available)
+    form.setValue("localityId", nearest?.id ?? "", { shouldDirty: true })
+    setNearbyLocality(nearest?.name ?? null)
+    setLocalityUnknown(!nearest)
   }
 
   const pickPoint = async (
@@ -294,23 +307,15 @@ export function EventForm({
     setCoordinateAddress(false)
     setNearbyLocality(null)
     setLocalityUnknown(false)
+    setCorrectingLocality(false)
+    if (shouldUpdateLocality) setApproximateLocality(point)
     const fillCoordinates = () => {
       form.setValue("address", `GPS: ${point.lat.toFixed(6)}, ${point.lng.toFixed(6)}`, {
         shouldDirty: true,
         shouldValidate: form.formState.isSubmitted,
       })
       setCoordinateAddress(true)
-      if (shouldUpdateLocality) {
-        const localities = queryClient.getQueryData<Locality[]>(catalogKeys.localities())
-        const available = localities ?? catalog.localities
-        const selected = available.find((item) => item.id === form.getValues("localityId"))
-        // A nearby selected district is more precise than its parent town.
-        const nearest =
-          selected && distanceKm(point, selected) <= 1 ? selected : nearestTown(point, available)
-        form.setValue("localityId", nearest?.id ?? "", { shouldDirty: true })
-        setNearbyLocality(nearest?.name ?? null)
-        setLocalityUnknown(!nearest)
-      }
+      if (shouldUpdateLocality) setApproximateLocality(point)
     }
     let isTimedOut = false
     const timeout = setTimeout(() => {
@@ -698,6 +703,13 @@ export function EventForm({
                       ref={field.ref}
                       value={field.value}
                       onChange={(value) => {
+                        if (isCorrectingLocality) {
+                          field.onChange(value)
+                          setCorrectingLocality(false)
+                          setNearbyLocality(null)
+                          setLocalityUnknown(false)
+                          return
+                        }
                         if (value === field.value) return
                         reverseRequest.current?.abort()
                         setLocalityUnknown(false)
@@ -718,6 +730,19 @@ export function EventForm({
                       onBlur={field.onBlur}
                     />
                   </FormControl>
+                  {place && (nearbyLocality || isLocalityUnknown) && !isCorrectingLocality ? (
+                    <Button type="button" variant="link" className="h-auto p-0" onClick={() => {
+                      reverseRequest.current?.abort()
+                      if (!form.getValues("address").trim()) {
+                        form.setValue("address", `GPS: ${place.lat.toFixed(6)}, ${place.lng.toFixed(6)}`, { shouldDirty: true })
+                        setCoordinateAddress(true)
+                      }
+                      setCorrectingLocality(true)
+                    }}>
+                      Upravit lokalitu bez přesunu špendlíku
+                    </Button>
+                  ) : null}
+                  {isCorrectingLocality ? <FormDescription>Vyber lokalitu. Místo na mapě zůstane beze změny.</FormDescription> : null}
                   <FormMessage />
                 </FormItem>
               )}
