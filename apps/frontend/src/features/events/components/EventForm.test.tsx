@@ -128,6 +128,47 @@ afterEach(() => {
 })
 
 describe("EventForm", () => {
+  it("keeps the locality and address when the map centre is already the selected place", async () => {
+    const fetchMock = answerAddresses()
+    renderForm({
+      initialValues: {
+        localityId: "l-louny",
+        lat: 50.3573,
+        lng: 13.7969,
+        address: "Sraz u radnice",
+      },
+    })
+
+    await userEvent.click(screen.getByRole("button", { name: "Umístit špendlík do středu mapy" }))
+
+    expect(screen.getByRole("combobox", { name: "Lokalita *" })).toHaveTextContent("Louny")
+    expect(screen.getByLabelText("Adresa *")).toHaveValue("Sraz u radnice")
+    expect(fetchMock).not.toHaveBeenCalled()
+  })
+
+  it("keeps a nearby locality when the found address names a place outside the catalog", async () => {
+    answerAddresses({
+      type: "Feature",
+      geometry: { type: "Point", coordinates: [13.7969, 50.3573] },
+      properties: {
+        type: "street",
+        osm_key: "highway",
+        countrycode: "CZ",
+        name: "Polní",
+        city: "Obec mimo katalog",
+      },
+    })
+    renderForm({ initialValues: { localityId: "l-louny" } })
+
+    await userEvent.click(screen.getByRole("button", { name: "Umístit špendlík do středu mapy" }))
+
+    await waitFor(() =>
+      expect(screen.getByLabelText("Adresa *")).toHaveValue("Polní, Obec mimo katalog"),
+    )
+    expect(screen.getByRole("combobox", { name: "Lokalita *" })).toHaveTextContent("Louny")
+    expect(screen.getByText(/Pro orientaci jsme zvolili lokalitu Louny/)).toBeInTheDocument()
+  })
+
   it("uses exact coordinates and suggests a nearby locality for a place without an address", async () => {
     renderForm({ initialValues: { localityId: "l-louny" } })
     await userEvent.click(screen.getByRole("button", { name: "Umístit špendlík do středu mapy" }))
