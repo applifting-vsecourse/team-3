@@ -5,6 +5,7 @@ import type { Locality } from "@/lib/catalog/catalogSchemas"
 import {
   addressSearchUrl,
   localityOfAddress,
+  nearestTown,
   reverseAddress,
   toAddressSuggestions,
 } from "@/features/events/api/addressSearch"
@@ -217,6 +218,23 @@ describe("localityOfAddress – a village the catalog doesn't have", () => {
     expect(
       localityOfAddress({ city: "Horní Lomná", lat: 49.52, lng: 18.64 }, localities, "pardubice"),
     ).toBeUndefined()
+  })
+})
+
+describe("nearestTown", () => {
+  const louny: Locality = {
+    id: "louny",
+    slug: "louny",
+    name: "Louny",
+    parentId: null,
+    lat: 50.3573,
+    lng: 13.7969,
+  }
+  it("suggests the nearest town for a field outside Louny", () => {
+    expect(nearestTown({ lat: 50.394403, lng: 13.883629 }, [louny])).toEqual(louny)
+  })
+  it("does not suggest a town more than 20 km away", () => {
+    expect(nearestTown({ lat: 50.0755, lng: 14.4378 }, [louny])).toBeUndefined()
   })
 })
 

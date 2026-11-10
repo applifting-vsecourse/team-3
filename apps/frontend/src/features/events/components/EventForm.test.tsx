@@ -35,6 +35,7 @@ const catalog: Catalog = {
       lat: 49.9739,
       lng: 16.3936,
     },
+    { id: "l-louny", slug: "louny", name: "Louny", parentId: null, lat: 50.3573, lng: 13.7969 },
   ],
   categories: [
     {
@@ -127,6 +128,15 @@ afterEach(() => {
 })
 
 describe("EventForm", () => {
+  it("uses exact coordinates and suggests a nearby locality for a place without an address", async () => {
+    renderForm({ initialValues: { localityId: "l-louny" } })
+    await userEvent.click(screen.getByRole("button", { name: "Umístit špendlík do středu mapy" }))
+    await waitFor(() =>
+      expect(screen.getByLabelText("Adresa *")).toHaveValue("GPS: 50.357300, 13.796900"),
+    )
+    expect(screen.getByRole("combobox", { name: "Lokalita *" })).toHaveTextContent("Louny")
+    expect(screen.getByText(/Nejbližší lokalita v nabídce je Louny/)).toBeInTheDocument()
+  })
   it("fills an empty address from the point selected on the map", async () => {
     const addressAtCenter = {
       ...krizikova,
@@ -572,7 +582,8 @@ describe("EventForm", () => {
 
       await userEvent.click(screen.getByRole("button", { name: "Umístit špendlík do středu mapy" }))
       await waitFor(() => expect(fetchMock).toHaveBeenCalled())
-      expect(await screen.findByText(/Adresu se nepodařilo najít/)).toBeInTheDocument()
+      expect(await screen.findByText(/Adresu se nepodařilo určit/)).toBeInTheDocument()
+      await userEvent.clear(addressField())
       await userEvent.type(addressField(), "Hřiště u školy, Praha 8")
       await fillTheRest()
       await submit()

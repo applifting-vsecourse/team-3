@@ -123,14 +123,14 @@ const NEAREST_TOWN_KM = 20
 const SAME_TOWN_KM = 25
 
 // equirectangular distance: plenty at the scale of Czechia
-const distanceKm = (a: LatLng, b: LatLng): number => {
+export const distanceKm = (a: LatLng, b: LatLng): number => {
   const toRad = Math.PI / 180
   const x = (b.lng - a.lng) * toRad * Math.cos(((a.lat + b.lat) / 2) * toRad)
   const y = (b.lat - a.lat) * toRad
   return Math.hypot(x, y) * 6371
 }
 
-const nearestTown = (point: LatLng, localities: Locality[]): Locality | undefined => {
+export const nearestTown = (point: LatLng, localities: Locality[]): Locality | undefined => {
   let nearest: Locality | undefined
   let nearestKm = NEAREST_TOWN_KM
   for (const locality of localities) {

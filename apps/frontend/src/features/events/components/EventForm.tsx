@@ -31,7 +31,12 @@ import type { Catalog } from "@/lib/catalog/catalogSearch"
 import { PRAHA_SLUG } from "@/lib/catalog/localityOptions"
 import { cn } from "@/lib/utils"
 
-import { localityOfAddress, reverseAddress } from "@/features/events/api/addressSearch"
+import {
+  distanceKm,
+  localityOfAddress,
+  nearestTown,
+  reverseAddress,
+} from "@/features/events/api/addressSearch"
 import {
   EVENT_ADDRESS_MAX_LENGTH,
   EVENT_DESCRIPTION_MAX_LENGTH,
@@ -207,7 +212,8 @@ export function EventForm({
   const queryClient = useQueryClient()
   const reverseRequest = useRef<AbortController | null>(null)
   const [shouldCheckAddress, setCheckAddress] = useState(false)
-  const [isAddressLookupFailed, setAddressLookupFailed] = useState(false)
+  const [isCoordinateAddress, setCoordinateAddress] = useState(false)
+  const [nearbyLocality, setNearbyLocality] = useState<string | null>(null)
   useEffect(() => () => reverseRequest.current?.abort(), [])
   const [today] = useState(() => pragueToday())
   const isEdit = mode === "edit"
@@ -252,7 +258,25 @@ export function EventForm({
     // Once a different point is chosen, the previous address may be wrong.
     form.setValue("address", "", { shouldDirty: true, shouldValidate: form.formState.isSubmitted })
     setCheckAddress(false)
-    setAddressLookupFailed(false)
+    setCoordinateAddress(false)
+    setNearbyLocality(null)
+    const fillCoordinates = () => {
+      form.setValue("address", `GPS: ${point.lat.toFixed(6)}, ${point.lng.toFixed(6)}`, {
+        shouldDirty: true,
+        shouldValidate: form.formState.isSubmitted,
+      })
+      setCoordinateAddress(true)
+      if (shouldUpdateLocality) {
+        const localities = queryClient.getQueryData<Locality[]>(catalogKeys.localities())
+        const available = localities ?? catalog.localities
+        const selected = available.find((item) => item.id === form.getValues("localityId"))
+        // A nearby selected district is more precise than its parent town.
+        const nearest =
+          selected && distanceKm(point, selected) <= 1 ? selected : nearestTown(point, available)
+        form.setValue("localityId", nearest?.id ?? "", { shouldDirty: true })
+        setNearbyLocality(nearest?.name ?? null)
+      }
+    }
     let isTimedOut = false
     const timeout = setTimeout(() => {
       isTimedOut = true
@@ -274,12 +298,12 @@ export function EventForm({
         })
         setCheckAddress(true)
       } else {
-        setAddressLookupFailed(true)
+        fillCoordinates()
       }
     } catch {
       // An unavailable service must not stop a user from entering an address.
       if (reverseRequest.current === controller && (!controller.signal.aborted || isTimedOut)) {
-        setAddressLookupFailed(true)
+        fillCoordinates()
       }
     } finally {
       clearTimeout(timeout)
@@ -708,10 +732,19 @@ export function EventForm({
                       autoComplete="off"
                       className="h-11"
                       {...field}
+                      onFocus={(event) => {
+                        if (isCoordinateAddress) event.currentTarget.select()
+                      }}
+                      onMouseUp={(event) => {
+                        if (isCoordinateAddress) {
+                          event.preventDefault()
+                          event.currentTarget.select()
+                        }
+                      }}
                       onChange={(value) => {
                         reverseRequest.current?.abort()
                         setCheckAddress(false)
-                        setAddressLookupFailed(false)
+                        setCoordinateAddress(false)
                         field.onChange(value)
                       }}
                       near={place ?? mapCenter}
@@ -720,7 +753,8 @@ export function EventForm({
                       onPick={(suggestion) => {
                         reverseRequest.current?.abort()
                         setCheckAddress(false)
-                        setAddressLookupFailed(false)
+                        setCoordinateAddress(false)
+                        setNearbyLocality(null)
                         const options = {
                           shouldDirty: true,
                           shouldValidate: form.formState.isSubmitted,
@@ -738,12 +772,15 @@ export function EventForm({
                       }}
                     />
                   </FormControl>
-                  {shouldCheckAddress ? (
-                    <FormDescription>Zkontroluj, že adresa odpovídá místu na mapě.</FormDescription>
-                  ) : null}
-                  {isAddressLookupFailed ? (
+                  {shouldCheckAddress || isCoordinateAddress || nearbyLocality ? (
                     <FormDescription>
-                      Adresu se nepodařilo najít. Zkontroluj lokalitu a zadej adresu ručně.
+                      {shouldCheckAddress ? "Zkontroluj, že adresa odpovídá místu na mapě. " : null}
+                      {isCoordinateAddress
+                        ? "Adresu se nepodařilo určit, proto jsme doplnili souřadnice. Můžeš je nahradit vlastním popisem místa. "
+                        : null}
+                      {nearbyLocality
+                        ? `Nejbližší lokalita v nabídce je ${nearbyLocality}. Zkontroluj, jestli odpovídá místu.`
+                        : null}
                     </FormDescription>
                   ) : null}
                   <FormMessage />
