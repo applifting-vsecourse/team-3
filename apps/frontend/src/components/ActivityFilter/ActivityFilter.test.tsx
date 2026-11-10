@@ -78,6 +78,24 @@ describe("ActivityFilter › Hledat aktivitu", () => {
     expect(row).toHaveTextContent(/Pohyb a tanec$/)
   })
 
+  it("the status is there, empty, before anything is typed, so a screen reader announces the text", async () => {
+    renderFilter()
+    await userEvent.click(screen.getByRole("button", { name: "Typ aktivity" }))
+    const panel = await screen.findByRole("dialog", { name: "Typ aktivity" })
+    const status = within(panel).getByRole("status")
+    expect(status).toBeEmptyDOMElement()
+
+    await userEvent.type(within(panel).getByLabelText("Hledat aktivitu"), "judo")
+    expect(within(panel).getByRole("status")).toBe(status)
+    expect(status).toBeEmptyDOMElement()
+
+    await userEvent.clear(within(panel).getByLabelText("Hledat aktivitu"))
+    await userEvent.type(within(panel).getByLabelText("Hledat aktivitu"), "curling")
+    // the same element, only its text is new
+    expect(within(panel).getByRole("status")).toBe(status)
+    expect(status).toHaveTextContent("Takovou aktivitu v katalogu nemáme. Vyber, kam nejvíc patří:")
+  })
+
   it("an activity the catalog lacks: offers the „Jiné…“ of every category instead of a dead end", async () => {
     const { onChange } = renderFilter()
     const panel = await searchFor("curling")

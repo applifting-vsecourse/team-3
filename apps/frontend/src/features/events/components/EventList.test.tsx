@@ -78,6 +78,41 @@ describe("EventList", () => {
     expect(second).toHaveAttribute("inert")
   })
 
+  it("the lowest mobile panel („map“): an empty list's block is inert, the count row is not", () => {
+    const empty = (
+      <div>
+        <p>Žádná nadcházející akce neodpovídá filtrům:</p>
+        <button type="button">Založit akci</button>
+      </div>
+    )
+    const { rerender } = render(
+      <EventList
+        events={[]}
+        empty={empty}
+        onClearFilters={vi.fn()}
+        inertAfter={0}
+      />,
+    )
+
+    expect(
+      screen.getByRole("button", { name: "Založit akci", hidden: true }).closest("[inert]"),
+    ).not.toBeNull()
+    expect(screen.getByRole("button", { name: "Zrušit filtry" }).closest("[inert]")).toBeNull()
+
+    // „peek“ shows the whole block, „list“ everything
+    for (const inertAfter of [1, undefined]) {
+      rerender(
+        <EventList
+          events={[]}
+          empty={empty}
+          onClearFilters={vi.fn()}
+          inertAfter={inertAfter}
+        />,
+      )
+      expect(screen.getByRole("button", { name: "Založit akci" }).closest("[inert]")).toBeNull()
+    }
+  })
+
   it("offers „Zrušit filtry“ by the count only when a filter is active", async () => {
     const onClearFilters = vi.fn()
     const { rerender } = render(<EventList events={[]} />)

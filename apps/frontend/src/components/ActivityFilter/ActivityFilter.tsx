@@ -59,6 +59,8 @@ export function ActivityFilter({
   const shown = categories.find((c) => c.slug === shownSlug)
   const isSecondLevel = !isDesktop && shown !== undefined && !query
   const label = selectionLabel(current, categories, filterName)
+  const results = query.trim() ? searchActivities(categories, query) : undefined
+  const isNotFound = results?.length === 0
 
   const updateDraft = (selection: ActivitySelection) => {
     setDraft(selection)
@@ -114,10 +116,18 @@ export function ActivityFilter({
         />
       )}
 
-      {query.trim() ? (
+      {/* in the DOM from the start, empty, so a screen reader announces the text put in it */}
+      <p
+        role="status"
+        className={cn(isNotFound && "mt-2 px-4 py-3 text-sm text-muted-foreground md:w-80")}
+      >
+        {isNotFound ? "Takovou aktivitu v katalogu nemáme. Vyber, kam nejvíc patří:" : null}
+      </p>
+
+      {results ? (
         <SearchResults
           categories={categories}
-          query={query}
+          results={results}
           selection={draft}
           onChange={updateDraft}
         />
@@ -305,18 +315,18 @@ function CategoryActivities({
   )
 }
 
+/** What „Hledat aktivitu“ found; with nothing, the „Jiné…“ under the status saying so. */
 function SearchResults({
   categories,
-  query,
+  results,
   selection,
   onChange,
 }: {
   categories: ActivityCategory[]
-  query: string
+  results: ActivityMatch[]
   selection: ActivitySelection
   onChange: (selection: ActivitySelection) => void
 }) {
-  const results = searchActivities(categories, query)
   if (results.length === 0) {
     // not a dead end: the form offers the same (ActivityCombobox)
     const others = categories.flatMap((category) =>
@@ -325,20 +335,13 @@ function SearchResults({
         .map((activity) => ({ category, activity })),
     )
     return (
-      <div className="mt-2 flex flex-col md:w-80">
-        <p
-          role="status"
-          className="px-4 py-3 text-sm text-muted-foreground"
-        >
-          Takovou aktivitu v katalogu nemáme. Vyber, kam nejvíc patří:
-        </p>
-        <ActivityRows
-          rows={others}
-          selection={selection}
-          onChange={onChange}
-          label="Jiné aktivity"
-        />
-      </div>
+      <ActivityRows
+        rows={others}
+        selection={selection}
+        onChange={onChange}
+        label="Jiné aktivity"
+        className="md:w-80"
+      />
     )
   }
   return (
@@ -386,7 +389,7 @@ function ActivityRows({
   )
 }
 
-/** Figma: Picker row/Activity; „Jóga · pilates“ when a synonym found it. */
+/** Figma: Picker row/Activity; „Bojová umění · judo“ when a synonym found it. */
 function ActivityRow({
   name,
   matchedKeyword,
