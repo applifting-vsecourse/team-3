@@ -288,6 +288,9 @@ describe("SignUpForm (B-010, #153)", () => {
       expect(shownRoom).toHaveClass("invisible")
       expect(shownRoom).toHaveAttribute("aria-hidden")
       expect(shownRoom?.querySelectorAll("br")).toHaveLength(2)
+      // three lines, each a no-break space: a line of a plain space alone
+      // would have no height and the room would hold only two lines
+      expect(shownRoom?.textContent).toBe("\u00a0".repeat(3))
       expect(status).toBeEmptyDOMElement()
 
       await waitFor(() => expect(status).toHaveTextContent("Síla hesla: slabé."))

@@ -25,7 +25,8 @@ type PasswordStrengthProps = {
  * the bar at once (empty until the verdict) and room for the verdict and two
  * lines of advice, kept by an invisible placeholder in the same grid cell, so
  * neither the verdict nor advice coming and going moves the fields below. It
- * stays when the field is cleared, so deleting and retyping doesn't jump.
+ * stays when the field is cleared, so deleting and retyping doesn't jump; a
+ * form that empties the field itself remounts it (ChangePasswordForm, `key`).
  */
 export function PasswordStrength({ password, userInputs }: PasswordStrengthProps) {
   const strength = usePasswordStrength(password, userInputs)
@@ -58,17 +59,19 @@ export function PasswordStrength({ password, userInputs }: PasswordStrengthProps
       ) : null}
       <div className="grid text-sm">
         {isShown ? (
-          // the verdict's line and two of advice, whatever is shown over it
+          // the verdict's line and two of advice, whatever is shown over it;
+          // a no-break space in each, as a line of a plain space alone has no
+          // height (it is dropped at the start of the line)
           <span
             aria-hidden
             data-slot="password-strength-room"
             className="invisible col-start-1 row-start-1"
           >
-            {" "}
+            {"\u00a0"}
             <br />
-            {" "}
+            {"\u00a0"}
             <br />
-            {" "}
+            {"\u00a0"}
           </span>
         ) : null}
         <p

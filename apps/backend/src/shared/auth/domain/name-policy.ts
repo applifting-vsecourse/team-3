@@ -56,6 +56,9 @@ export const toValidName = (name: string | undefined): string => {
     .filter((character) => ALLOWED.test(character))
     .join('')
     .replace(/ {2,}/g, ' ');
-  const cut = trimName([...trimName(kept)].slice(0, NAME_MAX_LENGTH).join(''));
-  return nameProblem(cut) === null ? cut : FALLBACK_NAME;
+  const trimmed = trimName(kept);
+  // characters, not UTF-16 units; the cut can end on a space, so trim again
+  const cut = [...trimmed].slice(0, NAME_MAX_LENGTH).join('');
+  const valid = trimName(cut);
+  return nameProblem(valid) === null ? valid : FALLBACK_NAME;
 };

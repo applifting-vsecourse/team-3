@@ -42,6 +42,13 @@ describe('the name BetterAuth saves (#199)', () => {
     }
   });
 
+  it('is trimmed, without the consent time, for an account made outside an endpoint', async () => {
+    // e.g. straight through the adapter: BetterAuth gives no context
+    const result = await create({ name: ' Jana Malá ' }, null);
+
+    expect(result?.data).toEqual({ name: 'Jana Malá' });
+  });
+
   it('is trimmed when update-user changes it', async () => {
     await expect(
       update({ name: ' Jana Malá ' }, { path: '/update-user' }),
@@ -55,5 +62,11 @@ describe('the name BetterAuth saves (#199)', () => {
     await expect(
       update({ name: 'Jana Malá' }, { path: '/update-user' }),
     ).resolves.toBeUndefined();
+  });
+
+  it('is trimmed in an update outside an endpoint too', async () => {
+    await expect(update({ name: ' Jana Malá ' }, null)).resolves.toEqual({
+      data: { name: 'Jana Malá' },
+    });
   });
 });
