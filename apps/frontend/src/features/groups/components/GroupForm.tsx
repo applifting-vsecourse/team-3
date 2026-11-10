@@ -1,4 +1,4 @@
-import { useId } from "react"
+import { useEffect, useEffectEvent, useId, useRef } from "react"
 import { zodResolver } from "@hookform/resolvers/zod"
 import { Loader2 } from "lucide-react"
 import { useForm } from "react-hook-form"
@@ -19,6 +19,7 @@ import {
 import { Input } from "@/components/ui/input"
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
 import { Textarea } from "@/components/ui/textarea"
+import { REDUCED_MOTION_QUERY, useMediaQuery } from "@/hooks/useMediaQuery"
 import type { Catalog } from "@/lib/catalog/catalogSearch"
 import { cn } from "@/lib/utils"
 
@@ -62,6 +63,49 @@ const TYPE_OPTIONS: { value: GroupType; title: string; hint: string }[] = [
 const COLUMN = "contents md:flex md:flex-col md:gap-5"
 const COLUMN_HEADING = "hidden text-lg font-semibold tracking-tight md:block"
 
+/** How long a smooth scroll gets when the browser doesn't say it ended. */
+const SCROLL_END_FALLBACK_MS = 400
+
+/**
+ * Runs `onEnd` once the page stops scrolling, or after `SCROLL_END_FALLBACK_MS`: Safari without
+ * `scrollend`, or a field already in place, so nothing scrolls and no `scrollend` comes.
+ */
+function afterScrollEnds(onEnd: () => void) {
+  const finish = () => {
+    window.removeEventListener("scrollend", finish)
+    window.clearTimeout(timeout)
+    onEnd()
+  }
+  window.addEventListener("scrollend", finish)
+  const timeout = window.setTimeout(finish, SCROLL_END_FALLBACK_MS)
+}
+
+/**
+ * After a failed submit an error under a field off-screen goes unnoticed (#190): scroll the
+ * first invalid field to the middle of the screen, clear of the sticky header, and focus it.
+ * `FormControl` marks invalid fields `aria-invalid` and the first one in DOM order wins. On
+ * desktop that is the reading order. On the phone it is not: the type (`order-4`) comes after
+ * the description (`order-5`) in the DOM. That only works because the type is preselected and
+ * can't be invalid; drop the preselection and this needs solving.
+ */
+function revealFirstInvalid(form: HTMLFormElement | null, isReducedMotion: boolean) {
+  const field = form?.querySelector<HTMLElement>('[aria-invalid="true"]')
+  if (!field) return
+  if (isReducedMotion) {
+    field.scrollIntoView({ behavior: "auto", block: "center" })
+    field.focus({ preventScroll: true })
+    return
+  }
+  field.scrollIntoView({ behavior: "smooth", block: "center" })
+  // Focus only once the scroll is over: in iOS Safari a focused input opens the keyboard and
+  // Safari scrolls the page itself, cutting the smooth scroll short.
+  const focusedAtSubmit = document.activeElement
+  afterScrollEnds(() => {
+    // whoever tapped another field meanwhile keeps it
+    if (document.activeElement === focusedAtSubmit) field.focus({ preventScroll: true })
+  })
+}
+
 type GroupFormProps = {
   catalog: Catalog
   /**
@@ -92,18 +136,31 @@ export function GroupForm({
   const whoId = useId()
   const form = useForm<FormValues>({
     resolver: zodResolver(schema),
+    // revealFirstInvalid focuses instead, after scrolling its own way
+    shouldFocusError: false,
     defaultValues: {
       name: initialValues?.name ?? "",
       activityId: initialValues?.activityId ?? "",
       localityId: initialValues?.localityId ?? "",
-      type: initialValues?.type,
+      // a new group is public unless the founder says otherwise (#190)
+      type: initialValues?.type ?? "public",
       description: initialValues?.description ?? "",
     },
   })
+  const formRef = useRef<HTMLFormElement>(null)
+  const { submitCount } = form.formState
+  const isReducedMotion = useMediaQuery(REDUCED_MOTION_QUERY)
+  // an Effect Event: reads the motion preference, but only a submit runs it
+  const revealErrors = useEffectEvent(() => revealFirstInvalid(formRef.current, isReducedMotion))
+  // after the render that shows a submit's errors, so their fields are already marked
+  useEffect(() => {
+    if (submitCount > 0) revealErrors()
+  }, [submitCount])
 
   return (
     <Form {...form}>
       <form
+        ref={formRef}
         noValidate
         onSubmit={form.handleSubmit((values) =>
           onSubmit({
