@@ -34,6 +34,14 @@ export const nameProblem = (name: string): string | null => {
   return null;
 };
 
+/**
+ * #199: the name as it is saved — without the spaces around it, however it
+ * came (the form, a direct API call, Google). Checked with nameProblem first,
+ * so only plain spaces can be left at the ends; a name of spaces alone has
+ * already been refused as too short, like an empty one.
+ */
+export const trimName = (name: string): string => name.trim();
+
 /** #154: the name an account gets when its own one can't be made to pass. */
 export const FALLBACK_NAME = 'Bez jména';
 
@@ -47,8 +55,7 @@ export const toValidName = (name: string | undefined): string => {
   const kept = [...(name ?? '')]
     .filter((character) => ALLOWED.test(character))
     .join('')
-    .replace(/ {2,}/g, ' ')
-    .trim();
-  const cut = [...kept].slice(0, NAME_MAX_LENGTH).join('').trim();
+    .replace(/ {2,}/g, ' ');
+  const cut = trimName([...trimName(kept)].slice(0, NAME_MAX_LENGTH).join(''));
   return nameProblem(cut) === null ? cut : FALLBACK_NAME;
 };
