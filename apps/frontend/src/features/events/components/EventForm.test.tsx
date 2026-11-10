@@ -131,7 +131,12 @@ describe("EventForm", () => {
   it("updates the locality immediately even if the user types before reverse lookup finishes", async () => {
     vi.stubGlobal(
       "fetch",
-      vi.fn(() => new Promise<Response>(() => {})),
+      vi.fn(
+        () =>
+          new Promise<Response>(() => {
+            /* lookup remains pending */
+          }),
+      ),
     )
     const { container } = render(
       <QueryClientProvider client={new QueryClient()}>
