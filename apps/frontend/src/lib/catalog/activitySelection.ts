@@ -90,7 +90,7 @@ export const isOtherActivity = (name: string): boolean => /^jin[aey] /.test(fold
 export type ActivityMatch = {
   category: ActivityCategory
   activity: Activity
-  /** The synonym that matched, as the catalog writes it, when the name didn't („pilates“). */
+  /** The synonym that matched, as the catalog writes it, when the name didn't („judo“). */
   matchedKeyword?: string
 }
 

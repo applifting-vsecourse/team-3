@@ -20,7 +20,8 @@ type EventListProps = {
   onHighlight?: (eventId: string | undefined) => void
   /**
    * The closed mobile panel shows only the first N cards; the rest stay
-   * rendered (so the sheet can be dragged up smoothly) but inert.
+   * rendered (so the sheet can be dragged up smoothly) but inert. At 0 („map“)
+   * an empty list's block is inert too.
    */
   inertAfter?: number
   /**
@@ -128,14 +129,17 @@ export function EventList({
       </div>
 
       {events.length === 0 ? (
-        (empty ?? (
-          <p
-            data-peek-end
-            className="py-8 text-center text-sm text-muted-foreground"
-          >
-            Pro zvolené filtry teď nejsou žádné nadcházející akce.
-          </p>
-        ))
+        // the lowest sheet position („map“) shows just the count row: the rest is out of reach
+        <div inert={inertAfter === 0}>
+          {empty ?? (
+            <p
+              data-peek-end
+              className="py-8 text-center text-sm text-muted-foreground"
+            >
+              Pro zvolené filtry teď nejsou žádné nadcházející akce.
+            </p>
+          )}
+        </div>
       ) : (
         <ul className="flex flex-col gap-3">
           {events.map((event, index) => (
