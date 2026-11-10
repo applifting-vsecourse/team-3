@@ -243,7 +243,7 @@ Staging a CI/CD (F-59, F-60) už v repu jsou (`.github/workflows/ci.yml`, `deplo
 
 - `GET/PATCH /api/me/profile`: jméno, fotka (URL, viz otevřené otázky), bio (max 500 znaků), zájmy (aktivity), domovská lokalita.
 - `GET /api/users/:id` – veřejný profil (PO 4. 11., mění 28. 10.): jméno, zájmy a hodnocení (B-060, vždy s počtem): jak ho hodnotili organizátoři jako účastníka (průměr a hodnocení s komentáři), průměr jako organizátor a průměrné hodnocení akcí, které pořádá. Když pořádal veřejné akce, i historie proběhlých s počtem lidí a průměrem hodnocení akce (Figma B-07). Jen veřejné akce, ne jen pro členy ani soukromé; akce skupin se osobě nepočítají. E-mail, akce, kterých se účastnil, ani skupiny nevrací, ty vidí jen uživatel sám (#179). Víc údajů až s přátelstvím (B-014).
-- FE: stránka `/profil` (úprava a přehled mých akcí, skupin a hodnocení, #178) a `/uzivatele/:id` (zobrazení, #179). Po prvním přihlášení se nevyplněný profil nabídne jednou (onboarding `/vitej`, Figma B-08 / B-08d: domovská lokalita + zájmy výběrem jako filtr A-02a; „Uložit a ukázat akce“ vede na /akce s „Podle tvých zájmů“, „Teď ne“ přeskočí a znovu se nenabízí). PO 10. 11.: onboarding se ukáže hned po registraci jako krokový průvodce (domovská lokalita, zájmy, případně další údaje), sprint 4.
+- FE: stránka `/profil` (úprava a přehled mých akcí, skupin a hodnocení, #178) a `/uzivatele/:id` (zobrazení, #179). Onboarding `/vitej` (PO 10. 11., sprint 4): hned po registraci (e-mail i Google) krokový průvodce, Figma B-08 / B-08d – domovská lokalita, zájmy výběrem jako filtr A-02a, případně další údaje. „Uložit a ukázat akce“ vede na /akce s „Podle tvých zájmů“, „Teď ne“ průvodce přeskočí a znovu se nenabízí; údaje jdou změnit v `/profil`.
 - Sprint 3 (#178): jméno, domovská lokalita a zájmy; fotka a bio zůstávají v #64.
 
 **Hotovo, když:**
@@ -261,7 +261,7 @@ Staging a CI/CD (F-59, F-60) už v repu jsou (`.github/workflows/ci.yml`, `deplo
 
 > Odloženo (PO 28. 10.): nastavení viditelnosti přijde až s přátelstvím. Do té doby veřejný profil ukazuje jméno, zájmy, hodnocení a historii pořádaných veřejných akcí (B-013, PO 4. 11.).
 >
-> Přátelé (PO 10. 11.): ve sprintu 4 přibude „Přidat do přátel“ na veřejném profilu, žádost přijde jako upozornění a sekce lidí, které znám; u přátel uvidím, kam chodí. Nastavení viditelnosti navazuje na přátelství.
+> Přátelé (PO 10. 11.) jsou samostatné issue, B-014 na ně navazuje: ve sprintu 4 přibude „Přidat do přátel“ na veřejném profilu, žádost přijde jako upozornění a sekce lidí, které znám; u přátel uvidím, kam chodí. Nastavení viditelnosti navazuje na přátelství.
 
 - U každého z polí `photo`, `bio`, `pastEvents` volba: `everyone` / `organizers` (jen organizátoři akcí, na které se hlásím) / `nobody`. Výchozí `everyone`.
 - Filtrování dělá **backend** v `GET /api/users/:id`. Jméno vidí organizátor akce, na kterou se uživatel hlásí, vždy.
@@ -801,6 +801,8 @@ Doménová logika (čistá funkce + testy): `approvedCount`, `missingToMin = max
 
 `US-19` · FS · M · závisí na: B-062
 
+> Sprint 4 (tým 10. 11.): první nástřel bez fronty nahlášení (B-062 mimo scope). Z B-062 se vezme jen `AdminGuard`; admin upraví nebo zruší jakoukoli akci přímo z jejího detailu a zásah se zapíše do historie (`ModerationAction`). Blokace uživatelů a zbytek B-063 až s B-062.
+
 - Nahlášení zamítnout, nebo schválit se zásahem a povinným důvodem:
   - **zablokovat uživatele** → nepřihlásí se, jeho nadcházející akce se zruší s e-mailem přihlášeným
   - **skrýt / smazat akci** → organizátor dostane e-mail s důvodem
@@ -940,21 +942,21 @@ Doménová logika (čistá funkce + testy): `approvedCount`, `missingToMin = max
 
 Dokud tým nebo PO nerozhodne jinak, agent použije výchozí volbu.
 
-| #   | Otázka                                                                            | Výchozí volba                                                                                | Kdo rozhodne |
-| --- | --------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------- | ------------ |
-| Q1  | Mapa a našeptávač míst (poznámky zmiňují Google Maps)                             | Leaflet + OSM, místo klikem do mapy + textová adresa, lokality z vlastního číselníku         | Tým          |
-| Q2  | Služba pro odhad lokality z IP                                                    | Offline tabulka z DB-IP Lite (CC BY 4.0) v repu, při chybě celé Česko (tým 28. 10., #55)     | Tým          |
-| Q3  | Nahrávání fotek (profil, skupina)                                                 | V MVP jen URL obrázku; u akce vlastní obrázek, jinak obrázek aktivity (PO 10. 11., #77)      | Tým          |
-| Q4  | Podle čeho vybírat akce na úvodní stránce (F-68)                                  | Nejbližší termín v lokalitě, topované první; sekce podle #182, pravidla v docs/ux-audit.md   | PO           |
-| Q5  | Text obchodních podmínek a zásad ochrany údajů (F-65)                             | Placeholder                                                                                  | PO           |
-| Q6  | Ukázková data – dodá PO reálné skupiny ze sondy? (F-64)                           | Tým vymyslí realistická data                                                                 | PO           |
-| Q7  | Zálohy – jak dlouho držet a kdo odpovídá po předání (F-63)                        | 7 denních záloh                                                                              | PO           |
-| Q8  | Brand – logo, barvy, referenční aplikace (F-67)                                   | Podle design systému z nástřelu designu                                                      | PO / tým     |
-| Q9  | Filtr Obsazenost: Volná místa / Chybí lidé (návrh týmu 20. 10., rozšířen 23. 10.) | PO 10. 11.: v této podobě hledajícímu nedává smysl, tým navrhne jednodušší řešení (sprint 4) | PO           |
-| Q10 | Výchozí pohled /akce na mobilu                                                    | Mapa přes celou obrazovku, seznam ve vysouvacím panelu                                       | PO           |
-| Q11 | Zrušení, nebo smazání akce                                                        | Jen zrušení se štítkem „Zrušeno“, akce se nemaže; zrušení nejde vrátit (PO 10. 11.)          | PO           |
-| Q12 | Organizátor jako účastník vlastní akce                                            | Není automaticky, může se přihlásit; jeho přihláška se neschvaluje a počítá se do kapacity   | PO           |
-| Q13 | Seznam kategorií a aktivit (B-002)                                                | Seznam týmu z 20. 10. (8 kategorií + „Jiné“), konzultace s PO na standupu 23. 10.            | Tým          |
+| #   | Otázka                                                                            | Výchozí volba                                                                                                                              | Kdo rozhodne |
+| --- | --------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------ | ------------ |
+| Q1  | Mapa a našeptávač míst (poznámky zmiňují Google Maps)                             | Leaflet + OSM, místo klikem do mapy + textová adresa, lokality z vlastního číselníku                                                       | Tým          |
+| Q2  | Služba pro odhad lokality z IP                                                    | Offline tabulka z DB-IP Lite (CC BY 4.0) v repu, při chybě celé Česko (tým 28. 10., #55)                                                   | Tým          |
+| Q3  | Nahrávání fotek (profil, skupina, akce)                                           | Akce: organizátor nahraje obrázek jako soubor, bez něj obrázek aktivity (PO 10. 11., #77). Profil a skupina zatím jen URL obrázku          | PO           |
+| Q4  | Podle čeho vybírat akce na úvodní stránce (F-68)                                  | Nejbližší termín v lokalitě, topované první; sekce podle #182, pravidla v docs/ux-audit.md                                                 | PO           |
+| Q5  | Text obchodních podmínek a zásad ochrany údajů (F-65)                             | Placeholder                                                                                                                                | PO           |
+| Q6  | Ukázková data – dodá PO reálné skupiny ze sondy? (F-64)                           | Tým vymyslí realistická data                                                                                                               | PO           |
+| Q7  | Zálohy – jak dlouho držet a kdo odpovídá po předání (F-63)                        | 7 denních záloh                                                                                                                            | PO           |
+| Q8  | Brand – logo, barvy, referenční aplikace (F-67)                                   | Podle design systému z nástřelu designu                                                                                                    | PO / tým     |
+| Q9  | Filtr Obsazenost: Volná místa / Chybí lidé (návrh týmu 20. 10., rozšířen 23. 10.) | PO 10. 11.: v této podobě hledajícímu nedává smysl, tým navrhne jednodušší řešení (sprint 4). Do schválení návrhu filtr zůstává beze změny | PO           |
+| Q10 | Výchozí pohled /akce na mobilu                                                    | Mapa přes celou obrazovku, seznam ve vysouvacím panelu                                                                                     | PO           |
+| Q11 | Zrušení, nebo smazání akce                                                        | Jen zrušení se štítkem „Zrušeno“, akce se nemaže; zrušení nejde vrátit (PO 10. 11.)                                                        | PO           |
+| Q12 | Organizátor jako účastník vlastní akce                                            | Není automaticky, může se přihlásit; jeho přihláška se neschvaluje a počítá se do kapacity                                                 | PO           |
+| Q13 | Seznam kategorií a aktivit (B-002)                                                | Seznam týmu z 20. 10. (8 kategorií + „Jiné“), konzultace s PO na standupu 23. 10.                                                          | Tým          |
 
 ## Mimo MVP (agent nedělá)
 
