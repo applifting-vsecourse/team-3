@@ -269,9 +269,13 @@ export function EventForm({
         ? selected
         : nearestTown(point, available)
     // A city-only result does not disprove a nearby selected district.
-    const locality = exact && !suggestion.district && selected?.parentId === exact.id && distanceKm(point, selected) <= 1
-      ? selected
-      : exact ?? approximate
+    const locality =
+      exact &&
+      !suggestion.district &&
+      selected?.parentId === exact.id &&
+      distanceKm(point, selected) <= 1
+        ? selected
+        : (exact ?? approximate)
     form.setValue("localityId", locality?.id ?? "", {
       shouldDirty: true,
       shouldValidate: form.formState.isSubmitted,
@@ -281,9 +285,11 @@ export function EventForm({
   }
 
   const setApproximateLocality = (point: { lat: number; lng: number }) => {
-    const available = queryClient.getQueryData<Locality[]>(catalogKeys.localities()) ?? catalog.localities
+    const available =
+      queryClient.getQueryData<Locality[]>(catalogKeys.localities()) ?? catalog.localities
     const selected = available.find((item) => item.id === form.getValues("localityId"))
-    const nearest = selected && distanceKm(point, selected) <= 1 ? selected : nearestTown(point, available)
+    const nearest =
+      selected && distanceKm(point, selected) <= 1 ? selected : nearestTown(point, available)
     form.setValue("localityId", nearest?.id ?? "", { shouldDirty: true })
     setNearbyLocality(nearest?.name ?? null)
     setLocalityUnknown(!nearest)
@@ -731,18 +737,31 @@ export function EventForm({
                     />
                   </FormControl>
                   {place && (nearbyLocality || isLocalityUnknown) && !isCorrectingLocality ? (
-                    <Button type="button" variant="link" className="h-auto p-0" onClick={() => {
-                      reverseRequest.current?.abort()
-                      if (!form.getValues("address").trim()) {
-                        form.setValue("address", `GPS: ${place.lat.toFixed(6)}, ${place.lng.toFixed(6)}`, { shouldDirty: true })
-                        setCoordinateAddress(true)
-                      }
-                      setCorrectingLocality(true)
-                    }}>
+                    <Button
+                      type="button"
+                      variant="link"
+                      className="h-auto p-0"
+                      onClick={() => {
+                        reverseRequest.current?.abort()
+                        if (!form.getValues("address").trim()) {
+                          form.setValue(
+                            "address",
+                            `GPS: ${place.lat.toFixed(6)}, ${place.lng.toFixed(6)}`,
+                            { shouldDirty: true },
+                          )
+                          setCoordinateAddress(true)
+                        }
+                        setCorrectingLocality(true)
+                      }}
+                    >
                       Upravit lokalitu bez přesunu špendlíku
                     </Button>
                   ) : null}
-                  {isCorrectingLocality ? <FormDescription>Vyber lokalitu. Místo na mapě zůstane beze změny.</FormDescription> : null}
+                  {isCorrectingLocality ? (
+                    <FormDescription>
+                      Vyber lokalitu. Místo na mapě zůstane beze změny.
+                    </FormDescription>
+                  ) : null}
                   <FormMessage />
                 </FormItem>
               )}

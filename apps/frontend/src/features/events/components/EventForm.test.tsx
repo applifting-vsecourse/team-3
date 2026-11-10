@@ -129,10 +129,20 @@ afterEach(() => {
 
 describe("EventForm", () => {
   it("updates the locality immediately even if the user types before reverse lookup finishes", async () => {
-    vi.stubGlobal("fetch", vi.fn(() => new Promise<Response>(() => {})))
-    const { container } = render(<QueryClientProvider client={new QueryClient()}>
-      <EventForm catalog={catalog} isSubmitting={false} onSubmit={vi.fn()} initialValues={{ localityId: "l-louny", lat: 50.08, lng: 14.44, address: "Stará adresa" }} />
-    </QueryClientProvider>)
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(() => new Promise<Response>(() => {})),
+    )
+    const { container } = render(
+      <QueryClientProvider client={new QueryClient()}>
+        <EventForm
+          catalog={catalog}
+          isSubmitting={false}
+          onSubmit={vi.fn()}
+          initialValues={{ localityId: "l-louny", lat: 50.08, lng: 14.44, address: "Stará adresa" }}
+        />
+      </QueryClientProvider>,
+    )
     fireEvent.click(container.querySelector(".leaflet-container")!, { clientX: 20, clientY: 20 })
     await userEvent.type(screen.getByLabelText("Adresa *"), "Moje místo")
     expect(screen.getByRole("combobox", { name: "Lokalita *" })).toHaveTextContent("Praha")
@@ -142,7 +152,14 @@ describe("EventForm", () => {
     answerAddresses({
       type: "Feature",
       geometry: { type: "Point", coordinates: [14.489, 50.1224] },
-      properties: { type: "house", osm_key: "place", countrycode: "CZ", street: "Bílinská", housenumber: "1", city: "Praha" },
+      properties: {
+        type: "house",
+        osm_key: "place",
+        countrycode: "CZ",
+        street: "Bílinská",
+        housenumber: "1",
+        city: "Praha",
+      },
     })
     renderForm({ initialValues: { localityId: "l-praha-9" } })
     await userEvent.type(screen.getByLabelText("Adresa *"), "Bílinská")
@@ -150,18 +167,33 @@ describe("EventForm", () => {
     expect(screen.getByRole("combobox", { name: "Lokalita *" })).toHaveTextContent("Praha 9")
   })
   it("lets the user correct an approximate locality without moving the selected point", async () => {
-    const { onSubmit } = renderForm({ initialValues: {
-      title: "Setkání", activityId: "a-deskove-hry", localityId: "l-louny",
-      startsAt: new Date(Date.now() + 3 * 86_400_000).toISOString(), minParticipants: 2, maxParticipants: 4,
-    } })
+    const { onSubmit } = renderForm({
+      initialValues: {
+        title: "Setkání",
+        activityId: "a-deskove-hry",
+        localityId: "l-louny",
+        startsAt: new Date(Date.now() + 3 * 86_400_000).toISOString(),
+        minParticipants: 2,
+        maxParticipants: 4,
+      },
+    })
     await userEvent.click(screen.getByRole("button", { name: "Umístit špendlík do středu mapy" }))
-    await waitFor(() => expect(screen.getByLabelText("Adresa *")).toHaveValue("GPS: 50.357300, 13.796900"))
-    await userEvent.click(screen.getByRole("button", { name: "Upravit lokalitu bez přesunu špendlíku" }))
+    await waitFor(() =>
+      expect(screen.getByLabelText("Adresa *")).toHaveValue("GPS: 50.357300, 13.796900"),
+    )
+    await userEvent.click(
+      screen.getByRole("button", { name: "Upravit lokalitu bez přesunu špendlíku" }),
+    )
     await pick("Lokalita *", "Hledat lokalitu", "Ústí nad Orlicí")
     await submit()
-    expect(onSubmit).toHaveBeenCalledWith(expect.objectContaining({
-      localityId: "l-usti-nad-orlici", lat: 50.3573, lng: 13.7969, address: "GPS: 50.357300, 13.796900",
-    }))
+    expect(onSubmit).toHaveBeenCalledWith(
+      expect.objectContaining({
+        localityId: "l-usti-nad-orlici",
+        lat: 50.3573,
+        lng: 13.7969,
+        address: "GPS: 50.357300, 13.796900",
+      }),
+    )
   })
 
   it("does not show old address suggestions after the map changes the address", async () => {
@@ -170,7 +202,9 @@ describe("EventForm", () => {
     await userEvent.type(screen.getByLabelText("Adresa *"), "Letenská")
     expect(await screen.findByRole("option", { name: /Letenská/ })).toBeInTheDocument()
     await userEvent.click(screen.getByRole("button", { name: "Umístit špendlík do středu mapy" }))
-    await waitFor(() => expect(screen.getByLabelText("Adresa *")).toHaveValue("GPS: 50.357300, 13.796900"))
+    await waitFor(() =>
+      expect(screen.getByLabelText("Adresa *")).toHaveValue("GPS: 50.357300, 13.796900"),
+    )
     await userEvent.click(screen.getByLabelText("Adresa *"))
     await userEvent.keyboard("{ArrowDown}")
     expect(screen.queryByRole("option", { name: /Letenská/ })).not.toBeInTheDocument()
