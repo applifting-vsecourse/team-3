@@ -29,25 +29,29 @@ Akce a skupiny mají fungovat „křížem krážem“: kdo si něco založí, m
 
 ## Scope sprintu 4
 
-| Oblast                 | Co bereme                                                                                                                                           | Zdroj      | Issue                                                                        |
-| ---------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------- | ---------- | ---------------------------------------------------------------------------- |
-| Dodělávky ze sprintu 3 | Rozdělané stories a bugy ze sprintu 3, PO je ještě proklikává a případně založí další                                                               | PO         | #61, #165, #272                                                              |
-|                        | Otevřené bugy a drobnosti                                                                                                                           | tým        | #184, #192, #197, #198, #199, #200, #202, #242, #266, #281, #288, #289, #291 |
-|                        | Zbylé nálezy bezpečnostního auditu (nízká priorita)                                                                                                 | tým        | #224, #226, #228, #230                                                       |
-| Onboarding             | Po registraci krokový průvodce: domovská lokalita, zájmy, případně další údaje; po dokončení se ukážou akce podle nastavení                         | PO         | nové (B-013, Figma B-08)                                                     |
-| Hodnocení              | Dotáhnout dávání hodnocení: účastník hodnotí akci a organizátora, organizátor hodnotí účastníka (datový model je hotový z #180)                     | PO         | #66                                                                          |
-| Notifikace             | Notifikační centrum v aplikaci: krátká zpráva („Na tvou akci se přihlásil…“), proklik na detail                                                     | PO         | #86                                                                          |
-|                        | E-mailové notifikace (např. někdo se přihlásil na akci, akce byla zrušena); tým navrhne, které notifikace a jak je psát                             | PO         | #177, #65                                                                    |
-| Přátelé                | Na veřejném profilu tlačítko „Přidat do přátel“, žádost přijde jako notifikace, sekce lidí, které znám; u přátel vidím, kam chodí                   | PO         | nové (B-014)                                                                 |
-| Akce dotáhnout         | Vlastní obrázek akce (jinak obrázek aktivity)                                                                                                       | PO         | #77                                                                          |
-|                        | Sjednotit lokalitu a adresu; špendlík předvyplní adresu a adresa posune špendlík                                                                    | PO         | nové                                                                         |
-|                        | Proběhlé a zrušené akce (souvisí s hodnocením)                                                                                                      | tým        | #61, #272                                                                    |
-| Skupiny dotáhnout      | Projít celý tok skupin, „Moje“ ukazuje akce i skupiny                                                                                               | PO         | #118                                                                         |
-| Obsazenost             | Přehodnotit filtr Obsazenost a texty obsazenosti z pohledu hledajícího                                                                              | PO         | nové (Q9)                                                                    |
-| Světlý režim           | Tmavý režim vypnout, ve světlém opravit kontrast textů                                                                                              | PO         | nové; #201 už není potřeba                                                   |
-| První dojem a mapa     | Ověřit odhad lokality, při prázdném výpisu ukázat nejbližší akce; výchozí přiblížení mapy a klepnutí na body při oddálení                           | PO         | nové (#55, #56)                                                              |
-| Přihlášení e-mailem    | Ověřit přihlášení e-mailem a heslem po ověření e-mailu                                                                                              | PO         | nové (bug)                                                                   |
-| Superadmin (bonus)     | První nástřel role superadmina: upravit nebo deaktivovat jakoukoli akci; blokace uživatelů a správa superadminů později. Bereme, jen když zbude čas | tým, PO OK | #71 (B-062, B-063)                                                           |
+Nová issues zakládá tým podle tohoto zápisu; v tabulce jsou uvedená názvem v uvozovkách.
+
+| Oblast                 | Co bereme                                                                                                                                                          | Zdroj      | Issue                                                                  |
+| ---------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------ | ---------- | ---------------------------------------------------------------------- |
+| Dodělávky ze sprintu 3 | Rozdělané stories ze sprintu 3, PO je ještě proklikává a případně založí další                                                                                     | PO         | #61, #165, #272                                                        |
+|                        | Otevřené bugy a drobnosti                                                                                                                                          | tým        | #184, #191, #192, #199, #200, #202, #242, #266, #281, #288, #289, #291 |
+|                        | Zbylé nálezy bezpečnostního auditu (nízká priorita)                                                                                                                | tým        | #224, #226, #228, #230                                                 |
+| Onboarding             | Po registraci krokový průvodce: domovská lokalita, zájmy, případně další údaje; po dokončení se ukážou akce podle nastavení                                        | PO         | nové „Onboarding po registraci“ (B-013, Figma B-08)                    |
+| Hodnocení              | Dotáhnout dávání hodnocení: účastník hodnotí akci a organizátora, organizátor hodnotí účastníka (datový model je hotový z #180); e-mail s výzvou k hodnocení       | PO         | #66, #65                                                               |
+| Notifikace             | Notifikační centrum v aplikaci: krátká zpráva („Na tvou akci se přihlásil…“), proklik na detail                                                                    | PO         | #86                                                                    |
+|                        | E-mailové notifikace (např. někdo se přihlásil na akci, akce byla zrušena); tým navrhne, které notifikace a jak je psát. Upozornění k účasti a akci už posílá #177 | PO         | #177 (hotové), #65                                                     |
+| Přátelé                | Na veřejném profilu „Přidat do přátel“, žádost přijde jako notifikace, sekce lidí, které znám; u přátel vidím, kam chodí                                           | PO         | nové „Přátelé“ (B-014)                                                 |
+| Akce dotáhnout         | Vlastní obrázek akce (jinak obrázek aktivity)                                                                                                                      | PO         | #77                                                                    |
+|                        | Sjednotit lokalitu a adresu; špendlík předvyplní adresu a adresa posune špendlík                                                                                   | PO         | nové „Formulář akce: lokalita a adresa“ (souvisí s #200)               |
+|                        | Proběhlé a zrušené akce (souvisí s hodnocením)                                                                                                                     | tým        | #61, #272                                                              |
+| Skupiny dotáhnout      | Projít celý tok skupin; sekce „Moje“ ukazuje akce i skupiny                                                                                                        | PO         | nové „Moje: akce i skupiny“ (navazuje na #118)                         |
+| Obsazenost             | Přehodnotit filtr Obsazenost z pohledu hledajícího                                                                                                                 | PO         | nové „Filtr Obsazenost“ (Q9)                                           |
+| Světlý režim           | Tmavý režim vypnout (kód, testy, DESIGN.md, CLAUDE.md), ve světlém opravit texty, které splývají s pozadím                                                         | PO         | nové „Jen světlý režim a kontrast“ (nahrazuje #201)                    |
+| První dojem            | Ověřit odhad lokality podle IP; při prázdném výpisu ukázat nejbližší akce                                                                                          | PO         | nové „Prázdný výpis /akce“ (#55)                                       |
+| Mapa                   | Výchozí přiblížení na lokalitu; klepnutí na body a shluky funguje i při oddálené mapě                                                                              | PO         | nové „Mapa při oddálení“ (#56)                                         |
+| Přihlášení e-mailem    | Ověřit a opravit přihlášení e-mailem a heslem po ověření e-mailu                                                                                                   | PO         | nové „Bug: přihlášení e-mailem po ověření“                             |
+|                        | E-maily chodí do spamu: zkontrolovat SPF, DKIM a DMARC odesílatele                                                                                                 | PO, tým    | nové „E-maily ve spamu“ (#165)                                         |
+| Superadmin (bonus)     | První nástřel role superadmina: upravit nebo deaktivovat jakoukoli akci. Blokace uživatelů a správa superadminů později                                            | tým, PO OK | nové „Superadmin: první nástřel“ (B-063)                               |
 
 ## Rozhodnutí
 
@@ -61,15 +65,30 @@ Akce a skupiny mají fungovat „křížem krážem“: kdo si něco založí, m
 
 ## Pořadí ve sprintu (tým)
 
-Doplní tým po refinementu 16. 11. a označí issues štítky P1 až P3.
+Všechno níže je ve sprintu 4, priorita určuje jen pořadí. Issues mají label:
+
+- **P1: nejdřív** – chyby a první dojem, které PO viděl, a funkce s hotovým zadáním: „Bug: přihlášení e-mailem po ověření“, „Jen světlý režim a kontrast“, „Prázdný výpis /akce“, proběhlé akce (#61), hodnocení (#66), „Onboarding po registraci“.
+- **P2: jádro sprintu** – notifikační centrum (#86), „Přátelé“, „Formulář akce: lokalita a adresa“, obrázek akce (#77), „Filtr Obsazenost“, „Mapa při oddálení“, „Moje: akce i skupiny“, proběhlá akce (#272), výzva k hodnocení (#65). Notifikace a přátelé: tým připraví návrh do refinementu 16. 11. a hned po něm implementuje; ostatní se dá začít hned.
+- **P3: po P1 a P2** – bugy #184, #191, #192, #200, #242, #266, #281, #288, #289, #291; bezpečnostní audit #224, #226, #228, #230; „E-maily ve spamu“; „Superadmin: první nástřel“ (bonus). U #191 a #192 nejdřív ověřit, jestli ještě platí.
+
+Rozpracované ze sprintu 3: #199 (PR #293) a #202 (PR #292).
 
 ## Mimo scope sprintu 4
 
-| Co                                                            | Proč                                  |
-| ------------------------------------------------------------- | ------------------------------------- |
-| Tmavý režim                                                   | PO: vynechat                          |
-| Blokace uživatelů a správa superadminů                        | PO: zatím neděláme, jen první nástřel |
-| Náhradníci (#79), opakované akce (#76), soukromé zprávy (#85) | Na standupu nezazněly                 |
+| Co                                                                                                                    | Proč                                              |
+| --------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------- |
+| Tmavý režim                                                                                                           | PO: vynechat                                      |
+| Blokace uživatelů, správa superadminů, nahlášení (#67, #71)                                                           | PO: zatím neděláme, jen první nástřel superadmina |
+| Náhradníci (#79), opakované akce (#76), soukromé zprávy (#85)                                                         | Na standupu nezazněly                             |
+| Cena a úroveň akce (#59), odebrání účastníka (#60), další správci (#62, #100), blokace člena (#63), fotka a bio (#64) | Na standupu nezazněly, backlog                    |
+| Odstranění záložního dekódování odkazů (#220)                                                                         | Až staré odkazy nikdo nepoužívá                   |
+
+## Úklid boardu (tým)
+
+- Issues Brand (#245–#251) jsou sloučené do #195, smažeme je.
+- #201 (`dark:` v kitu) zavřeme jako „not planned“, nahrazuje ho „Jen světlý režim a kontrast“.
+- U #77 a #86 změníme štítek „nice to have“ na „MVP“.
+- Stories a bugy sprintu 3 se zmergovaným PR zůstávají v **Done**, dokud je PO nepřijme.
 
 ## Dohody (PO)
 
@@ -79,14 +98,14 @@ Doplní tým po refinementu 16. 11. a označí issues štítky P1 až P3.
 
 ## Úkoly
 
-| Úkol                                                                        | Kdo |
-| --------------------------------------------------------------------------- | --- |
-| Pustit PO do GitHub organizace s právy k boardu                             | Tým |
-| Založit issues pro nové věci ze scope a zařadit je do sprintu 4             | Tým |
-| Ověřit přihlášení e-mailem a heslem po ověření e-mailu                      | Tým |
-| Připravit otázky na refinement (onboarding, notifikace, přátelé, hodnocení) | Tým |
-| Navrhnout seznam notifikací a jejich texty                                  | Tým |
-| Zajistit místnost nebo připojení na refinement                              | Tým |
+| Úkol                                                                            | Kdo         |
+| ------------------------------------------------------------------------------- | ----------- |
+| Pustit PO do GitHub organizace s právy k boardu                                 | Tým         |
+| Založit nová issues ze scope, dát jim štítek priority a zařadit je do sprintu 4 | Tým (Adéla) |
+| Rozdělit si issues P1 (Assignee)                                                | Tým         |
+| Navrhnout seznam notifikací a jejich texty a koncept přátel na refinement       | Tým         |
+| Připravit otázky na refinement (onboarding, notifikace, přátelé, hodnocení)     | Tým         |
+| Zajistit místnost nebo připojení na refinement                                  | Tým         |
 
 ## Další schůzka
 
