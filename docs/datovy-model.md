@@ -117,8 +117,8 @@ erDiagram
         datetime endsAt
         float lat
         float lng
-        string address
-        string localityId FK
+        string address "adresa místa (Q14)"
+        string localityId FK "lokalita (Q14)"
         int minParticipants
         int maxParticipants
         int price "Kč"
@@ -260,6 +260,42 @@ erDiagram
 
 Všechny tabulky kromě `user_interest` a číselníků mají navíc `createdAt` a většina i `updatedAt`. V diagramech je pro přehlednost vynechávám.
 
+## Návrh pro sprint 4 (zatím není ve schématu)
+
+Podle planningu sprintu 4 (`docs/zapis-planning-sprint4.md`). Jen návrh týmu, tvar doladí issues a refinement 16. 11.; do schématu přijde s migrací v daném issue.
+
+```mermaid
+erDiagram
+    User ||--o{ Notification : "příjemce"
+    User ||--o{ Friendship : "požádal"
+    User ||--o{ Friendship : "přijímá"
+
+    Notification {
+        string id PK
+        string userId FK "příjemce"
+        notification_type type "druh události (B-044)"
+        string targetType "event / group / user"
+        string targetId "kam vede proklik"
+        string text "krátká zpráva"
+        datetime readAt
+    }
+    Friendship {
+        string id PK
+        string requesterId FK
+        string addresseeId FK
+        friendship_status status "pending / accepted / rejected"
+        datetime acceptedAt
+    }
+```
+
+| Co                       | Návrh                                                                                                                                                                                                           | Úkol       |
+| ------------------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------- |
+| `Notification`           | Upozornění v centru (zvonek, počet nepřečtených = `readAt` je `null`). Zapisuje se ze stejné doménové události jako e-mail                                                                                      | B-044, #86 |
+| `Friendship`             | Jedna žádost na dvojici uživatelů (unikátní dvojice bez ohledu na pořadí hlídá aplikace), přátelé = `accepted`                                                                                                  | B-017      |
+| Obrázek akce             | `Event` dostane odkaz na nahraný soubor (např. `imageKey`), ne URL zadanou uživatelem (Q3); bez něj fotka aktivity. Kde se soubory ukládají, formáty a velikost určí #77                                        | #77        |
+| Úprava akce superadminem | `ModerationActionType` nemá typ pro úpravu akce: doplnit `edit_event` (migrace), nebo zapisovat jen deaktivaci. Deaktivace už model má: `Event.status = hidden` a zásah `hide_event`                            | B-063      |
+| Lokalita a adresa        | Zůstávají dvě nezávislé hodnoty: `localityId` (číselník, filtr a výpis) a `address` (text) s `lat` / `lng`. Formulář lokalitu odvodí z místa a jde upravit ručně (PR #295); co která znamená, rozhodne PO (Q14) | B-022      |
+
 ## Pravidla, která hlídá aplikace, ne databáze
 
 Databáze vynucuje cizí klíče, unikátnost a enumy, k tomu jediný `CHECK`: hvězdičky 1–5 v `participant_rating` (Prisma ho ve schématu neumí zapsat, je jen v migraci). Tato pravidla musí hlídat backend a pokrýt je testy:
@@ -270,7 +306,7 @@ Databáze vynucuje cizí klíče, unikátnost a enumy, k tomu jediný `CHECK`: h
 - **Hodnocení účastníka (`ParticipantRating`, #180):** jen organizátor akce, jen `approved` účastníka, jen po skončení akce (`endsAt`, když chybí, `startsAt`), ne zrušené a ne sám sebe. Čistá funkce `decideParticipantRating` v [`modules/rating/domain/participant-rating.ts`](../apps/backend/src/modules/rating/domain/participant-rating.ts). Jedno na účastníka a akci a hvězdičky 1–5 hlídá databáze. Nepovinný komentář (PO 4. 11.) je na veřejném profilu hodnoceného, proto jde nahlásit (`participant_rating` v `report_target_type`); max. `RATING_COMMENT_MAX_LENGTH` (500) znaků, stejně jako u `Rating`, hlídá aplikace (#66).
 - **Průměrné hodnocení v profilu (#178, #179):** jako organizátor z `Rating.organizerStars`, jako účastník z `ParticipantRating.stars`; zaokrouhlené na jedno desetinné místo, vždy s počtem, bez hodnocení `null`. Smazaná hodnocení se nepočítají, akce skupin se osobě jako organizátorovi nepočítají. Čisté funkce v [`modules/rating/domain/rating-summary.ts`](../apps/backend/src/modules/rating/domain/rating-summary.ts).
 - **Poslední správce skupiny** se nemůže vzdát role ani odejít (B-054).
-- **Akce se fyzicky nemaže** (Q11): zrušení = `status = cancelled`, zásah superadmina = `hidden` / `deleted`. Skupina se jen deaktivuje (B-051).
+- **Akce se fyzicky nemaže** (Q11): zrušení = `status = cancelled` (e-mail účastníkům, nejde vrátit), zásah superadmina = `hidden` (deaktivace, jde vrátit) / `deleted`. Skupina se jen deaktivuje (B-051).
 - **Nahlášení** odkazuje na cíl přes `targetType` + `targetId` bez cizího klíče, existenci cíle ověřuje backend.
 
 ## Rozhodnutí nad rámec popisu v backlogu

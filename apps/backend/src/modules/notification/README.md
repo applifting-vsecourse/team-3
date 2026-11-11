@@ -38,7 +38,7 @@ Texty jsou česky a tykáním; žádný text nepředpokládá pohlaví organizá
 
 ## Kam e-maily jdou
 
-Přes sdílený `EmailService` jako ověřovací e-maily: Resend nebo SMTP, když jsou nastavené klíče (#165), jinak konzole (v produkci se do logu píše jen příjemce a předmět). Simulovaná schránka (#58) drží jen ověřovací e-mail, upozornění v ní nejsou.
+Přes sdílený `EmailService` jako ověřovací e-maily: Resend nebo SMTP, když jsou nastavené klíče (#165), jinak konzole (v produkci se do logu píše jen příjemce a předmět). Simulovaná schránka (#58) drží jen ověřovací e-mail, upozornění v ní nejsou. Centrum upozornění v aplikaci (zvonek) zatím není; přibude s #86 (B-044) ze stejných událostí jako e-maily.
 
 ## Omezení
 

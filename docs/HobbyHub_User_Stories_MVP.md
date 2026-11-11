@@ -1,6 +1,6 @@
 # HobbyHub – User stories MVP
 
-Zdroj: Feature breakdown v3.4 po FB1 (9. 10. 2026) zkonzultovaný s PO, Lean Canvas v2 (12. 10. 2026) a upřesnění týmem 9. 10. Features s prioritou **MVP** a skupiny. Příbuzné features jsou sloučené do jedné story.
+Zdroj: Feature breakdown v3.4 po FB1 (9. 10. 2026) zkonzultovaný s PO, Lean Canvas v2 (12. 10. 2026) a upřesnění týmem 9. 10. Features s prioritou **MVP** a skupiny. Příbuzné features jsou sloučené do jedné story. US-20 až US-22 přidal planning sprintu 4 (PO 10. 11. 2026, `docs/zapis-planning-sprint4.md`).
 
 ## Role
 
@@ -26,7 +26,7 @@ Každá role umí i všechno, co přihlášený uživatel. Správce skupiny ří
 | US-04 | Návštěvník                 | Registrace a přihlášení                     | F-10, F-12             |
 | US-05 | Uživatel                   | Profil a správa účtu                        | F-11, F-14             |
 | US-06 | Uživatel                   | Přihlášení na akci a odhlášení              | F-22, F-19, F-24       |
-| US-07 | Uživatel                   | Moje akce                                   | F-25                   |
+| US-07 | Uživatel                   | Moje: akce i skupiny                        | F-25                   |
 | US-08 | Uživatel                   | E-mailová upozornění                        | F-36, F-37             |
 | US-09 | Uživatel                   | Hodnocení akce a organizátora               | F-42, F-41             |
 | US-10 | Uživatel                   | Nahlášení uživatele nebo akce               | F-43                   |
@@ -39,6 +39,9 @@ Každá role umí i všechno, co přihlášený uživatel. Správce skupiny ří
 | US-17 | Uživatel / Správce skupiny | Členství ve veřejné a neveřejné skupině     | F-30, F-31             |
 | US-18 | Správce skupiny            | Akce skupiny                                | F-28, F-15             |
 | US-19 | Superadmin                 | Vyřízení nahlášení a zásah                  | F-43, F-44             |
+| US-20 | Uživatel                   | Onboarding po registraci                    | PO 10. 11.             |
+| US-21 | Uživatel                   | Centrum upozornění v aplikaci               | PO 10. 11.             |
+| US-22 | Uživatel                   | Přátelé                                     | PO 10. 11.             |
 
 ---
 
@@ -66,7 +69,7 @@ Každá role umí i všechno, co přihlášený uživatel. Správce skupiny ří
 - [ ] Seznam i mapa jsou přístupné bez účtu. Na desktopu jsou vedle sebe, na mobilu je mapa přes celou obrazovku a seznam ve vysouvacím panelu (návrh týmu, potvrdit s PO).
 - [ ] Položka ukazuje aktivitu, název, termín, místo a kolik lidí chybí; seznam jde řadit podle termínu a vzdálenosti.
 - [ ] Na mapě jsou akce jako špendlíky; klepnutí ukáže náhled s proklikem na detail. GPS se nepoužívá.
-- [ ] Filtry: lokalita, termín (rozsah od–do s rychlými volbami), typ aktivity (kategorie › aktivita), jen akce, kterým chybí lidé (návrh týmu, potvrdit s PO); doplňkově hledání podle názvu. Filtry platí pro seznam i mapu.
+- [ ] Filtry: lokalita, termín (rozsah od–do s rychlými volbami), typ aktivity (kategorie › aktivita), obsazenost (podobu filtru PO 10. 11. vrátil k přepracování, Q9 v BACKLOG.md); doplňkově hledání podle názvu. Filtry platí pro seznam i mapu.
 - [ ] Nezobrazují se proběhlé, zrušené, soukromé akce a akce skupin „jen pro členy“.
 - [ ] Vše funguje na mobilu.
 
@@ -128,15 +131,17 @@ Každá role umí i všechno, co přihlášený uživatel. Správce skupiny ří
 
 ---
 
-### US-07 Moje akce
+### US-07 Moje: akce i skupiny
 
-`epic: účast` `priorita: MVP` `role: uživatel` · F-25
+`epic: účast` `epic: skupiny` `priorita: MVP` `role: uživatel` · F-25
 
-**Jako** uživatel **chci** mít na jednom místě akce, na které jdu, které pořádám, a ty proběhlé, **abych** měl přehled.
+**Jako** uživatel **chci** mít na jednom místě akce, na které jdu, které pořádám, a ty proběhlé, i své skupiny, **abych** měl přehled a mohl je spravovat stejně.
 
 - [ ] Záložky: Přihlášen (schváleno + čeká), Pořádám (vč. akcí mých skupin), Proběhlé.
 - [ ] U akce je stav mé účasti a termín; řazeno od nejbližší.
 - [ ] Z pořádané akce se dostanu na její správu.
+- [ ] Sekce „Moje“ ukazuje i skupiny: které spravuji, kde jsem člen a čekající žádosti (PO 10. 11.).
+- [ ] Zakládání, správa a schvalování členů fungují u akcí i skupin stejně – stejné kroky, texty a potvrzení (PO 10. 11.).
 
 ---
 
@@ -302,6 +307,8 @@ Každá role umí i všechno, co přihlášený uživatel. Správce skupiny ří
 
 `epic: důvěra` `priorita: MVP` `role: superadmin` · F-43, F-44
 
+> **První nástřel (sprint 4, PO 10. 11.):** bez fronty nahlášení. Superadmin upraví nebo deaktivuje jakoukoli akci přímo z jejího detailu. Deaktivace akci skryje (`status = hidden`) a jde vrátit, není to zrušení. Blokace uživatelů je volitelný bonus, další funkce přibývají postupně (B-063).
+
 **Jako** superadmin **chci** vidět nahlášení na jednom místě a rozhodnout o zásahu, **abych** rychle řešil spam a porušení pravidel.
 
 - [ ] Administrace je dostupná jen roli superadmin.
@@ -309,3 +316,41 @@ Každá role umí i všechno, co přihlášený uživatel. Správce skupiny ří
 - [ ] Nahlášení zamítnu, nebo schválím a provedu zásah s důvodem: zablokovat uživatele / skrýt nebo smazat akci / smazat hodnocení.
 - [ ] Zablokovaný se nepřihlásí a jeho nadcházející akce se zruší s upozorněním přihlášeným; organizátor smazané akce dostane důvod.
 - [ ] Zásah jde vrátit; historie ukazuje, kdo a jak rozhodl.
+
+---
+
+# Sprint 4 (PO 10. 11.)
+
+### US-20 Onboarding po registraci
+
+`epic: účet` `priorita: MVP` `role: uživatel` · Figma B-08 / B-08d, B-013
+
+**Jako** nový uživatel **chci** hned na začátku nastavit svou lokalitu a zájmy, **abych** viděl akce, které mě zajímají.
+
+- [ ] Průvodce `/vitej` po krocích se otevře při prvním přihlášení: po registraci e-mailem až po ověření e-mailu, přes Google hned.
+- [ ] Domovská lokalita předvyplněná odhadem, jde změnit; zájmy výběrem jako ve filtru aktivit.
+- [ ] Po dokončení uvidím akce podle nastavení; „Teď ne“ průvodce přeskočí a znovu se nenabízí, vše jde změnit v profilu.
+
+---
+
+### US-21 Centrum upozornění v aplikaci
+
+`epic: komunikace` `priorita: MVP` `role: uživatel` `role: organizátor` · #86, B-044
+
+**Jako** uživatel **chci** v aplikaci vidět, co se stalo s mými akcemi, skupinami a přáteli, **abych** nemusel hledat v e-mailu.
+
+- [ ] Zvonek s počtem nepřečtených a centrum upozornění.
+- [ ] Upozornění je krátká zpráva („Na tvou akci se přihlásil…“) s proklikem na detail.
+- [ ] Které události upozornění vyvolají a jak zní, schválí refinement 16. 11.; ke stejným událostem chodí e-mail (US-08).
+
+---
+
+### US-22 Přátelé
+
+`epic: hledání lidí` `priorita: MVP` `role: uživatel` · B-017, navazuje na B-014
+
+**Jako** uživatel **chci** se propojit s lidmi, které znám, **abych** viděl, kam chodí.
+
+- [ ] Veřejný profil vidí kdokoli, přátelé vidí víc (osobní profil).
+- [ ] Na veřejném profilu „Přidat do přátel“; žádost přijde jako upozornění (US-21) a jde přijmout nebo odmítnout.
+- [ ] Sekce „Lidé, které znám“; u přítele vidím akce, na které jde.
