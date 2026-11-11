@@ -95,8 +95,7 @@ Rozpracované ze sprintu 3: #199 (PR #293) a #202 (PR #292). Hotové ze sprintu 
 
 ## Úklid boardu (tým)
 
-- Issues Brand (#245–#251) jsou sloučené do #195, smažeme je.
-- #201 (`dark:` v kitu, PR #273) je v Done ze sprintu 3 a čeká na PO; zbytek tmavého režimu odstraní „Jen světlý režim a kontrast“.
+- Issues Brand (#245–#251) na board nepatří, práce je v #195; smažeme je.
 - #236 je zamergované (PR #267, 9. 11.), přesuneme ho do Done.
 - U #77 a #86 změníme štítek „nice to have“ na „MVP“.
 - Popisy labelů P1–P3 přepíšeme ze sprintu 3 na sprint 4.
