@@ -255,6 +255,70 @@ describe("SignUpForm (B-010, #153)", () => {
     })
   })
 
+  describe("room for the password strength (#199)", () => {
+    const area = () => document.querySelector('[data-slot="password-strength"]')
+    const bar = () => document.querySelector('[data-slot="password-strength-bar"]')
+    const room = () => document.querySelector('[data-slot="password-strength-room"]')
+
+    it("takes no room under the password until the first character, yet the live region is there", async () => {
+      await renderForm()
+
+      // out of the flow, so the form item's gap doesn't count it either
+      expect(area()).toHaveClass("sr-only")
+      expect(bar()).toBeNull()
+      expect(room()).toBeNull()
+      const status = screen.getByRole("status")
+      expect(status).toHaveAttribute("aria-live", "polite")
+      expect(area()).toContainElement(status)
+    })
+
+    it("appears whole with the first character and keeps its parts while the verdict changes", async () => {
+      await renderForm()
+      const status = screen.getByRole("status")
+      const password = screen.getByLabelText("Heslo")
+
+      await userEvent.type(password, "h")
+      // at once, before the pause that brings the verdict: the bar (empty yet)
+      // and the room for the verdict with two lines of advice
+      expect(area()).not.toHaveClass("sr-only")
+      const shownBar = bar()
+      const shownRoom = room()
+      expect(shownBar?.children).toHaveLength(4)
+      expect(shownBar?.querySelectorAll(".bg-foreground")).toHaveLength(0)
+      expect(shownRoom).toHaveClass("invisible")
+      expect(shownRoom).toHaveAttribute("aria-hidden")
+      expect(shownRoom?.querySelectorAll("br")).toHaveLength(2)
+      // three lines, each a no-break space: a line of a plain space alone
+      // would have no height and the room would hold only two lines
+      expect(shownRoom?.textContent).toBe("\u00a0".repeat(3))
+      expect(status).toBeEmptyDOMElement()
+
+      await waitFor(() => expect(status).toHaveTextContent("Síla hesla: slabé."))
+      expect(bar()).toBe(shownBar)
+      expect(room()).toBe(shownRoom)
+
+      // strong has no advice: the room stays all the same
+      estimator.checkPassword.mockReturnValue({ score: 4, warning: null, suggestions: [] })
+      await userEvent.type(password, "eslo jede po silnici 2026")
+      await waitFor(() => expect(status).toHaveTextContent(/^Síla hesla: silné\.$/))
+      expect(room()).toBe(shownRoom)
+      expect(shownBar?.querySelectorAll(".bg-foreground")).toHaveLength(4)
+    })
+
+    it("stays when the password is deleted, so retyping doesn't move the form", async () => {
+      await renderForm()
+      const password = screen.getByLabelText("Heslo")
+
+      await userEvent.type(password, "heslo")
+      await userEvent.clear(password)
+
+      expect(area()).not.toHaveClass("sr-only")
+      expect(screen.getByRole("status")).toBeEmptyDOMElement()
+      expect(bar()?.querySelectorAll(".bg-foreground")).toHaveLength(0)
+      expect(room()).not.toBeNull()
+    })
+  })
+
   it("sends the name, the e-mail, the password and the consents, not the repeated password", async () => {
     const { onSubmit } = await renderForm()
 

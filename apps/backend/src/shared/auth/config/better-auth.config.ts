@@ -3,7 +3,7 @@ import { createAuthMiddleware } from 'better-auth/api';
 import { username } from 'better-auth/plugins';
 import { BetterAuthOptions } from 'better-auth/types';
 import { requireConsent, stampConsent } from './consent';
-import { rejectInvalidNames } from './name-policy';
+import { rejectInvalidNames, trimSavedName } from './name-policy';
 import { rejectWeakPasswords } from './password-policy';
 
 export const betterAuthCoreConfig: BetterAuthOptions = {
@@ -51,8 +51,20 @@ export const betterAuthCoreConfig: BetterAuthOptions = {
       },
     },
   },
+  // Every account BetterAuth writes: its name without the spaces around
+  // (#199) and, from a sign-up, the time of the consent (#153).
   databaseHooks: {
-    user: { create: { before: stampConsent } },
+    user: {
+      create: {
+        before: async (user, ctx) => ({
+          data: {
+            ...(await trimSavedName(user))?.data,
+            ...(await stampConsent(user, ctx))?.data,
+          },
+        }),
+      },
+      update: { before: trimSavedName },
+    },
   },
   // openAPI() (/api/auth/reference) is added in better-auth.provider.ts, only
   // where the API docs are on (N-9)
