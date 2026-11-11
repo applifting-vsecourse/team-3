@@ -603,7 +603,7 @@ Doménová logika (čistá funkce + testy): `approvedCount`, `missingToMin = max
 
 `US-07` · FS · M · závisí na: B-031
 
-> Sprint 4 (PO 10. 11.): sekce „Moje“ ukazuje akce i skupiny (B-056) a zakládání, správa a schvalování členů fungují u akcí i skupin stejně (issue „Moje: akce i skupiny“).
+> Sprint 4 (PO 10. 11.): sekce „Moje“ ukazuje akce i skupiny (B-056) a zakládání, správa a schvalování členů fungují u akcí i skupin stejně (#304).
 
 - `GET /api/me/events?tab=attending|organizing|past`
   - **Přihlášen:** `approved` + `pending` (i vlastní akce, pokud se na ni organizátor přihlásil)
@@ -844,7 +844,7 @@ Doménová logika (čistá funkce + testy): `approvedCount`, `missingToMin = max
 
 `US-19` · FS · M · závisí na: B-062
 
-> Sprint 4 (PO 10. 11., P2): první nástřel bez fronty nahlášení (B-062 mimo scope). Z B-062 se vezme jen `AdminGuard`; admin upraví nebo deaktivuje jakoukoli akci přímo z jejího detailu. Deaktivace není zrušení: akci skryje (`status = hidden`, zmizí z výpisu, mapy i úvodní stránky, detail řekne, že akce není dostupná – API 404, B-026 a jde vrátit, zrušení (B-028) posílá e-mail účastníkům a vrátit nejde. Deaktivace se zapíše do historie (`ModerationAction`, `hide_event`); pro úpravu akce superadminem typ zásahu zatím chybí. Blokace uživatelů je volitelný bonus; zbytek B-063 až s B-062.
+> Sprint 4 (PO 10. 11., P2): první nástřel bez fronty nahlášení (B-062 mimo scope). Z B-062 se vezme jen `AdminGuard`; admin upraví nebo deaktivuje jakoukoli akci přímo z jejího detailu. Deaktivace není zrušení: akci skryje (`status = hidden`, zmizí z výpisu, mapy i úvodní stránky, detail řekne, že akce není dostupná – API 404, B-026) a jde vrátit, zrušení (B-028) posílá e-mail účastníkům a vrátit nejde. Deaktivace se zapíše do historie (`ModerationAction`, `hide_event`); pro úpravu akce superadminem typ zásahu zatím chybí. Blokace uživatelů je volitelný bonus; zbytek B-063 až s B-062.
 
 - Nahlášení zamítnout, nebo schválit se zásahem a povinným důvodem:
   - **zablokovat uživatele** → nepřihlásí se, jeho nadcházející akce se zruší s e-mailem přihlášeným

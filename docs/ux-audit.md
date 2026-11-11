@@ -119,7 +119,7 @@ E-maily (předmět, text, tlačítko) pro všech 12 typů jsou ve Figmě v „E-
 - Text aspoň 4,5:1, velký text 3:1, **každý negrafický prvek a hrana plochy aspoň 3:1** vůči okolí – ikony, štítky, dráha pruhu, špendlíky, hvězdičky, oddělovače, okraj dlaždice, karty, obrysového tlačítka, dialogu i spodního panelu nad překryvem. Bez výjimek „vypadá to dobře“ (tým 2.–3. 11.).
 - Nové tokeny kvůli kontrastu: `tile-border`, `primary-edge`, `control-border`, `card-border`, `badge-neutral`, `capacity-fill` (tmavě zelená – limetka na béžové dráze má 1,03:1).
 - **Kontrola 4. 11.:** automatický audit všech obrazovek (světlý i tmavý režim) – text, okraje a plochy. Opraveno: přepsané barvy radio karet (36 instancí), okraj dialogu v tmavém režimu, překryv pod spodními panely, neaktivní „Plno“, zástupné pole bez fotky, rámečky v e-mailech. Poté bez nálezů (mimo dekorativní plochy mapy).
-- **Jen světlý režim (PO 10. 11.):** tmavý režim nevypadá dobře a ladit dva režimy nemá smysl. Tokeny jen pro tmavý režim (`band-edge`, `accent-bar`) a přepínač motivu odstraní „Jen světlý režim a kontrast“; v tom issue je i nový audit kontrastu a nálezy jdou do „Bug: Design – překryté a splývající texty“.
+- **Jen světlý režim (PO 10. 11.):** tmavý režim nevypadá dobře a ladit dva režimy nemá smysl. Tokeny jen pro tmavý režim (`band-edge`, `accent-bar`) a přepínač motivu odstraní #297 „Jen světlý režim a kontrast“; v tom issue je i nový audit kontrastu a nálezy jdou do #298 „Bug: Design – překryté a splývající texty“.
 
 ## Nálezy
 
@@ -175,18 +175,18 @@ Každá obrazovka je na mobilu i desktopu, s popisem nad sebou. Platí jen svět
 
 ## Co jde do kódu
 
-| Co                                                                                                                                                   | Kam                                |
-| ---------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------- |
-| Tokeny nového brandu do `global.css` (tabulka v DESIGN.md), test kontrastů v `tokens.test.ts`, odstranit nepoužívané (aliasy kitu zůstávají)         | #195                               |
-| Komponenty: pás s motivem loga, karty s fotkou a datovou dlaždicí, pruh obsazenosti, štítky, razítko, Máš místo, špendlíky, rychlé výběry, hvězdičky | #195                               |
-| Odstranit tmavý režim a přepínač motivu, audit kontrastu ve světlém (PO 10. 11.)                                                                     | nové „Jen světlý režim a kontrast“ |
-| Přestavba obrazovek podle Figmy, texty podle Hlasu aplikace                                                                                          | #195                               |
-| Úvodní stránka: sekce, pravidla, sekce skupin                                                                                                        | #182                               |
-| Řazení podle vzdálenosti, hledání podle klíčových slov, okolí ve Všech akcích                                                                        | #57                                |
-| Přihlášení jen s ověřeným e-mailem (`requireEmailVerification`, obrazovka B-01a; demo účet Eva zůstává neověřený a ukazuje B-01a)                    | nové issue (B-011)                 |
-| Akce jen pro členy pro nečlena: 401 nepřihlášenému, 403 s `groupId` přihlášenému místo 404                                                           | #70 (B-026)                        |
-| Hodnocení: průměr skupiny, pravidla pro skrytá a smazaná hodnocení, profil podle PO                                                                  | #66, #179 (B-060, B-013)           |
-| E-maily typ 10–12 (deaktivace skupiny, výzvy k hodnocení)                                                                                            | #177, B-043                        |
+| Co                                                                                                                                                   | Kam                      |
+| ---------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------ |
+| Tokeny nového brandu do `global.css` (tabulka v DESIGN.md), test kontrastů v `tokens.test.ts`, odstranit nepoužívané (aliasy kitu zůstávají)         | #195                     |
+| Komponenty: pás s motivem loga, karty s fotkou a datovou dlaždicí, pruh obsazenosti, štítky, razítko, Máš místo, špendlíky, rychlé výběry, hvězdičky | #195                     |
+| Odstranit tmavý režim a přepínač motivu, audit kontrastu ve světlém (PO 10. 11.)                                                                     | #297                     |
+| Přestavba obrazovek podle Figmy, texty podle Hlasu aplikace                                                                                          | #195                     |
+| Úvodní stránka: sekce, pravidla, sekce skupin                                                                                                        | #182                     |
+| Řazení podle vzdálenosti, hledání podle klíčových slov, okolí ve Všech akcích                                                                        | #57                      |
+| Přihlášení jen s ověřeným e-mailem (`requireEmailVerification`, obrazovka B-01a; demo účet Eva zůstává neověřený a ukazuje B-01a)                    | nové issue (B-011)       |
+| Akce jen pro členy pro nečlena: 401 nepřihlášenému, 403 s `groupId` přihlášenému místo 404                                                           | #70 (B-026)              |
+| Hodnocení: průměr skupiny, pravidla pro skrytá a smazaná hodnocení, profil podle PO                                                                  | #66, #179 (B-060, B-013) |
+| E-maily typ 10–12 (deaktivace skupiny, výzvy k hodnocení)                                                                                            | #177, B-043              |
 
 ## Mimo sprint 3
 
