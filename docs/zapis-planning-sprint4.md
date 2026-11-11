@@ -77,8 +77,8 @@ Nová issues zakládá tým podle tohoto zápisu; v tabulce jsou uvedená názve
 
 Všechno níže je ve sprintu 4, priorita určuje jen pořadí. Issues mají label:
 
-- **P1: nejdřív** – chyby a první dojem, které PO viděl, a funkce s hotovým zadáním: „Bug: ověření e-mailu tokenem neprojde“, „Bug: po ověření e-mailu nejde přihlášení e-mailem a heslem“, „E-maily ve spamu“, „Jen světlý režim a kontrast“, „Bug: Design – překryté a splývající texty“, „Prázdný výpis /akce“, filtr proběhlých akcí na /akce (#61), hodnocení (#66), „Onboarding po registraci“.
-- **P2: jádro sprintu** – notifikační centrum (#86), „Přátelé“, „Formulář akce: lokalita a adresa“, obrázek akce (#77), „Filtr Obsazenost“, „Mapa při oddálení“, „Moje: akce i skupiny“, jedno pravidlo pro „proběhlou akci“ a zrušené akce (#272), výzva k hodnocení (#65), „Superadmin: první nástřel“ (blokace uživatelů jen jako bonus). Notifikace a přátelé: tým připraví návrh do refinementu 16. 11. a hned po něm implementuje; ostatní se dá začít hned.
+- **P1: nejdřív** – chyby a první dojem, které PO viděl, a funkce s hotovým zadáním: „Bug: ověření e-mailu tokenem neprojde“, „Bug: po ověření e-mailu nejde přihlášení e-mailem a heslem“, „E-maily ve spamu“, „Jen světlý režim a kontrast“, „Bug: Design – překryté a splývající texty“, „Prázdný výpis /akce“, jedno pravidlo pro „proběhlou akci“ a zrušené akce (#272, stojí na něm #61 i #66), filtr proběhlých akcí na /akce (#61), hodnocení (#66), „Onboarding po registraci“.
+- **P2: jádro sprintu** – notifikační centrum (#86), „Přátelé“, „Formulář akce: lokalita a adresa“, obrázek akce (#77), „Filtr Obsazenost“, „Mapa při oddálení“, „Moje: akce i skupiny“, výzva k hodnocení (#65, po #66), „Superadmin: první nástřel“ (blokace uživatelů jen jako bonus). Přátelé stojí na notifikačním centru (žádost přijde jako upozornění), proto #86 dřív. Notifikace a přátelé: tým připraví návrh do refinementu 16. 11. a hned po něm implementuje; ostatní se dá začít hned.
 - **P3: po P1 a P2** – bugy #184, #191, #192, #200, #242, #266, #281, #288, #289, #291; bezpečnostní audit #224, #226, #228, #230. U #191 a #192 nejdřív ověřit, jestli ještě platí.
 
 Rozpracované ze sprintu 3: #199 (PR #293) a #202 (PR #292). Hotové ze sprintu 3 a čekají na PO v Done: #41, #52, #165.
@@ -96,7 +96,7 @@ Rozpracované ze sprintu 3: #199 (PR #293) a #202 (PR #292). Hotové ze sprintu 
 ## Úklid boardu (tým)
 
 - Issues Brand (#245–#251) jsou sloučené do #195, smažeme je.
-- #201 (`dark:` v kitu) zavřeme jako „completed“ (PR #273); zbytek tmavého režimu odstraní „Jen světlý režim a kontrast“.
+- #201 (`dark:` v kitu, PR #273) je v Done ze sprintu 3 a čeká na PO; zbytek tmavého režimu odstraní „Jen světlý režim a kontrast“.
 - #236 je zamergované (PR #267, 9. 11.), přesuneme ho do Done.
 - U #77 a #86 změníme štítek „nice to have“ na „MVP“.
 - Popisy labelů P1–P3 přepíšeme ze sprintu 3 na sprint 4.
