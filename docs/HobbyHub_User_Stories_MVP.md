@@ -197,7 +197,7 @@ Každá role umí i všechno, co přihlášený uživatel. Správce skupiny ří
 - [ ] Povinné: název, aktivita, místo na mapě, datum a čas, min. a max. počet, způsob přihlašování. Nepovinné: popis, cena, úroveň, vybavení.
 - [ ] Způsob přihlašování: „Bez schválení“ (výchozí), nebo „Schvaluji přihlášky“. Viditelnost: veřejná / soukromá (jen přes odkaz).
 - [ ] Minimum ≥ 1, maximum ≥ minimum; datum v minulosti nejde zadat.
-- [ ] Akce ukazuje „Chybí ještě X“ do minima, pak „Y volných míst“ (české tvary: „1 volné místo“, „3 volná místa“; znění podle #189 a #247); počítají se schválení účastníci. Po naplnění maxima se přihlašování zavře.
+- [ ] Akce ukazuje „Chybí ještě X“ do minima, pak „Y volných míst“ (české tvary: „1 volné místo“, „3 volná místa“; znění podle #189 a #195); počítají se schválení účastníci. Po naplnění maxima se přihlašování zavře.
 - [ ] Po zveřejnění je veřejná akce v seznamu, na mapě a ve vyhledávání a aplikace nabídne „Sdílet odkaz“.
 - [ ] Počet aktivních akcí není omezený.
 

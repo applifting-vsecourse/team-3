@@ -38,8 +38,8 @@ Nová issues zakládá tým podle tohoto zápisu; v tabulce jsou uvedená názve
 | Oblast                 | Co bereme                                                                                                                                                                                                                  | Zdroj   | Issue                                                                              |
 | ---------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------- | ---------------------------------------------------------------------------------- |
 | Dodělávky ze sprintu 3 | Stories ze sprintu 3 v Done čekají na kontrolu PO, PO je ještě proklikává a případně založí další: úprava a zrušení akce, Google a e-maily na stagingu                                                                     | PO      | #41, #52, #165 (hotové)                                                            |
-|                        | Otevřené bugy a drobnosti                                                                                                                                                                                                  | tým     | #184, #191, #192, #199, #200, #202, #242, #266, #281, #288, #289, #291             |
-|                        | Zbylé nálezy bezpečnostního auditu (nízká priorita)                                                                                                                                                                        | tým     | #224, #226, #228, #230                                                             |
+|                        | Otevřené bugy a drobnosti                                                                                                                                                                                                  | tým     | #191, #199, #200, #202, #266, #281, #288, #289, #291                               |
+|                        | Zbylé nálezy bezpečnostního auditu (nízká priorita)                                                                                                                                                                        | tým     | #226, #228, #230                                                                   |
 | Kvalita                | UX nedodělky odchytit dřív než PO: story před přesunem do Done projde QA, nálezy v designu (překryté a splývající texty) sbírat do jednoho bugu                                                                            | PO, tým | nové „Bug: Design – překryté a splývající texty“                                   |
 | Onboarding             | Po prvním přihlášení (e-mailem po ověření, nebo přes Google) krokový průvodce: domovská lokalita, zájmy, případně další údaje; po dokončení se ukážou akce podle nastavení                                                 | PO      | nové „Onboarding po registraci“ (B-013, Figma B-08)                                |
 | Hodnocení              | Dotáhnout dávání hodnocení: účastník hodnotí akci a organizátora, organizátor hodnotí účastníka (datový model je hotový z #180); e-mail s výzvou k hodnocení                                                               | PO      | #66, #65                                                                           |
@@ -79,7 +79,7 @@ Všechno níže je ve sprintu 4, priorita určuje jen pořadí. Issues mají lab
 
 - **P1: nejdřív** – chyby a první dojem, které PO viděl, a funkce s hotovým zadáním: „Bug: ověření e-mailu tokenem neprojde“, „Bug: po ověření e-mailu nejde přihlášení e-mailem a heslem“, „E-maily ve spamu“, „Jen světlý režim a kontrast“, „Bug: Design – překryté a splývající texty“, „Prázdný výpis /akce“, jedno pravidlo pro „proběhlou akci“ a zrušené akce (#272, stojí na něm #61 i #66), filtr proběhlých akcí na /akce (#61), hodnocení (#66), „Onboarding po registraci“.
 - **P2: jádro sprintu** – notifikační centrum (#86), „Přátelé“, „Formulář akce: lokalita a adresa“, obrázek akce (#77), „Filtr Obsazenost“, „Mapa při oddálení“, „Moje: akce i skupiny“, výzva k hodnocení (#65, po #66), „Superadmin: první nástřel“ (blokace uživatelů jen jako bonus). Přátelé stojí na notifikačním centru (žádost přijde jako upozornění), proto #86 dřív. Notifikace a přátelé: tým připraví návrh do refinementu 16. 11. a hned po něm implementuje; ostatní se dá začít hned.
-- **P3: po P1 a P2** – bugy #184, #191, #192, #200, #242, #266, #281, #288, #289, #291; bezpečnostní audit #224, #226, #228, #230. U #191 a #192 nejdřív ověřit, jestli ještě platí.
+- **P3: po P1 a P2** – bugy #191, #200, #266, #281, #288, #289, #291; bezpečnostní audit #226, #228, #230. U #191 a části #288 z #192 nejdřív ověřit, jestli ještě platí.
 
 Rozpracované ze sprintu 3: #199 (PR #293) a #202 (PR #292). Hotové ze sprintu 3 a čekají na PO v Done: #41, #52, #165.
 
@@ -95,7 +95,8 @@ Rozpracované ze sprintu 3: #199 (PR #293) a #202 (PR #292). Hotové ze sprintu 
 
 ## Úklid boardu (tým)
 
-- Issues Brand (#245–#251) na board nepatří, práce je v #195; smažeme je.
+- Issues Brand (#245–#251) na board nepatří: zavřené jako „not planned“, práce je v #195 (PR #252, #253, #259, #269, #276, #279).
+- Související bugy jsou sloučené: #184 do #200 (formulář akce), #192 do #288 (mobil /akce), #224 do #230 (rate limit), #242 do #304 (tok skupin); bod o lokalitě z #200 přešel do #303.
 - #236 je zamergované (PR #267, 9. 11.), přesuneme ho do Done.
 - U #77 a #86 změníme štítek „nice to have“ na „MVP“.
 - Popisy labelů P1–P3 přepíšeme ze sprintu 3 na sprint 4.
