@@ -1,6 +1,6 @@
 # Fotky aktivit
 
-Knihovna fotek na kartách akcí (DESIGN.md › Event card, #248): **jedna fotka na aktivitu**, pojmenovaná podle `slug` aktivity z katalogu, nikdy fotka od organizátora. Aktivita bez fotky ukáže na kartě dlaždici aktivity.
+Knihovna fotek na kartách akcí (DESIGN.md › Event card, #195, PR #259): **jedna fotka na aktivitu**, pojmenovaná podle `slug` aktivity z katalogu, nikdy fotka od organizátora. Aktivita bez fotky ukáže na kartě dlaždici aktivity.
 
 Každá fotka je tu ve dvou šířkách, poměr 3 : 2, WebP:
 

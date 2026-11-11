@@ -26,7 +26,7 @@ Need a control that isn't in `src/components/ui/`? Add it with `pnpm dlx shadcn@
 
 The CLI puts `shadow-xs`/`shadow-sm` on inputs, textareas and cards. [`DESIGN.md`](DESIGN.md) keeps shadows for things that genuinely float — dialogs, dropdowns, toasts. Strip them.
 
-It also adds its own `dark:` shades (`dark:bg-input/30`, `dark:aria-invalid:ring-destructive/40`…). Strip those too: dark mode comes from the `.dark` tokens, and `tokens.test.ts` fails on any `dark:` in `components/ui`.
+It also adds its own `dark:` shades (`dark:bg-input/30`, `dark:aria-invalid:ring-destructive/40`…). Strip those too: `dark:` does not belong in `components/ui`, because the app has a light mode only ([`DESIGN.md`](DESIGN.md)), and `tokens.test.ts` fails on any `dark:` there.
 
 ### The app is already running
 
