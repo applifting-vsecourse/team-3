@@ -1,10 +1,10 @@
 import { readFileSync } from "node:fs"
 import { resolve } from "node:path"
 import { render, screen } from "@testing-library/react"
-import { describe, expect, it } from "vitest"
+import { describe, expect, it, vi } from "vitest"
 
 import { clusterHtml, PIN_BOX, pinHtml } from "./mapPin"
-import { MapView, toArea, viewKey } from "./MapView"
+import { AreaSearchButton, MapView, toArea, viewKey } from "./MapView"
 
 const praha = { lat: 50.0755, lng: 14.4378 }
 
@@ -176,5 +176,29 @@ describe("toArea (review #276)", () => {
       east: 14.6,
       north: 50.2,
     })
+  })
+})
+
+// #288: on a phone the search and the chips float over the map's top; the button was under them
+describe("AreaSearchButton", () => {
+  it("sits 12 px under what floats over the map's top", () => {
+    render(
+      <AreaSearchButton
+        topInset={108}
+        onClick={vi.fn()}
+      />,
+    )
+
+    const button = screen.getByRole("button", { name: "Hledat v této oblasti" })
+    expect(button).toHaveStyle({ top: "108px" })
+    expect(button).toHaveClass("mt-3")
+  })
+
+  it("without anything over the map it sits 12 px from the map's top (desktop)", () => {
+    render(<AreaSearchButton onClick={vi.fn()} />)
+
+    const button = screen.getByRole("button", { name: "Hledat v této oblasti" })
+    expect(button).toHaveClass("top-0", "mt-3")
+    expect(button.style.top).toBe("")
   })
 })

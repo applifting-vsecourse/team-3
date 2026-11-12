@@ -7,6 +7,7 @@ import { PageBand } from "@/components/PageBand/PageBand"
 import { Seo } from "@/components/Seo"
 import { Button } from "@/components/ui/button"
 import { Tabs, TabsContent } from "@/components/ui/tabs"
+import { useElementHeight } from "@/hooks/useElementHeight"
 import { localityDefault, useLocality } from "@/hooks/useLocality"
 import { DESKTOP_QUERY, useMediaQuery } from "@/hooks/useMediaQuery"
 import { ALL_LOCALITIES_SLUG } from "@/lib/catalog/localityOptions"
@@ -81,6 +82,7 @@ function EventsPage() {
     isEnabled: shownLocality.slug !== undefined,
   })
   const isDesktop = useMediaQuery(DESKTOP_QUERY)
+  const [overlayRef, overlayHeight] = useElementHeight<HTMLDivElement>()
   const [panelSnap, setPanelSnap] = useState<PanelSnap>("peek")
   const isListExpanded = panelSnap === "list"
   const [highlightedId, setHighlightedId] = useState<string>()
@@ -262,6 +264,8 @@ function EventsPage() {
           >
             <div className="relative flex flex-1 flex-col overflow-hidden md:min-h-0 md:basis-0">
               <div
+                // on a phone it floats over the map's top: „Hledat v této oblasti“ goes under it
+                ref={overlayRef}
                 className={cn(
                   // mobile: chips over the map, or a bar above the pulled-up list
                   "absolute inset-x-0 top-0 z-20",
@@ -377,6 +381,8 @@ function EventsPage() {
                           ? CZECHIA_CENTER
                           : (locality ?? CZECHIA_CENTER)
                       }
+                      // the phone's search and chips float over the map's top (#288)
+                      topInset={isDesktop ? 0 : overlayHeight}
                       hasZoomControl={isDesktop}
                     />
                     {selectedEvent && isDesktop ? (

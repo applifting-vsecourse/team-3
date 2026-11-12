@@ -128,6 +128,24 @@ describe("EventList", () => {
     expect(onClearFilters).toHaveBeenCalledOnce()
   })
 
+  // #288 (merged #192): on a phone a card could not be opened after „Zrušit filtry“
+  it("after „Zrušit filtry“ a card still opens its detail", async () => {
+    const { router, rerender } = await renderWithRouter(
+      <EventList
+        events={[]}
+        onClearFilters={vi.fn()}
+      />,
+      { url: "/akce?lokalita=brno&aktivita=squash" },
+    )
+    await userEvent.click(screen.getByRole("button", { name: "Zrušit filtry" }))
+
+    // the page clears the filters: no „Zrušit filtry“, the events of the default locality
+    rerender(<EventList events={[anEvent({ id: "cm-e1" })]} />)
+    await userEvent.click(screen.getByRole("link", { name: "Language exchange: CZ/EN/ES" }))
+
+    expect(router.state.location.pathname).toBe("/akce/cm-e1")
+  })
+
   it("shows a skeleton while loading", () => {
     render(
       <EventList

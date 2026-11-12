@@ -59,6 +59,11 @@ type MapViewProps = {
   /** After the user moves the map, „Hledat v této oblasti“ offers this with the area in view. */
   onAreaSearch?: (area: MapArea) => void
   /**
+   * How much of the map's top edge something floats over (px) — on a phone /akce has its
+   * search and chips there (#288). „Hledat v této oblasti“ goes right under it, never under it.
+   */
+  topInset?: number
+  /**
    * A picture of where, not a map to explore (Figma: Map/Static): no panning,
    * no zoom, so on a phone the page scrolls over it instead of the map.
    */
@@ -109,6 +114,7 @@ export function MapView({
   isClustered = false,
   area,
   onAreaSearch,
+  topInset = 0,
   isStatic = false,
   label = "Mapa akcí",
   className,
@@ -170,20 +176,40 @@ export function MapView({
         />
       </MapContainer>
       {onAreaSearch && movedArea ? (
-        // Figma A-02, A-03ad: over the map at the top, after the map was moved
-        <Button
-          variant="outline"
+        <AreaSearchButton
+          topInset={topInset}
           onClick={() => {
             onAreaSearch(movedArea)
             setMoved(undefined)
           }}
-          className="absolute top-3 left-1/2 z-[1000] h-10 -translate-x-1/2 bg-background shadow-md"
-        >
-          <RotateCw />
-          Hledat v této oblasti
-        </Button>
+        />
       ) : null}
     </div>
+  )
+}
+
+/**
+ * „Hledat v této oblasti“ (Figma A-02, A-03ad): over the map at the top, after the map was
+ * moved — on a phone 12 px under the search and chips floating there (A-02, A-02k, A-03a;
+ * #288), never under them.
+ */
+export function AreaSearchButton({
+  topInset = 0,
+  onClick,
+}: {
+  topInset?: number
+  onClick: () => void
+}) {
+  return (
+    <Button
+      variant="outline"
+      onClick={onClick}
+      style={topInset > 0 ? { top: topInset } : undefined}
+      className="absolute top-0 left-1/2 z-[1000] mt-3 h-10 -translate-x-1/2 bg-background shadow-md"
+    >
+      <RotateCw />
+      Hledat v této oblasti
+    </Button>
   )
 }
 
