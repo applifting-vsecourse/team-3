@@ -90,8 +90,8 @@
   /* Light mode only (DESIGN.md › Colour): native scrollbars and form controls stay light even
      when the system is set to dark. */
   color-scheme: light;
-  /* Values from the Figma collection "HobbyHub tokens" (mode Light, the only one that applies). Names match 1:1; where Figma
-     aliases one token to another, so does var() here. */
+  /* Values from the Figma collection "HobbyHub tokens" (mode Light, the only one that
+     applies). Names match 1:1; where Figma aliases one token to another, so does var() here. */
   --font-sans: "Geist Variable", ui-sans-serif, system-ui, sans-serif;
   /* The display face: H1, section headings, card titles, date tile, stamp, wordmark (DESIGN.md › Type). */
   --font-heading: "Bricolage Grotesque Variable", var(--font-sans);

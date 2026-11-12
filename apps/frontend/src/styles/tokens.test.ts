@@ -197,11 +197,15 @@ describe("light mode only", () => {
 
   // index.html cannot read a CSS variable before the app loads, so the browser chrome's colour
   // is written there once — it has to stay the band's colour (the header sits on the band).
+  // Every <meta> naming theme-color counts, whatever the attribute order — a second one written
+  // as name, media, content must not slip past.
   it("index.html has one theme-color, the band's --hero", () => {
     const html = readFileSync(resolve(process.cwd(), "index.html"), "utf8")
-    const colors = [...html.matchAll(/<meta name="theme-color" content="(#[0-9a-f]{6})"/gi)].map(
-      ([, color]) => color?.toLowerCase(),
-    )
+    const colors = [...html.matchAll(/<meta\b[^>]*>/gi)]
+      .map(([tag]) => tag)
+      .filter((tag) => /\bname=["']theme-color["']/i.test(tag))
+      .map((tag) => /\bcontent=["']([^"']*)["']/i.exec(tag)?.[1]?.toLowerCase())
     expect(colors).toEqual([tokens.hero])
+    expect(html).not.toMatch(/prefers-color-scheme/i)
   })
 })
