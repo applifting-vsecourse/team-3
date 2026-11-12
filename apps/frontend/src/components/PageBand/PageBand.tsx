@@ -257,9 +257,9 @@ function CornerMotif({
     <div
       aria-hidden="true"
       className={cn(
-        // bottom-12: the 47 px strip of BandTabsItem, rounded up (see its padding)
+        // bottom-band-tabs: the height of BandTabsItem, the same token
         "pointer-events-none absolute inset-x-0 top-0 overflow-hidden",
-        isAboveTabs ? "bottom-12" : "bottom-0",
+        isAboveTabs ? "bottom-band-tabs" : "bottom-0",
         isUntilLg ? "lg:hidden" : "md:hidden",
         // under 360 px the lower dot would reach the end of „Moje akce“
         isSection && "max-xs:hidden",
@@ -320,9 +320,9 @@ function LogoMotif({ isAboveTabs = false }: { isAboveTabs?: boolean }) {
       className={cn(
         "pointer-events-none absolute inset-x-0 top-0 mx-auto hidden max-w-7xl overflow-hidden xl:block",
         // with tabs on the band's edge it rises from the tabs' top line instead: six quick picks
-        // on /akce reach under the ring and the dots (#298); bottom-12: the 47 px strip of
-        // BandTabsItem, rounded up
-        isAboveTabs ? "bottom-12" : "bottom-0",
+        // on /akce reach under the ring and the dots (#298); bottom-band-tabs: the height of
+        // BandTabsItem, the same token
+        isAboveTabs ? "bottom-band-tabs" : "bottom-0",
       )}
     >
       <svg

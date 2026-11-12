@@ -60,7 +60,7 @@ describe("PageBand", () => {
   })
 
   // #298: the motifs never run under the band's tabs. jsdom has no layout, so this checks the
-  // motif boxes end bottom-12 above the band's bottom edge (the 47 px tab strip, rounded up).
+  // motif boxes end the tab strip's height (the band-tabs token BandTabsItem is) above the band's edge.
   const motifBoxes = (container: HTMLElement) =>
     // the motifs' boxes, not the logo mark before the title
     [...container.querySelectorAll("div.absolute[aria-hidden='true']")]
@@ -82,7 +82,7 @@ describe("PageBand", () => {
 
     const boxes = motifBoxes(container)
     expect(boxes).toHaveLength(2)
-    for (const box of boxes) expect(box).toHaveClass("bottom-12")
+    for (const box of boxes) expect(box).toHaveClass("bottom-band-tabs")
   })
 
   it("elsewhere the big motif rises from the band's edge, so it keeps clear of the action", async () => {
@@ -103,7 +103,7 @@ describe("PageBand", () => {
     const [big, corner] = motifBoxes(container)
     expect(big).toHaveClass("xl:block", "bottom-0")
     // on a phone the tabs scroll under any motif, so the corner one ends above them anyway
-    expect(corner).toHaveClass("md:hidden", "bottom-12")
+    expect(corner).toHaveClass("md:hidden", "bottom-band-tabs")
   })
 })
 

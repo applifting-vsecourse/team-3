@@ -82,6 +82,9 @@
 @theme {
   /* the narrowest phones: the section band drops its corner motif under 360 px (#298) */
   --breakpoint-xs: 22.5rem;
+  /* the tab strip on the band's bottom edge (BandTabsItem is this tall): PageBand's motifs end
+     this far above the band's edge, so no tab runs over them (#298) */
+  --spacing-band-tabs: 3rem;
   --text-body: 0.9375rem;
   --text-body--line-height: 1.375rem;
   --text-caption: 0.8125rem;
