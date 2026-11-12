@@ -1,7 +1,8 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query"
 import { createMemoryHistory, createRouter, RouterProvider } from "@tanstack/react-router"
-import { render, screen } from "@testing-library/react"
+import { act, render, screen } from "@testing-library/react"
 import userEvent from "@testing-library/user-event"
+import { Map as LeafletMap } from "leaflet"
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest"
 
 import { router } from "@/app/router"
@@ -44,18 +45,24 @@ async function renderEvents(url: string, events: unknown[] = []) {
   return app
 }
 
+/** `isDesktop`: every media query matches; otherwise none does — the phone layout. */
+function stubMatchMedia(isDesktop: boolean) {
+  vi.stubGlobal("matchMedia", (query: string) => ({
+    matches: isDesktop,
+    media: query,
+    addEventListener: vi.fn(),
+    removeEventListener: vi.fn(),
+  }))
+}
+
+beforeEach(() => stubMatchMedia(false))
+afterEach(() => {
+  vi.unstubAllGlobals()
+  vi.restoreAllMocks()
+})
+
 // #298: the list and the map are the quick picks' tab panel
 describe("/akce: the tabs' panel", () => {
-  beforeEach(() => {
-    vi.stubGlobal("matchMedia", (query: string) => ({
-      matches: false,
-      media: query,
-      addEventListener: vi.fn(),
-      removeEventListener: vi.fn(),
-    }))
-  })
-  afterEach(() => vi.unstubAllGlobals())
-
   it("is what the active tab points at, and not a Tab stop of its own", async () => {
     await renderEvents("/akce")
 
@@ -76,18 +83,8 @@ describe("/akce: the tabs' panel", () => {
 })
 
 // #288 (merged #192): on a phone a card could not be opened after „Zrušit filtry“. The whole page
-// at phone width (matchMedia matches nothing), with the list sheet over the map.
+// at phone width, with the list sheet over the map.
 describe("/akce on a phone: „Zrušit filtry“", () => {
-  beforeEach(() => {
-    vi.stubGlobal("matchMedia", (query: string) => ({
-      matches: false,
-      media: query,
-      addEventListener: vi.fn(),
-      removeEventListener: vi.fn(),
-    }))
-  })
-  afterEach(() => vi.unstubAllGlobals())
-
   it("then a card opens its detail", async () => {
     // as the API sends it: dates as strings
     const event: unknown = JSON.parse(JSON.stringify(anEvent({ id: "cm-e1" })))
@@ -97,5 +94,48 @@ describe("/akce on a phone: „Zrušit filtry“", () => {
     await userEvent.click(await screen.findByRole("link", { name: "Language exchange: CZ/EN/ES" }))
 
     expect(app.state.location.pathname).toBe("/akce/cm-e1")
+  })
+})
+
+// #288: on a phone the search and the chips float over the map's top, and „Hledat v této oblasti“
+// must come under them, never beneath — the page passes the bar's measured height to the map.
+describe("/akce: „Hledat v této oblasti“ after the map is moved", () => {
+  const OVERLAY_HEIGHT = 108
+
+  /** /akce with every element `OVERLAY_HEIGHT` tall; returns the page's Leaflet map. */
+  async function renderAndMoveMap() {
+    // jsdom has no layout: the measured bar (and anything else) is this tall
+    vi.spyOn(HTMLElement.prototype, "offsetHeight", "get").mockReturnValue(OVERLAY_HEIGHT)
+    const maps: LeafletMap[] = []
+    LeafletMap.addInitHook(function (this: LeafletMap) {
+      maps.push(this)
+    })
+    await renderEvents("/akce")
+    await screen.findByRole("region", { name: "Mapa akcí" })
+    const map = maps.at(-1)
+    if (!map) throw new Error("the page has no map")
+
+    // the user drags the map: a pointer goes down on it, the map moves
+    map.getContainer().dispatchEvent(new Event("pointerdown"))
+    act(() => {
+      map.fire("movestart")
+      map.fire("moveend")
+    })
+    map.getContainer().dispatchEvent(new Event("pointerup"))
+    return screen.findByRole("button", { name: "Hledat v této oblasti" })
+  }
+
+  it("on a phone, sits under the bar floating over the map", async () => {
+    const button = await renderAndMoveMap()
+
+    expect(button).toHaveStyle({ top: `${OVERLAY_HEIGHT}px` })
+  })
+
+  it("on desktop, where nothing floats over the map, sits at its top", async () => {
+    stubMatchMedia(true)
+
+    const button = await renderAndMoveMap()
+
+    expect(button.style.top).toBe("")
   })
 })
