@@ -1,5 +1,6 @@
 import {
   decideParticipantRating,
+  eventNotRatable,
   hasEventEnded,
   ParticipantRatingState,
 } from './participant-rating';
@@ -38,6 +39,7 @@ const state = (
   raterId: 'u-petra',
   participantId: 'u-jakub',
   participationStatus: 'approved',
+  ratingDeleted: false,
   ...overrides,
 });
 
@@ -105,8 +107,15 @@ describe('decideParticipantRating (#180)', () => {
     ).toEqual({ ok: false, refusal: 'SELF_RATING' });
   });
 
+  it('a rating a superadmin deleted is not given again (#66)', () => {
+    expect(
+      decideParticipantRating(state({ ratingDeleted: true }), now),
+    ).toEqual({ ok: false, refusal: 'RATING_DELETED' });
+  });
+
   it('only someone who was approved', () => {
     for (const participationStatus of [
+      null,
       'pending',
       'rejected',
       'withdrawn',
@@ -116,5 +125,32 @@ describe('decideParticipantRating (#180)', () => {
         decideParticipantRating(state({ participationStatus }), now),
       ).toEqual({ ok: false, refusal: 'NOT_APPROVED' });
     }
+  });
+});
+
+describe('eventNotRatable (#66)', () => {
+  const event = {
+    eventStatus: 'published' as const,
+    startsAt: yesterday,
+    endsAt: null,
+  };
+
+  it('null for an event that took place within 14 days', () => {
+    expect(eventNotRatable(event, now)).toBeNull();
+  });
+
+  it('says why not: cancelled or hidden, not over yet, after 14 days', () => {
+    expect(eventNotRatable({ ...event, eventStatus: 'cancelled' }, now)).toBe(
+      'EVENT_NOT_PUBLISHED',
+    );
+    expect(eventNotRatable({ ...event, startsAt: tomorrow }, now)).toBe(
+      'EVENT_NOT_ENDED',
+    );
+    expect(
+      eventNotRatable(
+        { ...event, startsAt: new Date('2026-10-01T12:00:00.000Z') },
+        now,
+      ),
+    ).toBe('RATING_WINDOW_CLOSED');
   });
 });

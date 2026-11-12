@@ -146,6 +146,7 @@ describe('generated past events (#181)', () => {
               )
                 ? 'approved'
                 : 'pending',
+              ratingDeleted: false,
             },
             new Date(row.endsAt.getTime() + 24 * 60 * 60 * 1000),
           ),

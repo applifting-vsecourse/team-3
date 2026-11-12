@@ -105,6 +105,7 @@ describe('past events and ratings (#180)', () => {
               )
                 ? 'approved'
                 : 'pending',
+              ratingDeleted: false,
             },
             dayAfter(row),
           ),

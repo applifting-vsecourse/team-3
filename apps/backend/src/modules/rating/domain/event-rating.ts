@@ -1,5 +1,4 @@
-import { hasEventEnded } from './participant-rating';
-import { isWithinRatingWindow } from './rating-window';
+import { eventNotRatable } from './participant-rating';
 
 /** Stars of a rating; 1–5, validated by the request DTO. */
 export const RATING_STARS_MIN = 1;
@@ -77,19 +76,12 @@ export function decideEventRating(
   if (state.participationStatus !== 'approved') {
     return { ok: false, refusal: 'NOT_PARTICIPANT' };
   }
-  if (state.eventStatus !== 'published') {
-    return { ok: false, refusal: 'EVENT_NOT_PUBLISHED' };
-  }
-  if (!hasEventEnded(state, now)) {
-    return { ok: false, refusal: 'EVENT_NOT_ENDED' };
-  }
   // before the window: once deleted, it stays deleted, not merely too late
   if (state.ratingDeleted) {
     return { ok: false, refusal: 'RATING_DELETED' };
   }
-  if (!isWithinRatingWindow(state, now)) {
-    return { ok: false, refusal: 'RATING_WINDOW_CLOSED' };
-  }
+  const notRatable = eventNotRatable(state, now);
+  if (notRatable) return { ok: false, refusal: notRatable };
   return { ok: true };
 }
 
