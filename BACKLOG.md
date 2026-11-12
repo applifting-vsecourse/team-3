@@ -799,7 +799,7 @@ Doménová logika (čistá funkce + testy): `approvedCount`, `missingToMin = max
 
 - Model `Rating`: `eventId`, `userId`, `eventStars` 1–5, `comment?`, `organizerStars` 1–5, `deletedAt` (smazáno superadminem, B-063). Jedno hodnocení na uživatele a akci.
 - Hodnocení účastníka organizátorem (PO 28. 10.): model `ParticipantRating`: `eventId`, `participantId` (s `eventId` cizí klíč na účast), `stars` 1–5 (i `CHECK` v databázi), `deletedAt`. Jedno na účastníka a akci, hodnotí jen organizátor akce – zakladatel (`organizerUserId`), i u akce skupiny, ne ostatní správci skupiny (výjimka z `canManageEvent` v B-055, review #215) – ne sám sebe, jen u proběhlé akce (`endsAt`, když chybí, `startsAt`) a jen `approved` účastníka: `decideParticipantRating` v `modules/rating/domain/participant-rating.ts`. `comment?` (max 500 znaků, `RATING_COMMENT_MAX_LENGTH`; PO 4. 11., dřív bez komentáře). U `ParticipantRating.comment` limit hlídá i databáze (`VarChar(500)`), u `Rating.comment` (`@db.Text`) jen aplikace. Komentář vidí hodnocený účastník. Po smazání superadminem jde hodnocení jen vrátit, ne dát znovu. Model a výpočet průměrů ve sprintu 3 (#180), dávání hodnocení ve sprintu 4 (#66, PO 10. 11.).
-- Hodnotit smí jen ten, kdo byl na akci `approved`, a až po skončení akce. Potvrzená docházka podmínkou není. Hodnotit jde do 14 dnů od konce akce a do té doby jde hodnocení změnit (tým 4. 11.). Platí pro `Rating` i `ParticipantRating`; `decideParticipantRating` lhůtu zatím nemá – doplní ji #66 s novým kódem odmítnutí `RATING_WINDOW_CLOSED` (a stejné pravidlo pro hodnocení akce).
+- Hodnotit smí jen ten, kdo byl na akci `approved`, a až po skončení akce. Potvrzená docházka podmínkou není. Hodnotit jde do 14 dnů od konce akce a do té doby jde hodnocení změnit (tým 4. 11.). Platí pro `Rating` i `ParticipantRating`: kód odmítnutí `RATING_WINDOW_CLOSED`, lhůta v `modules/rating/domain/rating-window.ts` (#66).
 - Hodnocení organizátora se počítá k osobě, u akce skupiny ke skupině. Průměr jako organizátor (`organizerRatingSummary`, z `Rating.organizerStars`, bez akcí skupin) a jako účastník (`participantRatingSummary`, z `ParticipantRating.stars`) jsou čisté funkce v `modules/rating/domain/rating-summary.ts` (#180) pro profil (B-013, #178, #179): zaokrouhlené na jedno desetinné místo, vždy s počtem, bez hodnocení `null`, smazaná hodnocení se nepočítají a nepočítají se ani hodnocení akcí, které admin skryl nebo smazal. Průměr skupiny (`groupRatingSummary`) z `Rating.organizerStars` akcí skupiny – detail akce skupiny a sekce „Od dobře hodnocených“ (#182). „Dobře hodnocený“ = průměr aspoň 4,5 z nejméně 3 hodnocení.
 - Rychlé hodnocení účastníků (PO 4. 11., Figma D-05): organizátor nejdřív „Všem stejně“ – hvězdičky (předvyplněno 5★) a jeden komentář pro všechny, pak jednotlivým účastníkům dá individuální hodnocení (hvězdičky i komentář). Odškrtnout, kdo nepřišel, půjde až v dalších sprintech. Uloží se hodnocení každého účastníka zvlášť, výchozí hodnota pro akci se neukládá. Jeden zápis v transakci; `decideParticipantRating` platí pro každého.
 - Organizátor vidí hodnocení a komentáře svých akcí (ve správě akce).
@@ -809,8 +809,8 @@ Doménová logika (čistá funkce + testy): `approvedCount`, `missingToMin = max
 **Hotovo, když:**
 
 - [x] Testy výpočtu průměru a oprávnění k hodnocení účastníka (#180).
-- [ ] Testy oprávnění k hodnocení akce a organizátora a API (#66).
-- [ ] Test lhůty 14 dnů pro `Rating` i `ParticipantRating`: den 14 projde, později `RATING_WINDOW_CLOSED`; změna hodnocení po lhůtě taky ne (#66).
+- [x] Testy oprávnění k hodnocení akce a organizátora a API (#66).
+- [x] Test lhůty 14 dnů pro `Rating` i `ParticipantRating`: den 14 projde, později `RATING_WINDOW_CLOSED`; změna hodnocení po lhůtě taky ne (#66).
 - [ ] Test: správce skupiny, který akci nezaložil, účastníky akce skupiny nehodnotí (`NOT_ORGANIZER`).
 
 ---
