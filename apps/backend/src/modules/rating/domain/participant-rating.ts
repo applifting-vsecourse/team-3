@@ -43,8 +43,13 @@ export function hasEventEnded(
 }
 
 /** Why an event can't be rated at all, by anyone. */
-export type EventNotRatable =
-  'EVENT_NOT_PUBLISHED' | 'EVENT_NOT_ENDED' | 'RATING_WINDOW_CLOSED';
+export const EVENT_NOT_RATABLE = [
+  'EVENT_NOT_PUBLISHED',
+  'EVENT_NOT_ENDED',
+  'RATING_WINDOW_CLOSED',
+] as const;
+
+export type EventNotRatable = (typeof EVENT_NOT_RATABLE)[number];
 
 /**
  * Whether an event can be rated now (B-060), the same for rating the event

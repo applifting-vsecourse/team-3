@@ -7,11 +7,19 @@ import {
   MyEventRating,
 } from '@/modules/rating/domain/event-rating';
 import {
+  decideParticipantRating,
+  eventNotRatable,
+  ParticipantRatingInput,
+  ParticipantRatingRefusal,
+  ParticipantRatings,
+} from '@/modules/rating/domain/participant-rating';
+import {
   RATING_WINDOW_DAYS,
   ratingDeadline,
 } from '@/modules/rating/domain/rating-window';
 import {
   EventRatingSnapshot,
+  ParticipantRatingsSnapshot,
   RatingRepository,
 } from '@/modules/rating/repositories/rating.repository';
 import {
@@ -44,6 +52,48 @@ const refused = (refusal: EventRatingRefusal): HttpException => {
     message: EVENT_RATING_REFUSAL_MESSAGES[refusal],
   };
   return FORBIDDEN.has(refusal)
+    ? new ForbiddenException(body)
+    : new ConflictException(body);
+};
+
+/** For the organizer rating the participants (Figma D-05). */
+export const PARTICIPANT_RATING_REFUSAL_MESSAGES: Record<
+  ParticipantRatingRefusal,
+  string
+> = {
+  NOT_ORGANIZER: 'Účastníky hodnotí jen organizátor akce.',
+  EVENT_NOT_PUBLISHED: 'Zrušenou akci hodnotit nejde.',
+  EVENT_NOT_ENDED: 'Účastníky půjde hodnotit, až akce skončí.',
+  RATING_WINDOW_CLOSED: `Hodnotit šlo jen ${RATING_WINDOW_DAYS} dní po akci.`,
+  SELF_RATING: 'Sám sebe hodnotit nejde.',
+  NOT_APPROVED: 'Hodnotit jde jen schválené účastníky akce.',
+  RATING_DELETED: 'Hodnocení odstranil správce, znovu ho dát nejde.',
+};
+
+/** Refusals about one participant; the others are about the whole event. */
+const ABOUT_PARTICIPANT: ReadonlySet<ParticipantRatingRefusal> = new Set([
+  'SELF_RATING',
+  'NOT_APPROVED',
+  'RATING_DELETED',
+]);
+
+/**
+ * A refused participant rating: 403 for someone else than the organizer,
+ * 409 otherwise. A refusal about one participant names them, so the
+ * frontend can mark the row; one about the event doesn't.
+ */
+const participantRatingRefused = (
+  refusal: ParticipantRatingRefusal,
+  participantId?: string,
+): HttpException => {
+  const body = {
+    code: refusal,
+    message: PARTICIPANT_RATING_REFUSAL_MESSAGES[refusal],
+    ...(participantId && ABOUT_PARTICIPANT.has(refusal)
+      ? { participantId }
+      : {}),
+  };
+  return refusal === 'NOT_ORGANIZER'
     ? new ForbiddenException(body)
     : new ConflictException(body);
 };
@@ -118,6 +168,64 @@ export class RatingService {
     };
   }
 
+  /**
+   * „Ohodnoť účastníky“ (Figma D-05): the event's approved participants
+   * with the organizer's rating of each, until when they may be rated and
+   * why not now. Only the organizer who created the event, also for an event
+   * of a group: other admins of the group don't rate (B-060, review #215).
+   */
+  async getParticipantRatings(
+    eventId: string,
+    userId: string,
+    now: Date = new Date(),
+  ): Promise<ParticipantRatings> {
+    const snapshot = await this.findOrganizedEvent(eventId, userId);
+    return toParticipantRatings(snapshot, now);
+  }
+
+  /**
+   * Gives or changes the organizer's ratings of participants (B-060): one
+   * participant, or everyone at once with the same stars and comment as the
+   * frontend fills them in („Všem stejně“). Each is saved on its own, the
+   * default for the event isn't. All or nothing: when one is refused, none
+   * is saved and the error names the participant. Everything comes from
+   * one transaction under the lock (#313): whether the event exists, the
+   * refusals – NOT_ORGANIZER first – and the view as after saving.
+   */
+  async rateParticipants(
+    eventId: string,
+    userId: string,
+    inputs: ParticipantRatingInput[],
+    now: Date = new Date(),
+  ): Promise<ParticipantRatings> {
+    const result = await this.ratingRepository.saveParticipantRatings(
+      eventId,
+      userId,
+      inputs,
+      (state) => decideParticipantRating(state, now),
+    );
+    if (!result) throw new NotFoundException('Akce neexistuje.');
+    if (!result.ok) {
+      throw participantRatingRefused(result.refusal, result.participantId);
+    }
+    return toParticipantRatings(result.snapshot, now);
+  }
+
+  private async findOrganizedEvent(
+    eventId: string,
+    userId: string,
+  ): Promise<ParticipantRatingsSnapshot> {
+    const snapshot =
+      await this.ratingRepository.findParticipantRatings(eventId);
+    if (!snapshot || isEventGone(snapshot.event.status)) {
+      throw new NotFoundException('Akce neexistuje.');
+    }
+    if (snapshot.event.organizerUserId !== userId) {
+      throw participantRatingRefused('NOT_ORGANIZER');
+    }
+    return snapshot;
+  }
+
   private async findRatableEvent(
     eventId: string,
     userId: string,
@@ -131,4 +239,39 @@ export class RatingService {
     }
     return snapshot;
   }
+}
+
+function toParticipantRatings(
+  { event, participants }: ParticipantRatingsSnapshot,
+  now: Date,
+): ParticipantRatings {
+  const eventState = {
+    eventStatus: event.status,
+    startsAt: event.startsAt,
+    endsAt: event.endsAt,
+  };
+  return {
+    participants: participants
+      // the organizer joined to their own event (Q12) doesn't rate themselves
+      .filter((participant) => participant.id !== event.organizerUserId)
+      .map(({ id, name, rating }) => {
+        const deleted = rating !== null && rating.deletedAt !== null;
+        return {
+          id,
+          name,
+          // a rating a superadmin deleted is not shown; it can't be given again
+          rating:
+            rating && !deleted
+              ? {
+                  stars: rating.stars,
+                  comment: rating.comment,
+                  updatedAt: rating.updatedAt,
+                }
+              : null,
+          ratingDeleted: deleted,
+        };
+      }),
+    ratableUntil: ratingDeadline(eventState),
+    refusal: eventNotRatable(eventState, now),
+  };
 }

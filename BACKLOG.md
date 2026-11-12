@@ -811,7 +811,7 @@ Doménová logika (čistá funkce + testy): `approvedCount`, `missingToMin = max
 - [x] Testy výpočtu průměru a oprávnění k hodnocení účastníka (#180).
 - [x] Testy oprávnění k hodnocení akce a organizátora a API (#66).
 - [x] Test lhůty 14 dnů pro `Rating` i `ParticipantRating`: den 14 projde, později `RATING_WINDOW_CLOSED`; změna hodnocení po lhůtě taky ne (#66).
-- [ ] Test: správce skupiny, který akci nezaložil, účastníky akce skupiny nehodnotí (`NOT_ORGANIZER`).
+- [x] Test: správce skupiny, který akci nezaložil, účastníky akce skupiny nehodnotí (`NOT_ORGANIZER`).
 
 ---
 

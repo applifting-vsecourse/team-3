@@ -9,4 +9,11 @@ Obě vyžadují session, `PUT` i ověřený e-mail (`VerifiedUserGuard`). Hodnot
 
 Lhůta je 14 dní od konce akce (bez konce od začátku), poslední okamžik ještě platí: `RATING_WINDOW_DAYS` v `domain/rating-window.ts`; hlášky i popisy API berou číslo odtud, stejná pro hodnocení účastníka (`decideParticipantRating`). U akce skupiny se hvězdičky organizátora počítají ke skupině (`rating-summary.ts`).
 
-Organizátor hodnotí účastníky a frontend (`/akce/:id/hodnoceni`) přijdou v dalších PR k #66.
+## Organizátor hodnotí účastníky (#66)
+
+- `GET /api/events/:id/participant-ratings`: schválení účastníci v pořadí, v jakém dostali místo (D-03), bez organizátora samotného, každý se svým hodnocením (nebo `null`) a `ratingDeleted`, když ho smazal superadmin; k tomu `ratableUntil` a `refusal` (proč teď nejde hodnotit nikoho).
+- `PUT /api/events/:id/participant-ratings`: `{ ratings: [{ participantId, stars, comment? }] }`. Jeden účastník, nebo všichni najednou s tím, co frontend vyplnil přes „Všem stejně“ (Figma D-05). Každý dostane vlastní hodnocení, které nahradí předchozí i s komentářem; kdo v seznamu není, se nemění. Výchozí hodnota pro akci se neukládá. Všechno, nebo nic: když jedno hodnocení neprojde, neuloží se žádné; chyba u konkrétního účastníka nese jeho `participantId`. Vrací stejný přehled jako `GET`.
+
+Hodnotí jen organizátor, který akci založil, i u akce skupiny, ne ostatní správci skupiny (403 `NOT_ORGANIZER`). Akce musí jít hodnotit (409 `EVENT_NOT_PUBLISHED`, `EVENT_NOT_ENDED`, `RATING_WINDOW_CLOSED`), u každého účastníka 409 `SELF_RATING`, `NOT_APPROVED` nebo `RATING_DELETED`. Pravidla jsou v `decideParticipantRating` (`NOT_ORGANIZER` jako první, smazané hodnocení před lhůtou) a zápis je jedna transakce pod zámkem řádku akce: o existenci akce i odmítnutích rozhoduje čtení pod zámkem a odpověď je přehled přečtený v téže transakci po zápisu, mimo ni `PUT` nic nečte (#313). To, jestli akce jde hodnotit (`eventNotRatable`), sdílí hodnocení akce i účastníků.
+
+Frontend (`/akce/:id/hodnoceni`) přijde v dalších PR k #66.
