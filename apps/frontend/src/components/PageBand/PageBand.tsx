@@ -255,11 +255,12 @@ function CornerMotif({
     <div
       aria-hidden="true"
       className={cn(
+        // bottom-12: the 47 px strip of BandTabsItem, rounded up (see its padding)
         "pointer-events-none absolute inset-x-0 top-0 overflow-hidden",
         isAboveTabs ? "bottom-12" : "bottom-0",
         isUntilLg ? "lg:hidden" : "md:hidden",
         // under 360 px the lower dot would reach the end of „Moje akce“
-        isSection && "max-[22.5rem]:hidden",
+        isSection && "max-xs:hidden",
       )}
     >
       <svg

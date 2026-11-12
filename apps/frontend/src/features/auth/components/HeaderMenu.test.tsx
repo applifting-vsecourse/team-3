@@ -25,14 +25,14 @@ describe("HeaderMenu", () => {
     )
 
     await userEvent.click(
-      screen.getByRole("button", { name: "Uživatelské menu PN – Petra Nováková" }),
+      screen.getByRole("button", { name: "PN – Petra Nováková, uživatelské menu" }),
     )
     await userEvent.click(await screen.findByRole("menuitem", { name: "Můj profil" }))
 
     expect(router.state.location.pathname).toBe("/profil")
   })
 
-  // WCAG 2.5.3 Label in Name (#298): the button's name holds the initials it shows
+  // WCAG 2.5.3 Label in Name (#298): the button's name starts with the initials it shows
   it("names the avatar button with the initials it shows and whose menu it is", async () => {
     const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } })
     queryClient.setQueryData(authKeys.session(), { user })
@@ -43,6 +43,6 @@ describe("HeaderMenu", () => {
     )
 
     const button = screen.getByRole("button", { name: /Petra Nováková/ })
-    expect(button).toHaveAccessibleName(expect.stringContaining(button.textContent.trim()))
+    expect(button.getAttribute("aria-label")?.startsWith(button.textContent.trim())).toBe(true)
   })
 })

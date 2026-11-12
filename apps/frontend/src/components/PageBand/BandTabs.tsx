@@ -51,7 +51,10 @@ export function BandTabsItem({
     <TabsTrigger
       className={cn(
         // the kit's line indicator and shadow are not used; it sits 5 px below the tab and made
-        // the strip scroll, so it is hidden too
+        // the strip scroll, so it is hidden too.
+        // The strip is 47 px tall (pt-3 + the body line + pb-2.5 + border-b-3): PageBand's motif
+        // stops `bottom-12` above the band's edge so no tab runs over it (#298). Changing the
+        // padding or the type here means checking that offset too.
         "group/tab h-auto flex-none gap-1.5 rounded-none border-0 border-b-3 border-transparent px-0 pt-3 pb-2.5 text-body after:hidden",
         // The focus ring as a frame 4 px into the gap beside the tab, as tall as the tab: the
         // strip scrolls sideways and the band clips, so the kit's ring outside the tab lost its
