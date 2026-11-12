@@ -1,4 +1,10 @@
-import { decideEventRating, EventRatingState } from './event-rating';
+import {
+  decideEventRating,
+  EVENT_RATING_FORBIDDEN,
+  EVENT_RATING_REFUSALS,
+  EVENT_RATING_SHOWN_REFUSALS,
+  EventRatingState,
+} from './event-rating';
 
 const now = new Date('2026-11-01T12:00:00.000Z');
 const yesterday = new Date('2026-10-31T17:00:00.000Z');
@@ -86,10 +92,45 @@ describe('decideEventRating (#66)', () => {
     ).toEqual({ ok: false, refusal: 'RATING_WINDOW_CLOSED' });
   });
 
+  it('an admin of the group who went rates the event of a group they did not create (#313)', () => {
+    // the organizer is who created the event, as for rating the participants (PR 2)
+    expect(
+      decideEventRating(
+        state({ organizerUserId: 'u-petra', raterId: 'u-tomas' }),
+        now,
+      ),
+    ).toEqual({ ok: true });
+  });
+
+  it('a rating a superadmin deleted stays RATING_DELETED after the window too (#313)', () => {
+    expect(
+      decideEventRating(
+        state({
+          ratingDeleted: true,
+          startsAt: new Date('2026-10-01T12:00:00.000Z'),
+        }),
+        now,
+      ),
+    ).toEqual({ ok: false, refusal: 'RATING_DELETED' });
+  });
+
   it('a rating a superadmin deleted is not given again', () => {
     expect(decideEventRating(state({ ratingDeleted: true }), now)).toEqual({
       ok: false,
       refusal: 'RATING_DELETED',
     });
+  });
+});
+
+describe('event rating refusals (#313)', () => {
+  it('the page shows every refusal the service does not answer with 403', () => {
+    expect([...EVENT_RATING_SHOWN_REFUSALS].sort()).toEqual(
+      EVENT_RATING_REFUSALS.filter(
+        (refusal) => !EVENT_RATING_FORBIDDEN.includes(refusal),
+      ).sort(),
+    );
+    expect(EVENT_RATING_SHOWN_REFUSALS).not.toContain('OWN_EVENT');
+    expect(EVENT_RATING_SHOWN_REFUSALS).not.toContain('NOT_PARTICIPANT');
+    expect(EVENT_RATING_SHOWN_REFUSALS).toContain('RATING_DELETED');
   });
 });

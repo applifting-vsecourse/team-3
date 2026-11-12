@@ -1,4 +1,5 @@
 import {
+  EVENT_RATING_SHOWN_REFUSALS,
   EventRating,
   EventRatingRefusal,
   MyEventRating,
@@ -6,6 +7,7 @@ import {
   RATING_STARS_MIN,
 } from '@/modules/rating/domain/event-rating';
 import { RATING_COMMENT_MAX_LENGTH } from '@/modules/rating/domain/participant-rating';
+import { RATING_WINDOW_DAYS } from '@/modules/rating/domain/rating-window';
 import { ApiProperty } from '@nestjs/swagger';
 import { Transform, TransformFnParams } from 'class-transformer';
 import {
@@ -95,13 +97,6 @@ export class EventRatingDto {
   }
 }
 
-const REFUSALS_SHOWN: EventRatingRefusal[] = [
-  'EVENT_NOT_PUBLISHED',
-  'EVENT_NOT_ENDED',
-  'RATING_WINDOW_CLOSED',
-  'RATING_DELETED',
-];
-
 /** GET and PUT /events/:id/rating — the participant's own rating. */
 export class MyEventRatingResponseDto {
   @ApiProperty({
@@ -114,14 +109,15 @@ export class MyEventRatingResponseDto {
   @ApiProperty({
     type: String,
     format: 'date-time',
-    description: '14 days after the end of the event (its start without one)',
+    description: `${RATING_WINDOW_DAYS} days after the end of the event (its start without one)`,
   })
   ratableUntil!: Date;
 
   @ApiProperty({
     type: String,
     nullable: true,
-    enum: REFUSALS_SHOWN,
+    // the same list the service keeps out of 403 (EVENT_RATING_FORBIDDEN)
+    enum: EVENT_RATING_SHOWN_REFUSALS,
     description: 'Why rating is not possible now; null when it is',
   })
   refusal!: EventRatingRefusal | null;

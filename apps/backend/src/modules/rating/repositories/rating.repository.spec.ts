@@ -88,7 +88,16 @@ describe('RatingRepository (#66)', () => {
           input,
           decide,
         ),
-      ).resolves.toEqual({ ok: true, rating: { ...input, updatedAt } });
+      ).resolves.toEqual({
+        ok: true,
+        rating: { ...input, updatedAt },
+        // the state it was decided on, for until when (#313)
+        state: expect.objectContaining({
+          eventStatus: 'published',
+          startsAt,
+          endsAt: null,
+        }),
+      });
       expect(prisma.$executeRaw).toHaveBeenCalled();
       expect(decide).toHaveBeenCalledWith(
         expect.objectContaining({
@@ -104,6 +113,32 @@ describe('RatingRepository (#66)', () => {
         }),
       );
     });
+
+    it.each(['hidden', 'deleted'])(
+      'null for an event a superadmin %s, as read under the lock, and writes nothing',
+      async (status) => {
+        const prisma = prismaWith({
+          event: {
+            status,
+            startsAt,
+            endsAt: null,
+            organizerUserId: 'u-petra',
+          },
+        });
+        const decide = jest.fn().mockReturnValue({ ok: true });
+
+        await expect(
+          new RatingRepository(prisma).saveEventRating(
+            'e1',
+            'u-jakub',
+            input,
+            decide,
+          ),
+        ).resolves.toBeNull();
+        expect(decide).not.toHaveBeenCalled();
+        expect(prisma.rating.upsert).not.toHaveBeenCalled();
+      },
+    );
 
     it('writes nothing when refused', async () => {
       const prisma = prismaWith();

@@ -1,10 +1,15 @@
 import {
   decideEventRating,
+  EVENT_RATING_FORBIDDEN,
   EventRatingInput,
   EventRatingRefusal,
+  isEventGone,
   MyEventRating,
 } from '@/modules/rating/domain/event-rating';
-import { ratingDeadline } from '@/modules/rating/domain/rating-window';
+import {
+  RATING_WINDOW_DAYS,
+  ratingDeadline,
+} from '@/modules/rating/domain/rating-window';
 import {
   EventRatingSnapshot,
   RatingRepository,
@@ -24,15 +29,14 @@ export const EVENT_RATING_REFUSAL_MESSAGES: Record<EventRatingRefusal, string> =
     NOT_PARTICIPANT: 'Hodnotit může jen ten, kdo byl na akci přihlášený.',
     EVENT_NOT_PUBLISHED: 'Zrušenou akci hodnotit nejde.',
     EVENT_NOT_ENDED: 'Hodnotit půjde, až akce skončí.',
-    RATING_WINDOW_CLOSED: 'Hodnotit šlo jen 14 dní po akci.',
+    RATING_WINDOW_CLOSED: `Hodnotit šlo jen ${RATING_WINDOW_DAYS} dní po akci.`,
     RATING_DELETED: 'Hodnocení odstranil správce, znovu ho dát nejde.',
   };
 
 /** Who asks is 403, the state of the event or the rating 409. */
-const FORBIDDEN: ReadonlySet<EventRatingRefusal> = new Set([
-  'OWN_EVENT',
-  'NOT_PARTICIPANT',
-]);
+const FORBIDDEN: ReadonlySet<EventRatingRefusal> = new Set(
+  EVENT_RATING_FORBIDDEN,
+);
 
 const refused = (refusal: EventRatingRefusal): HttpException => {
   const body = {
@@ -88,8 +92,10 @@ export class RatingService {
 
   /**
    * Gives the rating, or changes it while the window is open. The same
-   * call does both: one rating per user and event. Refusals are 403 or 409
-   * with a code (`decideEventRating`), checked again under the lock.
+   * call does both: one rating per user and event. Everything is decided
+   * on one read under the lock (#313): whether the event exists, the
+   * refusal – 403 or 409 with a code (`decideEventRating`) – and until when
+   * it may be changed.
    */
   async rateEvent(
     eventId: string,
@@ -97,7 +103,6 @@ export class RatingService {
     input: EventRatingInput,
     now: Date = new Date(),
   ): Promise<MyEventRating> {
-    const snapshot = await this.findRatableEvent(eventId, userId);
     const result = await this.ratingRepository.saveEventRating(
       eventId,
       userId,
@@ -108,7 +113,7 @@ export class RatingService {
     if (!result.ok) throw refused(result.refusal);
     return {
       rating: result.rating,
-      ratableUntil: ratingDeadline(snapshot.state),
+      ratableUntil: ratingDeadline(result.state),
       refusal: null,
     };
   }
@@ -121,13 +126,7 @@ export class RatingService {
       eventId,
       userId,
     );
-    // as everywhere: a hidden or deleted event doesn't exist for users;
-    // a cancelled one does, and says why it can't be rated
-    if (
-      !snapshot ||
-      snapshot.state.eventStatus === 'hidden' ||
-      snapshot.state.eventStatus === 'deleted'
-    ) {
+    if (!snapshot || isEventGone(snapshot.state.eventStatus)) {
       throw new NotFoundException('Akce neexistuje.');
     }
     return snapshot;

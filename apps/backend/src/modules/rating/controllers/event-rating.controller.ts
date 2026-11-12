@@ -1,3 +1,4 @@
+import { RATING_WINDOW_DAYS } from '@/modules/rating/domain/rating-window';
 import { RatingService } from '@/modules/rating/services/rating.service';
 import { User } from '@/shared/auth/decorators/user.decorator';
 import { Identity } from '@/shared/auth/domain/identity';
@@ -42,7 +43,7 @@ export class EventRatingController {
       "The participant's rating of the event and its organizer (B-060, #66), and whether they may give or change it",
     description:
       'For an approved participant, not the organizer; membership of the group no longer matters. ' +
-      '`refusal` says why rating is not possible now (cancelled, not over yet, after 14 days, deleted by a superadmin).',
+      `\`refusal\` says why rating is not possible now (cancelled, not over yet, deleted by a superadmin, after ${RATING_WINDOW_DAYS} days).`,
   })
   @ApiResponse({ status: 200, type: MyEventRatingResponseDto })
   @ApiResponse({ status: 401, description: 'Not signed in' })
@@ -68,8 +69,7 @@ export class EventRatingController {
   @UseGuards(VerifiedUserGuard)
   @ApiCookieAuth()
   @ApiOperation({
-    summary:
-      'Rate the event and its organizer, or change the rating (B-060, #66); within 14 days of the end',
+    summary: `Rate the event and its organizer, or change the rating (B-060, #66); within ${RATING_WINDOW_DAYS} days of the end`,
     description:
       'One rating per user and event: the first call gives it, later ones replace it, comment included. ' +
       'For an event of a group the organizer stars count to the group.',
@@ -92,7 +92,7 @@ export class EventRatingController {
   @ApiResponse({
     status: 409,
     description:
-      'EVENT_NOT_PUBLISHED (cancelled), EVENT_NOT_ENDED, RATING_WINDOW_CLOSED or RATING_DELETED',
+      'EVENT_NOT_PUBLISHED (cancelled), EVENT_NOT_ENDED, RATING_DELETED or RATING_WINDOW_CLOSED',
   })
   async rate(
     @Param('id') id: string,

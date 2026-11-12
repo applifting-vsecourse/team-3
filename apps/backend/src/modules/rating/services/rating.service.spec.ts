@@ -1,4 +1,5 @@
 import { EventRatingState } from '@/modules/rating/domain/event-rating';
+import { RATING_WINDOW_DAYS } from '@/modules/rating/domain/rating-window';
 import {
   EventRatingSnapshot,
   RatingRepository,
@@ -155,16 +156,22 @@ describe('RatingService (#66)', () => {
   });
 
   describe('rateEvent', () => {
-    it('saves the rating under the lock and returns it', async () => {
-      repository.findEventRating.mockResolvedValue(snapshot());
+    it('saves under the lock, with until when from the state read there', async () => {
+      // the event got a later end meanwhile: the answer follows the read under the lock
+      const later = snapshot({ endsAt: new Date('2026-10-31T21:00:00.000Z') });
       repository.saveEventRating.mockResolvedValue({
         ok: true,
         rating: saved,
+        state: later.state,
       });
 
       await expect(
         service.rateEvent('e1', 'u-jakub', input, now),
-      ).resolves.toEqual({ rating: saved, ratableUntil, refusal: null });
+      ).resolves.toEqual({
+        rating: saved,
+        ratableUntil: new Date('2026-11-14T21:00:00.000Z'),
+        refusal: null,
+      });
       expect(repository.saveEventRating).toHaveBeenCalledWith(
         'e1',
         'u-jakub',
@@ -173,8 +180,18 @@ describe('RatingService (#66)', () => {
       );
     });
 
+    it('reads nothing outside the lock (#313)', async () => {
+      repository.saveEventRating.mockResolvedValue({
+        ok: true,
+        rating: saved,
+        state: snapshot().state,
+      });
+
+      await service.rateEvent('e1', 'u-jakub', input, now);
+      expect(repository.findEventRating).not.toHaveBeenCalled();
+    });
+
     it('decides with the state read under the lock, at the given time', async () => {
-      repository.findEventRating.mockResolvedValue(snapshot());
       repository.saveEventRating.mockResolvedValue(null);
 
       await service.rateEvent('e1', 'u-jakub', input, now).catch(() => null);
@@ -194,7 +211,6 @@ describe('RatingService (#66)', () => {
       ['OWN_EVENT', ForbiddenException],
       ['NOT_PARTICIPANT', ForbiddenException],
     ] as const)('%s is refused with its code', async (refusal, type) => {
-      repository.findEventRating.mockResolvedValue(snapshot());
       repository.saveEventRating.mockResolvedValue({ ok: false, refusal });
 
       const error = await service
@@ -207,24 +223,26 @@ describe('RatingService (#66)', () => {
       });
     });
 
-    it('a hidden event is 404 and nothing is written', async () => {
-      repository.findEventRating.mockResolvedValue(
-        snapshot({ eventStatus: 'hidden' }),
-      );
-
-      await expect(
-        service.rateEvent('e1', 'u-jakub', input, now),
-      ).rejects.toBeInstanceOf(NotFoundException);
-      expect(repository.saveEventRating).not.toHaveBeenCalled();
-    });
-
-    it('an event gone under the lock is 404', async () => {
-      repository.findEventRating.mockResolvedValue(snapshot());
+    it('an unknown, hidden or deleted event – as read under the lock – is 404', async () => {
       repository.saveEventRating.mockResolvedValue(null);
 
       await expect(
         service.rateEvent('e1', 'u-jakub', input, now),
       ).rejects.toBeInstanceOf(NotFoundException);
+    });
+
+    it('says the window from RATING_WINDOW_DAYS', async () => {
+      repository.saveEventRating.mockResolvedValue({
+        ok: false,
+        refusal: 'RATING_WINDOW_CLOSED',
+      });
+
+      const error = await service
+        .rateEvent('e1', 'u-jakub', input, now)
+        .catch((e: unknown) => e);
+      expect((error as ConflictException).getResponse()).toMatchObject({
+        message: `Hodnotit šlo jen ${RATING_WINDOW_DAYS} dní po akci.`,
+      });
     });
   });
 });

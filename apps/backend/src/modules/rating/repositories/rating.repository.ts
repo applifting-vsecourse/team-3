@@ -5,6 +5,7 @@ import {
   EventRatingInput,
   EventRatingRefusal,
   EventRatingState,
+  isEventGone,
 } from '@/modules/rating/domain/event-rating';
 import { Injectable } from '@nestjs/common';
 
@@ -39,7 +40,9 @@ export class RatingRepository {
    * Gives or changes the user's rating of the event and its organizer under
    * a row lock on the event, like joining it: a superadmin hiding the event
    * or a second click at the same moment waits, so `decide` sees the state
-   * that holds when the rating is written. Null when the event is gone.
+   * that holds when the rating is written. The answer carries that state,
+   * so the caller needs no read of its own outside the lock. Null when the
+   * event doesn't exist for users: unknown, hidden or deleted.
    */
   async saveEventRating(
     eventId: string,
@@ -49,14 +52,14 @@ export class RatingRepository {
       state: EventRatingState,
     ) => { ok: true } | { ok: false; refusal: EventRatingRefusal },
   ): Promise<
-    | { ok: true; rating: EventRating }
+    | { ok: true; rating: EventRating; state: EventRatingState }
     | { ok: false; refusal: EventRatingRefusal }
     | null
   > {
     return this.prisma.$transaction(async (tx) => {
       await tx.$executeRaw`SELECT 1 FROM "event" WHERE "id" = ${eventId} FOR UPDATE`;
       const snapshot = await readSnapshot(tx, eventId, userId);
-      if (!snapshot) return null;
+      if (!snapshot || isEventGone(snapshot.state.eventStatus)) return null;
       const decision = decide(snapshot.state);
       if (!decision.ok) return decision;
       const rating = await tx.rating.upsert({
@@ -65,7 +68,7 @@ export class RatingRepository {
         update: input,
         select: ratingSelect,
       });
-      return { ok: true, rating };
+      return { ok: true, rating, state: snapshot.state };
     });
   }
 }

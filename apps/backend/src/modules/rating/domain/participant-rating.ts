@@ -41,10 +41,11 @@ export function hasEventEnded(
 
 /**
  * Whether an organizer may rate a participant (#180, B-060):
+ * - only its organizer, also for an event of a group – checked first: who
+ *   isn't the organizer learns nothing about the event's state (#313);
  * - only an event that took place: published and over, not cancelled or
  *   taken down by a superadmin;
  * - within RATING_WINDOW_DAYS of its end (#66), also to change the rating;
- * - only its organizer, also for an event of a group;
  * - not themselves: the organizer may join their own event (Q12);
  * - only someone who was approved for it.
  * One rating per participant and event and 1–5 stars are kept by the
@@ -54,6 +55,9 @@ export function decideParticipantRating(
   state: ParticipantRatingState,
   now: Date,
 ): { ok: true } | { ok: false; refusal: ParticipantRatingRefusal } {
+  if (state.raterId !== state.organizerUserId) {
+    return { ok: false, refusal: 'NOT_ORGANIZER' };
+  }
   if (state.eventStatus !== 'published') {
     return { ok: false, refusal: 'EVENT_NOT_PUBLISHED' };
   }
@@ -62,9 +66,6 @@ export function decideParticipantRating(
   }
   if (!isWithinRatingWindow(state, now)) {
     return { ok: false, refusal: 'RATING_WINDOW_CLOSED' };
-  }
-  if (state.raterId !== state.organizerUserId) {
-    return { ok: false, refusal: 'NOT_ORGANIZER' };
   }
   if (state.participantId === state.organizerUserId) {
     return { ok: false, refusal: 'SELF_RATING' };

@@ -84,6 +84,21 @@ describe('decideParticipantRating (#180)', () => {
     );
   });
 
+  it('NOT_ORGANIZER comes first: before the window and the state of the event (#313)', () => {
+    for (const overrides of [
+      { startsAt: new Date('2026-10-01T12:00:00.000Z') },
+      { startsAt: tomorrow },
+      { eventStatus: 'cancelled' as const },
+    ]) {
+      expect(
+        decideParticipantRating(
+          state({ raterId: 'u-tomas', ...overrides }),
+          now,
+        ),
+      ).toEqual({ ok: false, refusal: 'NOT_ORGANIZER' });
+    }
+  });
+
   it('the organizer, joined to their own event (Q12), does not rate themselves', () => {
     expect(
       decideParticipantRating(state({ participantId: 'u-petra' }), now),
