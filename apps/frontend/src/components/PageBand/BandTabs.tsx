@@ -17,10 +17,11 @@ export function BandTabs({ className, ...props }: ComponentProps<typeof TabsList
         // (tailwind-merge sees no conflict, the variant wins): the 36 px strip clipped the
         // tabs and their lime underline. So the height is replaced with the same variant.
         "group-data-[orientation=horizontal]/tabs:h-auto",
-        // the scroll strip reaches the screen edge on a phone (-mx-4 px-4), like Figma A-02; it
-        // scrolls sideways only, without a visible scrollbar (like the filter chips); on desktop
-        // 4 px either side for the focus frame of the first and last tab
-        "-mx-4 h-auto w-auto max-w-none [scrollbar-width:none] justify-start gap-6 overflow-x-auto overflow-y-hidden rounded-none p-0 px-4 md:-mx-1 md:gap-7 md:px-1 [&::-webkit-scrollbar]:hidden",
+        // the scroll strip reaches the screen edge (-mx px, the page's padding), like Figma A-02,
+        // so a tab scrolled past the start is cut by the screen, not mid-band at the content's
+        // edge (#298); from xl the page is narrower than the screen and the tabs fit. It scrolls
+        // sideways only, without a visible scrollbar (like the filter chips).
+        "-mx-4 h-auto w-auto max-w-none [scrollbar-width:none] justify-start gap-6 overflow-x-auto overflow-y-hidden rounded-none p-0 px-4 md:-mx-10 md:gap-7 md:px-10 [&::-webkit-scrollbar]:hidden",
         className,
       )}
       {...props}

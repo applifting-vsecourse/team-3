@@ -181,6 +181,13 @@
   --accent-foreground: var(--on-hero);
 }
 
+/* A sideways strip whose start sits beside something (the logo mark before „Pro tebe“): a tab
+   scrolled past the start fades out over the strip's start padding instead of being cut off
+   beside it (#298). A mask, not a colour — it works on any surface. */
+@utility fade-start {
+  mask-image: linear-gradient(to right, transparent, black calc(var(--spacing) * 3));
+}
+
 /* DESIGN.md › Type: Figma text styles, mobile first and the desktop size from md up. The display
    ones carry their face and weight, so one class sets the whole style. type- rather than text-,
    or tailwind-merge would take them for a colour and drop them next to text-*. */
@@ -323,5 +330,10 @@
   /* Page titles use the brand typeface (Figma Display/H1); smaller headings stay in Geist. */
   h1 {
     @apply font-heading;
+  }
+  /* Edge adds its own „show password“ eye at the end of a password field; without a gap the
+     dots and the shown password run right up to it (#298). */
+  input::-ms-reveal {
+    @apply ms-3;
   }
 }
