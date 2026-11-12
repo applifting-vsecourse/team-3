@@ -154,6 +154,7 @@ describe("pinHtml", () => {
 describe("clusterHtml", () => {
   it("rings a cluster lime only when an event in it misses people", () => {
     expect(clusterHtml(16, true)).toContain("ring-primary")
+    expect(clusterHtml(16, true)).toContain("outline-primary-edge")
     expect(clusterHtml(16, false)).not.toContain("ring-primary")
     expect(clusterHtml(16, false)).not.toMatch(/#[0-9a-f]{3,6}\b|rgb\(/i)
   })

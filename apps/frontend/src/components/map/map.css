@@ -9,15 +9,18 @@
   background: var(--muted);
 }
 
-/* Zoom buttons and attribution in the app's surfaces. */
-.leaflet-bar {
-  border-color: var(--border);
+/* Zoom buttons and attribution in the app's surfaces. The edge is control-border, like the
+ * outline button: 3:1 against the map (DESIGN.md › Colour). leaflet.css draws it as
+ * `.leaflet-touch .leaflet-bar` (2px black at 20 %, 1.6:1), so that selector is matched here. */
+.leaflet-bar,
+.leaflet-touch .leaflet-bar {
+  border: 1px solid var(--control-border);
 }
 .leaflet-bar a,
 .leaflet-bar a:hover {
   background: var(--card);
   color: var(--foreground);
-  border-bottom-color: var(--border);
+  border-bottom-color: var(--control-border);
 }
 .leaflet-bar a:hover {
   background: var(--accent);
