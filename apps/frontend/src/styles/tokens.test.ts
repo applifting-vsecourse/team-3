@@ -93,6 +93,8 @@ const EDGE_PAIRS: [string, string][] = [
   ["foreground", "card"], // full rating star
   ["ring", "background"], // focus ring
   ["ring", "card"],
+  ["ring", "muted"], // a focused chip, row or tile on a quiet surface
+  ["destructive", "card"], // focus ring of an invalid field
 ]
 
 describe("tokens", () => {
@@ -187,6 +189,19 @@ describe("light mode only", () => {
     (_, path) => {
       const source = readFileSync(path, "utf8")
       expect(source.match(/\bdark:[^\s"'`]+|\.dark\b/g) ?? []).toEqual([])
+    },
+  )
+
+  // #298: the kit's ring-ring/50 is 2.45:1 on the page (ring-destructive/20 1.4:1) — under
+  // the 3:1 a focus indicator needs, and a control without a border has no other one. axe
+  // does not check focus, so the classes are checked here. `pnpm dlx shadcn add` brings them.
+  it.each(sources.map((path) => [relative(src, path), path]))(
+    "%s draws focus rings in a token's full colour",
+    (_, path) => {
+      const source = readFileSync(path, "utf8")
+      expect(source.match(/\b(?:ring|outline)-(?:ring|destructive|on-hero)\/\d+/g) ?? []).toEqual(
+        [],
+      )
     },
   )
 

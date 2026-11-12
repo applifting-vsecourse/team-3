@@ -279,7 +279,7 @@ export function ListPanel({
         {...(isSheetDraggable ? {} : pointerHandlers)}
         // a tap (pointer or keyboard) steps up, or back to the peek from the list
         onClick={() => onSnapChange(snap === "map" ? "peek" : snap === "peek" ? "list" : "peek")}
-        className="flex h-6 shrink-0 cursor-grab touch-none items-center justify-center rounded-t-lg outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50 active:cursor-grabbing md:hidden"
+        className="flex h-6 shrink-0 cursor-grab touch-none items-center justify-center rounded-t-lg outline-none focus-visible:ring-[3px] focus-visible:ring-ring active:cursor-grabbing md:hidden"
       >
         <span className="h-1 w-9 rounded-full bg-border" />
       </button>

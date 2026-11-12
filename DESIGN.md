@@ -111,7 +111,7 @@ Data refreshes itself: refetch when the tab regains focus, and invalidate the qu
 - Every icon-only control has an `aria-label`. Rating stars are a radio group („3 z 5 hvězd“).
 - A control's name contains the text it shows (WCAG 2.5.3 Label in Name): the avatar button showing „PN“ is „Uživatelské menu PN – Petra Nováková“, not „Uživatelské menu“.
 - Tabs point at a panel that exists: the content they switch is their `TabsContent` (on /akce the list and the map).
-- Focus rings are never removed (`ring` token).
+- Focus rings are never removed (`ring` token), and they are drawn in the token's full colour: `ring-ring`, `outline-ring`, `ring-destructive` on an invalid field — never `ring-ring/50` (2.45:1 on the page, under 3:1; #298). On the band the `on-hero` utility switches `ring` to `on-hero`. tokens.test.ts checks every file in `src`.
 - Touch targets at least 40 × 40 px (rating stars, map pins).
 - Motion only under `motion-safe:` (the „Máš místo“ dot, the capacity fill). Stripes never move — moving stripes read as „loading“.
 

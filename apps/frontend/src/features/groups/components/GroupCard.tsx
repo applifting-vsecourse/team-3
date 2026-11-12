@@ -33,7 +33,7 @@ export function GroupCard({
     <Link
       to={linkTo === "manage" ? "/skupiny/$groupId/sprava" : "/skupiny/$groupId"}
       params={{ groupId: group.id }}
-      className="flex h-full items-center gap-3.5 rounded-2xl border border-card-border bg-card p-3 text-card-foreground transition-colors outline-none hover:border-foreground focus-visible:ring-[3px] focus-visible:ring-ring/50"
+      className="flex h-full items-center gap-3.5 rounded-2xl border border-card-border bg-card p-3 text-card-foreground transition-colors outline-none hover:border-foreground focus-visible:ring-[3px] focus-visible:ring-ring"
     >
       {photo ? (
         <img
