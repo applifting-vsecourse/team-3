@@ -161,6 +161,8 @@ function EventsPage() {
     { isEnabled: shownLocality.slug !== undefined },
   )
   const activeTab = urlSearch.vyber ?? (isAllEvents(urlSearch) ? ALL_EVENTS_TAB : "")
+  // a hand-changed filter, or a pick whose tab is not shown: no tab names the panel
+  const hasActiveTrigger = tabs.some(({ pick }) => (pick ?? ALL_EVENTS_TAB) === activeTab)
   const title = urlSearch.vyber
     ? (PICK_TABS.find(({ pick }) => pick === urlSearch.vyber)?.label ?? "Akce")
     : isAllEvents(urlSearch)
@@ -257,10 +259,14 @@ function EventsPage() {
           </PageBand>
           {/* Desktop: the rest under the band, the list scrolls on its own and the map fills
               the height beside it. It is the tabs' panel, so the active tab points at what it
-              shows (aria-controls, #298). */}
+              shows (aria-controls, #298). Not a Tab stop of its own: Radix makes the panel
+              focusable, but it would be a large stop without a ring and its first control is
+              focusable anyway. Without an active tab it is named by the title. */}
           <TabsContent
             value={activeTab}
             asChild
+            tabIndex={-1}
+            {...(hasActiveTrigger ? {} : { "aria-labelledby": undefined, "aria-label": title })}
           >
             <div className="relative flex flex-1 flex-col overflow-hidden md:min-h-0 md:basis-0">
               <div
