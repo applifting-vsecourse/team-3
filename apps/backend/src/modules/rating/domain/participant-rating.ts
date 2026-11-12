@@ -1,3 +1,5 @@
+import { isWithinRatingWindow } from './rating-window';
+
 /**
  * Longest comment of a rating, of the event (`Rating`) and of a participant
  * (`ParticipantRating`, PO 4. 11.); the same as a bio. #66 validates it.
@@ -8,6 +10,7 @@ export const RATING_COMMENT_MAX_LENGTH = 500;
 export type ParticipantRatingRefusal =
   | 'EVENT_NOT_PUBLISHED'
   | 'EVENT_NOT_ENDED'
+  | 'RATING_WINDOW_CLOSED'
   | 'NOT_ORGANIZER'
   | 'SELF_RATING'
   | 'NOT_APPROVED';
@@ -40,6 +43,7 @@ export function hasEventEnded(
  * Whether an organizer may rate a participant (#180, B-060):
  * - only an event that took place: published and over, not cancelled or
  *   taken down by a superadmin;
+ * - within RATING_WINDOW_DAYS of its end (#66), also to change the rating;
  * - only its organizer, also for an event of a group;
  * - not themselves: the organizer may join their own event (Q12);
  * - only someone who was approved for it.
@@ -55,6 +59,9 @@ export function decideParticipantRating(
   }
   if (!hasEventEnded(state, now)) {
     return { ok: false, refusal: 'EVENT_NOT_ENDED' };
+  }
+  if (!isWithinRatingWindow(state, now)) {
+    return { ok: false, refusal: 'RATING_WINDOW_CLOSED' };
   }
   if (state.raterId !== state.organizerUserId) {
     return { ok: false, refusal: 'NOT_ORGANIZER' };

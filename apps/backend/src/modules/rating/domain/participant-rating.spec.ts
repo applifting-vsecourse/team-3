@@ -56,6 +56,19 @@ describe('decideParticipantRating (#180)', () => {
     });
   });
 
+  it('within 14 days of the end: day 14 passes, later is RATING_WINDOW_CLOSED (#66)', () => {
+    const fourteenDaysAgo = new Date('2026-10-18T12:00:00.000Z');
+    expect(
+      decideParticipantRating(state({ startsAt: fourteenDaysAgo }), now),
+    ).toEqual({ ok: true });
+    expect(
+      decideParticipantRating(
+        state({ startsAt: new Date(fourteenDaysAgo.getTime() - 1) }),
+        now,
+      ),
+    ).toEqual({ ok: false, refusal: 'RATING_WINDOW_CLOSED' });
+  });
+
   it('not for a cancelled event, nor one a superadmin hid or deleted', () => {
     for (const eventStatus of ['cancelled', 'hidden', 'deleted'] as const) {
       expect(decideParticipantRating(state({ eventStatus }), now)).toEqual({

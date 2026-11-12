@@ -16,6 +16,11 @@ import { pastEvents, toPastEventRow } from './rating-data';
 const now = new Date('2026-11-01T15:00:00.000Z');
 const rows = pastEvents.map((event) => toPastEventRow(event, now));
 const users = new Map(demoUsers.map((user) => [user.key, user]));
+// the seed writes the ratings long after the event; the rules are checked
+// for when they would have been given: the day after, within the window (#66)
+const DAY_MS = 24 * 60 * 60 * 1000;
+const dayAfter = (row: { endsAt: Date }): Date =>
+  new Date(row.endsAt.getTime() + DAY_MS);
 const unique = (values: string[]): boolean =>
   new Set(values).size === values.length;
 
@@ -101,7 +106,7 @@ describe('past events and ratings (#180)', () => {
                 ? 'approved'
                 : 'pending',
             },
-            now,
+            dayAfter(row),
           ),
         ).toEqual({ ok: true });
         expect(Number.isInteger(rating.stars)).toBe(true);
