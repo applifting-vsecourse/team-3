@@ -66,15 +66,55 @@ function TabsTrigger({ className, ...props }: React.ComponentProps<typeof TabsPr
   )
 }
 
-function TabsContent({ className, ...props }: React.ComponentProps<typeof TabsPrimitive.Content>) {
+// what a keyboard user can Tab to inside a panel
+const FOCUSABLE =
+  'a[href], button:not([disabled]), input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])'
+
+function TabsContent({
+  className,
+  ref,
+  ...props
+}: React.ComponentProps<typeof TabsPrimitive.Content>) {
+  const [panel, setPanel] = React.useState<HTMLDivElement | null>(null)
+  const [hasFocusable, setHasFocusable] = React.useState(true)
+
+  // the content can arrive later (a list loading) or change, so it is watched
+  React.useEffect(() => {
+    if (!panel) return
+    const check = () => setHasFocusable(panel.querySelector(FOCUSABLE) !== null)
+    check()
+    const observer = new MutationObserver(check)
+    observer.observe(panel, {
+      childList: true,
+      subtree: true,
+      attributes: true,
+      attributeFilter: ["disabled", "href", "tabindex"],
+    })
+    return () => observer.disconnect()
+  }, [panel])
+
+  const setRefs = React.useCallback(
+    (node: HTMLDivElement | null) => {
+      setPanel(node)
+      if (typeof ref === "function") ref(node)
+      else if (ref) ref.current = node
+    },
+    [ref],
+  )
+
   return (
     <TabsPrimitive.Content
       data-slot="tabs-content"
-      // Radix makes the panel a Tab stop of its own, and it has no ring: a keyboard user would
-      // land on an invisible stop. Its first control takes focus anyway (#298, DESIGN.md ›
-      // Accessibility). A caller can still pass tabIndex.
-      tabIndex={-1}
-      className={cn("flex-1 outline-none", className)}
+      ref={setRefs}
+      // WAI-ARIA tabs (#298, DESIGN.md › Accessibility): a panel with a control in it is no Tab
+      // stop of its own — Tab goes from the tab to that control. One with only text (an empty
+      // list) stays a stop, so the keyboard reaches it, and shows the focus ring there.
+      // A caller can still pass tabIndex.
+      tabIndex={hasFocusable ? -1 : 0}
+      className={cn(
+        "flex-1 rounded-sm outline-none focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-ring",
+        className,
+      )}
       {...props}
     />
   )
