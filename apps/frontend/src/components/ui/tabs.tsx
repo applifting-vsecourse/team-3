@@ -67,8 +67,18 @@ function TabsTrigger({ className, ...props }: React.ComponentProps<typeof TabsPr
 }
 
 // what a keyboard user can Tab to inside a panel
-const FOCUSABLE =
-  'a[href], button:not([disabled]), input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])'
+const FOCUSABLE = [
+  "a[href]",
+  "button:not([disabled])",
+  "input:not([disabled])",
+  "select:not([disabled])",
+  "textarea:not([disabled])",
+  "summary",
+  "audio[controls]",
+  "video[controls]",
+  "[contenteditable]:not([contenteditable='false'])",
+  "[tabindex]:not([tabindex='-1'])",
+].join(", ")
 
 function TabsContent({
   className,
@@ -78,7 +88,9 @@ function TabsContent({
   const [panel, setPanel] = React.useState<HTMLDivElement | null>(null)
   const [hasFocusable, setHasFocusable] = React.useState(true)
 
-  // the content can arrive later (a list loading) or change, so it is watched
+  // The content can arrive later (a list loading) or change, so it is watched. On /akce the
+  // panel holds the map, whose tiles and pins come and go as it moves, so this runs often —
+  // it stays cheap because querySelector stops at the first match (a card, the map itself).
   React.useEffect(() => {
     if (!panel) return
     const check = () => setHasFocusable(panel.querySelector(FOCUSABLE) !== null)
