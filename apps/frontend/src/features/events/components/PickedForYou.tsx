@@ -50,7 +50,10 @@ export function PickedForYou({ picks }: { picks: QuickPick[] }) {
             <LogoMark className="size-6.5 md:size-9" />
             <BandTabs
               aria-label="Rychlé výběry"
-              className="min-w-0 flex-1 border-b border-input md:mr-auto md:flex-none"
+              // the strip starts at the mark (its gap is the strip's padding) and a tab scrolled
+              // past it fades out there instead of being cut beside the mark (#298); on a phone it
+              // still runs to the screen's right edge
+              className="-ms-3 min-w-0 flex-1 border-b border-input fade-start ps-3 md:-ms-3 md:me-auto md:flex-none md:ps-3 md:pe-1"
             >
               {picks.map((pick) => (
                 <BandTabsItem

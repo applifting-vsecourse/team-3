@@ -30,6 +30,8 @@ type EventsMapProps = {
   /** The searched area („Hledat v této oblasti“), kept in view. */
   area?: MapArea
   onAreaSearch: (area: MapArea) => void
+  /** What floats over the map's top edge (px), so „Hledat v této oblasti“ sits under it (#288). */
+  topInset?: number
   hasZoomControl?: boolean
   className?: string
 }
@@ -46,6 +48,7 @@ export function EventsMap({
   center,
   area,
   onAreaSearch,
+  topInset,
   hasZoomControl,
   className,
 }: EventsMapProps) {
@@ -61,6 +64,7 @@ export function EventsMap({
       onPinClick={(eventId) => onSelect(eventId === selectedId ? undefined : eventId)}
       onMapClick={() => onSelect(undefined)}
       onAreaSearch={onAreaSearch}
+      topInset={topInset}
       className={className}
     />
   )

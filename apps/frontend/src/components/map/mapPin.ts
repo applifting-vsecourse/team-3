@@ -81,6 +81,10 @@ export const CLUSTER_SIZE = 44
  * event that still misses people (DESIGN.md › Map pin and cluster).
  */
 export function clusterHtml(count: number, hasMissing: boolean): string {
-  const ring = hasMissing ? " ring-3 ring-primary" : ""
+  // lime on the light map carries the primary-edge outline (DESIGN.md › Colour): the lime ring
+  // alone is 1.16:1 against the map
+  const ring = hasMissing
+    ? " ring-3 ring-primary outline-1 outline-offset-3 outline-primary-edge"
+    : ""
   return `<span class="flex size-11 items-center justify-center rounded-full border-3 border-background bg-foreground text-sm font-semibold text-background shadow-md${ring}">${count}</span>`
 }

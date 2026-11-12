@@ -80,6 +80,11 @@
    Small 14 and tag 12 are text-sm and text-xs. src/lib/utils.ts tells tailwind-merge these
    are sizes, not colours. */
 @theme {
+  /* the narrowest phones: the section band drops its corner motif under 360 px (#298) */
+  --breakpoint-xs: 22.5rem;
+  /* the tab strip on the band's bottom edge (BandTabsItem is this tall): PageBand's motifs end
+     this far above the band's edge, so no tab runs over them (#298) */
+  --spacing-band-tabs: 3rem;
   --text-body: 0.9375rem;
   --text-body--line-height: 1.375rem;
   --text-caption: 0.8125rem;
@@ -179,6 +184,13 @@
   --ring: var(--on-hero);
   --accent: var(--hero-pattern);
   --accent-foreground: var(--on-hero);
+}
+
+/* A sideways strip whose start sits beside something (the logo mark before „Pro tebe“): a tab
+   scrolled past the start fades out over the strip's start padding instead of being cut off
+   beside it (#298). A mask, not a colour — it works on any surface. */
+@utility fade-start {
+  mask-image: linear-gradient(to right, transparent, black calc(var(--spacing) * 3));
 }
 
 /* DESIGN.md › Type: Figma text styles, mobile first and the desktop size from md up. The display
@@ -315,7 +327,7 @@
 
 @layer base {
   * {
-    @apply border-border outline-ring/50;
+    @apply border-border outline-ring;
   }
   body {
     @apply bg-background text-foreground antialiased;
@@ -323,5 +335,10 @@
   /* Page titles use the brand typeface (Figma Display/H1); smaller headings stay in Geist. */
   h1 {
     @apply font-heading;
+  }
+  /* Edge adds its own „show password“ eye at the end of a password field; without a gap the
+     dots and the shown password run right up to it (#298). */
+  input::-ms-reveal {
+    @apply ms-3;
   }
 }

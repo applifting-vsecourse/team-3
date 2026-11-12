@@ -26,7 +26,7 @@ export function NothingForYou() {
       </div>
       <Button
         asChild
-        className="h-11 border border-primary-edge font-semibold"
+        className="h-11 font-semibold"
       >
         <Link to={ROUTES.newEvent}>Založit akci</Link>
       </Button>

@@ -241,7 +241,7 @@ function LocalitySearch({
         defaultValue={draft}
         // Figma: Input/Search – a bordered field rather than cmdk's underline, 44 px to tap,
         // with the focus ring of the other fields (it has the focus on opening), not clipped
-        className="gap-2 overflow-visible **:data-[slot=command-input-wrapper]:h-11 **:data-[slot=command-input-wrapper]:rounded-md **:data-[slot=command-input-wrapper]:border **:data-[slot=command-input-wrapper]:border-input **:data-[slot=command-input-wrapper]:focus-within:border-ring **:data-[slot=command-input-wrapper]:focus-within:ring-[3px] **:data-[slot=command-input-wrapper]:focus-within:ring-ring/50"
+        className="gap-2 overflow-visible **:data-[slot=command-input-wrapper]:h-11 **:data-[slot=command-input-wrapper]:rounded-md **:data-[slot=command-input-wrapper]:border **:data-[slot=command-input-wrapper]:border-input **:data-[slot=command-input-wrapper]:focus-within:border-ring **:data-[slot=command-input-wrapper]:focus-within:ring-[3px] **:data-[slot=command-input-wrapper]:focus-within:ring-ring"
         // Slug or name, without diacritics, so "plzen" finds Plzeň and
         // "usti nad orl" Ústí nad Orlicí. A name starting with the text
         // first, then a word in it, then anywhere: „nov“ gives Nová Paka
