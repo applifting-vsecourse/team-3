@@ -10,7 +10,7 @@ const buttonVariants = cva(
     variants: {
       variant: {
         default: "bg-primary text-primary-foreground hover:bg-primary/90",
-        // Text on the fill is its -foreground token (dark text in dark mode); /90 hover would drop
+        // Text on the fill is its -foreground token; /90 hover would drop
         // white text to 4.28:1, so hover mixes in foreground instead (global.css).
         destructive:
           "bg-destructive text-destructive-foreground hover:bg-destructive-hover focus-visible:ring-destructive/20",

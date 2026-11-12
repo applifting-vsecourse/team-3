@@ -12,7 +12,7 @@ export function NothingForYou() {
   return (
     <aside
       aria-label="Nic pro tebe?"
-      className="flex flex-col items-start gap-4 rounded-2xl border border-band-edge on-hero px-6 py-7 md:mt-8 md:flex-row md:items-center md:gap-6 md:px-8"
+      className="flex flex-col items-start gap-4 rounded-2xl border border-hero on-hero px-6 py-7 md:mt-8 md:flex-row md:items-center md:gap-6 md:px-8"
     >
       <LogoMark
         isOnHero

@@ -136,7 +136,7 @@ export function PageBand({
   return (
     <div
       className={cn(
-        "relative overflow-hidden border-b border-band-edge on-hero",
+        "relative overflow-hidden border-b border-hero on-hero",
         isPlainOnMobile && "max-md:border-b-0 max-md:bg-background",
       )}
     >

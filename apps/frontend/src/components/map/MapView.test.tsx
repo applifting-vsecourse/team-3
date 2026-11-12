@@ -112,9 +112,9 @@ describe("viewKey: what a user's move belongs to (review #276)", () => {
 const mapCss = readFileSync(resolve(process.cwd(), "src/components/map/map.css"), "utf8")
 
 describe("map.css", () => {
-  it("styles Leaflet with tokens only and darkens just the tiles in dark mode", () => {
+  it("styles Leaflet with tokens only and leaves the tiles as they are", () => {
     expect(mapCss).not.toMatch(/#[0-9a-f]{3,6}\b|rgba?\(/i)
-    expect(mapCss).toMatch(/\.dark \.leaflet-tile-pane\s*\{[^}]*filter:/)
+    expect(mapCss).not.toMatch(/filter:/)
   })
 })
 

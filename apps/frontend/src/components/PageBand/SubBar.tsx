@@ -23,7 +23,7 @@ export function SubBar({ back, label, action, isHeading = false }: SubBarProps) 
   return (
     <div
       data-slot="sub-bar"
-      className="sticky top-0 z-40 flex h-14 items-center gap-1 border-b border-band-edge on-hero pr-2 pl-4"
+      className="sticky top-0 z-40 flex h-14 items-center gap-1 border-b border-hero on-hero pr-2 pl-4"
     >
       <BackLink
         {...back}
