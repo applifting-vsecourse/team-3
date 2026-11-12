@@ -133,6 +133,7 @@ export class RatingService {
     }
     const { rating } = snapshot;
     return {
+      event: snapshot.event,
       // a rating a superadmin deleted is not shown, not even to its author
       rating:
         rating && rating.deletedAt === null
@@ -170,6 +171,7 @@ export class RatingService {
     if (!result) throw new NotFoundException('Akce neexistuje.');
     if (!result.ok) throw refused(result.refusal);
     return {
+      event: result.event,
       rating: result.rating,
       ratableUntil: ratingDeadline(result.state),
       refusal: null,
