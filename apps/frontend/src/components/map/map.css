@@ -9,7 +9,7 @@
   background: var(--muted);
 }
 
-/* Zoom buttons and attribution follow the theme. */
+/* Zoom buttons and attribution in the app's surfaces. */
 .leaflet-bar {
   border-color: var(--border);
 }
@@ -32,16 +32,4 @@
 }
 .leaflet-container .leaflet-control-attribution a {
   color: var(--foreground);
-}
-
-/*
- * Dark mode: OpenStreetMap has no dark tiles, so the light ones are inverted
- * and turned back to their hues (water stays blue, parks green), then
- * softened so the map sits behind the pins instead of glaring. Only the tile
- * pane is filtered — pins, labels and controls keep their token colours.
- * Figma's Dark mode has its own map/* tokens for a drawn map; with raster OSM
- * tiles the code can't apply them, so it inverts instead. Values tuned by eye.
- */
-.dark .leaflet-tile-pane {
-  filter: invert(1) hue-rotate(180deg) brightness(0.85) contrast(0.9) saturate(0.6);
 }

@@ -1,45 +1,30 @@
 import { readdirSync, readFileSync } from "node:fs"
-import { join, resolve } from "node:path"
+import { join, relative, resolve } from "node:path"
 import { describe, expect, it } from "vitest"
 
-// DESIGN.md › Accessibility: text contrast at least 4.5:1, and the tokens are
-// what keeps it. This reads the real token values, light (:root) and dark (.dark).
+// DESIGN.md › Colour: text contrast at least 4.5:1, every other element 3:1, and the tokens are
+// what keeps it. This reads the real token values from :root — the app has a light mode only
+// (PO 10. 11. 2026, #297).
 const css = readFileSync(resolve(process.cwd(), "src/styles/global.css"), "utf8")
 
-const declarationsOf = (selector: string): Record<string, string> => {
-  const block = new RegExp(`(?:^|\\n)${selector.replace(".", "\\.")}\\s*\\{([^}]*)\\}`).exec(
-    css,
-  )?.[1]
-  if (!block) throw new Error(`no ${selector} block in global.css`)
+const declared: Record<string, string> = (() => {
+  const block = /(?:^|\n):root\s*\{([^}]*)\}/.exec(css)?.[1]
+  if (!block) throw new Error("no :root block in global.css")
   return Object.fromEntries(
-    [...block.matchAll(/--([\w-]+):\s*(#[0-9a-f]{6}|var\(--[\w-]+\)|transparent);/gi)].map(
+    [...block.matchAll(/--([\w-]+):\s*(#[0-9a-f]{6}|var\(--[\w-]+\));/gi)].map(
       ([, name = "", value = ""]): [string, string] => [name, value],
     ),
   )
-}
+})()
 
-// .dark only overrides what differs, and a var() alias resolves against the mode it is used in
-// — the same way the browser computes it on <html class="dark">.
-const tokensOf = (selector: string): Record<string, string> => {
-  const declared = {
-    ...declarationsOf(":root"),
-    ...(selector === ":root" ? {} : declarationsOf(selector)),
-  }
-  const resolve = (name: string): string => {
-    const value = declared[name]
-    if (!value) throw new Error(`--${name} is not declared for ${selector}`)
-    const alias = /^var\(--([\w-]+)\)$/.exec(value)?.[1]
-    return alias ? resolve(alias) : value
-  }
-  const tokens = Object.fromEntries(Object.keys(declared).map((name) => [name, resolve(name)]))
-  // a transparent token shows the page through (the marker in dark mode)
-  return Object.fromEntries(
-    Object.entries(tokens).map(([name, value]) => [
-      name,
-      value === "transparent" ? tokens.background! : value,
-    ]),
-  )
+// a var() alias resolves to the value it points at, the way the browser computes it
+const resolveToken = (name: string): string => {
+  const value = declared[name]
+  if (!value) throw new Error(`--${name} is not declared in :root`)
+  const alias = /^var\(--([\w-]+)\)$/.exec(value)?.[1]
+  return alias ? resolveToken(alias) : value
 }
+const tokens = Object.fromEntries(Object.keys(declared).map((name) => [name, resolveToken(name)]))
 
 const luminance = (hex: string) => {
   const [r, g, b] = (hex.slice(1).match(/../g) ?? []).map((h) => {
@@ -83,8 +68,8 @@ const TEXT_PAIRS: [string, string][] = [
   ["on-hero", "hero-pattern"], // header item and button hover on the band (the on-hero utility)
   ["badge-neutral-foreground", "badge-neutral"], // „Plno“, „Čeká na schválení“
   ["avatar-self-foreground", "avatar-self"], // the „ty“ avatar
-  ["highlight-text", "background"], // section keyword (lime word in dark mode)
-  ["highlight-text", "highlight-marker"], // …over its marker in light mode
+  ["highlight-text", "background"], // section keyword
+  ["highlight-text", "highlight-marker"], // …over its marker
   ["accent-foreground", "accent"], // hovered or active row in a list or menu
 ]
 
@@ -102,7 +87,7 @@ const EDGE_PAIRS: [string, string][] = [
   ["primary-edge", "background"],
   ["capacity-fill", "capacity-track"], // solid fill once the minimum is reached
   ["full", "card"], // full bar covers the whole track
-  ["band-edge", "background"], // bottom edge of the band
+  ["hero", "background"], // bottom edge of the band, „Jak to funguje“, „Nic pro tebe?“
   ["tile-on-hero", "hero"], // activity tile on the band
   ["avatar-self", "card"],
   ["foreground", "card"], // full rating star
@@ -110,12 +95,7 @@ const EDGE_PAIRS: [string, string][] = [
   ["ring", "card"],
 ]
 
-describe.each([
-  ["light", ":root"],
-  ["dark", ".dark"],
-])("%s tokens", (_, selector) => {
-  const tokens = tokensOf(selector)
-
+describe("tokens", () => {
   it.each(TEXT_PAIRS)("%s on %s is at least 4.5:1", (text, surface) => {
     expect(contrast(tokens[text]!, tokens[surface]!)).toBeGreaterThanOrEqual(4.5)
   })
@@ -125,13 +105,13 @@ describe.each([
   })
 
   // A surface, not an edge, so not 3:1 — but the row under the pointer or the keyboard in a
-  // panel must stand out from it (dark `muted` was 1.05:1 on `card`).
+  // panel must stand out from it.
   it("the hover surface (accent) stands out from a card or panel", () => {
     expect(contrast(tokens.accent!, tokens.card!)).toBeGreaterThanOrEqual(1.25)
   })
 
   // The quiet surfaces (the Detail row's icon box, empty bars, banners) must stay visible on a
-  // card: dark `muted` was 1.05:1 and the icon box was only a smudge behind the icon.
+  // card, not a smudge behind the icon.
   it("a quiet surface (muted) stands out from a card or panel", () => {
     expect(contrast(tokens.muted!, tokens.card!)).toBeGreaterThanOrEqual(1.25)
   })
@@ -163,7 +143,7 @@ describe.each([
     expect(contrast(stripe, lime)).toBeGreaterThanOrEqual(3)
   })
 
-  // …and stand out from the track: in light mode the dark stripe does, in dark mode the lime
+  // …and stand out from the track: the dark stripe does (lime on the cream track is 1.03:1)
   it("one of the hatch stripes is at least 3:1 against the track", () => {
     const track = tokens["capacity-track"]!
     expect(Math.max(contrast(stripe, track), contrast(lime, track))).toBeGreaterThanOrEqual(3)
@@ -171,7 +151,7 @@ describe.each([
 
   // #166: the minimum marker (foreground, with a gap in the surface's colour around it, Figma
   // Tick) must show wherever it sits: on the track, on either stripe of the hatch, on lime and
-  // on the solid fill. Where the marker itself vanishes (dark mode on lime), the gap carries it.
+  // on the solid fill. Where the marker itself vanishes, the gap carries it.
   // The gap is `card` in cards and the desktop panel, `background` on the phone's detail.
   it.each(
     (["card", "background"] as const).flatMap((gap) =>
@@ -192,15 +172,36 @@ describe.each([
   })
 })
 
-// DESIGN.md › Colour, #201: dark mode comes from the .dark tokens alone. A kit control with its
-// own dark: shades drifts from Figma, and every recoloured state on top of it would have to
-// restate them. `pnpm dlx shadcn add` brings them back, so they are stripped on arrival.
-describe("kit in components/ui", () => {
-  const dir = resolve(process.cwd(), "src/components/ui")
-  const files = readdirSync(dir).filter((name) => name.endsWith(".tsx"))
+// DESIGN.md › Colour, #297: the app has a light mode only — no dark tokens, no dark: classes,
+// and the page never follows a dark system setting. `pnpm dlx shadcn add` brings dark: shades
+// into components/ui, so they are stripped on arrival.
+describe("light mode only", () => {
+  const src = resolve(process.cwd(), "src")
+  const self = resolve(src, "styles/tokens.test.ts")
+  const sources = (readdirSync(src, { recursive: true }) as string[])
+    .map((name) => join(src, name))
+    .filter((path) => /\.(tsx?|css)$/.test(path) && path !== self)
 
-  it.each(files)("%s has no dark: classes", (name) => {
-    const source = readFileSync(join(dir, name), "utf8")
-    expect(source.match(/\bdark:[^\s"'`]+/g) ?? []).toEqual([])
+  it.each(sources.map((path) => [relative(src, path), path]))(
+    "%s has no dark: classes and no .dark selector",
+    (_, path) => {
+      const source = readFileSync(path, "utf8")
+      expect(source.match(/\bdark:[^\s"'`]+|\.dark\b/g) ?? []).toEqual([])
+    },
+  )
+
+  it("the page keeps light native controls and declares no dark scheme", () => {
+    expect(css).toMatch(/:root\s*\{[^}]*color-scheme:\s*light;/)
+    expect(css).not.toMatch(/color-scheme:\s*dark/)
+  })
+
+  // index.html cannot read a CSS variable before the app loads, so the browser chrome's colour
+  // is written there once — it has to stay the band's colour (the header sits on the band).
+  it("index.html has one theme-color, the band's --hero", () => {
+    const html = readFileSync(resolve(process.cwd(), "index.html"), "utf8")
+    const colors = [...html.matchAll(/<meta name="theme-color" content="(#[0-9a-f]{6})"/gi)].map(
+      ([, color]) => color?.toLowerCase(),
+    )
+    expect(colors).toEqual([tokens.hero])
   })
 })

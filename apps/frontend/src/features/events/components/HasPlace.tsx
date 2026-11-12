@@ -9,16 +9,11 @@ type HasPlaceProps = {
 
 /**
  * „Máš místo“ (Figma Máš místo, DESIGN.md › Máš místo): the user's place on an event, in the
- * detail's action instead of a bare „Jdu“. Secondary with its tile-border; the accent bar on
- * the left shows in dark mode only — in light mode it is secondary on purpose.
+ * detail's action instead of a bare „Jdu“. Secondary, edged by its tile-border — no accent bar.
  */
 export function HasPlace({ line, isFillAnimated = false }: HasPlaceProps) {
   return (
-    <div className="relative flex gap-3 overflow-hidden rounded-lg border border-tile-border bg-secondary p-4 text-secondary-foreground">
-      <span
-        aria-hidden
-        className="absolute inset-y-0 left-0 w-1 bg-accent-bar"
-      />
+    <div className="flex gap-3 rounded-lg border border-tile-border bg-secondary p-4 text-secondary-foreground">
       <LogoMark
         isFull
         isFillAnimated={isFillAnimated}
