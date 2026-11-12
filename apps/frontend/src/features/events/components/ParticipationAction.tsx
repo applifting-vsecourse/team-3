@@ -83,9 +83,12 @@ export function ParticipationAction({
     // Figma A-05 · Stavy › Proběhlá akce; an event whose minimum never came didn't take place
     const day = inSentence(formatEventDay(event.startsAt))
     const hasHappened = event.missingToMin === 0
+    // who had a place rates the event and its organizer (Figma C-03, #66); the organizer doesn't
+    const canRate = hasHappened && !isOrganizer && event.myParticipation === "approved"
     return (
       <Row>
         {manage}
+        {canRate ? <RateLink eventId={event.id} /> : null}
         <Alert variant="neutral">
           <Info />
           <AlertTitle>
@@ -497,6 +500,23 @@ function ManageLink({ eventId, isPrimary = false }: { eventId: string; isPrimary
         params={{ eventId }}
       >
         Spravovat akci
+      </Link>
+    </Button>
+  )
+}
+
+/** The past event's one primary action for who was there: the rating page (C-03, #66). */
+function RateLink({ eventId }: { eventId: string }) {
+  return (
+    <Button
+      asChild
+      size="lg"
+    >
+      <Link
+        to={ROUTES.rateEvent}
+        params={{ eventId }}
+      >
+        Ohodnotit akci
       </Link>
     </Button>
   )

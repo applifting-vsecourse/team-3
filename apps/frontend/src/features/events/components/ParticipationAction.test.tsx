@@ -319,6 +319,41 @@ describe("ParticipationAction", () => {
     expect(screen.queryByRole("button")).not.toBeInTheDocument()
   })
 
+  it("over, who had a place gets „Ohodnotit akci“ to the rating page (Figma C-03, #66)", async () => {
+    await renderAction(
+      { approvedCount: 8, missingToMin: 0, endsAt: afterNow, myParticipation: "approved" },
+      { now: new Date("2026-10-24T08:00:00.000Z") },
+    )
+
+    expect(screen.getByRole("link", { name: "Ohodnotit akci" })).toHaveAttribute(
+      "href",
+      "/akce/e1/hodnoceni",
+    )
+  })
+
+  it.each([
+    ["a visitor", {}, null],
+    ["someone without a place", { myParticipation: null }, jakub],
+    ["a rejected applicant", { myParticipation: "rejected" as const }, jakub],
+    ["the organizer, even with a place (Q12)", { myParticipation: "approved" as const }, organizer],
+  ])("over, %s gets no „Ohodnotit akci“", async (_who, participation, viewer) => {
+    await renderAction(
+      { approvedCount: 8, missingToMin: 0, endsAt: afterNow, ...participation },
+      { viewer, now: new Date("2026-10-24T08:00:00.000Z") },
+    )
+
+    expect(screen.queryByRole("link", { name: "Ohodnotit akci" })).not.toBeInTheDocument()
+  })
+
+  it("over without its minimum, a participant has nothing to rate: it didn't take place", async () => {
+    await renderAction(
+      { approvedCount: 3, missingToMin: 1, endsAt: afterNow, myParticipation: "approved" },
+      { now: new Date("2026-10-24T08:00:00.000Z") },
+    )
+
+    expect(screen.queryByRole("link", { name: "Ohodnotit akci" })).not.toBeInTheDocument()
+  })
+
   it.each([
     [{ approvedCount: 0, missingToMin: 4 }, "Nikdo se nepřihlásil."],
     [{ approvedCount: 3, missingToMin: 1 }, "Do minima chyběl 1 člověk."],
