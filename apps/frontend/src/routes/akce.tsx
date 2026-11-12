@@ -6,7 +6,7 @@ import { BandTabs, BandTabsItem } from "@/components/PageBand/BandTabs"
 import { PageBand } from "@/components/PageBand/PageBand"
 import { Seo } from "@/components/Seo"
 import { Button } from "@/components/ui/button"
-import { Tabs } from "@/components/ui/tabs"
+import { Tabs, TabsContent } from "@/components/ui/tabs"
 import { localityDefault, useLocality } from "@/hooks/useLocality"
 import { DESKTOP_QUERY, useMediaQuery } from "@/hooks/useMediaQuery"
 import { ALL_LOCALITIES_SLUG } from "@/lib/catalog/localityOptions"
@@ -222,10 +222,13 @@ function EventsPage() {
           onValueChange={(value) =>
             selectPick(value === ALL_EVENTS_TAB ? undefined : (value as QuickPick))
           }
-          className="gap-0"
+          // it holds the band and the rest of the page, so it takes the page's height as the
+          // rest did before (#298)
+          className="flex-1 gap-0 md:min-h-0 md:basis-0"
         >
           <PageBand
             variant="section"
+            isMotifAboveTabs
             title={title}
             description={
               area
@@ -250,154 +253,164 @@ function EventsPage() {
               ))}
             </BandTabs>
           </PageBand>
-        </Tabs>
-        {/* Desktop: the rest under the band, the list scrolls on its own and the map fills
-            the height beside it. */}
-        <div className="relative flex flex-1 flex-col overflow-hidden md:min-h-0 md:basis-0">
-          <div
-            className={cn(
-              // mobile: chips over the map, or a bar above the pulled-up list
-              "absolute inset-x-0 top-0 z-20",
-              // pb-1: the bar reaches the sheet below it (top-16), no strip of map between
-              isListExpanded && "border-b border-border bg-background pb-1",
-              // desktop: no hairline under the bar, the list and the map start below it; on the
-              // 1200 grid like the band (Figma A-02d)
-              "md:static md:mx-auto md:w-full md:max-w-7xl md:border-b-0 md:bg-background",
-            )}
+          {/* Desktop: the rest under the band, the list scrolls on its own and the map fills
+              the height beside it. It is the tabs' panel, so the active tab points at what it
+              shows (aria-controls, #298). */}
+          <TabsContent
+            value={activeTab}
+            asChild
           >
-            {hasSearchRow ? (
-              <div className="px-4 pt-3 md:hidden">{searchField(isSearchOpened)}</div>
-            ) : null}
-            <EventFilters
-              search={search}
-              catalog={catalog}
-              onChange={setSearch}
-              onLocalityChange={pickLocality}
-              onClearAll={canClear ? clearFilters : undefined}
-              localityDefault={localityDefault(shownLocality, clearLocality)}
-              isFloating={!isDesktop && !isListExpanded}
-              searchControl={isDesktop ? searchField() : undefined}
-              // Chips scroll sideways on narrow screens without a visible scrollbar
-              // (Figma A-02); a desktop scrollbar would also make the bar taller
-              // and cover the top of the pulled-up list.
-              className="[scrollbar-width:none] overflow-x-auto px-4 py-3 md:px-10 [&::-webkit-scrollbar]:hidden"
-            />
-          </div>
+            <div className="relative flex flex-1 flex-col overflow-hidden md:min-h-0 md:basis-0">
+              <div
+                className={cn(
+                  // mobile: chips over the map, or a bar above the pulled-up list
+                  "absolute inset-x-0 top-0 z-20",
+                  // pb-1: the bar reaches the sheet below it (top-16), no strip of map between
+                  isListExpanded && "border-b border-border bg-background pb-1",
+                  // desktop: no hairline under the bar, the list and the map start below it; on the
+                  // 1200 grid like the band (Figma A-02d)
+                  "md:static md:mx-auto md:w-full md:max-w-7xl md:border-b-0 md:bg-background",
+                )}
+              >
+                {hasSearchRow ? (
+                  <div className="px-4 pt-3 md:hidden">{searchField(isSearchOpened)}</div>
+                ) : null}
+                <EventFilters
+                  search={search}
+                  catalog={catalog}
+                  onChange={setSearch}
+                  onLocalityChange={pickLocality}
+                  onClearAll={canClear ? clearFilters : undefined}
+                  localityDefault={localityDefault(shownLocality, clearLocality)}
+                  isFloating={!isDesktop && !isListExpanded}
+                  searchControl={isDesktop ? searchField() : undefined}
+                  // Chips scroll sideways on narrow screens without a visible scrollbar
+                  // (Figma A-02); a desktop scrollbar would also make the bar taller
+                  // and cover the top of the pulled-up list.
+                  className="[scrollbar-width:none] overflow-x-auto px-4 py-3 md:px-10 [&::-webkit-scrollbar]:hidden"
+                />
+              </div>
 
-          <div className="flex flex-1 md:mx-auto md:min-h-0 md:w-full md:max-w-7xl md:gap-8 md:px-10">
-            <ListPanel
-              snap={panelSnap}
-              onSnapChange={setPanelSnap}
-              scrollResetKey={JSON.stringify(search)}
-              onVisibleHeightChange={setPanelPeekHeight}
-              isHidden={selectedEvent !== undefined}
-              hasSearchRow={hasSearchRow}
-            >
-              <EventList
-                events={events ?? []}
-                isLoading={isPending}
-                error={error}
-                // Only the error state offers a retry; refocusing the tab refetches.
-                onRetry={retry}
-                // desktop: the selected pin's card stays marked in the list (Figma A-03ad)
-                highlightedId={highlightedId ?? selectedEvent?.id}
-                onHighlight={setHighlightedId}
-                onClearFilters={canClear ? clearFilters : undefined}
-                sortControl={
-                  <SortMenu
-                    value={sort}
-                    isDistanceAvailable={Boolean(center)}
-                    // the order okolí implies stays out of the URL
-                    onChange={(razeni) =>
-                      setSearch({
-                        razeni:
-                          razeni === (search.okoli ? "vzdalenost" : "termin") ? undefined : razeni,
-                      })
+              <div className="flex flex-1 md:mx-auto md:min-h-0 md:w-full md:max-w-7xl md:gap-8 md:px-10">
+                <ListPanel
+                  snap={panelSnap}
+                  onSnapChange={setPanelSnap}
+                  scrollResetKey={JSON.stringify(search)}
+                  onVisibleHeightChange={setPanelPeekHeight}
+                  isHidden={selectedEvent !== undefined}
+                  hasSearchRow={hasSearchRow}
+                >
+                  <EventList
+                    events={events ?? []}
+                    isLoading={isPending}
+                    error={error}
+                    // Only the error state offers a retry; refocusing the tab refetches.
+                    onRetry={retry}
+                    // desktop: the selected pin's card stays marked in the list (Figma A-03ad)
+                    highlightedId={highlightedId ?? selectedEvent?.id}
+                    onHighlight={setHighlightedId}
+                    onClearFilters={canClear ? clearFilters : undefined}
+                    sortControl={
+                      <SortMenu
+                        value={sort}
+                        isDistanceAvailable={Boolean(center)}
+                        // the order okolí implies stays out of the URL
+                        onChange={(razeni) =>
+                          setSearch({
+                            razeni:
+                              razeni === (search.okoli ? "vzdalenost" : "termin")
+                                ? undefined
+                                : razeni,
+                          })
+                        }
+                      />
+                    }
+                    isDistanceShown={isDistanceShown}
+                    empty={
+                      <EmptyEvents
+                        search={search}
+                        catalog={catalog}
+                        isVisitor={!session.user && !session.isPending}
+                        onSearchChange={setSearch}
+                      />
+                    }
+                    // lowered sheet: what is below its edge is out of the Tab order
+                    inertAfter={
+                      isDesktop || isListExpanded ? undefined : panelSnap === "map" ? 0 : 1
                     }
                   />
-                }
-                isDistanceShown={isDistanceShown}
-                empty={
-                  <EmptyEvents
-                    search={search}
-                    catalog={catalog}
-                    isVisitor={!session.user && !session.isPending}
-                    onSearchChange={setSearch}
-                  />
-                }
-                // lowered sheet: what is below its edge is out of the Tab order
-                inertAfter={isDesktop || isListExpanded ? undefined : panelSnap === "map" ? 0 : 1}
-              />
-            </ListPanel>
+                </ListPanel>
 
-            <div
-              // hidden, not unmounted, under the pulled-up list; inert keeps it out of Tab order
-              aria-hidden={!isMapVisible}
-              inert={!isMapVisible}
-              // mobile: the OSM attribution sits bottom right just above the closed list
-              // sheet, or above the preview that took its place, instead of hiding under it
-              // (! because leaflet.css isn't layered)
-              style={
-                isDesktop
-                  ? undefined
-                  : ({ "--map-bottom-inset": `${mapBottomInset}px` } as CSSProperties)
-              }
-              className={cn(
-                "absolute inset-0 md:static md:min-w-0 md:flex-1 md:py-8",
-                !isDesktop && "[&_.leaflet-bottom]:bottom-(--map-bottom-inset)!",
-              )}
-            >
-              <div className="relative size-full overflow-hidden md:rounded-2xl md:border md:border-card-border">
-                <EventsMap
-                  events={events ?? []}
-                  highlightedId={highlightedId}
-                  selectedId={selectedEvent?.id}
-                  onSelect={setSelectedId}
-                  area={area}
-                  onAreaSearch={(searched) => {
-                    setSelectedId(undefined)
-                    void navigate({
-                      search: (prev) => ({ ...prev, oblast: toOblast(searched) }),
-                      replace: true,
-                    })
-                  }}
-                  center={
-                    search.lokalita === ALL_LOCALITIES_SLUG
-                      ? CZECHIA_CENTER
-                      : (locality ?? CZECHIA_CENTER)
-                  }
-                  hasZoomControl={isDesktop}
-                />
-                {selectedEvent && isDesktop ? (
-                  <EventMapPreview
-                    event={selectedEvent}
+                <div
+                  // hidden, not unmounted, under the pulled-up list; inert keeps it out of Tab order
+                  aria-hidden={!isMapVisible}
+                  inert={!isMapVisible}
+                  // mobile: the OSM attribution sits bottom right just above the closed list
+                  // sheet, or above the preview that took its place, instead of hiding under it
+                  // (! because leaflet.css isn't layered)
+                  style={
                     isDesktop
-                  />
-                ) : null}
+                      ? undefined
+                      : ({ "--map-bottom-inset": `${mapBottomInset}px` } as CSSProperties)
+                  }
+                  className={cn(
+                    "absolute inset-0 md:static md:min-w-0 md:flex-1 md:py-8",
+                    !isDesktop && "[&_.leaflet-bottom]:bottom-(--map-bottom-inset)!",
+                  )}
+                >
+                  <div className="relative size-full overflow-hidden md:rounded-2xl md:border md:border-card-border">
+                    <EventsMap
+                      events={events ?? []}
+                      highlightedId={highlightedId}
+                      selectedId={selectedEvent?.id}
+                      onSelect={setSelectedId}
+                      area={area}
+                      onAreaSearch={(searched) => {
+                        setSelectedId(undefined)
+                        void navigate({
+                          search: (prev) => ({ ...prev, oblast: toOblast(searched) }),
+                          replace: true,
+                        })
+                      }}
+                      center={
+                        search.lokalita === ALL_LOCALITIES_SLUG
+                          ? CZECHIA_CENTER
+                          : (locality ?? CZECHIA_CENTER)
+                      }
+                      hasZoomControl={isDesktop}
+                    />
+                    {selectedEvent && isDesktop ? (
+                      <EventMapPreview
+                        event={selectedEvent}
+                        isDesktop
+                      />
+                    ) : null}
+                  </div>
+                </div>
               </div>
+
+              {selectedEvent && !isDesktop ? (
+                <EventMapPreview
+                  event={selectedEvent}
+                  isDesktop={false}
+                  onCoverChange={setPreviewCover}
+                />
+              ) : null}
+
+              {isListExpanded ? (
+                // Figma: Map action „Mapa“ over the pulled-up list
+                <Button
+                  variant="outline"
+                  onClick={() => setPanelSnap("peek")}
+                  className="absolute bottom-4 left-4 z-20 h-11 bg-background shadow-md md:hidden"
+                >
+                  <MapIcon />
+                  Mapa
+                </Button>
+              ) : null}
             </div>
-          </div>
-
-          {selectedEvent && !isDesktop ? (
-            <EventMapPreview
-              event={selectedEvent}
-              isDesktop={false}
-              onCoverChange={setPreviewCover}
-            />
-          ) : null}
-
-          {isListExpanded ? (
-            // Figma: Map action „Mapa“ over the pulled-up list
-            <Button
-              variant="outline"
-              onClick={() => setPanelSnap("peek")}
-              className="absolute bottom-4 left-4 z-20 h-11 bg-background shadow-md md:hidden"
-            >
-              <MapIcon />
-              Mapa
-            </Button>
-          ) : null}
-        </div>
+          </TabsContent>
+        </Tabs>
       </main>
     </EventsViewerContext>
   )

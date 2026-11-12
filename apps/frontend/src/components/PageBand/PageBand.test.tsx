@@ -58,6 +58,53 @@ describe("PageBand", () => {
       expect(svg.closest("[aria-hidden='true']")).not.toBeNull()
     }
   })
+
+  // #298: the motifs never run under the band's tabs. jsdom has no layout, so this checks the
+  // motif boxes end 48 px (the tab strip) above the band's bottom edge.
+  const motifBoxes = (container: HTMLElement) =>
+    // the motifs' boxes, not the logo mark before the title
+    [...container.querySelectorAll("div.absolute[aria-hidden='true']")]
+
+  it("on /akce the big motif and the phone's corner motif end above the tabs", async () => {
+    const { container } = await renderWithRouter(
+      <Tabs value="vse">
+        <PageBand
+          variant="section"
+          isMotifAboveTabs
+          title="Akce"
+        >
+          <BandTabs>
+            <BandTabsItem value="vse">Všechny akce</BandTabsItem>
+          </BandTabs>
+        </PageBand>
+      </Tabs>,
+    )
+
+    const boxes = motifBoxes(container)
+    expect(boxes).toHaveLength(2)
+    for (const box of boxes) expect(box).toHaveClass("bottom-12")
+  })
+
+  it("elsewhere the big motif rises from the band's edge, so it keeps clear of the action", async () => {
+    const { container } = await renderWithRouter(
+      <Tabs value="poradam">
+        <PageBand
+          variant="section"
+          title="Moje akce"
+          action={<button type="button">Založit akci</button>}
+        >
+          <BandTabs>
+            <BandTabsItem value="poradam">Pořádám</BandTabsItem>
+          </BandTabs>
+        </PageBand>
+      </Tabs>,
+    )
+
+    const [big, corner] = motifBoxes(container)
+    expect(big).toHaveClass("xl:block", "bottom-0")
+    // on a phone the tabs scroll under any motif, so the corner one ends above them anyway
+    expect(corner).toHaveClass("md:hidden", "bottom-12")
+  })
 })
 
 describe("BandTabs", () => {
