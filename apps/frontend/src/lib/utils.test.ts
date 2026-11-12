@@ -12,4 +12,10 @@ describe("cn", () => {
     expect(cn("text-caption", "text-sm")).toBe("text-sm")
     expect(cn("text-sm", "text-body")).toBe("text-body")
   })
+
+  // review #311: the band's tabs and PageBand's motif share this height
+  it("lets the band-tabs spacing replace the kit's height", () => {
+    expect(cn("h-[calc(100%-1px)]", "h-band-tabs")).toBe("h-band-tabs")
+    expect(cn("bottom-0", "bottom-band-tabs")).toBe("bottom-band-tabs")
+  })
 })
