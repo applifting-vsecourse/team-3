@@ -60,7 +60,7 @@ describe("PageBand", () => {
   })
 
   // #298: the motifs never run under the band's tabs. jsdom has no layout, so this checks the
-  // motif boxes end 48 px (the tab strip) above the band's bottom edge.
+  // motif boxes end bottom-12 above the band's bottom edge (the 47 px tab strip, rounded up).
   const motifBoxes = (container: HTMLElement) =>
     // the motifs' boxes, not the logo mark before the title
     [...container.querySelectorAll("div.absolute[aria-hidden='true']")]

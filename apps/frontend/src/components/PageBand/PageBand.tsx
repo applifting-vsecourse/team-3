@@ -238,6 +238,8 @@ function HeroMotif() {
 /**
  * On a phone the detail's band has the logo's faint dots in its top-right corner, the ring
  * past the edge (Figma A-05 › Motiv loga (návrh 16)); from `md` the big motif takes over (xl).
+ * On a phone's section band (`isSection`: Akce, Skupiny, Moje akce) the lower dot and the ring
+ * rise from the tabs' top line instead, and the motif hides under 360 px (#298).
  * Decoration — hidden from assistive tech.
  */
 function CornerMotif({
@@ -318,7 +320,8 @@ function LogoMotif({ isAboveTabs = false }: { isAboveTabs?: boolean }) {
       className={cn(
         "pointer-events-none absolute inset-x-0 top-0 mx-auto hidden max-w-7xl overflow-hidden xl:block",
         // with tabs on the band's edge it rises from the tabs' top line instead: six quick picks
-        // on /akce reach under the ring and the dots (#298); the strip is 48 px (BandTabs)
+        // on /akce reach under the ring and the dots (#298); bottom-12: the 47 px strip of
+        // BandTabsItem, rounded up
         isAboveTabs ? "bottom-12" : "bottom-0",
       )}
     >

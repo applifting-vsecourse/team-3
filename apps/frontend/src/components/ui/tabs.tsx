@@ -70,6 +70,10 @@ function TabsContent({ className, ...props }: React.ComponentProps<typeof TabsPr
   return (
     <TabsPrimitive.Content
       data-slot="tabs-content"
+      // Radix makes the panel a Tab stop of its own, and it has no ring: a keyboard user would
+      // land on an invisible stop. Its first control takes focus anyway (#298, DESIGN.md ›
+      // Accessibility). A caller can still pass tabIndex.
+      tabIndex={-1}
       className={cn("flex-1 outline-none", className)}
       {...props}
     />
