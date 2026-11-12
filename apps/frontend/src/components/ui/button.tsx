@@ -9,7 +9,10 @@ const buttonVariants = cva(
   {
     variants: {
       variant: {
-        default: "bg-primary text-primary-foreground hover:bg-primary/90",
+        // lime on a light surface is about 1.1:1, so the fill carries its primary-edge outline
+        // (DESIGN.md › Colour, Figma Button/Primary)
+        default:
+          "border border-primary-edge bg-primary text-primary-foreground hover:bg-primary/90",
         // Text on the fill is its -foreground token; /90 hover would drop
         // white text to 4.28:1, so hover mixes in foreground instead (global.css).
         destructive:
