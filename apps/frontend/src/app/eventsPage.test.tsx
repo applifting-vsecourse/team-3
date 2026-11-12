@@ -3,7 +3,7 @@ import { createMemoryHistory, createRouter, RouterProvider } from "@tanstack/rea
 import { act, render, screen } from "@testing-library/react"
 import userEvent from "@testing-library/user-event"
 import { Map as LeafletMap } from "leaflet"
-import { afterEach, beforeEach, describe, expect, it, vi } from "vitest"
+import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "vitest"
 
 import { router } from "@/app/router"
 import { authKeys } from "@/lib/auth-keys"
@@ -100,16 +100,23 @@ describe("/akce on a phone: „Zrušit filtry“", () => {
 // #288: on a phone the search and the chips float over the map's top, and „Hledat v této oblasti“
 // must come under them, never beneath — the page passes the bar's measured height to the map.
 describe("/akce: „Hledat v této oblasti“ after the map is moved", () => {
+  // Leaflet can't remove an init hook, so one hook for the file, and its list emptied per test
+  const maps: LeafletMap[] = []
+  beforeAll(() => {
+    LeafletMap.addInitHook(function (this: LeafletMap) {
+      maps.push(this)
+    })
+  })
+  beforeEach(() => {
+    maps.length = 0
+  })
+
   const OVERLAY_HEIGHT = 108
 
   /** /akce with every element `OVERLAY_HEIGHT` tall; returns the page's Leaflet map. */
   async function renderAndMoveMap() {
     // jsdom has no layout: the measured bar (and anything else) is this tall
     vi.spyOn(HTMLElement.prototype, "offsetHeight", "get").mockReturnValue(OVERLAY_HEIGHT)
-    const maps: LeafletMap[] = []
-    LeafletMap.addInitHook(function (this: LeafletMap) {
-      maps.push(this)
-    })
     await renderEvents("/akce")
     await screen.findByRole("region", { name: "Mapa akcí" })
     const map = maps.at(-1)
