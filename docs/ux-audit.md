@@ -44,7 +44,7 @@ Co jsme zvažovali a zamítli: tečky jako místa v partě (tým 2 má obsazenos
 | 11  | **Plovoucí „Založit akci“** v Moje akce nezakrývá poslední kartu                                                                                                                                                                       | platí                                                                            | C-01, C-02                                    |
 | 12  | **Štítky** „Jdu“, „Čeká na schválení“, „Proběhlo“                                                                                                                                                                                      | platí                                                                            | Status badge                                  |
 | 13  | **Logo jako příběh**: prázdná tečka se doplní, když se přihlásíš – ten chybějící jsi ty                                                                                                                                                | platí; motiv loga je teď i v pásu                                                | Logo/Mark/Plná parta; A-05c, X-01             |
-| 14  | **„Máš místo“ jako vlastní blok** (secondary s obrysem, akcentový pruh, logo s plnou partou)                                                                                                                                           | platí                                                                            | Máš místo                                     |
+| 14  | **„Máš místo“ jako vlastní blok** (secondary s obrysem `tile-border`, logo s plnou partou)                                                                                                                                             | platí; akcentový pruh zrušen s tmavým režimem (#297)                             | Máš místo                                     |
 | 15  | **„Sešlo se N lidí“** u proběhlých akcí                                                                                                                                                                                                | platí                                                                            | A-02h, A-05h, Karta akce/Proběhlá řádek       |
 | 16  | Náhled sdíleného odkazu (og:image)                                                                                                                                                                                                     | mimo sprint 3, #102                                                              | A-05s                                         |
 | 17  | **Naléhavost v panelu „Teď chybí jeden“**: „za 2 dny“ a věta s čísly                                                                                                                                                                   | platí                                                                            | A-01, A-01d, A-01p, A-01pd                    |
@@ -83,7 +83,7 @@ Rozhodnutí PO ze 4. 11. a pravidla týmu:
 - **Průměr** se ukazuje od prvního hodnocení i s počtem („★ 4,5 (6 hodnocení)“), bez hodnocení „zatím bez hodnocení“.
 - **Veřejný profil:** hodnocení jako organizátor, průměr jeho akcí, hodnocení jako účastník a historie pořádaných veřejných akcí, u každé počet lidí a průměr hodnocení akce. Akce skupin se počítají skupině a v historii osoby nejsou.
 - **Vstupy:** e-maily „Ohodnoť akci“ a „Ohodnoť účastníky“ (E-01 typy 11 a 12, večer po akci, B-043), karta „Ohodnotit“ v profilu › Proběhlé, tlačítko „Ohodnotit akci“ na detailu proběhlé akce (A-05h, jen schválený účastník). Obě obrazovky mají adresu `/akce/:id/hodnoceni`, obsah podle role.
-- Dávání hodnocení (#66) jde do sprintu 3, když zbude čas; design je hotový.
+- Dávání hodnocení (#66) je ve sprintu 4 (P1); design je hotový.
 
 ## Hlas aplikace
 
@@ -119,7 +119,7 @@ E-maily (předmět, text, tlačítko) pro všech 12 typů jsou ve Figmě v „E-
 - Text aspoň 4,5:1, velký text 3:1, **každý negrafický prvek a hrana plochy aspoň 3:1** vůči okolí – ikony, štítky, dráha pruhu, špendlíky, hvězdičky, oddělovače, okraj dlaždice, karty, obrysového tlačítka, dialogu i spodního panelu nad překryvem. Bez výjimek „vypadá to dobře“ (tým 2.–3. 11.).
 - Nové tokeny kvůli kontrastu: `tile-border`, `primary-edge`, `control-border`, `card-border`, `badge-neutral`, `capacity-fill` (tmavě zelená – limetka na béžové dráze má 1,03:1).
 - **Kontrola 4. 11.:** automatický audit všech obrazovek (světlý i tmavý režim) – text, okraje a plochy. Opraveno: přepsané barvy radio karet (36 instancí), okraj dialogu v tmavém režimu, překryv pod spodními panely, neaktivní „Plno“, zástupné pole bez fotky, rámečky v e-mailech. Poté bez nálezů (mimo dekorativní plochy mapy).
-- **Jen světlý režim (PO 10. 11.):** tmavý režim nevypadá dobře a ladit dva režimy nemá smysl. Tokeny jen pro tmavý režim (`band-edge`, `accent-bar`) a přepínač motivu odstraní „Jen světlý režim a kontrast“; v tom issue je i nový audit kontrastu a nálezy jdou do „Bug: Design – překryté a splývající texty“.
+- **Jen světlý režim (PO 10. 11.):** tmavý režim nevypadá dobře a ladit dva režimy nemá smysl. Tokeny jen pro tmavý režim (`band-edge`, `accent-bar`) a přepínač motivu odstranilo #297 („Jen světlý režim a kontrast“); v tom issue je i nový audit kontrastu a nálezy jdou do #298 („Bug: Design – překryté a splývající texty“).
 
 ## Nálezy
 
@@ -175,18 +175,18 @@ Každá obrazovka je na mobilu i desktopu, s popisem nad sebou. Platí jen svět
 
 ## Co jde do kódu
 
-| Co                                                                                                                                                   | Kam                                |
-| ---------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------- |
-| Tokeny nového brandu do `global.css` (tabulka v DESIGN.md), test kontrastů v `tokens.test.ts`, odstranit nepoužívané (aliasy kitu zůstávají)         | #195                               |
-| Komponenty: pás s motivem loga, karty s fotkou a datovou dlaždicí, pruh obsazenosti, štítky, razítko, Máš místo, špendlíky, rychlé výběry, hvězdičky | #195                               |
-| Odstranit tmavý režim a přepínač motivu, audit kontrastu ve světlém (PO 10. 11.)                                                                     | nové „Jen světlý režim a kontrast“ |
-| Přestavba obrazovek podle Figmy, texty podle Hlasu aplikace                                                                                          | #195                               |
-| Úvodní stránka: sekce, pravidla, sekce skupin                                                                                                        | #182                               |
-| Řazení podle vzdálenosti, hledání podle klíčových slov, okolí ve Všech akcích                                                                        | #57                                |
-| Přihlášení jen s ověřeným e-mailem (`requireEmailVerification`, obrazovka B-01a; demo účet Eva zůstává neověřený a ukazuje B-01a)                    | nové issue (B-011)                 |
-| Akce jen pro členy pro nečlena: 401 nepřihlášenému, 403 s `groupId` přihlášenému místo 404                                                           | #70 (B-026)                        |
-| Hodnocení: průměr skupiny, pravidla pro skrytá a smazaná hodnocení, profil podle PO                                                                  | #66, #179 (B-060, B-013)           |
-| E-maily typ 10–12 (deaktivace skupiny, výzvy k hodnocení)                                                                                            | #177, B-043                        |
+| Co                                                                                                                                                   | Kam                      |
+| ---------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------ |
+| Tokeny nového brandu do `global.css` (tabulka v DESIGN.md), test kontrastů v `tokens.test.ts`, odstranit nepoužívané (aliasy kitu zůstávají)         | #195                     |
+| Komponenty: pás s motivem loga, karty s fotkou a datovou dlaždicí, pruh obsazenosti, štítky, razítko, Máš místo, špendlíky, rychlé výběry, hvězdičky | #195                     |
+| Odstranit tmavý režim a přepínač motivu, audit kontrastu ve světlém (PO 10. 11.)                                                                     | #297                     |
+| Přestavba obrazovek podle Figmy, texty podle Hlasu aplikace                                                                                          | #195                     |
+| Úvodní stránka: sekce, pravidla, sekce skupin                                                                                                        | #182                     |
+| Řazení podle vzdálenosti, hledání podle klíčových slov, okolí ve Všech akcích                                                                        | #57                      |
+| Přihlášení jen s ověřeným e-mailem (`requireEmailVerification`, obrazovka B-01a; demo účet Eva zůstává neověřený a ukazuje B-01a)                    | nové issue (B-011)       |
+| Akce jen pro členy pro nečlena: 401 nepřihlášenému, 403 s `groupId` přihlášenému místo 404                                                           | #70 (B-026)              |
+| Hodnocení: průměr skupiny, pravidla pro skrytá a smazaná hodnocení, profil podle PO                                                                  | #66, #179 (B-060, B-013) |
+| E-maily typ 10–12 (deaktivace skupiny, výzvy k hodnocení)                                                                                            | #177, B-043              |
 
 ## Mimo sprint 3
 
