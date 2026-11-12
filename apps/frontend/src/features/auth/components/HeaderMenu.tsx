@@ -56,7 +56,9 @@ export function HeaderMenu({
         <Button
           variant="ghost"
           size="icon-lg"
-          aria-label="Uživatelské menu"
+          // the name says what the button shows (the initials) and whose menu it is: a label
+          // without the visible text fails WCAG 2.5.3 Label in Name (#298)
+          aria-label={`Uživatelské menu ${initials(user.name)} – ${user.name}`}
           className="rounded-full"
         >
           <Avatar className="size-10 border border-on-hero-muted">
