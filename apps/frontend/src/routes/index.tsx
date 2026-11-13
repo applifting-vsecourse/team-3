@@ -32,6 +32,10 @@ function LandingPage() {
   const { user, isPending } = useSession()
   const { lokalita } = Route.useSearch()
   const locality = useLocality(lokalita, isPending ? undefined : (user?.id ?? null))
+  const navigate = Route.useNavigate()
+  // the chip's pick and reset replace `?lokalita=` of a shared link: it would win over them
+  const dropUrlLocality = () =>
+    void navigate({ search: (prev) => ({ ...prev, lokalita: undefined }), replace: true })
 
   return (
     <>
@@ -44,6 +48,17 @@ function LandingPage() {
         viewerId={user?.id ?? null}
         // Celé Česko is no locality: the API decides (the home locality, else all of Czechia)
         localitySlug={locality.slug === ALL_LOCALITIES_SLUG ? undefined : locality.slug}
+        localityControl={{
+          state: locality,
+          onChange: (slug) => {
+            locality.pick(slug)
+            dropUrlLocality()
+          },
+          onReset: () => {
+            locality.forget()
+            dropUrlLocality()
+          },
+        }}
         renderGroups={(groups, groupsLokalita) => (
           <RecruitingGroups
             groups={groups}

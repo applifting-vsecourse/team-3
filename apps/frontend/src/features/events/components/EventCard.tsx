@@ -155,14 +155,7 @@ export function EventCard({
             )}
           >
             <span className="truncate">{rowLine}</span>
-            {/* the distance ends the line and is never the part cut off (#299): a long place
-                gives way, „· 22,7 km“ stays */}
-            {distance ? (
-              <span className="shrink-0 whitespace-nowrap">
-                {"\u00a0· "}
-                {distance}
-              </span>
-            ) : null}
+            {distance ? <Distance km={distance} /> : null}
           </p>
         )}
         {variant === "row" && summary ? (
@@ -173,11 +166,14 @@ export function EventCard({
         ) : (
           <p
             className={cn(
-              "truncate text-sm text-muted-foreground",
-              variant === "responsive" && "hidden md:block",
+              "flex min-w-0 text-sm text-muted-foreground",
+              variant === "responsive" && "hidden md:flex",
             )}
           >
-            {place} · {event.locality.name}
+            <span className="truncate">
+              {place} · {event.locality.name}
+            </span>
+            {distance ? <Distance km={distance} /> : null}
           </p>
         )}
         <div
@@ -235,5 +231,18 @@ export function EventCard({
         </div>
       </div>
     </article>
+  )
+}
+
+/**
+ * „ · 22,7 km“ at the end of a card's line, never the part cut off (#299): the place before it
+ * gives way.
+ */
+function Distance({ km }: { km: string }) {
+  return (
+    <span className="shrink-0 whitespace-nowrap">
+      {"\u00a0· "}
+      {km}
+    </span>
   )
 }

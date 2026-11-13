@@ -1,8 +1,10 @@
+import type { ComponentProps } from "react"
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query"
 import { screen, waitFor, within } from "@testing-library/react"
 import userEvent from "@testing-library/user-event"
 import { beforeEach, describe, expect, it, vi } from "vitest"
 
+import type { LocalityState } from "@/hooks/useLocality"
 import { api } from "@/lib/api-client"
 import type * as ApiClient from "@/lib/api-client"
 import { renderWithRouter } from "@/test/renderWithRouter"
@@ -70,7 +72,7 @@ const group = {
 }
 
 type Section = { key: string; events?: PublicEvent[]; groups?: unknown[] }
-type HomeBody = { locality: unknown; sections: Section[] }
+type HomeBody = { locality: unknown; sections: Section[]; isWidened?: boolean }
 
 const visitorHome: HomeBody = {
   locality: null,
@@ -109,11 +111,16 @@ const mockApi = () =>
 type RenderOptions = {
   session?: "visitor" | "signedIn" | "loading"
   localitySlug?: string
+  localityControl?: ComponentProps<typeof LandingView>["localityControl"]
 }
 
 let queryClient: QueryClient
 
-const renderLanding = ({ session = "visitor", localitySlug }: RenderOptions = {}) => {
+const renderLanding = ({
+  session = "visitor",
+  localitySlug,
+  localityControl,
+}: RenderOptions = {}) => {
   const isSignedIn = session === "loading" ? undefined : session === "signedIn"
   queryClient = new QueryClient({ defaultOptions: { queries: { retry: 0 } } })
   return renderWithRouter(
@@ -122,6 +129,7 @@ const renderLanding = ({ session = "visitor", localitySlug }: RenderOptions = {}
         isSignedIn={isSignedIn}
         viewerId={isSignedIn ? "u-jakub" : null}
         localitySlug={localitySlug}
+        localityControl={localityControl}
         renderGroups={(groups) => <p>{groups.length} skupin z API</p>}
         // Sunday 8. 11. 2026, so „Tento víkend“ is just today
         now={new Date("2026-11-08T10:00:00.000Z")}
@@ -356,5 +364,72 @@ describe("LandingView", () => {
     await user.click(screen.getByRole("button", { name: "Zkusit znovu" }))
 
     expect(await screen.findByRole("heading", { name: "Tady chybíš" })).toBeInTheDocument()
+  })
+
+  describe("which locality the page is for (#299)", () => {
+    const guess = (slug: string): LocalityState => ({
+      slug,
+      source: "ip",
+      isPicked: false,
+      pick: vi.fn(),
+      forget: vi.fn(),
+    })
+    const policeHome: HomeBody = {
+      locality: { id: "l-praha-3", slug: "praha-3", name: "Praha 3", source: "query" },
+      isWidened: true,
+      sections: [
+        {
+          key: "missing",
+          events: [anEvent({ id: "n1", title: "Florbal v Trutnově", distanceKm: 22.7 })],
+        },
+      ],
+    }
+
+    it("a guess shows on its chip, and one tap dismisses it to all of Czechia", async () => {
+      home = visitorHome
+      const onChange = vi.fn()
+      await renderLanding({
+        localitySlug: "praha-3",
+        localityControl: { state: guess("praha-3"), onChange, onReset: vi.fn() },
+      })
+
+      expect(
+        await screen.findByRole("button", { name: "Lokalita: Praha 3 · odhad" }),
+      ).toBeInTheDocument()
+      expect(screen.getByText("Ukazujeme akce pro lokalitu")).toBeInTheDocument()
+      await userEvent.click(
+        screen.getByRole("button", { name: "Zrušit odhad lokality, zobrazit celé Česko" }),
+      )
+      expect(onChange).toHaveBeenCalledWith("cele-cesko")
+    })
+
+    it("an empty locality: says so, and the sections are the nearest events with their distance", async () => {
+      home = policeHome
+      await renderLanding({
+        localitySlug: "praha-3",
+        localityControl: { state: guess("praha-3"), onChange: vi.fn(), onReset: vi.fn() },
+      })
+
+      expect(
+        await screen.findByText((_, element) =>
+          element?.tagName === "P"
+            ? element.textContent ===
+              "V lokalitě Praha 3 teď žádná akce není. Ukazujeme nejbližší akce v okolí."
+            : false,
+        ),
+      ).toBeInTheDocument()
+      // not „v lokalitě Praha 3“: the events are around it
+      expect(screen.getByText(/Těmhle akcím v okolí lokality Praha 3/)).toBeInTheDocument()
+      const card = screen.getByRole("link", { name: "Florbal v Trutnově" }).closest("article")
+      expect(card).toHaveTextContent("22,7 km")
+    })
+
+    it("no chip without the page's locality control", async () => {
+      home = visitorHome
+      await renderLanding()
+
+      await screen.findByText("Chybí 1")
+      expect(screen.queryByRole("button", { name: /^Lokalita:/ })).not.toBeInTheDocument()
+    })
   })
 })

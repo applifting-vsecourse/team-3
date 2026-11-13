@@ -41,6 +41,11 @@ export const homeSchema = z.object({
     })
     .nullable(),
   sections: z.array(z.union([groupsSectionSchema, eventSectionSchema])),
+  /**
+   * The locality has no events (#299): the event sections are the nearest events anywhere, each
+   * with its distance from the locality's centre; the groups stay the locality's.
+   */
+  isWidened: z.boolean().default(false),
 })
 
 export type Home = z.infer<typeof homeSchema>

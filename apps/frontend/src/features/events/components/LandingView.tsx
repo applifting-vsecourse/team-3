@@ -7,6 +7,7 @@ import { HomeSection } from "@/components/HomeSection/HomeSection"
 import { PageBand } from "@/components/PageBand/PageBand"
 import { Button } from "@/components/ui/button"
 import { Skeleton } from "@/components/ui/skeleton"
+import type { LocalityState } from "@/hooks/useLocality"
 import { localitiesQueryOptions } from "@/lib/catalog/catalogQueryOptions"
 import type { Locality } from "@/lib/catalog/catalogSchemas"
 import { ALL_LOCALITIES_SLUG } from "@/lib/catalog/localityOptions"
@@ -23,6 +24,7 @@ import type {
 import { EventCardSkeleton } from "@/features/events/components/EventList"
 import { HomeEventGrid } from "@/features/events/components/HomeEventGrid"
 import { HowItWorks } from "@/features/events/components/HowItWorks"
+import { LandingLocality } from "@/features/events/components/LandingLocality"
 import {
   EmptyMissingOnePanel,
   MissingOnePanel,
@@ -66,6 +68,15 @@ type LandingViewProps = {
   renderGroups?: (groups: unknown[], lokalita: string) => ReactNode
   /** For the dates in the sections' lines; now by default. */
   now?: Date
+  /**
+   * The page's locality with its chip (#299): which locality the sections are for, a guess
+   * marked „odhad“ and dismissable. Without it no chip (tests of the sections alone).
+   */
+  localityControl?: {
+    state: LocalityState
+    onChange: (slug: string) => void
+    onReset: () => void
+  }
 }
 
 /**
@@ -81,6 +92,7 @@ export function LandingView({
   localitySlug,
   renderGroups,
   now = new Date(),
+  localityControl,
 }: LandingViewProps) {
   const localitiesQuery = useQuery(localitiesQueryOptions())
   const localities = localitiesQuery.data
@@ -157,23 +169,37 @@ export function LandingView({
       </PageBand>
       {/* Figma A-01: 32 px around and between the sections on a phone; A-01d: 72 px under the
           band and at the bottom, 96 px between the sections, 128 before „Nic pro tebe?“ */}
-      <div className={cn(PAGE, "flex-1 gap-8 pt-8 pb-8 md:gap-24 md:pt-18 md:pb-18")}>
-        {home ? (
-          <Sections
-            home={home}
-            isVisitor={isVisitor}
-            localities={localities}
-            now={now}
-            renderGroups={renderGroups}
-          />
-        ) : homeQuery.isError ? (
-          isVisitor ? (
-            <HowItWorks />
-          ) : null
-        ) : (
-          <SectionSkeleton />
-        )}
-        <NothingForYou />
+      <div className={cn(PAGE, "flex-1 pt-8 pb-8 md:pt-18 md:pb-18")}>
+        {home && localities && localityControl?.state.slug !== undefined ? (
+          // which locality the sections are for (#299), close above the first of them
+          <div className="pb-4 md:pb-6">
+            <LandingLocality
+              locality={{ ...localityControl.state, slug: localityControl.state.slug }}
+              localities={localities}
+              isWidened={home.isWidened}
+              onChange={localityControl.onChange}
+              onReset={localityControl.onReset}
+            />
+          </div>
+        ) : null}
+        <div className="flex flex-1 flex-col gap-8 md:gap-24">
+          {home ? (
+            <Sections
+              home={home}
+              isVisitor={isVisitor}
+              localities={localities}
+              now={now}
+              renderGroups={renderGroups}
+            />
+          ) : homeQuery.isError ? (
+            isVisitor ? (
+              <HowItWorks />
+            ) : null
+          ) : (
+            <SectionSkeleton />
+          )}
+          <NothingForYou />
+        </div>
       </div>
     </main>
   )
@@ -304,7 +330,9 @@ function sectionCopy({
   now,
 }: SectionsContext): Record<Exclude<HomeEventSectionKey, "highlight">, SectionCopy> {
   const locality = pageLocality(home, localities)
-  const area = areaPhrase(locality)
+  // the nearest events of an empty locality are not in it, they are around it (#299)
+  const area =
+    home.isWidened && locality ? `v okolí lokality ${locality.name}` : areaPhrase(locality)
   const lokalita = listLocalitySlug(home, localities)
   const weekend = weekendDays(now)
   const events = (search: Record<string, string>): LinkProps => ({
