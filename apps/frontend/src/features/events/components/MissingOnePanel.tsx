@@ -132,6 +132,11 @@ export function MissingOnePanel({ event, now }: { event: PublicEvent; now: Date 
 type EmptyPanelProps = {
   /** Events elsewhere on the page, just none missing people; else nothing upcoming at all. */
   hasOtherEvents: boolean
+  /**
+   * Nothing near can be joined, which is not the same as nothing near (full events, one's own;
+   * review #321): the panel then says the former.
+   */
+  isNothingToJoin?: boolean
   isSignedIn: boolean
   /** /akce of the page's locality. */
   eventsSearch: Record<string, string | undefined>
@@ -144,6 +149,7 @@ type EmptyPanelProps = {
  */
 export function EmptyMissingOnePanel({
   hasOtherEvents,
+  isNothingToJoin = false,
   isSignedIn,
   eventsSearch,
 }: EmptyPanelProps) {
@@ -172,10 +178,14 @@ export function EmptyMissingOnePanel({
         </>
       ) : (
         <>
-          <PanelLabel>V okolí teď nic není</PanelLabel>
+          <PanelLabel>
+            {isNothingToJoin ? "V okolí teď není kam se přidat" : "V okolí teď nic není"}
+          </PanelLabel>
           <h2 className="type-feature">Buď první</h2>
           <p className="text-body">
-            V okolí teď žádná akce není. Založ ji a dej o ní vědět – lidi se přidají.
+            {isNothingToJoin
+              ? "V okolí teď není akce, kam se dá přidat. Založ vlastní a dej o ní vědět – lidi se přidají."
+              : "V okolí teď žádná akce není. Založ ji a dej o ní vědět – lidi se přidají."}
           </p>
           <PanelButton>
             {isSignedIn ? (

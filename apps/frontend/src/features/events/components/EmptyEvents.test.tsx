@@ -1,13 +1,14 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query"
-import { screen } from "@testing-library/react"
+import { screen, within } from "@testing-library/react"
 import userEvent from "@testing-library/user-event"
 import { beforeEach, describe, expect, it, vi } from "vitest"
 
 import type { ActivityCategory, Locality } from "@/lib/catalog/catalogSchemas"
 import { renderWithRouter } from "@/test/renderWithRouter"
 
+import type { PublicEvent } from "@/features/events/api/eventSchemas"
 import { activeFiltersLabel, EmptyEvents } from "@/features/events/components/EmptyEvents"
-import type { EventsSearch } from "@/features/events/lib/eventsSearch"
+import { PICK_LABELS, type EventsSearch } from "@/features/events/lib/eventsSearch"
 import { anEvent } from "@/features/events/test/anEvent"
 
 const localities: Locality[] = [
@@ -47,7 +48,18 @@ vi.mock("@/lib/api-client", () => ({
   api: { get: (...args: Parameters<typeof get>) => get(...args) },
 }))
 
-const renderEmpty = async (search: EventsSearch, { isVisitor = false } = {}) => {
+const renderEmpty = async (
+  search: EventsSearch,
+  {
+    isVisitor = false,
+    nearest,
+    inertAfter,
+  }: {
+    isVisitor?: boolean
+    nearest?: { isAvailable: boolean; events: PublicEvent[] | undefined }
+    inertAfter?: number
+  } = {},
+) => {
   const onSearchChange = vi.fn()
   const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } })
   await renderWithRouter(
@@ -57,6 +69,8 @@ const renderEmpty = async (search: EventsSearch, { isVisitor = false } = {}) => 
         catalog={catalog}
         isVisitor={isVisitor}
         onSearchChange={onSearchChange}
+        nearest={nearest}
+        inertAfter={inertAfter}
       />
     </QueryClientProvider>,
   )
@@ -219,5 +233,108 @@ describe("EmptyEvents", () => {
       "href",
       "/signup?from=%2Fakce%2Fnova",
     )
+  })
+
+  describe("a quick pick is a filter too (review #321)", () => {
+    for (const vyber of ["podle-zajmu", "od-hodnocenych", "tady-chybis"] as const) {
+      it(`?vyber=${vyber}: names the pick, never „V lokalitě … žádná akce není“`, async () => {
+        await renderEmpty({ lokalita: "bruntal", vyber })
+
+        expect(screen.getByText("Žádná nadcházející akce neodpovídá filtrům:")).toBeInTheDocument()
+        expect(screen.getByText(new RegExp(`^Bruntál · ${PICK_LABELS[vyber]}`))).toBeInTheDocument()
+        expect(screen.queryByText(/teď žádná nadcházející akce není/)).toBeNull()
+      })
+    }
+
+    it("„Zrušit ostatní filtry“ drops the pick too", async () => {
+      everywhere = 0
+      const { onSearchChange } = await renderEmpty({ lokalita: "bruntal", vyber: "podle-zajmu" })
+
+      await userEvent.click(await screen.findByRole("button", { name: "Zrušit ostatní filtry" }))
+      expect(onSearchChange).toHaveBeenCalledWith(expect.objectContaining({ vyber: undefined }))
+    })
+  })
+
+  describe("the nearest events instead of nothing (#299)", () => {
+    const nearby = [
+      anEvent({ id: "n1", title: "Volejbal v Náchodě", distanceKm: 8.4 }),
+      anEvent({ id: "n2", title: "Deskovky v Hronově", distanceKm: 12.1 }),
+    ]
+
+    it("a locality alone is no filter: says the locality has nothing, then the nearest with their distance", async () => {
+      await renderEmpty({ lokalita: "bruntal" }, { nearest: { isAvailable: true, events: nearby } })
+
+      expect(
+        screen.getByText((_, element) =>
+          element?.tagName === "P"
+            ? element.textContent === "V lokalitě Bruntál teď žádná nadcházející akce není."
+            : false,
+        ),
+      ).toBeInTheDocument()
+      expect(screen.queryByText("Žádná nadcházející akce neodpovídá filtrům:")).toBeNull()
+      const section = screen.getByRole("region", { name: "Nejbližší akce" })
+      const items = within(section).getAllByRole("listitem")
+      expect(items).toHaveLength(2)
+      expect(items[0]).toHaveTextContent("Volejbal v Náchodě")
+      expect(items[0]).toHaveTextContent("8,4 km")
+      // the cards' titles sit under the section's heading (review #321)
+      expect(within(section).getByRole("heading", { level: 2 })).toHaveTextContent("Nejbližší akce")
+      expect(within(items[0]!).getByRole("heading", { level: 3 })).toHaveTextContent(
+        "Volejbal v Náchodě",
+      )
+      // the ways on stay
+      expect(
+        await screen.findByRole("button", { name: "Zobrazit 5 akcí v celém Česku" }),
+      ).toBeInTheDocument()
+    })
+
+    it("with other filters still names them", async () => {
+      await renderEmpty(
+        { lokalita: "bruntal", aktivita: "sipky-a-bowling" },
+        { nearest: { isAvailable: true, events: nearby } },
+      )
+
+      expect(screen.getByText("Bruntál · Šipky a bowling")).toBeInTheDocument()
+      expect(screen.getByRole("region", { name: "Nejbližší akce" })).toBeInTheDocument()
+    })
+
+    it("no buttons while the nearest events load, even with the count known", async () => {
+      await renderEmpty(
+        { lokalita: "bruntal" },
+        { nearest: { isAvailable: true, events: undefined } },
+      )
+
+      // the count of all of Czechia arrives…
+      await vi.waitFor(() => expect(get.mock.calls.some(([path]) => path === "events")).toBe(true))
+      await new Promise((resolve) => setTimeout(resolve, 50))
+      // …but the buttons wait for the nearest events, or they would jump down under them
+      expect(screen.queryByRole("link", { name: "Založit akci" })).not.toBeInTheDocument()
+      expect(screen.queryByRole("button", { name: /Zobrazit/ })).not.toBeInTheDocument()
+    })
+
+    it("nothing nearer anywhere: the empty state as before", async () => {
+      everywhere = 0
+      await renderEmpty({ lokalita: "bruntal" }, { nearest: { isAvailable: true, events: [] } })
+
+      expect(screen.queryByRole("region", { name: "Nejbližší akce" })).toBeNull()
+      expect(await screen.findByRole("link", { name: "Založit akci" })).toBeInTheDocument()
+    })
+
+    it("closed mobile list: the first nearest card is reachable, the rest and the buttons inert", async () => {
+      await renderEmpty(
+        { lokalita: "bruntal" },
+        { nearest: { isAvailable: true, events: nearby }, inertAfter: 1 },
+      )
+
+      const items = within(screen.getByRole("region", { name: "Nejbližší akce" })).getAllByRole(
+        "listitem",
+      )
+      expect(items[0]).not.toHaveAttribute("inert")
+      expect(items[0]).toHaveAttribute("data-peek-end")
+      expect(items[1]).toHaveAttribute("inert")
+      const create = await screen.findByRole("link", { name: "Založit akci", hidden: true })
+      expect(create.closest("[inert]")).not.toBeNull()
+      expect(create).not.toHaveAttribute("data-peek-end")
+    })
   })
 })

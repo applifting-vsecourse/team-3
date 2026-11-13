@@ -40,6 +40,15 @@ export const PICKS = [
 ] as const
 export type QuickPick = (typeof PICKS)[number]
 
+/** The picks' tabs as the band names them (DESIGN.md › Quick picks). */
+export const PICK_LABELS: Record<QuickPick, string> = {
+  "tady-chybis": "Tady chybíš",
+  "tento-vikend": "Tento víkend",
+  "podle-zajmu": "Podle tvých zájmů",
+  "kousek-od-tebe": "Kousek od tebe",
+  "od-hodnocenych": "Od dobře hodnocených",
+}
+
 /** ?razeni= (#57, Figma A-02j); without it soonest first, or nearest first with okolí. */
 export const SORTS = ["termin", "vzdalenost"] as const
 export type Sort = (typeof SORTS)[number]
@@ -221,6 +230,30 @@ export function localityCenter(
   if (search.oblast || !search.lokalita || search.lokalita === ALL_LOCALITIES_SLUG) return undefined
   const locality = catalog.localities.find((l) => l.slug === search.lokalita)
   return locality ? { lat: locality.lat, lng: locality.lng } : undefined
+}
+
+/**
+ * The same filters without the locality and its okolí, nearest to the locality's centre first
+ * (#299): what an empty list shows instead of nothing — „V lokalitě … teď nic není, nejbližší
+ * akce“. None without a centre (Celé Česko, a searched map area): there is no „nearest“ there.
+ */
+export function nearestFilters(
+  search: EventsSearch,
+  catalog: Catalog,
+  limit: number,
+): EventFilters | undefined {
+  const center = localityCenter(search, catalog)
+  if (!center) return undefined
+  return {
+    ...toEventFilters(search, catalog),
+    localityId: undefined,
+    radiusKm: undefined,
+    lat: center.lat,
+    lng: center.lng,
+    sort: "distance",
+    // only what is shown: the API cuts after ordering by distance (review #321)
+    limit,
+  }
 }
 
 /** The order in effect: as picked, else nearest first with okolí; soonest first without a centre. */
