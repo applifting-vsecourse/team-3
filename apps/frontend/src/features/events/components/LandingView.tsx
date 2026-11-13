@@ -14,7 +14,7 @@ import { ALL_LOCALITIES_SLUG } from "@/lib/catalog/localityOptions"
 import { PAGE } from "@/lib/pageLayout"
 import { cn } from "@/lib/utils"
 
-import { homeQueryOptions } from "@/features/events/api/homeQueryOptions"
+import { HOME_WHOLE_COUNTRY, homeQueryOptions } from "@/features/events/api/homeQueryOptions"
 import type {
   Home,
   HomeEventSection,
@@ -57,8 +57,9 @@ type LandingViewProps = {
   /** Part of the sections' cache key: each user gets their own. */
   viewerId: string | null
   /**
-   * `?lokalita=` of the page. Without it the API picks: the profile's home locality, else all
-   * of Czechia (the guess by IP is #55).
+   * The page's locality (useLocality, #55): a slug, or Celé Česko picked on purpose — then all of
+   * Czechia even for a user with a home locality (#299). Without it the API picks: the profile's
+   * home locality, else all of Czechia.
    */
   localitySlug?: string
   /**
@@ -101,12 +102,14 @@ export function LandingView({
       ? undefined
       : localitySlug === undefined
         ? null
-        : localities
-          ? (localities.find((l) => l.slug === localitySlug)?.id ?? null)
-          : // wait for the slug's id rather than load the sections for elsewhere first
-            localitiesQuery.isError
-            ? null
-            : undefined
+        : localitySlug === ALL_LOCALITIES_SLUG
+          ? HOME_WHOLE_COUNTRY
+          : localities
+            ? (localities.find((l) => l.slug === localitySlug)?.id ?? null)
+            : // wait for the slug's id rather than load the sections for elsewhere first
+              localitiesQuery.isError
+              ? null
+              : undefined
   const homeQuery = useQuery(homeQueryOptions(localityId, viewerId))
   const home = homeQuery.data
   const isVisitor = isSignedIn === false

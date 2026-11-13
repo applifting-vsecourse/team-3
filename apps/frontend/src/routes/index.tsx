@@ -3,7 +3,6 @@ import { z } from "zod"
 
 import { Seo } from "@/components/Seo"
 import { useLocality } from "@/hooks/useLocality"
-import { ALL_LOCALITIES_SLUG } from "@/lib/catalog/localityOptions"
 
 import { AppHeader } from "@/features/auth/components/AppHeader"
 import { useSession } from "@/features/auth/hooks/useSession"
@@ -46,8 +45,9 @@ function LandingPage() {
       <LandingView
         isSignedIn={isPending || locality.slug === undefined ? undefined : Boolean(user)}
         viewerId={user?.id ?? null}
-        // Celé Česko is no locality: the API decides (the home locality, else all of Czechia)
-        localitySlug={locality.slug === ALL_LOCALITIES_SLUG ? undefined : locality.slug}
+        // Celé Česko too: the API must not put the home locality in its place, or the chip
+        // would say „Celé Česko“ over the sections of Praha 3 (#299)
+        localitySlug={locality.slug}
         localityControl={{
           state: locality,
           onChange: (slug) => {

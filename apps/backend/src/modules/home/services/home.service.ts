@@ -111,7 +111,7 @@ export class HomeService {
    * session's user, never something from the request.
    */
   async getHome(
-    query: { localityId?: string },
+    query: { localityId?: string; wholeCountry?: boolean },
     viewerId: string | null,
     now: Date = new Date(),
     random: () => number = Math.random,
@@ -129,6 +129,7 @@ export class HomeService {
 
     const resolved = resolveHomeLocalityId({
       queryLocalityId: query.localityId,
+      isWholeCountry: query.wholeCountry,
       profileLocalityId: viewerData?.homeLocalityId,
     });
     const locality = resolved

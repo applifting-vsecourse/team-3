@@ -20,11 +20,18 @@ export const HOME_SIGNED_IN_STALE_TIME = 15 * 60 * 1000
  */
 export const HOME_LOCALITY_PENDING = "pending"
 
+/**
+ * All of Czechia picked on purpose (#299): `?wholeCountry=true`, so the API doesn't put the
+ * signed-in user's home locality in its place. Null instead lets the API decide.
+ */
+export const HOME_WHOLE_COUNTRY = "whole-country"
+
 export const homeKeys = {
   // under the event lists: joining, leaving, creating or cancelling changes the sections too;
   // the groups feature invalidates ["events", "list", "home"] on joining or leaving a group
   all: () => [...eventKeys.lists(), "home"] as const,
-  // localityId: an id, null (the API decides) or HOME_LOCALITY_PENDING (still resolving)
+  // localityId: an id, null (the API decides), HOME_WHOLE_COUNTRY or HOME_LOCALITY_PENDING
+  // (still resolving)
   home: (localityId: string | null, viewerId: string | null) =>
     [...homeKeys.all(), localityId, viewerId] as const,
 }
@@ -47,9 +54,14 @@ export const homeQueryOptions = (localityId: string | null | undefined, viewerId
         ? skipToken
         : async () =>
             homeSchema.parse(
-              await api
-                .get("home", { searchParams: localityId ? { localityId } : undefined })
-                .json(),
+              await api.get("home", { searchParams: homeSearchParams(localityId) }).json(),
             ),
     staleTime: viewerId ? HOME_SIGNED_IN_STALE_TIME : 0,
   })
+
+const homeSearchParams = (localityId: string | null): Record<string, string> | undefined =>
+  localityId === HOME_WHOLE_COUNTRY
+    ? { wholeCountry: "true" }
+    : localityId
+      ? { localityId }
+      : undefined

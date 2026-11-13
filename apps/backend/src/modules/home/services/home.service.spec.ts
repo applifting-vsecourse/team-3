@@ -265,6 +265,24 @@ describe('HomeService', () => {
     );
   });
 
+  it('all of Czechia picked on purpose: no home locality in its place (#299)', async () => {
+    homeRepository.findViewer.mockResolvedValue({
+      homeLocalityId: PRAHA_3.id,
+      interestActivityIds: [],
+      joinedEventIds: [],
+    });
+
+    const home = await service.getHome({ wholeCountry: true }, 'u-jakub', now);
+
+    expect(home.locality).toBeNull();
+    expect(homeRepository.findLocality).not.toHaveBeenCalled();
+    expect(eventRepository.findPublicEvents).toHaveBeenCalledWith({
+      filters: { localityId: undefined },
+      now,
+      limit: SCAN_LIMIT,
+    });
+  });
+
   it('the locality asked for wins over the profile', async () => {
     homeRepository.findViewer.mockResolvedValue({
       homeLocalityId: 'l-brno',

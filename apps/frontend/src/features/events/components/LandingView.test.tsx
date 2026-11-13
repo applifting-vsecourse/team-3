@@ -231,6 +231,21 @@ describe("LandingView", () => {
       await waitFor(() => expect(homeRequests()).toHaveLength(1))
       expect(homeRequests()[0]?.[1]).toEqual({ searchParams: { localityId: "l-praha-3" } })
     })
+    it("Celé Česko picked on purpose asks for all of Czechia, never for the home locality (#299)", async () => {
+      home = { ...signedInHome, locality: null }
+      await renderLanding({ session: "signedIn", localitySlug: "cele-cesko" })
+
+      await waitFor(() => expect(homeRequests()).toHaveLength(1))
+      expect(homeRequests()[0]?.[1]).toEqual({ searchParams: { wholeCountry: "true" } })
+    })
+
+    it("without a locality of the page the API decides: no parameter", async () => {
+      home = signedInHome
+      await renderLanding({ session: "signedIn" })
+
+      await waitFor(() => expect(homeRequests()).toHaveLength(1))
+      expect(homeRequests()[0]?.[1]).toEqual({ searchParams: undefined })
+    })
   })
 
   describe("signed in (Figma A-01p, A-01pd)", () => {
