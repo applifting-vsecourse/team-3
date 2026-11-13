@@ -57,6 +57,11 @@ export const homeQueryOptions = (localityId: string | null | undefined, viewerId
               await api.get("home", { searchParams: homeSearchParams(localityId) }).json(),
             ),
     staleTime: viewerId ? HOME_SIGNED_IN_STALE_TIME : 0,
+    // Another locality keeps the page — and the locality chip with the keyboard's focus — on
+    // screen while its sections load (review #321). Only for the same viewer: someone else's
+    // sections never stand in, not even for a moment after signing in or out.
+    placeholderData: (previous, previousQuery) =>
+      previousQuery?.queryKey.at(-1) === viewerId ? previous : undefined,
   })
 
 const homeSearchParams = (localityId: string | null): Record<string, string> | undefined =>

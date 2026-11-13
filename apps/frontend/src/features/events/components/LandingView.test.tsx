@@ -1,4 +1,4 @@
-import type { ComponentProps } from "react"
+import { useState, type ComponentProps } from "react"
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query"
 import { screen, waitFor, within } from "@testing-library/react"
 import userEvent from "@testing-library/user-event"
@@ -536,6 +536,64 @@ describe("LandingView", () => {
       await waitFor(() => expect(homeRequests()).toHaveLength(1))
       expect(homeRequests()[0]?.[1]).toEqual({ searchParams: undefined })
       expect(await screen.findByRole("button", { name: "Lokalita: Praha 3" })).toBeInTheDocument()
+    })
+
+    it("× keeps the chip on screen and the keyboard's focus on it while the new sections load (review #321)", async () => {
+      // Praha 3 guessed; all of Czechia is held back, as a slow network does
+      const { promise: wholeCountry, resolve: release } = Promise.withResolvers<void>()
+      get.mockImplementation(((
+        path: string,
+        options?: { searchParams?: Record<string, string> },
+      ) => {
+        if (path === "localities") return asJson(localities)
+        if (options?.searchParams?.wholeCountry) {
+          return {
+            json: () => wholeCountry.then((): unknown => JSON.parse(JSON.stringify(visitorHome))),
+          } as never
+        }
+        return asJson({
+          ...visitorHome,
+          locality: { id: "l-praha-3", slug: "praha-3", name: "Praha 3", source: "query" },
+        })
+      }) as never)
+
+      function Page() {
+        const [state, setState] = useState<LocalityState>(guess("praha-3"))
+        const pick = (slug: string) =>
+          setState({ ...state, slug, source: "remembered", isPicked: true })
+        return (
+          <LandingView
+            isSignedIn={false}
+            viewerId={null}
+            localitySlug={pageLocalitySlug(state)}
+            localityControl={{ state, onChange: pick, onReset: vi.fn() }}
+            now={new Date("2026-11-08T10:00:00.000Z")}
+          />
+        )
+      }
+      queryClient = new QueryClient({ defaultOptions: { queries: { retry: 0 } } })
+      await renderWithRouter(
+        <QueryClientProvider client={queryClient}>
+          <Page />
+        </QueryClientProvider>,
+      )
+
+      const dismiss = await screen.findByRole("button", {
+        name: "Zrušit odhad lokality, zobrazit celé Česko",
+      })
+      dismiss.focus()
+      await userEvent.keyboard("{Enter}")
+
+      // still loading all of Czechia: the old sections stay, the chip shows the new choice
+      const chip = screen.getByRole("button", { name: "Lokalita: Celé Česko" })
+      expect(chip).toHaveFocus()
+      expect(screen.getByText("Ukazujeme akce pro lokalitu")).toBeInTheDocument()
+
+      release()
+      await waitFor(() =>
+        expect(homeRequests().at(-1)?.[1]).toEqual({ searchParams: { wholeCountry: "true" } }),
+      )
+      expect(screen.getByRole("button", { name: "Lokalita: Celé Česko" })).toHaveFocus()
     })
 
     it("no chip without the page's locality control", async () => {

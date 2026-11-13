@@ -189,6 +189,7 @@ export function LandingView({
               state={localityControl.state}
               home={home}
               localities={localities}
+              isUpdating={homeQuery.isPlaceholderData}
               onChange={localityControl.onChange}
               onReset={localityControl.onReset}
             />

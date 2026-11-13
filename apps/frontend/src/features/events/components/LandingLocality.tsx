@@ -11,6 +11,11 @@ type LandingLocalityProps = {
   /** GET /api/home: the locality the sections are really for, and whether they were widened. */
   home: Home
   localities: Locality[]
+  /**
+   * `home` is the previous locality's while the new one loads (keepPreviousData): the chip then
+   * shows the visitor's new choice, the line stays neutral.
+   */
+  isUpdating?: boolean
   /** A pick in the chip (remembered in this browser, #55). */
   onChange: (slug: string) => void
   /** „Zrušit výběr“: back to the visitor's default. */
@@ -42,10 +47,14 @@ export function LandingLocality({
   state,
   home,
   localities,
+  isUpdating = false,
   onChange,
   onReset,
 }: LandingLocalityProps) {
-  const locality = shownLocality(state, home)
+  const locality =
+    isUpdating && state.slug !== undefined
+      ? { ...state, slug: state.slug }
+      : shownLocality(state, home)
   const record = localities.find((l) => l.slug === locality.slug)
   const name = localityName(locality.slug, localities)
   // a district's sections cover its whole city (B-027): „v okolí lokality Praha 3“
@@ -54,7 +63,9 @@ export function LandingLocality({
   return (
     <div className="flex flex-wrap items-center gap-x-3 gap-y-2">
       <p className="text-sm text-muted-foreground">
-        {home.isWidened && name && !hasNearestEvents ? (
+        {isUpdating ? (
+          "Ukazujeme akce pro lokalitu"
+        ) : home.isWidened && name && !hasNearestEvents ? (
           // nothing near to join either: no neutral line over nothing (review #321)
           <>
             {where} <span className="font-semibold text-foreground">{name}</span> ani v okolí teď

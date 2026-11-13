@@ -85,6 +85,8 @@ export function LocalityFilter({
 }: LocalityFilterProps) {
   const current = value ?? ALL_LOCALITIES_SLUG
   const [isOpen, setIsOpen] = useState(false)
+  // the × goes away with the guess it dismisses: the focus moves to the chip, not to <body>
+  const chipRef = useRef<HTMLButtonElement>(null)
   const [draft, setDraft] = useState(current)
   const [draftRadius, setDraftRadius] = useState(radius?.value)
   const searchRef = useRef<HTMLInputElement>(null)
@@ -148,6 +150,7 @@ export function LocalityFilter({
       }}
       trigger={
         <FilterChip
+          ref={chipRef}
           // the default is no filter: a light chip, dark only once picked
           isSelected={Boolean(areaLabel) || (Boolean(currentName) && !isDefault)}
           filterName="Lokalita"
@@ -192,19 +195,24 @@ export function LocalityFilter({
       />
     </FilterPanel>
   )
-  if (!onDismiss) return panel
+  // one tree with or without the ×: a guess dismissed must not remount the chip (it has the focus)
   return (
     <div className="flex shrink-0">
       {panel}
-      <Button
-        variant="outline"
-        onClick={onDismiss}
-        aria-label="Zrušit odhad lokality, zobrazit celé Česko"
-        // the chip's right end (Figma: Filter chip, light)
-        className="h-9 rounded-l-none rounded-r-full border border-border bg-background px-3 text-foreground hover:bg-accent"
-      >
-        <X aria-hidden />
-      </Button>
+      {onDismiss ? (
+        <Button
+          variant="outline"
+          onClick={() => {
+            chipRef.current?.focus()
+            onDismiss()
+          }}
+          aria-label="Zrušit odhad lokality, zobrazit celé Česko"
+          // the chip's right end (Figma: Filter chip, light)
+          className="h-9 rounded-l-none rounded-r-full border border-border bg-background px-3 text-foreground hover:bg-accent"
+        >
+          <X aria-hidden />
+        </Button>
+      ) : null}
     </div>
   )
 }
