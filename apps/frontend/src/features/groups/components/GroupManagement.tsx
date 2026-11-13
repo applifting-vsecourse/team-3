@@ -1,8 +1,11 @@
+import { useState } from "react"
 import { useQuery } from "@tanstack/react-query"
 import { Check, RefreshCw, X } from "lucide-react"
 import { toast } from "sonner"
 
 import { PersonRow } from "@/components/PersonRow/PersonRow"
+import { formatRequestTime } from "@/components/RequestDecision/formatRequestTime"
+import { RejectRequestDialog } from "@/components/RequestDecision/RejectRequestDialog"
 import { TabBar, TabBarItem } from "@/components/TabBar/TabBar"
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 import { Button } from "@/components/ui/button"
@@ -21,8 +24,9 @@ type GroupManagementProps = {
 
 /**
  * Requests and members of a group, for its admins (Figma D-07, D-07d).
- * Any admin approves or rejects a request; removing and blocking members
- * come with #63.
+ * Any admin approves or rejects a request, with the same steps, texts and
+ * confirmation as an event's requests (D-03, #304); removing and blocking
+ * members come with #63.
  */
 export function GroupManagement({ groupId, isDesktop }: GroupManagementProps) {
   const membersQuery = useQuery(groupMembersQueryOptions(groupId))
@@ -125,6 +129,22 @@ export function GroupManagement({ groupId, isDesktop }: GroupManagementProps) {
 
 function RequestList({ groupId, requests }: { groupId: string; requests: GroupMemberEntry[] }) {
   const decide = useDecideRequest(groupId)
+  // kept after closing, so the dialog's text doesn't vanish while it fades out
+  const [rejecting, setRejecting] = useState<GroupMemberEntry | null>(null)
+  const [isRejectOpen, setIsRejectOpen] = useState(false)
+
+  // the same toasts as an event's requests (#304); the API's message says why it failed
+  const handle = (request: GroupMemberEntry, decision: "approve" | "reject") =>
+    decide.mutateAsync({ userId: request.userId, decision }).then(
+      () =>
+        toast.success(
+          decision === "approve" ? `Schváleno: ${request.name}` : `Zamítnuto: ${request.name}`,
+        ),
+      (error: Error) => {
+        toast.error(error.message)
+        throw error
+      },
+    )
 
   if (requests.length === 0) {
     return (
@@ -133,31 +153,16 @@ function RequestList({ groupId, requests }: { groupId: string; requests: GroupMe
   }
 
   return (
-    <ul>
-      {requests.map((request) => {
-        // only the row being decided waits; the others stay usable
-        const isDeciding = decide.isPending && decide.variables.userId === request.userId
-        const handle = (decision: "approve" | "reject") =>
-          decide.mutate(
-            { userId: request.userId, decision },
-            {
-              onSuccess: () =>
-                toast.success(
-                  decision === "approve"
-                    ? `${request.name} je členem skupiny`
-                    : `Žádost od ${request.name} je zamítnutá`,
-                ),
-              onError: (error) => toast.error(error.message),
-            },
-          )
-        return (
+    <>
+      <ul>
+        {requests.map((request) => (
           <li
             key={request.userId}
             className="border-b border-border py-3"
           >
             <PersonRow
               name={request.name}
-              description="Žádá o členství"
+              description={formatRequestTime(request.since)}
               quote={request.message}
               actions={
                 <>
@@ -165,8 +170,13 @@ function RequestList({ groupId, requests }: { groupId: string; requests: GroupMe
                     variant="outline"
                     size="lg"
                     className="h-11"
-                    disabled={isDeciding}
-                    onClick={() => handle("reject")}
+                    // a decision is on its way: a second one would only fail
+                    disabled={decide.isPending}
+                    aria-label={`Zamítnout žádost: ${request.name}`}
+                    onClick={() => {
+                      setRejecting(request)
+                      setIsRejectOpen(true)
+                    }}
                   >
                     <X />
                     Zamítnout
@@ -175,8 +185,13 @@ function RequestList({ groupId, requests }: { groupId: string; requests: GroupMe
                     variant="outline"
                     size="lg"
                     className="h-11"
-                    disabled={isDeciding}
-                    onClick={() => handle("approve")}
+                    disabled={decide.isPending}
+                    aria-label={`Schválit žádost: ${request.name}`}
+                    onClick={() =>
+                      handle(request, "approve").catch(() => {
+                        // the toast says why
+                      })
+                    }
                   >
                     <Check />
                     Schválit
@@ -185,9 +200,17 @@ function RequestList({ groupId, requests }: { groupId: string; requests: GroupMe
               }
             />
           </li>
-        )
-      })}
-    </ul>
+        ))}
+      </ul>
+      <RejectRequestDialog
+        isOpen={isRejectOpen}
+        onOpenChange={setIsRejectOpen}
+        isPending={decide.isPending}
+        // a rejected request is removed, so they may ask again (#46)
+        description={`${rejecting?.name ?? ""} uvidí na stránce skupiny zase „Požádat o členství“ a o členství může požádat znovu.`}
+        onConfirm={() => (rejecting ? handle(rejecting, "reject") : Promise.resolve())}
+      />
+    </>
   )
 }
 
