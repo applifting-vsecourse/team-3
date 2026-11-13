@@ -16,6 +16,8 @@ const state = (
   eventStatus: 'published',
   startsAt: yesterday,
   endsAt: null,
+  minParticipants: 4,
+  approvedCount: 5,
   organizerUserId: 'u-petra',
   raterId: 'u-jakub',
   participationStatus: 'approved',
@@ -79,14 +81,16 @@ describe('decideEventRating (#66)', () => {
     });
   });
 
-  it('within 14 days of the end: day 14 passes, later is RATING_WINDOW_CLOSED', () => {
-    const fourteenDaysAgo = new Date('2026-10-18T12:00:00.000Z');
-    expect(
-      decideEventRating(state({ startsAt: fourteenDaysAgo }), now),
-    ).toEqual({ ok: true });
+  it('within 14 Prague calendar days of the end: day 14 passes, the day before it is RATING_WINDOW_CLOSED', () => {
+    // now is Sun 1. 11.: the window is open for an event that ended on Sun 18. 10. or later –
+    // from Prague midnight, which is 22:00 UTC the day before (summer time), to the last moment
+    const startOfDay14 = new Date('2026-10-17T22:00:00.000Z');
+    expect(decideEventRating(state({ startsAt: startOfDay14 }), now)).toEqual({
+      ok: true,
+    });
     expect(
       decideEventRating(
-        state({ startsAt: new Date(fourteenDaysAgo.getTime() - 1) }),
+        state({ startsAt: new Date(startOfDay14.getTime() - 1) }),
         now,
       ),
     ).toEqual({ ok: false, refusal: 'RATING_WINDOW_CLOSED' });
@@ -112,6 +116,13 @@ describe('decideEventRating (#66)', () => {
         now,
       ),
     ).toEqual({ ok: false, refusal: 'RATING_DELETED' });
+  });
+
+  it('an event below its minimum did not take place: EVENT_NOT_HELD (#314)', () => {
+    expect(decideEventRating(state({ approvedCount: 3 }), now)).toEqual({
+      ok: false,
+      refusal: 'EVENT_NOT_HELD',
+    });
   });
 
   it('a rating a superadmin deleted is not given again', () => {

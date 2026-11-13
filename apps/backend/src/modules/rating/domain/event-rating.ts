@@ -1,5 +1,4 @@
-import { hasEventEnded } from './participant-rating';
-import { isWithinRatingWindow } from './rating-window';
+import { eventNotRatable, RatableEventState } from './participant-rating';
 
 /** Stars of a rating; 1–5, validated by the request DTO. */
 export const RATING_STARS_MIN = 1;
@@ -11,6 +10,7 @@ export const EVENT_RATING_REFUSALS = [
   'NOT_PARTICIPANT',
   'EVENT_NOT_PUBLISHED',
   'EVENT_NOT_ENDED',
+  'EVENT_NOT_HELD',
   'RATING_DELETED',
   'RATING_WINDOW_CLOSED',
 ] as const;
@@ -32,10 +32,7 @@ export const EVENT_RATING_SHOWN_REFUSALS = EVENT_RATING_REFUSALS.filter(
   (refusal) => !EVENT_RATING_FORBIDDEN.includes(refusal),
 );
 
-export type EventRatingState = {
-  eventStatus: 'published' | 'cancelled' | 'hidden' | 'deleted';
-  startsAt: Date;
-  endsAt: Date | null;
+export type EventRatingState = RatableEventState & {
   organizerUserId: string;
   /** Who wants to rate, and the status of their participation; null without one. */
   raterId: string;
@@ -77,19 +74,12 @@ export function decideEventRating(
   if (state.participationStatus !== 'approved') {
     return { ok: false, refusal: 'NOT_PARTICIPANT' };
   }
-  if (state.eventStatus !== 'published') {
-    return { ok: false, refusal: 'EVENT_NOT_PUBLISHED' };
-  }
-  if (!hasEventEnded(state, now)) {
-    return { ok: false, refusal: 'EVENT_NOT_ENDED' };
-  }
   // before the window: once deleted, it stays deleted, not merely too late
   if (state.ratingDeleted) {
     return { ok: false, refusal: 'RATING_DELETED' };
   }
-  if (!isWithinRatingWindow(state, now)) {
-    return { ok: false, refusal: 'RATING_WINDOW_CLOSED' };
-  }
+  const notRatable = eventNotRatable(state, now);
+  if (notRatable) return { ok: false, refusal: notRatable };
   return { ok: true };
 }
 

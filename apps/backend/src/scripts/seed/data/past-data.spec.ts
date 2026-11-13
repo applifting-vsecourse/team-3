@@ -137,6 +137,8 @@ describe('generated past events (#181)', () => {
             {
               eventStatus: event.cancelReason ? 'cancelled' : 'published',
               startsAt: row.startsAt,
+              minParticipants: event.minParticipants,
+              approvedCount: event.participantKeys.length,
               endsAt: row.endsAt,
               organizerUserId: event.organizerKey,
               raterId: event.organizerKey,
@@ -146,6 +148,7 @@ describe('generated past events (#181)', () => {
               )
                 ? 'approved'
                 : 'pending',
+              ratingDeleted: false,
             },
             new Date(row.endsAt.getTime() + 24 * 60 * 60 * 1000),
           ),

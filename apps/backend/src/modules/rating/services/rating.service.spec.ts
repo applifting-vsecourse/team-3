@@ -15,7 +15,8 @@ import { RatingService } from './rating.service';
 const now = new Date('2026-11-01T12:00:00.000Z');
 const startsAt = new Date('2026-10-31T17:00:00.000Z');
 const endsAt = new Date('2026-10-31T19:00:00.000Z');
-const ratableUntil = new Date('2026-11-14T19:00:00.000Z');
+// the end of Sat 14. 11. in Prague (UTC+1), 14 calendar days after Sat 31. 10.
+const ratableUntil = new Date('2026-11-14T22:59:59.999Z');
 const updatedAt = new Date('2026-11-01T08:00:00.000Z');
 
 const snapshot = (
@@ -26,6 +27,8 @@ const snapshot = (
     eventStatus: 'published',
     startsAt,
     endsAt,
+    minParticipants: 4,
+    approvedCount: 5,
     organizerUserId: 'u-petra',
     raterId: 'u-jakub',
     participationStatus: 'approved',
@@ -158,7 +161,8 @@ describe('RatingService (#66)', () => {
   describe('rateEvent', () => {
     it('saves under the lock, with until when from the state read there', async () => {
       // the event got a later end meanwhile: the answer follows the read under the lock
-      const later = snapshot({ endsAt: new Date('2026-10-31T21:00:00.000Z') });
+      // past midnight in Prague, so on Sun 1. 11.: a day later to rate
+      const later = snapshot({ endsAt: new Date('2026-10-31T23:30:00.000Z') });
       repository.saveEventRating.mockResolvedValue({
         ok: true,
         rating: saved,
@@ -169,7 +173,7 @@ describe('RatingService (#66)', () => {
         service.rateEvent('e1', 'u-jakub', input, now),
       ).resolves.toEqual({
         rating: saved,
-        ratableUntil: new Date('2026-11-14T21:00:00.000Z'),
+        ratableUntil: new Date('2026-11-15T22:59:59.999Z'),
         refusal: null,
       });
       expect(repository.saveEventRating).toHaveBeenCalledWith(
