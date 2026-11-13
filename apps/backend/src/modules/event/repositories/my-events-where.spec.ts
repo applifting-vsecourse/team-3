@@ -53,3 +53,33 @@ describe('buildMyEventsWhere', () => {
     },
   );
 });
+
+describe('buildMyEventsWhere › groups (Z mých skupin, #304)', () => {
+  const [when, open, mine, notGoing] = buildMyEventsWhere('groups', 'u1', now)
+    .AND as Prisma.EventWhereInput[];
+
+  it('upcoming published events only: nothing to go to in a cancelled one', () => {
+    expect(when).toEqual({ status: 'published', startsAt: { gt: now } });
+  });
+
+  it('public and members-only, never link-only', () => {
+    expect(open).toEqual({ visibility: { in: ['public', 'members'] } });
+  });
+
+  it("of the active groups I am an active member of; a group I run is Pořádám's", () => {
+    expect(mine).toEqual({
+      group: {
+        status: 'active',
+        members: { some: { userId: 'u1', role: 'member', status: 'active' } },
+      },
+    });
+  });
+
+  it('where I have neither a place nor a waiting request', () => {
+    expect(notGoing).toEqual({
+      participations: {
+        none: { userId: 'u1', status: { in: ['approved', 'pending'] } },
+      },
+    });
+  });
+});

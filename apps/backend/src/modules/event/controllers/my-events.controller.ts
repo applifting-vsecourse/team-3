@@ -39,7 +39,7 @@ export class MyEventsController {
     summary:
       'Moje akce (B-035): upcoming events I attend or organize, soonest first',
     description:
-      'attending: approved places and requests waiting for approval; organizing: events I created and the events of the groups I am an admin of (B-055). Cancelled events stay with status cancelled.',
+      'attending: approved places and requests waiting for approval; organizing: events I created and the events of the groups I am an admin of (B-055); groups: published events of the groups I am a member of where I have no place or request yet (#304). Cancelled events stay with status cancelled under attending and organizing.',
   })
   @ApiResponse({ status: 200, type: [MyEventResponseDto] })
   @ApiResponse({ status: 400, description: 'Missing or unknown tab' })
