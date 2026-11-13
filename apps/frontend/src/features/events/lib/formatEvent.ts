@@ -140,7 +140,8 @@ export function endOfPragueDay(date: Date): Date {
 /**
  * Whether an event is over: past its end, or — without one — past the end of its day. An
  * 18:00 event with no end time is still going at 18:05 (review #269), so it doesn't read
- * „Akce proběhla“ while people are there.
+ * „Akce proběhla“ while people are there. One rule with the API (#272, backend
+ * modules/event/domain/event-over.ts): rating, the group's Proběhlé, /akce › Proběhlé.
  */
 export const isEventOver = (event: { startsAt: Date; endsAt: Date | null }, now: Date): boolean =>
   (event.endsAt ?? endOfPragueDay(event.startsAt)) <= now

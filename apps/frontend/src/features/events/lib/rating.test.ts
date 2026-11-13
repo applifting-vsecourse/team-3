@@ -59,6 +59,13 @@ describe("canRateEvent (#66, review #315)", () => {
     expect(canRateEvent({ ...event, ...overrides }, "u-jakub", dayAfter)).toBe(false)
   })
 
+  it("without an end: not on its day, from Prague midnight after it, as the API (#272)", () => {
+    // 19:00 on Sunday 1. 11. in Prague, no end
+    const noEnd = { ...event, endsAt: null }
+    expect(canRateEvent(noEnd, "u-jakub", new Date("2026-11-01T20:00:00.000Z"))).toBe(false)
+    expect(canRateEvent(noEnd, "u-jakub", new Date("2026-11-01T23:00:00.000Z"))).toBe(true)
+  })
+
   it("not for a visitor", () => {
     expect(canRateEvent(event, null, dayAfter)).toBe(false)
   })
