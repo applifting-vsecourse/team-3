@@ -132,24 +132,37 @@ export class GroupRepository {
 
   /**
    * „Moje skupiny“ (B-056), each with my own membership and, in a group I run, the
-   * requests waiting (#304); the service sorts them.
+   * requests waiting (#304), counted by the database for those groups only; the
+   * service sorts them.
    */
   async findMyGroups(userId: string): Promise<MyGroup[]> {
     const groups = await this.prisma.group.findMany({
       where: buildMyGroupsWhere(userId),
       include: {
         ...summaryInclude,
-        // mine, and the requests waiting (no message: that stays in the management, #175)
-        members: {
-          where: { OR: [{ userId }, { status: 'pending' }] },
-          select: { userId: true, role: true, status: true },
-        },
+        members: { where: { userId }, select: { role: true, status: true } },
       },
     });
+    const running = groups
+      .filter(
+        ({ members: [mine] }) =>
+          mine?.role === 'admin' && mine.status === 'active',
+      )
+      .map((group) => group.id);
+    // no message: that stays in the management (#175)
+    const waiting =
+      running.length === 0
+        ? []
+        : await this.prisma.groupMember.groupBy({
+            by: ['groupId'],
+            where: { groupId: { in: running }, status: 'pending' },
+            _count: { _all: true },
+          });
+    const waitingByGroup = new Map(
+      waiting.map((row) => [row.groupId, row._count._all]),
+    );
     return groups.flatMap((group) => {
-      const membership = group.members.find(
-        (member) => member.userId === userId,
-      );
+      const [membership] = group.members;
       // the where clause guarantees an active or pending membership
       if (
         !membership ||
@@ -161,11 +174,9 @@ export class GroupRepository {
         {
           ...toSummary(group),
           membership: { role: membership.role, status: membership.status },
-          pendingRequests:
-            membership.role === 'admin' && membership.status === 'active'
-              ? group.members.filter((member) => member.status === 'pending')
-                  .length
-              : null,
+          pendingRequests: running.includes(group.id)
+            ? (waitingByGroup.get(group.id) ?? 0)
+            : null,
         },
       ];
     });
