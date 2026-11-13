@@ -230,12 +230,27 @@ describe('HomeService', () => {
       expect(ids).toContain('trutnov');
     });
 
-    it('nothing anywhere: still not widened, no sections', async () => {
+    it('nothing near to join either: still widened, with no sections, so the page can say so (review #321)', async () => {
+      // the only near event is full
+      eventsService.getPublicEvents.mockResolvedValue([
+        anEvent('full', 10, { distanceKm: 3 }),
+      ]);
+
+      const home = await service.getHome({ localityId: POLICE.id }, null, now);
+
+      expect(home).toMatchObject({
+        isWidened: true,
+        hasLocalityEvents: false,
+        sections: [],
+      });
+    });
+
+    it('nothing anywhere: widened, no sections', async () => {
       eventsService.getPublicEvents.mockResolvedValue([]);
 
       const home = await service.getHome({ localityId: POLICE.id }, null, now);
 
-      expect(home).toMatchObject({ isWidened: false, sections: [] });
+      expect(home).toMatchObject({ isWidened: true, sections: [] });
     });
 
     it('a locality with events of its own is never widened', async () => {

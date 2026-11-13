@@ -64,7 +64,8 @@ export type HomeView = {
    * Nothing in the locality one can join (#299) — no events at all, or only
    * full ones and, for a signed-in user, their own or those they already
    * joined: the event sections are the nearest events anywhere instead, each
-   * with its distance from the locality's centre. Groups stay the locality's.
+   * with its distance from the locality's centre — none when nothing near can
+   * be joined either (review #321). Groups stay the locality's.
    */
   isWidened: boolean;
   /**
@@ -216,7 +217,9 @@ export class HomeService {
         now,
         random,
       });
-      isWidened = sections.length > 0;
+      // also when nothing near can be joined: the page says so instead of a
+      // neutral line over nothing (review #321)
+      isWidened = true;
     }
     const recruiting = orderRecruitingGroups(groups);
     if (recruiting.length > 0) {

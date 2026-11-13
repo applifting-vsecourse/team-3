@@ -67,7 +67,8 @@ export class HomeResponseDto {
   @ApiProperty({
     description:
       "Nothing in the locality one can join (#299) — no events, or only full ones and the signed-in user's own or joined ones: " +
-      "the event sections hold the nearest events anywhere instead, each with distanceKm from its centre; groups stay the locality's",
+      'the event sections hold the nearest events anywhere instead, each with distanceKm from its centre, ' +
+      "none when nothing near can be joined either; groups stay the locality's",
   })
   isWidened!: boolean;
 

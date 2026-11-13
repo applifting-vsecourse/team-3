@@ -468,6 +468,31 @@ describe("LandingView", () => {
       expect(screen.queryByText(/žádná akce není/)).toBeNull()
     })
 
+    it("nothing near to join either: says so, the line and the panel, never „žádná akce“ (review #321)", async () => {
+      home = {
+        locality: { id: "l-praha", slug: "praha", name: "Praha", source: "query" },
+        isWidened: true,
+        hasLocalityEvents: true,
+        sections: [],
+      }
+      await renderLanding({
+        localitySlug: "praha",
+        localityControl: { state: guess("praha"), onChange: vi.fn(), onReset: vi.fn() },
+      })
+
+      expect(
+        await screen.findByText((_, element) =>
+          element?.tagName === "P"
+            ? element.textContent ===
+              "V lokalitě Praha ani v okolí teď není akce, kam se dá přidat."
+            : false,
+        ),
+      ).toBeInTheDocument()
+      expect(screen.getByText("V okolí teď není kam se přidat")).toBeInTheDocument()
+      expect(screen.queryByText(/žádná akce není/)).toBeNull()
+      expect(screen.queryByText("Ukazujeme akce pro lokalitu")).toBeNull()
+    })
+
     it("no chip without the page's locality control", async () => {
       home = visitorHome
       await renderLanding()

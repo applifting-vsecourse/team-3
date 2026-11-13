@@ -181,6 +181,7 @@ export function LandingView({
               localities={localities}
               isWidened={home.isWidened}
               hasLocalityEvents={home.hasLocalityEvents}
+              hasNearestEvents={home.sections.some((section) => "events" in section)}
               onChange={localityControl.onChange}
               onReset={localityControl.onReset}
             />
@@ -228,6 +229,8 @@ function Panel({ home, isSignedIn, localities, now }: SectionsContext & { isSign
   return (
     <EmptyMissingOnePanel
       hasOtherEvents={home.sections.some((section) => "events" in section)}
+      // the locality has nothing to join (isWidened): there may be events, just none to join
+      isNothingToJoin={home.isWidened}
       isSignedIn={isSignedIn}
       eventsSearch={{ lokalita: listLocalitySlug(home, localities) }}
     />

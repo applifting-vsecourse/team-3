@@ -14,6 +14,8 @@ type LandingLocalityProps = {
    * it is not „empty“, there is just nothing in it to join.
    */
   hasLocalityEvents: boolean
+  /** Some of the nearest events can be joined: the sections show them (review #321). */
+  hasNearestEvents: boolean
   /** A pick in the chip (remembered in this browser, #55). */
   onChange: (slug: string) => void
   /** „Zrušit výběr“: back to the visitor's default. */
@@ -30,6 +32,7 @@ export function LandingLocality({
   localities,
   isWidened,
   hasLocalityEvents,
+  hasNearestEvents,
   onChange,
   onReset,
 }: LandingLocalityProps) {
@@ -40,7 +43,13 @@ export function LandingLocality({
   return (
     <div className="flex flex-wrap items-center gap-x-3 gap-y-2">
       <p className="text-sm text-muted-foreground">
-        {isWidened && name ? (
+        {isWidened && name && !hasNearestEvents ? (
+          // nothing near to join either: no neutral line over nothing (review #321)
+          <>
+            {where} <span className="font-semibold text-foreground">{name}</span> ani v okolí teď
+            není akce, kam se dá přidat.
+          </>
+        ) : isWidened && name ? (
           // „žádná akce není“ only when it is true: full events and one's own leave no section
           // either, and an organizer must not read that their own town is empty (review #321)
           <>
