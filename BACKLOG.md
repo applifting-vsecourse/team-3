@@ -383,7 +383,7 @@ Doménová logika (čistá funkce + testy): `approvedCount`, `missingToMin = max
 
 - `GET /api/events` bez přihlášení. Parametry: `q` (název), `localityId` nebo `lat,lng,radiusKm` nebo `bbox` (výřez mapy – „Hledat v této oblasti“), `dateFrom`, `dateTo` (rozsah, oba včetně), `activityId[]`, `categoryId[]` (celá kategorie = všechny její aktivity, i nově přidané), `capacity` (obsazenost: `free` = jen akce, které nejsou plné, `missing` = jen akce s `missingToMin > 0`; změna 23. 10. z `missingOnly`), `sort` (`date` výchozí / `distance`), stránkování. `activityId[]` a `categoryId[]` se sčítají (OR).
 - `GET /api/events/facets` – stejné filtry kromě typu aktivity, vrací počty akcí po kategoriích a aktivitách pro výběr typu aktivity. Pokud se nevejde do sprintu, FE počty skryje.
-- Vrací jen `status = published`, `visibility = public`, `startsAt > now`. Nevrací soukromé a „jen pro členy“.
+- Vrací jen `status = published`, `visibility = public`, `startsAt > now` (bez `past`, viz níže). Nevrací soukromé a „jen pro členy“.
 - `past=true` (#61, filtr Proběhlé na `/akce`): místo nadcházejících akce, které proběhly – po `endsAt`, bez konce po konci dne v Praze (#272, `event-over.ts`, stejné pravidlo jako detail, stránka skupiny, profil a hodnocení) – od nejnovější, každá s průměrem hodnocení akce (`rating`). Zrušené nikdy: nekonaly se, vidí je jen ten, koho se týkají (Moje akce, Můj profil › Proběhlé). Kombinuje se s ostatními filtry; FE s ním neposílá rozsah termínu ani obsazenost.
 - Každá položka: aktivita, název, termín, místo (lat/lng + adresa), `missingToMin`, `freeSpots`, `isFull`, organizátor (osoba nebo skupina), `isPromoted`.
 - `GET /api/events/map` – stejné filtry, odlehčené body pro mapu (bez stránkování, limit 500).
