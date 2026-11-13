@@ -67,8 +67,34 @@ describe('MyEventRatingResponseDto', () => {
   it('returns only what the participant sees of their rating', () => {
     const updatedAt = new Date('2026-11-01T08:00:00.000Z');
     const ratableUntil = new Date('2026-11-14T19:00:00.000Z');
+    const startsAt = new Date('2026-10-31T17:00:00.000Z');
+    const event = {
+      id: 'e1',
+      title: 'Volejbal na Letné',
+      startsAt,
+      endsAt: null,
+      address: 'Sportovní areál Letná, Praha 7',
+      status: 'published' as const,
+      activity: {
+        id: 'a1',
+        slug: 'volejbal',
+        name: 'Volejbal',
+        category: {
+          id: 'c1',
+          slug: 'tymove-sporty',
+          name: 'Týmové sporty',
+          icon: 'ball',
+        },
+      },
+      locality: { id: 'l1', slug: 'praha-7', name: 'Praha 7' },
+      organizer: { id: 'u-petra', name: 'Petra Nováková' },
+      group: { id: 'g1', name: 'Volejbal Letná' },
+      approvedCount: 5,
+    };
     expect(
       MyEventRatingResponseDto.fromDomain({
+        // anything else the domain might carry about the event stays out
+        event: { ...event, ...({ organizerUserId: 'u-petra' } as object) },
         rating: {
           eventStars: 5,
           organizerStars: 4,
@@ -81,6 +107,7 @@ describe('MyEventRatingResponseDto', () => {
         refusal: null,
       }),
     ).toEqual({
+      event,
       rating: { eventStars: 5, organizerStars: 4, comment: null, updatedAt },
       ratableUntil,
       refusal: null,

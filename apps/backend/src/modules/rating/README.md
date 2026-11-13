@@ -3,6 +3,7 @@
 ## Účastník hodnotí akci a organizátora (#66)
 
 - `GET /api/events/:id/rating`: moje hodnocení akce (nebo `null`), do kdy jde dát nebo změnit (`ratableUntil`) a proč teď nejde (`refusal`, jinak `null`).
+- Obě odpovědi nesou i `event`: to, co stránka hodnocení ukazuje z akce (jako karta akce: název, termín, místo, aktivita, organizátor, skupina, kolik lidí šlo). Stránka tak nepotřebuje detail akce, který bývalý člen skupiny u akce jen pro členy už nedostane (#66). Čte se týmž čtením, ze kterého se rozhoduje, u `PUT` tedy pod zámkem.
 - `PUT /api/events/:id/rating`: `{ eventStars, organizerStars, comment? }`. První volání hodnocení dá, další ho celé nahradí, i komentář (prázdný = žádný). Jedno hodnocení na uživatele a akci.
 
 Obě vyžadují session, `PUT` i ověřený e-mail (`VerifiedUserGuard`). Hodnotit smí jen ten, kdo byl na akci `approved`, ne organizátor – ten, kdo akci založil, i u akce skupiny; ostatní správci skupiny, kteří na akci byli, hodnotí jako každý účastník (#313); členství ve skupině akce už podmínkou není (bývalý člen ohodnotí akci jen pro členy, na které byl). Neznámá, skrytá a smazaná akce je 404, kdo hodnotit nesmí, dostane 403 (`OWN_EVENT`, `NOT_PARTICIPANT`), stav akce nebo hodnocení je 409. Pravidla jsou v čisté funkci `decideEventRating` (`domain/event-rating.ts`) a kontroluje je v tomto pořadí – první, která neprojde, je odpověď:

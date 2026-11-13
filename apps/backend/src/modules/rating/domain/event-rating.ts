@@ -94,10 +94,36 @@ export type EventRatingInput = {
 export type EventRating = EventRatingInput & { updatedAt: Date };
 
 /**
+ * What the rating page shows of the event (Figma C-03): its own read, so
+ * the page doesn't need the event's detail, which a former member of the
+ * group no longer sees (members-only event, #66).
+ */
+export type RatedEvent = {
+  id: string;
+  title: string;
+  startsAt: Date;
+  endsAt: Date | null;
+  address: string;
+  status: 'published' | 'cancelled';
+  activity: {
+    id: string;
+    slug: string;
+    name: string;
+    category: { id: string; slug: string; name: string; icon: string };
+  };
+  locality: { id: string; slug: string; name: string };
+  organizer: { id: string; name: string };
+  /** For an event of a group the organizer stars count to the group. */
+  group: { id: string; name: string } | null;
+  approvedCount: number;
+};
+
+/**
  * The participant's view of rating an event: their rating, until when they
  * may give or change it, and why not when they may not.
  */
 export type MyEventRating = {
+  event: RatedEvent;
   rating: EventRating | null;
   ratableUntil: Date;
   refusal: EventRatingRefusal | null;
