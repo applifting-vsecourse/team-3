@@ -94,7 +94,7 @@ export type ProfileOverview = {
 /**
  * The owner's participations of a section. Upcoming („Kam jdu“) is exactly the
  * Přihlášen tab of Moje akce (`buildMyEventsWhere('attending')`: events that
- * have not started yet, cancelled ones with their label), so the section, its
+ * are not over yet, cancelled ones with their label), so the section, its
  * total and „Všechny v Moje akce“ agree. History counts approved places of
  * events that are over (`eventOverWhere`, #272), cancelled ones too: the card
  * says „Zrušeno · Akce se nekonala“ and offers no rating (Figma B-05, #272).
