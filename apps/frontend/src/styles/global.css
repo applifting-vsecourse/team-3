@@ -373,14 +373,6 @@
   * {
     @apply border-border outline-ring/50;
   }
-  /* The scrollbar is there on every page: a long page (Úvod, Moje › Akce) and a short one (Akce,
-     Skupiny) are then equally wide, so the centred header and content don't shift by half a
-     scrollbar when switching between them (Windows draws a 15 px one, #304). Not
-     scrollbar-gutter: stable — its empty gutter shows the page's background as a light strip
-     beside the dark band. Overlay scrollbars (macOS, phones) take no room either way. */
-  html {
-    overflow-y: scroll;
-  }
   body {
     @apply bg-background text-foreground antialiased;
   }
