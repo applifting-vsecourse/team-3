@@ -101,6 +101,8 @@ function EventsSection({
               <EventCard
                 event={event}
                 titleAs="h3"
+                // the group's own page: its name is the page's
+                isGroupShown={false}
                 status={isPast ? { kind: "past" } : undefined}
                 rowTail={isPast ? pastEventFacts(event) : groupEventTail(event)}
               />

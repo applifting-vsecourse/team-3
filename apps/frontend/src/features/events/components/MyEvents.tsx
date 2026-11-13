@@ -9,7 +9,11 @@ import { Button } from "@/components/ui/button"
 import type { MyEvent } from "@/features/events/api/eventSchemas"
 import { EventCard } from "@/features/events/components/EventCard"
 import { EventCardSkeleton } from "@/features/events/components/EventList"
-import { useAttendingEvents, useOrganizingEvents } from "@/features/events/hooks/useMyEvents"
+import {
+  useAttendingEvents,
+  useGroupsEvents,
+  useOrganizingEvents,
+} from "@/features/events/hooks/useMyEvents"
 import {
   attendingNumbers,
   attendingRowLead,
@@ -25,13 +29,16 @@ import {
 const GRID = "grid grid-cols-1 gap-3 md:grid-cols-2 md:gap-4 lg:grid-cols-3"
 
 /**
- * Přihlášen (Figma C-01): three sections, each soonest first — requests
- * waiting for approval on top, then the places I have, then cancelled
- * events (#183). A card opens the detail, where the request can be
- * withdrawn or the place given up.
+ * Přihlášen (Figma C-01): sections, each soonest first — requests
+ * waiting for approval on top, then the places I have, then the events of my
+ * groups I don't go to yet (#304), then cancelled events (#183). A card opens
+ * the detail, where the request can be withdrawn, the place given up, or —
+ * from my groups — a place asked for.
  */
 export function AttendingEvents({ viewerId }: { viewerId: string }) {
   const { sections, isPending, error, retry } = useAttendingEvents(viewerId)
+  // a section on its own: while it loads or when it fails, the rest of the tab stays
+  const fromGroups = useGroupsEvents(viewerId).events ?? []
   if (error) return <MyEventsError onRetry={retry} />
   if (isPending || !sections) return <MyEventsLoading />
 
@@ -68,6 +75,23 @@ export function AttendingEvents({ viewerId }: { viewerId: string }) {
           events={approved}
         />
       ) : null}
+      {fromGroups.length > 0 ? (
+        <EventsSection
+          title={`Z mých skupin (${fromGroups.length})`}
+          // Figma C-01: they aren't mine yet, and the badge is the occupancy, not „Jdu“
+          note="Na tyhle akce zatím nejdeš. Jsou ze skupin, kde jsi členem – přihlásíš se na detailu akce."
+        >
+          {fromGroups.map((event) => (
+            <li key={event.id}>
+              <EventCard
+                event={event}
+                variant="responsive"
+                titleAs="h3"
+              />
+            </li>
+          ))}
+        </EventsSection>
+      ) : null}
       {cancelled.length > 0 ? (
         <AttendingSection
           title={`Zrušené (${cancelled.length})`}
@@ -98,7 +122,16 @@ function AttendingSection({ title, events }: { title: string; events: MyEvent[] 
 }
 
 /** A section of cards under its heading, Figma Display/Feature („Potvrzené (5)“, C-01, C-01d). */
-function EventsSection({ title, children }: { title: string; children: ReactNode }) {
+function EventsSection({
+  title,
+  note,
+  children,
+}: {
+  title: string
+  /** One line under the heading, e.g. why Z mých skupin is here. */
+  note?: string
+  children: ReactNode
+}) {
   const headingId = useId()
   return (
     <section
@@ -111,6 +144,7 @@ function EventsSection({ title, children }: { title: string; children: ReactNode
       >
         {title}
       </h2>
+      {note ? <p className="-mt-1 text-sm text-muted-foreground md:-mt-2">{note}</p> : null}
       <ul className={GRID}>{children}</ul>
     </section>
   )

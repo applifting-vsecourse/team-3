@@ -1,4 +1,5 @@
 import { Link } from "@tanstack/react-router"
+import { Users } from "lucide-react"
 
 import { ROUTES } from "@/app/routes"
 import { CapacityBar } from "@/components/CapacityBar/CapacityBar"
@@ -54,6 +55,11 @@ type EventCardProps = {
   summary?: string | null
   /** With okolí: km from the chosen locality's centre at the end of the row line (#57, Figma A-02gd). */
   distanceKm?: number | null
+  /**
+   * A group's event names its group under the title (Figma Karta akce › Skupina, #304), so
+   * it is clear at a glance where it happens. Off on the group's own page, which says it.
+   */
+  isGroupShown?: boolean
   className?: string
 }
 
@@ -78,6 +84,7 @@ export function EventCard({
   hasBar = true,
   summary,
   distanceKm,
+  isGroupShown = true,
   className,
 }: EventCardProps) {
   const isCancelled = event.status === "cancelled"
@@ -140,6 +147,16 @@ export function EventCard({
             {event.title}
           </Link>
         </Title>
+        {event.group && isGroupShown ? (
+          <p className="flex min-w-0 items-center gap-1 text-caption font-semibold text-secondary-foreground md:text-sm">
+            <Users
+              aria-hidden
+              className="size-3.5 shrink-0"
+            />
+            <span className="sr-only">Skupina: </span>
+            <span className="truncate">{event.group.name}</span>
+          </p>
+        ) : null}
         {/* the date tile is a picture of it */}
         <time
           dateTime={event.startsAt.toISOString()}

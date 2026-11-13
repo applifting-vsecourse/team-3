@@ -28,11 +28,19 @@ const renderWithQuery = (ui: ReactElement) =>
     </QueryClientProvider>,
   )
 
+type Answer = ReturnType<typeof asJson>
+type GetOptions = { searchParams?: { tab?: string } }
+
+/** Přihlášen asks for its tab and for Z mých skupin (#304), which stays empty unless given. */
+const attendingAnswers = (attending: Answer, groups: Answer = asJson([])) =>
+  get.mockImplementation(((_url: string, options?: GetOptions) =>
+    options?.searchParams?.tab === "groups" ? groups : attending) as never)
+
 describe("AttendingEvents", () => {
   beforeEach(() => get.mockReset())
 
   it("asks for the attending tab and shows waiting requests apart from places", async () => {
-    get.mockReturnValue(
+    attendingAnswers(
       asJson([
         aMyEvent({ id: "e1", title: "Florbal" }),
         aMyEvent({ id: "e2", title: "Výlet na Zbraslav", myParticipation: "pending" }),
@@ -69,7 +77,7 @@ describe("AttendingEvents", () => {
   })
 
   it("says how many are missing in the line, as the badge is „Jdu“ (#189)", async () => {
-    get.mockReturnValue(
+    attendingAnswers(
       asJson([aMyEvent({ id: "e1", title: "Florbal", approvedCount: 3, missingToMin: 1 })]),
     )
 
@@ -87,7 +95,7 @@ describe("AttendingEvents", () => {
   })
 
   it("leaves out a section with nothing in it", async () => {
-    get.mockReturnValue(asJson([aMyEvent()]))
+    attendingAnswers(asJson([aMyEvent()]))
 
     await renderWithQuery(<AttendingEvents viewerId="u1" />)
 
@@ -97,7 +105,7 @@ describe("AttendingEvents", () => {
   })
 
   it("says in one sentence that I go nowhere yet, with the way to the events", async () => {
-    get.mockReturnValue(asJson([]))
+    attendingAnswers(asJson([]))
 
     await renderWithQuery(<AttendingEvents viewerId="u1" />)
 
@@ -111,7 +119,7 @@ describe("AttendingEvents", () => {
   })
 
   it("with only cancelled events still says I go nowhere, above them (#183)", async () => {
-    get.mockReturnValue(asJson([aMyEvent({ title: "Volejbal", status: "cancelled" })]))
+    attendingAnswers(asJson([aMyEvent({ title: "Volejbal", status: "cancelled" })]))
 
     await renderWithQuery(<AttendingEvents viewerId="u1" />)
 
@@ -129,9 +137,56 @@ describe("AttendingEvents", () => {
     expect(screen.queryByRole("heading", { name: /Potvrzené/ })).not.toBeInTheDocument()
   })
 
+  it("Z mých skupin: events of my groups I don't go to yet, with a note, the occupancy and the group (#304)", async () => {
+    attendingAnswers(
+      asJson([aMyEvent({ id: "e1", title: "Florbal" })]),
+      asJson([
+        aMyEvent({
+          id: "g1",
+          title: "Večerní běh Letnou",
+          myParticipation: null,
+          missingToMin: 2,
+          group: { id: "grp", name: "Běžci ze Stromovky" },
+        }),
+      ]),
+    )
+
+    await renderWithQuery(<AttendingEvents viewerId="u1" />)
+
+    const fromGroups = await screen.findByRole("region", { name: "Z mých skupin (1)" })
+    expect(
+      within(fromGroups).getByText(
+        "Na tyhle akce zatím nejdeš. Jsou ze skupin, kde jsi členem – přihlásíš se na detailu akce.",
+      ),
+    ).toBeInTheDocument()
+    expect(within(fromGroups).getByRole("link", { name: "Večerní běh Letnou" })).toHaveAttribute(
+      "href",
+      "/akce/g1",
+    )
+    // the occupancy, not „Jdu“: it isn't mine yet
+    expect(within(fromGroups).getByText("Chybí 2")).toBeInTheDocument()
+    expect(within(fromGroups).queryByText("Jdu")).not.toBeInTheDocument()
+    expect(within(fromGroups).getByText("Běžci ze Stromovky")).toBeInTheDocument()
+    // between Potvrzené and Zrušené
+    const confirmed = screen.getByRole("region", { name: "Potvrzené (1)" })
+    expect(
+      confirmed.compareDocumentPosition(fromGroups) & Node.DOCUMENT_POSITION_FOLLOWING,
+    ).toBeTruthy()
+    expect(get).toHaveBeenCalledWith("me/events", { searchParams: { tab: "groups" } })
+  })
+
+  it("no section without events from my groups", async () => {
+    attendingAnswers(asJson([aMyEvent({ id: "e1", title: "Florbal" })]))
+
+    await renderWithQuery(<AttendingEvents viewerId="u1" />)
+
+    expect(await screen.findByRole("region", { name: "Potvrzené (1)" })).toBeInTheDocument()
+    expect(screen.queryByRole("region", { name: /Z mých skupin/ })).not.toBeInTheDocument()
+  })
+
   it("on an error offers to try again", async () => {
     get.mockReturnValueOnce({ json: () => Promise.reject(new Error("offline")) } as never)
-    get.mockReturnValueOnce(asJson([]))
+    get.mockReturnValue(asJson([]))
 
     await renderWithQuery(<AttendingEvents viewerId="u1" />)
 

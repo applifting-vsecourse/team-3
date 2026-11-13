@@ -149,4 +149,32 @@ describe("EventCard", () => {
 
     expect(screen.getByText(/· 1,3 km$/)).toBeInTheDocument()
   })
+
+  // Figma Karta akce › Skupina (#304): where it happens, at a glance
+  it("a group's event names its group under the title; an event without one doesn't", async () => {
+    const event = { ...anEvent(), group: { id: "grp", name: "Běžci ze Stromovky" } }
+    await renderWithRouter(
+      <EventCard
+        event={event}
+        variant="grid"
+      />,
+    )
+
+    const group = screen.getByText("Běžci ze Stromovky").closest("p")!
+    expect(group).toHaveTextContent("Skupina: Běžci ze Stromovky")
+    const title = screen.getByRole("heading", { name: event.title })
+    expect(title.compareDocumentPosition(group) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
+  })
+
+  it("the group's own page leaves its name out", async () => {
+    const event = { ...anEvent(), group: { id: "grp", name: "Běžci ze Stromovky" } }
+    await renderWithRouter(
+      <EventCard
+        event={event}
+        isGroupShown={false}
+      />,
+    )
+
+    expect(screen.queryByText("Běžci ze Stromovky")).not.toBeInTheDocument()
+  })
 })
