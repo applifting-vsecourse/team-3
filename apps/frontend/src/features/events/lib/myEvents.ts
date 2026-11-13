@@ -68,7 +68,7 @@ export type MyEventsTabName = NonNullable<MyEventsSearch["tab"]>
 type TabData = { events?: MyEvent[]; isPending: boolean }
 
 /**
- * The tab `/moje-akce` opens on without `?tab` (#188): Pořádám while requests wait there —
+ * The chip `/moje/akce` opens on without `?tab` (#188, #304): Pořádám while requests wait there —
  * known as soon as Pořádám is, without waiting for Přihlášen — or when there is nothing to go
  * to and something to run; otherwise Přihlášen. Undefined while it can't be told yet. The
  * „nothing“ and „something“ are what the tabs count (cancelled events left out); a tab that
