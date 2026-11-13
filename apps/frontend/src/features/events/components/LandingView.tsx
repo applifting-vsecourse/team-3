@@ -33,7 +33,9 @@ import {
 } from "@/features/events/components/MissingOnePanel"
 import { NothingForYou } from "@/features/events/components/NothingForYou"
 import { PickedForYou, type QuickPick } from "@/features/events/components/PickedForYou"
+import type { Radius } from "@/features/events/lib/eventsSearch"
 import { areaPhrase, isoDay, weekendDays, weekendLabel } from "@/features/events/lib/homeCopy"
+import { widenedOkoli } from "@/features/events/lib/widenedOkoli"
 
 const VISITOR_TITLE = (
   <>
@@ -240,7 +242,7 @@ function Panel({ home, isSignedIn, localities, now }: SectionsContext & { isSign
       // the locality has nothing to join (isWidened): there may be events, just none to join
       isNothingToJoin={home.isWidened}
       isSignedIn={isSignedIn}
-      eventsSearch={{ lokalita: listLocalitySlug(home, localities) }}
+      eventsSearch={listSearch(home, localities)}
     />
   )
 }
@@ -328,6 +330,22 @@ function listLocalitySlug(home: Home, localities: Locality[] | undefined): strin
   return locality.city?.slug ?? locality.slug
 }
 
+/**
+ * /akce for „Zobrazit všechny“ and the panel's link: the page's locality (a district's city,
+ * B-027). Widened (review #321): the locality itself with the okolí that holds the nearest events
+ * shown, so the link opens the list the section promises, not the empty locality.
+ */
+function listSearch(
+  home: Home,
+  localities: Locality[] | undefined,
+  key?: HomeEventSectionKey,
+): { lokalita: string; okoli?: Radius } {
+  if (home.isWidened && home.locality) {
+    return { lokalita: home.locality.slug, okoli: widenedOkoli(home, key) }
+  }
+  return { lokalita: listLocalitySlug(home, localities) }
+}
+
 type SectionCopy = {
   heading: { before?: string; keyword: string; after?: string; hasLogo?: boolean }
   description: string
@@ -348,11 +366,11 @@ function sectionCopy({
   // the nearest events of an empty locality are not in it, they are around it (#299)
   const area =
     home.isWidened && locality ? `v okolí lokality ${locality.name}` : areaPhrase(locality)
-  const lokalita = listLocalitySlug(home, localities)
+  const list = listSearch(home, localities)
   const weekend = weekendDays(now)
-  const events = (search: Record<string, string>): LinkProps => ({
+  const events = (key: HomeEventSectionKey, search: Record<string, string> = {}): LinkProps => ({
     to: ROUTES.events,
-    search: { lokalita, ...search },
+    search: { ...listSearch(home, localities, key), ...search },
   })
   return {
     missing: {
@@ -360,21 +378,21 @@ function sectionCopy({
       description: `Těmhle akcím ${area} ještě chybí lidi do minima.`,
       label: "Tady chybíš",
       pickDescription: `akce ${area}, kterým chybí lidi do minima. Akce, na které už jdeš, tu nejsou. Akce z panelu nahoře se tu neopakuje.`,
-      more: events({ obsazenost: "chybi" }),
+      more: events("missing", { obsazenost: "chybi" }),
     },
     weekend: {
       heading: { before: "Tento ", keyword: "víkend" },
       description: `${weekendLabel(now)} ${area}`,
       label: "Tento víkend",
       pickDescription: `${weekendLabel(now)} ${area}.`,
-      more: events({ od: isoDay(weekend.from), do: isoDay(weekend.to) }),
+      more: events("weekend", { od: isoDay(weekend.from), do: isoDay(weekend.to) }),
     },
     interests: {
       heading: { before: "Podle tvých ", keyword: "zájmů" },
       description: "Aktivity z tvého profilu a z akcí, na které chodíš",
       label: "Podle tvých zájmů",
       pickDescription: `aktivity z tvého profilu a z akcí, na které chodíš, ${area}.`,
-      more: events({}),
+      more: events("interests"),
     },
     nearby: {
       heading: { before: "Kousek ", keyword: "od tebe" },
@@ -383,21 +401,27 @@ function sectionCopy({
       pickDescription: locality
         ? `nejblíž ke středu lokality ${locality.name}.`
         : "nejbližší akce.",
-      more: { to: ROUTES.events, search: { lokalita: locality?.slug ?? lokalita } },
+      more: {
+        to: ROUTES.events,
+        // the nearest are measured from the locality itself, also from a district
+        search: home.isWidened
+          ? listSearch(home, localities, "nearby")
+          : { lokalita: locality?.slug ?? list.lokalita },
+      },
     },
     popular: {
       heading: { before: "O tyhle akce je ", keyword: "zájem" },
       description: "Nejvíc lidí jde nebo čeká na schválení",
       label: "O tyhle akce je zájem",
       pickDescription: "nejvíc lidí jde nebo čeká na schválení.",
-      more: events({}),
+      more: events("popular"),
     },
     wellRated: {
       heading: { before: "Od dobře ", keyword: "hodnocených", after: " organizátorů" },
       description: "Pořádají je lidi a skupiny s průměrem aspoň 4,5",
       label: "Od dobře hodnocených",
       pickDescription: `pořádají je lidi a skupiny s průměrem aspoň 4,5 ${area}.`,
-      more: events({}),
+      more: events("wellRated"),
     },
   }
 }

@@ -446,6 +446,21 @@ describe("LandingView", () => {
       expect(screen.getByText(/Těmhle akcím v okolí lokality Praha 3/)).toBeInTheDocument()
       const card = screen.getByRole("link", { name: "Florbal v Trutnově" }).closest("article")
       expect(card).toHaveTextContent("22,7 km")
+      // „Zobrazit všechny“ opens the list the section promises: around the locality, as far as
+      // its events go — not the empty locality (review #321)
+      const more = new URL(
+        screen.getAllByRole("link", { name: /Zobrazit všechny/ })[0]!.getAttribute("href")!,
+        "http://localhost",
+      )
+      expect(more.pathname).toBe("/akce")
+      // the router writes a number-like string as JSON („"25"“), as /akce's own okolí links
+      const search = Object.fromEntries(
+        [...more.searchParams].map(([key, value]) => [
+          key,
+          value.startsWith('"') ? JSON.parse(value) : value,
+        ]),
+      )
+      expect(search).toEqual({ lokalita: "praha-3", okoli: "25", obsazenost: "chybi" })
     })
 
     it("only full events or one's own there: never says the locality is empty (review #321)", async () => {
