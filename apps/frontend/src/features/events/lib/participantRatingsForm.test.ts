@@ -2,8 +2,9 @@ import { describe, expect, it } from "vitest"
 
 import {
   effectiveStars,
-  initialRows,
+  initialForm,
   rowDescription,
+  savedRows,
   toInputs,
   type ParticipantRow,
 } from "./participantRatingsForm"
@@ -22,25 +23,83 @@ const participants = [
   { id: "u-eliska", name: "Eliška", rating: null, ratingDeleted: true },
 ]
 
+const rated = (stars: number, comment: string | null) => ({ stars, comment, updatedAt })
+const person = (id: string, rating: ReturnType<typeof rated> | null, isDeleted = false) => ({
+  id,
+  name: id,
+  rating,
+  ratingDeleted: isDeleted,
+})
+
 describe("the organizer's rating form (Figma D-05, #66)", () => {
-  it("opens: a saved rating is the participant's own, the rest follow „Všem stejně“", () => {
-    const rows = initialRows(participants, common)
-    expect(rows.map((row) => [row.id, row.mode, effectiveStars(row, common)])).toEqual([
-      ["u-jakub", "common", 5],
-      ["u-lucie", "own", 4],
-      ["u-eliska", "common", 5],
+  it("nothing saved yet: 5★, no comment, everyone „Jako všichni“", () => {
+    const { common, rows } = initialForm([person("a", null), person("b", null)])
+    expect(common).toEqual({ stars: 5, comment: "" })
+    expect(rows.map(rowDescription)).toEqual(["Jako všichni", "Jako všichni"])
+  })
+
+  it("opens with „Všem stejně“ read back from what was saved (review #322)", () => {
+    const { common, rows } = initialForm([
+      person("jakub", rated(4, "Díky za hru!")),
+      person("lucie", rated(5, "Skvělé nahrávky")),
+      person("martin", rated(4, "Díky za hru!")),
+      // the common comment, own stars
+      person("petr", rated(2, "Díky za hru!")),
+      person("eliska", null, true),
+      person("nova", null),
     ])
+    expect(common).toEqual({ stars: 4, comment: "Díky za hru!" })
+    expect(rows.map((row) => [row.id, row.mode, effectiveStars(row, common), row.comment])).toEqual(
+      [
+        ["jakub", "common", 4, ""],
+        ["lucie", "own", 5, "Skvělé nahrávky"],
+        ["martin", "common", 4, ""],
+        ["petr", "own", 2, ""],
+        ["eliska", "common", 4, ""],
+        ["nova", "common", 4, ""],
+      ],
+    )
     expect(rows.map(rowDescription)).toEqual([
       "Jako všichni",
-      "Uloženo: 4 hvězdy a vlastní komentář",
+      "Uloženo: 5 hvězd a vlastní komentář",
+      "Jako všichni",
+      "Uloženo: 2 hvězdy",
       "Hodnocení odstranil správce",
+      "Jako všichni",
     ])
-    // the saved comment is open to edit
-    expect(rows[1]?.isCommentOpen).toBe(true)
+    // only an own comment is open to edit
+    expect(rows.map((row) => row.isCommentOpen)).toEqual([false, true, false, false, false, false])
+  })
+
+  it("a new common comment reaches everyone without their own one, after coming back too", () => {
+    const { common, rows } = initialForm([
+      person("jakub", rated(4, "Díky za hru!")),
+      person("lucie", rated(5, "Skvělé nahrávky")),
+      person("martin", rated(4, "Díky za hru!")),
+      person("petr", rated(2, "Díky za hru!")),
+    ])
+    expect(toInputs(rows, { ...common, comment: "Díky, příště zase!" })).toEqual([
+      { participantId: "jakub", stars: 4, comment: "Díky, příště zase!" },
+      { participantId: "lucie", stars: 5, comment: "Skvělé nahrávky" },
+      { participantId: "martin", stars: 4, comment: "Díky, příště zase!" },
+      { participantId: "petr", stars: 2, comment: "Díky, příště zase!" },
+    ])
+  })
+
+  it("one comment only one got is theirs, not a common one", () => {
+    const { common, rows } = initialForm([
+      person("jakub", rated(5, "Super smeče")),
+      person("lucie", rated(5, null)),
+    ])
+    expect(common).toEqual({ stars: 5, comment: "" })
+    expect(rows.map(rowDescription)).toEqual([
+      "Uloženo: 5 hvězd a vlastní komentář",
+      "Jako všichni",
+    ])
   })
 
   it("sends each participant their own rating; the common comment where there is no own one", () => {
-    const rows = initialRows(participants, common)
+    const { rows } = initialForm(participants)
     expect(toInputs(rows, common)).toEqual([
       { participantId: "u-jakub", stars: 5, comment: "Díky za hru!" },
       { participantId: "u-lucie", stars: 4, comment: "Skvělé nahrávky" },
@@ -48,9 +107,20 @@ describe("the organizer's rating form (Figma D-05, #66)", () => {
   })
 
   it("a common comment left empty is none; spaces don't count", () => {
-    const rows = initialRows([participants[0]!], common)
+    const { rows } = initialForm([participants[0]!])
     expect(toInputs(rows, { stars: 3, comment: "   " })).toEqual([
       { participantId: "u-jakub", stars: 3, comment: null },
+    ])
+  })
+
+  it("after saving the rows stay as they were, only no longer „Upraveno“", () => {
+    const { rows } = initialForm(participants)
+    const edited = rows.map((row) => ({ ...row, isEdited: true }))
+    const saved = savedRows(edited, participants)
+    expect(saved.map((row) => [row.mode, row.isEdited])).toEqual([
+      ["common", false],
+      ["own", false],
+      ["common", false],
     ])
   })
 

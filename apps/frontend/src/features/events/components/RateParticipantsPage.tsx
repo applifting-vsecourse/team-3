@@ -33,8 +33,9 @@ import { useRateParticipants } from "@/features/events/hooks/useRateParticipants
 import { formatEventDay } from "@/features/events/lib/formatEvent"
 import {
   effectiveStars,
-  initialRows,
+  initialForm,
   rowDescription,
+  savedRows,
   toInputs,
   type CommonRating,
   type ParticipantRow,
@@ -128,7 +129,6 @@ export function RateParticipantsPage({ eventId, viewerId, onSaved }: RatePartici
   )
 }
 
-const COMMON_START: CommonRating = { stars: 5, comment: "" }
 const COMMENT_TOO_LONG = `Komentář může mít nejvýš ${RATING_COMMENT_MAX_LENGTH} znaků`
 
 function RateParticipantsForm({
@@ -145,10 +145,10 @@ function RateParticipantsForm({
   onSaved?: () => Promise<void>
 }) {
   const save = useRateParticipants(eventId, viewerId, onSaved)
-  const [common, setCommon] = useState<CommonRating>(COMMON_START)
-  const [rows, setRows] = useState<ParticipantRow[]>(() =>
-    initialRows(data.participants, COMMON_START),
-  )
+  // „Všem stejně“ and the rows, read back from what was saved (review #322)
+  const [start] = useState(() => initialForm(data.participants))
+  const [common, setCommon] = useState<CommonRating>(start.common)
+  const [rows, setRows] = useState<ParticipantRow[]>(start.rows)
   // a refusal about one participant, shown at their row (SELF_RATING, NOT_APPROVED, RATING_DELETED)
   const [rowErrors, setRowErrors] = useState<Record<string, string>>({})
   const [isSubmitted, setIsSubmitted] = useState(false)
@@ -174,8 +174,8 @@ function RateParticipantsForm({
         setRowErrors({})
         save.mutateAsync(toInputs(rows, common)).then(
           (view) => {
-            // what was saved is now each participant's own („Uloženo“); a refusal keeps the edits
-            setRows(initialRows(view.participants, common))
+            // „Jako všichni“ stays so; the own ones are „Uloženo“; a refusal keeps the edits
+            setRows((current) => savedRows(current, view.participants))
             toast.success("Hodnocení účastníků je uložené")
           },
           (error: Error & { data?: unknown }) => {
@@ -272,10 +272,8 @@ function RateParticipantsForm({
                 key={row.id}
                 row={row}
                 stars={effectiveStars(row, common)}
-                error={
-                  rowErrors[row.id] ??
-                  (isSubmitted && tooLong(row.comment) ? COMMENT_TOO_LONG : undefined)
-                }
+                error={rowErrors[row.id]}
+                commentError={isSubmitted && tooLong(row.comment) ? COMMENT_TOO_LONG : undefined}
                 onStars={(stars) =>
                   update(row.id, (current) => ({ ...current, mode: "own", stars, isEdited: true }))
                 }
@@ -319,13 +317,17 @@ function ParticipantItem({
   row,
   stars,
   error,
+  commentError,
   onStars,
   onOpenComment,
   onComment,
 }: {
   row: ParticipantRow
   stars: number
+  /** The API's refusal about this participant: about their rating. */
   error: string | undefined
+  /** About their own comment (too long): at the comment, as the common one has it. */
+  commentError: string | undefined
   onStars: (stars: number) => void
   onOpenComment: () => void
   onComment: (comment: string) => void
@@ -333,6 +335,7 @@ function ParticipantItem({
   const nameId = useId()
   const commentId = useId()
   const errorId = useId()
+  const commentErrorId = useId()
   return (
     <li className="flex flex-col gap-1 border-b border-border py-3 last:border-b-0">
       <PersonRow
@@ -362,8 +365,18 @@ function ParticipantItem({
                 id={commentId}
                 className="min-h-24"
                 value={row.comment}
+                aria-invalid={Boolean(commentError)}
+                aria-describedby={commentError ? commentErrorId : undefined}
                 onChange={(changeEvent) => onComment(changeEvent.target.value)}
               />
+              {commentError ? (
+                <p
+                  id={commentErrorId}
+                  className="text-sm text-destructive"
+                >
+                  {commentError}
+                </p>
+              ) : null}
             </div>
           ) : (
             <Button
@@ -430,10 +443,13 @@ function NotRatable({
   const rated = data.participants.filter((participant) => participant.rating !== null).length
   return (
     <div className="flex flex-col gap-6 md:max-w-xl">
-      <PastEventCard
-        event={event}
-        isLinked={false}
-      />
+      {/* the past event's card would say it took place (review #322) */}
+      {refusal === "EVENT_NOT_ENDED" ? null : (
+        <PastEventCard
+          event={event}
+          isLinked={false}
+        />
+      )}
       <Alert variant="neutral">
         <Info />
         <AlertTitle>{title}</AlertTitle>

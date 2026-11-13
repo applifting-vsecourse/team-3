@@ -124,10 +124,88 @@ const renderPage = (onSaved = vi.fn().mockResolvedValue(undefined)) =>
     </QueryClientProvider>,
   )
 
+type Saved = { participantId: string; stars: number; comment: string | null }
+
+// PUT as the API does it: each participant's rating replaced, the new state sent back and kept
+const serverSaves = () =>
+  api.put.mockImplementation((_path: string, { json }: { json: { ratings: Saved[] } }) => {
+    const current = participants as typeof list
+    participants = {
+      ...current,
+      participants: current.participants.map((one) => {
+        const saved = json.ratings.find((rating) => rating.participantId === one.id)
+        return saved
+          ? {
+              ...one,
+              rating: {
+                stars: saved.stars,
+                comment: saved.comment,
+                updatedAt: "2026-10-21T08:00:00.000Z",
+              },
+            }
+          : one
+      }),
+    }
+    return asJson(participants)
+  })
+
 const row = (name: string) =>
   screen.getByText(name, { selector: "a, p, span:not(.sr-only)" }).closest("li")!
 
 describe("/akce/:id/hodnoceni for the organizer (Figma D-05, #66)", () => {
+  it("after saving and coming back, who got no comment of their own is still „Jako všichni“ (review #322)", async () => {
+    const user = userEvent.setup()
+    participants = {
+      ...list,
+      participants: [
+        { id: "u-jakub", name: "Jakub Král", rating: null, ratingDeleted: false },
+        { id: "u-martin", name: "Martin Černý", rating: null, ratingDeleted: false },
+        list.participants[1],
+      ],
+    }
+    serverSaves()
+    const first = await renderPage()
+    await screen.findByText("Účastníci (3)")
+
+    await user.type(screen.getByLabelText("Komentář pro všechny (nepovinné)"), "Díky za hru!")
+    await user.click(screen.getByRole("button", { name: "Uložit hodnocení" }))
+    await screen.findByText("Uložit hodnocení")
+    expect(toast.success).toHaveBeenCalled()
+
+    // after saving: the common comment isn't theirs
+    for (const name of ["Jakub Král", "Martin Černý"]) {
+      expect(within(row(name)).getByText("Jako všichni")).toBeInTheDocument()
+      expect(within(row(name)).queryByRole("textbox")).not.toBeInTheDocument()
+    }
+    expect(
+      within(row("Lucie Horáková")).getByText("Uloženo: 4 hvězdy a vlastní komentář"),
+    ).toBeInTheDocument()
+
+    // coming back: „Všem stejně“ is read back from what was saved
+    first.unmount()
+    await renderPage()
+    await screen.findByText("Účastníci (3)")
+    expect(screen.getByLabelText("Komentář pro všechny (nepovinné)")).toHaveValue("Díky za hru!")
+    for (const name of ["Jakub Král", "Martin Černý"]) {
+      expect(within(row(name)).getByText("Jako všichni")).toBeInTheDocument()
+    }
+
+    // a new common comment reaches them again, not Lucie with her own
+    const comment = screen.getByLabelText("Komentář pro všechny (nepovinné)")
+    await user.clear(comment)
+    await user.type(comment, "Příště zase!")
+    await user.click(screen.getByRole("button", { name: "Uložit hodnocení" }))
+    expect(api.put).toHaveBeenLastCalledWith("events/e1/participant-ratings", {
+      json: {
+        ratings: [
+          { participantId: "u-jakub", stars: 5, comment: "Příště zase!" },
+          { participantId: "u-martin", stars: 5, comment: "Příště zase!" },
+          { participantId: "u-lucie", stars: 4, comment: "Skvělé nahrávky" },
+        ],
+      },
+    })
+  })
+
   it("403 OWN_EVENT leads to the participants: band, „Všem stejně“, one row each", async () => {
     await renderPage()
 
@@ -167,7 +245,7 @@ describe("/akce/:id/hodnoceni for the organizer (Figma D-05, #66)", () => {
   it("saves everyone at once: the common stars and comment, and each one's own", async () => {
     const user = userEvent.setup()
     const onSaved = vi.fn().mockResolvedValue(undefined)
-    api.put.mockReturnValue(asJson(list))
+    serverSaves()
     await renderPage(onSaved)
     await screen.findByText("Účastníci (3)")
 
@@ -292,6 +370,31 @@ describe("/akce/:id/hodnoceni for the organizer (Figma D-05, #66)", () => {
       "href",
       "/akce/e1/sprava",
     )
+  })
+
+  it("before the event ends, no past event's card: it would say it took place (review #322)", async () => {
+    participants = { ...list, refusal: "EVENT_NOT_ENDED" }
+    await renderPage()
+
+    expect(await screen.findByText("Hodnotit půjde, až akce skončí")).toBeInTheDocument()
+    expect(screen.queryByText("Proběhlo")).not.toBeInTheDocument()
+    expect(screen.queryByText(/^Sešlo se/)).not.toBeInTheDocument()
+  })
+
+  it("a participant's own comment over 500 characters is marked at that comment", async () => {
+    const user = userEvent.setup()
+    await renderPage()
+    await screen.findByText("Účastníci (3)")
+
+    const comment = within(row("Lucie Horáková")).getByLabelText("Vlastní komentář (nepovinné)")
+    await user.clear(comment)
+    await user.click(comment)
+    await user.paste("a".repeat(501))
+    await user.click(screen.getByRole("button", { name: "Uložit hodnocení" }))
+
+    expect(comment).toHaveAttribute("aria-invalid", "true")
+    expect(comment).toHaveAccessibleDescription("Komentář může mít nejvýš 500 znaků")
+    expect(api.put).not.toHaveBeenCalled()
   })
 
   it("nobody else came: nothing to rate", async () => {
