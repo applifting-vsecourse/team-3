@@ -19,6 +19,11 @@ import {
   ratingDeadline,
 } from '@/modules/rating/domain/rating-window';
 import {
+  canSeeReceivedRatings,
+  ReceivedRatings,
+  toReceivedRatings,
+} from '@/modules/rating/domain/received-ratings';
+import {
   EventRatingSnapshot,
   ParticipantRatingsSnapshot,
   RatableEvent,
@@ -229,6 +234,32 @@ export class RatingService {
       throw participantRatingRefused(result.refusal, result.participantId);
     }
     return toParticipantRatings(result.snapshot, now);
+  }
+
+  /**
+   * What the event got from its participants (B-060, #66): averages and each
+   * rating with its comment, for who manages the event – its organizer or an
+   * active admin of its group. 404 for an unknown, hidden or deleted event,
+   * 403 NOT_MANAGER for anyone else.
+   */
+  async getReceivedRatings(
+    eventId: string,
+    userId: string,
+  ): Promise<ReceivedRatings> {
+    const viewer = await this.ratingRepository.findEventManager(
+      eventId,
+      userId,
+    );
+    if (!viewer) throw new NotFoundException('Akce neexistuje.');
+    if (!canSeeReceivedRatings(viewer)) {
+      throw new ForbiddenException({
+        code: 'NOT_MANAGER',
+        message: 'Hodnocení akce vidí jen ten, kdo ji spravuje.',
+      });
+    }
+    return toReceivedRatings(
+      await this.ratingRepository.findReceivedRatings(eventId),
+    );
   }
 
   private async findOrganizedEvent(

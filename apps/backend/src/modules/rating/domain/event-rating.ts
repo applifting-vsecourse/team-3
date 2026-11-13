@@ -61,7 +61,9 @@ export const isEventGone = (status: EventRatingState['eventStatus']): boolean =>
  * - only an event that took place: published and over, not cancelled or
  *   taken down by a superadmin, and within RATING_WINDOW_DAYS of its end;
  * - a rating a superadmin deleted can only be restored by them, not given
- *   again; that is what the participant hears, also after the window.
+ *   again; that is what the participant hears, also after the window – so
+ *   RATING_DELETED comes before the event's state here, unlike in
+ *   `decideParticipantRatings`, where it comes after it (review #314).
  * One rating per user and event is kept by the database.
  */
 export function decideEventRating(
@@ -116,6 +118,8 @@ export type RatedEvent = {
   /** For an event of a group the organizer stars count to the group. */
   group: { id: string; name: string } | null;
   approvedCount: number;
+  /** Below it the event didn't take place, as its card says (review #315). */
+  minParticipants: number;
 };
 
 /**
