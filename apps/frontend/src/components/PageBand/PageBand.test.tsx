@@ -105,6 +105,32 @@ describe("PageBand", () => {
     // on a phone the tabs scroll under any motif, so the corner one ends above them anyway
     expect(corner).toHaveClass("md:hidden", "bottom-band-tabs")
   })
+
+  it("the landing page's ring hangs under its buttons, not from the band's edge (#324)", async () => {
+    const { container } = await renderWithRouter(
+      <PageBand
+        variant="hero"
+        title="Někde chybí jeden do party."
+        aside={<div>Panel</div>}
+      >
+        <a href="/signup">Zaregistrovat se</a>
+      </PageBand>,
+    )
+
+    // the panel beside the buttons sets the band's height: hung from the band's bottom, the ring
+    // ran through „Zaregistrovat se“ at some widths; now it is placed against the buttons' row
+    // the big motif (from lg), not the phone's corner one
+    const motif = [...container.querySelectorAll("svg")].find((svg) =>
+      svg.classList.contains("lg:block"),
+    )!
+    expect(motif.querySelector("circle.stroke-primary")).not.toBeNull()
+    expect(motif.parentElement).toContainElement(
+      screen.getByRole("link", { name: "Zaregistrovat se" }),
+    )
+    expect(motif).toHaveClass("top-[calc(100%-505px)]", "-z-10", "overflow-visible")
+    expect(motif).not.toHaveClass("bottom-0")
+    expect(motif).toHaveAttribute("aria-hidden", "true")
+  })
 })
 
 describe("BandTabs", () => {
