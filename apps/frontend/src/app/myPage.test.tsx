@@ -20,7 +20,7 @@ const json = (body: unknown) =>
 type Answers = {
   attending?: unknown[]
   organizing?: unknown[] | Promise<unknown[]>
-  groups?: unknown[]
+  groups?: unknown[] | "error"
 }
 
 /** Moje on `url` for a signed-in user, the API answering the events and the groups. */
@@ -35,7 +35,11 @@ async function renderMy(url: string, answers: Answers) {
       if (href.includes("me/events") && href.includes("tab=organizing")) {
         return json((await answers.organizing) ?? [])
       }
-      if (href.includes("me/groups")) return json(answers.groups ?? [])
+      if (href.includes("me/groups")) {
+        return answers.groups === "error"
+          ? new Response("{}", { status: 500, headers: { "content-type": "application/json" } })
+          : json(answers.groups ?? [])
+      }
       return json([])
     }),
   )
@@ -201,6 +205,19 @@ describe("Moje: Akce and Skupiny (#304)", () => {
 
     await userEvent.click(screen.getByRole("tab", { name: /Spravuju/ }))
     expect(app.state.location.search).toEqual({ tab: "spravuju" })
+  })
+})
+
+describe("Moje › Skupiny when the groups fail to load (review #318)", () => {
+  it("says so with „Zkusit znovu“ instead of an endless skeleton", async () => {
+    await renderMy("/moje/skupiny", { groups: "error" })
+
+    expect(await screen.findByText("Skupiny se nepodařilo načíst")).toBeInTheDocument()
+    expect(screen.getByRole("button", { name: "Zkusit znovu" })).toBeInTheDocument()
+    expect(screen.getByRole("tab", { name: /Jsem členem/ })).toHaveAttribute(
+      "aria-selected",
+      "true",
+    )
   })
 })
 

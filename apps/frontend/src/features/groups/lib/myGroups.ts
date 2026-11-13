@@ -33,6 +33,8 @@ export function myGroupsSections(groups: MyGroup[]): {
   }
 }
 
+export type MyGroupsSections = ReturnType<typeof myGroupsSections>
+
 /** Requests waiting in a group I run; none in any other (the API sends null there). */
 const waitingRequests = (group: MyGroup): number => group.pendingRequests ?? 0
 
@@ -40,8 +42,11 @@ const waitingRequests = (group: MyGroup): number => group.pendingRequests ?? 0
  * The chip Moje › Skupiny opens on without `?tab`, as Moje › Akce does (#188): Spravuju while
  * requests wait there, or when I am in nothing and run something; otherwise Jsem členem.
  */
-export function initialMyGroupsTab(groups: MyGroup[]): MyGroupsTabName {
-  const { pending, joined, running } = myGroupsSections(groups)
+export function initialMyGroupsTab({
+  pending,
+  joined,
+  running,
+}: MyGroupsSections): MyGroupsTabName {
   if (running.some((group) => waitingRequests(group) > 0)) return "spravuju"
   return pending.length + joined.length === 0 && running.length > 0 ? "spravuju" : "clen"
 }
@@ -91,9 +96,9 @@ const ownRequestsLabel = (count: number): string => {
 }
 
 /** The band's line in Jsem členem (Figma C-04d): „… Na odpověď čeká 1 tvoje žádost.“ when any wait. */
-export function memberLine(groups: MyGroup[] | undefined): string {
+export function memberLine(sections: MyGroupsSections | undefined): string {
   const line = "Skupiny, kde jsi členem."
-  const waiting = groups ? myGroupsSections(groups).pending.length : 0
+  const waiting = sections?.pending.length ?? 0
   if (waiting === 0) return line
   return `${line} Na odpověď ${waitVerb(waiting)} ${ownRequestsLabel(waiting)}.`
 }

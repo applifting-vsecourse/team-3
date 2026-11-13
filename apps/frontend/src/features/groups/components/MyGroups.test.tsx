@@ -7,6 +7,7 @@ import { renderWithRouter } from "@/test/renderWithRouter"
 
 import type { MyGroup } from "@/features/groups/api/groupSchemas"
 import { MemberGroups, RunningGroups } from "@/features/groups/components/MyGroups"
+import { useMyGroups } from "@/features/groups/hooks/useMyGroups"
 
 const { api } = vi.hoisted(() => ({ api: { get: vi.fn() } }))
 vi.mock("@/lib/api-client", () => ({ api }))
@@ -54,8 +55,15 @@ const withQueryClient = (ui: ReactElement) => (
   </QueryClientProvider>
 )
 
-const renderMember = () => renderWithRouter(withQueryClient(<MemberGroups viewerId="u-petra" />))
-const renderRunning = () => renderWithRouter(withQueryClient(<RunningGroups viewerId="u-petra" />))
+// the page loads the groups once and hands them to the chips (review #318)
+function Member() {
+  return <MemberGroups groups={useMyGroups("u-petra")} />
+}
+function Running() {
+  return <RunningGroups groups={useMyGroups("u-petra")} />
+}
+const renderMember = () => renderWithRouter(withQueryClient(<Member />))
+const renderRunning = () => renderWithRouter(withQueryClient(<Running />))
 
 beforeEach(() => api.get.mockReset())
 

@@ -6,13 +6,8 @@ import { MyPage } from "@/routes/_ProtectedPages/-moje/MyPage"
 
 import { useSession } from "@/features/auth/hooks/useSession"
 import { MemberGroups, MyGroupsLoading, RunningGroups } from "@/features/groups/components/MyGroups"
-import { useMyGroups } from "@/features/groups/hooks/useMyGroups"
-import {
-  initialMyGroupsTab,
-  memberLine,
-  myGroupsSearchSchema,
-  runningLine,
-} from "@/features/groups/lib/myGroups"
+import { useMyGroups, useMyGroupsTab } from "@/features/groups/hooks/useMyGroups"
+import { memberLine, myGroupsSearchSchema, runningLine } from "@/features/groups/lib/myGroups"
 
 export const Route = createFileRoute("/_ProtectedPages/moje/skupiny")({
   component: MyGroupsPage,
@@ -28,10 +23,11 @@ function MyGroupsPage() {
   const search = Route.useSearch()
   const navigate = Route.useNavigate()
   const { user } = useSession()
-  const { groups, sections } = useMyGroups(user?.id ?? "")
-  // ?tab, else Spravuju when requests wait there or there is only something to run (as #188);
-  // undefined while the groups load, so Jsem členem never flashes before Spravuju
-  const tab = search.tab ?? (groups ? initialMyGroupsTab(groups) : undefined)
+  // loaded and split once here, for the chips, the band's line and the chips' content
+  const myGroups = useMyGroups(user?.id ?? "")
+  const { sections } = myGroups
+  // ?tab, else Spravuju when requests wait there or there is only something to run (as #188)
+  const tab = useMyGroupsTab(search.tab, myGroups)
 
   return (
     <MyPage
@@ -41,7 +37,7 @@ function MyGroupsPage() {
         tab === "spravuju"
           ? runningLine(sections?.running)
           : tab === "clen"
-            ? memberLine(groups)
+            ? memberLine(sections)
             : // keeps the line's height while the chip is picked
               " "
       }
@@ -77,10 +73,10 @@ function MyGroupsPage() {
         ) : user ? (
           <>
             <TabsContent value="clen">
-              <MemberGroups viewerId={user.id} />
+              <MemberGroups groups={myGroups} />
             </TabsContent>
             <TabsContent value="spravuju">
-              <RunningGroups viewerId={user.id} />
+              <RunningGroups groups={myGroups} />
             </TabsContent>
           </>
         ) : null}

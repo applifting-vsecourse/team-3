@@ -9,7 +9,7 @@ import { Button } from "@/components/ui/button"
 import type { MyGroup } from "@/features/groups/api/groupSchemas"
 import { GroupCard } from "@/features/groups/components/GroupCard"
 import { GROUP_GRID, GroupCardSkeleton } from "@/features/groups/components/GroupList"
-import { useMyGroups } from "@/features/groups/hooks/useMyGroups"
+import type { MyGroupsQuery } from "@/features/groups/hooks/useMyGroups"
 import {
   membershipRequestsSummary,
   MY_GROUP_TYPE,
@@ -21,8 +21,7 @@ import {
  * requests waiting for an admin on top, with the same badge as a request for an event, then
  * the groups I am a member of. A card opens the group's page.
  */
-export function MemberGroups({ viewerId }: { viewerId: string }) {
-  const { sections, error, retry } = useMyGroups(viewerId)
+export function MemberGroups({ groups: { sections, error, retry } }: { groups: MyGroupsQuery }) {
   if (error) return <MyGroupsError onRetry={retry} />
   if (!sections) return <MyGroupsLoading />
 
@@ -57,10 +56,9 @@ export function MemberGroups({ viewerId }: { viewerId: string }) {
  * on top sums up the requests to decide, a card says how many wait and opens the group's
  * management, where they are decided as an event's requests. „Založit skupinu“ is the page's.
  */
-export function RunningGroups({ viewerId }: { viewerId: string }) {
-  const { groups, sections, error, retry } = useMyGroups(viewerId)
+export function RunningGroups({ groups: { sections, error, retry } }: { groups: MyGroupsQuery }) {
   if (error) return <MyGroupsError onRetry={retry} />
-  if (!groups || !sections) return <MyGroupsLoading />
+  if (!sections) return <MyGroupsLoading />
 
   const summary = membershipRequestsSummary(sections.running)
   return (

@@ -56,16 +56,16 @@ describe("myGroupsSections (#304)", () => {
 
 describe("initialMyGroupsTab (#304, as #188)", () => {
   it("Spravuju while requests wait there, even when I am in other groups", () => {
-    expect(initialMyGroupsTab([member, running(1)])).toBe("spravuju")
+    expect(initialMyGroupsTab(myGroupsSections([member, running(1)]))).toBe("spravuju")
   })
 
   it("Spravuju when I only run groups", () => {
-    expect(initialMyGroupsTab([running()])).toBe("spravuju")
+    expect(initialMyGroupsTab(myGroupsSections([running()]))).toBe("spravuju")
   })
 
   it("Jsem členem otherwise, also with no group at all", () => {
-    expect(initialMyGroupsTab([asked, running()])).toBe("clen")
-    expect(initialMyGroupsTab([])).toBe("clen")
+    expect(initialMyGroupsTab(myGroupsSections([asked, running()]))).toBe("clen")
+    expect(initialMyGroupsTab(myGroupsSections([]))).toBe("clen")
   })
 })
 
@@ -99,11 +99,11 @@ describe("membershipRequestsSummary", () => {
 
 describe("the band's lines (Figma C-04d, C-05d)", () => {
   it("Jsem členem says how many of my requests wait", () => {
-    expect(memberLine([member])).toBe("Skupiny, kde jsi členem.")
-    expect(memberLine([asked, member])).toBe(
+    expect(memberLine(myGroupsSections([member]))).toBe("Skupiny, kde jsi členem.")
+    expect(memberLine(myGroupsSections([asked, member]))).toBe(
       "Skupiny, kde jsi členem. Na odpověď čeká 1 tvoje žádost.",
     )
-    expect(memberLine([asked, asked])).toBe(
+    expect(memberLine(myGroupsSections([asked, asked]))).toBe(
       "Skupiny, kde jsi členem. Na odpověď čekají 2 tvoje žádosti.",
     )
   })
