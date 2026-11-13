@@ -105,3 +105,26 @@ export function mergeRanges(ranges: SlugRange[]): SlugRange[] {
   }
   return merged;
 }
+
+/**
+ * Widest ranges still guessed (#299): an IPv6 range wider than a /40 (a
+ * provider's allocation or a big part of it) or an IPv4 range wider than a /16. DB-IP Lite places such a
+ * range at one point — usually the provider's seat — so every customer of a
+ * provider landed in one town (Police nad Metují for nearly all of
+ * 2a07:bc0::/29). Too coarse to start a list in: no guess,
+ * all of Czechia. Applied to the merged ranges: a town spanning a whole
+ * allocation is the same whois-level guess, even when DB-IP lists it in parts.
+ */
+const WIDEST_PREFIX = { v4: 16, v6: 40 } as const;
+
+/**
+ * Whether a range (fixed-width hex, `ipToHex`) is too wide to say a town: wider
+ * than the widest prefix still guessed, a /16 in IPv4 and a /40 in IPv6.
+ */
+export function isCoarseRange(range: { start: string; end: string }): boolean {
+  const isV4 = range.start.length === 8;
+  const hostBits = isV4 ? 32 - WIDEST_PREFIX.v4 : 128 - WIDEST_PREFIX.v6;
+  const size =
+    BigInt(`0x${range.end}`) - BigInt(`0x${range.start}`) + BigInt(1);
+  return size > BigInt(2) ** BigInt(hostBits);
+}

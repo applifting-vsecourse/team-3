@@ -1,4 +1,5 @@
 import {
+  isCoarseRange,
   mergeRanges,
   parseDbIpLine,
   townFor,
@@ -117,5 +118,51 @@ describe('mergeRanges', () => {
       { start: '01000200', end: '010002ff', slug: 'praha' },
       { start: '01000400', end: '010004ff', slug: 'praha' },
     ]);
+  });
+});
+
+describe('isCoarseRange (#299)', () => {
+  it("a provider's whole IPv6 allocation says no town (Police nad Metují for 2a07:bc0::/29)", () => {
+    expect(
+      isCoarseRange({
+        start: '2a070bc0000000000000000000000000',
+        end: '2a070bc7ffffffffffffffffffffffff',
+      }),
+    ).toBe(true);
+    // the part of it left beside a /48 of another town, still a /36 or so
+    expect(
+      isCoarseRange({
+        start: '2a070bc0000000000000000000000000',
+        end: '2a070bc013ffffffffffffffffffffff',
+      }),
+    ).toBe(true);
+    // a /32
+    expect(
+      isCoarseRange({
+        start: '2001067c000000000000000000000000',
+        end: '2001067cffffffffffffffffffffffff',
+      }),
+    ).toBe(true);
+  });
+
+  it("keeps narrower IPv6 ranges: a /40 and a customer's /48", () => {
+    expect(
+      isCoarseRange({
+        start: '2001067c2f0000000000000000000000',
+        end: '2001067c2fffffffffffffffffffffff',
+      }),
+    ).toBe(false);
+    expect(
+      isCoarseRange({
+        start: '2001067c2f1800000000000000000000',
+        end: '2001067c2f18ffffffffffffffffffff',
+      }),
+    ).toBe(false);
+  });
+
+  it('IPv4: a /16 is kept, anything wider is not', () => {
+    expect(isCoarseRange({ start: '93e50000', end: '93e5ffff' })).toBe(false);
+    expect(isCoarseRange({ start: '93200000', end: '9321ffff' })).toBe(true);
+    expect(isCoarseRange({ start: '25303200', end: '253032ff' })).toBe(false);
   });
 });
