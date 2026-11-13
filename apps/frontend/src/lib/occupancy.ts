@@ -123,6 +123,13 @@ export function gatheredLabel(count: number): string {
 }
 
 /**
+ * How a past event that is over ended (#61): it took place, or – below its minimum – it didn't
+ * („Nekonalo se“, Figma Status badge). The rule of the detail and of rating (EVENT_NOT_HELD).
+ */
+export const wasHeld = ({ missingToMin }: Pick<Occupancy, "missingToMin">): boolean =>
+  missingToMin === 0
+
+/**
  * A past event that never reached its minimum (review #269): „Nikdo se nepřihlásil.“, or how
  * many were missing — „Do minima chyběl 1 člověk.“, „chyběli 2 lidé“, „chybělo 5 lidí“.
  */

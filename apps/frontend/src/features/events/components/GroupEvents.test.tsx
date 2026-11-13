@@ -54,6 +54,17 @@ describe("GroupEvents", () => {
     expect(within(past).getByText(/· sešlo se 6$/)).toBeInTheDocument()
   })
 
+  it("a past event below its minimum: „Nekonalo se“ and why (#61)", async () => {
+    await render({
+      upcoming: [],
+      past: [aGroupEvent({ id: "e02", title: "Prázdná hala", approvedCount: 2, missingToMin: 2 })],
+    })
+
+    const past = screen.getByRole("region", { name: "Proběhlé akce skupiny" })
+    expect(within(past).getByText("Nekonalo se")).toBeInTheDocument()
+    expect(within(past).getByText(/· do minima chyběli 2 lidé$/)).toBeInTheDocument()
+  })
+
   it("says when nothing is planned, and leaves out an empty history", async () => {
     await render({ upcoming: [], past: [] })
 

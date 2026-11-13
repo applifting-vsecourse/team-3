@@ -4,6 +4,7 @@ import { RefreshCw } from "lucide-react"
 
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 import { Button } from "@/components/ui/button"
+import { wasHeld } from "@/lib/occupancy"
 
 import type { GroupEvent } from "@/features/events/api/eventSchemas"
 import { groupEventsQueryOptions } from "@/features/events/api/eventsQueryOptions"
@@ -101,7 +102,7 @@ function EventsSection({
               <EventCard
                 event={event}
                 titleAs="h3"
-                status={isPast ? { kind: "past" } : undefined}
+                status={isPast ? { kind: wasHeld(event) ? "past" : "not-held" } : undefined}
                 rowTail={isPast ? pastEventFacts(event) : groupEventTail(event)}
               />
             </li>

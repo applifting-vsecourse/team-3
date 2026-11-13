@@ -3,7 +3,7 @@ import { Link } from "@tanstack/react-router"
 
 import { ROUTES } from "@/app/routes"
 import { StatusBadge } from "@/components/StatusBadge/StatusBadge"
-import { gatheredLabel } from "@/lib/occupancy"
+import { gatheredLabel, missedMinimumLabel, wasHeld } from "@/lib/occupancy"
 
 import type { PublicEvent } from "@/features/events/api/eventSchemas"
 import { EventPhoto } from "@/features/events/components/EventPhoto"
@@ -20,8 +20,12 @@ type PastEventCardProps = {
   event: Pick<
     PublicEvent,
     "id" | "title" | "startsAt" | "address" | "activity" | "locality" | "approvedCount"
-  > & { status?: "published" | "cancelled" }
-  /** Ignored for a cancelled event, which didn't take place. */
+  > & {
+    status?: "published" | "cancelled"
+    /** Below its minimum it didn't take place: „Nekonalo se“ (#61); unknown = it did. */
+    missingToMin?: number
+  }
+  /** Ignored for a cancelled event or one that didn't take place. */
   rating?: PastRating
   /** After how many came, e.g. the event's rating on a public profile: „★ 4,5 (3 hodnocení)“ (#179). */
   detail?: string
@@ -49,15 +53,22 @@ export function PastEventCard({
 }: PastEventCardProps) {
   // from the event, not the rating: a cancelled event never offers „Ohodnotit“
   const isCancelled = event.status === "cancelled"
+  // below its minimum: „Nekonalo se“ and why, as its detail says (#61); nothing to rate either
+  const isNotHeld = !isCancelled && !wasHeld({ missingToMin: event.missingToMin ?? 0 })
   const line = [formatEventDay(event.startsAt), placeName(event.address), event.locality.name].join(
     " · ",
   )
   const attendance = [
     isCancelled
       ? "Akce se nekonala"
-      : rating?.kind === "given"
-        ? `${gatheredLabel(event.approvedCount)} · tvoje ★ ${rating.stars}`
-        : gatheredLabel(event.approvedCount),
+      : isNotHeld
+        ? missedMinimumLabel({
+            approvedCount: event.approvedCount,
+            missingToMin: event.missingToMin ?? 0,
+          }).replace(/\.$/, "")
+        : rating?.kind === "given"
+          ? `${gatheredLabel(event.approvedCount)} · tvoje ★ ${rating.stars}`
+          : gatheredLabel(event.approvedCount),
     detail,
   ]
     .filter(Boolean)
@@ -91,9 +102,11 @@ export function PastEventCard({
         </time>
         <p className="truncate text-caption text-muted-foreground">{line}</p>
         <div className="flex items-center gap-2 pt-1">
-          <StatusBadge status={{ kind: isCancelled ? "cancelled" : "past" }} />
+          <StatusBadge
+            status={{ kind: isCancelled ? "cancelled" : isNotHeld ? "not-held" : "past" }}
+          />
           <span className="truncate text-caption text-muted-foreground">{attendance}</span>
-          {!isCancelled && rating?.kind === "open" && rateAction ? (
+          {!isCancelled && !isNotHeld && rating?.kind === "open" && rateAction ? (
             // above the card's stretched link, so it stays its own target
             <span className="relative ml-auto shrink-0 text-sm font-semibold">{rateAction}</span>
           ) : null}

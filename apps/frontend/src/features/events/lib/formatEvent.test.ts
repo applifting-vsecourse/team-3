@@ -8,6 +8,7 @@ import {
   endOfPragueDay,
   eventCountLabel,
   eventDateParts,
+  eventRatingLabel,
   formatEventDay,
   formatEventStart,
   formatEventTime,
@@ -16,6 +17,7 @@ import {
   formatStartInSentence,
   groupEventTail,
   isEventOver,
+  pastEventCountLabel,
   pastEventFacts,
   placeName,
   showEventsLabel,
@@ -124,6 +126,35 @@ describe("pastEventFacts (#70)", () => {
     expect(pastEventFacts({ ...anEvent({ approvedCount: 6 }), visibility: "members" })).toBe(
       "sešlo se 6 · jen pro členy",
     )
+  })
+
+  it("below its minimum says why it didn't take place (#61)", () => {
+    expect(
+      pastEventFacts({ ...anEvent({ approvedCount: 2, missingToMin: 2 }), visibility: "public" }),
+    ).toBe("do minima chyběli 2 lidé")
+    expect(
+      pastEventFacts({ ...anEvent({ approvedCount: 0, missingToMin: 4 }), visibility: "public" }),
+    ).toBe("nikdo se nepřihlásil")
+  })
+})
+
+describe("pastEventCountLabel (#61)", () => {
+  it("uses Czech plural forms", () => {
+    expect([1, 2, 4, 5, 200].map(pastEventCountLabel)).toEqual([
+      "1 proběhlá akce",
+      "2 proběhlé akce",
+      "4 proběhlé akce",
+      "5 proběhlých akcí",
+      "Víc než 200 proběhlých akcí",
+    ])
+  })
+})
+
+describe("eventRatingLabel (#61)", () => {
+  it("the average with its count, nothing without ratings", () => {
+    expect(eventRatingLabel({ average: 4.5, count: 3 })).toBe("★ 4,5 (3 hodnocení)")
+    expect(eventRatingLabel({ average: null, count: 0 })).toBeUndefined()
+    expect(eventRatingLabel(null)).toBeUndefined()
   })
 })
 
