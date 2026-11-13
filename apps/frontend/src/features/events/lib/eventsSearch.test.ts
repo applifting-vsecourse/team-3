@@ -302,3 +302,40 @@ describe("quick picks (#250)", () => {
     expect(toEventFilters({ vyber: "tento-vikend" }, catalog).interests).toBeUndefined()
   })
 })
+
+describe("Proběhlé (#61)", () => {
+  const now = new Date("2026-11-11T10:00:00.000Z")
+
+  it("reads ?termin=probehle and drops anything else", () => {
+    expect(eventsSearchSchema.parse({ termin: "probehle" }).termin).toBe("probehle")
+    expect(eventsSearchSchema.parse({ termin: "zitra" }).termin).toBeUndefined()
+  })
+
+  it("asks for the past instead of a range and without occupancy", () => {
+    const filters = toEventFilters(
+      {
+        termin: "probehle",
+        od: "2026-11-14",
+        do: "2026-11-15",
+        obsazenost: "chybi",
+        lokalita: "praha-8",
+      },
+      catalog,
+    )
+    expect(filters).toMatchObject({ past: true, localityId: "l-praha-8" })
+    expect(filters.dateFrom).toBeUndefined()
+    expect(filters.dateTo).toBeUndefined()
+    expect(filters.capacity).toBeUndefined()
+    expect(toSearchParams(filters).get("past")).toBe("true")
+    expect(toEventFilters({}, catalog).past).toBeUndefined()
+  })
+
+  it("is a filter of its own: „Zrušit vše“ clears it, no tab holds it", () => {
+    expect(hasActiveFilters({ termin: "probehle" })).toBe(true)
+    expect(isAllEvents({ termin: "probehle" })).toBe(false)
+    // „Podle tvých zájmů“ sets no filter, still Proběhlé leaves it
+    const search = pickSearch("podle-zajmu", { lokalita: "praha-8" }, now)
+    expect(changesPick(search, { termin: "probehle" }, now)).toBe(true)
+    expect(pickSearch("tento-vikend", { termin: "probehle" }, now).termin).toBeUndefined()
+  })
+})

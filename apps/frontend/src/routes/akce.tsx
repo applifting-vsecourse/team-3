@@ -33,6 +33,7 @@ import {
   hasFiltersBeyondPick,
   isAllEvents,
   localityCenter,
+  PAST_TERM,
   pickSearch,
   toMapArea,
   toOblast,
@@ -96,6 +97,10 @@ function EventsPage() {
   const mapBottomInset = selectedEvent ? previewCover : panelPeekHeight
   const locality = catalog?.localities.find((l) => l.slug === search.lokalita)
   const isMapVisible = isDesktop || !isListExpanded
+  // Proběhlé (#61, Figma A-02h): the events that are over, newest first, with past cards and pins
+  const isPast = search.termin === PAST_TERM
+  const which = isPast ? "Proběhlé" : "Nadcházející"
+  const order = isPast ? ", od nejnovější" : ""
 
   // Escape closes the preview, like a tap into the map — unless it closed an open panel or
   // menu first (the kit's layers prevent the default of the Escape they handle)
@@ -236,11 +241,11 @@ function EventsPage() {
             title={title}
             description={
               area
-                ? "Nadcházející akce ve výřezu mapy."
+                ? `${which} akce ve výřezu mapy${order}.`
                 : search.lokalita === ALL_LOCALITIES_SLUG
-                  ? "Nadcházející akce v celém Česku."
+                  ? `${which} akce v celém Česku${order}.`
                   : locality
-                    ? `Nadcházející akce v lokalitě ${locality.name}.`
+                    ? `${which} akce v lokalitě ${locality.name}${order}.`
                     : // the line keeps its place until the catalog names the locality
                       " "
             }
@@ -321,6 +326,7 @@ function EventsPage() {
                       <SortMenu
                         value={sort}
                         isDistanceAvailable={Boolean(center)}
+                        isPast={isPast}
                         // the order okolí implies stays out of the URL
                         onChange={(razeni) =>
                           setSearch({
@@ -333,6 +339,7 @@ function EventsPage() {
                       />
                     }
                     isDistanceShown={isDistanceShown}
+                    isPast={isPast}
                     empty={
                       <EmptyEvents
                         search={search}
@@ -387,11 +394,13 @@ function EventsPage() {
                       // the phone's search and chips float over the map's top (#288)
                       topInset={isDesktop ? 0 : overlayHeight}
                       hasZoomControl={isDesktop}
+                      isPast={isPast}
                     />
                     {selectedEvent && isDesktop ? (
                       <EventMapPreview
                         event={selectedEvent}
                         isDesktop
+                        isPast={isPast}
                       />
                     ) : null}
                   </div>
@@ -403,6 +412,7 @@ function EventsPage() {
                   event={selectedEvent}
                   isDesktop={false}
                   onCoverChange={setPreviewCover}
+                  isPast={isPast}
                 />
               ) : null}
 

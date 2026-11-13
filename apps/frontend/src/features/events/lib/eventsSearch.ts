@@ -40,6 +40,9 @@ export const PICKS = [
 ] as const
 export type QuickPick = (typeof PICKS)[number]
 
+/** ?termin=probehle — Proběhlé (#61, Figma A-02h): the events that are over instead of a range. */
+export const PAST_TERM = "probehle"
+
 /** ?razeni= (#57, Figma A-02j); without it soonest first, or nearest first with okolí. */
 export const SORTS = ["termin", "vzdalenost"] as const
 export type Sort = (typeof SORTS)[number]
@@ -52,6 +55,8 @@ export type Sort = (typeof SORTS)[number]
  */
 export const eventsSearchSchema = z.object({
   ...catalogSearchShape,
+  // Proběhlé replaces the range (Figma A-02c: „ruší rozsah“)
+  termin: z.literal(PAST_TERM).optional().catch(undefined),
   od: z.string().regex(DAY).optional().catch(undefined),
   do: z.string().regex(DAY).optional().catch(undefined),
   // volna = not full yet, chybi = still missing people (a subset of volna)
@@ -81,6 +86,7 @@ export type EventsSearch = z.infer<typeof eventsSearchSchema>
 /** Whether the URL has a filter for „Zrušit vše“ to clear; a remembered locality is the page's to add (useLocality). */
 export const hasActiveFilters = (search: EventsSearch): boolean =>
   hasCatalogFilters(search) ||
+  search.termin !== undefined ||
   search.od !== undefined ||
   search.do !== undefined ||
   search.obsazenost !== undefined ||
@@ -95,6 +101,8 @@ export const hasActiveFilters = (search: EventsSearch): boolean =>
 export function toEventFilters(search: EventsSearch, catalog: Catalog): EventFilters {
   // An inverted range in a hand-edited URL would be a 400; keep just the start.
   const dateTo = search.od && search.do && search.do < search.od ? undefined : search.do
+  // Proběhlé (#61) instead of a range, and without occupancy, which a past event no longer has
+  const isPast = search.termin === PAST_TERM
 
   const filters = toCatalogFilters(search, catalog)
   const center = localityCenter(search, catalog)
@@ -105,15 +113,16 @@ export function toEventFilters(search: EventsSearch, catalog: Catalog): EventFil
     // the area replaces the locality: moving the map from Praha to Brno would otherwise find nothing;
     // okolí replaces it too: „do 10 km od středu Prahy 8“ (Figma A-02gd)
     localityId: search.oblast || radiusKm ? undefined : filters.localityId,
-    dateFrom: search.od,
-    dateTo,
-    capacity: search.obsazenost && CAPACITY_OF[search.obsazenost],
+    dateFrom: isPast ? undefined : search.od,
+    dateTo: isPast ? undefined : dateTo,
+    capacity: isPast ? undefined : search.obsazenost && CAPACITY_OF[search.obsazenost],
     bbox: search.oblast,
     q: search.q,
     // the centre only when something needs it: the circle, or the distance order
     ...(center && (radiusKm || sort === "vzdalenost") ? { lat: center.lat, lng: center.lng } : {}),
     radiusKm,
     sort: sort === "vzdalenost" ? "distance" : undefined,
+    ...(isPast ? { past: true } : {}),
     ...(search.vyber ? PICK_FLAGS[search.vyber] : {}),
   }
 }
@@ -159,6 +168,7 @@ export function pickPreset(
 }
 
 const PICK_FILTER_KEYS = [
+  "termin",
   "od",
   "do",
   "kategorie",
@@ -189,6 +199,8 @@ export function changesPick(
   now: Date,
 ): boolean {
   if (!search.vyber) return false
+  // Proběhlé is a view of its own (Figma A-02h): no pick holds there
+  if (patch.termin !== undefined) return true
   const preset = pickPreset(search.vyber, search.okoli, now)
   return Object.keys(patch).some(
     (key) =>

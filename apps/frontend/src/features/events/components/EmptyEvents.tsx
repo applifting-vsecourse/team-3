@@ -10,7 +10,7 @@ import { cn } from "@/lib/utils"
 import { occupancyLabel } from "@/features/events/components/OccupancyFilter"
 import { useEvents } from "@/features/events/hooks/useEvents"
 import { formatDayRange } from "@/features/events/lib/dateRange"
-import type { EventsSearch } from "@/features/events/lib/eventsSearch"
+import { PAST_TERM, type EventsSearch } from "@/features/events/lib/eventsSearch"
 import { showEventsLabel } from "@/features/events/lib/formatEvent"
 
 type EmptyEventsProps = {
@@ -36,8 +36,8 @@ export function activeFiltersLabel(search: EventsSearch, catalog: Catalog | unde
   return [
     locality,
     activity,
-    formatDayRange({ od: search.od, do: search.do }),
-    occupancyLabel(search.obsazenost),
+    search.termin === PAST_TERM ? "Proběhlé" : formatDayRange({ od: search.od, do: search.do }),
+    search.termin === PAST_TERM ? undefined : occupancyLabel(search.obsazenost),
   ]
     .filter(Boolean)
     .join(" · ")
@@ -101,7 +101,11 @@ export function EmptyEvents({ search, catalog, isVisitor, onSearchChange }: Empt
   return (
     <div className="flex flex-col items-center gap-4 py-8 text-center">
       <div className="flex flex-col gap-1">
-        <p className="text-sm text-muted-foreground">Žádná nadcházející akce neodpovídá filtrům:</p>
+        <p className="text-sm text-muted-foreground">
+          {search.termin === PAST_TERM
+            ? "Žádná proběhlá akce neodpovídá filtrům:"
+            : "Žádná nadcházející akce neodpovídá filtrům:"}
+        </p>
         <p className="text-sm font-semibold">{activeFiltersLabel(search, catalog)}</p>
       </div>
       {/* hidden, not left out, while counting: „Založit akci“ would show alone as the main
