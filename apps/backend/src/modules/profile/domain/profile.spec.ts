@@ -1,6 +1,6 @@
+import { eventOverWhere } from '@/modules/event/domain/event-over';
 import { buildMyEventsWhere } from '@/modules/event/repositories/my-events-where';
 import { participationWhere, selfProfile, type ProfileRow } from './profile';
-import { eventOverWhere } from '@/modules/event/domain/event-over';
 
 export const ownerRow = (): ProfileRow => ({
   id: 'owner',
@@ -67,11 +67,14 @@ describe('private participation history (#178)', () => {
     );
     expect(JSON.stringify(where)).not.toContain('endsAt');
   });
-  it('only counts approved participation in history and uses the end time when available', () => {
+  it('history: approved participation of events that are over, cancelled ones too (#272)', () => {
     expect(participationWhere('other-owner', now, true)).toEqual({
       userId: 'other-owner',
       status: 'approved',
-      event: { status: 'published', ...eventOverWhere(now) },
+      event: {
+        status: { in: ['published', 'cancelled'] },
+        ...eventOverWhere(now),
+      },
     });
   });
 });
