@@ -8,9 +8,8 @@ import { ipToHex } from '@/modules/geo/domain/ip-address';
 import { czechTowns } from '@/scripts/seed/data/czech-towns';
 import { demoLocalities } from '@/scripts/seed/data/demo-data';
 import {
-  isCoarseRange,
-  mergeRanges,
   parseDbIpLine,
+  tableRanges,
   townFor,
   type SlugRange,
 } from './ip-localities';
@@ -55,9 +54,9 @@ async function main(): Promise<void> {
     ranges.push({ start, end, slug: townFor(row, towns).slug });
   }
 
-  // a whole provider's allocation says no town (#299): all of Czechia instead
-  const merged = mergeRanges(ranges.sort(byStart));
-  const kept = merged.filter((range) => !isCoarseRange(range));
+  // a provider's whole allocation says no town (#299): all of Czechia instead;
+  // judged on DB-IP's rows, before merging (review #321)
+  const kept = tableRanges(ranges);
   const file = join(__dirname, '../../modules/geo/data/ip-localities-cz.txt');
   writeFileSync(
     file,
@@ -71,13 +70,9 @@ async function main(): Promise<void> {
     ].join('\n'),
   );
   console.log(
-    `${ranges.length} ranges, ${merged.length} after merging, ${kept.length} narrow enough → ${file}`,
+    `${ranges.length} ranges, ${kept.length} after leaving out the wide ones and merging → ${file}`,
   );
 }
-
-// IPv4 (8 digits) before IPv6 (32), then by address
-const byStart = (a: SlugRange, b: SlugRange): number =>
-  a.start.length - b.start.length || (a.start < b.start ? -1 : 1);
 
 main().catch((error) => {
   console.error(error);

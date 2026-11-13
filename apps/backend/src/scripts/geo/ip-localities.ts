@@ -112,8 +112,9 @@ export function mergeRanges(ranges: SlugRange[]): SlugRange[] {
  * range at one point — usually the provider's seat — so every customer of a
  * provider landed in one town (Police nad Metují for nearly all of
  * 2a07:bc0::/29). Too coarse to start a list in: no guess,
- * all of Czechia. Applied to the merged ranges: a town spanning a whole
- * allocation is the same whois-level guess, even when DB-IP lists it in parts.
+ * all of Czechia. Judged on DB-IP's own rows, before merging (review #321):
+ * neighbouring fine rows of one town merge into a wide range that is still
+ * right — Prague's /48s add up to far more than a /40.
  */
 const WIDEST_PREFIX = { v4: 16, v6: 40 } as const;
 
@@ -128,3 +129,17 @@ export function isCoarseRange(range: { start: string; end: string }): boolean {
     BigInt(`0x${range.end}`) - BigInt(`0x${range.start}`) + BigInt(1);
   return size > BigInt(2) ** BigInt(hostBits);
 }
+
+/**
+ * The table's ranges from DB-IP's rows (each with its town): the rows too wide
+ * to say a town left out first, then sorted (IPv4 before IPv6, by address) and
+ * neighbours of one town merged. Leaving out after merging would drop a city's
+ * fine rows together with a provider's wide one (review #321).
+ */
+export function tableRanges(rows: SlugRange[]): SlugRange[] {
+  return mergeRanges(rows.filter((row) => !isCoarseRange(row)).sort(byStart));
+}
+
+// IPv4 (8 digits) before IPv6 (32), then by address
+const byStart = (a: SlugRange, b: SlugRange): number =>
+  a.start.length - b.start.length || (a.start < b.start ? -1 : 1);
