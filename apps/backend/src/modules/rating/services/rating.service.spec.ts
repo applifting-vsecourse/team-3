@@ -1,4 +1,7 @@
-import { EventRatingState } from '@/modules/rating/domain/event-rating';
+import {
+  EventRatingState,
+  RatedEvent,
+} from '@/modules/rating/domain/event-rating';
 import { RATING_WINDOW_DAYS } from '@/modules/rating/domain/rating-window';
 import {
   EventRatingSnapshot,
@@ -15,8 +18,34 @@ import { RatingService } from './rating.service';
 const now = new Date('2026-11-01T12:00:00.000Z');
 const startsAt = new Date('2026-10-31T17:00:00.000Z');
 const endsAt = new Date('2026-10-31T19:00:00.000Z');
-const ratableUntil = new Date('2026-11-14T19:00:00.000Z');
+// the end of Sat 14. 11. in Prague (UTC+1), 14 calendar days after Sat 31. 10.
+const ratableUntil = new Date('2026-11-14T22:59:59.999Z');
 const updatedAt = new Date('2026-11-01T08:00:00.000Z');
+
+// what the page shows of the event, from the same read (Figma C-03)
+const event: RatedEvent = {
+  id: 'e1',
+  title: 'Volejbal na Letné',
+  startsAt,
+  endsAt,
+  address: 'Sportovní areál Letná, Praha 7',
+  status: 'published',
+  activity: {
+    id: 'a1',
+    slug: 'volejbal',
+    name: 'Volejbal',
+    category: {
+      id: 'c1',
+      slug: 'tymove-sporty',
+      name: 'Týmové sporty',
+      icon: 'ball',
+    },
+  },
+  locality: { id: 'l1', slug: 'praha-7', name: 'Praha 7' },
+  organizer: { id: 'u-petra', name: 'Petra Nováková' },
+  group: null,
+  approvedCount: 5,
+};
 
 const snapshot = (
   state: Partial<EventRatingState> = {},
@@ -26,12 +55,15 @@ const snapshot = (
     eventStatus: 'published',
     startsAt,
     endsAt,
+    minParticipants: 4,
+    approvedCount: 5,
     organizerUserId: 'u-petra',
     raterId: 'u-jakub',
     participationStatus: 'approved',
     ratingDeleted: rating?.deletedAt != null,
     ...state,
   },
+  event,
   rating,
 });
 
@@ -59,7 +91,7 @@ describe('RatingService (#66)', () => {
 
       await expect(
         service.getMyEventRating('e1', 'u-jakub', now),
-      ).resolves.toEqual({ rating: null, ratableUntil, refusal: null });
+      ).resolves.toEqual({ event, rating: null, ratableUntil, refusal: null });
       expect(repository.findEventRating).toHaveBeenCalledWith('e1', 'u-jakub');
     });
 
@@ -70,7 +102,7 @@ describe('RatingService (#66)', () => {
 
       await expect(
         service.getMyEventRating('e1', 'u-jakub', now),
-      ).resolves.toEqual({ rating: saved, ratableUntil, refusal: null });
+      ).resolves.toEqual({ event, rating: saved, ratableUntil, refusal: null });
     });
 
     it('a rating a superadmin deleted is not shown and says why', async () => {
@@ -81,6 +113,7 @@ describe('RatingService (#66)', () => {
       await expect(
         service.getMyEventRating('e1', 'u-jakub', now),
       ).resolves.toEqual({
+        event,
         rating: null,
         ratableUntil,
         refusal: 'RATING_DELETED',
@@ -99,6 +132,7 @@ describe('RatingService (#66)', () => {
           new Date('2026-11-15T00:00:00.000Z'),
         ),
       ).resolves.toEqual({
+        event,
         rating: saved,
         ratableUntil,
         refusal: 'RATING_WINDOW_CLOSED',
@@ -158,18 +192,21 @@ describe('RatingService (#66)', () => {
   describe('rateEvent', () => {
     it('saves under the lock, with until when from the state read there', async () => {
       // the event got a later end meanwhile: the answer follows the read under the lock
-      const later = snapshot({ endsAt: new Date('2026-10-31T21:00:00.000Z') });
+      // past midnight in Prague, so on Sun 1. 11.: a day later to rate
+      const later = snapshot({ endsAt: new Date('2026-10-31T23:30:00.000Z') });
       repository.saveEventRating.mockResolvedValue({
         ok: true,
         rating: saved,
         state: later.state,
+        event,
       });
 
       await expect(
         service.rateEvent('e1', 'u-jakub', input, now),
       ).resolves.toEqual({
+        event,
         rating: saved,
-        ratableUntil: new Date('2026-11-14T21:00:00.000Z'),
+        ratableUntil: new Date('2026-11-15T22:59:59.999Z'),
         refusal: null,
       });
       expect(repository.saveEventRating).toHaveBeenCalledWith(
@@ -185,6 +222,7 @@ describe('RatingService (#66)', () => {
         ok: true,
         rating: saved,
         state: snapshot().state,
+        event,
       });
 
       await service.rateEvent('e1', 'u-jakub', input, now);

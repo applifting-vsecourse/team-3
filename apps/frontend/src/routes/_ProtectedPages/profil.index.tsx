@@ -21,6 +21,7 @@ function ProfileRoute() {
           // Moje akce's name for the user's place; requests are counted only there
           event={{ ...event, myParticipation: event.participation, pendingRequests: null }}
           section={section}
+          viewerId={user.id}
         />
       )}
     />

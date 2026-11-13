@@ -12,6 +12,7 @@ describe("ProfileEventCard (#178, Figma B-05)", () => {
       <ProfileEventCard
         event={aMyEvent({ id: "e1", title: "Výlet na Zbraslav", myParticipation: "pending" })}
         section="upcoming"
+        viewerId="u-jakub"
       />,
     )
 
@@ -29,6 +30,7 @@ describe("ProfileEventCard (#178, Figma B-05)", () => {
       <ProfileEventCard
         event={aMyEvent({ approvedCount: 3, missingToMin: 1, freeSpots: 9 })}
         section="upcoming"
+        viewerId="u-jakub"
       />,
     )
 
@@ -41,6 +43,7 @@ describe("ProfileEventCard (#178, Figma B-05)", () => {
       <ProfileEventCard
         event={aMyEvent({ id: "e3", status: "cancelled", myParticipation: null })}
         section="organizing"
+        viewerId="u-jakub"
       />,
     )
 
@@ -53,11 +56,58 @@ describe("ProfileEventCard (#178, Figma B-05)", () => {
       <ProfileEventCard
         event={aMyEvent({ approvedCount: 5 })}
         section="past"
+        viewerId="u-jakub"
       />,
     )
 
     expect(screen.getByText("Proběhlo")).toBeInTheDocument()
     expect(screen.getByText("Sešlo se 5 lidí")).toBeInTheDocument()
     expect(document.querySelector("[data-slot=capacity-track]")).toBeNull()
+  })
+
+  // the fixture starts Fri 23. 10. 17:30 in Prague without an end: it ended with that day,
+  // so it can be rated until Fri 6. 11., 23:59:59.999
+  it("Proběhlé: „Ohodnotit →“ leads to the rating page while it can be rated (#66, review #315)", async () => {
+    await renderWithRouter(
+      <ProfileEventCard
+        event={aMyEvent({ id: "e7", approvedCount: 5 })}
+        section="past"
+        viewerId="u-jakub"
+        now={new Date("2026-10-24T10:00:00.000Z")}
+      />,
+    )
+
+    expect(screen.getByRole("link", { name: "Ohodnotit →" })).toHaveAttribute(
+      "href",
+      "/akce/e7/hodnoceni",
+    )
+  })
+
+  it.each([
+    ["after the window", { approvedCount: 5 }, "u-jakub", "2026-11-06T23:00:00.000Z"],
+    [
+      "below its minimum: it didn't take place",
+      { approvedCount: 3 },
+      "u-jakub",
+      "2026-10-24T10:00:00.000Z",
+    ],
+    ["the organizer's own event", { approvedCount: 5 }, "u1", "2026-10-24T10:00:00.000Z"],
+    [
+      "a cancelled event",
+      { approvedCount: 5, status: "cancelled" as const },
+      "u-jakub",
+      "2026-10-24T10:00:00.000Z",
+    ],
+  ])("Proběhlé: no „Ohodnotit →“ %s", async (_case, event, viewerId, now) => {
+    await renderWithRouter(
+      <ProfileEventCard
+        event={aMyEvent(event)}
+        section="past"
+        viewerId={viewerId}
+        now={new Date(now)}
+      />,
+    )
+
+    expect(screen.queryByRole("link", { name: "Ohodnotit →" })).not.toBeInTheDocument()
   })
 })

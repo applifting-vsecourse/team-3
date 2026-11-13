@@ -6,14 +6,70 @@ const startsAt = new Date('2026-10-31T17:00:00.000Z');
 const updatedAt = new Date('2026-11-01T08:00:00.000Z');
 const input = { eventStars: 5, organizerStars: 4, comment: null };
 
+// the event as Prisma returns it with publicEventInclude
+const eventRow = {
+  id: 'e1',
+  title: 'Volejbal na Letné',
+  description: 'Hrajeme na dva sety.',
+  status: 'published',
+  startsAt,
+  endsAt: null,
+  address: 'Sportovní areál Letná, Praha 7',
+  organizerUserId: 'u-petra',
+  minParticipants: 4,
+  activity: {
+    id: 'a1',
+    slug: 'volejbal',
+    name: 'Volejbal',
+    keywords: ['volley'],
+    category: {
+      id: 'c1',
+      slug: 'tymove-sporty',
+      name: 'Týmové sporty',
+      icon: 'ball',
+      sortOrder: 1,
+    },
+  },
+  locality: {
+    id: 'l1',
+    slug: 'praha-7',
+    name: 'Praha 7',
+    lat: 50.1,
+    lng: 14.4,
+  },
+  organizer: { id: 'u-petra', name: 'Petra Nováková' },
+  group: null,
+  _count: { participations: 5 },
+};
+
+// what the rating page gets of it: nothing more than an event card shows
+const ratedEvent = {
+  id: 'e1',
+  title: 'Volejbal na Letné',
+  startsAt,
+  endsAt: null,
+  address: 'Sportovní areál Letná, Praha 7',
+  status: 'published',
+  activity: {
+    id: 'a1',
+    slug: 'volejbal',
+    name: 'Volejbal',
+    category: {
+      id: 'c1',
+      slug: 'tymove-sporty',
+      name: 'Týmové sporty',
+      icon: 'ball',
+    },
+  },
+  locality: { id: 'l1', slug: 'praha-7', name: 'Praha 7' },
+  organizer: { id: 'u-petra', name: 'Petra Nováková' },
+  group: null,
+  approvedCount: 5,
+};
+
 // the transaction runs on the same mock, so the reads and the write show up there
 const prismaWith = ({
-  event = {
-    status: 'published',
-    startsAt,
-    endsAt: null,
-    organizerUserId: 'u-petra',
-  } as object | null,
+  event = eventRow as object | null,
   participation = { status: 'approved' } as object | null,
   rating = null as object | null,
 } = {}): DeepMockProxy<PrismaService> => {
@@ -42,10 +98,13 @@ describe('RatingRepository (#66)', () => {
           startsAt,
           endsAt: null,
           organizerUserId: 'u-petra',
+          minParticipants: 4,
+          approvedCount: 5,
           raterId: 'u-jakub',
           participationStatus: 'approved',
           ratingDeleted: true,
         },
+        event: ratedEvent,
         rating: { ...input, updatedAt, deletedAt: updatedAt },
       });
       expect(prisma.participation.findUnique).toHaveBeenCalledWith(
@@ -97,6 +156,8 @@ describe('RatingRepository (#66)', () => {
           startsAt,
           endsAt: null,
         }),
+        // and what the page shows of the event, from the same read
+        event: ratedEvent,
       });
       expect(prisma.$executeRaw).toHaveBeenCalled();
       expect(decide).toHaveBeenCalledWith(
@@ -118,12 +179,7 @@ describe('RatingRepository (#66)', () => {
       'null for an event a superadmin %s, as read under the lock, and writes nothing',
       async (status) => {
         const prisma = prismaWith({
-          event: {
-            status,
-            startsAt,
-            endsAt: null,
-            organizerUserId: 'u-petra',
-          },
+          event: { ...eventRow, status },
         });
         const decide = jest.fn().mockReturnValue({ ok: true });
 

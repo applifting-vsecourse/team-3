@@ -28,6 +28,11 @@ type PastEventCardProps = {
   /** „Ohodnotit →“ for an open rating; the page builds the link (C-03, #66). */
   rateAction?: ReactNode
   titleAs?: "h2" | "h3"
+  /**
+   * The card opens the event's detail, unless false: the rating page shows the event without
+   * it, because a former member of a members-only event's group gets a 403 there (review #315).
+   */
+  isLinked?: boolean
 }
 
 /**
@@ -40,6 +45,7 @@ export function PastEventCard({
   rateAction,
   detail,
   titleAs: Title = "h3",
+  isLinked = true,
 }: PastEventCardProps) {
   // from the event, not the rating: a cancelled event never offers „Ohodnotit“
   const isCancelled = event.status === "cancelled"
@@ -65,13 +71,17 @@ export function PastEventCard({
       />
       <div className="flex min-w-0 flex-1 flex-col gap-1">
         <Title className="line-clamp-2 type-row-title">
-          <Link
-            to={ROUTES.eventDetail}
-            params={{ eventId: event.id }}
-            className="outline-none after:absolute after:inset-0 after:rounded-2xl"
-          >
-            {event.title}
-          </Link>
+          {isLinked ? (
+            <Link
+              to={ROUTES.eventDetail}
+              params={{ eventId: event.id }}
+              className="outline-none after:absolute after:inset-0 after:rounded-2xl"
+            >
+              {event.title}
+            </Link>
+          ) : (
+            event.title
+          )}
         </Title>
         <time
           dateTime={event.startsAt.toISOString()}
