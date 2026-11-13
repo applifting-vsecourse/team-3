@@ -56,8 +56,11 @@ describe('buildMyEventsWhere', () => {
 });
 
 describe('buildMyEventsWhere › groups (Z mých skupin, #304)', () => {
-  const [when, open, mine, notGoing] = buildMyEventsWhere('groups', 'u1', now)
-    .AND as Prisma.EventWhereInput[];
+  const [when, open, notOwn, mine, notGoing] = buildMyEventsWhere(
+    'groups',
+    'u1',
+    now,
+  ).AND as Prisma.EventWhereInput[];
 
   it('upcoming published events only: nothing to go to in a cancelled one', () => {
     expect(when).toEqual({ status: 'published', startsAt: { gt: now } });
@@ -65,6 +68,10 @@ describe('buildMyEventsWhere › groups (Z mých skupin, #304)', () => {
 
   it('public and members-only, never link-only', () => {
     expect(open).toEqual({ visibility: { in: ['public', 'members'] } });
+  });
+
+  it('not my own: an organizer who is a plain member now still has it in Pořádám (review #318)', () => {
+    expect(notOwn).toEqual({ organizerUserId: { not: 'u1' } });
   });
 
   it("of the active groups I am an active member of; a group I run is Pořádám's", () => {

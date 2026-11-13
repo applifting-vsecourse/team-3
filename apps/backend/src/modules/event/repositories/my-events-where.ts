@@ -11,9 +11,11 @@ import { NO_NEW_REQUEST_STATUSES } from '@/modules/event/domain/participation';
  *   they are an active admin of (B-055), as they manage those too;
  * - `groups` (Z mých skupin, #304): published events of the active groups the
  *   user is an active member of (not an admin: those are in `organizing`),
- *   open to them (public or members-only, not link-only), that they can still
- *   ask to join: no place, no waiting request, and not rejected or removed by
- *   the organizer (`NO_NEW_REQUEST_STATUSES`, as the lists of #182).
+ *   open to them (public or members-only, not link-only), not their own (an
+ *   organizer who is a plain member now still runs it, in `organizing`),
+ *   that they can still ask to join: no place, no waiting request, and not
+ *   rejected or removed by the organizer (`NO_NEW_REQUEST_STATUSES`, as the
+ *   lists of #182).
  * All list upcoming events only (past ones are Proběhlé, #61); `attending` and
  * `organizing` keep cancelled ones with their label, `groups` doesn't (there is
  * nothing to go to); hidden and deleted never.
@@ -28,6 +30,7 @@ export const buildMyEventsWhere = (
       AND: [
         { status: 'published', startsAt: { gt: now } },
         { visibility: { in: ['public', 'members'] } },
+        { organizerUserId: { not: userId } },
         {
           group: {
             status: 'active',
