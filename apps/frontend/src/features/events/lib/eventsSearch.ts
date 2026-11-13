@@ -228,7 +228,11 @@ export function localityCenter(
  * (#299): what an empty list shows instead of nothing — „V lokalitě … teď nic není, nejbližší
  * akce“. None without a centre (Celé Česko, a searched map area): there is no „nearest“ there.
  */
-export function nearestFilters(search: EventsSearch, catalog: Catalog): EventFilters | undefined {
+export function nearestFilters(
+  search: EventsSearch,
+  catalog: Catalog,
+  limit: number,
+): EventFilters | undefined {
   const center = localityCenter(search, catalog)
   if (!center) return undefined
   return {
@@ -238,6 +242,8 @@ export function nearestFilters(search: EventsSearch, catalog: Catalog): EventFil
     lat: center.lat,
     lng: center.lng,
     sort: "distance",
+    // only what is shown: the API cuts after ordering by distance (review #321)
+    limit,
   }
 }
 

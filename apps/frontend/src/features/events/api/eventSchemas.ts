@@ -193,6 +193,8 @@ export type EventFilters = {
   radiusKm?: number
   /** Nearest to lat,lng first (#57); soonest first without it. */
   sort?: "distance"
+  /** At most this many (the API's default and maximum is 200); cut after the order, e.g. the 5 nearest (#299). */
+  limit?: number
   /**
    * The quick picks' personal parts (#250), decided from the session by GET /api/home/events:
    * the activities of one's interests, well rated organizers, no events one already goes to.

@@ -311,6 +311,7 @@ describe("nearestFilters (#299)", () => {
     const filters = nearestFilters(
       { lokalita: "praha-8", okoli: "10", obsazenost: "chybi", od: "2026-11-14" },
       catalog,
+      5,
     )
     expect(filters).toMatchObject({
       localityId: undefined,
@@ -318,15 +319,18 @@ describe("nearestFilters (#299)", () => {
       lat: praha8.lat,
       lng: praha8.lng,
       sort: "distance",
+      limit: 5,
       capacity: "missing",
       dateFrom: "2026-11-14",
     })
+    // only the five shown are downloaded (review #321)
+    expect(toSearchParams(filters!).get("limit")).toBe("5")
   })
 
   it("none without a centre: all of Czechia, a map area", () => {
-    expect(nearestFilters({ lokalita: "cele-cesko" }, catalog)).toBeUndefined()
+    expect(nearestFilters({ lokalita: "cele-cesko" }, catalog, 5)).toBeUndefined()
     expect(
-      nearestFilters({ lokalita: "praha-8", oblast: "14.3,50,14.6,50.15" }, catalog),
+      nearestFilters({ lokalita: "praha-8", oblast: "14.3,50,14.6,50.15" }, catalog, 5),
     ).toBeUndefined()
   })
 })

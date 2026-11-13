@@ -57,7 +57,7 @@ export const NEAREST_COUNT = 5
 export function useNearestEvents(search: EventsSearch, { isEnabled = true } = {}) {
   const { catalog } = useCatalog()
   const viewerId = useContext(EventsViewerContext)
-  const filters = catalog ? nearestFilters(search, catalog) : undefined
+  const filters = catalog ? nearestFilters(search, catalog, NEAREST_COUNT) : undefined
   const query = useQuery(
     eventsQueryOptions(filters && isEnabled ? { ...filters, viewerId } : undefined),
   )
@@ -70,6 +70,6 @@ export function useNearestEvents(search: EventsSearch, { isEnabled = true } = {}
           ? []
           : query.isPlaceholderData
             ? undefined
-            : query.data?.slice(0, NEAREST_COUNT),
+            : query.data,
   }
 }

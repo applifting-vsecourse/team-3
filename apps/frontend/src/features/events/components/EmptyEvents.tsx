@@ -180,6 +180,8 @@ export function EmptyEvents({
               >
                 <EventCard
                   event={event}
+                  // under the section's „Nejbližší akce“ (h2), not beside it (review #321)
+                  titleAs="h3"
                   // ordered by distance: the cards say how far (DESIGN.md › Okolí)
                   distanceKm={event.distanceKm}
                   isHighlighted={event.id === highlightedId}

@@ -257,6 +257,11 @@ describe("EmptyEvents", () => {
       expect(items).toHaveLength(2)
       expect(items[0]).toHaveTextContent("Volejbal v Náchodě")
       expect(items[0]).toHaveTextContent("8,4 km")
+      // the cards' titles sit under the section's heading (review #321)
+      expect(within(section).getByRole("heading", { level: 2 })).toHaveTextContent("Nejbližší akce")
+      expect(within(items[0]!).getByRole("heading", { level: 3 })).toHaveTextContent(
+        "Volejbal v Náchodě",
+      )
       // the ways on stay
       expect(
         await screen.findByRole("button", { name: "Zobrazit 5 akcí v celém Česku" }),
