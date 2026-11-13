@@ -324,3 +324,31 @@ describe("initialMyEventsTab (#188)", () => {
     expect(initialMyEventsTab(loaded([]), failed)).toBe("prihlasen")
   })
 })
+
+describe("an event going on right now (#272, review #323)", () => {
+  // 17:30 in Prague, no end: going on at 18:00, over at midnight
+  const running = aMyEvent({ missingToMin: 1, approvedCount: 3 })
+  const at1800 = new Date("2026-10-23T16:00:00.000Z")
+  const before = new Date("2026-10-23T08:00:00.000Z")
+
+  it("says „Probíhá“ instead of „Jdu“ or the occupancy: nobody joins or leaves any more", () => {
+    expect(attendingStatus(running, at1800)).toEqual({ kind: "in-progress" })
+    expect(attendingStatus(aMyEvent({ myParticipation: "pending" }), at1800)).toEqual({
+      kind: "in-progress",
+    })
+    expect(organizingStatus(running, at1800)).toEqual({ kind: "in-progress" })
+    expect(attendingStatus(running, before)).toEqual({ kind: "going" })
+  })
+
+  it("no „chybí 1“: once it runs, nobody can join to fill it", () => {
+    expect(attendingRowLead(running, at1800)).toBeUndefined()
+    expect(attendingRowLead(running, before)).toBe("chybí 1")
+    expect(attendingNumbers(running, at1800)).not.toMatch(/chybí/)
+  })
+
+  it("a cancelled event stays „Zrušeno“", () => {
+    expect(attendingStatus(aMyEvent({ status: "cancelled" }), at1800)).toEqual({
+      kind: "cancelled",
+    })
+  })
+})

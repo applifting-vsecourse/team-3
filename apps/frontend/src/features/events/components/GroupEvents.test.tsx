@@ -63,6 +63,27 @@ describe("GroupEvents", () => {
     const past = screen.getByRole("region", { name: "Proběhlé akce skupiny" })
     expect(within(past).getByText("Nekonalo se")).toBeInTheDocument()
     expect(within(past).getByText(/· do minima chyběli 2 lidé$/)).toBeInTheDocument()
+    // it no longer fills up: no capacity bar, as for „Proběhlo“
+    expect(past.querySelector("[data-slot=capacity-track]")).toBeNull()
+  })
+
+  it("an event going on right now stays upcoming and says „Probíhá“, without the bar (#272)", async () => {
+    const hour = 60 * 60 * 1000
+    await render({
+      upcoming: [
+        aGroupEvent({
+          id: "e03",
+          title: "Zápas právě teď",
+          startsAt: new Date(Date.now() - hour),
+          endsAt: new Date(Date.now() + hour),
+        }),
+      ],
+      past: [],
+    })
+
+    const upcoming = screen.getByRole("region", { name: "Nadcházející akce skupiny" })
+    expect(within(upcoming).getByText("Probíhá")).toBeInTheDocument()
+    expect(upcoming.querySelector("[data-slot=capacity-track]")).toBeNull()
   })
 
   it("says when nothing is planned, and leaves out an empty history", async () => {

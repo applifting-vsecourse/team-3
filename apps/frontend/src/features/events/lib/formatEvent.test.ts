@@ -16,6 +16,7 @@ import {
   formatRequestTime,
   formatStartInSentence,
   groupEventTail,
+  isEventInProgress,
   isEventOver,
   pastEventCountLabel,
   pastEventFacts,
@@ -205,6 +206,28 @@ describe("formatStartInSentence", () => {
     expect(formatStartInSentence(new Date("2026-10-22T16:00:00.000Z"), monday)).toBe(
       "ve čtvrtek v 18:00",
     )
+  })
+})
+
+describe("isEventInProgress (#272)", () => {
+  const startsAt = new Date("2026-10-23T16:00:00.000Z") // 18:00 in Prague
+  it("from its start until it is over, never when cancelled", () => {
+    expect(
+      isEventInProgress({ startsAt, endsAt: null }, new Date("2026-10-23T15:59:00.000Z")),
+    ).toBe(false)
+    expect(isEventInProgress({ startsAt, endsAt: null }, startsAt)).toBe(true)
+    expect(
+      isEventInProgress({ startsAt, endsAt: null }, new Date("2026-10-23T21:59:00.000Z")),
+    ).toBe(true)
+    expect(
+      isEventInProgress({ startsAt, endsAt: null }, new Date("2026-10-23T22:00:00.000Z")),
+    ).toBe(false)
+    expect(
+      isEventInProgress(
+        { startsAt, endsAt: null, status: "cancelled" },
+        new Date("2026-10-23T17:00:00.000Z"),
+      ),
+    ).toBe(false)
   })
 })
 

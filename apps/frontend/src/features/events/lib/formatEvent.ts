@@ -147,6 +147,16 @@ export function endOfPragueDay(date: Date): Date {
  */
 export const isEventOver = (event: { startsAt: Date; endsAt: Date | null }, now: Date): boolean =>
   (event.endsAt ?? endOfPragueDay(event.startsAt)) <= now
+
+/**
+ * Started and not over yet (#272): still where the user goes (Moje akce, Kam jdu, the group's
+ * upcoming events), but nobody joins or leaves any more (EVENT_STARTED) — „Probíhá“ instead of
+ * the occupancy, so the card doesn't look like one to sign up for (review #323).
+ */
+export const isEventInProgress = (
+  event: { startsAt: Date; endsAt: Date | null; status?: string },
+  now: Date,
+): boolean => event.status !== "cancelled" && event.startsAt <= now && !isEventOver(event, now)
 // „v pondělí“… with the preposition each day takes
 const ON_WEEKDAY = [
   "v neděli",

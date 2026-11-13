@@ -184,7 +184,7 @@ export function EventCard({
           <StatusBadge status={status ?? capacityStatus(event)} />
           {/* the row card draws the numbers only as the bar, so a screen reader still gets them
               (a past event says who came in its line) */}
-          {variant === "row" && status?.kind === "past" ? null : (
+          {variant === "row" && (status?.kind === "past" || status?.kind === "not-held") ? null : (
             <>
               {/* the row card and a phone show the numbers only to a screen reader — without
                   „chybí N“ when the line already starts with it (DESIGN.md › Occupancy in words) */}
@@ -205,8 +205,12 @@ export function EventCard({
               ) : null}
             </>
           )}
-          {/* a cancelled or past event no longer fills up */}
-          {!hasBar || isCancelled || status?.kind === "past" ? null : (
+          {/* a cancelled, past or running event no longer fills up (#272) */}
+          {!hasBar ||
+          isCancelled ||
+          status?.kind === "past" ||
+          status?.kind === "not-held" ||
+          status?.kind === "in-progress" ? null : (
             <CapacityBar
               variant="compact"
               approvedCount={event.approvedCount}

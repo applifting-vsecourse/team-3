@@ -10,7 +10,11 @@ import {
 } from "@/lib/occupancy"
 
 import type { MyEvent } from "@/features/events/api/eventSchemas"
-import { capacityStatus, formatStartInSentence } from "@/features/events/lib/formatEvent"
+import {
+  capacityStatus,
+  formatStartInSentence,
+  isEventInProgress,
+} from "@/features/events/lib/formatEvent"
 
 /**
  * Přihlášen (C-01): requests waiting for approval on top, apart from the
@@ -30,9 +34,13 @@ export function attendingSections(events: MyEvent[]): {
   }
 }
 
-/** „Jdu“ / „Čeká na schválení“; a cancelled event says so instead (D-02a). */
-export function attendingStatus(event: MyEvent): BadgeStatus {
+/**
+ * „Jdu“ / „Čeká na schválení“; a cancelled event says so instead (D-02a), one going on right
+ * now „Probíhá“ (#272).
+ */
+export function attendingStatus(event: MyEvent, now: Date = new Date()): BadgeStatus {
   if (event.status === "cancelled") return { kind: "cancelled" }
+  if (isEventInProgress(event, now)) return { kind: "in-progress" }
   return event.myParticipation === "pending" ? { kind: "pending" } : { kind: "going" }
 }
 
@@ -41,13 +49,16 @@ export function attendingStatus(event: MyEvent): BadgeStatus {
  * („Jdu“, „Čeká na schválení“), not the occupancy, so they say how many are missing
  * themselves: „chybí 1 · 8 z 14 · min. 9“, else „5 z 5 · min. 3“; cancelled, just the count.
  */
-export function attendingNumbers(event: MyEvent): string {
-  return event.status === "cancelled" ? occupancyCount(event) : occupancySummary(event)
+export function attendingNumbers(event: MyEvent, now: Date = new Date()): string {
+  return event.status === "cancelled" || isEventInProgress(event, now)
+    ? occupancyCount(event)
+    : occupancySummary(event)
 }
 
 /** A row card in Přihlášen starts its line with how many are missing: „chybí 1 · 18:00 · …“ (C-01). */
-export function attendingRowLead(event: MyEvent): string | undefined {
-  return event.status !== "cancelled" && event.missingToMin > 0
+export function attendingRowLead(event: MyEvent, now: Date = new Date()): string | undefined {
+  // once it runs, nobody can join to fill it: no „chybí 1“
+  return event.status !== "cancelled" && event.missingToMin > 0 && !isEventInProgress(event, now)
     ? missingLabel(event.missingToMin)
     : undefined
 }
@@ -98,9 +109,10 @@ export function requestCountLabel(count: number): string {
 const waitingRequests = (event: MyEvent): number =>
   event.status === "cancelled" ? 0 : (event.pendingRequests ?? 0)
 
-/** Pořádám (C-02): the occupancy, or „Zrušeno“ for a cancelled event. */
-export function organizingStatus(event: MyEvent): BadgeStatus {
-  return event.status === "cancelled" ? { kind: "cancelled" } : capacityStatus(event)
+/** Pořádám (C-02): the occupancy, „Zrušeno“ for a cancelled event, „Probíhá“ while it runs (#272). */
+export function organizingStatus(event: MyEvent, now: Date = new Date()): BadgeStatus {
+  if (event.status === "cancelled") return { kind: "cancelled" }
+  return isEventInProgress(event, now) ? { kind: "in-progress" } : capacityStatus(event)
 }
 
 /**
