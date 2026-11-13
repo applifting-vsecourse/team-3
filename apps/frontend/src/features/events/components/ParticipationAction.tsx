@@ -100,7 +100,6 @@ export function ParticipationAction({
             >
               Podobné akce najdeš v Akcích
             </Link>
-            .
           </AlertDescription>
         </Alert>
       </Row>
