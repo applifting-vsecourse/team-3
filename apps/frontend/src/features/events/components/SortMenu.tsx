@@ -17,6 +17,13 @@ const LABEL: Record<Sort, string> = {
   vzdalenost: "nejmenší vzdálenost",
 }
 
+// a phone shows just the value (Figma A-02h: „Nejnovější ▾“), so the count, „Zrušit filtry“ and
+// the order fit one line (#324); „Řadit:“ stays for a screen reader
+const SHORT_LABEL: Record<Sort, string> = {
+  termin: "Termín",
+  vzdalenost: "Vzdálenost",
+}
+
 type SortMenuProps = {
   value: Sort
   /** A centre to measure from is known; without it the distance order is offered but off. */
@@ -25,7 +32,7 @@ type SortMenuProps = {
 }
 
 /**
- * „Řadit: nejbližší termín ▾“ above the list (Figma A-02j, A-02jd; #57): soonest first, or
+ * „Řadit: nejbližší termín ▾“ above the list, „Termín ▾“ on a phone (Figma A-02j, A-02jd; #57, #324): soonest first, or
  * nearest to the chosen locality's centre. Always a menu: a plain label looked like the button
  * and a tap did nothing (Celé Česko, a searched map area). Without a centre the distance order
  * is there but off, with why under it — readable, not dimmed like the disabled item.
@@ -39,7 +46,9 @@ export function SortMenu({ value, isDistanceAvailable, onChange }: SortMenuProps
           variant="ghost"
           className="-my-1 h-8 gap-1 px-2 text-xs font-medium text-muted-foreground"
         >
-          Řadit: {LABEL[value]}
+          <span className="max-md:sr-only">Řadit: </span>
+          <span className="md:hidden">{SHORT_LABEL[value]}</span>
+          <span className="max-md:hidden">{LABEL[value]}</span>
           <ChevronDown aria-hidden />
         </Button>
       </DropdownMenuTrigger>

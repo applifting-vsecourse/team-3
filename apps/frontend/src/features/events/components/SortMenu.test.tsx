@@ -15,7 +15,7 @@ describe("SortMenu (#57)", () => {
       />,
     )
 
-    await userEvent.click(screen.getByRole("button", { name: /Řadit: nejbližší termín/ }))
+    await userEvent.click(screen.getByRole("button", { name: /^Řadit:/ }))
     expect(screen.getByRole("menuitemradio", { name: "Nejbližší termín" })).toBeChecked()
     await userEvent.click(screen.getByRole("menuitemradio", { name: /Nejmenší vzdálenost/ }))
     expect(onChange).toHaveBeenCalledWith("vzdalenost")
@@ -32,11 +32,26 @@ describe("SortMenu (#57)", () => {
     )
 
     // a plain label looked like this button and a tap did nothing (Celé Česko)
-    await userEvent.click(screen.getByRole("button", { name: /Řadit: nejbližší termín/ }))
+    await userEvent.click(screen.getByRole("button", { name: /^Řadit:/ }))
     const distance = screen.getByRole("menuitemradio", { name: /Nejmenší vzdálenost/ })
     expect(distance).toHaveAttribute("aria-disabled", "true")
     expect(screen.getByText("Pro řazení podle vzdálenosti vyber lokalitu.")).toBeInTheDocument()
     await userEvent.click(distance)
     expect(onChange).not.toHaveBeenCalled()
+  })
+
+  it("a phone shows just the value, so the row above the list fits one line (#324)", () => {
+    render(
+      <SortMenu
+        value="vzdalenost"
+        isDistanceAvailable
+        onChange={vi.fn()}
+      />,
+    )
+
+    // CSS isn't applied here: which one shows where is in the classes
+    expect(screen.getByText("Řadit:")).toHaveClass("max-md:sr-only")
+    expect(screen.getByText("Vzdálenost")).toHaveClass("md:hidden")
+    expect(screen.getByText("nejmenší vzdálenost")).toHaveClass("max-md:hidden")
   })
 })
