@@ -3,7 +3,7 @@ import { Link } from "@tanstack/react-router"
 
 import { ROUTES } from "@/app/routes"
 import { StatusBadge } from "@/components/StatusBadge/StatusBadge"
-import { gatheredLabel } from "@/lib/occupancy"
+import { gatheredLabel, missedMinimumLabel } from "@/lib/occupancy"
 
 import type { PublicEvent } from "@/features/events/api/eventSchemas"
 import { EventPhoto } from "@/features/events/components/EventPhoto"
@@ -20,8 +20,12 @@ type PastEventCardProps = {
   event: Pick<
     PublicEvent,
     "id" | "title" | "startsAt" | "address" | "activity" | "locality" | "approvedCount"
-  > & { status?: "published" | "cancelled" }
-  /** Ignored for a cancelled event, which didn't take place. */
+  > & {
+    status?: "published" | "cancelled"
+    /** With it, a card below its minimum says it didn't take place, as the detail (review #315). */
+    minParticipants?: number
+  }
+  /** Ignored for an event that didn't take place: cancelled, or below its minimum. */
   rating?: PastRating
   /** After how many came, e.g. the event's rating on a public profile: „★ 4,5 (3 hodnocení)“ (#179). */
   detail?: string
@@ -49,15 +53,27 @@ export function PastEventCard({
 }: PastEventCardProps) {
   // from the event, not the rating: a cancelled event never offers „Ohodnotit“
   const isCancelled = event.status === "cancelled"
+  // below its minimum it didn't take place – the same rule as the detail (missingToMin === 0)
+  const isNotHeld =
+    !isCancelled &&
+    event.minParticipants !== undefined &&
+    event.approvedCount < event.minParticipants
+  const didNotHappen = isCancelled || isNotHeld
   const line = [formatEventDay(event.startsAt), placeName(event.address), event.locality.name].join(
     " · ",
   )
   const attendance = [
     isCancelled
       ? "Akce se nekonala"
-      : rating?.kind === "given"
-        ? `${gatheredLabel(event.approvedCount)} · tvoje ★ ${rating.stars}`
-        : gatheredLabel(event.approvedCount),
+      : isNotHeld
+        ? // „Do minima chyběl 1 člověk“, as the detail says it, without the full stop
+          missedMinimumLabel({
+            approvedCount: event.approvedCount,
+            missingToMin: (event.minParticipants ?? 0) - event.approvedCount,
+          }).replace(/\.$/, "")
+        : rating?.kind === "given"
+          ? `${gatheredLabel(event.approvedCount)} · tvoje ★ ${rating.stars}`
+          : gatheredLabel(event.approvedCount),
     detail,
   ]
     .filter(Boolean)
@@ -91,9 +107,11 @@ export function PastEventCard({
         </time>
         <p className="truncate text-caption text-muted-foreground">{line}</p>
         <div className="flex items-center gap-2 pt-1">
-          <StatusBadge status={{ kind: isCancelled ? "cancelled" : "past" }} />
+          <StatusBadge
+            status={{ kind: isCancelled ? "cancelled" : isNotHeld ? "notHeld" : "past" }}
+          />
           <span className="truncate text-caption text-muted-foreground">{attendance}</span>
-          {!isCancelled && rating?.kind === "open" && rateAction ? (
+          {!didNotHappen && rating?.kind === "open" && rateAction ? (
             // above the card's stretched link, so it stays its own target
             <span className="relative ml-auto shrink-0 text-sm font-semibold">{rateAction}</span>
           ) : null}

@@ -68,6 +68,31 @@ describe("PastEventCard", () => {
     expect(screen.queryByRole("link")).not.toBeInTheDocument()
   })
 
+  it("below its minimum: „Nekonalo se“ and how many were missing, as on the detail (review #315)", async () => {
+    await renderWithRouter(
+      <PastEventCard
+        event={{ ...volleyball(), approvedCount: 3, minParticipants: 4 }}
+        rating={{ kind: "open" }}
+        rateAction={<a href="/hodnoceni">Ohodnotit →</a>}
+      />,
+    )
+
+    expect(screen.getByText("Nekonalo se")).toBeInTheDocument()
+    expect(screen.getByText("Do minima chyběl 1 člověk")).toBeInTheDocument()
+    expect(screen.queryByText("Proběhlo")).not.toBeInTheDocument()
+    // nothing to rate
+    expect(screen.queryByRole("link", { name: "Ohodnotit →" })).not.toBeInTheDocument()
+  })
+
+  it("exactly the minimum took place", async () => {
+    await renderWithRouter(
+      <PastEventCard event={{ ...volleyball(), approvedCount: 4, minParticipants: 4 }} />,
+    )
+
+    expect(screen.getByText("Proběhlo")).toBeInTheDocument()
+    expect(screen.getByText("Sešli se 4 lidé")).toBeInTheDocument()
+  })
+
   it("cancelled: „Zrušeno“ and that it didn't take place, from the event's status", async () => {
     await renderWithRouter(
       <PastEventCard

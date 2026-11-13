@@ -8,6 +8,8 @@ export type CapacityStatus =
   | { kind: "cancelled" }
   // a past event on its group's page (Figma A-08e)
   | { kind: "past" }
+  // a past event below its minimum, which didn't take place (review #315)
+  | { kind: "notHeld" }
 
 /** The user's own place, in „Moje akce“ (C-01): „Jdu“, „Čeká na schválení“. */
 export type ParticipationBadge = { kind: "going" } | { kind: "pending" }
@@ -23,6 +25,7 @@ const STYLES: Record<BadgeStatus["kind"], string> = {
   full: "border-control-border bg-badge-neutral text-badge-neutral-foreground",
   cancelled: "border-control-border bg-foreground text-background",
   past: "border-control-border text-muted-foreground",
+  notHeld: "border-control-border text-muted-foreground",
   // Figma draws these as the Volná and Plno variants with their own label
   going: "border-tile-border bg-secondary text-secondary-foreground",
   pending: "border-control-border bg-badge-neutral text-badge-neutral-foreground",
@@ -40,6 +43,8 @@ const label = (status: BadgeStatus): string => {
       return "Zrušeno"
     case "past":
       return "Proběhlo"
+    case "notHeld":
+      return "Nekonalo se"
     case "going":
       return "Jdu"
     case "pending":
