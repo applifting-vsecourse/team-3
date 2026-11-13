@@ -21,9 +21,9 @@ import {
   HomeViewer,
   orderRecruitingGroups,
 } from '@/modules/home/domain/home-sections';
-import { nearestEvents } from '@/modules/home/domain/nearest-events';
 import { keepPicked, PickFilters } from '@/modules/home/domain/picked-events';
 import { HomeRepository } from '@/modules/home/repositories/home.repository';
+import { LatLng } from '@/shared/geo/distance';
 import { BadRequestException, Injectable } from '@nestjs/common';
 
 /**
@@ -31,6 +31,17 @@ import { BadRequestException, Injectable } from '@nestjs/common';
  * their next event. The endpoint is public, so the query stays bounded.
  */
 export const GROUP_SCAN_LIMIT = 500;
+
+/**
+ * How many of the nearest events the landing page picks its sections from
+ * when its locality has nothing to join (#299): enough for the panel and
+ * every section (1 + 6 × 3), with some to spare for the rules that skip full
+ * events or the viewer's own.
+ */
+export const NEAREST_POOL = 30;
+
+/** „Nearest“ is looked for within this many km first (the API's widest okolí). */
+export const NEAR_KM = 100;
 
 export type HomeSection =
   | { key: HomeEventSectionKey; events: PublicEvent[] }
@@ -188,21 +199,12 @@ export class HomeService {
     // nothing at all: full events and the viewer's own leave no section either.
     let isWidened = false;
     if (locality && sections.length === 0) {
-      // Known limit: „nearest“ among the SCAN_LIMIT soonest events of the
-      // whole country, not among all of them — enough while there are fewer
-      // upcoming events; with more, a near event far in the future can be
-      // missed (as the list's search, BACKLOG B-023).
-      const [everywhere, interestEverywhere] = await Promise.all([
-        this.eventRepository.findPublicEvents({
-          filters: {},
-          now,
-          limit: SCAN_LIMIT,
-        }),
+      const [nearest, interestEverywhere] = await Promise.all([
+        this.nearestEvents({ lat: locality.lat, lng: locality.lng }, now),
         viewer
           ? new Map<string, number>()
           : this.eventRepository.countInterest({}, now),
       ]);
-      const nearest = nearestEvents(everywhere, locality);
       sections = buildHomeEventSections({
         events: nearest,
         interest: interestEverywhere,
@@ -235,6 +237,37 @@ export class HomeService {
       isWidened,
       hasLocalityEvents: events.length > 0,
     };
+  }
+
+  /**
+   * The NEAREST_POOL events nearest to the point, each with its distance, by
+   * the same search as /akce (`sort: 'distance'`, review #321). Within
+   * NEAR_KM first: with a circle the database looks only around the point, so
+   * a near event weeks away is not lost behind the SCAN_LIMIT soonest events
+   * of the whole country. Only when fewer are that near, the whole country by
+   * distance tops them up — there the list's known limit applies (B-023).
+   */
+  private async nearestEvents(
+    point: LatLng,
+    now: Date,
+  ): Promise<PublicEvent[]> {
+    const options = { sort: 'distance' as const, limit: NEAREST_POOL };
+    const near = await this.eventsService.getPublicEvents(
+      { point, radiusKm: NEAR_KM },
+      options,
+      now,
+    );
+    if (near.length >= NEAREST_POOL) return near;
+    const anywhere = await this.eventsService.getPublicEvents(
+      { point },
+      options,
+      now,
+    );
+    const nearIds = new Set(near.map((event) => event.id));
+    return [
+      ...near,
+      ...anywhere.filter((event) => !nearIds.has(event.id)),
+    ].slice(0, NEAREST_POOL);
   }
 }
 
