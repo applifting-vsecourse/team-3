@@ -103,8 +103,8 @@ Staging a CI/CD (F-59, F-60) už v repu jsou (`.github/workflows/ci.yml`, `deplo
 **Cíl:** Aplikace se jmenuje HobbyHub a hlavička vede na hlavní části.
 
 - V hlavičce, `<title>`, `Seo` a logu nahraď „Quacker“ za „HobbyHub“.
-- Navigace v hlavičce: **Akce**, **Skupiny**, **Moje akce** (jen přihlášený), **Administrace** (jen role `admin`). Zatím neexistující cesty vrací stránku „Připravujeme“, ne 404.
-- Na mobilu spodní navigace podle designu: návštěvník **Akce**, **Skupiny**, **Přihlásit**; přihlášený **Akce**, **Skupiny**, **Moje akce**, **Profil**. Mapa není samostatná položka, je součástí `/akce` (B-025).
+- Navigace v hlavičce: **Akce**, **Skupiny**, **Moje** (jen přihlášený; do #304 „Moje akce“), **Administrace** (jen role `admin`). Zatím neexistující cesty vrací stránku „Připravujeme“, ne 404.
+- Na mobilu spodní navigace podle designu: návštěvník **Akce**, **Skupiny**, **Přihlásit**; přihlášený **Akce**, **Skupiny**, **Moje** (ikona záložky, #304), **Profil**. Mapa není samostatná položka, je součástí `/akce` (B-025).
 
 **Hotovo, když:**
 
@@ -610,6 +610,7 @@ Doménová logika (čistá funkce + testy): `approvedCount`, `missingToMin = max
   - **Pořádám:** moje akce + akce mých skupin (po B-055)
   - **Proběhlé:** kde jsem byl přihlášen nebo jsem pořádal
 - FE `/moje-akce`: záložky, u akce stav mé účasti a termín, řazeno od nejbližší (proběhlé od nejnovější). Z pořádané akce odkaz na správu.
+- **Jak je to hotové (#304, Figma C-01, C-02, C-01d, C-02d):** sekce „Moje“ s akcemi i skupinami. `/moje/akce` má v pásu záložky Akce / Skupiny s počty, pod pásem čipy Přihlášen / Pořádám (`?tab=prihlasen|poradam`, výchozí podle #188). Obsah čipů je stejný jako dřív v záložkách. `/moje-akce` i `/moje` přesměrují na `/moje/akce` (s `?tab`). V navigaci „Moje“, ve spodní liště s ikonou záložky; pod Moje patří i založení, úprava a správa akce a skupiny. Hlavní tlačítko „Založit akci“. Tmavý režim se pro nové obrazovky nekreslí (PO). Původní Moje akce: Figma „Archiv – v6 (do 13. 11.)“.
 
 **Hotovo, když:**
 
@@ -784,6 +785,7 @@ Doménová logika (čistá funkce + testy): `approvedCount`, `missingToMin = max
 
 - `GET /api/me/groups` (`AuthenticatedUserGuard`): skupiny se stavem `active`, kde mám členství `active` nebo `pending`; u každé moje `role` a `status` členství. Řazení: čekající nahoře, pak podle názvu.
 - FE `/skupiny`: pro přihlášeného záložky **Všechny** / **Moje** (`?tab=moje`). Filtry jen pro Všechny. V Moje sekce „Čeká na schválení“ a „Moje skupiny“, u správce popisek „Správce“.
+- **Jak je to hotové (#304, Figma C-04, C-05, C-04d, C-05d):** moje skupiny jsou v sekci Moje › Skupiny (`/moje/skupiny`), stejný vzor jako Moje › Akce: čipy **Jsem členem** (moje čekající žádosti se štítkem „Čeká na schválení“ jako u akce, pak skupiny, kde jsem členem; karta vede na stránku skupiny) a **Spravuju** (pruh „N žádostí o členství čeká na schválení“, karta „N žádostí čeká“ vede na správu skupiny), `?tab=clen|spravuju`. Výchozí čip Spravuju, když tam čekají žádosti nebo když jen spravuju, jinak Jsem členem (`initialMyGroupsTab`). `GET /api/me/groups` vrací `pendingRequests` (jen u skupiny, kterou spravuju jako aktivní správce, jinak `null`). `/skupiny` záložky nemá, `/skupiny?tab=moje` přesměruje na `/moje/skupiny`. Hlavní tlačítko „Založit skupinu“. Žádosti o členství se schvalují stejně jako žádosti o účast: zamítnutí se ptá dialogem „Zamítnout žádost?“, u žádosti je čas odeslání a zpráva žadatele (#175), hlášky „Schváleno / Zamítnuto: jméno“.
 
 **Hotovo, když:**
 
