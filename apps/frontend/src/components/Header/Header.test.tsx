@@ -14,7 +14,7 @@ describe("Header", () => {
       />,
     )
 
-    expect(screen.getByRole("link", { name: "Moje" })).toHaveAttribute("href", "/moje/akce")
+    expect(screen.getByRole("link", { name: "Moje" })).toHaveAttribute("href", "/moje")
   })
 
   it("not to a visitor", async () => {

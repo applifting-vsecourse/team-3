@@ -45,7 +45,7 @@ export function BottomNav({ isSignedIn, isSessionPending }: BottomNavProps) {
       ) : isSignedIn ? (
         <>
           <BottomNavLink
-            to={ROUTES.myEvents}
+            to={ROUTES.my}
             section="my"
             icon={<Bookmark className="size-5" />}
           >

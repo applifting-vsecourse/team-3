@@ -610,7 +610,7 @@ Doménová logika (čistá funkce + testy): `approvedCount`, `missingToMin = max
   - **Pořádám:** moje akce + akce mých skupin (po B-055)
   - **Proběhlé:** kde jsem byl přihlášen nebo jsem pořádal
 - FE `/moje-akce`: záložky, u akce stav mé účasti a termín, řazeno od nejbližší (proběhlé od nejnovější). Z pořádané akce odkaz na správu.
-- **Jak je to hotové (#304, Figma C-01, C-02, C-01d, C-02d):** sekce „Moje“ s akcemi i skupinami. `/moje/akce` má v pásu záložky Akce / Skupiny s počty, pod pásem čipy Přihlášen / Pořádám (`?tab=prihlasen|poradam`, výchozí podle #188). Obsah čipů je stejný jako dřív v záložkách. `/moje-akce` i `/moje` přesměrují na `/moje/akce` (s `?tab`). V navigaci „Moje“, ve spodní liště s ikonou záložky; pod Moje patří i založení, úprava a správa akce a skupiny. Hlavní tlačítko „Založit akci“. Tmavý režim se pro nové obrazovky nekreslí (PO). Původní Moje akce: Figma „Archiv – v6 (do 13. 11.)“.
+- **Jak je to hotové (#304, Figma C-01, C-02, C-01d, C-02d):** sekce „Moje“ s akcemi i skupinami. `/moje/akce` má v pásu záložky Akce / Skupiny s počty, pod pásem čipy Přihlášen / Pořádám (`?tab=prihlasen|poradam`, výchozí podle #188). Obsah čipů je stejný jako dřív v záložkách. `/moje-akce` přesměruje na `/moje/akce` (s `?tab`). „Moje“ v navigaci vede na `/moje`, které otevře Akce, nebo Skupiny, když čekají jen žádosti o členství (`initialMySection`). V navigaci „Moje“, ve spodní liště s ikonou záložky; pod Moje patří i založení, úprava a správa akce a skupiny. Hlavní tlačítko „Založit akci“. Tmavý režim se pro nové obrazovky nekreslí (PO). Původní Moje akce: Figma „Archiv – v6 (do 13. 11.)“.
 
 **Hotovo, když:**
 

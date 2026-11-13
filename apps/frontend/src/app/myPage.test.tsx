@@ -212,10 +212,17 @@ describe("Moje: the old addresses lead there (#304)", () => {
     expect(app.state.location.search).toEqual({ tab: "poradam" })
   })
 
-  it("/moje opens on Akce", async () => {
+  it("/moje (the navigation's „Moje“) opens on Akce", async () => {
     const app = await renderMy("/moje", {})
 
     expect(app.state.location.pathname).toBe("/moje/akce")
+  })
+
+  it("/moje opens on Skupiny when only requests to join my groups wait", async () => {
+    const app = await renderMy("/moje", { organizing: [noRequests], groups: [volejbal] })
+
+    expect(app.state.location.pathname).toBe("/moje/skupiny")
+    expect(await tab(/Spravuju · 1/)).toHaveAttribute("aria-selected", "true")
   })
 
   it("/skupiny?tab=moje is Moje › Skupiny; /skupiny itself has no tabs", async () => {
