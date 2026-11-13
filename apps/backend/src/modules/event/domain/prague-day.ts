@@ -55,6 +55,14 @@ export const startOfNextPragueDay = (day: string): Date =>
   pragueMidnight(day, 1);
 
 /**
+ * Prague midnight that starts the day `days` calendar days after `day`, e.g.
+ * the end of a rating window of 14 days (#66): 14 days in the calendar, not
+ * 14 × 24 h, so a change of time between doesn't move it by an hour.
+ */
+export const startOfPragueDayAfter = (day: string, days: number): Date =>
+  pragueMidnight(day, days);
+
+/**
  * Prague midnight `daysLater` days after `day`. Works on numbers, not on a
  * "YYYY-MM-DD" string: the day after 9999-12-31 is in year 10000, which
  * toISOString writes as "+010000-01-01".

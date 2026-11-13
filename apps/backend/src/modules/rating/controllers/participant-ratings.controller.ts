@@ -46,7 +46,7 @@ export class ParticipantRatingsController {
       "The organizer's ratings of the event's approved participants (B-060, #66), and whether they may give or change them",
     description:
       'Only the organizer who created the event, also for an event of a group (not other admins of the group). ' +
-      `\`refusal\` says why nobody can be rated now (cancelled, not over yet, after ${RATING_WINDOW_DAYS} days).`,
+      `\`refusal\` says why nobody can be rated now (cancelled, not over yet, after ${RATING_WINDOW_DAYS} calendar days in Prague).`,
   })
   @ApiResponse({ status: 200, type: ParticipantRatingsResponseDto })
   @ApiResponse({ status: 401, description: 'Not signed in' })
@@ -68,7 +68,7 @@ export class ParticipantRatingsController {
   @UseGuards(VerifiedUserGuard)
   @ApiCookieAuth()
   @ApiOperation({
-    summary: `Rate participants, one or all at once, or change their ratings (B-060, #66); within ${RATING_WINDOW_DAYS} days of the end`,
+    summary: `Rate participants, one or all at once, or change their ratings (B-060, #66); within ${RATING_WINDOW_DAYS} calendar days (Prague) of the end`,
     description:
       'Each listed participant gets their own rating, which replaces the earlier one, comment included; ' +
       "participants not listed don't change. All or none: when one is refused, nothing is saved " +

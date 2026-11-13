@@ -7,7 +7,7 @@
 
 Obě vyžadují session, `PUT` i ověřený e-mail (`VerifiedUserGuard`). Hodnotit smí jen ten, kdo byl na akci `approved`, ne organizátor – ten, kdo akci založil, i u akce skupiny; ostatní správci skupiny, kteří na akci byli, hodnotí jako každý účastník (#313); členství ve skupině akce už podmínkou není (bývalý člen ohodnotí akci jen pro členy, na které byl). Neznámá, skrytá a smazaná akce je 404, kdo hodnotit nesmí, dostane 403 (`OWN_EVENT`, `NOT_PARTICIPANT`), stav akce nebo hodnocení je 409 (`EVENT_NOT_PUBLISHED` u zrušené akce, `EVENT_NOT_ENDED`, `RATING_DELETED`, `RATING_WINDOW_CLOSED`); smazané hodnocení je `RATING_DELETED` i po lhůtě. Pravidla jsou v čisté funkci `decideEventRating` (`domain/event-rating.ts`). Zápis je pod zámkem řádku akce jako přihláška a o všem – jestli akce existuje, odmítnutí i `ratableUntil` – rozhoduje jedno čtení pod zámkem.
 
-Lhůta je 14 dní od konce akce (bez konce od začátku), poslední okamžik ještě platí: `RATING_WINDOW_DAYS` v `domain/rating-window.ts`; hlášky i popisy API berou číslo odtud, stejná pro hodnocení účastníka (`decideParticipantRating`). U akce skupiny se hvězdičky organizátora počítají ke skupině (`rating-summary.ts`).
+Lhůta je 14 kalendářních dní v pražském čase (review #313), ne 14 × 24 h: hodnotit jde celý 14. den po dni, kdy akce skončila (bez konce začala), do 23:59:59.999 v Praze, takže změna času nic neposune; `ratableUntil` je ten poslední okamžik. Dny počítá `prague-day.ts`, `RATING_WINDOW_DAYS` v `domain/rating-window.ts`; hlášky i popisy API berou číslo odtud, stejná pro hodnocení účastníka (`decideParticipantRating`). U akce skupiny se hvězdičky organizátora počítají ke skupině (`rating-summary.ts`).
 
 ## Organizátor hodnotí účastníky (#66)
 

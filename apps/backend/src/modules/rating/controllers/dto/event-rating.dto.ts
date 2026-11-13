@@ -109,7 +109,7 @@ export class MyEventRatingResponseDto {
   @ApiProperty({
     type: String,
     format: 'date-time',
-    description: `${RATING_WINDOW_DAYS} days after the end of the event (its start without one)`,
+    description: `The last moment to rate: the end (23:59:59.999 in Prague) of the ${RATING_WINDOW_DAYS}th Prague calendar day after the day the event ended (started, without an end)`,
   })
   ratableUntil!: Date;
 

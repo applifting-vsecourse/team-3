@@ -15,7 +15,8 @@ import { RatingService } from './rating.service';
 const now = new Date('2026-11-01T12:00:00.000Z');
 const startsAt = new Date('2026-10-31T17:00:00.000Z');
 const endsAt = new Date('2026-10-31T19:00:00.000Z');
-const ratableUntil = new Date('2026-11-14T19:00:00.000Z');
+// the end of Sat 14. 11. in Prague (UTC+1), 14 calendar days after Sat 31. 10.
+const ratableUntil = new Date('2026-11-14T22:59:59.999Z');
 const updatedAt = new Date('2026-11-01T08:00:00.000Z');
 
 const snapshot = (
