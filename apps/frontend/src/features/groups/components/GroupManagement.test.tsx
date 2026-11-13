@@ -158,8 +158,11 @@ describe("GroupManagement", () => {
   })
 
   it("deciding one request leaves the others usable (review #318)", async () => {
-    let finish!: () => void
-    api.post.mockReturnValueOnce(new Promise<void>((resolve) => (finish = resolve)))
+    let finishJakub!: () => void
+    let finishPetr!: () => void
+    api.post
+      .mockReturnValueOnce(new Promise<void>((resolve) => (finishJakub = resolve)))
+      .mockReturnValueOnce(new Promise<void>((resolve) => (finishPetr = resolve)))
     renderManagement(true)
 
     await userEvent.click(
@@ -168,8 +171,20 @@ describe("GroupManagement", () => {
 
     expect(screen.getByRole("button", { name: "Schválit žádost: Jakub Král" })).toBeDisabled()
     expect(screen.getByRole("button", { name: "Schválit žádost: Petr Holub" })).toBeEnabled()
-    expect(screen.getByRole("button", { name: "Zamítnout žádost: Petr Holub" })).toBeEnabled()
-    finish()
+
+    // a second row while the first is on its way: the first stays locked (review #318, 2nd round)
+    await userEvent.click(screen.getByRole("button", { name: "Schválit žádost: Petr Holub" }))
+
+    expect(screen.getByRole("button", { name: "Schválit žádost: Jakub Král" })).toBeDisabled()
+    expect(screen.getByRole("button", { name: "Zamítnout žádost: Jakub Král" })).toBeDisabled()
+    expect(screen.getByRole("button", { name: "Schválit žádost: Petr Holub" })).toBeDisabled()
+
+    finishPetr()
+    await waitFor(() =>
+      expect(screen.getByRole("button", { name: "Schválit žádost: Petr Holub" })).toBeEnabled(),
+    )
+    expect(screen.getByRole("button", { name: "Schválit žádost: Jakub Král" })).toBeDisabled()
+    finishJakub()
   })
 
   it("rejecting the last request closes the dialog and leaves the focus on the list, not <body> (review #318)", async () => {
@@ -189,6 +204,8 @@ describe("GroupManagement", () => {
     expect(await screen.findByText("Žádné žádosti o členství teď nečekají.")).toBeInTheDocument()
     await waitFor(() => expect(screen.queryByRole("dialog")).not.toBeInTheDocument())
     await waitFor(() => expect(document.activeElement).not.toBe(document.body))
+    // a named place, so a screen reader says where it is (review #318, 2nd round)
+    expect(document.activeElement).toBe(screen.getByRole("region", { name: "Žádosti o členství" }))
     expect(document.activeElement).toContainElement(
       screen.getByText("Žádné žádosti o členství teď nečekají."),
     )

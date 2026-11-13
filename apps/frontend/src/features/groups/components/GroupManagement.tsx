@@ -134,27 +134,42 @@ function RequestList({ groupId, requests }: { groupId: string; requests: GroupMe
   const [isRejectOpen, setIsRejectOpen] = useState(false)
   // the focus comes back here after a rejection: the rejected row is gone (review #318)
   const listRef = useRef<HTMLDivElement>(null)
-  // only the row being decided waits; the others stay usable (review #318)
-  const isDeciding = (request: GroupMemberEntry) =>
-    decide.isPending && decide.variables.userId === request.userId
+  // the rows whose decision is on its way: one mutation keeps only its last call's variables,
+  // so a second row clicked meanwhile would unlock the first (review #318)
+  const [deciding, setDeciding] = useState<ReadonlySet<string>>(new Set())
+  const isDeciding = (request: GroupMemberEntry) => deciding.has(request.userId)
 
   // the same toasts as an event's requests (#304); the API's message says why it failed
-  const handle = (request: GroupMemberEntry, decision: "approve" | "reject") =>
-    decide.mutateAsync({ userId: request.userId, decision }).then(
-      () =>
-        toast.success(
-          decision === "approve" ? `Schváleno: ${request.name}` : `Zamítnuto: ${request.name}`,
-        ),
-      (error: Error) => {
-        toast.error(error.message)
-        throw error
-      },
-    )
+  const handle = (request: GroupMemberEntry, decision: "approve" | "reject") => {
+    setDeciding((rows) => new Set(rows).add(request.userId))
+    return decide
+      .mutateAsync({ userId: request.userId, decision })
+      .then(
+        () =>
+          toast.success(
+            decision === "approve" ? `Schváleno: ${request.name}` : `Zamítnuto: ${request.name}`,
+          ),
+        (error: Error) => {
+          toast.error(error.message)
+          throw error
+        },
+      )
+      .finally(() =>
+        setDeciding((rows) => {
+          const next = new Set(rows)
+          next.delete(request.userId)
+          return next
+        }),
+      )
+  }
 
   return (
+    // named, so a screen reader says where the focus came back to after a rejection
     <div
       ref={listRef}
       tabIndex={-1}
+      role="region"
+      aria-label="Žádosti o členství"
       className="outline-none"
     >
       {requests.length === 0 ? (

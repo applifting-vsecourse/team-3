@@ -53,10 +53,18 @@ describe("useMyGroupsTab (#304, review #318)", () => {
     expect(result.current).toBe("spravuju")
   })
 
-  it("groups that failed to load pick Jsem členem, where the error and „Zkusit znovu“ show", () => {
+  it("groups that failed to load show Jsem členem, where the error and „Zkusit znovu“ show", () => {
     const { result } = render({ error: new Error("HTTP 500") })
 
     expect(result.current).toBe("clen")
+  })
+
+  it("after „Zkusit znovu“ the first real data pick, not the error (review #318, 2nd round)", () => {
+    const { result, rerender } = render({ error: new Error("HTTP 500") })
+
+    rerender({ groups: [member, running(1)] })
+
+    expect(result.current).toBe("spravuju")
   })
 
   it("the URL's chip wins", () => {
