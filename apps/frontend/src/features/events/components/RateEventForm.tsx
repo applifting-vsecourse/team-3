@@ -100,7 +100,8 @@ export function RateEventForm({ data, isSaving, onSave }: RateEventFormProps) {
         className="flex flex-col gap-6"
       >
         <div className="grid gap-6 md:grid-cols-2 md:gap-12">
-          <div className="flex flex-col gap-6">
+          {/* min-w-0: the card's truncated line would widen the column past a phone's width */}
+          <div className="flex min-w-0 flex-col gap-6">
             <PastEventCard event={event} />
             <FormField
               control={form.control}
@@ -144,7 +145,7 @@ export function RateEventForm({ data, isSaving, onSave }: RateEventFormProps) {
             control={form.control}
             name="comment"
             render={({ field }) => (
-              <FormItem>
+              <FormItem className="min-w-0">
                 <FormLabel>Komentář (nepovinné)</FormLabel>
                 <FormControl>
                   <Textarea
