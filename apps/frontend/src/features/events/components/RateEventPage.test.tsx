@@ -262,33 +262,27 @@ describe("/akce/:id/hodnoceni for a participant (Figma C-03, #66)", () => {
     ).toBeInTheDocument()
   })
 
-  it("the organizer (403 OWN_EVENT) is sent back to the management", async () => {
-    answer = new FakeHTTPError(403, {
-      code: "OWN_EVENT",
-      message: "Svou vlastní akci hodnotit nejde.",
-    })
-    await renderPage()
-
-    expect(await screen.findByText("Svou akci nehodnotíš")).toBeInTheDocument()
-    expect(screen.getByRole("link", { name: "Zpět na správu akce" })).toHaveAttribute(
-      "href",
-      "/akce/e1/sprava",
-    )
-  })
-
   it("for the organizer 403 OWN_EVENT is an answer, not a failure (review #313)", async () => {
-    // the page can't tell the organizer before asking: it has no event's detail to look at
-    answer = new FakeHTTPError(403, {
+    // the page can't tell the organizer before asking: it has no event's detail to look at.
+    // Their side of the page (D-05) is in RateParticipantsPage.test.tsx.
+    const ownEvent = new FakeHTTPError(403, {
       code: "OWN_EVENT",
       message: "Svou vlastní akci hodnotit nejde.",
     })
+    api.get.mockImplementation((path: string) => {
+      if (path === "events/e1/rating") return { json: () => Promise.reject(ownEvent) }
+      // the organizer's page loads on: it stays loading here
+      return { json: () => new Promise(() => undefined) }
+    })
     await renderPage()
-    await screen.findByText("Svou akci nehodnotíš")
 
-    // asked once, not retried; no error toast, no form, no „Zkusit znovu“
-    expect(api.get).toHaveBeenCalledTimes(1)
+    expect(
+      await screen.findByRole("heading", { level: 1, name: "Ohodnoť účastníky" }),
+    ).toBeInTheDocument()
+    // asked once, not retried; no error toast, no participant's form, no „Zkusit znovu“
+    expect(api.get.mock.calls.filter(([path]) => path === "events/e1/rating")).toHaveLength(1)
     expect(toast.error).not.toHaveBeenCalled()
-    expect(screen.queryByRole("radiogroup")).not.toBeInTheDocument()
+    expect(screen.queryByText("Jak se akce povedla?")).not.toBeInTheDocument()
     expect(screen.queryByRole("button", { name: "Zkusit znovu" })).not.toBeInTheDocument()
     expect(api.put).not.toHaveBeenCalled()
   })

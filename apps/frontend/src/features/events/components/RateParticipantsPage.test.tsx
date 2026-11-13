@@ -1,0 +1,304 @@
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query"
+import { screen, within } from "@testing-library/react"
+import userEvent from "@testing-library/user-event"
+import { beforeEach, describe, expect, it, vi } from "vitest"
+
+import { renderWithRouter } from "@/test/renderWithRouter"
+
+import { RateEventPage } from "./RateEventPage"
+
+const { api, toast, FakeHTTPError } = vi.hoisted(() => {
+  // An API refusal as ky hands it over: the status, and the body the API sent.
+  class FakeHTTPError extends Error {
+    response: { status: number }
+    data: unknown
+    constructor(status: number, data: { code?: string; message: string; participantId?: string }) {
+      super(data.message)
+      this.response = { status }
+      this.data = data
+    }
+  }
+  return {
+    api: { get: vi.fn(), put: vi.fn() },
+    toast: { success: vi.fn(), error: vi.fn() },
+    FakeHTTPError,
+  }
+})
+vi.mock("@/lib/api-client", () => ({
+  api,
+  HTTPError: FakeHTTPError,
+  apiErrorCode: (error: unknown) =>
+    error instanceof FakeHTTPError ? (error.data as { code?: string }).code : undefined,
+}))
+vi.mock("sonner", () => ({ toast }))
+
+const asJson = (body: unknown) => ({ json: () => Promise.resolve(body) })
+const refused = (error: Error) => ({ json: () => Promise.reject(error) })
+
+// GET /api/events/e1 for its organizer
+const detail = {
+  id: "e1",
+  title: "Volejbal na Letné",
+  startsAt: "2026-10-19T16:00:00.000Z",
+  endsAt: "2026-10-19T18:00:00.000Z",
+  address: "Sportovní areál Letná, Milady Horákové, Praha 7",
+  lat: 50.1,
+  lng: 14.4,
+  activity: {
+    id: "a1",
+    slug: "volejbal",
+    name: "Volejbal",
+    category: { id: "c1", slug: "tymove-sporty", name: "Týmové sporty", icon: "ball" },
+  },
+  locality: { id: "l1", slug: "praha-7", name: "Praha 7" },
+  organizer: { id: "u-petra", name: "Petra Nováková" },
+  group: null,
+  minParticipants: 4,
+  maxParticipants: 12,
+  approvedCount: 5,
+  missingToMin: 0,
+  freeSpots: 7,
+  isFull: false,
+  isPromoted: false,
+  summary: null,
+  distanceKm: null,
+  description: null,
+  approvalMode: "open",
+  visibility: "public",
+  status: "published",
+  cancelReason: null,
+  participants: [],
+  myParticipation: null,
+  viewerSignedIn: true,
+  canManage: true,
+}
+
+// GET /api/events/e1/participant-ratings (#66)
+const list = {
+  participants: [
+    { id: "u-jakub", name: "Jakub Král", rating: null, ratingDeleted: false },
+    {
+      id: "u-lucie",
+      name: "Lucie Horáková",
+      rating: { stars: 4, comment: "Skvělé nahrávky", updatedAt: "2026-10-20T08:00:00.000Z" },
+      ratingDeleted: false,
+    },
+    { id: "u-eliska", name: "Eliška Malá", rating: null, ratingDeleted: true },
+  ],
+  ratableUntil: "2026-11-02T22:59:59.999Z",
+  refusal: null,
+}
+
+let participants: unknown = list
+
+beforeEach(() => {
+  participants = list
+  api.get.mockReset()
+  api.put.mockReset()
+  toast.success.mockReset()
+  toast.error.mockReset()
+  api.get.mockImplementation((path: string) => {
+    if (path === "events/e1/rating") {
+      return refused(
+        new FakeHTTPError(403, { code: "OWN_EVENT", message: "Svou vlastní akci hodnotit nejde." }),
+      )
+    }
+    if (path === "events/e1") return asJson(detail)
+    if (path === "events/e1/participant-ratings") {
+      return participants instanceof Error ? refused(participants) : asJson(participants)
+    }
+    throw new Error(`unexpected ${path}`)
+  })
+})
+
+const renderPage = (onSaved = vi.fn().mockResolvedValue(undefined)) =>
+  renderWithRouter(
+    <QueryClientProvider
+      client={new QueryClient({ defaultOptions: { queries: { retry: false } } })}
+    >
+      <RateEventPage
+        eventId="e1"
+        viewerId="u-petra"
+        onSaved={onSaved}
+      />
+    </QueryClientProvider>,
+  )
+
+const row = (name: string) =>
+  screen.getByText(name, { selector: "a, p, span:not(.sr-only)" }).closest("li")!
+
+describe("/akce/:id/hodnoceni for the organizer (Figma D-05, #66)", () => {
+  it("403 OWN_EVENT leads to the participants: band, „Všem stejně“, one row each", async () => {
+    await renderPage()
+
+    expect(
+      await screen.findByRole("heading", { level: 1, name: "Ohodnoť účastníky" }),
+    ).toBeInTheDocument()
+    expect(await screen.findByText("Účastníci (3)")).toBeInTheDocument()
+    expect(
+      screen.getByText(
+        "Volejbal na Letné · Po 19. 10. · Sportovní areál Letná, Praha 7 · sešlo se 5 lidí",
+      ),
+    ).toBeInTheDocument()
+    // „Všem stejně“ starts at 5 stars
+    const common = screen.getByRole("radiogroup", { name: "Všem stejně" })
+    expect(within(common).getByRole("radio", { name: "5 z 5 hvězd" })).toBeChecked()
+    expect(screen.getByLabelText("Komentář pro všechny (nepovinné)")).toHaveValue("")
+
+    expect(within(row("Jakub Král")).getByText("Jako všichni")).toBeInTheDocument()
+    expect(
+      within(row("Lucie Horáková")).getByText("Uloženo: 4 hvězdy a vlastní komentář"),
+    ).toBeInTheDocument()
+    expect(within(row("Lucie Horáková")).getByRole("textbox")).toHaveValue("Skvělé nahrávky")
+    // a rating a superadmin deleted can't be given again
+    expect(within(row("Eliška Malá")).getByText("Hodnocení odstranil správce")).toBeInTheDocument()
+    expect(within(row("Eliška Malá")).queryByRole("radiogroup")).not.toBeInTheDocument()
+
+    expect(
+      screen.getByText(
+        /^Hodnotit jde 14 dní po akci, tedy do .+, a do té doby hodnocení změníš\. /,
+      ),
+    ).toBeInTheDocument()
+    // the participant's side isn't there
+    expect(screen.queryByText("Jak se akce povedla?")).not.toBeInTheDocument()
+    expect(screen.queryByText("Svou akci nehodnotíš")).not.toBeInTheDocument()
+  })
+
+  it("saves everyone at once: the common stars and comment, and each one's own", async () => {
+    const user = userEvent.setup()
+    const onSaved = vi.fn().mockResolvedValue(undefined)
+    api.put.mockReturnValue(asJson(list))
+    await renderPage(onSaved)
+    await screen.findByText("Účastníci (3)")
+
+    const common = screen.getByRole("radiogroup", { name: "Všem stejně" })
+    await user.click(within(common).getByRole("radio", { name: "4 z 5 hvězd" }))
+    await user.type(screen.getByLabelText("Komentář pro všechny (nepovinné)"), "Díky za hru!")
+    // Jakub follows the common rating; his stars show it
+    const jakub = row("Jakub Král")
+    expect(within(jakub).getByRole("radio", { name: "4 z 5 hvězd" })).toBeChecked()
+    await user.click(within(jakub).getByRole("radio", { name: "3 z 5 hvězd" }))
+    expect(within(jakub).getByText("Upraveno: 3 hvězdy")).toBeInTheDocument()
+
+    await user.click(screen.getByRole("button", { name: "Uložit hodnocení" }))
+
+    expect(api.put).toHaveBeenCalledWith("events/e1/participant-ratings", {
+      json: {
+        ratings: [
+          { participantId: "u-jakub", stars: 3, comment: "Díky za hru!" },
+          { participantId: "u-lucie", stars: 4, comment: "Skvělé nahrávky" },
+        ],
+      },
+    })
+    expect(await screen.findByText("Uloženo: 4 hvězdy a vlastní komentář")).toBeInTheDocument()
+    expect(toast.success).toHaveBeenCalledWith("Hodnocení účastníků je uložené")
+    expect(onSaved).toHaveBeenCalled()
+  })
+
+  it("„Použít pro všechny“ puts everyone back to the common rating", async () => {
+    const user = userEvent.setup()
+    api.put.mockReturnValue(asJson(list))
+    await renderPage()
+    await screen.findByText("Účastníci (3)")
+
+    await user.click(screen.getByRole("button", { name: "Použít pro všechny" }))
+    expect(within(row("Lucie Horáková")).getByText("Jako všichni")).toBeInTheDocument()
+    expect(within(row("Lucie Horáková")).queryByRole("textbox")).not.toBeInTheDocument()
+
+    await user.click(screen.getByRole("button", { name: "Uložit hodnocení" }))
+    expect(api.put).toHaveBeenCalledWith("events/e1/participant-ratings", {
+      json: {
+        ratings: [
+          { participantId: "u-jakub", stars: 5, comment: null },
+          { participantId: "u-lucie", stars: 5, comment: null },
+        ],
+      },
+    })
+  })
+
+  it("„Přidat vlastní komentář“ opens one for that participant", async () => {
+    const user = userEvent.setup()
+    api.put.mockReturnValue(asJson(list))
+    await renderPage()
+    await screen.findByText("Účastníci (3)")
+
+    const jakub = row("Jakub Král")
+    await user.click(within(jakub).getByRole("button", { name: "Přidat vlastní komentář" }))
+    await user.type(within(jakub).getByLabelText("Vlastní komentář (nepovinné)"), "Super smeče")
+    expect(within(jakub).getByText("Upraveno: 5 hvězd a vlastní komentář")).toBeInTheDocument()
+
+    await user.click(screen.getByRole("button", { name: "Uložit hodnocení" }))
+    expect(api.put).toHaveBeenCalledWith("events/e1/participant-ratings", {
+      json: {
+        ratings: [
+          { participantId: "u-jakub", stars: 5, comment: "Super smeče" },
+          { participantId: "u-lucie", stars: 4, comment: "Skvělé nahrávky" },
+        ],
+      },
+    })
+  })
+
+  it("a refusal about one participant shows at their row, and the edits stay", async () => {
+    const user = userEvent.setup()
+    api.put.mockReturnValue(
+      refused(
+        new FakeHTTPError(403, {
+          code: "NOT_APPROVED",
+          message: "Jakub Král už na akci není.",
+          participantId: "u-jakub",
+        }),
+      ),
+    )
+    await renderPage()
+    await screen.findByText("Účastníci (3)")
+
+    const jakub = row("Jakub Král")
+    await user.click(within(jakub).getByRole("radio", { name: "2 z 5 hvězd" }))
+    await user.click(screen.getByRole("button", { name: "Uložit hodnocení" }))
+
+    expect(await within(row("Jakub Král")).findByRole("alert")).toHaveTextContent(
+      "Jakub Král už na akci není.",
+    )
+    expect(within(row("Jakub Král")).getByText("Upraveno: 2 hvězdy")).toBeInTheDocument()
+    expect(toast.error).toHaveBeenCalledWith("Jakub Král už na akci není.")
+  })
+
+  it("a comment over 500 characters isn't sent", async () => {
+    const user = userEvent.setup()
+    await renderPage()
+    await screen.findByText("Účastníci (3)")
+
+    const comment = screen.getByLabelText("Komentář pro všechny (nepovinné)")
+    await user.click(comment)
+    await user.paste("a".repeat(501))
+    await user.click(screen.getByRole("button", { name: "Uložit hodnocení" }))
+
+    expect(screen.getByText("Komentář může mít nejvýš 500 znaků")).toBeInTheDocument()
+    expect(comment).toHaveAttribute("aria-invalid", "true")
+    expect(api.put).not.toHaveBeenCalled()
+  })
+
+  it.each([
+    ["EVENT_NOT_HELD", "Akce se nekonala"],
+    ["RATING_WINDOW_CLOSED", "Hodnotit už nejde"],
+    ["EVENT_NOT_ENDED", "Hodnotit půjde, až akce skončí"],
+  ])("%s: says why instead of the form", async (refusal, title) => {
+    participants = { ...list, refusal }
+    await renderPage()
+
+    expect(await screen.findByText(title)).toBeInTheDocument()
+    expect(screen.queryByRole("button", { name: "Uložit hodnocení" })).not.toBeInTheDocument()
+    expect(screen.getByRole("link", { name: "Zpět na správu akce" })).toHaveAttribute(
+      "href",
+      "/akce/e1/sprava",
+    )
+  })
+
+  it("nobody else came: nothing to rate", async () => {
+    participants = { ...list, participants: [] }
+    await renderPage()
+
+    expect(await screen.findByText("Není koho hodnotit")).toBeInTheDocument()
+    expect(screen.queryByRole("button", { name: "Uložit hodnocení" })).not.toBeInTheDocument()
+  })
+})

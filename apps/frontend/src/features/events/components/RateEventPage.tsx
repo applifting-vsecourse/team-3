@@ -10,8 +10,6 @@ import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 import { Button } from "@/components/ui/button"
 import { Skeleton } from "@/components/ui/skeleton"
 import { apiErrorCode, HTTPError } from "@/lib/api-client"
-import { inSentence } from "@/lib/inSentence"
-import { gatheredLabel } from "@/lib/occupancy"
 import { PAGE } from "@/lib/pageLayout"
 import { cn } from "@/lib/utils"
 
@@ -23,8 +21,9 @@ import {
 } from "@/features/events/api/ratingSchemas"
 import { PastEventCard } from "@/features/events/components/PastEventCard"
 import { RateEventForm } from "@/features/events/components/RateEventForm"
+import { RateParticipantsPage } from "@/features/events/components/RateParticipantsPage"
 import { useRateEvent } from "@/features/events/hooks/useRateEvent"
-import { formatEventDay, placeName } from "@/features/events/lib/formatEvent"
+import { ratingBandLine } from "@/features/events/lib/rating"
 
 type RateEventPageProps = {
   eventId: string
@@ -37,13 +36,24 @@ type RateEventPageProps = {
 /**
  * /akce/:id/hodnoceni for a participant (Figma C-03, C-03d; B-060, #66). Everything comes from
  * GET /api/events/:id/rating, never from the event's detail: a former member of the group no
- * longer gets the detail of a members-only event, and still rates it. The organizer's side of
- * the same address (D-05) comes with #66's next part.
+ * longer gets the detail of a members-only event, and still rates it. Its organizer gets their
+ * side of the same address (D-05, RateParticipantsPage): the API's 403 OWN_EVENT tells.
  */
 export function RateEventPage({ eventId, viewerId, onSaved }: RateEventPageProps) {
   const query = useQuery(myEventRatingQueryOptions(eventId, viewerId))
   const save = useRateEvent(eventId, viewerId, onSaved)
   const data = query.data
+
+  // the organizer's side of the same address: the API says whose event it is (403 OWN_EVENT)
+  if (apiErrorCode(query.error) === "OWN_EVENT") {
+    return (
+      <RateParticipantsPage
+        eventId={eventId}
+        viewerId={viewerId}
+        onSaved={onSaved}
+      />
+    )
+  }
 
   return (
     <>
@@ -51,7 +61,7 @@ export function RateEventPage({ eventId, viewerId, onSaved }: RateEventPageProps
       <PageBand
         title="Ohodnoť akci"
         // Figma C-03d: „Volejbal na Letné · Po 19. 10. · Sportovní areál Letná, Praha 7 · …“
-        description={data ? bandLine(data) : undefined}
+        description={data ? ratingBandLine(data.event) : undefined}
         back={{ to: ROUTES.myEvents, fallbackLabel: "Moje akce", label: "Moje akce" }}
         // a form: on a phone one bar with the arrow and the title (Figma C-03, Header/Sub)
         isCompactOnMobile
@@ -60,7 +70,6 @@ export function RateEventPage({ eventId, viewerId, onSaved }: RateEventPageProps
         {query.error ? (
           <RateEventError
             error={query.error}
-            eventId={eventId}
             retry={() => void query.refetch()}
           />
         ) : !data ? (
@@ -82,15 +91,6 @@ export function RateEventPage({ eventId, viewerId, onSaved }: RateEventPageProps
       </div>
     </>
   )
-}
-
-function bandLine({ event }: MyEventRating): string {
-  return [
-    event.title,
-    formatEventDay(event.startsAt),
-    `${placeName(event.address)}, ${event.locality.name}`,
-    inSentence(gatheredLabel(event.approvedCount)),
-  ].join(" · ")
 }
 
 function RateEventLoading() {
@@ -180,18 +180,10 @@ function NextStep({ children }: { children: ReactNode }) {
 }
 
 /**
- * 404 (unknown, hidden or deleted), 403 (not approved for it, or the organizer's own event) —
+ * 404 (unknown, hidden or deleted), 403 (not approved for it) —
  * each says why, in the API's words, and where to go; anything else can be tried again.
  */
-function RateEventError({
-  error,
-  eventId,
-  retry,
-}: {
-  error: Error
-  eventId: string
-  retry: () => void
-}) {
+function RateEventError({ error, retry }: { error: Error; retry: () => void }) {
   const status = error instanceof HTTPError ? error.response.status : undefined
   const code = apiErrorCode(error)
   if (status === 404) {
@@ -203,21 +195,6 @@ function RateEventError({
           className="font-medium underline underline-offset-4"
         >
           Prohlédni si akce
-        </Link>
-        .
-      </Explained>
-    )
-  }
-  if (code === "OWN_EVENT") {
-    return (
-      <Explained title="Svou akci nehodnotíš">
-        Hodnotí ji účastníci.{" "}
-        <Link
-          to={ROUTES.manageEvent}
-          params={{ eventId }}
-          className="font-medium underline underline-offset-4"
-        >
-          Zpět na správu akce
         </Link>
         .
       </Explained>

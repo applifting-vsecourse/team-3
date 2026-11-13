@@ -1,5 +1,13 @@
+import { inSentence } from "@/lib/inSentence"
+import { gatheredLabel } from "@/lib/occupancy"
+
 import { RATING_WINDOW_DAYS } from "@/features/events/api/ratingSchemas"
-import { endOfPragueDay, isEventOver } from "@/features/events/lib/formatEvent"
+import {
+  endOfPragueDay,
+  formatEventDay,
+  isEventOver,
+  placeName,
+} from "@/features/events/lib/formatEvent"
 
 const DAY_MS = 24 * 60 * 60 * 1000
 const HOUR_MS = 60 * 60 * 1000
@@ -40,9 +48,57 @@ export function canRateEvent(event: RatableEvent, viewerId: string | null, now: 
     viewerId !== null &&
     event.organizer.id !== viewerId &&
     event.myParticipation === "approved" &&
-    event.status === "published" &&
-    event.approvedCount >= event.minParticipants &&
-    isEventOver(event, now) &&
+    tookPlace(event, now) &&
     now <= ratingDeadline(event)
   )
+}
+
+type HeldEvent = {
+  startsAt: Date
+  endsAt: Date | null
+  status: "published" | "cancelled"
+  approvedCount: number
+  minParticipants: number
+}
+
+/** Over, not cancelled, its minimum reached: participants could rate it (#66). */
+export const tookPlace = (event: HeldEvent, now: Date): boolean =>
+  event.status === "published" &&
+  event.approvedCount >= event.minParticipants &&
+  isEventOver(event, now)
+
+/**
+ * Whether to offer „Ohodnotit účastníky“ (D-05, #66): the API's rules for the organizer — the
+ * one who created the event, not a group's other admin (NOT_ORGANIZER) — at an event that took
+ * place, while the window is open.
+ */
+export function canRateParticipants(
+  event: HeldEvent & { organizer: { id: string } },
+  viewerId: string | null,
+  now: Date,
+): boolean {
+  return (
+    viewerId !== null &&
+    event.organizer.id === viewerId &&
+    tookPlace(event, now) &&
+    now <= ratingDeadline(event)
+  )
+}
+
+type BandEvent = {
+  title: string
+  startsAt: Date
+  address: string
+  locality: { name: string }
+  approvedCount: number
+}
+
+/** The rating pages' band (Figma C-03d, D-05d): „Volejbal na Letné · Po 19. 10. · místo · sešlo se 5 lidí“. */
+export function ratingBandLine(event: BandEvent): string {
+  return [
+    event.title,
+    formatEventDay(event.startsAt),
+    `${placeName(event.address)}, ${event.locality.name}`,
+    inSentence(gatheredLabel(event.approvedCount)),
+  ].join(" · ")
 }
