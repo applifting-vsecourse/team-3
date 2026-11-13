@@ -38,7 +38,8 @@ const GRID = "grid grid-cols-1 gap-3 md:grid-cols-2 md:gap-4 lg:grid-cols-3"
 export function AttendingEvents({ viewerId }: { viewerId: string }) {
   const { sections, isPending, error, retry } = useAttendingEvents(viewerId)
   // a section on its own: while it loads or when it fails, the rest of the tab stays
-  const fromGroups = useGroupsEvents(viewerId).events ?? []
+  const groupsEvents = useGroupsEvents(viewerId)
+  const fromGroups = groupsEvents.events ?? []
   if (error) return <MyEventsError onRetry={retry} />
   if (isPending || !sections) return <MyEventsLoading />
 
@@ -75,7 +76,13 @@ export function AttendingEvents({ viewerId }: { viewerId: string }) {
           events={approved}
         />
       ) : null}
-      {fromGroups.length > 0 ? (
+      {groupsEvents.error ? (
+        // not „nothing in my groups“: say it failed, in the section's place (review #318)
+        <MyEventsError
+          title="Akce z mých skupin se nepodařilo načíst"
+          onRetry={groupsEvents.retry}
+        />
+      ) : fromGroups.length > 0 ? (
         <EventsSection
           title={`Z mých skupin (${fromGroups.length})`}
           // Figma C-01: they aren't mine yet, and the badge is the occupancy, not „Jdu“
@@ -170,10 +177,16 @@ export function MyEventsLoading() {
   )
 }
 
-function MyEventsError({ onRetry }: { onRetry: () => void }) {
+function MyEventsError({
+  title = "Akce se nepodařilo načíst",
+  onRetry,
+}: {
+  title?: string
+  onRetry: () => void
+}) {
   return (
     <Alert variant="destructive">
-      <AlertTitle>Akce se nepodařilo načíst</AlertTitle>
+      <AlertTitle>{title}</AlertTitle>
       <AlertDescription className="flex items-center justify-between gap-3">
         <span>Zkontroluj připojení a zkus to znovu.</span>
         <Button

@@ -175,6 +175,18 @@ describe("AttendingEvents", () => {
     expect(get).toHaveBeenCalledWith("me/events", { searchParams: { tab: "groups" } })
   })
 
+  it("Z mých skupin that fails to load says so with „Zkusit znovu“; the rest of the tab stays (review #318)", async () => {
+    attendingAnswers(asJson([aMyEvent({ id: "e1", title: "Florbal" })]), {
+      json: () => Promise.reject(new Error("HTTP 500")),
+    } as never)
+
+    await renderWithQuery(<AttendingEvents viewerId="u1" />)
+
+    expect(await screen.findByText("Akce z mých skupin se nepodařilo načíst")).toBeInTheDocument()
+    expect(screen.getByRole("button", { name: "Zkusit znovu" })).toBeInTheDocument()
+    expect(screen.getByRole("region", { name: "Potvrzené (1)" })).toBeInTheDocument()
+  })
+
   it("no section without events from my groups", async () => {
     attendingAnswers(asJson([aMyEvent({ id: "e1", title: "Florbal" })]))
 
