@@ -1,5 +1,6 @@
 import {
   isWithinRatingWindow,
+  pragueEndDay,
   RATING_WINDOW_DAYS,
   ratingDeadline,
 } from './rating-window';
@@ -72,5 +73,25 @@ describe('rating window (B-060, review #313)', () => {
     expect(
       isWithinRatingWindow(event, new Date('2026-11-15T23:00:00.000Z')),
     ).toBe(false);
+  });
+
+  it('an end exactly at Prague midnight belongs to the day before (review #314)', () => {
+    // Mon 19. 10. 19:00 – Tue 20. 10. 00:00 in Prague (summer time, UTC+2)
+    const startsAt = new Date('2026-10-19T17:00:00.000Z');
+    const endsAt = new Date('2026-10-19T22:00:00.000Z');
+    expect(pragueEndDay({ startsAt, endsAt })).toBe('2026-10-19');
+    // until Mon 2. 11., 23:59:59.999 in Prague (winter time), not Tue 3. 11.
+    expect(ratingDeadline({ startsAt, endsAt })).toEqual(
+      new Date('2026-11-02T22:59:59.999Z'),
+    );
+    // a minute later it ended on the 20th
+    expect(
+      pragueEndDay({ startsAt, endsAt: new Date(endsAt.getTime() + 60_000) }),
+    ).toBe('2026-10-20');
+  });
+
+  it('an event without an end that starts at midnight counts from that day', () => {
+    const startsAt = new Date('2026-10-19T22:00:00.000Z');
+    expect(pragueEndDay({ startsAt, endsAt: null })).toBe('2026-10-20');
   });
 });

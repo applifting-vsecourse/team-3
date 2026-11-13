@@ -3,7 +3,6 @@ import {
   pragueWeekendOf,
   startOfNextPragueDay,
   startOfPragueDay,
-  startOfPragueDayAfter,
   startOfPragueDayOf,
 } from './prague-day';
 
@@ -125,16 +124,16 @@ describe('pragueDayOf / startOfPragueDayOf', () => {
   });
 });
 
-describe('startOfPragueDayAfter (#66)', () => {
+describe('startOfPragueDay with days later (#66)', () => {
   it('counts calendar days across the change of time', () => {
     // 20. 10. is summer time (UTC+2), 4. 11. winter time (UTC+1)
-    expect(startOfPragueDayAfter('2026-10-20', 15)).toEqual(
+    expect(startOfPragueDay('2026-10-20', 15)).toEqual(
       new Date('2026-11-03T23:00:00.000Z'),
     );
-    expect(startOfPragueDayAfter('2026-10-20', 1)).toEqual(
+    expect(startOfPragueDay('2026-10-20', 1)).toEqual(
       startOfNextPragueDay('2026-10-20'),
     );
-    expect(startOfPragueDayAfter('2026-10-20', 0)).toEqual(
+    expect(startOfPragueDay('2026-10-20', 0)).toEqual(
       startOfPragueDay('2026-10-20'),
     );
   });
