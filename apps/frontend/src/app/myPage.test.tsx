@@ -8,6 +8,7 @@ import { router } from "@/app/router"
 import { authKeys } from "@/lib/auth-keys"
 
 import { aMyEvent } from "@/features/events/test/anEvent"
+import { groupKeys } from "@/features/groups/api/groupsQueryOptions"
 
 vi.mock("@/features/auth/lib/auth-client", () => ({
   authClient: { getSession: vi.fn().mockResolvedValue({ data: null, error: null }) },
@@ -24,7 +25,7 @@ type Answers = {
 }
 
 /** Moje on `url` for a signed-in user, the API answering the events and the groups. */
-async function renderMy(url: string, answers: Answers) {
+async function renderMy(url: string, answers: Answers, seed?: (client: QueryClient) => void) {
   vi.stubGlobal(
     "fetch",
     vi.fn(async (input: RequestInfo | URL) => {
@@ -45,6 +46,7 @@ async function renderMy(url: string, answers: Answers) {
   )
   const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } })
   queryClient.setQueryData(authKeys.session(), { user })
+  seed?.(queryClient)
   const app = createRouter({
     ...router.options,
     context: { queryClient },
@@ -231,6 +233,20 @@ describe("Moje: the old addresses lead there (#304)", () => {
 
   it("/moje (the navigation's „Moje“) opens on Akce", async () => {
     const app = await renderMy("/moje", {})
+
+    expect(app.state.location.pathname).toBe("/moje/akce")
+  })
+
+  it("/moje asks again instead of trusting a stale cache: the request was decided meanwhile (review #318)", async () => {
+    const app = await renderMy(
+      "/moje",
+      { groups: [{ ...volejbal, pendingRequests: 0 }] },
+      (client) => {
+        // seen in Moje a while ago, then invalidated by deciding the request in the management
+        client.setQueryData(groupKeys.mine(user.id), [{ ...volejbal, pendingRequests: 1 }])
+        void client.invalidateQueries({ queryKey: groupKeys.mine(user.id) })
+      },
+    )
 
     expect(app.state.location.pathname).toBe("/moje/akce")
   })
