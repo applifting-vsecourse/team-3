@@ -76,14 +76,12 @@ describe('buildMyEventsWhere › groups (Z mých skupin, #304)', () => {
     });
   });
 
+  // which statuses those are is participation.spec's (NO_NEW_REQUEST_STATUSES, #182)
   it('only events I can still ask to join: no place, no request, not rejected or removed', () => {
     expect(notGoing).toEqual({
       participations: {
         none: { userId: 'u1', status: { in: NO_NEW_REQUEST_STATUSES } },
       },
     });
-    expect(NO_NEW_REQUEST_STATUSES).toEqual(
-      expect.arrayContaining(['approved', 'pending', 'rejected', 'removed']),
-    );
   });
 });
