@@ -56,6 +56,19 @@ describe('decideParticipantRating (#180)', () => {
     });
   });
 
+  it('within 14 days of the end: day 14 passes, later is RATING_WINDOW_CLOSED (#66)', () => {
+    const fourteenDaysAgo = new Date('2026-10-18T12:00:00.000Z');
+    expect(
+      decideParticipantRating(state({ startsAt: fourteenDaysAgo }), now),
+    ).toEqual({ ok: true });
+    expect(
+      decideParticipantRating(
+        state({ startsAt: new Date(fourteenDaysAgo.getTime() - 1) }),
+        now,
+      ),
+    ).toEqual({ ok: false, refusal: 'RATING_WINDOW_CLOSED' });
+  });
+
   it('not for a cancelled event, nor one a superadmin hid or deleted', () => {
     for (const eventStatus of ['cancelled', 'hidden', 'deleted'] as const) {
       expect(decideParticipantRating(state({ eventStatus }), now)).toEqual({
@@ -69,6 +82,21 @@ describe('decideParticipantRating (#180)', () => {
     expect(decideParticipantRating(state({ raterId: 'u-tomas' }), now)).toEqual(
       { ok: false, refusal: 'NOT_ORGANIZER' },
     );
+  });
+
+  it('NOT_ORGANIZER comes first: before the window and the state of the event (#313)', () => {
+    for (const overrides of [
+      { startsAt: new Date('2026-10-01T12:00:00.000Z') },
+      { startsAt: tomorrow },
+      { eventStatus: 'cancelled' as const },
+    ]) {
+      expect(
+        decideParticipantRating(
+          state({ raterId: 'u-tomas', ...overrides }),
+          now,
+        ),
+      ).toEqual({ ok: false, refusal: 'NOT_ORGANIZER' });
+    }
   });
 
   it('the organizer, joined to their own event (Q12), does not rate themselves', () => {
