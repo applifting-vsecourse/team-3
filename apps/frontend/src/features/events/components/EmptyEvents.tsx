@@ -13,7 +13,7 @@ import { EventCard } from "@/features/events/components/EventCard"
 import { occupancyLabel } from "@/features/events/components/OccupancyFilter"
 import { useEvents } from "@/features/events/hooks/useEvents"
 import { formatDayRange } from "@/features/events/lib/dateRange"
-import type { EventsSearch } from "@/features/events/lib/eventsSearch"
+import { PICK_LABELS, type EventsSearch } from "@/features/events/lib/eventsSearch"
 import { showEventsLabel } from "@/features/events/lib/formatEvent"
 
 type EmptyEventsProps = {
@@ -52,6 +52,8 @@ export function activeFiltersLabel(search: EventsSearch, catalog: Catalog | unde
     : undefined
   return [
     locality,
+    // a quick pick narrows the list by its own rules too (interests, well rated, review #321)
+    search.vyber && PICK_LABELS[search.vyber],
     activity,
     formatDayRange({ od: search.od, do: search.do }),
     occupancyLabel(search.obsazenost),
@@ -69,8 +71,13 @@ const isLocalityOnly = (search: EventsSearch) =>
   search.lokalita !== undefined &&
   search.lokalita !== ALL_LOCALITIES_SLUG
 
+/**
+ * Filters beside the locality, the quick pick included: „Podle tvých zájmů“, „Od dobře
+ * hodnocených“ and „Tady chybíš“ add rules of their own (interests, well rated, not joined), so a
+ * pick with nothing in Brno is no „nothing in Brno“ (review #321).
+ */
 const hasOtherFilters = (search: EventsSearch) =>
-  [search.kategorie, search.aktivita, search.od, search.do, search.obsazenost].some(
+  [search.kategorie, search.aktivita, search.od, search.do, search.obsazenost, search.vyber].some(
     (value) => value !== undefined,
   )
 
@@ -135,6 +142,7 @@ export function EmptyEvents({
             od: undefined,
             do: undefined,
             obsazenost: undefined,
+            vyber: undefined,
           })
         }
       >

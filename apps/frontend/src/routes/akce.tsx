@@ -33,6 +33,8 @@ import {
   hasFiltersBeyondPick,
   isAllEvents,
   localityCenter,
+  PICK_LABELS,
+  PICKS,
   pickSearch,
   toMapArea,
   toOblast,
@@ -44,11 +46,7 @@ import {
 // DESIGN.md › Quick picks, in this order (Figma A-02d)
 const PICK_TABS: { pick: QuickPick | undefined; label: string }[] = [
   { pick: undefined, label: "Všechny akce" },
-  { pick: "tady-chybis", label: "Tady chybíš" },
-  { pick: "tento-vikend", label: "Tento víkend" },
-  { pick: "podle-zajmu", label: "Podle tvých zájmů" },
-  { pick: "kousek-od-tebe", label: "Kousek od tebe" },
-  { pick: "od-hodnocenych", label: "Od dobře hodnocených" },
+  ...PICKS.map((pick) => ({ pick, label: PICK_LABELS[pick] })),
 ]
 const ALL_EVENTS_TAB = "vsechny"
 

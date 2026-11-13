@@ -8,7 +8,7 @@ import { renderWithRouter } from "@/test/renderWithRouter"
 
 import type { PublicEvent } from "@/features/events/api/eventSchemas"
 import { activeFiltersLabel, EmptyEvents } from "@/features/events/components/EmptyEvents"
-import type { EventsSearch } from "@/features/events/lib/eventsSearch"
+import { PICK_LABELS, type EventsSearch } from "@/features/events/lib/eventsSearch"
 import { anEvent } from "@/features/events/test/anEvent"
 
 const localities: Locality[] = [
@@ -233,6 +233,26 @@ describe("EmptyEvents", () => {
       "href",
       "/signup?from=%2Fakce%2Fnova",
     )
+  })
+
+  describe("a quick pick is a filter too (review #321)", () => {
+    for (const vyber of ["podle-zajmu", "od-hodnocenych", "tady-chybis"] as const) {
+      it(`?vyber=${vyber}: names the pick, never „V lokalitě … žádná akce není“`, async () => {
+        await renderEmpty({ lokalita: "bruntal", vyber })
+
+        expect(screen.getByText("Žádná nadcházející akce neodpovídá filtrům:")).toBeInTheDocument()
+        expect(screen.getByText(new RegExp(`^Bruntál · ${PICK_LABELS[vyber]}`))).toBeInTheDocument()
+        expect(screen.queryByText(/teď žádná nadcházející akce není/)).toBeNull()
+      })
+    }
+
+    it("„Zrušit ostatní filtry“ drops the pick too", async () => {
+      everywhere = 0
+      const { onSearchChange } = await renderEmpty({ lokalita: "bruntal", vyber: "podle-zajmu" })
+
+      await userEvent.click(await screen.findByRole("button", { name: "Zrušit ostatní filtry" }))
+      expect(onSearchChange).toHaveBeenCalledWith(expect.objectContaining({ vyber: undefined }))
+    })
   })
 
   describe("the nearest events instead of nothing (#299)", () => {

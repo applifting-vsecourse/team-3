@@ -40,6 +40,15 @@ export const PICKS = [
 ] as const
 export type QuickPick = (typeof PICKS)[number]
 
+/** The picks' tabs as the band names them (DESIGN.md › Quick picks). */
+export const PICK_LABELS: Record<QuickPick, string> = {
+  "tady-chybis": "Tady chybíš",
+  "tento-vikend": "Tento víkend",
+  "podle-zajmu": "Podle tvých zájmů",
+  "kousek-od-tebe": "Kousek od tebe",
+  "od-hodnocenych": "Od dobře hodnocených",
+}
+
 /** ?razeni= (#57, Figma A-02j); without it soonest first, or nearest first with okolí. */
 export const SORTS = ["termin", "vzdalenost"] as const
 export type Sort = (typeof SORTS)[number]
