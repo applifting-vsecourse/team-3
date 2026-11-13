@@ -81,6 +81,15 @@ type LandingViewProps = {
 }
 
 /**
+ * `localitySlug` for the page's locality (useLocality): Celé Česko only when the visitor picked
+ * it, so the home locality doesn't come back in its place (#299). Celé Česko as a mere fallback —
+ * the guess by IP failed, a visitor with nothing known — is no choice: the API decides, and a
+ * signed-in user still gets the home locality (review #321).
+ */
+export const pageLocalitySlug = (state: LocalityState): string | undefined =>
+  state.slug === ALL_LOCALITIES_SLUG && !state.isPicked ? undefined : state.slug
+
+/**
  * Landing page (US-01, #182; Figma A-01 / A-01d for a visitor, A-01p / A-01pd signed in). The
  * band with the panel „Teď chybí jeden“, then the sections GET /api/home chose — a visitor
  * one under another with „Jak to funguje“ after „Tady chybíš“, a signed-in user the quick
@@ -173,15 +182,13 @@ export function LandingView({
       {/* Figma A-01: 32 px around and between the sections on a phone; A-01d: 72 px under the
           band and at the bottom, 96 px between the sections, 128 before „Nic pro tebe?“ */}
       <div className={cn(PAGE, "flex-1 pt-8 pb-8 md:pt-18 md:pb-18")}>
-        {home && localities && localityControl?.state.slug !== undefined ? (
+        {home && localities && localityControl ? (
           // which locality the sections are for (#299), close above the first of them
           <div className="pb-4 md:pb-6">
             <LandingLocality
-              locality={{ ...localityControl.state, slug: localityControl.state.slug }}
+              state={localityControl.state}
+              home={home}
               localities={localities}
-              isWidened={home.isWidened}
-              hasLocalityEvents={home.hasLocalityEvents}
-              hasNearestEvents={home.sections.some((section) => "events" in section)}
               onChange={localityControl.onChange}
               onReset={localityControl.onReset}
             />

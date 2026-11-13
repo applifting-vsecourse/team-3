@@ -6,7 +6,7 @@ import { useLocality } from "@/hooks/useLocality"
 
 import { AppHeader } from "@/features/auth/components/AppHeader"
 import { useSession } from "@/features/auth/hooks/useSession"
-import { LandingView } from "@/features/events/components/LandingView"
+import { LandingView, pageLocalitySlug } from "@/features/events/components/LandingView"
 import { RecruitingGroups } from "@/features/groups/components/RecruitingGroups"
 
 /**
@@ -45,9 +45,7 @@ function LandingPage() {
       <LandingView
         isSignedIn={isPending || locality.slug === undefined ? undefined : Boolean(user)}
         viewerId={user?.id ?? null}
-        // Celé Česko too: the API must not put the home locality in its place, or the chip
-        // would say „Celé Česko“ over the sections of Praha 3 (#299)
-        localitySlug={locality.slug}
+        localitySlug={pageLocalitySlug(locality)}
         localityControl={{
           state: locality,
           onChange: (slug) => {

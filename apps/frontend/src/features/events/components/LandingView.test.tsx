@@ -11,7 +11,7 @@ import { renderWithRouter } from "@/test/renderWithRouter"
 
 import type { PublicEvent } from "@/features/events/api/eventSchemas"
 import { homeKeys } from "@/features/events/api/homeQueryOptions"
-import { LandingView } from "@/features/events/components/LandingView"
+import { LandingView, pageLocalitySlug } from "@/features/events/components/LandingView"
 import { anEvent } from "@/features/events/test/anEvent"
 
 vi.mock("@/lib/api-client", async (importOriginal) => ({
@@ -407,7 +407,10 @@ describe("LandingView", () => {
     }
 
     it("a guess shows on its chip, and one tap dismisses it to all of Czechia", async () => {
-      home = visitorHome
+      home = {
+        ...visitorHome,
+        locality: { id: "l-praha-3", slug: "praha-3", name: "Praha 3", source: "query" },
+      }
       const onChange = vi.fn()
       await renderLanding({
         localitySlug: "praha-3",
@@ -493,6 +496,48 @@ describe("LandingView", () => {
       expect(screen.queryByText("Ukazujeme akce pro lokalitu")).toBeNull()
     })
 
+    it("names the locality the API answered for: an unknown ?lokalita= gets the home locality's sections (review #321)", async () => {
+      home = { ...signedInHome }
+      const state: LocalityState = {
+        slug: "neznama-obec",
+        source: "url",
+        isPicked: true,
+        pick: vi.fn(),
+        forget: vi.fn(),
+      }
+      await renderLanding({
+        session: "signedIn",
+        localitySlug: "neznama-obec",
+        localityControl: { state, onChange: vi.fn(), onReset: vi.fn() },
+      })
+
+      // a light chip: the default the API fell back to, not a pick
+      const chip = await screen.findByRole("button", { name: "Lokalita: Praha 3" })
+      expect(chip).not.toHaveClass("bg-foreground")
+      expect(screen.queryByRole("button", { name: /neznama/i })).toBeNull()
+    })
+
+    it("a failed guess is no choice of all of Czechia: the API decides, the chip names the home locality (review #321)", async () => {
+      home = { ...signedInHome }
+      // useLocality after GET /api/geo/locality failed
+      const state: LocalityState = {
+        slug: "cele-cesko",
+        source: "none",
+        isPicked: false,
+        pick: vi.fn(),
+        forget: vi.fn(),
+      }
+      await renderLanding({
+        session: "signedIn",
+        localitySlug: pageLocalitySlug(state),
+        localityControl: { state, onChange: vi.fn(), onReset: vi.fn() },
+      })
+
+      await waitFor(() => expect(homeRequests()).toHaveLength(1))
+      expect(homeRequests()[0]?.[1]).toEqual({ searchParams: undefined })
+      expect(await screen.findByRole("button", { name: "Lokalita: Praha 3" })).toBeInTheDocument()
+    })
+
     it("no chip without the page's locality control", async () => {
       home = visitorHome
       await renderLanding()
@@ -500,5 +545,25 @@ describe("LandingView", () => {
       await screen.findByText("Chybí 1")
       expect(screen.queryByRole("button", { name: /^Lokalita:/ })).not.toBeInTheDocument()
     })
+  })
+})
+
+describe("pageLocalitySlug (review #321)", () => {
+  const state = (slug: string, isPicked: boolean): LocalityState => ({
+    slug,
+    source: isPicked ? "remembered" : "none",
+    isPicked,
+    pick: vi.fn(),
+    forget: vi.fn(),
+  })
+
+  it("Celé Česko only as a choice: a fallback lets the API decide", () => {
+    expect(pageLocalitySlug(state("cele-cesko", true))).toBe("cele-cesko")
+    expect(pageLocalitySlug(state("cele-cesko", false))).toBeUndefined()
+  })
+
+  it("any other locality as it is", () => {
+    expect(pageLocalitySlug(state("brno", false))).toBe("brno")
+    expect(pageLocalitySlug(state("brno", true))).toBe("brno")
   })
 })
