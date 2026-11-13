@@ -19,7 +19,7 @@ export function ChipTabs({ className, ...props }: ComponentProps<typeof TabsList
     <TabsList
       className={cn(
         // the kit's grey track is not there: the chips stand on the page, as the filter chips
-        "group-data-[orientation=horizontal]/tabs:h-auto w-full max-w-full justify-start gap-2 overflow-x-auto rounded-none bg-transparent p-0 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden",
+        "w-full max-w-full [scrollbar-width:none] justify-start gap-2 overflow-x-auto rounded-none bg-transparent p-0 group-data-[orientation=horizontal]/tabs:h-auto [&::-webkit-scrollbar]:hidden",
         className,
       )}
       {...props}

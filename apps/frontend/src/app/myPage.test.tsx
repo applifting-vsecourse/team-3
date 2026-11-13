@@ -74,7 +74,6 @@ beforeEach(stubMatchMedia)
 afterEach(() => vi.unstubAllGlobals())
 
 describe("Moje › Akce: the chip it opens on (#188, #304)", () => {
-
   it("Pořádám with the requests' strip when requests wait — and no Přihlášen before it", async () => {
     let answerOrganizing!: (events: unknown[]) => void
     await renderMy("/moje/akce", {

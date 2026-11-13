@@ -109,6 +109,7 @@ function useMyEventsCount(viewerId: string): number | undefined {
   const organizing = useOrganizingEvents(viewerId)
   if (!attending.sections || !organizing.sections) return undefined
   const { pending, approved } = attending.sections
-  return new Set([...pending, ...approved, ...organizing.sections.upcoming].map((event) => event.id))
-    .size
+  return new Set(
+    [...pending, ...approved, ...organizing.sections.upcoming].map((event) => event.id),
+  ).size
 }

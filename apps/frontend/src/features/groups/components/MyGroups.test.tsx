@@ -54,10 +54,8 @@ const withQueryClient = (ui: ReactElement) => (
   </QueryClientProvider>
 )
 
-const renderMember = () =>
-  renderWithRouter(withQueryClient(<MemberGroups viewerId="u-petra" />))
-const renderRunning = () =>
-  renderWithRouter(withQueryClient(<RunningGroups viewerId="u-petra" />))
+const renderMember = () => renderWithRouter(withQueryClient(<MemberGroups viewerId="u-petra" />))
+const renderRunning = () => renderWithRouter(withQueryClient(<RunningGroups viewerId="u-petra" />))
 
 beforeEach(() => api.get.mockReset())
 

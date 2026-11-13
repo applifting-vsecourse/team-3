@@ -3,6 +3,7 @@ import { createFileRoute } from "@tanstack/react-router"
 import { ROUTES } from "@/app/routes"
 import { ChipTabs, ChipTabsItem } from "@/components/FilterChip/ChipTabs"
 import { Tabs, TabsContent } from "@/components/ui/tabs"
+import { MyPage } from "@/routes/_ProtectedPages/-moje/MyPage"
 
 import { useSession } from "@/features/auth/hooks/useSession"
 import {
@@ -16,7 +17,6 @@ import {
   useOrganizingEvents,
 } from "@/features/events/hooks/useMyEvents"
 import { attendingLine, myEventsSearchSchema, organizingLine } from "@/features/events/lib/myEvents"
-import { MyPage } from "@/routes/_ProtectedPages/-moje/MyPage"
 
 export const Route = createFileRoute("/_ProtectedPages/moje/akce")({
   component: MyEventsPage,

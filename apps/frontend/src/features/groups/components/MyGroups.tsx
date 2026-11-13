@@ -11,8 +11,8 @@ import { GroupCard } from "@/features/groups/components/GroupCard"
 import { GROUP_GRID, GroupCardSkeleton } from "@/features/groups/components/GroupList"
 import { useMyGroups } from "@/features/groups/hooks/useMyGroups"
 import {
-  MY_GROUP_TYPE,
   membershipRequestsSummary,
+  MY_GROUP_TYPE,
   runningFacts,
 } from "@/features/groups/lib/myGroups"
 
@@ -106,7 +106,8 @@ function MyGroupsSection({ title, groups }: { title: string; groups: MyGroup[] }
       </h2>
       <ul className={GROUP_GRID}>
         {groups.map((group) => {
-          const isRunning = group.membership.role === "admin" && group.membership.status === "active"
+          const isRunning =
+            group.membership.role === "admin" && group.membership.status === "active"
           return (
             <li key={group.id}>
               <GroupCard

@@ -102,7 +102,9 @@ describe("GroupManagement", () => {
   it("approving is one click (#304: the same as an event's requests)", async () => {
     renderManagement(true)
 
-    await userEvent.click(await screen.findByRole("button", { name: "Schválit žádost: Jakub Král" }))
+    await userEvent.click(
+      await screen.findByRole("button", { name: "Schválit žádost: Jakub Král" }),
+    )
 
     expect(api.post).toHaveBeenCalledExactlyOnceWith("groups/g-florbal/requests/u-jakub/approve")
     expect(screen.queryByRole("dialog")).not.toBeInTheDocument()
@@ -111,7 +113,9 @@ describe("GroupManagement", () => {
   it("rejecting asks first and says what the applicant will see (#304, as D-03a)", async () => {
     renderManagement(true)
 
-    await userEvent.click(await screen.findByRole("button", { name: "Zamítnout žádost: Petr Holub" }))
+    await userEvent.click(
+      await screen.findByRole("button", { name: "Zamítnout žádost: Petr Holub" }),
+    )
 
     const dialog = screen.getByRole("dialog", { name: "Zamítnout žádost?" })
     expect(dialog).toHaveAccessibleDescription(
@@ -127,7 +131,9 @@ describe("GroupManagement", () => {
   it("confirming rejects that one request and closes the dialog", async () => {
     renderManagement(true)
 
-    await userEvent.click(await screen.findByRole("button", { name: "Zamítnout žádost: Petr Holub" }))
+    await userEvent.click(
+      await screen.findByRole("button", { name: "Zamítnout žádost: Petr Holub" }),
+    )
     await userEvent.click(
       within(screen.getByRole("dialog")).getByRole("button", { name: "Zamítnout" }),
     )
@@ -140,7 +146,9 @@ describe("GroupManagement", () => {
     api.post.mockRejectedValueOnce(new Error("Žádost už vyřídil jiný správce."))
     renderManagement(true)
 
-    await userEvent.click(await screen.findByRole("button", { name: "Zamítnout žádost: Petr Holub" }))
+    await userEvent.click(
+      await screen.findByRole("button", { name: "Zamítnout žádost: Petr Holub" }),
+    )
     await userEvent.click(
       within(screen.getByRole("dialog")).getByRole("button", { name: "Zamítnout" }),
     )

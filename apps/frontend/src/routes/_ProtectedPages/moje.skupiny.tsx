@@ -2,13 +2,10 @@ import { createFileRoute } from "@tanstack/react-router"
 
 import { ChipTabs, ChipTabsItem } from "@/components/FilterChip/ChipTabs"
 import { Tabs, TabsContent } from "@/components/ui/tabs"
+import { MyPage } from "@/routes/_ProtectedPages/-moje/MyPage"
 
 import { useSession } from "@/features/auth/hooks/useSession"
-import {
-  MemberGroups,
-  MyGroupsLoading,
-  RunningGroups,
-} from "@/features/groups/components/MyGroups"
+import { MemberGroups, MyGroupsLoading, RunningGroups } from "@/features/groups/components/MyGroups"
 import { useMyGroups } from "@/features/groups/hooks/useMyGroups"
 import {
   initialMyGroupsTab,
@@ -16,7 +13,6 @@ import {
   myGroupsSearchSchema,
   runningLine,
 } from "@/features/groups/lib/myGroups"
-import { MyPage } from "@/routes/_ProtectedPages/-moje/MyPage"
 
 export const Route = createFileRoute("/_ProtectedPages/moje/skupiny")({
   component: MyGroupsPage,
