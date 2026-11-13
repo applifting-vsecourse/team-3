@@ -1,8 +1,9 @@
 import { useId, useMemo, useRef, useState, type ReactNode, type RefObject } from "react"
-import { Check } from "lucide-react"
+import { Check, X } from "lucide-react"
 
 import { FilterChip } from "@/components/FilterChip/FilterChip"
 import { FilterPanel } from "@/components/FilterPanel/FilterPanel"
+import { Button } from "@/components/ui/button"
 import {
   Command,
   CommandEmpty,
@@ -25,15 +26,20 @@ import { cn } from "@/lib/utils"
 
 /**
  * The visitor's default locality (#55, Figma A-02 notes): shown on a light chip, as it is no
- * filter, with where it came from („Praha · podle polohy“); „Zrušit výběr“ goes back to it.
+ * filter, with where it came from („Praha · odhad“); „Zrušit výběr“ goes back to it.
  */
 export type LocalityDefault = {
   /** The chip shows the default, nothing was picked. */
   isDefault: boolean
-  /** After the name on a default chip, e.g. „podle polohy“ for a guess from the IP. */
+  /** After the name on a default chip, e.g. „odhad“ for a guess from the IP. */
   hint?: string
   /** „Zrušit výběr“: forget the pick and show the default again. */
   onReset: () => void
+  /**
+   * A guess nobody picked can be dismissed with one tap (#299): a × joined to the chip, which
+   * shows all of Czechia instead.
+   */
+  onDismiss?: () => void
 }
 
 /** „Okolí“ around the locality's centre (#57, Figma A-02gd): km as strings, e.g. ["10", "25", "50"]. */
@@ -128,7 +134,10 @@ export function LocalityFilter({
     onDraftChange?.(undefined)
   }
 
-  return (
+  // the guess shown on the chip, still to be dismissed (#299)
+  const onDismiss = isDefault && !areaLabel ? localityDefault?.onDismiss : undefined
+
+  const panel = (
     <FilterPanel
       title="Lokalita"
       isOpen={isOpen}
@@ -142,6 +151,8 @@ export function LocalityFilter({
           // the default is no filter: a light chip, dark only once picked
           isSelected={Boolean(areaLabel) || (Boolean(currentName) && !isDefault)}
           filterName="Lokalita"
+          // joined to the × on its right: one pill, one hairline between the two
+          className={onDismiss ? "rounded-r-none border-r-0 pr-3" : undefined}
         >
           {areaLabel ?? chipLabel ?? "Lokalita"}
         </FilterChip>
@@ -180,6 +191,21 @@ export function LocalityFilter({
         }
       />
     </FilterPanel>
+  )
+  if (!onDismiss) return panel
+  return (
+    <div className="flex shrink-0">
+      {panel}
+      <Button
+        variant="outline"
+        onClick={onDismiss}
+        aria-label="Zrušit odhad lokality, zobrazit celé Česko"
+        // the chip's right end (Figma: Filter chip, light)
+        className="h-9 rounded-l-none rounded-r-full border border-border bg-background px-3 text-foreground hover:bg-accent"
+      >
+        <X aria-hidden />
+      </Button>
+    </div>
   )
 }
 

@@ -240,7 +240,8 @@ function EventsPage() {
                 : search.lokalita === ALL_LOCALITIES_SLUG
                   ? "Nadcházející akce v celém Česku."
                   : locality
-                    ? `Nadcházející akce v lokalitě ${locality.name}.`
+                    ? // a guess says where it comes from (Figma A-02d, #299)
+                      `Nadcházející akce v lokalitě ${locality.name}.${shownLocality.source === "ip" ? " Lokalitu odhadujeme podle připojení." : ""}`
                     : // the line keeps its place until the catalog names the locality
                       " "
             }
@@ -288,7 +289,7 @@ function EventsPage() {
                   onChange={setSearch}
                   onLocalityChange={pickLocality}
                   onClearAll={canClear ? clearFilters : undefined}
-                  localityDefault={localityDefault(shownLocality, clearLocality)}
+                  localityDefault={localityDefault(shownLocality, clearLocality, pickLocality)}
                   isFloating={!isDesktop && !isListExpanded}
                   searchControl={isDesktop ? searchField() : undefined}
                   // Chips scroll sideways on narrow screens without a visible scrollbar

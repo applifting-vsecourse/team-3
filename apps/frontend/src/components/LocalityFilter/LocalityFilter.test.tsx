@@ -181,10 +181,31 @@ describe("LocalityFilter", () => {
 
   describe("with the visitor's default locality (#55)", () => {
     it("shows the default on a light chip with where it came from", () => {
-      renderFilter("praha", { isDefault: true, hint: "podle polohy", onReset: vi.fn() })
+      renderFilter("praha", { isDefault: true, hint: "odhad", onReset: vi.fn() })
 
-      const chip = screen.getByRole("button", { name: "Lokalita: Praha · podle polohy" })
+      const chip = screen.getByRole("button", { name: "Lokalita: Praha · odhad" })
       expect(chip).not.toHaveClass("bg-foreground")
+    })
+
+    it("a guess is dismissed with one tap on the × beside the chip (#299)", async () => {
+      const onDismiss = vi.fn()
+      const { onChange } = renderFilter("praha", {
+        isDefault: true,
+        hint: "odhad",
+        onReset: vi.fn(),
+        onDismiss,
+      })
+
+      await userEvent.click(
+        screen.getByRole("button", { name: "Zrušit odhad lokality, zobrazit celé Česko" }),
+      )
+      expect(onDismiss).toHaveBeenCalledOnce()
+      expect(onChange).not.toHaveBeenCalled()
+    })
+
+    it("has no × once something is picked, or around a searched map area", () => {
+      renderFilter("brno", { isDefault: false, onReset: vi.fn(), onDismiss: vi.fn() })
+      expect(screen.queryByRole("button", { name: /Zrušit odhad/ })).not.toBeInTheDocument()
     })
 
     it("shows a pick on the dark chip, without the hint", () => {
@@ -213,10 +234,10 @@ describe("LocalityFilter", () => {
     it("applying the default unchanged picks nothing, so the guess is not remembered (#299)", async () => {
       const { onChange } = renderFilter("praha", {
         isDefault: true,
-        hint: "podle polohy",
+        hint: "odhad",
         onReset: vi.fn(),
       })
-      const panel = await openPanel("Lokalita: Praha · podle polohy")
+      const panel = await openPanel("Lokalita: Praha · odhad")
 
       await userEvent.click(within(panel).getByRole("button", { name: "Zobrazit akce" }))
       expect(onChange).not.toHaveBeenCalled()
