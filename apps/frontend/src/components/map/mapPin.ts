@@ -3,9 +3,9 @@
  * tells its state only by colour (DESIGN.md › Map pin and cluster). The paths
  * come from the Figma component; colours are token classes, never hex
  * (DESIGN.md › Colour):
- * - default: dark pin (light in dark mode) — Volná místa
+ * - default: dark pin — Volná místa
  * - highlighted: lime pin — an event that still misses people; its outline
- *   and dot are primary-foreground, dark in both themes like text on lime, so
+ *   and dot are primary-foreground, dark like text on lime, so
  *   its edge keeps 3:1 against the light map where lime alone would not
  * - full: muted pin — Plno; with an occupancy filter the API sends no full events
  */
@@ -81,6 +81,10 @@ export const CLUSTER_SIZE = 44
  * event that still misses people (DESIGN.md › Map pin and cluster).
  */
 export function clusterHtml(count: number, hasMissing: boolean): string {
-  const ring = hasMissing ? " ring-3 ring-primary" : ""
+  // lime on the light map carries the primary-edge outline (DESIGN.md › Colour): the lime ring
+  // alone is 1.16:1 against the map
+  const ring = hasMissing
+    ? " ring-3 ring-primary outline-1 outline-offset-3 outline-primary-edge"
+    : ""
   return `<span class="flex size-11 items-center justify-center rounded-full border-3 border-background bg-foreground text-sm font-semibold text-background shadow-md${ring}">${count}</span>`
 }

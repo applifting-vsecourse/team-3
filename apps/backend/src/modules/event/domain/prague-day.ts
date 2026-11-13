@@ -45,10 +45,13 @@ const pragueOffsetMinutes = (instant: number): number => {
 };
 
 /**
- * Midnight at the start of a Prague calendar day ("2026-10-25") as a UTC instant.
+ * Midnight at the start of a Prague calendar day ("2026-10-25") as a UTC instant, or of the
+ * day `daysLater` calendar days after it – calendar days, not × 24 h, so a change of time in
+ * between doesn't move it by an hour (the rating window, #66).
  * Prague switches clocks at 2–3 a.m., so midnight always exists and is unambiguous.
  */
-export const startOfPragueDay = (day: string): Date => pragueMidnight(day, 0);
+export const startOfPragueDay = (day: string, daysLater = 0): Date =>
+  pragueMidnight(day, daysLater);
 
 /** Start of the Prague day after `day` — the exclusive upper bound of an inclusive range. */
 export const startOfNextPragueDay = (day: string): Date =>

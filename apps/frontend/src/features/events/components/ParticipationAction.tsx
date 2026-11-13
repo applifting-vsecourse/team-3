@@ -399,7 +399,7 @@ function JoinControl({
 }
 
 // Muted, not lime: lime is for what you can do (DESIGN.md, „Plno“ is muted);
-// a disabled lime button reads as broken, in the dark theme especially.
+// a disabled lime button reads as broken.
 function FullButton() {
   return (
     <Button

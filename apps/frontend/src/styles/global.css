@@ -5,8 +5,6 @@
 @import "tailwindcss";
 @plugin "tailwindcss-animate";
 
-@custom-variant dark (&:is(.dark *));
-
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
@@ -28,7 +26,7 @@
   --color-destructive: var(--destructive);
   --color-destructive-foreground: var(--destructive-foreground);
   /* Not a Figma token: hover of a destructive fill. Mixing in foreground moves it away from
-     destructive-foreground in both modes, so hover raises contrast (tokens.test.ts checks it). */
+     destructive-foreground, so hover raises contrast (tokens.test.ts checks it). */
   --color-destructive-hover: color-mix(in srgb, var(--destructive) 90%, var(--foreground));
   --color-border: var(--border);
   --color-input: var(--input);
@@ -46,14 +44,12 @@
   --color-on-hero: var(--on-hero);
   --color-on-hero-muted: var(--on-hero-muted);
   --color-hero-pattern: var(--hero-pattern);
-  --color-band-edge: var(--band-edge);
   --color-tile-on-hero: var(--tile-on-hero);
 
   --color-highlight-text: var(--highlight-text);
   --color-highlight-marker: var(--highlight-marker);
   --color-avatar-self: var(--avatar-self);
   --color-avatar-self-foreground: var(--avatar-self-foreground);
-  --color-accent-bar: var(--accent-bar);
   --color-logo-dot: var(--logo-dot);
   --color-logo-dot-stroke: var(--logo-dot-stroke);
   --color-logo-self-stroke: var(--logo-self-stroke);
@@ -84,6 +80,11 @@
    Small 14 and tag 12 are text-sm and text-xs. src/lib/utils.ts tells tailwind-merge these
    are sizes, not colours. */
 @theme {
+  /* the narrowest phones: the section band drops its corner motif under 360 px (#298) */
+  --breakpoint-xs: 22.5rem;
+  /* the tab strip on the band's bottom edge (BandTabsItem is this tall): PageBand's motifs end
+     this far above the band's edge, so no tab runs over them (#298) */
+  --spacing-band-tabs: 3rem;
   --text-body: 0.9375rem;
   --text-body--line-height: 1.375rem;
   --text-caption: 0.8125rem;
@@ -91,10 +92,11 @@
 }
 
 :root {
-  /* Native scrollbars and form controls follow the theme (.dark switches it). */
+  /* Light mode only (DESIGN.md › Colour): native scrollbars and form controls stay light even
+     when the system is set to dark. */
   color-scheme: light;
-  /* Values from the Figma collection "HobbyHub tokens" (Light). Names match 1:1; where Figma
-     aliases one token to another, so does var() here. */
+  /* Values from the Figma collection "HobbyHub tokens" (mode Light, the only one that
+     applies). Names match 1:1; where Figma aliases one token to another, so does var() here. */
   --font-sans: "Geist Variable", ui-sans-serif, system-ui, sans-serif;
   /* The display face: H1, section headings, card titles, date tile, stamp, wordmark (DESIGN.md › Type). */
   --font-heading: "Bricolage Grotesque Variable", var(--font-sans);
@@ -119,21 +121,18 @@
   --badge-neutral: var(--muted);
   --badge-neutral-foreground: var(--muted-foreground);
   --full: #8f8a7c;
-  /* lime on the cream track is 1.03:1, so the solid fill is dark green in light mode */
+  /* lime on the cream track is 1.03:1, so the solid fill is dark green */
   --capacity-fill: var(--secondary-foreground);
   --capacity-track: var(--muted);
   --hero: #0f3626;
   --on-hero: #f6f3ea;
   --on-hero-muted: #bccbc0;
   --hero-pattern: #1f4c37;
-  --band-edge: var(--hero);
   --tile-on-hero: #e3f3cb;
   --highlight-text: #14201a;
   --highlight-marker: #b9f53c;
   --avatar-self: #265212;
   --avatar-self-foreground: #ffffff;
-  /* blends into the secondary block on purpose; its edge is the tile-border (DESIGN.md › Máš místo) */
-  --accent-bar: var(--secondary);
   --logo-dot: var(--primary);
   --logo-dot-stroke: var(--foreground);
   --logo-self-stroke: var(--foreground);
@@ -164,58 +163,9 @@
   --shadow-2xl: 0px 4px 16px 0px rgb(20 33 26 / 0.12), 0px 1px 3px 0px rgb(20 33 26 / 0.08);
 }
 
-/* Dark mode: Figma collection „HobbyHub tokens“, mode Dark. Only what differs from light;
-   the aliases above resolve against these values only because .dark sits on <html>, the same
-   element as :root — on a subtree they would inherit the light values already computed. */
-.dark {
-  color-scheme: dark;
-  --background: #0f1612;
-  --foreground: #eef3ea;
-  --card: #162c20;
-  --muted: #2c3d33;
-  --muted-foreground: #a3afa6;
-  --primary-edge: var(--primary);
-  --secondary: #24402f;
-  --secondary-foreground: #eef3ea;
-  /* hover and the active row in lists and menus: its own shade, so the row under the pointer
-     differs from a keyboard-highlighted `muted` one; 1.5:1 on card, 1.9:1 on page */
-  --accent: #2e4b3a;
-  --tile-border: #7d8a82;
-  /* lighter than in light mode: #b42318 is too dark as error text on a dark card */
-  --destructive: #f97066;
-  --destructive-foreground: #14201a;
-  --input-border: #6b7870;
-  --control-border: #7d8a82;
-  --badge-neutral: #6b7870;
-  --badge-neutral-foreground: #ffffff;
-  --full: #6f7d74;
-  --capacity-fill: var(--primary);
-  --capacity-track: #3a4a42;
-  --hero: #133624;
-  --on-hero: #eef3ea;
-  --on-hero-muted: #b4c4b8;
-  --hero-pattern: #1f4a34;
-  --band-edge: var(--input-border);
-  --tile-on-hero: #5d8449;
-  /* the keyword itself turns lime, so the marker goes */
-  --highlight-text: #b9f53c;
-  --highlight-marker: transparent;
-  --avatar-self: var(--primary);
-  --avatar-self-foreground: var(--primary-foreground);
-  --accent-bar: var(--primary);
-  --logo-dot: #eef3ea;
-  --logo-dot-stroke: #eef3ea;
-  --logo-self-stroke: var(--primary);
-  --ring: #b9f53c;
-  --map-land: #18211b;
-  --map-road: #26302a;
-  --map-water: #1e3640;
-  --map-park: #1d2e1a;
-}
-
 /* DESIGN.md › Capacity bar: below the minimum the fill is hatched — not confirmed yet.
-   Figma Capacity bar › Hatch: 3 px stripes at 45°, primary-foreground at 55 % over primary (the
-   same in both modes). tokens.test.ts checks the stripes against each other and the hatch
+   Figma Capacity bar › Hatch: 3 px stripes at 45°, primary-foreground at 55 % over primary.
+   tokens.test.ts checks the stripes against each other and the hatch
    against the track. No bg- prefix, or tailwind-merge would drop it next to a bg-* colour. */
 @utility capacity-hatch {
   background-image: repeating-linear-gradient(
@@ -226,7 +176,7 @@
 }
 
 /* DESIGN.md › Layout: the dark green band and the header on it. Inside, the kit's hover surface
-   and the focus ring switch to the band's tokens — the page's ring (dark green in light mode)
+   and the focus ring switch to the band's tokens — the page's ring (dark green)
    would vanish on the band. tokens.test.ts checks on-hero against hero. */
 @utility on-hero {
   background-color: var(--hero);
@@ -234,6 +184,13 @@
   --ring: var(--on-hero);
   --accent: var(--hero-pattern);
   --accent-foreground: var(--on-hero);
+}
+
+/* A sideways strip whose start sits beside something (the logo mark before „Pro tebe“): a tab
+   scrolled past the start fades out over the strip's start padding instead of being cut off
+   beside it (#298). A mask, not a colour — it works on any surface. */
+@utility fade-start {
+  mask-image: linear-gradient(to right, transparent, black calc(var(--spacing) * 3));
 }
 
 /* DESIGN.md › Type: Figma text styles, mobile first and the desktop size from md up. The display
@@ -357,9 +314,8 @@
   text-transform: uppercase;
 }
 
-/* DESIGN.md › Type: the one keyword of a section heading. Light: a lime marker under the word
-   (Figma: an underline 11 px thick at 30 px, 18 px at 48 px); dark: the marker is transparent
-   and the word itself turns lime. */
+/* DESIGN.md › Type: the one keyword of a section heading: a lime marker under the word
+   (Figma: an underline 11 px thick at 30 px, 18 px at 48 px). */
 @utility highlight-keyword {
   color: var(--highlight-text);
   text-decoration-line: underline;
@@ -371,7 +327,7 @@
 
 @layer base {
   * {
-    @apply border-border outline-ring/50;
+    @apply border-border outline-ring;
   }
   body {
     @apply bg-background text-foreground antialiased;
@@ -379,5 +335,10 @@
   /* Page titles use the brand typeface (Figma Display/H1); smaller headings stay in Geist. */
   h1 {
     @apply font-heading;
+  }
+  /* Edge adds its own „show password“ eye at the end of a password field; without a gap the
+     dots and the shown password run right up to it (#298). */
+  input::-ms-reveal {
+    @apply ms-3;
   }
 }

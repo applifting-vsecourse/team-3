@@ -19,6 +19,12 @@ type PageBandProps = {
   variant?: "section" | "sub" | "hero" | "detail"
   /** `section`: „Plná parta“ where the page is about the groups you are in (Figma A-07, C-01). */
   isMarkFull?: boolean
+  /**
+   * `section`: the tabs run under the big motif on desktop (/akce, six quick picks), so it
+   * rises from the tabs' top line instead of the band's bottom edge (#298). Not where the band
+   * has an action: lifted, the ring would reach it.
+   */
+  isMotifAboveTabs?: boolean
   /** `sub`, `detail`: where the arrow leads. */
   back?: Omit<BackLinkProps, "isIconOnlyOnMobile">
   /**
@@ -56,6 +62,7 @@ export function PageBand({
   description,
   variant = "sub",
   isMarkFull = false,
+  isMotifAboveTabs = false,
   back,
   isCompactOnMobile = false,
   isPlainOnMobile = false,
@@ -68,6 +75,8 @@ export function PageBand({
   const isSection = variant === "section"
   const isHero = variant === "hero"
   const isDetail = variant === "detail"
+  // a section's children are the tabs on the band's bottom edge (BandTabs)
+  const hasTabs = isSection && children != null
 
   const content = (
     <>
@@ -136,15 +145,22 @@ export function PageBand({
   return (
     <div
       className={cn(
-        "relative overflow-hidden border-b border-band-edge on-hero",
+        "relative overflow-hidden border-b border-hero on-hero",
         isPlainOnMobile && "max-md:border-b-0 max-md:bg-background",
       )}
     >
-      {isSection || isDetail ? <LogoMotif /> : null}
+      {isSection || isDetail ? <LogoMotif isAboveTabs={hasTabs && isMotifAboveTabs} /> : null}
       {isHero ? <HeroMotif /> : null}
       {/* a phone has the corner motif on the landing page too (Figma A-01 › Motiv loga (návrh 16)) */}
       {/* the landing page keeps it until its big motif shows (lg), the detail until md (review #263) */}
       {isDetail || isHero ? <CornerMotif isUntilLg={isHero} /> : null}
+      {/* a section's band on a phone too (#298), above its tabs: the mark and the title are short */}
+      {isSection ? (
+        <CornerMotif
+          isSection
+          isAboveTabs={hasTabs}
+        />
+      ) : null}
       <div
         className={cn(
           "relative mx-auto flex w-full max-w-7xl flex-col px-4 md:px-10",
@@ -222,46 +238,72 @@ function HeroMotif() {
 /**
  * On a phone the detail's band has the logo's faint dots in its top-right corner, the ring
  * past the edge (Figma A-05 › Motiv loga (návrh 16)); from `md` the big motif takes over (xl).
+ * On a phone's section band (`isSection`: Akce, Skupiny, Moje akce) the lower dot and the ring
+ * rise from the tabs' top line instead, and the motif hides under 360 px (#298).
  * Decoration — hidden from assistive tech.
  */
-function CornerMotif({ isUntilLg = false }: { isUntilLg?: boolean }) {
+function CornerMotif({
+  isUntilLg = false,
+  isSection = false,
+  isAboveTabs = false,
+}: {
+  isUntilLg?: boolean
+  /** A section's band (Akce, Skupiny, Moje akce, #298). */
+  isSection?: boolean
+  /** The motif ends where the band's tabs start, so no tab runs over it (#298). */
+  isAboveTabs?: boolean
+}) {
   return (
-    <svg
+    <div
       aria-hidden="true"
-      viewBox="0 0 194 194"
-      width={194}
-      height={194}
       className={cn(
-        "pointer-events-none absolute -top-4 -right-22",
+        // bottom-band-tabs: the height of BandTabsItem, the same token
+        "pointer-events-none absolute inset-x-0 top-0 overflow-hidden",
+        isAboveTabs ? "bottom-band-tabs" : "bottom-0",
         isUntilLg ? "lg:hidden" : "md:hidden",
+        // under 360 px the lower dot would reach the end of „Moje akce“
+        isSection && "max-xs:hidden",
       )}
     >
-      <circle
-        cx="45"
-        cy="45"
-        r="45"
-        className="fill-on-hero opacity-12"
-      />
-      <circle
-        cx="149"
-        cy="45"
-        r="45"
-        className="fill-on-hero opacity-12"
-      />
-      <circle
-        cx="45"
-        cy="149"
-        r="45"
-        className="fill-on-hero opacity-12"
-      />
-      <circle
-        cx="149"
-        cy="149"
-        r="43.5"
-        strokeWidth="3"
-        className="fill-none stroke-primary"
-      />
-    </svg>
+      <svg
+        viewBox="0 0 194 194"
+        width={194}
+        height={194}
+        className={cn(
+          "absolute",
+          // a section's band is low (the mark, the title, the tabs): the lower dot and the ring
+          // rise from its bottom line, as the big motif does on desktop; elsewhere the dots sit
+          // in the top-right corner and the ring past the edge (Figma A-05)
+          isSection ? "-right-12 -bottom-10" : "-top-4 -right-22",
+        )}
+      >
+        <circle
+          cx="45"
+          cy="45"
+          r="45"
+          className="fill-on-hero opacity-12"
+        />
+        <circle
+          cx="149"
+          cy="45"
+          r="45"
+          className="fill-on-hero opacity-12"
+        />
+        <circle
+          cx="45"
+          cy="149"
+          r="45"
+          className="fill-on-hero opacity-12"
+        />
+        <circle
+          cx="149"
+          cy="149"
+          r="43.5"
+          strokeWidth="3"
+          className="fill-none stroke-primary"
+        />
+      </svg>
+    </div>
   )
 }
 
@@ -271,11 +313,17 @@ function CornerMotif({ isUntilLg = false }: { isUntilLg?: boolean }) {
  * the title, the line and the tabs as in Figma — narrower, the ring would run under the text.
  * Decoration — hidden from assistive tech.
  */
-function LogoMotif() {
+function LogoMotif({ isAboveTabs = false }: { isAboveTabs?: boolean }) {
   return (
     <div
       aria-hidden="true"
-      className="pointer-events-none absolute inset-0 mx-auto hidden max-w-7xl xl:block"
+      className={cn(
+        "pointer-events-none absolute inset-x-0 top-0 mx-auto hidden max-w-7xl overflow-hidden xl:block",
+        // with tabs on the band's edge it rises from the tabs' top line instead: six quick picks
+        // on /akce reach under the ring and the dots (#298); bottom-band-tabs: the height of
+        // BandTabsItem, the same token
+        isAboveTabs ? "bottom-band-tabs" : "bottom-0",
+      )}
     >
       <svg
         viewBox="0 -298 744 484"
