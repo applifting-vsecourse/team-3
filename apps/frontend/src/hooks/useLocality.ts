@@ -86,11 +86,24 @@ export function useLocality(
 }
 
 /**
- * What the locality chip needs to show the default (#55): light, with „podle polohy“ for a
- * guess from the IP. `onReset` is the page's: it also drops `?lokalita=` from the URL.
+ * What the locality chip needs to show the default (#55): light, with „odhad“ for a guess from
+ * the IP (#299: „podle polohy“ read as the device's location). `onReset` is the page's: it also
+ * drops `?lokalita=` from the URL. With `onPick` a guess can be dismissed with one tap: all of
+ * Czechia, as the visitor's own pick (#299).
  */
-export const localityDefault = (state: LocalityState, onReset: () => void): LocalityDefault => ({
-  isDefault: !state.isPicked,
-  hint: !state.isPicked && state.source === "ip" ? "podle polohy" : undefined,
-  onReset,
-})
+export const localityDefault = (
+  state: LocalityState,
+  onReset: () => void,
+  onPick?: (slug: string) => void,
+): LocalityDefault => {
+  const isGuess = !state.isPicked && state.source === "ip"
+  return {
+    isDefault: !state.isPicked,
+    hint: isGuess ? GUESS_HINT : undefined,
+    onReset,
+    onDismiss: isGuess && onPick ? () => onPick(ALL_LOCALITIES_SLUG) : undefined,
+  }
+}
+
+/** After the guessed locality's name on its chip: „Police nad Metují · odhad“ (#299). */
+export const GUESS_HINT = "odhad"

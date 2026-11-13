@@ -1,8 +1,9 @@
 import { useId, useMemo, useRef, useState, type ReactNode, type RefObject } from "react"
-import { Check } from "lucide-react"
+import { Check, X } from "lucide-react"
 
 import { FilterChip } from "@/components/FilterChip/FilterChip"
 import { FilterPanel } from "@/components/FilterPanel/FilterPanel"
+import { Button } from "@/components/ui/button"
 import {
   Command,
   CommandEmpty,
@@ -25,15 +26,20 @@ import { cn } from "@/lib/utils"
 
 /**
  * The visitor's default locality (#55, Figma A-02 notes): shown on a light chip, as it is no
- * filter, with where it came from („Praha · podle polohy“); „Zrušit výběr“ goes back to it.
+ * filter, with where it came from („Praha · odhad“); „Zrušit výběr“ goes back to it.
  */
 export type LocalityDefault = {
   /** The chip shows the default, nothing was picked. */
   isDefault: boolean
-  /** After the name on a default chip, e.g. „podle polohy“ for a guess from the IP. */
+  /** After the name on a default chip, e.g. „odhad“ for a guess from the IP. */
   hint?: string
   /** „Zrušit výběr“: forget the pick and show the default again. */
   onReset: () => void
+  /**
+   * A guess nobody picked can be dismissed with one tap (#299): a × joined to the chip, which
+   * shows all of Czechia instead.
+   */
+  onDismiss?: () => void
 }
 
 /** „Okolí“ around the locality's centre (#57, Figma A-02gd): km as strings, e.g. ["10", "25", "50"]. */
@@ -79,6 +85,8 @@ export function LocalityFilter({
 }: LocalityFilterProps) {
   const current = value ?? ALL_LOCALITIES_SLUG
   const [isOpen, setIsOpen] = useState(false)
+  // the × goes away with the guess it dismisses: the focus moves to the chip, not to <body>
+  const chipRef = useRef<HTMLButtonElement>(null)
   const [draft, setDraft] = useState(current)
   const [draftRadius, setDraftRadius] = useState(radius?.value)
   const searchRef = useRef<HTMLInputElement>(null)
@@ -110,15 +118,28 @@ export function LocalityFilter({
     setDraftRadius(km)
     onDraftChange?.({ slug, radius: radiusFor(slug, km) })
   }
-  // Always the slug, the default's too: a pick is remembered (#55) and „Zrušit vše“ undoes it.
+  // The default applied as it is stays the default: no pick to remember, the chip stays light
+  // (#299 — confirming the panel unchanged used to store the IP guess as the visitor's own pick).
+  // Otherwise always the slug, the default's too: a pick is remembered (#55) and „Zrušit vše“
+  // undoes it. A searched map area is ended by any apply.
+  const isDefaultUnchanged = (slug: string, km?: string) =>
+    Boolean(localityDefault?.isDefault) &&
+    !areaLabel &&
+    slug === current &&
+    radiusFor(slug, km) === appliedRadius
   const apply = (slug: string, km?: string) => {
-    if (radius) onChange(slug, radiusFor(slug, km))
-    else onChange(slug)
+    if (!isDefaultUnchanged(slug, km)) {
+      if (radius) onChange(slug, radiusFor(slug, km))
+      else onChange(slug)
+    }
     setIsOpen(false)
     onDraftChange?.(undefined)
   }
 
-  return (
+  // the guess shown on the chip, still to be dismissed (#299)
+  const onDismiss = isDefault && !areaLabel ? localityDefault?.onDismiss : undefined
+
+  const panel = (
     <FilterPanel
       title="Lokalita"
       isOpen={isOpen}
@@ -129,9 +150,12 @@ export function LocalityFilter({
       }}
       trigger={
         <FilterChip
+          ref={chipRef}
           // the default is no filter: a light chip, dark only once picked
           isSelected={Boolean(areaLabel) || (Boolean(currentName) && !isDefault)}
           filterName="Lokalita"
+          // joined to the × on its right: one pill, one hairline between the two
+          className={onDismiss ? "rounded-r-none border-r-0 pr-3" : undefined}
         >
           {areaLabel ?? chipLabel ?? "Lokalita"}
         </FilterChip>
@@ -170,6 +194,28 @@ export function LocalityFilter({
         }
       />
     </FilterPanel>
+  )
+  // one tree with or without the ×: a guess dismissed must not remount the chip (it has the focus)
+  return (
+    <div className="flex shrink-0">
+      {panel}
+      {onDismiss ? (
+        <Button
+          variant="outline"
+          onClick={() => {
+            chipRef.current?.focus()
+            onDismiss()
+          }}
+          aria-label="Zrušit odhad lokality, zobrazit celé Česko"
+          // the chip's right end (Figma: Filter chip, light), as tall as the chip; its target is
+          // at least 40 × 40 (DESIGN.md › Accessibility, review #321): 40 wide, and a transparent
+          // ::after reaches past the 36 px chip (4 px from the inside of the border: 42 px tall)
+          className="relative h-9 w-10 rounded-l-none rounded-r-full border border-border bg-background px-0 text-foreground after:absolute after:inset-x-0 after:-inset-y-1 hover:bg-accent"
+        >
+          <X aria-hidden />
+        </Button>
+      ) : null}
+    </div>
   )
 }
 

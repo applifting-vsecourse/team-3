@@ -56,6 +56,7 @@ export const toSearchParams = (filters: EventFilters): URLSearchParams => {
   }
   if (filters.radiusKm) params.set("radiusKm", String(filters.radiusKm))
   if (filters.sort) params.set("sort", filters.sort)
+  if (filters.limit) params.set("limit", String(filters.limit))
   if (filters.interests) params.set("interests", "true")
   if (filters.wellRated) params.set("wellRated", "true")
   if (filters.notJoined) params.set("notJoined", "true")
