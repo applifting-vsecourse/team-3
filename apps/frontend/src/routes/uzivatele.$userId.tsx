@@ -3,10 +3,11 @@ import { createFileRoute } from "@tanstack/react-router"
 
 import { Seo } from "@/components/Seo"
 import { HTTPError } from "@/lib/api-client"
+import { ratingSummaryLabel } from "@/lib/ratingSummary"
 
 import { AppHeader } from "@/features/auth/components/AppHeader"
 import { PastEventCard } from "@/features/events/components/PastEventCard"
-import { publicProfileQueryOptions, summaryLabel } from "@/features/users/api/publicProfile"
+import { publicProfileQueryOptions } from "@/features/users/api/publicProfile"
 import { PublicProfileView } from "@/features/users/components/PublicProfileView"
 
 export const Route = createFileRoute("/uzivatele/$userId")({ component: PublicUserPage })
@@ -31,7 +32,7 @@ function PublicUserPage() {
             <PastEventCard
               event={event}
               // a visitor's own rating isn't part of the public profile: the event's average instead
-              detail={summaryLabel(event.rating)}
+              detail={ratingSummaryLabel(event.rating)}
             />
           )}
         />
