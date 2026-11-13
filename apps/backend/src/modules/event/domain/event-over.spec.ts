@@ -6,7 +6,10 @@ import {
 } from './event-over';
 
 // 18:00 in Prague on Friday 23. 10. 2026 (summer time, UTC+2), no end
-const evening = { startsAt: new Date('2026-10-23T16:00:00.000Z'), endsAt: null };
+const evening = {
+  startsAt: new Date('2026-10-23T16:00:00.000Z'),
+  endsAt: null,
+};
 
 /** Evaluates the two-branch `where` of event-over.ts against one event. */
 const matches = (
@@ -96,12 +99,17 @@ describe('eventOverWhere / eventNotOverWhere (#272)', () => {
     new Date('2026-10-23T08:00:00.000Z'), // the end of one of them
   ];
 
-  it.each(moments)('match isEventOver at %s, each event in one of them', (now) => {
-    for (const event of events) {
-      expect(matches(eventOverWhere(now), event)).toBe(isEventOver(event, now));
-      expect(matches(eventNotOverWhere(now), event)).toBe(
-        !isEventOver(event, now),
-      );
-    }
-  });
+  it.each(moments)(
+    'match isEventOver at %s, each event in one of them',
+    (now) => {
+      for (const event of events) {
+        expect(matches(eventOverWhere(now), event)).toBe(
+          isEventOver(event, now),
+        );
+        expect(matches(eventNotOverWhere(now), event)).toBe(
+          !isEventOver(event, now),
+        );
+      }
+    },
+  );
 });

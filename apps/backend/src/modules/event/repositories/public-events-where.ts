@@ -1,5 +1,6 @@
 import { Prisma } from '@/generated/prisma/client';
 import { PublicEventFilters } from '@/modules/event/domain/event';
+import { eventOverWhere } from '@/modules/event/domain/event-over';
 import {
   startOfNextPragueDay,
   startOfPragueDay,
@@ -17,8 +18,13 @@ export const buildPublicEventsWhere = (
   now: Date,
 ): Prisma.EventWhereInput => {
   // The visibility rule is its own AND item, so no filter can loosen it.
+  // Upcoming: not started yet; Proběhlé (#61): over by the one rule (#272) –
+  // an event going on right now is in neither. Cancelled ones in neither: they
+  // didn't take place, only the people they concern see them (Moje, profil).
   const conditions: Prisma.EventWhereInput[] = [
-    { status: 'published', visibility: 'public', startsAt: { gt: now } },
+    filters.past
+      ? { status: 'published', visibility: 'public', ...eventOverWhere(now) }
+      : { status: 'published', visibility: 'public', startsAt: { gt: now } },
   ];
 
   if (filters.dateFrom) {

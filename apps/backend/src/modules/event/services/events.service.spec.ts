@@ -81,6 +81,37 @@ describe('EventsService', () => {
     });
   });
 
+  it('Proběhlé: each event gets its average rating, an unrated one none (#61)', async () => {
+    const repository = mock<EventRepository>();
+    repository.findPublicEvents.mockResolvedValue([
+      anEvent('rated', 5),
+      anEvent('unrated', 4),
+    ]);
+    repository.eventRatings.mockResolvedValue(
+      new Map([['rated', { average: 4.5, count: 2 }]]),
+    );
+
+    const service = new EventsService(repository, mock<NotificationService>());
+    const result = await service.getPublicEvents({ past: true }, {}, now);
+
+    expect(repository.eventRatings).toHaveBeenCalledWith(['rated', 'unrated']);
+    expect(result.map((event) => [event.id, event.rating])).toEqual([
+      ['rated', { average: 4.5, count: 2 }],
+      ['unrated', { average: null, count: 0 }],
+    ]);
+  });
+
+  it('upcoming events carry no rating and ask for none', async () => {
+    const repository = mock<EventRepository>();
+    repository.findPublicEvents.mockResolvedValue([anEvent('e1', 2)]);
+
+    const service = new EventsService(repository, mock<NotificationService>());
+    const [event] = await service.getPublicEvents({}, {}, now);
+
+    expect(event.rating).toBeUndefined();
+    expect(repository.eventRatings).not.toHaveBeenCalled();
+  });
+
   it('capacity=missing keeps only events that miss people to reach the minimum', async () => {
     const repository = mock<EventRepository>();
     repository.findPublicEvents.mockResolvedValue([

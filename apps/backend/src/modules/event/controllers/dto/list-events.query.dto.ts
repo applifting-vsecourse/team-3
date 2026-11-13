@@ -17,6 +17,7 @@ import { Transform, TransformFnParams, Type } from 'class-transformer';
 import {
   ArrayMaxSize,
   IsArray,
+  IsBoolean,
   IsDateString,
   IsIn,
   IsInt,
@@ -84,6 +85,10 @@ class DistanceNeedsPoint implements ValidatorConstraintInterface {
     return 'sort=distance needs both lat and lng';
   }
 }
+
+// `?past=true` arrives as a string; anything else than true/false is a 400
+const toBoolean = ({ value }: TransformFnParams): unknown =>
+  value === 'true' ? true : value === 'false' ? false : value;
 
 // `?activityId=a` arrives as a string, `?activityId=a&activityId=b` as an array.
 const toArray = ({ value }: TransformFnParams): unknown =>
@@ -225,6 +230,15 @@ export class ListEventsQueryDto {
   sort?: PublicEventSort;
 
   @ApiPropertyOptional({
+    description:
+      'Proběhlé (#61): public events that are over instead of the upcoming ones – after their end, without one after the Prague day they start on (#272) – newest first, each with its average rating. Cancelled events are never listed.',
+  })
+  @IsOptional()
+  @Transform(toBoolean)
+  @IsBoolean()
+  past?: boolean;
+
+  @ApiPropertyOptional({
     minimum: 1,
     maximum: PUBLIC_EVENTS_LIMIT,
     default: PUBLIC_EVENTS_LIMIT,
@@ -255,4 +269,5 @@ export const toPublicEventFilters = (
       ? { lat: query.lat, lng: query.lng }
       : undefined,
   radiusKm: query.radiusKm,
+  past: query.past,
 });

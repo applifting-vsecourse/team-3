@@ -681,3 +681,56 @@ describe('EventRepository: the request message stays with the organizer (#175)',
     });
   });
 });
+
+describe('EventRepository – Proběhlé (#61)', () => {
+  const at = new Date('2026-10-23T08:00:00.000Z');
+
+  it.each([
+    [{}, 'asc'],
+    [{ past: true }, 'desc'],
+  ] as const)('lists %j %s by the start', async (filters, order) => {
+    const prisma = mockDeep<PrismaService>();
+    prisma.event.findMany.mockResolvedValue([]);
+
+    await new EventRepository(prisma).findPublicEvents({
+      filters,
+      now: at,
+      limit: 10,
+    });
+
+    expect(prisma.event.findMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: buildPublicEventsWhere(filters, at),
+        orderBy: [{ startsAt: order }, { id: order }],
+      }),
+    );
+  });
+
+  it('averages the event stars without deleted ratings', async () => {
+    const prisma = mockDeep<PrismaService>();
+    // groupBy's overloads hide the mock's type
+    (prisma.rating.groupBy as unknown as jest.Mock).mockResolvedValue([
+      { eventId: 'e1', _sum: { eventStars: 9 }, _count: { _all: 2 } },
+    ] as never);
+
+    const ratings = await new EventRepository(prisma).eventRatings([
+      'e1',
+      'e2',
+    ]);
+
+    expect(ratings).toEqual(new Map([['e1', { average: 4.5, count: 2 }]]));
+    expect(prisma.rating.groupBy).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: { eventId: { in: ['e1', 'e2'] }, deletedAt: null },
+      }),
+    );
+  });
+
+  it('asks nothing for no events', async () => {
+    const prisma = mockDeep<PrismaService>();
+    await expect(new EventRepository(prisma).eventRatings([])).resolves.toEqual(
+      new Map(),
+    );
+    expect(prisma.rating.groupBy).not.toHaveBeenCalled();
+  });
+});

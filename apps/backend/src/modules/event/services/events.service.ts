@@ -159,9 +159,27 @@ export class EventsService {
 
   /**
    * Upcoming public events matching the filters, at most `limit`: soonest
-   * first, or with `popular` the most interest first (#156).
+   * first, or with `popular` the most interest first (#156). With `past`
+   * (Proběhlé, #61) the events that are over, newest first, each with its
+   * average rating.
    */
   async getPublicEvents(
+    filters: PublicEventFilters,
+    options: { sort?: PublicEventSort; limit?: number } = {},
+    now: Date = new Date(),
+  ): Promise<PublicEvent[]> {
+    const events = await this.findPublicEvents(filters, options, now);
+    if (!filters.past) return events;
+    const ratings = await this.eventRepository.eventRatings(
+      events.map((event) => event.id),
+    );
+    return events.map((event) => ({
+      ...event,
+      rating: ratings.get(event.id) ?? { average: null, count: 0 },
+    }));
+  }
+
+  private async findPublicEvents(
     filters: PublicEventFilters,
     {
       sort = 'date',
