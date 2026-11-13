@@ -26,7 +26,8 @@ type EventListProps = {
   inertAfter?: number
   /**
    * Mobile: „Zrušit filtry“ next to the count, where it shows in every sheet
-   * position (on desktop „Zrušit vše“ is in the filter bar). Pass only with an active filter.
+   * position (on desktop „Zrušit vše“ is in the filter bar). Pass only with an active filter or
+   * a quick pick (then labelled „Zrušit výběr“).
    */
   onClearFilters?: () => void
   /** Its label; „Zrušit výběr“ when only a quick pick is on. */

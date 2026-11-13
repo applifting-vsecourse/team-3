@@ -26,7 +26,7 @@ type EventFiltersProps = {
   onChange: (patch: Partial<EventsSearch>) => void
   /** A pick in the locality chip, which the page remembers (#55), with its okolí (#57); without it, `onChange`. */
   onLocalityChange?: (slug: string, radius?: Radius) => void
-  /** „Zrušit vše“; only when something was picked (a default locality isn't). */
+  /** „Zrušit vše“; only when something was picked (a default locality isn't) or a quick pick is on. */
   onClearAll?: () => void
   /** Its label; „Zrušit výběr“ when only a quick pick is on. */
   clearAllLabel?: string
