@@ -97,6 +97,26 @@ describe("/akce on a phone: „Zrušit filtry“", () => {
   })
 })
 
+// A quick pick lights up its chips („Chybí lidé“): without a filter of one's own there was no way
+// out but the „Všechny akce“ tab. „Zrušit výběr“ goes there, the locality stays.
+describe("/akce: „Zrušit výběr“", () => {
+  it.each([
+    ["on a phone", false],
+    ["on desktop", true],
+  ])("%s leaves the pick for Všechny akce", async (_, isDesktop) => {
+    stubMatchMedia(isDesktop)
+    // no locality in the URL: the visitor's default, which isn't a filter of their own
+    const app = await renderEvents("/akce?obsazenost=chybi&vyber=tady-chybis")
+
+    // the bar's (desktop) and the count's (phone) – CSS shows one of them
+    const [button] = await screen.findAllByRole("button", { name: "Zrušit výběr" })
+    await userEvent.click(button!)
+
+    expect(app.state.location.search).toEqual({})
+    expect(screen.queryByRole("button", { name: /Zrušit (vše|filtry)/ })).not.toBeInTheDocument()
+  })
+})
+
 // #288: on a phone the search and the chips float over the map's top, and „Hledat v této oblasti“
 // must come under them, never beneath — the page passes the bar's measured height to the map.
 describe("/akce: „Hledat v této oblasti“ after the map is moved", () => {

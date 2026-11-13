@@ -99,13 +99,14 @@ describe("EventFilters", () => {
     expect(onChange).toHaveBeenCalledWith({ obsazenost: "volna" })
   })
 
-  it("shows the occupancy on the chip and „Všechny“ clears it", async () => {
+  it("shows the occupancy on the chip and „Zrušit obsazenost“ clears it", async () => {
     const { onChange } = renderFilters({ search: { obsazenost: "chybi" } })
 
     await userEvent.click(screen.getByRole("button", { name: "Obsazenost: Chybí lidé" }))
     const panel = await screen.findByRole("dialog", { name: "Obsazenost" })
     expect(within(panel).getByRole("radio", { name: "Chybí lidé" })).toBeChecked()
-    await userEvent.click(within(panel).getByRole("button", { name: "Všechny" }))
+    // not „Všechny“ like the option above it, which didn't read as a way out
+    await userEvent.click(within(panel).getByRole("button", { name: "Zrušit obsazenost" }))
     expect(onChange).toHaveBeenCalledWith({ obsazenost: undefined })
   })
 
