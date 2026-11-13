@@ -1,3 +1,4 @@
+import { queryBoolean } from '@/shared/validation/query-boolean';
 import { ApiPropertyOptional } from '@nestjs/swagger';
 import { Transform } from 'class-transformer';
 import {
@@ -7,10 +8,6 @@ import {
   IsString,
   MaxLength,
 } from 'class-validator';
-
-// `?wholeCountry=true` arrives as a string; anything else than true/false is a 400
-const toBoolean = ({ value }: { value: unknown }): unknown =>
-  value === 'true' ? true : value === 'false' ? false : value;
 
 export class HomeQueryDto {
   @ApiPropertyOptional({
@@ -30,7 +27,7 @@ export class HomeQueryDto {
       'All of Czechia, picked on purpose (#299): no home locality from the profile in its place. Ignored with localityId',
   })
   @IsOptional()
-  @Transform(toBoolean)
+  @Transform(queryBoolean)
   @IsBoolean()
   wholeCountry?: boolean;
 }
