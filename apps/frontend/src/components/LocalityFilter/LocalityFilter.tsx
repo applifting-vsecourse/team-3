@@ -207,8 +207,10 @@ export function LocalityFilter({
             onDismiss()
           }}
           aria-label="Zrušit odhad lokality, zobrazit celé Česko"
-          // the chip's right end (Figma: Filter chip, light)
-          className="h-9 rounded-l-none rounded-r-full border border-border bg-background px-3 text-foreground hover:bg-accent"
+          // the chip's right end (Figma: Filter chip, light), as tall as the chip; its target is
+          // at least 40 × 40 (DESIGN.md › Accessibility, review #321): 40 wide, and a transparent
+          // ::after reaches past the 36 px chip (4 px from the inside of the border: 42 px tall)
+          className="relative h-9 w-10 rounded-l-none rounded-r-full border border-border bg-background px-0 text-foreground after:absolute after:inset-x-0 after:-inset-y-1 hover:bg-accent"
         >
           <X aria-hidden />
         </Button>

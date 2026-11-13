@@ -203,6 +203,18 @@ describe("LocalityFilter", () => {
       expect(onChange).not.toHaveBeenCalled()
     })
 
+    it("the × is at least a 40 × 40 target: 40 wide, its ::after past the 36 px chip (review #321)", () => {
+      renderFilter("praha", {
+        isDefault: true,
+        hint: "odhad",
+        onReset: vi.fn(),
+        onDismiss: vi.fn(),
+      })
+
+      const dismiss = screen.getByRole("button", { name: /Zrušit odhad/ })
+      expect(dismiss).toHaveClass("relative", "w-10", "after:absolute", "after:-inset-y-1")
+    })
+
     it("has no × once something is picked, or around a searched map area", () => {
       renderFilter("brno", { isDefault: false, onReset: vi.fn(), onDismiss: vi.fn() })
       expect(screen.queryByRole("button", { name: /Zrušit odhad/ })).not.toBeInTheDocument()
