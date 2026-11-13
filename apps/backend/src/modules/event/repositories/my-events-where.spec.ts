@@ -1,4 +1,5 @@
 import { Prisma } from '@/generated/prisma/client';
+import { NO_NEW_REQUEST_STATUSES } from '@/modules/event/domain/participation';
 import { buildMyEventsWhere } from './my-events-where';
 
 const now = new Date('2026-10-23T08:00:00.000Z');
@@ -75,11 +76,14 @@ describe('buildMyEventsWhere › groups (Z mých skupin, #304)', () => {
     });
   });
 
-  it('where I have neither a place nor a waiting request', () => {
+  it('only events I can still ask to join: no place, no request, not rejected or removed', () => {
     expect(notGoing).toEqual({
       participations: {
-        none: { userId: 'u1', status: { in: ['approved', 'pending'] } },
+        none: { userId: 'u1', status: { in: NO_NEW_REQUEST_STATUSES } },
       },
     });
+    expect(NO_NEW_REQUEST_STATUSES).toEqual(
+      expect.arrayContaining(['approved', 'pending', 'rejected', 'removed']),
+    );
   });
 });

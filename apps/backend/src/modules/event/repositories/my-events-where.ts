@@ -1,5 +1,6 @@
 import { Prisma } from '@/generated/prisma/client';
 import { MyEventsTab } from '@/modules/event/domain/event';
+import { NO_NEW_REQUEST_STATUSES } from '@/modules/event/domain/participation';
 
 /**
  * Prisma `where` for a tab of „Moje akce“ (B-035). A pure function so the
@@ -10,8 +11,9 @@ import { MyEventsTab } from '@/modules/event/domain/event';
  *   they are an active admin of (B-055), as they manage those too;
  * - `groups` (Z mých skupin, #304): published events of the active groups the
  *   user is an active member of (not an admin: those are in `organizing`),
- *   open to them (public or members-only, not link-only), where they have
- *   neither a place nor a waiting request.
+ *   open to them (public or members-only, not link-only), that they can still
+ *   ask to join: no place, no waiting request, and not rejected or removed by
+ *   the organizer (`NO_NEW_REQUEST_STATUSES`, as the lists of #182).
  * All list upcoming events only (past ones are Proběhlé, #61); `attending` and
  * `organizing` keep cancelled ones with their label, `groups` doesn't (there is
  * nothing to go to); hidden and deleted never.
@@ -35,8 +37,9 @@ export const buildMyEventsWhere = (
           },
         },
         {
+          // the page says „přihlásíš se na detailu akce“: only what decideJoin would take
           participations: {
-            none: { userId, status: { in: ['approved', 'pending'] } },
+            none: { userId, status: { in: NO_NEW_REQUEST_STATUSES } },
           },
         },
       ],

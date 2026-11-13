@@ -47,7 +47,8 @@ export function useOrganizingEvents(viewerId: string) {
 
 /**
  * Z mých skupin under Přihlášen (Figma C-01, #304): upcoming events of the groups I am a member
- * of, where I have no place or request yet. Not counted on the chip or the tab: they aren't mine.
+ * of that I can still ask to join (no place, no request, not rejected or removed). Not counted on
+ * the chip or the tab: they aren't mine.
  */
 export function useGroupsEvents(viewerId: string) {
   return useMyEvents("groups", viewerId)
