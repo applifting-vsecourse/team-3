@@ -88,7 +88,7 @@ export function EventCard({
     distanceKm === null || distanceKm === undefined
       ? undefined
       : `${distanceKm.toLocaleString("cs", { maximumFractionDigits: 1 })} km`
-  const rowLine = [rowLead, time, ...(rowTail ? [rowTail] : [place, event.locality.name]), distance]
+  const rowLine = [rowLead, time, ...(rowTail ? [rowTail] : [place, event.locality.name])]
     .filter(Boolean)
     .join(" · ")
 
@@ -150,11 +150,19 @@ export function EventCard({
         {variant === "grid" ? null : (
           <p
             className={cn(
-              "truncate text-caption text-muted-foreground",
+              "flex min-w-0 text-caption text-muted-foreground",
               variant === "responsive" && "md:hidden",
             )}
           >
-            {rowLine}
+            <span className="truncate">{rowLine}</span>
+            {/* the distance ends the line and is never the part cut off (#299): a long place
+                gives way, „· 22,7 km“ stays */}
+            {distance ? (
+              <span className="shrink-0 whitespace-nowrap">
+                {"\u00a0· "}
+                {distance}
+              </span>
+            ) : null}
           </p>
         )}
         {variant === "row" && summary ? (

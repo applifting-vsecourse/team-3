@@ -223,6 +223,24 @@ export function localityCenter(
   return locality ? { lat: locality.lat, lng: locality.lng } : undefined
 }
 
+/**
+ * The same filters without the locality and its okolí, nearest to the locality's centre first
+ * (#299): what an empty list shows instead of nothing — „V lokalitě … teď nic není, nejbližší
+ * akce“. None without a centre (Celé Česko, a searched map area): there is no „nearest“ there.
+ */
+export function nearestFilters(search: EventsSearch, catalog: Catalog): EventFilters | undefined {
+  const center = localityCenter(search, catalog)
+  if (!center) return undefined
+  return {
+    ...toEventFilters(search, catalog),
+    localityId: undefined,
+    radiusKm: undefined,
+    lat: center.lat,
+    lng: center.lng,
+    sort: "distance",
+  }
+}
+
 /** The order in effect: as picked, else nearest first with okolí; soonest first without a centre. */
 export function effectiveSort(search: EventsSearch, catalog: Catalog): Sort {
   if (!localityCenter(search, catalog)) return "termin"

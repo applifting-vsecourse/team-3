@@ -4,7 +4,11 @@ import { useQuery } from "@tanstack/react-query"
 import { useCatalog } from "@/hooks/useCatalog"
 
 import { eventsQueryOptions } from "@/features/events/api/eventsQueryOptions"
-import { toEventFilters, type EventsSearch } from "@/features/events/lib/eventsSearch"
+import {
+  nearestFilters,
+  toEventFilters,
+  type EventsSearch,
+} from "@/features/events/lib/eventsSearch"
 
 /**
  * Who is looking (the session's user id, null for a visitor), set by /akce: a quick pick's
@@ -38,5 +42,34 @@ export function useEvents(search: EventsSearch, { isEnabled = true } = {}) {
     retry: () => {
       for (const query of all) if (query.error) void query.refetch()
     },
+  }
+}
+
+/** How many of the nearest events an empty list shows (#299). */
+export const NEAREST_COUNT = 5
+
+/**
+ * The events nearest to the locality's centre with the other filters, for an empty list (#299):
+ * `events` undefined while they load (or for a filter change, until the new ones are there),
+ * empty when they failed — the empty state then stays as it was, with its own ways on.
+ * `isAvailable` false where nothing is „nearest“ (Celé Česko, a map area) — then nothing loads.
+ */
+export function useNearestEvents(search: EventsSearch, { isEnabled = true } = {}) {
+  const { catalog } = useCatalog()
+  const viewerId = useContext(EventsViewerContext)
+  const filters = catalog ? nearestFilters(search, catalog) : undefined
+  const query = useQuery(
+    eventsQueryOptions(filters && isEnabled ? { ...filters, viewerId } : undefined),
+  )
+  return {
+    isAvailable: filters !== undefined,
+    events:
+      !filters || !isEnabled
+        ? undefined
+        : query.isError
+          ? []
+          : query.isPlaceholderData
+            ? undefined
+            : query.data?.slice(0, NEAREST_COUNT),
   }
 }

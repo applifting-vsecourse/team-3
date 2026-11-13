@@ -23,7 +23,7 @@ import { EventSearch } from "@/features/events/components/EventSearch"
 import { EventsMap } from "@/features/events/components/EventsMap"
 import { ListPanel, type PanelSnap } from "@/features/events/components/ListPanel"
 import { SortMenu } from "@/features/events/components/SortMenu"
-import { EventsViewerContext, useEvents } from "@/features/events/hooks/useEvents"
+import { EventsViewerContext, useEvents, useNearestEvents } from "@/features/events/hooks/useEvents"
 import { usePickCounts } from "@/features/events/hooks/usePickCounts"
 import {
   changesPick,
@@ -81,6 +81,11 @@ function EventsPage() {
     // nothing for all of Czechia first while the default locality loads
     isEnabled: shownLocality.slug !== undefined,
   })
+  // an empty list shows the nearest events instead (#299): only then are they fetched
+  const isListEmpty = !isPending && !error && events?.length === 0
+  const nearest = useNearestEvents(search, { isEnabled: isListEmpty })
+  // the map shows what the list shows: the nearest events when the locality has none
+  const shownEvents = (isListEmpty ? nearest.events : events) ?? []
   const isDesktop = useMediaQuery(DESKTOP_QUERY)
   const [overlayRef, overlayHeight] = useElementHeight<HTMLDivElement>()
   const [panelSnap, setPanelSnap] = useState<PanelSnap>("peek")
@@ -88,7 +93,7 @@ function EventsPage() {
   const [highlightedId, setHighlightedId] = useState<string>()
   // the tapped pin's event (#56); gone with the filters that showed it
   const [selectedId, setSelectedId] = useState<string>()
-  const selectedEvent = events?.find((event) => event.id === selectedId)
+  const selectedEvent = shownEvents.find((event) => event.id === selectedId)
   const area = toMapArea(search.oblast)
   const [panelPeekHeight, setPanelPeekHeight] = useState(0)
   // phone: the preview hides the list sheet and covers the map's bottom instead (review #276)
@@ -96,6 +101,8 @@ function EventsPage() {
   const mapBottomInset = selectedEvent ? previewCover : panelPeekHeight
   const locality = catalog?.localities.find((l) => l.slug === search.lokalita)
   const isMapVisible = isDesktop || !isListExpanded
+  // lowered sheet: what is below its edge is out of the Tab order
+  const listInertAfter = isDesktop || isListExpanded ? undefined : panelSnap === "map" ? 0 : 1
 
   // Escape closes the preview, like a tap into the map — unless it closed an open panel or
   // menu first (the kit's layers prevent the default of the Escape they handle)
@@ -340,12 +347,13 @@ function EventsPage() {
                         catalog={catalog}
                         isVisitor={!session.user && !session.isPending}
                         onSearchChange={setSearch}
+                        nearest={nearest}
+                        inertAfter={listInertAfter}
+                        highlightedId={highlightedId ?? selectedEvent?.id}
+                        onHighlight={setHighlightedId}
                       />
                     }
-                    // lowered sheet: what is below its edge is out of the Tab order
-                    inertAfter={
-                      isDesktop || isListExpanded ? undefined : panelSnap === "map" ? 0 : 1
-                    }
+                    inertAfter={listInertAfter}
                   />
                 </ListPanel>
 
@@ -368,7 +376,7 @@ function EventsPage() {
                 >
                   <div className="relative size-full overflow-hidden md:rounded-2xl md:border md:border-card-border">
                     <EventsMap
-                      events={events ?? []}
+                      events={shownEvents}
                       highlightedId={highlightedId}
                       selectedId={selectedEvent?.id}
                       onSelect={setSelectedId}

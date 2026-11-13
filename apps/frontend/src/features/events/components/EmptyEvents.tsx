@@ -1,3 +1,4 @@
+import { useId } from "react"
 import { Link } from "@tanstack/react-router"
 
 import { ROUTES } from "@/app/routes"
@@ -7,6 +8,8 @@ import { toActivitySelection, type Catalog } from "@/lib/catalog/catalogSearch"
 import { ALL_LOCALITIES_SLUG, localityName } from "@/lib/catalog/localityOptions"
 import { cn } from "@/lib/utils"
 
+import type { PublicEvent } from "@/features/events/api/eventSchemas"
+import { EventCard } from "@/features/events/components/EventCard"
 import { occupancyLabel } from "@/features/events/components/OccupancyFilter"
 import { useEvents } from "@/features/events/hooks/useEvents"
 import { formatDayRange } from "@/features/events/lib/dateRange"
@@ -20,6 +23,20 @@ type EmptyEventsProps = {
   isVisitor: boolean
   /** Changes some of the URL's filters, like the filter bar. */
   onSearchChange: (patch: Partial<EventsSearch>) => void
+  /**
+   * The events nearest to the locality's centre with the same filters (useNearestEvents, #299):
+   * shown instead of „nothing“. `events` undefined while they load; not available without a
+   * centre (Celé Česko, a map area).
+   */
+  nearest?: { isAvailable: boolean; events: PublicEvent[] | undefined }
+  /**
+   * Like EventList's: the closed mobile panel reaches the first N nearest cards, the rest of the
+   * block below its edge is inert (at 0 EventList makes the whole block inert).
+   */
+  inertAfter?: number
+  /** The card under the mouse, so the map can highlight its pin. */
+  highlightedId?: string
+  onHighlight?: (eventId: string | undefined) => void
 }
 
 /** The active filters as the chips name them: „Bruntál · Šipky a bowling · 1.–7. 11.“ */
@@ -43,6 +60,15 @@ export function activeFiltersLabel(search: EventsSearch, catalog: Catalog | unde
     .join(" · ")
 }
 
+/** Only the locality makes the list empty: „V lokalitě X teď…“, not „neodpovídá filtrům: X“ (#299). */
+const isLocalityOnly = (search: EventsSearch) =>
+  !hasOtherFilters(search) &&
+  search.q === undefined &&
+  search.okoli === undefined &&
+  search.oblast === undefined &&
+  search.lokalita !== undefined &&
+  search.lokalita !== ALL_LOCALITIES_SLUG
+
 const hasOtherFilters = (search: EventsSearch) =>
   [search.kategorie, search.aktivita, search.od, search.do, search.obsazenost].some(
     (value) => value !== undefined,
@@ -53,9 +79,20 @@ const hasOtherFilters = (search: EventsSearch) =>
  * filters that found nothing, then at most one way to widen the search — out
  * of the searched map area into the locality (#56), else the same filters in
  * all of Czechia, when that finds something; else dropping the other filters —
- * and „Založit akci“ for what nobody organizes yet.
+ * and „Založit akci“ for what nobody organizes yet. With a locality, the nearest events with
+ * the same filters and their distance come first (#299): an empty locality never looks like an
+ * empty app.
  */
-export function EmptyEvents({ search, catalog, isVisitor, onSearchChange }: EmptyEventsProps) {
+export function EmptyEvents({
+  search,
+  catalog,
+  isVisitor,
+  onSearchChange,
+  nearest,
+  inertAfter,
+  highlightedId,
+  onHighlight,
+}: EmptyEventsProps) {
   const isArea = search.oblast !== undefined
   const isEverywhere = search.lokalita === ALL_LOCALITIES_SLUG
   // in a map area: the same filters in the locality (the area replaced it); else in all of Czechia
@@ -65,8 +102,15 @@ export function EmptyEvents({ search, catalog, isVisitor, onSearchChange }: Empt
   const canWiden = isArea || !isEverywhere
   // the same preview as a filter panel's „Zobrazit N akcí“: one request, only for an empty list
   const widened = useEvents({ ...search, ...wider }, { isEnabled: canWiden })
-  // no buttons until the count is known, so none swaps under a finger
-  const isCounting = canWiden && (widened.isPending || widened.isPlaceholderData)
+  // no buttons until the count and the nearest events are known, so none swaps under a finger
+  const isNearestLoading = Boolean(nearest?.isAvailable) && nearest?.events === undefined
+  const isCounting =
+    (canWiden && (widened.isPending || widened.isPlaceholderData)) || isNearestLoading
+  const headingId = useId()
+  const nearestEvents = nearest?.isAvailable ? (nearest.events ?? []) : []
+  const hasNearest = nearestEvents.length > 0
+  const localityLabel =
+    catalog && search.lokalita ? localityName(search.lokalita, catalog.localities) : undefined
   const widenedCount = !canWiden || isCounting ? undefined : widened.events?.length
   const where =
     isArea && !isEverywhere && catalog && search.lokalita
@@ -99,24 +143,70 @@ export function EmptyEvents({ search, catalog, isVisitor, onSearchChange }: Empt
     ) : null
 
   return (
-    <div className="flex flex-col items-center gap-4 py-8 text-center">
-      <div className="flex flex-col gap-1">
-        <p className="text-sm text-muted-foreground">Žádná nadcházející akce neodpovídá filtrům:</p>
-        <p className="text-sm font-semibold">{activeFiltersLabel(search, catalog)}</p>
+    <div className="flex flex-col gap-4 py-8">
+      <div className="flex flex-col gap-1 text-center">
+        {isLocalityOnly(search) && localityLabel ? (
+          <p className="text-sm text-muted-foreground">
+            V lokalitě <span className="font-semibold text-foreground">{localityLabel}</span> teď
+            žádná nadcházející akce není.
+          </p>
+        ) : (
+          <>
+            <p className="text-sm text-muted-foreground">
+              Žádná nadcházející akce neodpovídá filtrům:
+            </p>
+            <p className="text-sm font-semibold">{activeFiltersLabel(search, catalog)}</p>
+          </>
+        )}
       </div>
+      {hasNearest ? (
+        <section
+          aria-labelledby={headingId}
+          className="flex flex-col gap-3"
+        >
+          <h2
+            id={headingId}
+            className="type-card-heading"
+          >
+            Nejbližší akce
+          </h2>
+          <ul className="flex flex-col gap-3">
+            {nearestEvents.map((event, index) => (
+              <li
+                key={event.id}
+                // the closed mobile list shows the sentence and the nearest card
+                data-peek-end={index === 0 ? "" : undefined}
+                inert={inertAfter !== undefined && index >= inertAfter}
+              >
+                <EventCard
+                  event={event}
+                  // ordered by distance: the cards say how far (DESIGN.md › Okolí)
+                  distanceKm={event.distanceKm}
+                  isHighlighted={event.id === highlightedId}
+                  onMouseEnter={() => onHighlight?.(event.id)}
+                  onMouseLeave={() => onHighlight?.(undefined)}
+                />
+              </li>
+            ))}
+          </ul>
+        </section>
+      ) : null}
       {/* hidden, not left out, while counting: „Založit akci“ would show alone as the main
           button and then move aside; the space stays, so the mobile list doesn't jump */}
       <div
         aria-hidden={isCounting || undefined}
+        // below the closed mobile list's edge when the nearest cards come first
+        inert={(hasNearest && inertAfter !== undefined) || undefined}
         className={cn("flex flex-wrap justify-center gap-3", isCounting && "invisible")}
       >
         {widen}
-        {/* the closed mobile list shows the block down to its last button */}
+        {/* the closed mobile list shows the block down to its last button, unless the nearest
+            events come first */}
         <Button
           asChild
           variant={widen ? "outline" : "default"}
           className="h-11"
-          data-peek-end
+          data-peek-end={hasNearest ? undefined : ""}
         >
           {isVisitor ? (
             // the router encodes `from` once (a hand-built ?from= ended up as %252F)

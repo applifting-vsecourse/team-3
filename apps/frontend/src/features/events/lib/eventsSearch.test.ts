@@ -11,6 +11,7 @@ import {
   hasActiveFilters,
   hasFiltersBeyondPick,
   isAllEvents,
+  nearestFilters,
   pickSearch,
   toEventFilters,
   toMapArea,
@@ -300,5 +301,32 @@ describe("quick picks (#250)", () => {
     })
     expect(toEventFilters({ vyber: "od-hodnocenych" }, catalog)).toMatchObject({ wellRated: true })
     expect(toEventFilters({ vyber: "tento-vikend" }, catalog).interests).toBeUndefined()
+  })
+})
+
+describe("nearestFilters (#299)", () => {
+  const praha8 = catalog.localities.find((l) => l.slug === "praha-8")!
+
+  it("the same filters anywhere, nearest to the locality's centre first", () => {
+    const filters = nearestFilters(
+      { lokalita: "praha-8", okoli: "10", obsazenost: "chybi", od: "2026-11-14" },
+      catalog,
+    )
+    expect(filters).toMatchObject({
+      localityId: undefined,
+      radiusKm: undefined,
+      lat: praha8.lat,
+      lng: praha8.lng,
+      sort: "distance",
+      capacity: "missing",
+      dateFrom: "2026-11-14",
+    })
+  })
+
+  it("none without a centre: all of Czechia, a map area", () => {
+    expect(nearestFilters({ lokalita: "cele-cesko" }, catalog)).toBeUndefined()
+    expect(
+      nearestFilters({ lokalita: "praha-8", oblast: "14.3,50,14.6,50.15" }, catalog),
+    ).toBeUndefined()
   })
 })
