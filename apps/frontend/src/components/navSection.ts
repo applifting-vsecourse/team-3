@@ -20,7 +20,7 @@ export function navSection(pathname: string): NavSection | null {
 
   if (path === ROUTES.events) return isOwnPage ? "my" : "events"
   if (path === ROUTES.groups) return isOwnPage ? "my" : "groups"
-  if (path === "/moje" || path === "/moje-akce") return "my"
+  if (path === "/moje") return "my"
   if (path === ROUTES.profile) return "profile"
   if (path === ROUTES.login) return "login"
   return null
