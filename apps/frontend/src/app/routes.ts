@@ -5,7 +5,9 @@ export const ROUTES = {
   newEvent: "/akce/nova",
   editEvent: "/akce/$eventId/upravit",
   manageEvent: "/akce/$eventId/sprava",
-  myEvents: "/moje-akce",
+  // Moje (#304): Akce with the chips Přihlášen / Pořádám, Skupiny with Jsem členem / Spravuju
+  myEvents: "/moje/akce",
+  myGroups: "/moje/skupiny",
   groups: "/skupiny",
   profile: "/profil",
   editProfile: "/profil/upravit",

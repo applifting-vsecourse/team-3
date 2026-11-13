@@ -244,7 +244,7 @@ describe("LandingView", () => {
       ])
       expect(screen.queryByRole("heading", { name: "Jak to funguje" })).not.toBeInTheDocument()
       expect(screen.queryByRole("link", { name: "Zaregistrovat se" })).not.toBeInTheDocument()
-      expect(screen.getByRole("link", { name: "Moje akce" })).toHaveAttribute("href", "/moje-akce")
+      expect(screen.getByRole("link", { name: "Moje akce" })).toHaveAttribute("href", "/moje/akce")
     })
 
     it("a tab shows its own events", async () => {

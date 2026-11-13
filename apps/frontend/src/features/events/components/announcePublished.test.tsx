@@ -14,10 +14,10 @@ describe("announcePublished (#188)", () => {
 
     expect(await screen.findByText("Akce je zveřejněná.")).toBeInTheDocument()
     const link = screen.getByRole("link", { name: "Moje akce › Pořádám" })
-    expect(link).toHaveAttribute("href", "/moje-akce?tab=poradam")
+    expect(link).toHaveAttribute("href", "/moje/akce?tab=poradam")
 
     // a plain click: sonner captures the pointer, which jsdom can't
     fireEvent.click(link)
-    expect(router.state.location.href).toBe("/moje-akce?tab=poradam")
+    expect(router.state.location.href).toBe("/moje/akce?tab=poradam")
   })
 })

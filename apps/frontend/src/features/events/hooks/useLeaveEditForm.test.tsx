@@ -22,12 +22,12 @@ describe("useLeaveEditForm", () => {
   it("goes back to whatever page was before the form, not to a fixed page", async () => {
     const { router } = await renderWithRouter(<SaveButton />, {
       url: "/akce/e1/upravit",
-      previous: ["/moje-akce"],
+      previous: ["/moje/akce"],
     })
 
     await userEvent.click(screen.getByRole("button", { name: "Uložit" }))
 
-    await waitFor(() => expect(router.state.location.pathname).toBe("/moje-akce"))
+    await waitFor(() => expect(router.state.location.pathname).toBe("/moje/akce"))
     // back, not another entry on top: the saved form isn't behind „Zpět“
     expect(router.history.length).toBe(2)
   })

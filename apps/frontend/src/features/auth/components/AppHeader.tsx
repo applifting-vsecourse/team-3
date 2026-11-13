@@ -5,7 +5,7 @@ import { Header } from "@/components/Header/Header"
 import { HeaderMenu } from "@/features/auth/components/HeaderMenu"
 import { useSession } from "@/features/auth/hooks/useSession"
 
-/** The header with what depends on the session: the user menu and „Moje akce“. */
+/** The header with what depends on the session: the user menu and „Moje“. */
 export function AppHeader({
   screenAction,
   isSignInOnMobile = false,

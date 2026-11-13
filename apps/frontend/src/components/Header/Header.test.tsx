@@ -6,7 +6,7 @@ import { renderWithRouter } from "@/test/renderWithRouter"
 import { Header } from "./Header"
 
 describe("Header", () => {
-  it("offers „Moje akce“ to a signed-in user", async () => {
+  it("offers „Moje“ (events and groups, #304) to a signed-in user", async () => {
     await renderWithRouter(
       <Header
         userMenu={null}
@@ -14,19 +14,22 @@ describe("Header", () => {
       />,
     )
 
-    expect(screen.getByRole("link", { name: "Moje akce" })).toHaveAttribute("href", "/moje-akce")
+    expect(screen.getByRole("link", { name: "Moje" })).toHaveAttribute("href", "/moje/akce")
   })
 
   it("not to a visitor", async () => {
     await renderWithRouter(<Header userMenu={null} />)
 
-    expect(screen.queryByRole("link", { name: "Moje akce" })).not.toBeInTheDocument()
+    expect(screen.queryByRole("link", { name: "Moje" })).not.toBeInTheDocument()
   })
 
-  // D-03d: managing an event is reached from Moje akce, the detail from anywhere (A-05)
+  // D-03d: managing an event is reached from Moje, the detail from anywhere (A-05); since #304
+  // the same for a group (A-08, D-07)
   it.each([
-    ["/akce/e17/sprava", "Moje akce"],
+    ["/akce/e17/sprava", "Moje"],
     ["/akce/e17", "Akce"],
+    ["/skupiny/g1/sprava", "Moje"],
+    ["/skupiny/g1", "Skupiny"],
   ])("on %s marks „%s“ as the current page", async (url, current) => {
     await renderWithRouter(
       <Header
@@ -36,7 +39,7 @@ describe("Header", () => {
       { url },
     )
 
-    const links = ["Akce", "Moje akce"].map((name) => screen.getByRole("link", { name }))
+    const links = ["Akce", "Skupiny", "Moje"].map((name) => screen.getByRole("link", { name }))
     expect(links.filter((link) => link.getAttribute("aria-current") === "page")).toEqual([
       screen.getByRole("link", { name: current }),
     ])

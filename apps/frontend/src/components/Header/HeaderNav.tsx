@@ -24,9 +24,9 @@ export function HeaderNav({ isSignedIn }: { isSignedIn: boolean }) {
       {isSignedIn ? (
         <HeaderNavLink
           to={ROUTES.myEvents}
-          section="myEvents"
+          section="my"
         >
-          Moje akce
+          Moje
         </HeaderNavLink>
       ) : null}
     </nav>
