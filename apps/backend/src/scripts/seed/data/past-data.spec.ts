@@ -137,6 +137,8 @@ describe('generated past events (#181)', () => {
             {
               eventStatus: event.cancelReason ? 'cancelled' : 'published',
               startsAt: row.startsAt,
+              minParticipants: event.minParticipants,
+              approvedCount: event.participantKeys.length,
               endsAt: row.endsAt,
               organizerUserId: event.organizerKey,
               raterId: event.organizerKey,

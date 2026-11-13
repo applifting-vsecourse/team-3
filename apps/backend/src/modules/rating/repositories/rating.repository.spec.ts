@@ -13,6 +13,8 @@ const prismaWith = ({
     startsAt,
     endsAt: null,
     organizerUserId: 'u-petra',
+    minParticipants: 4,
+    _count: { participations: 5 },
   } as object | null,
   participation = { status: 'approved' } as object | null,
   rating = null as object | null,
@@ -42,6 +44,8 @@ describe('RatingRepository (#66)', () => {
           startsAt,
           endsAt: null,
           organizerUserId: 'u-petra',
+          minParticipants: 4,
+          approvedCount: 5,
           raterId: 'u-jakub',
           participationStatus: 'approved',
           ratingDeleted: true,
@@ -123,6 +127,8 @@ describe('RatingRepository (#66)', () => {
             startsAt,
             endsAt: null,
             organizerUserId: 'u-petra',
+            minParticipants: 4,
+            _count: { participations: 5 },
           },
         });
         const decide = jest.fn().mockReturnValue({ ok: true });

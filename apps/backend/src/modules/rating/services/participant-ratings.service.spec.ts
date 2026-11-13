@@ -1,5 +1,7 @@
+import { RatedParticipantState } from '@/modules/rating/domain/participant-rating';
 import {
   ParticipantRatingsSnapshot,
+  RatableEvent,
   RatingRepository,
 } from '@/modules/rating/repositories/rating.repository';
 import {
@@ -19,37 +21,42 @@ const endsAt = new Date('2026-10-31T19:00:00.000Z');
 const ratableUntil = new Date('2026-11-14T22:59:59.999Z');
 const updatedAt = new Date('2026-11-01T08:00:00.000Z');
 
-const snapshot = (
-  event: Partial<ParticipantRatingsSnapshot['event']> = {},
-): ParticipantRatingsSnapshot => ({
-  event: {
-    status: 'published',
-    startsAt,
-    endsAt,
-    organizerUserId: 'u-petra',
-    ...event,
-  },
-  participants: [
-    {
-      id: 'u-jakub',
-      name: 'Jakub',
-      rating: { stars: 4, comment: 'Díky', updatedAt, deletedAt: null },
-    },
-    // the organizer joined to her own event (Q12)
-    { id: 'u-petra', name: 'Petra', rating: null },
-    { id: 'u-lucie', name: 'Lucie', rating: null },
-    {
-      id: 'u-eliska',
-      name: 'Eliška',
-      rating: { stars: 1, comment: 'Spam', updatedAt, deletedAt: updatedAt },
-    },
-  ],
+const anEvent = (overrides: Partial<RatableEvent> = {}): RatableEvent => ({
+  status: 'published',
+  startsAt,
+  endsAt,
+  organizerUserId: 'u-petra',
+  minParticipants: 2,
+  approvedCount: 4,
+  ...overrides,
 });
+
+const participants: ParticipantRatingsSnapshot['participants'] = [
+  {
+    id: 'u-jakub',
+    name: 'Jakub',
+    rating: { stars: 4, comment: 'Díky', updatedAt, deletedAt: null },
+  },
+  // the organizer joined to her own event (Q12)
+  { id: 'u-petra', name: 'Petra', rating: null },
+  { id: 'u-lucie', name: 'Lucie', rating: null },
+  {
+    id: 'u-eliska',
+    name: 'Eliška',
+    rating: { stars: 1, comment: 'Spam', updatedAt, deletedAt: updatedAt },
+  },
+];
 
 const inputs = [
   { participantId: 'u-jakub', stars: 5, comment: 'Skvělá parta' },
   { participantId: 'u-lucie', stars: 5, comment: 'Skvělá parta' },
 ];
+
+const approved = (participantId: string): RatedParticipantState => ({
+  participantId,
+  participationStatus: 'approved' as const,
+  ratingDeleted: false,
+});
 
 describe('RatingService – participant ratings (#66)', () => {
   let repository: MockProxy<RatingRepository>;
@@ -62,7 +69,8 @@ describe('RatingService – participant ratings (#66)', () => {
 
   describe('getParticipantRatings', () => {
     it('lists the approved participants without the organizer, deleted ratings hidden', async () => {
-      repository.findParticipantRatings.mockResolvedValue(snapshot());
+      repository.findRatableEvent.mockResolvedValue(anEvent());
+      repository.findParticipantsWithRatings.mockResolvedValue(participants);
 
       await expect(
         service.getParticipantRatings('e1', 'u-petra', now),
@@ -80,32 +88,32 @@ describe('RatingService – participant ratings (#66)', () => {
         ratableUntil,
         refusal: null,
       });
-      expect(repository.findParticipantRatings).toHaveBeenCalledWith('e1');
+      expect(repository.findRatableEvent).toHaveBeenCalledWith('e1');
+      expect(repository.findParticipantsWithRatings).toHaveBeenCalledWith('e1');
     });
 
     it.each([
-      [{ status: 'cancelled' }, 'EVENT_NOT_PUBLISHED'],
+      [{ status: 'cancelled' as const }, 'EVENT_NOT_PUBLISHED'],
       [
         { startsAt: new Date('2026-11-02T17:00:00.000Z'), endsAt: null },
         'EVENT_NOT_ENDED',
       ],
+      [{ approvedCount: 1 }, 'EVENT_NOT_HELD'],
       [
         { startsAt: new Date('2026-10-01T17:00:00.000Z'), endsAt: null },
         'RATING_WINDOW_CLOSED',
       ],
-    ] as const)(
-      'says why nobody can be rated: %o → %s',
-      async (event, refusal) => {
-        repository.findParticipantRatings.mockResolvedValue(snapshot(event));
+    ])('says why nobody can be rated: %o → %s', async (event, refusal) => {
+      repository.findRatableEvent.mockResolvedValue(anEvent(event));
+      repository.findParticipantsWithRatings.mockResolvedValue(participants);
 
-        await expect(
-          service.getParticipantRatings('e1', 'u-petra', now),
-        ).resolves.toMatchObject({ refusal });
-      },
-    );
+      await expect(
+        service.getParticipantRatings('e1', 'u-petra', now),
+      ).resolves.toMatchObject({ refusal });
+    });
 
-    it('only the organizer who created it; an admin of the group too is 403 NOT_ORGANIZER', async () => {
-      repository.findParticipantRatings.mockResolvedValue(snapshot());
+    it('someone else is 403 NOT_ORGANIZER before any participant is read (#314)', async () => {
+      repository.findRatableEvent.mockResolvedValue(anEvent());
 
       const error = await service
         .getParticipantRatings('e1', 'u-tomas', now)
@@ -114,23 +122,23 @@ describe('RatingService – participant ratings (#66)', () => {
       expect((error as ForbiddenException).getResponse()).toMatchObject({
         code: 'NOT_ORGANIZER',
       });
+      expect(repository.findParticipantsWithRatings).not.toHaveBeenCalled();
     });
 
     it.each(['hidden', 'deleted'] as const)(
-      'a %s event does not exist (404)',
+      'a %s event does not exist (404), and no participant is read',
       async (status) => {
-        repository.findParticipantRatings.mockResolvedValue(
-          snapshot({ status }),
-        );
+        repository.findRatableEvent.mockResolvedValue(anEvent({ status }));
 
         await expect(
           service.getParticipantRatings('e1', 'u-petra', now),
         ).rejects.toBeInstanceOf(NotFoundException);
+        expect(repository.findParticipantsWithRatings).not.toHaveBeenCalled();
       },
     );
 
     it('an unknown event is 404', async () => {
-      repository.findParticipantRatings.mockResolvedValue(null);
+      repository.findRatableEvent.mockResolvedValue(null);
 
       await expect(
         service.getParticipantRatings('e1', 'u-petra', now),
@@ -142,7 +150,7 @@ describe('RatingService – participant ratings (#66)', () => {
     it('saves all under the lock and answers with the view read there (#313)', async () => {
       repository.saveParticipantRatings.mockResolvedValue({
         ok: true,
-        snapshot: snapshot(),
+        snapshot: { event: anEvent(), participants },
       });
 
       await expect(
@@ -156,38 +164,41 @@ describe('RatingService – participant ratings (#66)', () => {
       });
       expect(repository.saveParticipantRatings).toHaveBeenCalledWith(
         'e1',
-        'u-petra',
         inputs,
         expect.any(Function),
       );
       // nothing read outside the transaction, neither before nor after
-      expect(repository.findParticipantRatings).not.toHaveBeenCalled();
+      expect(repository.findRatableEvent).not.toHaveBeenCalled();
+      expect(repository.findParticipantsWithRatings).not.toHaveBeenCalled();
     });
 
-    it('decides each with decideParticipantRating at the given time', async () => {
-      repository.saveParticipantRatings.mockResolvedValue({
-        ok: true,
-        snapshot: snapshot(),
-      });
+    it('decides for the whole list at once, as the caller, at the given time (#314)', async () => {
+      repository.saveParticipantRatings.mockResolvedValue(null);
 
-      await service.rateParticipants('e1', 'u-petra', inputs, now);
-      const decide = repository.saveParticipantRatings.mock.calls[0][3];
-      const state = {
-        eventStatus: 'published' as const,
-        startsAt,
-        endsAt,
-        organizerUserId: 'u-petra',
-        raterId: 'u-petra',
-        participantId: 'u-jakub',
-        participationStatus: 'approved' as const,
-        ratingDeleted: false,
-      };
-      expect(decide(state)).toEqual({ ok: true });
-      expect(decide({ ...state, ratingDeleted: true })).toEqual({
-        ok: false,
-        refusal: 'RATING_DELETED',
-      });
-      expect(decide({ ...state, raterId: 'u-tomas' })).toEqual({
+      await service
+        .rateParticipants('e1', 'u-petra', inputs, now)
+        .catch(() => null);
+      const decide = repository.saveParticipantRatings.mock.calls[0][2];
+      expect(decide(anEvent(), [approved('u-jakub')])).toEqual({ ok: true });
+      // window closed and a deleted rating first: the event-wide reason, without a participant
+      expect(
+        decide(
+          anEvent({
+            startsAt: new Date('2026-10-01T17:00:00.000Z'),
+            endsAt: null,
+          }),
+          [
+            { ...approved('u-eliska'), ratingDeleted: true },
+            approved('u-jakub'),
+          ],
+        ),
+      ).toEqual({ ok: false, refusal: 'RATING_WINDOW_CLOSED' });
+      // the caller is the rater: someone else is NOT_ORGANIZER
+      await service
+        .rateParticipants('e1', 'u-tomas', inputs, now)
+        .catch(() => null);
+      const asTomas = repository.saveParticipantRatings.mock.calls[1][2];
+      expect(asTomas(anEvent(), [approved('u-jakub')])).toEqual({
         ok: false,
         refusal: 'NOT_ORGANIZER',
       });
@@ -197,7 +208,6 @@ describe('RatingService – participant ratings (#66)', () => {
       repository.saveParticipantRatings.mockResolvedValue({
         ok: false,
         refusal: 'NOT_ORGANIZER',
-        participantId: 'u-jakub',
       });
 
       const error = await service
@@ -234,6 +244,7 @@ describe('RatingService – participant ratings (#66)', () => {
     it.each([
       'EVENT_NOT_PUBLISHED',
       'EVENT_NOT_ENDED',
+      'EVENT_NOT_HELD',
       'RATING_WINDOW_CLOSED',
     ] as const)(
       '%s is 409 about the event, without a participant',
@@ -241,7 +252,6 @@ describe('RatingService – participant ratings (#66)', () => {
         repository.saveParticipantRatings.mockResolvedValue({
           ok: false,
           refusal,
-          participantId: 'u-jakub',
         });
 
         const error = await service

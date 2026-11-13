@@ -7,11 +7,12 @@ import {
   MyEventRating,
 } from '@/modules/rating/domain/event-rating';
 import {
-  decideParticipantRating,
+  decideParticipantRatings,
   eventNotRatable,
   ParticipantRatingInput,
   ParticipantRatingRefusal,
   ParticipantRatings,
+  RatableEventState,
 } from '@/modules/rating/domain/participant-rating';
 import {
   RATING_WINDOW_DAYS,
@@ -20,6 +21,7 @@ import {
 import {
   EventRatingSnapshot,
   ParticipantRatingsSnapshot,
+  RatableEvent,
   RatingRepository,
 } from '@/modules/rating/repositories/rating.repository';
 import {
@@ -30,6 +32,10 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 
+// an event below its minimum didn't take place, as its detail says (B-060, #314)
+const NOT_HELD_MESSAGE =
+  'Akce se nekonala, nesešlo se dost lidí. Hodnotit ji nejde.';
+
 /** Shown as they are in the app; the code is what the frontend reacts to. */
 export const EVENT_RATING_REFUSAL_MESSAGES: Record<EventRatingRefusal, string> =
   {
@@ -37,6 +43,7 @@ export const EVENT_RATING_REFUSAL_MESSAGES: Record<EventRatingRefusal, string> =
     NOT_PARTICIPANT: 'Hodnotit může jen ten, kdo byl na akci přihlášený.',
     EVENT_NOT_PUBLISHED: 'Zrušenou akci hodnotit nejde.',
     EVENT_NOT_ENDED: 'Hodnotit půjde, až akce skončí.',
+    EVENT_NOT_HELD: NOT_HELD_MESSAGE,
     RATING_WINDOW_CLOSED: `Hodnotit šlo jen ${RATING_WINDOW_DAYS} dní po akci.`,
     RATING_DELETED: 'Hodnocení odstranil správce, znovu ho dát nejde.',
   };
@@ -64,6 +71,7 @@ export const PARTICIPANT_RATING_REFUSAL_MESSAGES: Record<
   NOT_ORGANIZER: 'Účastníky hodnotí jen organizátor akce.',
   EVENT_NOT_PUBLISHED: 'Zrušenou akci hodnotit nejde.',
   EVENT_NOT_ENDED: 'Účastníky půjde hodnotit, až akce skončí.',
+  EVENT_NOT_HELD: NOT_HELD_MESSAGE,
   RATING_WINDOW_CLOSED: `Hodnotit šlo jen ${RATING_WINDOW_DAYS} dní po akci.`,
   SELF_RATING: 'Sám sebe hodnotit nejde.',
   NOT_APPROVED: 'Hodnotit jde jen schválené účastníky akce.',
@@ -179,18 +187,23 @@ export class RatingService {
     userId: string,
     now: Date = new Date(),
   ): Promise<ParticipantRatings> {
-    const snapshot = await this.findOrganizedEvent(eventId, userId);
-    return toParticipantRatings(snapshot, now);
+    // who asks and whether the event exists first, the participants only then (#314)
+    const event = await this.findOrganizedEvent(eventId, userId);
+    const participants =
+      await this.ratingRepository.findParticipantsWithRatings(eventId);
+    return toParticipantRatings({ event, participants }, now);
   }
 
   /**
    * Gives or changes the organizer's ratings of participants (B-060): one
    * participant, or everyone at once with the same stars and comment as the
    * frontend fills them in („Všem stejně“). Each is saved on its own, the
-   * default for the event isn't. All or nothing: when one is refused, none
-   * is saved and the error names the participant. Everything comes from
-   * one transaction under the lock (#313): whether the event exists, the
-   * refusals – NOT_ORGANIZER first – and the view as after saving.
+   * default for the event isn't. All or nothing, decided for the whole list
+   * at once (`decideParticipantRatings`, #314): NOT_ORGANIZER, then whether
+   * the event can be rated at all – without a participant – then each
+   * participant, the first refusal naming them. Everything comes from one
+   * transaction under the lock (#313): whether the event exists, the
+   * refusals and the view as after saving.
    */
   async rateParticipants(
     eventId: string,
@@ -200,9 +213,14 @@ export class RatingService {
   ): Promise<ParticipantRatings> {
     const result = await this.ratingRepository.saveParticipantRatings(
       eventId,
-      userId,
       inputs,
-      (state) => decideParticipantRating(state, now),
+      (event, participants) =>
+        decideParticipantRatings(
+          { ...ratableState(event), organizerUserId: event.organizerUserId },
+          userId,
+          participants,
+          now,
+        ),
     );
     if (!result) throw new NotFoundException('Akce neexistuje.');
     if (!result.ok) {
@@ -214,16 +232,15 @@ export class RatingService {
   private async findOrganizedEvent(
     eventId: string,
     userId: string,
-  ): Promise<ParticipantRatingsSnapshot> {
-    const snapshot =
-      await this.ratingRepository.findParticipantRatings(eventId);
-    if (!snapshot || isEventGone(snapshot.event.status)) {
+  ): Promise<RatableEvent> {
+    const event = await this.ratingRepository.findRatableEvent(eventId);
+    if (!event || isEventGone(event.status)) {
       throw new NotFoundException('Akce neexistuje.');
     }
-    if (snapshot.event.organizerUserId !== userId) {
+    if (event.organizerUserId !== userId) {
       throw participantRatingRefused('NOT_ORGANIZER');
     }
-    return snapshot;
+    return event;
   }
 
   private async findRatableEvent(
@@ -245,11 +262,7 @@ function toParticipantRatings(
   { event, participants }: ParticipantRatingsSnapshot,
   now: Date,
 ): ParticipantRatings {
-  const eventState = {
-    eventStatus: event.status,
-    startsAt: event.startsAt,
-    endsAt: event.endsAt,
-  };
+  const eventState = ratableState(event);
   return {
     participants: participants
       // the organizer joined to their own event (Q12) doesn't rate themselves
@@ -273,5 +286,15 @@ function toParticipantRatings(
       }),
     ratableUntil: ratingDeadline(eventState),
     refusal: eventNotRatable(eventState, now),
+  };
+}
+
+function ratableState(event: RatableEvent): RatableEventState {
+  return {
+    eventStatus: event.status,
+    startsAt: event.startsAt,
+    endsAt: event.endsAt,
+    minParticipants: event.minParticipants,
+    approvedCount: event.approvedCount,
   };
 }

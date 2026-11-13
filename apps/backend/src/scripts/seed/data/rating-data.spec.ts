@@ -97,6 +97,8 @@ describe('past events and ratings (#180)', () => {
               eventStatus: 'published',
               startsAt: row.startsAt,
               endsAt: row.endsAt,
+              minParticipants: row.minParticipants,
+              approvedCount: row.participations.length,
               organizerUserId: row.organizerKey,
               raterId: row.organizerKey,
               participantId: rating.userKey,

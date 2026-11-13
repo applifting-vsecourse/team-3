@@ -16,6 +16,8 @@ const state = (
   eventStatus: 'published',
   startsAt: yesterday,
   endsAt: null,
+  minParticipants: 4,
+  approvedCount: 5,
   organizerUserId: 'u-petra',
   raterId: 'u-jakub',
   participationStatus: 'approved',
@@ -114,6 +116,13 @@ describe('decideEventRating (#66)', () => {
         now,
       ),
     ).toEqual({ ok: false, refusal: 'RATING_DELETED' });
+  });
+
+  it('an event below its minimum did not take place: EVENT_NOT_HELD (#314)', () => {
+    expect(decideEventRating(state({ approvedCount: 3 }), now)).toEqual({
+      ok: false,
+      refusal: 'EVENT_NOT_HELD',
+    });
   });
 
   it('a rating a superadmin deleted is not given again', () => {

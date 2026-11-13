@@ -46,7 +46,7 @@ export class ParticipantRatingsController {
       "The organizer's ratings of the event's approved participants (B-060, #66), and whether they may give or change them",
     description:
       'Only the organizer who created the event, also for an event of a group (not other admins of the group). ' +
-      `\`refusal\` says why nobody can be rated now (cancelled, not over yet, after ${RATING_WINDOW_DAYS} calendar days in Prague).`,
+      `\`refusal\` says why nobody can be rated now (cancelled, not over yet, below its minimum so it didn't take place, after ${RATING_WINDOW_DAYS} calendar days in Prague).`,
   })
   @ApiResponse({ status: 200, type: ParticipantRatingsResponseDto })
   @ApiResponse({ status: 401, description: 'Not signed in' })
@@ -92,7 +92,7 @@ export class ParticipantRatingsController {
   @ApiResponse({
     status: 409,
     description:
-      'EVENT_NOT_PUBLISHED (cancelled), EVENT_NOT_ENDED, RATING_WINDOW_CLOSED, or for one participant ' +
+      'EVENT_NOT_PUBLISHED (cancelled), EVENT_NOT_ENDED, EVENT_NOT_HELD (below the minimum), RATING_WINDOW_CLOSED, or for one participant ' +
       'SELF_RATING, NOT_APPROVED or RATING_DELETED with its `participantId`',
   })
   async rate(

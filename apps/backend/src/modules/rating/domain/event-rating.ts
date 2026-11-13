@@ -1,4 +1,4 @@
-import { eventNotRatable } from './participant-rating';
+import { eventNotRatable, RatableEventState } from './participant-rating';
 
 /** Stars of a rating; 1–5, validated by the request DTO. */
 export const RATING_STARS_MIN = 1;
@@ -10,6 +10,7 @@ export const EVENT_RATING_REFUSALS = [
   'NOT_PARTICIPANT',
   'EVENT_NOT_PUBLISHED',
   'EVENT_NOT_ENDED',
+  'EVENT_NOT_HELD',
   'RATING_DELETED',
   'RATING_WINDOW_CLOSED',
 ] as const;
@@ -31,10 +32,7 @@ export const EVENT_RATING_SHOWN_REFUSALS = EVENT_RATING_REFUSALS.filter(
   (refusal) => !EVENT_RATING_FORBIDDEN.includes(refusal),
 );
 
-export type EventRatingState = {
-  eventStatus: 'published' | 'cancelled' | 'hidden' | 'deleted';
-  startsAt: Date;
-  endsAt: Date | null;
+export type EventRatingState = RatableEventState & {
   organizerUserId: string;
   /** Who wants to rate, and the status of their participation; null without one. */
   raterId: string;

@@ -1,8 +1,10 @@
 import {
   decideParticipantRating,
+  decideParticipantRatings,
   eventNotRatable,
   hasEventEnded,
   ParticipantRatingState,
+  RatedParticipantState,
 } from './participant-rating';
 
 const now = new Date('2026-11-01T12:00:00.000Z');
@@ -34,6 +36,8 @@ const state = (
 ): ParticipantRatingState => ({
   eventStatus: 'published',
   startsAt: yesterday,
+  minParticipants: 4,
+  approvedCount: 5,
   endsAt: null,
   organizerUserId: 'u-petra',
   raterId: 'u-petra',
@@ -135,6 +139,8 @@ describe('eventNotRatable (#66)', () => {
     eventStatus: 'published' as const,
     startsAt: yesterday,
     endsAt: null,
+    minParticipants: 4,
+    approvedCount: 4,
   };
 
   it('null for an event that took place within 14 days', () => {
@@ -154,5 +160,105 @@ describe('eventNotRatable (#66)', () => {
         now,
       ),
     ).toBe('RATING_WINDOW_CLOSED');
+  });
+
+  it('an event below its minimum did not take place: EVENT_NOT_HELD (#314)', () => {
+    expect(eventNotRatable({ ...event, approvedCount: 3 }, now)).toBe(
+      'EVENT_NOT_HELD',
+    );
+    // nobody at all
+    expect(eventNotRatable({ ...event, approvedCount: 0 }, now)).toBe(
+      'EVENT_NOT_HELD',
+    );
+    // exactly the minimum took place
+    expect(eventNotRatable({ ...event, approvedCount: 4 }, now)).toBeNull();
+    // before it ends nobody can tell, so it is not over yet
+    expect(
+      eventNotRatable({ ...event, approvedCount: 0, startsAt: tomorrow }, now),
+    ).toBe('EVENT_NOT_ENDED');
+  });
+});
+
+describe('decideParticipantRatings – several at once (#314)', () => {
+  const event = {
+    eventStatus: 'published' as const,
+    startsAt: yesterday,
+    endsAt: null,
+    minParticipants: 2,
+    approvedCount: 3,
+    organizerUserId: 'u-petra',
+  };
+  const approved = (participantId: string): RatedParticipantState => ({
+    participantId,
+    participationStatus: 'approved' as const,
+    ratingDeleted: false,
+  });
+  const deleted = { ...approved('u-eliska'), ratingDeleted: true };
+  const closed = { ...event, startsAt: new Date('2026-10-01T12:00:00.000Z') };
+
+  it('all approved participants of an event that can be rated: ok', () => {
+    expect(
+      decideParticipantRatings(
+        event,
+        'u-petra',
+        [approved('u-jakub'), approved('u-lucie')],
+        now,
+      ),
+    ).toEqual({ ok: true });
+  });
+
+  it('the window closed: RATING_WINDOW_CLOSED without a participant, whatever the order', () => {
+    for (const list of [
+      [deleted, approved('u-jakub')],
+      [approved('u-jakub'), deleted],
+    ]) {
+      expect(decideParticipantRatings(closed, 'u-petra', list, now)).toEqual({
+        ok: false,
+        refusal: 'RATING_WINDOW_CLOSED',
+      });
+    }
+  });
+
+  it('who is not the organizer learns nothing more, whatever the event', () => {
+    expect(decideParticipantRatings(closed, 'u-tomas', [deleted], now)).toEqual(
+      { ok: false, refusal: 'NOT_ORGANIZER' },
+    );
+  });
+
+  it('an event that can be rated: the first participant refused is named', () => {
+    expect(
+      decideParticipantRatings(
+        event,
+        'u-petra',
+        [approved('u-jakub'), deleted, approved('u-petra')],
+        now,
+      ),
+    ).toEqual({
+      ok: false,
+      refusal: 'RATING_DELETED',
+      participantId: 'u-eliska',
+    });
+    expect(
+      decideParticipantRatings(
+        event,
+        'u-petra',
+        [
+          approved('u-jakub'),
+          { ...approved('u-tomas'), participationStatus: null },
+        ],
+        now,
+      ),
+    ).toEqual({ ok: false, refusal: 'NOT_APPROVED', participantId: 'u-tomas' });
+  });
+
+  it('an event that did not take place: EVENT_NOT_HELD for the whole list', () => {
+    expect(
+      decideParticipantRatings(
+        { ...event, approvedCount: 1 },
+        'u-petra',
+        [approved('u-jakub')],
+        now,
+      ),
+    ).toEqual({ ok: false, refusal: 'EVENT_NOT_HELD' });
   });
 });

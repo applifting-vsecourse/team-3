@@ -27,6 +27,8 @@ const snapshot = (
     eventStatus: 'published',
     startsAt,
     endsAt,
+    minParticipants: 4,
+    approvedCount: 5,
     organizerUserId: 'u-petra',
     raterId: 'u-jakub',
     participationStatus: 'approved',
