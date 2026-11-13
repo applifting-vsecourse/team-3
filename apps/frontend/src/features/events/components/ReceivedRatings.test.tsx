@@ -42,7 +42,7 @@ beforeEach(() => {
   })
 })
 
-const renderSection = (isGroupEvent = false) =>
+const renderSection = (isGroupEvent = false, isRatingOpen = true) =>
   renderWithRouter(
     <QueryClientProvider
       client={new QueryClient({ defaultOptions: { queries: { retry: false } } })}
@@ -51,6 +51,7 @@ const renderSection = (isGroupEvent = false) =>
         eventId="e1"
         viewerId="u-petra"
         isGroupEvent={isGroupEvent}
+        isRatingOpen={isRatingOpen}
       />
     </QueryClientProvider>,
   )
@@ -89,5 +90,16 @@ describe("what the event got, on its management page (B-060, #66)", () => {
       await screen.findByText("Zatím nikdo nehodnotil. Účastníci mohou hodnotit 14 dní po akci."),
     ).toBeInTheDocument()
     expect(screen.getAllByText("zatím bez hodnocení")).toHaveLength(2)
+  })
+
+  it("after the window nobody can rate any more: it doesn't say they can (review #322)", async () => {
+    answer = {
+      summary: { event: { average: null, count: 0 }, organizer: { average: null, count: 0 } },
+      ratings: [],
+    }
+    await renderSection(false, false)
+
+    expect(await screen.findByText("Akci nikdo neohodnotil.")).toBeInTheDocument()
+    expect(screen.queryByText(/mohou hodnotit/)).not.toBeInTheDocument()
   })
 })

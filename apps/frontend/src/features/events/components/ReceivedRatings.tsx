@@ -16,6 +16,8 @@ type ReceivedRatingsProps = {
   viewerId: string
   /** A group's event: its organizer stars belong to the group (B-060). */
   isGroupEvent: boolean
+  /** Within the rating window: participants can still rate it. */
+  isRatingOpen: boolean
 }
 
 /**
@@ -23,7 +25,12 @@ type ReceivedRatingsProps = {
  * hodnocení a komentáře své akce“, #66): the two averages, then each rating with its comment,
  * newest first. The organizer or a group's admin (GET /api/events/:id/ratings).
  */
-export function ReceivedRatings({ eventId, viewerId, isGroupEvent }: ReceivedRatingsProps) {
+export function ReceivedRatings({
+  eventId,
+  viewerId,
+  isGroupEvent,
+  isRatingOpen,
+}: ReceivedRatingsProps) {
   const headingId = useId()
   const query = useQuery(receivedRatingsQueryOptions(eventId, viewerId))
   const organizerWord = isGroupEvent ? "skupina" : "organizátor"
@@ -73,7 +80,9 @@ export function ReceivedRatings({ eventId, viewerId, isGroupEvent }: ReceivedRat
           </dl>
           {query.data.ratings.length === 0 ? (
             <p className="text-sm text-muted-foreground">
-              Zatím nikdo nehodnotil. Účastníci mohou hodnotit {RATING_WINDOW_DAYS} dní po akci.
+              {isRatingOpen
+                ? `Zatím nikdo nehodnotil. Účastníci mohou hodnotit ${RATING_WINDOW_DAYS} dní po akci.`
+                : "Akci nikdo neohodnotil."}
             </p>
           ) : (
             <ul className="flex flex-col">

@@ -1,6 +1,6 @@
 import type { ReactNode } from "react"
 import { createFileRoute, Link } from "@tanstack/react-router"
-import { Ban, Pencil, RefreshCw, Star } from "lucide-react"
+import { Ban, Pencil, RefreshCw } from "lucide-react"
 import { toast } from "sonner"
 
 import { ROUTES } from "@/app/routes"
@@ -24,8 +24,8 @@ import { CancelEventDialog } from "@/features/events/components/CancelEventDialo
 import { EventCard } from "@/features/events/components/EventCard"
 import { EventFacts } from "@/features/events/components/EventFacts"
 import { ManagedParticipants } from "@/features/events/components/ManagedParticipants"
+import { ManagedRatings } from "@/features/events/components/ManagedRatings"
 import { ManagedRequests } from "@/features/events/components/ManagedRequests"
-import { ReceivedRatings } from "@/features/events/components/ReceivedRatings"
 import { SendEventMessageButton } from "@/features/events/components/SendEventMessageButton"
 import { ShareEventButton } from "@/features/events/components/ShareEventButton"
 import { useCancelEvent } from "@/features/events/hooks/useCancelEvent"
@@ -36,7 +36,6 @@ import { editRefusal } from "@/features/events/lib/editRefusal"
 import { canWriteToParticipants, messageRecipientCount } from "@/features/events/lib/eventMessages"
 import { formatEventTime } from "@/features/events/lib/formatEvent"
 import { showsRequests } from "@/features/events/lib/manageEvent"
-import { canRateParticipants, tookPlace } from "@/features/events/lib/rating"
 
 export const Route = createFileRoute("/_ProtectedPages/akce/$eventId/sprava")({
   component: ManageEventPage,
@@ -251,31 +250,12 @@ function ManageEventPage() {
                   className="w-full"
                 />
               ) : null}
-              {/* D-05: the organizer rates who came, for 14 days after the event (#66) */}
-              {canRateParticipants(event, viewerId ?? null, new Date()) ? (
-                <Button
-                  asChild
-                  variant="outline"
-                  size="lg"
-                  className="w-full"
-                >
-                  <Link
-                    to={ROUTES.rateEvent}
-                    params={{ eventId }}
-                  >
-                    <Star />
-                    Ohodnotit účastníky
-                  </Link>
-                </Button>
-              ) : null}
-              {/* what the participants said, for who manages it (B-060, #66) */}
-              {viewerId && tookPlace(event, new Date()) ? (
-                <ReceivedRatings
-                  eventId={eventId}
-                  viewerId={viewerId}
-                  isGroupEvent={event.group !== null}
-                />
-              ) : null}
+              {/* D-05 and what the participants said (B-060, #66) */}
+              <ManagedRatings
+                event={event}
+                viewerId={viewerId ?? null}
+                now={new Date()}
+              />
             </section>
             {/* the right column (D-03d): an event with approval adds the requests (#53),
                 unless it's cancelled — then only who was coming, read-only (#183) */}
