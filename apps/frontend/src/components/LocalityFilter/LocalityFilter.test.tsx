@@ -210,6 +210,28 @@ describe("LocalityFilter", () => {
       expect(within(panel).getByRole("button", { name: "Zrušit výběr" })).toBeDisabled()
     })
 
+    it("applying the default unchanged picks nothing, so the guess is not remembered (#299)", async () => {
+      const { onChange } = renderFilter("praha", {
+        isDefault: true,
+        hint: "podle polohy",
+        onReset: vi.fn(),
+      })
+      const panel = await openPanel("Lokalita: Praha · podle polohy")
+
+      await userEvent.click(within(panel).getByRole("button", { name: "Zobrazit akce" }))
+      expect(onChange).not.toHaveBeenCalled()
+      expect(screen.queryByRole("dialog", { name: "Lokalita" })).not.toBeInTheDocument()
+    })
+
+    it("another locality picked over the default is a pick", async () => {
+      const { onChange } = renderFilter("praha", { isDefault: true, onReset: vi.fn() })
+      const panel = await openPanel("Lokalita: Praha")
+
+      await userEvent.click(within(panel).getByRole("option", { name: "Brno" }))
+      await userEvent.click(within(panel).getByRole("button", { name: "Zobrazit akce" }))
+      expect(onChange).toHaveBeenCalledWith("brno")
+    })
+
     it("a district still goes back to its city", async () => {
       const onReset = vi.fn()
       const { onChange } = renderFilter("praha-8", { isDefault: false, onReset })

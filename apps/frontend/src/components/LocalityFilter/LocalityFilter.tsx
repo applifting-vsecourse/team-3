@@ -110,10 +110,20 @@ export function LocalityFilter({
     setDraftRadius(km)
     onDraftChange?.({ slug, radius: radiusFor(slug, km) })
   }
-  // Always the slug, the default's too: a pick is remembered (#55) and „Zrušit vše“ undoes it.
+  // The default applied as it is stays the default: no pick to remember, the chip stays light
+  // (#299 — confirming the panel unchanged used to store the IP guess as the visitor's own pick).
+  // Otherwise always the slug, the default's too: a pick is remembered (#55) and „Zrušit vše“
+  // undoes it. A searched map area is ended by any apply.
+  const isDefaultUnchanged = (slug: string, km?: string) =>
+    Boolean(localityDefault?.isDefault) &&
+    !areaLabel &&
+    slug === current &&
+    radiusFor(slug, km) === appliedRadius
   const apply = (slug: string, km?: string) => {
-    if (radius) onChange(slug, radiusFor(slug, km))
-    else onChange(slug)
+    if (!isDefaultUnchanged(slug, km)) {
+      if (radius) onChange(slug, radiusFor(slug, km))
+      else onChange(slug)
+    }
     setIsOpen(false)
     onDraftChange?.(undefined)
   }
