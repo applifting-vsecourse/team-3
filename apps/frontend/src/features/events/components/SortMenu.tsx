@@ -1,3 +1,4 @@
+import { useId } from "react"
 import { ChevronDown } from "lucide-react"
 
 import { Button } from "@/components/ui/button"
@@ -9,6 +10,7 @@ import {
   DropdownMenuRadioItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
+import { cn } from "@/lib/utils"
 
 import type { Sort } from "@/features/events/lib/eventsSearch"
 
@@ -32,13 +34,17 @@ type SortMenuProps = {
 }
 
 /**
- * „Řadit: nejbližší termín ▾“ above the list, „Termín ▾“ on a phone (Figma A-02j, A-02jd; #57, #324): soonest first, or
- * nearest to the chosen locality's centre. Always a menu: a plain label looked like the button
- * and a tap did nothing (Celé Česko, a searched map area). Without a centre the distance order
- * is there but off, with why under it — readable, not dimmed like the disabled item.
+ * „Řadit: nejbližší termín ▾“ above the list, „Termín ▾“ on a phone (Figma A-02j, A-02jd; #57,
+ * #324): soonest first, or nearest to the chosen locality's centre. Always a menu: a plain label
+ * looked like the button and a tap did nothing (Celé Česko, a searched map area). Without a
+ * centre the distance order is there but off, with why under it — readable, not dimmed.
+ * Off with `aria-disabled`, not the kit's `disabled`: that one drops the item from the arrow
+ * keys, and a screen reader would never reach it nor hear why (WAI-ARIA APG: a disabled menu
+ * item stays focusable).
  * DESIGN.md › Menus: card surface, card-border, rounded-2xl, the picked option checked.
  */
 export function SortMenu({ value, isDistanceAvailable, onChange }: SortMenuProps) {
+  const whyOffId = useId()
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
@@ -58,7 +64,11 @@ export function SortMenu({ value, isDistanceAvailable, onChange }: SortMenuProps
       >
         <DropdownMenuRadioGroup
           value={value}
-          onValueChange={(next) => onChange(next === "vzdalenost" ? "vzdalenost" : "termin")}
+          onValueChange={(next) => {
+            // Radix changes the value even when the off item's onSelect prevents the default
+            if (next === "vzdalenost" && !isDistanceAvailable) return
+            onChange(next === "vzdalenost" ? "vzdalenost" : "termin")
+          }}
         >
           <DropdownMenuRadioItem
             value="termin"
@@ -68,8 +78,11 @@ export function SortMenu({ value, isDistanceAvailable, onChange }: SortMenuProps
           </DropdownMenuRadioItem>
           <DropdownMenuRadioItem
             value="vzdalenost"
-            disabled={!isDistanceAvailable}
-            className="rounded-lg py-2"
+            aria-disabled={isDistanceAvailable ? undefined : true}
+            aria-describedby={isDistanceAvailable ? undefined : whyOffId}
+            // off: a tap or Enter leaves the menu open, with the why in view
+            onSelect={isDistanceAvailable ? undefined : (event) => event.preventDefault()}
+            className={cn("rounded-lg py-2", !isDistanceAvailable && "text-muted-foreground")}
           >
             <span className="flex flex-col">
               Nejmenší vzdálenost
@@ -80,7 +93,10 @@ export function SortMenu({ value, isDistanceAvailable, onChange }: SortMenuProps
           </DropdownMenuRadioItem>
         </DropdownMenuRadioGroup>
         {isDistanceAvailable ? null : (
-          <DropdownMenuLabel className="max-w-56 pt-1 text-xs font-normal text-muted-foreground">
+          <DropdownMenuLabel
+            id={whyOffId}
+            className="max-w-56 pt-1 text-xs font-normal text-muted-foreground"
+          >
             Pro řazení podle vzdálenosti vyber lokalitu.
           </DropdownMenuLabel>
         )}

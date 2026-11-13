@@ -35,9 +35,16 @@ describe("SortMenu (#57)", () => {
     await userEvent.click(screen.getByRole("button", { name: /^Řadit:/ }))
     const distance = screen.getByRole("menuitemradio", { name: /Nejmenší vzdálenost/ })
     expect(distance).toHaveAttribute("aria-disabled", "true")
-    expect(screen.getByText("Pro řazení podle vzdálenosti vyber lokalitu.")).toBeInTheDocument()
+    // the why belongs to the item: a screen reader hears it there
+    expect(distance).toHaveAccessibleDescription("Pro řazení podle vzdálenosti vyber lokalitu.")
     await userEvent.click(distance)
     expect(onChange).not.toHaveBeenCalled()
+    // still reachable with the arrow keys, not skipped like the kit's `disabled` item
+    await userEvent.keyboard("{ArrowDown}{ArrowDown}")
+    expect(distance).toHaveFocus()
+    await userEvent.keyboard("{Enter}")
+    expect(onChange).not.toHaveBeenCalled()
+    expect(screen.getByRole("menu")).toBeInTheDocument()
   })
 
   it("a phone shows just the value, so the row above the list fits one line (#324)", () => {
