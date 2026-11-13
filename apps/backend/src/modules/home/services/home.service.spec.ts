@@ -90,7 +90,7 @@ describe('HomeService', () => {
   it('a visitor without a locality: all of Czechia, nothing personal asked for', async () => {
     const home = await service.getHome({}, null, now);
 
-    expect(home).toEqual({ locality: null, sections: [] });
+    expect(home).toEqual({ locality: null, sections: [], isWidened: false });
     expect(homeRepository.findViewer).not.toHaveBeenCalled();
     expect(eventRepository.findPublicEvents).toHaveBeenCalledWith({
       filters: { localityId: undefined },
@@ -102,6 +102,78 @@ describe('HomeService', () => {
       viewerId: null,
       now,
       limit: GROUP_SCAN_LIMIT,
+    });
+  });
+
+  describe('a locality with no events (#299)', () => {
+    // Trutnov, about 23 km from Police nad Metují; Praha far away
+    const POLICE = {
+      id: 'l-police',
+      slug: 'police-nad-metuji',
+      name: 'Police nad Metují',
+      lat: 50.5369,
+      lng: 16.2335,
+      parentId: null,
+    };
+    // Trutnov misses one person, Praha three
+    const trutnov = anEvent('trutnov', 3, { lat: 50.561, lng: 15.9127 });
+    const praha = anEvent('praha', 1);
+
+    beforeEach(() => {
+      homeRepository.findLocality.mockResolvedValue(POLICE);
+      eventRepository.findPublicEvents.mockImplementation(({ filters }) =>
+        Promise.resolve(filters.localityId ? [] : [praha, trutnov]),
+      );
+    });
+
+    it('the sections come from the nearest events anywhere, with their distance', async () => {
+      const home = await service.getHome({ localityId: POLICE.id }, null, now);
+
+      expect(home.isWidened).toBe(true);
+      expect(home.locality?.slug).toBe('police-nad-metuji');
+      expect(eventRepository.findPublicEvents).toHaveBeenLastCalledWith({
+        filters: {},
+        now,
+        limit: SCAN_LIMIT,
+      });
+      expect(eventRepository.countInterest).toHaveBeenLastCalledWith({}, now);
+      const events = home.sections.flatMap((section) =>
+        'events' in section ? section.events : [],
+      );
+      expect(home.sections.map((section) => section.key)).toEqual([
+        'highlight',
+        'missing',
+      ]);
+      expect(events.map((event) => [event.id, event.distanceKm])).toEqual([
+        ['trutnov', 22.8],
+        ['praha', 136.3],
+      ]);
+    });
+
+    it('nothing anywhere: still not widened, no sections', async () => {
+      eventRepository.findPublicEvents.mockResolvedValue([]);
+
+      const home = await service.getHome({ localityId: POLICE.id }, null, now);
+
+      expect(home).toMatchObject({ isWidened: false, sections: [] });
+    });
+
+    it('a locality with events of its own is never widened', async () => {
+      eventRepository.findPublicEvents.mockResolvedValue([trutnov]);
+
+      const home = await service.getHome({ localityId: POLICE.id }, null, now);
+
+      expect(home.isWidened).toBe(false);
+      expect(eventRepository.findPublicEvents).toHaveBeenCalledTimes(1);
+    });
+
+    it('all of Czechia has nothing to widen to', async () => {
+      eventRepository.findPublicEvents.mockResolvedValue([]);
+
+      const home = await service.getHome({}, null, now);
+
+      expect(home.isWidened).toBe(false);
+      expect(eventRepository.findPublicEvents).toHaveBeenCalledTimes(1);
     });
   });
 

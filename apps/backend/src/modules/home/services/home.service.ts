@@ -21,6 +21,7 @@ import {
   HomeViewer,
   orderRecruitingGroups,
 } from '@/modules/home/domain/home-sections';
+import { nearestEvents } from '@/modules/home/domain/nearest-events';
 import { keepPicked, PickFilters } from '@/modules/home/domain/picked-events';
 import { HomeRepository } from '@/modules/home/repositories/home.repository';
 import { BadRequestException, Injectable } from '@nestjs/common';
@@ -48,6 +49,12 @@ export type HomeView = {
   } | null;
   /** In the order of the page, only those with something in them. */
   sections: HomeSection[];
+  /**
+   * The locality has no events to show (#299): the event sections are the
+   * nearest events anywhere instead, each with its distance from the
+   * locality's centre. Groups stay the locality's.
+   */
+  isWidened: boolean;
 };
 
 @Injectable()
@@ -158,7 +165,7 @@ export class HomeService {
       ratingOwnersOf(events),
     );
 
-    const sections: HomeSection[] = buildHomeEventSections({
+    let sections: HomeSection[] = buildHomeEventSections({
       events,
       interest,
       ratings,
@@ -167,6 +174,34 @@ export class HomeService {
       now,
       random,
     });
+    // #299: a locality with nothing to show is no empty page — the nearest
+    // events anywhere, by their distance from it
+    let isWidened = false;
+    if (locality && sections.length === 0) {
+      const [everywhere, interestEverywhere] = await Promise.all([
+        this.eventRepository.findPublicEvents({
+          filters: {},
+          now,
+          limit: SCAN_LIMIT,
+        }),
+        viewer
+          ? new Map<string, number>()
+          : this.eventRepository.countInterest({}, now),
+      ]);
+      const nearest = nearestEvents(everywhere, locality);
+      sections = buildHomeEventSections({
+        events: nearest,
+        interest: interestEverywhere,
+        ratings: await this.homeRepository.findRatingSummaries(
+          ratingOwnersOf(nearest),
+        ),
+        center: locality,
+        viewer,
+        now,
+        random,
+      });
+      isWidened = sections.length > 0;
+    }
     const recruiting = orderRecruitingGroups(groups);
     if (recruiting.length > 0) {
       sections.push({ key: 'groups', groups: recruiting });
@@ -183,6 +218,7 @@ export class HomeService {
             }
           : null,
       sections,
+      isWidened,
     };
   }
 }

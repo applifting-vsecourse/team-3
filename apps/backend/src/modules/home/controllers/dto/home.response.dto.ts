@@ -64,9 +64,16 @@ export class HomeResponseDto {
   })
   sections!: HomeSectionDto[];
 
+  @ApiProperty({
+    description:
+      "The locality has no events to show (#299): the event sections hold the nearest events anywhere instead, each with distanceKm from its centre; groups stay the locality's",
+  })
+  isWidened!: boolean;
+
   static fromDomain(home: HomeView): HomeResponseDto {
     return {
       locality: home.locality,
+      isWidened: home.isWidened,
       sections: home.sections.map((section) =>
         section.key === 'groups'
           ? {
