@@ -150,13 +150,14 @@ describe("EventCard", () => {
     expect(screen.getByText(/· 1,3 km$/)).toBeInTheDocument()
   })
 
-  // Figma Karta akce › Skupina (#304): where it happens, at a glance
-  it("a group's event names its group under the title; an event without one doesn't", async () => {
+  // Figma Karta akce › Skupina (#304): where it happens, at a glance — in Moje
+  it("in Moje a group's event names its group under the title", async () => {
     const event = { ...anEvent(), group: { id: "grp", name: "Běžci ze Stromovky" } }
     await renderWithRouter(
       <EventCard
         event={event}
         variant="grid"
+        isGroupShown
       />,
     )
 
@@ -166,14 +167,9 @@ describe("EventCard", () => {
     expect(title.compareDocumentPosition(group) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
   })
 
-  it("the group's own page leaves its name out", async () => {
+  it("elsewhere (/akce, the landing page, the group's page) it leaves the group out", async () => {
     const event = { ...anEvent(), group: { id: "grp", name: "Běžci ze Stromovky" } }
-    await renderWithRouter(
-      <EventCard
-        event={event}
-        isGroupShown={false}
-      />,
-    )
+    await renderWithRouter(<EventCard event={event} />)
 
     expect(screen.queryByText("Běžci ze Stromovky")).not.toBeInTheDocument()
   })

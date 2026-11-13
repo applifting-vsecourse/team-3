@@ -57,7 +57,8 @@ type EventCardProps = {
   distanceKm?: number | null
   /**
    * A group's event names its group under the title (Figma Karta akce › Skupina, #304), so
-   * it is clear at a glance where it happens. Off on the group's own page, which says it.
+   * it is clear at a glance where it happens. In Moje only (C-01, C-02); elsewhere (/akce,
+   * the landing page, the group's own page) it would be a new story for the PO.
    */
   isGroupShown?: boolean
   className?: string
@@ -84,7 +85,7 @@ export function EventCard({
   hasBar = true,
   summary,
   distanceKm,
-  isGroupShown = true,
+  isGroupShown = false,
   className,
 }: EventCardProps) {
   const isCancelled = event.status === "cancelled"

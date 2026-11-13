@@ -86,6 +86,7 @@ export function AttendingEvents({ viewerId }: { viewerId: string }) {
               <EventCard
                 event={event}
                 variant="responsive"
+                isGroupShown
                 titleAs="h3"
               />
             </li>
@@ -110,6 +111,7 @@ function AttendingSection({ title, events }: { title: string; events: MyEvent[] 
           <EventCard
             event={event}
             variant="responsive"
+            isGroupShown
             status={attendingStatus(event)}
             numbers={attendingNumbers(event)}
             rowLead={attendingRowLead(event)}
@@ -252,6 +254,7 @@ function OrganizingSection({ title, events }: { title: string; events: MyEvent[]
           <EventCard
             event={event}
             variant="responsive"
+            isGroupShown
             status={organizingStatus(event)}
             numbers={organizingNumbers(event)}
             rowTail={organizingRowTail(event)}
