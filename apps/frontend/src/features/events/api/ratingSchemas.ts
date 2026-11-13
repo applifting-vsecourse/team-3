@@ -60,7 +60,7 @@ export const myEventRatingSchema = z.object({
       updatedAt: z.coerce.date(),
     })
     .nullable(),
-  /** RATING_WINDOW_DAYS after the event's end, its start without one. */
+  /** The last moment to give or change the rating, as the API counts it (B-060). */
   ratableUntil: z.coerce.date(),
   refusal: eventRatingRefusalSchema.nullable(),
 })

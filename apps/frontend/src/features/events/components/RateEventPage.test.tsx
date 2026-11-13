@@ -268,6 +268,23 @@ describe("/akce/:id/hodnoceni for a participant (Figma C-03, #66)", () => {
     )
   })
 
+  it("for the organizer 403 OWN_EVENT is an answer, not a failure (review #313)", async () => {
+    // the page can't tell the organizer before asking: it has no event's detail to look at
+    answer = new FakeHTTPError(403, {
+      code: "OWN_EVENT",
+      message: "Svou vlastní akci hodnotit nejde.",
+    })
+    await renderPage()
+    await screen.findByText("Svou akci nehodnotíš")
+
+    // asked once, not retried; no error toast, no form, no „Zkusit znovu“
+    expect(api.get).toHaveBeenCalledTimes(1)
+    expect(toast.error).not.toHaveBeenCalled()
+    expect(screen.queryByRole("radiogroup")).not.toBeInTheDocument()
+    expect(screen.queryByRole("button", { name: "Zkusit znovu" })).not.toBeInTheDocument()
+    expect(api.put).not.toHaveBeenCalled()
+  })
+
   it("an unknown, hidden or deleted event (404) points to the events", async () => {
     answer = new FakeHTTPError(404, { message: "Akce neexistuje." })
     await renderPage()
