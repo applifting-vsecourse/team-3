@@ -31,6 +31,7 @@ import {
   formatRequestEventStart,
   isEventOver,
 } from "@/features/events/lib/formatEvent"
+import { canRateEvent } from "@/features/events/lib/rating"
 
 // Signed in means verified (#236): an unverified e-mail can't sign in, and an
 // old session gets the API's 403 EMAIL_NOT_VERIFIED as the error message.
@@ -83,8 +84,9 @@ export function ParticipationAction({
     // Figma A-05 · Stavy › Proběhlá akce; an event whose minimum never came didn't take place
     const day = inSentence(formatEventDay(event.startsAt))
     const hasHappened = event.missingToMin === 0
-    // who had a place rates the event and its organizer (Figma C-03, #66); the organizer doesn't
-    const canRate = hasHappened && !isOrganizer && event.myParticipation === "approved"
+    // who had a place rates the event and its organizer (Figma C-03, #66) – by the API's own
+    // rules, so the button never leads to a page that refuses (review #315): not after the window
+    const canRate = canRateEvent(event, viewer?.id ?? null, now)
     return (
       <Row>
         {manage}
