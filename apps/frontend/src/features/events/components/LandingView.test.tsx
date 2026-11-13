@@ -72,7 +72,12 @@ const group = {
 }
 
 type Section = { key: string; events?: PublicEvent[]; groups?: unknown[] }
-type HomeBody = { locality: unknown; sections: Section[]; isWidened?: boolean }
+type HomeBody = {
+  locality: unknown
+  sections: Section[]
+  isWidened?: boolean
+  hasLocalityEvents?: boolean
+}
 
 const visitorHome: HomeBody = {
   locality: null,
@@ -392,6 +397,7 @@ describe("LandingView", () => {
     const policeHome: HomeBody = {
       locality: { id: "l-praha-3", slug: "praha-3", name: "Praha 3", source: "query" },
       isWidened: true,
+      hasLocalityEvents: false,
       sections: [
         {
           key: "missing",
@@ -429,7 +435,7 @@ describe("LandingView", () => {
         await screen.findByText((_, element) =>
           element?.tagName === "P"
             ? element.textContent ===
-              "V lokalitě Praha 3 teď žádná akce není. Ukazujeme nejbližší akce v okolí."
+              "V okolí lokality Praha 3 teď žádná akce není. Ukazujeme nejbližší akce v okolí."
             : false,
         ),
       ).toBeInTheDocument()
@@ -437,6 +443,29 @@ describe("LandingView", () => {
       expect(screen.getByText(/Těmhle akcím v okolí lokality Praha 3/)).toBeInTheDocument()
       const card = screen.getByRole("link", { name: "Florbal v Trutnově" }).closest("article")
       expect(card).toHaveTextContent("22,7 km")
+    })
+
+    it("only full events or one's own there: never says the locality is empty (review #321)", async () => {
+      home = {
+        ...policeHome,
+        locality: { id: "l-praha", slug: "praha", name: "Praha", source: "query" },
+        hasLocalityEvents: true,
+      }
+      await renderLanding({
+        session: "signedIn",
+        localitySlug: "praha",
+        localityControl: { state: guess("praha"), onChange: vi.fn(), onReset: vi.fn() },
+      })
+
+      expect(
+        await screen.findByText((_, element) =>
+          element?.tagName === "P"
+            ? element.textContent ===
+              "V lokalitě Praha teď není akce, kam se dá přidat. Ukazujeme nejbližší akce v okolí."
+            : false,
+        ),
+      ).toBeInTheDocument()
+      expect(screen.queryByText(/žádná akce není/)).toBeNull()
     })
 
     it("no chip without the page's locality control", async () => {

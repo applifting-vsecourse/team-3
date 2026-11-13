@@ -50,11 +50,19 @@ export type HomeView = {
   /** In the order of the page, only those with something in them. */
   sections: HomeSection[];
   /**
-   * The locality has no events to show (#299): the event sections are the
-   * nearest events anywhere instead, each with its distance from the
-   * locality's centre. Groups stay the locality's.
+   * Nothing in the locality one can join (#299) — no events at all, or only
+   * full ones and, for a signed-in user, their own or those they already
+   * joined: the event sections are the nearest events anywhere instead, each
+   * with its distance from the locality's centre. Groups stay the locality's.
    */
   isWidened: boolean;
+  /**
+   * The page's area has upcoming public events at all, full ones and the
+   * viewer's own included (#299). With `isWidened` it tells „nothing here“
+   * from „nothing here one can join“, so the page never says a place is empty
+   * when it is not.
+   */
+  hasLocalityEvents: boolean;
 };
 
 @Injectable()
@@ -175,10 +183,15 @@ export class HomeService {
       now,
       random,
     });
-    // #299: a locality with nothing to show is no empty page — the nearest
-    // events anywhere, by their distance from it
+    // #299: a locality with nothing to join is no empty page — the nearest
+    // events anywhere, by their distance from it. Nothing to join is not
+    // nothing at all: full events and the viewer's own leave no section either.
     let isWidened = false;
     if (locality && sections.length === 0) {
+      // Known limit: „nearest“ among the SCAN_LIMIT soonest events of the
+      // whole country, not among all of them — enough while there are fewer
+      // upcoming events; with more, a near event far in the future can be
+      // missed (as the list's search, BACKLOG B-023).
       const [everywhere, interestEverywhere] = await Promise.all([
         this.eventRepository.findPublicEvents({
           filters: {},
@@ -220,6 +233,7 @@ export class HomeService {
           : null,
       sections,
       isWidened,
+      hasLocalityEvents: events.length > 0,
     };
   }
 }

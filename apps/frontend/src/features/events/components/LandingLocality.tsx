@@ -7,8 +7,13 @@ type LandingLocalityProps = {
   /** The landing page's locality (useLocality, #55); its slug is known once this renders. */
   locality: LocalityState & { slug: string }
   localities: Locality[]
-  /** The sections are the nearest events, the locality has none (GET /api/home, #299). */
+  /** The sections are the nearest events: nothing in the locality to join (GET /api/home, #299). */
   isWidened: boolean
+  /**
+   * The locality has events at all, full ones or the viewer's own included (GET /api/home): then
+   * it is not „empty“, there is just nothing in it to join.
+   */
+  hasLocalityEvents: boolean
   /** A pick in the chip (remembered in this browser, #55). */
   onChange: (slug: string) => void
   /** „Zrušit výběr“: back to the visitor's default. */
@@ -24,17 +29,24 @@ export function LandingLocality({
   locality,
   localities,
   isWidened,
+  hasLocalityEvents,
   onChange,
   onReset,
 }: LandingLocalityProps) {
+  const record = localities.find((l) => l.slug === locality.slug)
   const name = localityName(locality.slug, localities)
+  // a district's sections cover its whole city (B-027): „v okolí lokality Praha 3“
+  const where = record?.parentId ? "V okolí lokality" : "V lokalitě"
   return (
     <div className="flex flex-wrap items-center gap-x-3 gap-y-2">
       <p className="text-sm text-muted-foreground">
         {isWidened && name ? (
+          // „žádná akce není“ only when it is true: full events and one's own leave no section
+          // either, and an organizer must not read that their own town is empty (review #321)
           <>
-            V lokalitě <span className="font-semibold text-foreground">{name}</span> teď žádná akce
-            není. Ukazujeme nejbližší akce v okolí.
+            {where} <span className="font-semibold text-foreground">{name}</span>{" "}
+            {hasLocalityEvents ? "teď není akce, kam se dá přidat." : "teď žádná akce není."}{" "}
+            Ukazujeme nejbližší akce v okolí.
           </>
         ) : (
           "Ukazujeme akce pro lokalitu"

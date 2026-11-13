@@ -90,7 +90,12 @@ describe('HomeService', () => {
   it('a visitor without a locality: all of Czechia, nothing personal asked for', async () => {
     const home = await service.getHome({}, null, now);
 
-    expect(home).toEqual({ locality: null, sections: [], isWidened: false });
+    expect(home).toEqual({
+      locality: null,
+      sections: [],
+      isWidened: false,
+      hasLocalityEvents: false,
+    });
     expect(homeRepository.findViewer).not.toHaveBeenCalled();
     expect(eventRepository.findPublicEvents).toHaveBeenCalledWith({
       filters: { localityId: undefined },
@@ -130,6 +135,8 @@ describe('HomeService', () => {
       const home = await service.getHome({ localityId: POLICE.id }, null, now);
 
       expect(home.isWidened).toBe(true);
+      // nothing there at all: the page may say so
+      expect(home.hasLocalityEvents).toBe(false);
       expect(home.locality?.slug).toBe('police-nad-metuji');
       expect(eventRepository.findPublicEvents).toHaveBeenLastCalledWith({
         filters: {},
@@ -148,6 +155,46 @@ describe('HomeService', () => {
         ['trutnov', 22.8],
         ['praha', 136.3],
       ]);
+    });
+
+    it('only full events in the locality: widened, but the locality is not empty', async () => {
+      const full = anEvent('full', 10);
+      eventRepository.findPublicEvents.mockImplementation(({ filters }) =>
+        Promise.resolve(filters.localityId ? [full] : [full, trutnov]),
+      );
+
+      const home = await service.getHome({ localityId: POLICE.id }, null, now);
+
+      expect(home).toMatchObject({ isWidened: true, hasLocalityEvents: true });
+      const ids = home.sections.flatMap((section) =>
+        'events' in section ? section.events.map((event) => event.id) : [],
+      );
+      expect(ids).toEqual(['trutnov']);
+    });
+
+    it("only the signed-in organizer's own event: widened, the locality is not empty", async () => {
+      const own = anEvent('own', 1, { organizer: { id: 'u-me', name: 'Já' } });
+      homeRepository.findViewer.mockResolvedValue({
+        homeLocalityId: null,
+        interestActivityIds: [],
+        joinedEventIds: [],
+      });
+      eventRepository.findPublicEvents.mockImplementation(({ filters }) =>
+        Promise.resolve(filters.localityId ? [own] : [own, trutnov]),
+      );
+
+      const home = await service.getHome(
+        { localityId: POLICE.id },
+        'u-me',
+        now,
+      );
+
+      expect(home).toMatchObject({ isWidened: true, hasLocalityEvents: true });
+      const ids = home.sections.flatMap((section) =>
+        'events' in section ? section.events.map((event) => event.id) : [],
+      );
+      expect(ids).not.toContain('own');
+      expect(ids).toContain('trutnov');
     });
 
     it('nothing anywhere: still not widened, no sections', async () => {

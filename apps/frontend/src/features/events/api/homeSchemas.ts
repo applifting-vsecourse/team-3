@@ -46,6 +46,12 @@ export const homeSchema = z.object({
    * with its distance from the locality's centre; the groups stay the locality's.
    */
   isWidened: z.boolean().default(false),
+  /**
+   * The locality has upcoming events at all, full ones and the viewer's own included (#299): with
+   * `isWidened`, „nothing here one can join“ rather than „nothing here“. Missing = not claimed
+   * empty.
+   */
+  hasLocalityEvents: z.boolean().default(true),
 })
 
 export type Home = z.infer<typeof homeSchema>

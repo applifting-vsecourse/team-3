@@ -180,6 +180,7 @@ export function LandingView({
               locality={{ ...localityControl.state, slug: localityControl.state.slug }}
               localities={localities}
               isWidened={home.isWidened}
+              hasLocalityEvents={home.hasLocalityEvents}
               onChange={localityControl.onChange}
               onReset={localityControl.onReset}
             />
