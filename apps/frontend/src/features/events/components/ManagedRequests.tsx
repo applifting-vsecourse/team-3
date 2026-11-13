@@ -1,4 +1,4 @@
-import { useId, useState } from "react"
+import { useId, useRef, useState } from "react"
 import { Check, RefreshCw, X } from "lucide-react"
 
 import { PersonRow } from "@/components/PersonRow/PersonRow"
@@ -52,10 +52,14 @@ export function ManagedRequests({
   // kept after closing, so the dialog's text doesn't vanish while it fades out
   const [rejecting, setRejecting] = useState<EventRequest | null>(null)
   const [isRejectOpen, setIsRejectOpen] = useState(false)
+  // the focus comes back here after a rejection: the rejected row is gone (review #318)
+  const sectionRef = useRef<HTMLElement>(null)
   return (
     <section
+      ref={sectionRef}
+      tabIndex={-1}
       aria-labelledby={headingId}
-      className="flex flex-col gap-3"
+      className="flex flex-col gap-3 outline-none"
     >
       <h2
         id={headingId}
@@ -166,6 +170,7 @@ export function ManagedRequests({
         isOpen={isRejectOpen}
         onOpenChange={setIsRejectOpen}
         isPending={isDeciding}
+        fallbackFocusRef={sectionRef}
         // what ParticipationAction shows them; no e-mail goes out yet (#177)
         description={`${rejecting?.name ?? ""} uvidí na detailu akce, že žádost byla zamítnuta, a novou na tuhle akci už poslat nepůjde.`}
         onConfirm={() => (rejecting ? onDecide(rejecting, "reject") : Promise.resolve())}

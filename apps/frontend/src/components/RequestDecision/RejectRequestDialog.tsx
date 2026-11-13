@@ -1,3 +1,4 @@
+import { useRef, type RefObject } from "react"
 import { Loader2 } from "lucide-react"
 
 import { Button } from "@/components/ui/button"
@@ -23,6 +24,11 @@ type RejectRequestDialogProps = {
    * isn't (the page's toast says why), and the dialog stays open to try again.
    */
   onConfirm: () => Promise<unknown>
+  /**
+   * Where the focus goes back when the button that opened the dialog is gone — a rejected
+   * request leaves the list, its row with it (review #318): the list, not <body>.
+   */
+  fallbackFocusRef: RefObject<HTMLElement | null>
 }
 
 /**
@@ -36,7 +42,10 @@ export function RejectRequestDialog({
   description,
   isPending,
   onConfirm,
+  fallbackFocusRef,
 }: RejectRequestDialogProps) {
+  // the button that opened it, to tell on closing whether it is still there
+  const opener = useRef<Element | null>(null)
   return (
     <Dialog
       open={isOpen}
@@ -47,7 +56,16 @@ export function RejectRequestDialog({
         onOpenChange(isNowOpen)
       }}
     >
-      <DialogContent>
+      <DialogContent
+        onOpenAutoFocus={() => {
+          opener.current = document.activeElement
+        }}
+        onCloseAutoFocus={(event) => {
+          if (opener.current?.isConnected) return
+          event.preventDefault()
+          fallbackFocusRef.current?.focus()
+        }}
+      >
         <DialogHeader>
           <DialogTitle>Zamítnout žádost?</DialogTitle>
           <DialogDescription>{description}</DialogDescription>

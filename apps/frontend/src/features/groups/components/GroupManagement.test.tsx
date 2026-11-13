@@ -157,6 +157,43 @@ describe("GroupManagement", () => {
     expect(screen.getByRole("dialog", { name: "Zamítnout žádost?" })).toBeInTheDocument()
   })
 
+  it("deciding one request leaves the others usable (review #318)", async () => {
+    let finish!: () => void
+    api.post.mockReturnValueOnce(new Promise<void>((resolve) => (finish = resolve)))
+    renderManagement(true)
+
+    await userEvent.click(
+      await screen.findByRole("button", { name: "Schválit žádost: Jakub Král" }),
+    )
+
+    expect(screen.getByRole("button", { name: "Schválit žádost: Jakub Král" })).toBeDisabled()
+    expect(screen.getByRole("button", { name: "Schválit žádost: Petr Holub" })).toBeEnabled()
+    expect(screen.getByRole("button", { name: "Zamítnout žádost: Petr Holub" })).toBeEnabled()
+    finish()
+  })
+
+  it("rejecting the last request closes the dialog and leaves the focus on the list, not <body> (review #318)", async () => {
+    const onlyPetr = { ...members, requests: [members.requests[1]!] }
+    api.get
+      .mockReturnValueOnce({ json: () => Promise.resolve(onlyPetr) })
+      .mockReturnValue({ json: () => Promise.resolve({ ...members, requests: [] }) })
+    renderManagement(true)
+
+    await userEvent.click(
+      await screen.findByRole("button", { name: "Zamítnout žádost: Petr Holub" }),
+    )
+    await userEvent.click(
+      within(screen.getByRole("dialog")).getByRole("button", { name: "Zamítnout" }),
+    )
+
+    expect(await screen.findByText("Žádné žádosti o členství teď nečekají.")).toBeInTheDocument()
+    await waitFor(() => expect(screen.queryByRole("dialog")).not.toBeInTheDocument())
+    await waitFor(() => expect(document.activeElement).not.toBe(document.body))
+    expect(document.activeElement).toContainElement(
+      screen.getByText("Žádné žádosti o členství teď nečekají."),
+    )
+  })
+
   it("no requests: one sentence instead of an empty list", async () => {
     api.get.mockReturnValue({ json: () => Promise.resolve({ ...members, requests: [] }) })
     renderManagement(true)

@@ -1,4 +1,4 @@
-import { useState } from "react"
+import { useRef, useState } from "react"
 import { useQuery } from "@tanstack/react-query"
 import { Check, RefreshCw, X } from "lucide-react"
 import { toast } from "sonner"
@@ -132,6 +132,11 @@ function RequestList({ groupId, requests }: { groupId: string; requests: GroupMe
   // kept after closing, so the dialog's text doesn't vanish while it fades out
   const [rejecting, setRejecting] = useState<GroupMemberEntry | null>(null)
   const [isRejectOpen, setIsRejectOpen] = useState(false)
+  // the focus comes back here after a rejection: the rejected row is gone (review #318)
+  const listRef = useRef<HTMLDivElement>(null)
+  // only the row being decided waits; the others stay usable (review #318)
+  const isDeciding = (request: GroupMemberEntry) =>
+    decide.isPending && decide.variables.userId === request.userId
 
   // the same toasts as an event's requests (#304); the API's message says why it failed
   const handle = (request: GroupMemberEntry, decision: "approve" | "reject") =>
@@ -146,71 +151,75 @@ function RequestList({ groupId, requests }: { groupId: string; requests: GroupMe
       },
     )
 
-  if (requests.length === 0) {
-    return (
-      <p className="py-6 text-sm text-muted-foreground">Žádné žádosti o členství teď nečekají.</p>
-    )
-  }
-
   return (
-    <>
-      <ul>
-        {requests.map((request) => (
-          <li
-            key={request.userId}
-            className="border-b border-border py-3"
-          >
-            <PersonRow
-              name={request.name}
-              description={formatRequestTime(request.since)}
-              quote={request.message}
-              actions={
-                <>
-                  <Button
-                    variant="outline"
-                    size="lg"
-                    className="h-11"
-                    // a decision is on its way: a second one would only fail
-                    disabled={decide.isPending}
-                    aria-label={`Zamítnout žádost: ${request.name}`}
-                    onClick={() => {
-                      setRejecting(request)
-                      setIsRejectOpen(true)
-                    }}
-                  >
-                    <X />
-                    Zamítnout
-                  </Button>
-                  <Button
-                    variant="outline"
-                    size="lg"
-                    className="h-11"
-                    disabled={decide.isPending}
-                    aria-label={`Schválit žádost: ${request.name}`}
-                    onClick={() =>
-                      handle(request, "approve").catch(() => {
-                        // the toast says why
-                      })
-                    }
-                  >
-                    <Check />
-                    Schválit
-                  </Button>
-                </>
-              }
-            />
-          </li>
-        ))}
-      </ul>
+    <div
+      ref={listRef}
+      tabIndex={-1}
+      className="outline-none"
+    >
+      {requests.length === 0 ? (
+        <p className="py-6 text-sm text-muted-foreground">Žádné žádosti o členství teď nečekají.</p>
+      ) : (
+        <ul>
+          {requests.map((request) => (
+            <li
+              key={request.userId}
+              className="border-b border-border py-3"
+            >
+              <PersonRow
+                name={request.name}
+                description={formatRequestTime(request.since)}
+                quote={request.message}
+                actions={
+                  <>
+                    <Button
+                      variant="outline"
+                      size="lg"
+                      className="h-11"
+                      // a decision on this request is on its way: a second one would only fail
+                      disabled={isDeciding(request)}
+                      aria-label={`Zamítnout žádost: ${request.name}`}
+                      onClick={() => {
+                        setRejecting(request)
+                        setIsRejectOpen(true)
+                      }}
+                    >
+                      <X />
+                      Zamítnout
+                    </Button>
+                    <Button
+                      variant="outline"
+                      size="lg"
+                      className="h-11"
+                      disabled={isDeciding(request)}
+                      aria-label={`Schválit žádost: ${request.name}`}
+                      onClick={() =>
+                        handle(request, "approve").catch(() => {
+                          // the toast says why
+                        })
+                      }
+                    >
+                      <Check />
+                      Schválit
+                    </Button>
+                  </>
+                }
+              />
+            </li>
+          ))}
+        </ul>
+      )}
+      {/* outside the list: rejecting the last request doesn't unmount it mid-confirmation */}
       <RejectRequestDialog
         isOpen={isRejectOpen}
         onOpenChange={setIsRejectOpen}
-        isPending={decide.isPending}
+        isPending={rejecting !== null && isDeciding(rejecting)}
+        fallbackFocusRef={listRef}
         // a rejected request is removed, so they may ask again (#46)
         description={`${rejecting?.name ?? ""} uvidí na stránce skupiny zase „Požádat o členství“ a o členství může požádat znovu.`}
         onConfirm={() => (rejecting ? handle(rejecting, "reject") : Promise.resolve())}
       />
-    </>
+    </div>
   )
 }
 
