@@ -1,3 +1,4 @@
+import { decideEventRating } from './event-rating';
 import {
   decideParticipantRating,
   decideParticipantRatings,
@@ -260,5 +261,48 @@ describe('decideParticipantRatings – several at once (#314)', () => {
         now,
       ),
     ).toEqual({ ok: false, refusal: 'EVENT_NOT_HELD' });
+  });
+});
+
+describe('RATING_DELETED: a different order for the event and for participants (review #314)', () => {
+  // the same situation: the window closed, and the rating was deleted by a superadmin
+  const closedEvent = {
+    eventStatus: 'published' as const,
+    startsAt: new Date('2026-10-01T12:00:00.000Z'),
+    endsAt: null,
+    minParticipants: 2,
+    approvedCount: 3,
+    organizerUserId: 'u-petra',
+  };
+
+  it('rating the event: the person hears it was deleted (#313)', () => {
+    expect(
+      decideEventRating(
+        {
+          ...closedEvent,
+          raterId: 'u-jakub',
+          participationStatus: 'approved',
+          ratingDeleted: true,
+        },
+        now,
+      ),
+    ).toEqual({ ok: false, refusal: 'RATING_DELETED' });
+  });
+
+  it('rating participants: the whole list hears the window closed', () => {
+    expect(
+      decideParticipantRatings(
+        closedEvent,
+        'u-petra',
+        [
+          {
+            participantId: 'u-jakub',
+            participationStatus: 'approved',
+            ratingDeleted: true,
+          },
+        ],
+        now,
+      ),
+    ).toEqual({ ok: false, refusal: 'RATING_WINDOW_CLOSED' });
   });
 });
