@@ -19,12 +19,17 @@ type PastEventCardProps = {
   /** Only what the card shows, so a profile can send less than a whole event (#179). */
   event: Pick<
     PublicEvent,
-    "id" | "title" | "startsAt" | "address" | "activity" | "locality" | "approvedCount"
-  > & {
-    status?: "published" | "cancelled"
-    /** Below its minimum it didn't take place: „Nekonalo se“ (#61); unknown = it did. */
-    missingToMin?: number
-  }
+    | "id"
+    | "title"
+    | "startsAt"
+    | "address"
+    | "activity"
+    | "locality"
+    | "approvedCount"
+    // required, so no caller forgets it: above 0 it didn't take place, „Nekonalo se“ (#61,
+    // review #323 — the public profile once sent none and said „Proběhlo“)
+    | "missingToMin"
+  > & { status?: "published" | "cancelled" }
   /** Ignored for a cancelled event or one that didn't take place. */
   rating?: PastRating
   /** After how many came, e.g. the event's rating on a public profile: „★ 4,5 (3 hodnocení)“ (#179). */
@@ -54,7 +59,7 @@ export function PastEventCard({
   // from the event, not the rating: a cancelled event never offers „Ohodnotit“
   const isCancelled = event.status === "cancelled"
   // below its minimum: „Nekonalo se“ and why, as its detail says (#61); nothing to rate either
-  const isNotHeld = !isCancelled && !wasHeld({ missingToMin: event.missingToMin ?? 0 })
+  const isNotHeld = !isCancelled && !wasHeld(event)
   const line = [formatEventDay(event.startsAt), placeName(event.address), event.locality.name].join(
     " · ",
   )
@@ -64,7 +69,7 @@ export function PastEventCard({
       : isNotHeld
         ? missedMinimumLabel({
             approvedCount: event.approvedCount,
-            missingToMin: event.missingToMin ?? 0,
+            missingToMin: event.missingToMin,
           })
         : rating?.kind === "given"
           ? `${gatheredLabel(event.approvedCount)} · tvoje ★ ${rating.stars}`

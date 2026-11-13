@@ -45,6 +45,8 @@ const ratedEventSchema = z.object({
   /** For an event of a group the organizer stars count to the group. */
   group: z.object({ id: z.string(), name: z.string() }).nullable(),
   approvedCount: z.number(),
+  // above 0 it didn't take place: the card says „Nekonalo se“ (review #323)
+  missingToMin: z.number(),
 })
 
 export type RatedEvent = z.infer<typeof ratedEventSchema>

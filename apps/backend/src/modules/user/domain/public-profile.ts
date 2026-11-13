@@ -52,6 +52,7 @@ export type PublicEventRecord = EventBoundary & {
   address: string;
   locality: PublicPlace;
   activity: PublicActivity;
+  minParticipants: number;
   _count: { participations: number };
 };
 export type PublicReceivedRating = {
@@ -74,6 +75,8 @@ export type PublicOrganizedEvent = {
   locality: PublicPlace;
   activity: PublicActivity;
   approvedCount: number;
+  /** Above 0 it didn't take place: the card says „Nekonalo se“, as its detail (review #323). */
+  missingToMin: number;
   rating: RatingSummary;
 };
 export type PublicUserProfile = PublicPerson & {
@@ -174,6 +177,10 @@ export function publicProfile(
           },
         },
         approvedCount: event._count.participations,
+        missingToMin: Math.max(
+          0,
+          event.minParticipants - event._count.participations,
+        ),
         rating: summarizeStars(eventRatings.get(event.id) ?? []),
       })),
   };
