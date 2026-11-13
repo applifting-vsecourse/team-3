@@ -143,10 +143,20 @@ export class MyGroupResponseDto extends GroupResponseDto {
   @ApiProperty({ type: MyMembershipDto })
   membership!: MyMembershipDto;
 
+  @ApiProperty({
+    type: Number,
+    nullable: true,
+    example: 1,
+    description:
+      'Requests waiting for the admins; only in a group I run as an active admin, null otherwise',
+  })
+  pendingRequests!: number | null;
+
   static fromDomain(group: MyGroup): MyGroupResponseDto {
     return {
       ...GroupResponseDto.fromDomain(group),
       membership: group.membership,
+      pendingRequests: group.pendingRequests,
     };
   }
 }

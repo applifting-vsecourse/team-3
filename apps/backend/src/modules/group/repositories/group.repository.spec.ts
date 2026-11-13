@@ -133,6 +133,64 @@ describe('GroupRepository: the request message stays with the admins (#175)', ()
     ).not.toContain('message');
   });
 
+  describe('findMyGroups (#304)', () => {
+    const row = (id: string, members: object[]): object => ({
+      id,
+      name: `Skupina ${id}`,
+      type: 'closed',
+      activity: {
+        id: 'a1',
+        slug: 'volejbal',
+        name: 'Volejbal',
+        category: { id: 'c1', slug: 'sport', name: 'Sport', icon: 'ball' },
+      },
+      locality: { id: 'l1', slug: 'praha-7', name: 'Praha 7' },
+      _count: { members: 6 },
+      members,
+    });
+
+    it('counts the requests waiting in a group I run, none in a group I am only in', async () => {
+      const prisma = mockDeep<PrismaService>();
+      prisma.group.findMany.mockResolvedValue([
+        row('g-admin', [
+          { userId: 'u1', role: 'admin', status: 'active' },
+          { userId: 'u2', role: 'member', status: 'pending' },
+        ]),
+        row('g-member', [
+          { userId: 'u1', role: 'member', status: 'active' },
+          { userId: 'u3', role: 'member', status: 'pending' },
+        ]),
+        row('g-asked', [{ userId: 'u1', role: 'member', status: 'pending' }]),
+      ] as never);
+
+      const groups = await new GroupRepository(prisma).findMyGroups('u1');
+
+      expect(
+        groups.map(({ id, membership, pendingRequests }) => ({
+          id,
+          membership,
+          pendingRequests,
+        })),
+      ).toEqual([
+        {
+          id: 'g-admin',
+          membership: { role: 'admin', status: 'active' },
+          pendingRequests: 1,
+        },
+        {
+          id: 'g-member',
+          membership: { role: 'member', status: 'active' },
+          pendingRequests: null,
+        },
+        {
+          id: 'g-asked',
+          membership: { role: 'member', status: 'pending' },
+          pendingRequests: null,
+        },
+      ]);
+    });
+  });
+
   describe('findRecruitingGroups (#182)', () => {
     const now = new Date('2026-11-07T10:00:00.000Z');
     const row = (id: string, events: { startsAt: Date }[]): object => ({

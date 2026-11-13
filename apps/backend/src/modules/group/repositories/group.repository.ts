@@ -130,17 +130,26 @@ export class GroupRepository {
     });
   }
 
-  /** „Moje skupiny“ (B-056), each with my own membership; the service sorts them. */
+  /**
+   * „Moje skupiny“ (B-056), each with my own membership and, in a group I run, the
+   * requests waiting (#304); the service sorts them.
+   */
   async findMyGroups(userId: string): Promise<MyGroup[]> {
     const groups = await this.prisma.group.findMany({
       where: buildMyGroupsWhere(userId),
       include: {
         ...summaryInclude,
-        members: { where: { userId }, select: { role: true, status: true } },
+        // mine, and the requests waiting (no message: that stays in the management, #175)
+        members: {
+          where: { OR: [{ userId }, { status: 'pending' }] },
+          select: { userId: true, role: true, status: true },
+        },
       },
     });
     return groups.flatMap((group) => {
-      const [membership] = group.members;
+      const membership = group.members.find(
+        (member) => member.userId === userId,
+      );
       // the where clause guarantees an active or pending membership
       if (
         !membership ||
@@ -152,6 +161,11 @@ export class GroupRepository {
         {
           ...toSummary(group),
           membership: { role: membership.role, status: membership.status },
+          pendingRequests:
+            membership.role === 'admin' && membership.status === 'active'
+              ? group.members.filter((member) => member.status === 'pending')
+                  .length
+              : null,
         },
       ];
     });
