@@ -1,11 +1,16 @@
 import { PrismaService } from '@/core/prisma/prisma.service';
 import { Prisma } from '@/generated/prisma/client';
 import {
+  publicEventInclude,
+  PublicEventRow,
+} from '@/modules/event/repositories/event.repository';
+import {
   EventRating,
   EventRatingInput,
   EventRatingRefusal,
   EventRatingState,
   isEventGone,
+  RatedEvent,
 } from '@/modules/rating/domain/event-rating';
 import {
   GivenParticipantRating,
@@ -18,6 +23,8 @@ import { Injectable } from '@nestjs/common';
 /** What rating an event depends on, read for one user. */
 export type EventRatingSnapshot = {
   state: EventRatingState;
+  /** What the rating page shows of the event (Figma C-03). */
+  event: RatedEvent;
   rating: (EventRating & { deletedAt: Date | null }) | null;
 };
 
@@ -99,7 +106,12 @@ export class RatingRepository {
       state: EventRatingState,
     ) => { ok: true } | { ok: false; refusal: EventRatingRefusal },
   ): Promise<
-    | { ok: true; rating: EventRating; state: EventRatingState }
+    | {
+        ok: true;
+        rating: EventRating;
+        state: EventRatingState;
+        event: RatedEvent;
+      }
     | { ok: false; refusal: EventRatingRefusal }
     | null
   > {
@@ -115,7 +127,7 @@ export class RatingRepository {
         update: input,
         select: ratingSelect,
       });
-      return { ok: true, rating, state: snapshot.state };
+      return { ok: true, rating, state: snapshot.state, event: snapshot.event };
     });
   }
 
@@ -228,7 +240,12 @@ async function readSnapshot(
   userId: string,
 ): Promise<EventRatingSnapshot | null> {
   const [event, participation, rating] = await Promise.all([
-    readRatableEvent(client, eventId),
+    // the same as an event card, so the page needs no read of the event's
+    // detail – which a former member of the group no longer gets (#66)
+    client.event.findUnique({
+      where: { id: eventId },
+      include: publicEventInclude,
+    }),
     client.participation.findUnique({
       where: { eventId_userId: { eventId, userId } },
       select: { status: true },
@@ -245,12 +262,13 @@ async function readSnapshot(
       startsAt: event.startsAt,
       endsAt: event.endsAt,
       minParticipants: event.minParticipants,
-      approvedCount: event.approvedCount,
+      approvedCount: event._count.participations,
       organizerUserId: event.organizerUserId,
       raterId: userId,
       participationStatus: participation?.status ?? null,
       ratingDeleted: rating?.deletedAt != null,
     },
+    event: toRatedEvent(event),
     rating,
   };
 }
@@ -285,4 +303,35 @@ async function readParticipants(
     name: user.name,
     rating,
   }));
+}
+
+function toRatedEvent(event: PublicEventRow): RatedEvent {
+  return {
+    id: event.id,
+    title: event.title,
+    startsAt: event.startsAt,
+    endsAt: event.endsAt,
+    address: event.address,
+    // a hidden or deleted event never leaves the service (404)
+    status: event.status === 'cancelled' ? 'cancelled' : 'published',
+    activity: {
+      id: event.activity.id,
+      slug: event.activity.slug,
+      name: event.activity.name,
+      category: {
+        id: event.activity.category.id,
+        slug: event.activity.category.slug,
+        name: event.activity.category.name,
+        icon: event.activity.category.icon,
+      },
+    },
+    locality: {
+      id: event.locality.id,
+      slug: event.locality.slug,
+      name: event.locality.name,
+    },
+    organizer: event.organizer,
+    group: event.group,
+    approvedCount: event._count.participations,
+  };
 }

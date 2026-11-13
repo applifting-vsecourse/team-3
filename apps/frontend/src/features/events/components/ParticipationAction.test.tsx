@@ -1,5 +1,5 @@
 import { useState } from "react"
-import { act, screen, waitFor, within } from "@testing-library/react"
+import { act, cleanup, screen, waitFor, within } from "@testing-library/react"
 import userEvent from "@testing-library/user-event"
 import { describe, expect, it, vi } from "vitest"
 
@@ -317,6 +317,59 @@ describe("ParticipationAction", () => {
       "/akce?lokalita=praha-8&aktivita=jazykovy-tandem",
     )
     expect(screen.queryByRole("button")).not.toBeInTheDocument()
+  })
+
+  it("over, who had a place gets „Ohodnotit akci“ to the rating page (Figma C-03, #66)", async () => {
+    await renderAction(
+      { approvedCount: 8, missingToMin: 0, endsAt: afterNow, myParticipation: "approved" },
+      { now: new Date("2026-10-24T08:00:00.000Z") },
+    )
+
+    expect(screen.getByRole("link", { name: "Ohodnotit akci" })).toHaveAttribute(
+      "href",
+      "/akce/e1/hodnoceni",
+    )
+  })
+
+  it.each([
+    ["a visitor", {}, null],
+    ["someone without a place", { myParticipation: null }, jakub],
+    ["a rejected applicant", { myParticipation: "rejected" as const }, jakub],
+    ["the organizer, even with a place (Q12)", { myParticipation: "approved" as const }, organizer],
+  ])("over, %s gets no „Ohodnotit akci“", async (_who, participation, viewer) => {
+    await renderAction(
+      { approvedCount: 8, missingToMin: 0, endsAt: afterNow, ...participation },
+      { viewer, now: new Date("2026-10-24T08:00:00.000Z") },
+    )
+
+    expect(screen.queryByRole("link", { name: "Ohodnotit akci" })).not.toBeInTheDocument()
+  })
+
+  it("„Ohodnotit akci“ only within the window, as the API counts it (review #315)", async () => {
+    // ended Fri 23. 10. 20:00 in Prague: rating until Fri 6. 11., 23:59:59.999 (winter time)
+    const event = {
+      approvedCount: 8,
+      missingToMin: 0,
+      endsAt: afterNow,
+      myParticipation: "approved" as const,
+    }
+    await renderAction(event, { now: new Date("2026-11-06T22:59:59.999Z") })
+    expect(screen.getByRole("link", { name: "Ohodnotit akci" })).toBeInTheDocument()
+    cleanup()
+
+    await renderAction(event, { now: new Date("2026-11-06T23:00:00.000Z") })
+    expect(screen.queryByRole("link", { name: "Ohodnotit akci" })).not.toBeInTheDocument()
+    // the past event still says how it went
+    expect(screen.getByText("Akce proběhla v pá 23. 10.")).toBeInTheDocument()
+  })
+
+  it("over without its minimum, a participant has nothing to rate: it didn't take place", async () => {
+    await renderAction(
+      { approvedCount: 3, missingToMin: 1, endsAt: afterNow, myParticipation: "approved" },
+      { now: new Date("2026-10-24T08:00:00.000Z") },
+    )
+
+    expect(screen.queryByRole("link", { name: "Ohodnotit akci" })).not.toBeInTheDocument()
   })
 
   it.each([

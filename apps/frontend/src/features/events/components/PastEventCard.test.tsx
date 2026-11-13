@@ -50,6 +50,24 @@ describe("PastEventCard", () => {
     expect(screen.getByRole("link", { name: "Ohodnotit →" })).toBeInTheDocument()
   })
 
+  it("opens the event's detail; without it where the detail isn't for everyone (review #315)", async () => {
+    const { unmount } = await renderWithRouter(<PastEventCard event={volleyball()} />)
+    expect(screen.getByRole("link", { name: volleyball().title })).toHaveAttribute(
+      "href",
+      `/akce/${volleyball().id}`,
+    )
+    unmount()
+
+    await renderWithRouter(
+      <PastEventCard
+        event={volleyball()}
+        isLinked={false}
+      />,
+    )
+    expect(screen.getByRole("heading", { name: volleyball().title })).toBeInTheDocument()
+    expect(screen.queryByRole("link")).not.toBeInTheDocument()
+  })
+
   it("cancelled: „Zrušeno“ and that it didn't take place, from the event's status", async () => {
     await renderWithRouter(
       <PastEventCard

@@ -3,6 +3,7 @@ import {
   EventRating,
   EventRatingRefusal,
   MyEventRating,
+  RatedEvent,
   RATING_STARS_MAX,
   RATING_STARS_MIN,
 } from '@/modules/rating/domain/event-rating';
@@ -97,8 +98,90 @@ export class EventRatingDto {
   }
 }
 
+class RatedEventCategoryDto {
+  @ApiProperty() id!: string;
+  @ApiProperty() slug!: string;
+  @ApiProperty() name!: string;
+  @ApiProperty() icon!: string;
+}
+
+class RatedEventActivityDto {
+  @ApiProperty() id!: string;
+  @ApiProperty() slug!: string;
+  @ApiProperty() name!: string;
+  @ApiProperty({ type: RatedEventCategoryDto })
+  category!: RatedEventCategoryDto;
+}
+
+class RatedEventLocalityDto {
+  @ApiProperty() id!: string;
+  @ApiProperty() slug!: string;
+  @ApiProperty() name!: string;
+}
+
+class RatedEventPersonDto {
+  @ApiProperty() id!: string;
+  @ApiProperty() name!: string;
+}
+
+/**
+ * What the rating page shows of the event (Figma C-03), so it needs no
+ * read of the event's detail: a former member of the group no longer gets
+ * a members-only event's detail, and still rates it.
+ */
+export class RatedEventDto {
+  @ApiProperty() id!: string;
+  @ApiProperty() title!: string;
+  @ApiProperty({ type: String, format: 'date-time' }) startsAt!: Date;
+  @ApiProperty({ type: String, format: 'date-time', nullable: true })
+  endsAt!: Date | null;
+  @ApiProperty() address!: string;
+  @ApiProperty({ enum: ['published', 'cancelled'] })
+  status!: 'published' | 'cancelled';
+  @ApiProperty({ type: RatedEventActivityDto })
+  activity!: RatedEventActivityDto;
+  @ApiProperty({ type: RatedEventLocalityDto })
+  locality!: RatedEventLocalityDto;
+  @ApiProperty({ type: RatedEventPersonDto, description: 'Who created it' })
+  organizer!: RatedEventPersonDto;
+  @ApiProperty({
+    type: RatedEventPersonDto,
+    nullable: true,
+    description: 'For an event of a group the organizer stars count to it',
+  })
+  group!: RatedEventPersonDto | null;
+  @ApiProperty({ description: 'Approved participants', example: 5 })
+  approvedCount!: number;
+
+  static fromDomain(event: RatedEvent): RatedEventDto {
+    return {
+      id: event.id,
+      title: event.title,
+      startsAt: event.startsAt,
+      endsAt: event.endsAt,
+      address: event.address,
+      status: event.status,
+      activity: {
+        id: event.activity.id,
+        slug: event.activity.slug,
+        name: event.activity.name,
+        category: { ...event.activity.category },
+      },
+      locality: { ...event.locality },
+      organizer: { id: event.organizer.id, name: event.organizer.name },
+      group: event.group
+        ? { id: event.group.id, name: event.group.name }
+        : null,
+      approvedCount: event.approvedCount,
+    };
+  }
+}
+
 /** GET and PUT /events/:id/rating — the participant's own rating. */
 export class MyEventRatingResponseDto {
+  @ApiProperty({ type: RatedEventDto })
+  event!: RatedEventDto;
+
   @ApiProperty({
     type: EventRatingDto,
     nullable: true,
@@ -123,11 +206,13 @@ export class MyEventRatingResponseDto {
   refusal!: EventRatingRefusal | null;
 
   static fromDomain({
+    event,
     rating,
     ratableUntil,
     refusal,
   }: MyEventRating): MyEventRatingResponseDto {
     return {
+      event: RatedEventDto.fromDomain(event),
       rating: rating ? EventRatingDto.fromDomain(rating) : null,
       ratableUntil,
       refusal,
