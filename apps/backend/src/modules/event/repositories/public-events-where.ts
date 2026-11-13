@@ -27,12 +27,14 @@ export const buildPublicEventsWhere = (
       : { status: 'published', visibility: 'public', startsAt: { gt: now } },
   ];
 
-  if (filters.dateFrom) {
+  // Proběhlé replaces the range (Figma A-02c), as /akce sends it; another client's range would
+  // only cut the past down or leave nothing (review #323)
+  if (filters.dateFrom && !filters.past) {
     conditions.push({
       startsAt: { gte: startOfPragueDay(filters.dateFrom) },
     });
   }
-  if (filters.dateTo) {
+  if (filters.dateTo && !filters.past) {
     conditions.push({
       startsAt: { lt: startOfNextPragueDay(filters.dateTo) },
     });

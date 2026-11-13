@@ -72,6 +72,16 @@ describe('buildPublicEventsWhere', () => {
       );
     });
 
+    it('replaces the date range: dateFrom and dateTo are ignored (review #323)', () => {
+      expect(
+        conditionsOf({
+          past: true,
+          dateFrom: '2026-10-01',
+          dateTo: '2026-12-31',
+        }),
+      ).toEqual([PAST_ONLY]);
+    });
+
     it('combines with the other filters (AND)', () => {
       expect(
         conditionsOf({ past: true, localityId: 'l-praha-8' }),
