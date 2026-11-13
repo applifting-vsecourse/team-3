@@ -1,6 +1,7 @@
 import { PrismaService } from '@/core/prisma/prisma.service';
 import { mockDeep } from 'jest-mock-extended';
 import { UserRepository } from './user.repository';
+import { eventOverWhere } from '@/modules/event/domain/event-over';
 
 describe('public profile database predicates (#179)', () => {
   const prisma = mockDeep<PrismaService>();
@@ -40,10 +41,7 @@ describe('public profile database predicates (#179)', () => {
           groupId: null,
           visibility: 'public',
           status: 'published',
-          OR: [
-            { endsAt: { lte: now } },
-            { endsAt: null, startsAt: { lte: now } },
-          ],
+          ...eventOverWhere(now),
         },
       }),
     );

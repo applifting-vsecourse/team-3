@@ -1,5 +1,6 @@
 import { buildMyEventsWhere } from '@/modules/event/repositories/my-events-where';
 import { participationWhere, selfProfile, type ProfileRow } from './profile';
+import { eventOverWhere } from '@/modules/event/domain/event-over';
 
 export const ownerRow = (): ProfileRow => ({
   id: 'owner',
@@ -70,10 +71,7 @@ describe('private participation history (#178)', () => {
     expect(participationWhere('other-owner', now, true)).toEqual({
       userId: 'other-owner',
       status: 'approved',
-      event: {
-        status: 'published',
-        OR: [{ endsAt: { lt: now } }, { endsAt: null, startsAt: { lt: now } }],
-      },
+      event: { status: 'published', ...eventOverWhere(now) },
     });
   });
 });

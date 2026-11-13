@@ -1,5 +1,9 @@
 import type { Prisma } from '@/generated/prisma/client';
 import {
+  eventOverWhere,
+  isEventOver,
+} from '@/modules/event/domain/event-over';
+import {
   organizerRatingSummary,
   participantRatingSummary,
   summarizeStars,
@@ -83,14 +87,12 @@ export type PublicUserProfile = PublicPerson & {
   participantRatings: PublicReceivedRating[];
   organizedEvents: PublicOrganizedEvent[];
 };
+/** Events that are over (#272), as everywhere else. */
 export function finishedEventWhere(now: Date): Prisma.EventWhereInput {
-  return {
-    OR: [{ endsAt: { lte: now } }, { endsAt: null, startsAt: { lte: now } }],
-  };
+  return eventOverWhere(now);
 }
 const visibleFinished = (event: EventBoundary, now: Date): boolean =>
-  event.status === 'published' &&
-  (event.endsAt ?? event.startsAt).getTime() <= now.getTime();
+  event.status === 'published' && isEventOver(event, now);
 
 /** Public projection: no account, home locality, attendance or membership data. */
 export function publicProfile(
