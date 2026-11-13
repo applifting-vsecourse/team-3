@@ -8,6 +8,7 @@ import {
   occupancyCount,
   occupancySummary,
 } from "@/lib/occupancy"
+import { requestCountLabel, requestsWaitingLabel, waitVerb } from "@/lib/requestCount"
 
 import type { MyEvent } from "@/features/events/api/eventSchemas"
 import { capacityStatus, formatStartInSentence } from "@/features/events/lib/formatEvent"
@@ -87,13 +88,6 @@ export function initialMyEventsTab(
   return isAttendingNothing && isOrganizingSomething ? "poradam" : "prihlasen"
 }
 
-/** "1 žádost", "2 žádosti", "5 žádostí" */
-export function requestCountLabel(count: number): string {
-  if (count === 1) return "1 žádost"
-  if (count >= 2 && count <= 4) return `${count} žádosti`
-  return `${count} žádostí`
-}
-
 /** Requests waiting on an event that still happens; on a cancelled one they no longer matter. */
 const waitingRequests = (event: MyEvent): number =>
   event.status === "cancelled" ? 0 : (event.pendingRequests ?? 0)
@@ -115,14 +109,10 @@ export function organizingNumbers(event: MyEvent): string {
   return requests > 0 ? `${occupancy} · ${requestCountLabel(requests)}` : occupancy
 }
 
-/** „2 žádosti čekají“, „1 žádost čeká“, „5 žádostí čeká“ */
-const requestsWaiting = (count: number): string =>
-  `${requestCountLabel(count)} ${count >= 2 && count <= 4 ? "čekají" : "čeká"}`
-
 /** A row card in Pořádám ends with the requests instead of the place: „18:00 · 2 žádosti čekají“ (C-02). */
 export function organizingRowTail(event: MyEvent): string | undefined {
   const requests = waitingRequests(event)
-  return requests > 0 ? requestsWaiting(requests) : undefined
+  return requests > 0 ? requestsWaitingLabel(requests) : undefined
 }
 
 /**
@@ -136,7 +126,7 @@ export function pendingRequestsSummary(
   const total = waiting.reduce((sum, event) => sum + waitingRequests(event), 0)
   if (total === 0) return null
   return {
-    title: `${requestsWaiting(total)} na schválení`,
+    title: `${requestsWaitingLabel(total)} na schválení`,
     events: waiting.map((event) => `${event.title} (${waitingRequests(event)})`).join(", "),
   }
 }
@@ -170,5 +160,5 @@ export function organizingLine(events: MyEvent[] | undefined): string {
   const line = "Akce, které pořádáš, od nejbližší."
   const total = (events ?? []).reduce((sum, event) => sum + waitingRequests(event), 0)
   if (total === 0) return line
-  return `${line} Na schválení ${total >= 2 && total <= 4 ? "čekají" : "čeká"} ${requestCountLabel(total)}.`
+  return `${line} Na schválení ${waitVerb(total)} ${requestCountLabel(total)}.`
 }
