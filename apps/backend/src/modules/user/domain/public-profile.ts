@@ -1,8 +1,5 @@
 import type { Prisma } from '@/generated/prisma/client';
-import {
-  eventOverWhere,
-  isEventOver,
-} from '@/modules/event/domain/event-over';
+import { eventOverWhere, isEventOver } from '@/modules/event/domain/event-over';
 import {
   organizerRatingSummary,
   participantRatingSummary,

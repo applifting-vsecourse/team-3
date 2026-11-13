@@ -1,7 +1,7 @@
 import { PrismaService } from '@/core/prisma/prisma.service';
+import { eventOverWhere } from '@/modules/event/domain/event-over';
 import { mockDeep } from 'jest-mock-extended';
 import { HomeRepository } from './home.repository';
-import { eventOverWhere } from '@/modules/event/domain/event-over';
 
 const now = new Date('2026-11-04T10:00:00.000Z');
 
