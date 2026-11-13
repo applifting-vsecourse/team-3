@@ -21,16 +21,22 @@ describe("SortMenu (#57)", () => {
     expect(onChange).toHaveBeenCalledWith("vzdalenost")
   })
 
-  it("is a plain label without a centre to measure from", () => {
+  it("without a centre it is still a menu: the distance order is off and says why", async () => {
+    const onChange = vi.fn()
     render(
       <SortMenu
         value="termin"
         isDistanceAvailable={false}
-        onChange={vi.fn()}
+        onChange={onChange}
       />,
     )
 
-    expect(screen.getByText("Řadit: nejbližší termín")).toBeInTheDocument()
-    expect(screen.queryByRole("button")).not.toBeInTheDocument()
+    // a plain label looked like this button and a tap did nothing (Celé Česko)
+    await userEvent.click(screen.getByRole("button", { name: /Řadit: nejbližší termín/ }))
+    const distance = screen.getByRole("menuitemradio", { name: /Nejmenší vzdálenost/ })
+    expect(distance).toHaveAttribute("aria-disabled", "true")
+    expect(screen.getByText("Pro řazení podle vzdálenosti vyber lokalitu.")).toBeInTheDocument()
+    await userEvent.click(distance)
+    expect(onChange).not.toHaveBeenCalled()
   })
 })

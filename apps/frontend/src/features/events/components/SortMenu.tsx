@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button"
 import {
   DropdownMenu,
   DropdownMenuContent,
+  DropdownMenuLabel,
   DropdownMenuRadioGroup,
   DropdownMenuRadioItem,
   DropdownMenuTrigger,
@@ -18,20 +19,19 @@ const LABEL: Record<Sort, string> = {
 
 type SortMenuProps = {
   value: Sort
-  /** A centre to measure from is known; without it soonest first is the only order. */
+  /** A centre to measure from is known; without it the distance order is offered but off. */
   isDistanceAvailable: boolean
   onChange: (sort: Sort) => void
 }
 
 /**
  * „Řadit: nejbližší termín ▾“ above the list (Figma A-02j, A-02jd; #57): soonest first, or
- * nearest to the chosen locality's centre. With only one order it is a plain label.
+ * nearest to the chosen locality's centre. Always a menu: a plain label looked like the button
+ * and a tap did nothing (Celé Česko, a searched map area). Without a centre the distance order
+ * is there but off, with why under it — readable, not dimmed like the disabled item.
  * DESIGN.md › Menus: card surface, card-border, rounded-2xl, the picked option checked.
  */
 export function SortMenu({ value, isDistanceAvailable, onChange }: SortMenuProps) {
-  if (!isDistanceAvailable) {
-    return <p className="text-xs font-medium text-muted-foreground">Řadit: {LABEL.termin}</p>
-  }
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
@@ -59,14 +59,22 @@ export function SortMenu({ value, isDistanceAvailable, onChange }: SortMenuProps
           </DropdownMenuRadioItem>
           <DropdownMenuRadioItem
             value="vzdalenost"
+            disabled={!isDistanceAvailable}
             className="rounded-lg py-2"
           >
             <span className="flex flex-col">
               Nejmenší vzdálenost
-              <span className="text-xs text-muted-foreground">od středu zvolené lokality</span>
+              {isDistanceAvailable ? (
+                <span className="text-xs text-muted-foreground">od středu zvolené lokality</span>
+              ) : null}
             </span>
           </DropdownMenuRadioItem>
         </DropdownMenuRadioGroup>
+        {isDistanceAvailable ? null : (
+          <DropdownMenuLabel className="max-w-56 pt-1 text-xs font-normal text-muted-foreground">
+            Pro řazení podle vzdálenosti vyber lokalitu.
+          </DropdownMenuLabel>
+        )}
       </DropdownMenuContent>
     </DropdownMenu>
   )
