@@ -41,7 +41,7 @@ Nový řádek dostane id z databáze (`gen_random_uuid()`), ne cuid jako zbytek 
 
 **Pořadí `RATING_DELETED` se u obou hodnocení liší** (review #314): u hodnocení akce je před stavem akce (hodnotí vždy jeden člověk a dozví se, že jeho hodnocení smazal správce, i po lhůtě, #313), u hodnocení účastníků až po `eventNotRatable` (je to řádek seznamu; když akci hodnotit nejde, dostane celý seznam jeden důvod, po lhůtě `RATING_WINDOW_CLOSED`). Test v `participant-rating.spec.ts` staví obě pořadí vedle sebe.
 
-Frontend: `/akce/:id/hodnoceni` podle role – účastník C-03, organizátor D-05 (stránka pozná organizátora podle 403 `OWN_EVENT` z `GET /rating`).
+Frontend: `/akce/:id/hodnoceni` podle role – účastník C-03, organizátor D-05 (stránka pozná organizátora podle 403 `OWN_EVENT` z `GET /rating`). Správa akce proběhlé akce ukáže „Jak akci hodnotili“ (`GET /ratings`) a zakladateli akce v lhůtě odkaz „Ohodnotit účastníky“.
 
 ## Organizátor vidí, jak akci hodnotili (#66)
 
