@@ -122,8 +122,9 @@ export function toEventFilters(search: EventsSearch, catalog: Catalog): EventFil
     ...(center && (radiusKm || sort === "vzdalenost") ? { lat: center.lat, lng: center.lng } : {}),
     radiusKm,
     sort: sort === "vzdalenost" ? "distance" : undefined,
-    ...(isPast ? { past: true } : {}),
-    ...(search.vyber ? PICK_FLAGS[search.vyber] : {}),
+    // a pick's personal parts are about events still to come; Proběhlé leaves the pick anyway,
+    // only a hand-edited URL has both (review #323)
+    ...(isPast ? { past: true } : search.vyber ? PICK_FLAGS[search.vyber] : {}),
   }
 }
 

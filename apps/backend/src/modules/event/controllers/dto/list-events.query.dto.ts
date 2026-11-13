@@ -231,7 +231,7 @@ export class ListEventsQueryDto {
 
   @ApiPropertyOptional({
     description:
-      'Proběhlé (#61): public events that are over instead of the upcoming ones – after their end, without one after the Prague day they start on (#272) – newest first, each with its average rating. Cancelled events are never listed.',
+      'Proběhlé (#61): public events that are over instead of the upcoming ones – after their end, without one after the Prague day they start on (#272) – newest first, each with its average rating. Cancelled events are never listed; capacity is ignored, a past event has no places left to fill.',
   })
   @IsOptional()
   @Transform(toBoolean)

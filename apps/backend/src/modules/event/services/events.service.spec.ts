@@ -101,6 +101,21 @@ describe('EventsService', () => {
     ]);
   });
 
+  it('Proběhlé ignores the occupancy filter: a past event has no places to fill (review #323)', async () => {
+    const repository = mock<EventRepository>();
+    repository.findPublicEvents.mockResolvedValue([anEvent('full', 6)]);
+    repository.eventRatings.mockResolvedValue(new Map());
+
+    const service = new EventsService(repository, mock<NotificationService>());
+    const result = await service.getPublicEvents(
+      { past: true, capacity: 'free' },
+      {},
+      now,
+    );
+
+    expect(result.map((event) => event.id)).toEqual(['full']);
+  });
+
   it('upcoming events carry no rating and ask for none', async () => {
     const repository = mock<EventRepository>();
     repository.findPublicEvents.mockResolvedValue([anEvent('e1', 2)]);

@@ -330,6 +330,17 @@ describe("Proběhlé (#61)", () => {
     expect(toEventFilters({}, catalog).past).toBeUndefined()
   })
 
+  it("never sends a pick's personal parts, even when a hand-edited URL has both (review #323)", () => {
+    const filters = toEventFilters({ termin: "probehle", vyber: "tady-chybis" }, catalog)
+    expect(filters.past).toBe(true)
+    expect(filters.interests).toBeUndefined()
+    expect(filters.notJoined).toBeUndefined()
+  })
+
+  it("„Zrušit vše“ with a pick goes back to the pick, without Proběhlé", () => {
+    expect(pickSearch("tento-vikend", {}, now).termin).toBeUndefined()
+  })
+
   it("is a filter of its own: „Zrušit vše“ clears it, no tab holds it", () => {
     expect(hasActiveFilters({ termin: "probehle" })).toBe(true)
     expect(isAllEvents({ termin: "probehle" })).toBe(false)

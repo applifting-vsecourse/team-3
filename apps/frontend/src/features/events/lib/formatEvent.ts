@@ -226,7 +226,7 @@ export const groupEventTail = (event: GroupEvent): string | undefined =>
 export function pastEventFacts(event: GroupEvent): string {
   const count = event.approvedCount
   const came = !wasHeld(event)
-    ? inSentence(missedMinimumLabel(event).replace(/\.$/, ""))
+    ? inSentence(missedMinimumLabel(event))
     : count === 1
       ? "sešel se 1"
       : count >= 2 && count <= 4
@@ -248,7 +248,6 @@ export function showEventsLabel(count: number | undefined): string {
   return `Zobrazit ${count} akcí`
 }
 
-/** "1 akce", "3 akce", "24 akcí"; "Víc než 200 akcí" at the API's limit (#57) */
 /** The count above Proběhlé (#61, Figma A-02h): „1 proběhlá akce“, „4 proběhlé akce“, „5 proběhlých akcí“. */
 export function pastEventCountLabel(count: number): string {
   if (count >= PUBLIC_EVENTS_LIMIT) return `Víc než ${PUBLIC_EVENTS_LIMIT} proběhlých akcí`
@@ -268,6 +267,7 @@ export function eventRatingLabel(
   return `★ ${rating.average.toLocaleString("cs-CZ", { maximumFractionDigits: 1 })} (${rating.count} hodnocení)`
 }
 
+/** "1 akce", "3 akce", "24 akcí"; "Víc než 200 akcí" at the API's limit (#57) */
 export function eventCountLabel(count: number): string {
   if (count >= PUBLIC_EVENTS_LIMIT) return `Víc než ${PUBLIC_EVENTS_LIMIT} akcí`
   if (count === 1) return "1 akce"

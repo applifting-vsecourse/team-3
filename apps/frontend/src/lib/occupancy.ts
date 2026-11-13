@@ -130,15 +130,15 @@ export const wasHeld = ({ missingToMin }: Pick<Occupancy, "missingToMin">): bool
   missingToMin === 0
 
 /**
- * A past event that never reached its minimum (review #269): „Nikdo se nepřihlásil.“, or how
- * many were missing — „Do minima chyběl 1 člověk.“, „chyběli 2 lidé“, „chybělo 5 lidí“.
+ * A past event that never reached its minimum (review #269): „Nikdo se nepřihlásil“, or how
+ * many were missing — „Do minima chyběl 1 člověk“, „chyběli 2 lidé“, „chybělo 5 lidí“.
  */
 export function missedMinimumLabel({
   approvedCount,
   missingToMin,
 }: Pick<Occupancy, "approvedCount" | "missingToMin">): string {
-  if (approvedCount === 0) return "Nikdo se nepřihlásil."
-  if (missingToMin === 1) return "Do minima chyběl 1 člověk."
-  if (missingToMin >= 2 && missingToMin <= 4) return `Do minima chyběli ${missingToMin} lidé.`
-  return `Do minima chybělo ${missingToMin} lidí.`
+  if (approvedCount === 0) return "Nikdo se nepřihlásil"
+  if (missingToMin === 1) return "Do minima chyběl 1 člověk"
+  if (missingToMin >= 2 && missingToMin <= 4) return `Do minima chyběli ${missingToMin} lidé`
+  return `Do minima chybělo ${missingToMin} lidí`
 }

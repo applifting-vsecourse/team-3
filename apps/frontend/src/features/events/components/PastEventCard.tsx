@@ -65,7 +65,7 @@ export function PastEventCard({
         ? missedMinimumLabel({
             approvedCount: event.approvedCount,
             missingToMin: event.missingToMin ?? 0,
-          }).replace(/\.$/, "")
+          })
         : rating?.kind === "given"
           ? `${gatheredLabel(event.approvedCount)} · tvoje ★ ${rating.stars}`
           : gatheredLabel(event.approvedCount),
@@ -105,7 +105,10 @@ export function PastEventCard({
           <StatusBadge
             status={{ kind: isCancelled ? "cancelled" : isNotHeld ? "not-held" : "past" }}
           />
-          <span className="truncate text-caption text-muted-foreground">{attendance}</span>
+          {/* up to two lines: „Do minima chyběli 2 lidé“ and the rating don't fit one on a phone */}
+          <span className="line-clamp-2 min-w-0 text-caption text-muted-foreground">
+            {attendance}
+          </span>
           {!isCancelled && !isNotHeld && rating?.kind === "open" && rateAction ? (
             // above the card's stretched link, so it stays its own target
             <span className="relative ml-auto shrink-0 text-sm font-semibold">{rateAction}</span>

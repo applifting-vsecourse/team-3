@@ -178,9 +178,7 @@ export function EventDetailView({
     <div className="flex items-center gap-2">
       <StatusBadge status={{ kind: wasHeld(event) ? "past" : "not-held" }} />
       <span className="text-sm text-muted-foreground">
-        {wasHeld(event)
-          ? gatheredLabel(event.approvedCount)
-          : missedMinimumLabel(event).replace(/\.$/, "")}
+        {wasHeld(event) ? gatheredLabel(event.approvedCount) : missedMinimumLabel(event)}
       </span>
     </div>
   ) : (

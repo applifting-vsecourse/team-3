@@ -17,12 +17,7 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog"
 import { inSentence } from "@/lib/inSentence"
-import {
-  gatheredLabel,
-  happeningThanks,
-  isMinimumReachedByLast,
-  missedMinimumLabel,
-} from "@/lib/occupancy"
+import { happeningThanks, isMinimumReachedByLast } from "@/lib/occupancy"
 
 import type { EventDetail } from "@/features/events/api/eventSchemas"
 import { HasPlace } from "@/features/events/components/HasPlace"
@@ -96,8 +91,8 @@ export function ParticipationAction({
           <AlertTitle>
             {hasHappened ? `Akce proběhla v ${day}` : `Akce se v ${day} nekonala`}
           </AlertTitle>
+          {/* how it ended is in the panel above (Figma A-05h, #61): just the way on */}
           <AlertDescription>
-            {hasHappened ? `${gatheredLabel(event.approvedCount)}.` : missedMinimumLabel(event)}{" "}
             <Link
               to={ROUTES.events}
               search={similarEventsSearch(event)}

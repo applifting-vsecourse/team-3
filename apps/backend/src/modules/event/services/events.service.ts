@@ -142,7 +142,10 @@ const roundDistance = (event: PublicEvent): PublicEvent =>
     ? event
     : { ...event, distanceKm: Math.round(event.distanceKm * 10) / 10 };
 
-/** Nearest first; equally far soonest first (the input is soonest first, the sort is stable). */
+/**
+ * Nearest first; equally far in the input's order – soonest first, Proběhlé newest first
+ * (the sort is stable).
+ */
 const byDistance = (events: PublicEvent[]): PublicEvent[] =>
   [...events].sort(
     (a, b) => (a.distanceKm ?? Infinity) - (b.distanceKm ?? Infinity),
@@ -187,7 +190,9 @@ export class EventsService {
     }: { sort?: PublicEventSort; limit?: number } = {},
     now: Date = new Date(),
   ): Promise<PublicEvent[]> {
-    const { capacity, q, point, radiusKm } = filters;
+    const { q, point, radiusKm } = filters;
+    // a past event has no places left to fill: Proběhlé ignores occupancy (review #323)
+    const capacity = filters.past ? undefined : filters.capacity;
     const isSearch = Boolean(q?.trim());
     if (!capacity && !isSearch && !radiusKm && sort === 'date') {
       const events = await this.eventRepository.findPublicEvents({
