@@ -9,6 +9,7 @@ export const RATING_WINDOW_DAYS = 14
 export const eventRatingRefusalSchema = z.enum([
   "EVENT_NOT_PUBLISHED",
   "EVENT_NOT_ENDED",
+  "EVENT_NOT_HELD",
   "RATING_DELETED",
   "RATING_WINDOW_CLOSED",
 ])

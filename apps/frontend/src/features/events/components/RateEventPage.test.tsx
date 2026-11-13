@@ -111,6 +111,12 @@ describe("/akce/:id/hodnoceni for a participant (Figma C-03, #66)", () => {
       ),
     ).toBeInTheDocument()
     expect(screen.getByRole("heading", { name: "Volejbal na Letné" })).toBeInTheDocument()
+    // the card doesn't open the detail: a former member of the group gets a 403 there (#315)
+    expect(screen.queryByRole("link", { name: "Volejbal na Letné" })).not.toBeInTheDocument()
+    // the questions name the star groups; they aren't <label>s of a field (#315)
+    for (const question of ["Jak se akce povedla?", "Jak hodnotíš organizátora?"]) {
+      expect(screen.getByText(question).tagName).toBe("P")
+    }
     expect(screen.getByRole("radiogroup", { name: "Jak se akce povedla?" })).toBeInTheDocument()
     expect(
       screen.getByRole("radiogroup", { name: "Jak hodnotíš organizátora?" }),
@@ -120,7 +126,7 @@ describe("/akce/:id/hodnoceni for a participant (Figma C-03, #66)", () => {
     expect(screen.getByRole("button", { name: "Odeslat hodnocení" })).toBeInTheDocument()
     expect(
       screen.getByText(
-        "Hodnotit jde do 14 dnů od konce akce, tedy do po 2. 11., a do té doby hodnocení změníš.",
+        "Hodnotit jde 14 dní po akci, tedy do po 2. 11., a do té doby hodnocení změníš.",
       ),
     ).toBeInTheDocument()
   })
@@ -217,6 +223,7 @@ describe("/akce/:id/hodnoceni for a participant (Figma C-03, #66)", () => {
   it.each([
     ["EVENT_NOT_ENDED", "Hodnotit půjde, až akce skončí", "Pak na to budeš mít 14 dní."],
     ["EVENT_NOT_PUBLISHED", "Akce je zrušená", "Zrušenou akci hodnotit nejde."],
+    ["EVENT_NOT_HELD", "Akce se nekonala", "Nesešlo se dost lidí, takže hodnotit ji nejde."],
     ["RATING_DELETED", "Hodnocení odstranil správce", "Znovu ho dát nejde."],
   ])("%s: no form, why not, and a way on", async (refusal, title, body) => {
     answer = { ...fresh, refusal }

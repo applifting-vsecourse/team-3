@@ -119,6 +119,11 @@ const NOT_RATABLE: Record<EventRatingRefusal, { title: string; body: string }> =
     title: "Akce je zrušená",
     body: "Zrušenou akci hodnotit nejde.",
   },
+  // below its minimum: as the event's detail says, „Akce se nekonala“ (B-060, #314)
+  EVENT_NOT_HELD: {
+    title: "Akce se nekonala",
+    body: "Nesešlo se dost lidí, takže hodnotit ji nejde.",
+  },
   RATING_WINDOW_CLOSED: {
     title: "Hodnotit už nejde",
     body: `Hodnotit šlo jen ${RATING_WINDOW_DAYS} dní po akci.`,
@@ -141,6 +146,8 @@ function NotRatable({ data, refusal }: { data: MyEventRating; refusal: EventRati
       <PastEventCard
         event={data.event}
         rating={given ? { kind: "given", stars: given.eventStars } : undefined}
+        // the detail: a former member of the group gets a 403 there (review #315)
+        isLinked={false}
       />
       <Alert variant="neutral">
         <Info />

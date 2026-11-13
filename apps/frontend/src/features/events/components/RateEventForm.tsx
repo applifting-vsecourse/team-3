@@ -1,4 +1,4 @@
-import { useId } from "react"
+import { useId, type ReactNode } from "react"
 import { zodResolver } from "@hookform/resolvers/zod"
 import { Loader2 } from "lucide-react"
 import { useForm } from "react-hook-form"
@@ -18,6 +18,7 @@ import {
 } from "@/components/ui/form"
 import { Textarea } from "@/components/ui/textarea"
 import { inSentence } from "@/lib/inSentence"
+import { cn } from "@/lib/utils"
 
 import {
   RATING_COMMENT_MAX_LENGTH,
@@ -102,13 +103,22 @@ export function RateEventForm({ data, isSaving, onSave }: RateEventFormProps) {
         <div className="grid gap-6 md:grid-cols-2 md:gap-12">
           {/* min-w-0: the card's truncated line would widen the column past a phone's width */}
           <div className="flex min-w-0 flex-col gap-6">
-            <PastEventCard event={event} />
+            <PastEventCard
+              event={event}
+              // the detail: a former member of the group gets a 403 there (review #315)
+              isLinked={false}
+            />
             <FormField
               control={form.control}
               name="eventStars"
-              render={({ field }) => (
+              render={({ field, fieldState }) => (
                 <FormItem className="gap-2">
-                  <FormLabel id={eventQuestionId}>Jak se akce povedla?</FormLabel>
+                  <Question
+                    id={eventQuestionId}
+                    isInvalid={fieldState.invalid}
+                  >
+                    Jak se akce povedla?
+                  </Question>
                   <FormControl>
                     <RatingStars
                       value={field.value}
@@ -123,9 +133,14 @@ export function RateEventForm({ data, isSaving, onSave }: RateEventFormProps) {
             <FormField
               control={form.control}
               name="organizerStars"
-              render={({ field }) => (
+              render={({ field, fieldState }) => (
                 <FormItem className="gap-2">
-                  <FormLabel id={organizerQuestionId}>Jak hodnotíš organizátora?</FormLabel>
+                  <Question
+                    id={organizerQuestionId}
+                    isInvalid={fieldState.invalid}
+                  >
+                    Jak hodnotíš organizátora?
+                  </Question>
                   <FormDescription>
                     {rated.name} · {rated.role}
                   </FormDescription>
@@ -180,11 +195,34 @@ export function RateEventForm({ data, isSaving, onSave }: RateEventFormProps) {
 }
 
 /**
- * Under the button (Figma C-03): until when, with the day — „Hodnotit jde do 14 dnů od konce
- * akce, tedy do po 23. 11., a do té doby hodnocení změníš.“
+ * A question above the stars. Not a <label>: the stars are a radio group, not one field it could
+ * point to; the group takes its name from this text through aria-labelledby (review #315).
+ */
+function Question({
+  id,
+  isInvalid,
+  children,
+}: {
+  id: string
+  isInvalid: boolean
+  children: ReactNode
+}) {
+  return (
+    <p
+      id={id}
+      className={cn("text-sm leading-none font-medium", isInvalid && "text-destructive")}
+    >
+      {children}
+    </p>
+  )
+}
+
+/**
+ * Under the button (Figma C-03): until when, with the day, in the words the rest of the page
+ * uses — „Hodnotit jde 14 dní po akci, tedy do po 23. 11., a do té doby hodnocení změníš.“
  */
 export function ratingWindowNote(ratableUntil: Date, isGroupEvent: boolean): string {
-  const until = `Hodnotit jde do ${RATING_WINDOW_DAYS} dnů od konce akce, tedy do ${inSentence(
+  const until = `Hodnotit jde ${RATING_WINDOW_DAYS} dní po akci, tedy do ${inSentence(
     formatEventDay(ratableUntil),
   )}, a do té doby hodnocení změníš.`
   return isGroupEvent ? `${until} U akce skupiny se hodnocení organizátora počítá skupině.` : until
