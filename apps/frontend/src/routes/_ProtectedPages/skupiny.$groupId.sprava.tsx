@@ -1,5 +1,5 @@
 import { useQuery } from "@tanstack/react-query"
-import { createFileRoute, Link, useNavigate } from "@tanstack/react-router"
+import { createFileRoute, Link } from "@tanstack/react-router"
 import { Pencil } from "lucide-react"
 import { toast } from "sonner"
 
@@ -24,6 +24,7 @@ import { GroupManagement } from "@/features/groups/components/GroupManagement"
 import { GroupFacts } from "@/features/groups/components/GroupSummary"
 import { InactiveGroupNotice } from "@/features/groups/components/InactiveGroupNotice"
 import { SendAnnouncementButton } from "@/features/groups/components/SendAnnouncementButton"
+import { useOpenSavedGroup } from "@/features/groups/hooks/useOpenSavedGroup"
 import { GROUP_TYPE_FOR_ADMIN, groupBandLine } from "@/features/groups/lib/formatGroup"
 
 export const Route = createFileRoute("/_ProtectedPages/skupiny/$groupId/sprava")({
@@ -50,7 +51,7 @@ function ManageGroupPage() {
   const group = groupQuery.data
   const isAdmin =
     group?.viewerMembership?.role === "admin" && group.viewerMembership.status === "active"
-  const navigate = useNavigate()
+  const openSavedGroup = useOpenSavedGroup()
   const isManaging = group !== undefined && group.status !== "inactive" && isAdmin
   const back = {
     to: "/skupiny/$groupId",
@@ -59,7 +60,9 @@ function ManageGroupPage() {
   } as const
   const onDeactivated = () => {
     toast.success("Skupina je deaktivovaná")
-    void navigate({ to: "/skupiny/$groupId", params: { groupId } })
+    // replace, as after founding and editing (#187): „Zpět“ on the group page must not
+    // lead back to the management of a group that is no longer active (#242)
+    openSavedGroup(groupId)
   }
 
   return (
