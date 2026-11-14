@@ -347,7 +347,10 @@ describe('GroupRepository: findGroupById admins (#289)', () => {
       },
       locality: { id: 'l1', slug: 'praha-2', name: 'Praha 2' },
       _count: { members: 2 },
-      members: [{ user: { id: 'u1', name: 'Petra Nováková' } }],
+      // a membership row has an id of its own; the profile needs the user's
+      members: [
+        { id: 'membership-1', user: { id: 'u1', name: 'Petra Nováková' } },
+      ],
     } as never);
 
     const group = await new GroupRepository(prisma).findGroupById('g1');

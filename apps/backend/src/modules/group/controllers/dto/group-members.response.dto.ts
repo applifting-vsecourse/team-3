@@ -6,7 +6,8 @@ import { ApiProperty } from '@nestjs/swagger';
 
 class GroupMemberEntryDto {
   @ApiProperty({
-    description: 'For the public profile `GET /api/users/:userId` (#289)',
+    description:
+      "The member's or applicant's user id, for the public profile `GET /api/users/:userId` (#289)",
   })
   userId!: string;
 
