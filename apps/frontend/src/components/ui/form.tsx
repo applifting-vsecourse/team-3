@@ -12,6 +12,7 @@ import {
 } from "react-hook-form"
 
 import { Label } from "@/components/ui/label"
+import { useRevealFormErrors } from "@/hooks/useRevealFormErrors"
 import { cn } from "@/lib/utils"
 
 const Form = FormProvider
@@ -144,6 +145,7 @@ function FormMessage({ className, ...props }: React.ComponentProps<"p">) {
 
 export {
   useFormField,
+  useRevealFormErrors,
   Form,
   FormItem,
   FormLabel,

@@ -98,6 +98,7 @@ Use the scale only: `1, 2, 3, 4, 5, 6, 8, 12, 16` (Tailwind units — 4px…64px
 - Every input has a visible `<label>`. Placeholders are examples, never labels.
 - A password field keeps the browser's own „show password“ eye (Edge) clear of the text — `global.css` gives `::-ms-reveal` a gap (#298). The app adds no eye of its own.
 - Validation runs client-side _and_ server-side. The client message appears under the field.
+- After a failed submit the form scrolls to the first invalid field (in reading order on screen) and focuses it; a server error scrolls to the form's `Alert` (`role="alert"`). Use `useRevealFormErrors(form, errorMessage)` from `@/hooks/useRevealFormErrors` in every form whose top can be off screen (#291).
 - The submit button shows a pending state and is disabled while submitting.
 - Never disable a submit button just because the form is untouched — let the user try and show them what's wrong.
 
