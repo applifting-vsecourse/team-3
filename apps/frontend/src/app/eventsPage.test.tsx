@@ -126,6 +126,27 @@ describe("/akce: old ?obsazenost= links", () => {
     },
   )
 
+  // review #331: the chip that goes would take the focus to the page's start
+  it.each([
+    ["Enter", "{Enter}"],
+    ["Space", " "],
+  ])(
+    "?obsazenost=chybi: %s on „Chybí lidé“ clears it and focuses „Jen s volným místem“",
+    async (_, key) => {
+      const app = await renderEvents("/akce?lokalita=cele-cesko&obsazenost=chybi")
+
+      const missing = await screen.findByRole("button", { name: "Chybí lidé" })
+      act(() => missing.focus())
+      await userEvent.keyboard(key)
+
+      expect(app.state.location.search).not.toHaveProperty("obsazenost")
+      expect(screen.queryByRole("button", { name: "Chybí lidé" })).not.toBeInTheDocument()
+      const free = screen.getByRole("button", { name: "Jen s volným místem" })
+      expect(free).toHaveFocus()
+      expect(free).toHaveAttribute("aria-pressed", "false")
+    },
+  )
+
   // review #331: the URL holds one value; „Jen s volným místem“ replaces „chybi“
   it("?obsazenost=chybi: „Jen s volným místem“ on replaces it, „Chybí lidé“ goes", async () => {
     const app = await renderEvents("/akce?lokalita=cele-cesko&obsazenost=chybi")
