@@ -21,6 +21,7 @@ import {
   ApiTags,
 } from '@nestjs/swagger';
 import { MyEventRatingResponseDto, RateEventDto } from './dto/event-rating.dto';
+import { ReceivedRatingsResponseDto } from './dto/received-ratings.dto';
 
 // Next to the event's other routes: the page is /akce/:id/hodnoceni (B-060).
 @ApiTags('ratings')
@@ -62,6 +63,36 @@ export class EventRatingController {
   ): Promise<MyEventRatingResponseDto> {
     return MyEventRatingResponseDto.fromDomain(
       await this.ratingService.getMyEventRating(id, user.id),
+    );
+  }
+
+  @Get(':id/ratings')
+  @UseGuards(AuthenticatedUserGuard)
+  @ApiCookieAuth()
+  @ApiOperation({
+    summary:
+      'What the event got from its participants (B-060, #66): both averages and each rating with its comment',
+    description:
+      'For who manages the event: its organizer or, for an event of a group, an active admin of the group. ' +
+      'Newest first, without the ratings a superadmin deleted; an average is null without ratings.',
+  })
+  @ApiResponse({ status: 200, type: ReceivedRatingsResponseDto })
+  @ApiResponse({ status: 401, description: 'Not signed in' })
+  @ApiResponse({
+    status: 403,
+    description:
+      "NOT_MANAGER: not the event's organizer nor an admin of its group",
+  })
+  @ApiResponse({
+    status: 404,
+    description: 'Unknown, hidden or deleted event',
+  })
+  async receivedRatings(
+    @Param('id') id: string,
+    @User() user: Identity,
+  ): Promise<ReceivedRatingsResponseDto> {
+    return ReceivedRatingsResponseDto.fromDomain(
+      await this.ratingService.getReceivedRatings(id, user.id),
     );
   }
 

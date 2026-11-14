@@ -2,12 +2,7 @@ import { afterEach, describe, expect, it, vi } from "vitest"
 
 import { api } from "@/lib/api-client"
 
-import {
-  publicProfileQueryOptions,
-  publicProfileSchema,
-  publicUserKeys,
-  summaryLabel,
-} from "./publicProfile"
+import { publicProfileQueryOptions, publicProfileSchema, publicUserKeys } from "./publicProfile"
 
 const response = {
   id: "user",
@@ -88,10 +83,5 @@ describe("public profile API", () => {
         organizedEvents: [{ ...data.organizedEvents[0], approvedCount: 0 }],
       }).organizedEvents[0]?.approvedCount,
     ).toBe(0)
-  })
-
-  it("names an average with its count, and the lack of one", () => {
-    expect(summaryLabel({ average: 4.5, count: 6 })).toBe("★ 4,5 (6 hodnocení)")
-    expect(summaryLabel({ average: null, count: 0 })).toBe("zatím bez hodnocení")
   })
 })

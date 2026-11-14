@@ -75,3 +75,65 @@ export type EventRatingInput = {
   organizerStars: number
   comment: string | null
 }
+
+/** Why nobody can be rated now (eventNotRatable); the API's own words for the participants' page. */
+export const participantRatingsRefusalSchema = z.enum([
+  "EVENT_NOT_PUBLISHED",
+  "EVENT_NOT_ENDED",
+  "EVENT_NOT_HELD",
+  "RATING_WINDOW_CLOSED",
+])
+
+export type ParticipantRatingsRefusal = z.infer<typeof participantRatingsRefusalSchema>
+
+const ratedParticipantSchema = z.object({
+  id: z.string(),
+  name: z.string(),
+  /** Null before rating, and after a superadmin deleted it. */
+  rating: z
+    .object({
+      stars: z.number(),
+      comment: z.string().nullable(),
+      updatedAt: z.coerce.date(),
+    })
+    .nullable(),
+  /** A superadmin deleted it: it can't be given again. */
+  ratingDeleted: z.boolean(),
+})
+
+export type RatedParticipant = z.infer<typeof ratedParticipantSchema>
+
+/** GET and PUT /api/events/:id/participant-ratings — the organizer's page (Figma D-05, #66). */
+export const participantRatingsSchema = z.object({
+  /** Approved participants in the order they got their place, without the organizer. */
+  participants: z.array(ratedParticipantSchema),
+  ratableUntil: z.coerce.date(),
+  refusal: participantRatingsRefusalSchema.nullable(),
+})
+
+export type ParticipantRatings = z.infer<typeof participantRatingsSchema>
+
+export type ParticipantRatingInput = {
+  participantId: string
+  stars: number
+  comment: string | null
+}
+
+const summarySchema = z.object({ average: z.number().nullable(), count: z.number() })
+
+/** GET /api/events/:id/ratings — what the event got from its participants (B-060, #66). */
+export const receivedRatingsSchema = z.object({
+  summary: z.object({ event: summarySchema, organizer: summarySchema }),
+  /** Newest first, without the ones a superadmin deleted. */
+  ratings: z.array(
+    z.object({
+      author: z.object({ id: z.string(), name: z.string() }),
+      eventStars: z.number(),
+      organizerStars: z.number(),
+      comment: z.string().nullable(),
+      updatedAt: z.coerce.date(),
+    }),
+  ),
+})
+
+export type ReceivedRatings = z.infer<typeof receivedRatingsSchema>

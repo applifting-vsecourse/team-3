@@ -56,13 +56,6 @@ export type PublicProfile = z.infer<typeof publicProfileSchema>
 export type PublicSummary = PublicProfile["participantSummary"]
 export type PublicOrganizedEvent = PublicProfile["organizedEvents"][number]
 
-/** DESIGN.md › Copy: an average always shows its count — „★ 4,5 (6 hodnocení)“. */
-export function summaryLabel(value: PublicSummary): string {
-  return value.count > 0 && value.average !== null
-    ? `★ ${value.average.toLocaleString("cs-CZ", { maximumFractionDigits: 1 })} (${value.count} hodnocení)`
-    : "zatím bez hodnocení"
-}
-
 export const publicUserKeys = {
   all: () => ["public-users"] as const,
   profile: (userId: string) => [...publicUserKeys.all(), userId] as const,

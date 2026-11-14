@@ -83,6 +83,28 @@ describe("PastEventCard", () => {
     expect(screen.queryByRole("link")).not.toBeInTheDocument()
   })
 
+  it("below its minimum but not over yet: it may still fill up, no „Nekonalo se“ (review #322)", async () => {
+    const event = { ...volleyball(), approvedCount: 2, missingToMin: 2 }
+    await renderWithRouter(
+      <PastEventCard
+        event={event}
+        now={new Date(event.startsAt.getTime() - 60 * 60 * 1000)}
+      />,
+    )
+
+    expect(screen.queryByText("Nekonalo se")).not.toBeInTheDocument()
+    expect(screen.queryByText(/Do minima/)).not.toBeInTheDocument()
+  })
+
+  it("exactly the minimum took place", async () => {
+    await renderWithRouter(
+      <PastEventCard event={{ ...volleyball(), approvedCount: 4, missingToMin: 0 }} />,
+    )
+
+    expect(screen.getByText("Proběhlo")).toBeInTheDocument()
+    expect(screen.getByText("Sešli se 4 lidé")).toBeInTheDocument()
+  })
+
   it("cancelled: „Zrušeno“ and that it didn't take place, from the event's status", async () => {
     await renderWithRouter(
       <PastEventCard

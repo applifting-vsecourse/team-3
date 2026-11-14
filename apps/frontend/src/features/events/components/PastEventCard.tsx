@@ -7,7 +7,12 @@ import { gatheredLabel, missedMinimumLabel, wasHeld } from "@/lib/occupancy"
 
 import type { PublicEvent } from "@/features/events/api/eventSchemas"
 import { EventPhoto } from "@/features/events/components/EventPhoto"
-import { formatEventDay, formatEventStart, placeName } from "@/features/events/lib/formatEvent"
+import {
+  formatEventDay,
+  formatEventStart,
+  isEventOver,
+  placeName,
+} from "@/features/events/lib/formatEvent"
 
 /**
  * Where the user's rating of a past event stands (Figma Karta akce/Proběhlá řádek): given
@@ -22,6 +27,7 @@ type PastEventCardProps = {
     | "id"
     | "title"
     | "startsAt"
+    | "endsAt"
     | "address"
     | "activity"
     | "locality"
@@ -42,6 +48,7 @@ type PastEventCardProps = {
    * it, because a former member of a members-only event's group gets a 403 there (review #315).
    */
   isLinked?: boolean
+  now?: Date
 }
 
 /**
@@ -55,11 +62,13 @@ export function PastEventCard({
   detail,
   titleAs: Title = "h3",
   isLinked = true,
+  now = new Date(),
 }: PastEventCardProps) {
   // from the event, not the rating: a cancelled event never offers „Ohodnotit“
   const isCancelled = event.status === "cancelled"
-  // below its minimum: „Nekonalo se“ and why, as its detail says (#61); nothing to rate either
-  const isNotHeld = !isCancelled && !wasHeld(event)
+  // over and below its minimum: „Nekonalo se“ and why, as its detail says (#61); nothing to
+  // rate either. Before it ends it may still fill up (review #322)
+  const isNotHeld = !isCancelled && !wasHeld(event) && isEventOver(event, now)
   const line = [formatEventDay(event.startsAt), placeName(event.address), event.locality.name].join(
     " · ",
   )

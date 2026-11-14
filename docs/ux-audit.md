@@ -82,7 +82,7 @@ Rozhodnutí PO ze 4. 11. a pravidla týmu:
 - Hodnotit jde jen po skončení akce a do 14 dnů, do té doby jde hodnocení změnit. Hvězdičky 1–5 povinné, komentář nepovinný. Organizátor nehodnotí sám sebe. Smazané superadminem jde jen vrátit, ne dát znovu.
 - **Průměr** se ukazuje od prvního hodnocení i s počtem („★ 4,5 (6 hodnocení)“), bez hodnocení „zatím bez hodnocení“.
 - **Veřejný profil:** hodnocení jako organizátor, průměr jeho akcí, hodnocení jako účastník a historie pořádaných veřejných akcí, u každé počet lidí a průměr hodnocení akce. Akce skupin se počítají skupině a v historii osoby nejsou.
-- **Vstupy:** e-maily „Ohodnoť akci“ a „Ohodnoť účastníky“ (E-01 typy 11 a 12, večer po akci, B-043), karta „Ohodnotit“ v profilu › Proběhlé, tlačítko „Ohodnotit akci“ na detailu proběhlé akce (A-05h, jen schválený účastník). Obě obrazovky mají adresu `/akce/:id/hodnoceni`, obsah podle role.
+- **Vstupy:** e-maily „Ohodnoť akci“ a „Ohodnoť účastníky“ (E-01 typy 11 a 12, večer po akci, B-043), karta „Ohodnotit“ v profilu › Proběhlé, tlačítko „Ohodnotit akci“ na detailu proběhlé akce (A-05h, jen schválený účastník). Účastník hodnotí na `/akce/:id/hodnoceni` (C-03), organizátor na `/akce/:id/hodnoceni-ucastniku` (D-05), kam vede „Ohodnotit účastníky“ ze správy akce a e-mail „Ohodnoť účastníky“; organizátora, který přijde na první adresu, stránka přesměruje.
 - Dávání hodnocení (#66) je ve sprintu 4 (P1); design je hotový.
 
 ## Hlas aplikace

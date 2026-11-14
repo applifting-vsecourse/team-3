@@ -224,7 +224,7 @@ describe("/akce/:id/hodnoceni for a participant (Figma C-03, #66)", () => {
   it.each([
     ["EVENT_NOT_ENDED", "Hodnotit půjde, až akce skončí", "Pak na to budeš mít 14 dní."],
     ["EVENT_NOT_PUBLISHED", "Akce je zrušená", "Zrušenou akci hodnotit nejde."],
-    ["EVENT_NOT_HELD", "Akce se nekonala", "Nesešlo se dost lidí, takže hodnotit ji nejde."],
+    ["EVENT_NOT_HELD", "Akce se nekonala", "Nesešlo se dost lidí, takže hodnotit nejde."],
     ["RATING_DELETED", "Hodnocení odstranil správce", "Znovu ho dát nejde."],
   ])("%s: no form, why not, and a way on", async (refusal, title, body) => {
     answer = { ...fresh, refusal }
@@ -234,6 +234,19 @@ describe("/akce/:id/hodnoceni for a participant (Figma C-03, #66)", () => {
     expect(screen.getByText(body)).toBeInTheDocument()
     expect(screen.queryByRole("radiogroup")).not.toBeInTheDocument()
     expect(screen.getByRole("link", { name: "Najdi další akci" })).toHaveAttribute("href", "/akce")
+  })
+
+  it("before the event ends, no past event's card: below its minimum it may still fill up (review #322)", async () => {
+    answer = {
+      ...fresh,
+      event: { ...event, approvedCount: 2, minParticipants: 4 },
+      refusal: "EVENT_NOT_ENDED",
+    }
+    await renderPage()
+
+    expect(await screen.findByText("Hodnotit půjde, až akce skončí")).toBeInTheDocument()
+    expect(screen.queryByText("Nekonalo se")).not.toBeInTheDocument()
+    expect(screen.queryByText(/Do minima/)).not.toBeInTheDocument()
   })
 
   it("after the window, the rating given stays to read", async () => {
@@ -262,33 +275,21 @@ describe("/akce/:id/hodnoceni for a participant (Figma C-03, #66)", () => {
     ).toBeInTheDocument()
   })
 
-  it("the organizer (403 OWN_EVENT) is sent back to the management", async () => {
+  it("the organizer (403 OWN_EVENT) is sent on to their own page (review #313, #322)", async () => {
+    // a link from elsewhere: the management leads straight to /akce/:id/hodnoceni-ucastniku
     answer = new FakeHTTPError(403, {
       code: "OWN_EVENT",
       message: "Svou vlastní akci hodnotit nejde.",
     })
-    await renderPage()
+    const { router } = await renderPage()
 
-    expect(await screen.findByText("Svou akci nehodnotíš")).toBeInTheDocument()
-    expect(screen.getByRole("link", { name: "Zpět na správu akce" })).toHaveAttribute(
-      "href",
-      "/akce/e1/sprava",
+    await vi.waitFor(() =>
+      expect(router.state.location.pathname).toBe("/akce/e1/hodnoceni-ucastniku"),
     )
-  })
-
-  it("for the organizer 403 OWN_EVENT is an answer, not a failure (review #313)", async () => {
-    // the page can't tell the organizer before asking: it has no event's detail to look at
-    answer = new FakeHTTPError(403, {
-      code: "OWN_EVENT",
-      message: "Svou vlastní akci hodnotit nejde.",
-    })
-    await renderPage()
-    await screen.findByText("Svou akci nehodnotíš")
-
-    // asked once, not retried; no error toast, no form, no „Zkusit znovu“
-    expect(api.get).toHaveBeenCalledTimes(1)
+    // asked once, not retried; no error toast, no participant's form, no „Zkusit znovu“
+    expect(api.get.mock.calls.filter(([path]) => path === "events/e1/rating")).toHaveLength(1)
     expect(toast.error).not.toHaveBeenCalled()
-    expect(screen.queryByRole("radiogroup")).not.toBeInTheDocument()
+    expect(screen.queryByText("Jak se akce povedla?")).not.toBeInTheDocument()
     expect(screen.queryByRole("button", { name: "Zkusit znovu" })).not.toBeInTheDocument()
     expect(api.put).not.toHaveBeenCalled()
   })

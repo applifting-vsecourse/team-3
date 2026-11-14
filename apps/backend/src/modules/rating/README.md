@@ -37,4 +37,14 @@ Pravidla jsou v `decideParticipantRatings` (`domain/participant-rating.ts`) pro 
 
 `GET` nejdřív přečte akci (stav, organizátor, minimum, počet schválených) a teprve organizátorovi načte účastníky s hodnocením (#314). `PUT` je jedna transakce pod zámkem řádku akce: o existenci akce i odmítnutích rozhoduje čtení pod zámkem, hodnocení zapíše **jeden** příkaz `INSERT … ON CONFLICT … DO UPDATE` pro celý seznam (ne upsert po jednom – i 500 účastníků je jeden dotaz, zámek je krátký a transakce daleko od 5s timeoutu, #314) a odpověď je přehled přečtený v téže transakci po zápisu; mimo ni `PUT` nic nečte (#313).
 
-Frontend (`/akce/:id/hodnoceni`) přijde v dalších PR k #66.
+Nový řádek dostane id z databáze (`gen_random_uuid()`), ne cuid jako zbytek schématu: `@default(cuid())` dělá klient Prismy, takže hromadný `INSERT` žádné nemá; sloupec je `text` a na tvaru id nic nezávisí (review #314).
+
+**Pořadí `RATING_DELETED` se u obou hodnocení liší** (review #314): u hodnocení akce je před stavem akce (hodnotí vždy jeden člověk a dozví se, že jeho hodnocení smazal správce, i po lhůtě, #313), u hodnocení účastníků až po `eventNotRatable` (je to řádek seznamu; když akci hodnotit nejde, dostane celý seznam jeden důvod, po lhůtě `RATING_WINDOW_CLOSED`). Test v `participant-rating.spec.ts` staví obě pořadí vedle sebe.
+
+Frontend: účastník C-03 na `/akce/:id/hodnoceni`, organizátor D-05 na `/akce/:id/hodnoceni-ucastniku`; organizátora, který přijde na první adresu, stránka přesměruje podle 403 `OWN_EVENT` z `GET /rating`. Správa akce proběhlé akce ukáže „Jak akci hodnotili“ (`GET /ratings`) a zakladateli akce v lhůtě odkaz „Ohodnotit účastníky“ na D-05.
+
+## Organizátor vidí, jak akci hodnotili (#66)
+
+- `GET /api/events/:id/ratings`: oba průměry (akce, organizátor – u akce skupiny jsou hvězdičky organizátora skupiny) vždy s počtem, bez hodnocení `null`, a každé hodnocení s autorem a komentářem, nejnovější první. Hodnocení smazaná superadminem se nevrací (B-063).
+
+Vidí ho ten, kdo akci spravuje: organizátor, nebo u akce skupiny aktivní správce skupiny (rozhoduje stejná `canManageEvent` jako u správy akce, B-055); kdokoli jiný 403 `NOT_MANAGER`, neznámá, skrytá a smazaná akce 404. Frontend ho ukazuje ve správě proběhlé akce (B-060).

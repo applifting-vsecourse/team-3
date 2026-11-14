@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest"
 
-import { canRateEvent, ratingDeadline } from "./rating"
+import { canRateEvent, canRateParticipants, ratingDeadline } from "./rating"
 
 // the same cases as the API's rating-window.spec.ts, so the button and the API agree
 describe("ratingDeadline (B-060, #66)", () => {
@@ -32,7 +32,8 @@ describe("canRateEvent (#66, review #315)", () => {
     endsAt: new Date("2026-11-01T20:00:00.000Z"),
     status: "published" as const,
     approvedCount: 5,
-    minParticipants: 4,
+    // 5 came, the minimum is 4: it took place
+    missingToMin: 0,
     organizer: { id: "u-petra" },
     myParticipation: "approved",
   }
@@ -53,7 +54,7 @@ describe("canRateEvent (#66, review #315)", () => {
     ["someone without a place", { myParticipation: null }],
     ["a waiting request", { myParticipation: "pending" }],
     ["a cancelled event", { status: "cancelled" as const }],
-    ["an event below its minimum (EVENT_NOT_HELD)", { approvedCount: 3 }],
+    ["an event below its minimum (EVENT_NOT_HELD)", { approvedCount: 3, missingToMin: 1 }],
     ["an event not over yet", { endsAt: new Date("2026-11-02T20:00:00.000Z") }],
   ])("not for %s", (_who, overrides) => {
     expect(canRateEvent({ ...event, ...overrides }, "u-jakub", dayAfter)).toBe(false)
@@ -68,5 +69,34 @@ describe("canRateEvent (#66, review #315)", () => {
 
   it("not for a visitor", () => {
     expect(canRateEvent(event, null, dayAfter)).toBe(false)
+  })
+})
+
+// the organizer's side (D-05): the API's NOT_ORGANIZER and eventNotRatable
+describe("canRateParticipants (#66)", () => {
+  const event = {
+    startsAt: new Date("2026-11-01T18:00:00.000Z"),
+    endsAt: new Date("2026-11-01T20:00:00.000Z"),
+    status: "published" as const,
+    approvedCount: 5,
+    // 5 came, the minimum is 4: it took place
+    missingToMin: 0,
+    organizer: { id: "u-petra" },
+  }
+  const dayAfter = new Date("2026-11-02T10:00:00.000Z")
+
+  it("the organizer of an event that took place, within the window", () => {
+    expect(canRateParticipants(event, "u-petra", dayAfter)).toBe(true)
+    expect(canRateParticipants(event, "u-petra", new Date("2026-11-15T22:59:59.999Z"))).toBe(true)
+    expect(canRateParticipants(event, "u-petra", new Date("2026-11-15T23:00:00.000Z"))).toBe(false)
+  })
+
+  it.each([
+    ["a group's other admin, not its creator", { organizer: { id: "u-admin" } }],
+    ["a cancelled event", { status: "cancelled" as const }],
+    ["an event below its minimum (EVENT_NOT_HELD)", { approvedCount: 3, missingToMin: 1 }],
+    ["an event not over yet", { endsAt: new Date("2026-11-02T20:00:00.000Z") }],
+  ])("not for %s", (_who, overrides) => {
+    expect(canRateParticipants({ ...event, ...overrides }, "u-petra", dayAfter)).toBe(false)
   })
 })

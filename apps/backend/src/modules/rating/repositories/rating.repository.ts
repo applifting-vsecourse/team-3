@@ -1,5 +1,6 @@
 import { PrismaService } from '@/core/prisma/prisma.service';
 import { Prisma } from '@/generated/prisma/client';
+import { EventViewer } from '@/modules/event/domain/event-viewer';
 import {
   publicEventInclude,
   PublicEventRow,
@@ -18,6 +19,7 @@ import {
   ParticipantRatingRefusal,
   RatedParticipantState,
 } from '@/modules/rating/domain/participant-rating';
+import { ReceivedRating } from '@/modules/rating/domain/received-ratings';
 import { Injectable } from '@nestjs/common';
 
 /** What rating an event depends on, read for one user. */
@@ -141,6 +143,62 @@ export class RatingRepository {
   }
 
   /**
+   * The signed-in user as a viewer of the event, read as the event's detail
+   * reads it (EventsService.viewerOf), so `canManageEvent` decides the same
+   * way for the ratings as for the management (B-055, review #322): the
+   * organizer, their participation, and an active role in the event's group
+   * – not looked up for the organizer. Null for an unknown, hidden or
+   * deleted event.
+   */
+  async findEventViewer(
+    eventId: string,
+    userId: string,
+  ): Promise<NonNullable<EventViewer> | null> {
+    const event = await this.prisma.event.findUnique({
+      where: { id: eventId },
+      select: { status: true, organizerUserId: true, groupId: true },
+    });
+    if (!event || isEventGone(event.status)) return null;
+    const isOrganizer = event.organizerUserId === userId;
+    const [participation, member] = await Promise.all([
+      this.prisma.participation.findUnique({
+        where: { eventId_userId: { eventId, userId } },
+        select: { status: true },
+      }),
+      event.groupId && !isOrganizer
+        ? this.prisma.groupMember.findUnique({
+            where: { groupId_userId: { groupId: event.groupId, userId } },
+            select: { role: true, status: true },
+          })
+        : null,
+    ]);
+    // pending and blocked members have no role here
+    const groupRole = member?.status === 'active' ? member.role : null;
+    return {
+      isOrganizer,
+      participation: participation?.status ?? null,
+      isGroupMember: groupRole !== null,
+      isGroupAdmin: groupRole === 'admin',
+    };
+  }
+
+  /**
+   * The participants' ratings of the event, newest first, without the ones a
+   * superadmin deleted (B-060, #66).
+   */
+  async findReceivedRatings(eventId: string): Promise<ReceivedRating[]> {
+    const ratings = await this.prisma.rating.findMany({
+      where: { eventId, deletedAt: null },
+      orderBy: [{ updatedAt: 'desc' }, { id: 'asc' }],
+      select: {
+        ...ratingSelect,
+        user: { select: { id: true, name: true } },
+      },
+    });
+    return ratings.map(({ user, ...rating }) => ({ author: user, ...rating }));
+  }
+
+  /**
    * The event's approved participants in the order they got their place
    * (D-03), each with the organizer's rating of them, deleted ones included so
    * the caller can say they can't be given again.
@@ -211,8 +269,12 @@ export class RatingRepository {
         })),
       );
       if (!decision.ok) return decision;
-      // one statement for the whole list; a new row gets its id from the
-      // database, an existing one keeps it
+      // One statement for the whole list; a new row gets its id from the
+      // database, an existing one keeps it. gen_random_uuid() and not a cuid
+      // like the rest of the schema (review #314): `@default(cuid())` is made
+      // by Prisma's client, so a raw INSERT for many rows has none to use; the
+      // column is text and nothing depends on the shape of the id, and
+      // Postgres has the function built in since 13.
       await tx.$executeRaw`
         INSERT INTO "participant_rating"
           ("id", "eventId", "participantId", "stars", "comment", "createdAt", "updatedAt")

@@ -7,6 +7,8 @@ export const ROUTES = {
   manageEvent: "/akce/$eventId/sprava",
   // the participant rates the event and its organizer (Figma C-03, #66)
   rateEvent: "/akce/$eventId/hodnoceni",
+  // the organizer rates the participants (Figma D-05, #66): its own page, from the management
+  rateParticipants: "/akce/$eventId/hodnoceni-ucastniku",
   // Moje (#304): Akce with the chips Přihlášen / Pořádám, Skupiny with Jsem členem / Spravuju
   // the navigation's „Moje“: opens on Akce, or on Skupiny when only requests to join wait
   my: "/moje",

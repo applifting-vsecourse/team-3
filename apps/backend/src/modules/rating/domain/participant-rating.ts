@@ -32,8 +32,9 @@ export type ParticipantRatingState = RatableEventState & {
   organizerUserId: string;
   /** Who wants to rate. */
   raterId: string;
-  /** Who is rated, and the status of their participation; null without one. */
+  /** Who is rated. */
   participantId: string;
+  /** The status of their participation in the event; null without one (review #314). */
   participationStatus:
     'pending' | 'approved' | 'rejected' | 'withdrawn' | 'removed' | null;
   /** Their earlier rating was deleted by a superadmin (B-063). */
@@ -89,6 +90,13 @@ export type RatedParticipantState = {
  *    own event, Q12), only someone approved for it, and not one whose rating
  *    a superadmin deleted – that can only be restored, not given again. The
  *    first such refusal names its participant.
+ *
+ * RATING_DELETED comes after the event here, unlike `decideEventRating`,
+ * where it comes before it (review #314): a participant's rating is one row
+ * of a list, and once the event can't be rated the whole list gets the one
+ * event-wide reason (after the window RATING_WINDOW_CLOSED, never a marked
+ * row); rating the event is always one person's own, who hears that it was
+ * deleted also after the window (#313).
  * One rating per participant and event and 1–5 stars are kept by the
  * database (`participant_rating`), not here.
  */
