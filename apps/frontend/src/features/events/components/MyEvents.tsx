@@ -57,6 +57,8 @@ export function AttendingEvents({ viewerId }: { viewerId: string }) {
           >
             <Link
               to={ROUTES.events}
+              // like „Zobrazit všechny“ under „Tady chybíš“: where people are missing, in one's
+              // locality; the chip names it „Chybí lidé“ though the filter no longer offers it (#305)
               search={{ obsazenost: "chybi" }}
             >
               Projít akce

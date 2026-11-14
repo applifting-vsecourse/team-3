@@ -69,7 +69,7 @@ Každá role umí i všechno, co přihlášený uživatel. Správce skupiny ří
 - [ ] Seznam i mapa jsou přístupné bez účtu. Na desktopu jsou vedle sebe, na mobilu je mapa přes celou obrazovku a seznam ve vysouvacím panelu (návrh týmu, potvrdit s PO).
 - [ ] Položka ukazuje aktivitu, název, termín, místo a kolik lidí chybí; seznam jde řadit podle termínu a vzdálenosti.
 - [ ] Na mapě jsou akce jako špendlíky; klepnutí ukáže náhled s proklikem na detail. GPS se nepoužívá.
-- [ ] Filtry: lokalita, termín (rozsah od–do s rychlými volbami), typ aktivity (kategorie › aktivita), obsazenost (podobu filtru PO 10. 11. vrátil k přepracování, Q9 v BACKLOG.md); doplňkově hledání podle názvu. Filtry platí pro seznam i mapu.
+- [ ] Filtry: lokalita, termín (rozsah od–do s rychlými volbami), typ aktivity (kategorie › aktivita), přepínač „Jen s volným místem“ (výchozí vypnutý, skryje plné akce; tým 14. 11., Q9 v BACKLOG.md); doplňkově hledání podle názvu. Filtry platí pro seznam i mapu.
 - [ ] Nezobrazují se proběhlé, zrušené, soukromé akce a akce skupin „jen pro členy“.
 - [ ] Vše funguje na mobilu.
 

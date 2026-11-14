@@ -116,6 +116,8 @@ beforeEach(() => {
 
 afterEach(() => {
   vi.unstubAllGlobals()
+  // the spies on scrollIntoView
+  vi.restoreAllMocks()
 })
 
 describe("EventForm", () => {
@@ -154,6 +156,127 @@ describe("EventForm", () => {
 
     const map = screen.getByRole("region", { name: "Místo na mapě *" })
     expect(map).toHaveAccessibleDescription("Vyber místo na mapě")
+  })
+
+  describe("errors stay on screen (#291)", () => {
+    it("a failed submit scrolls to the first invalid field and focuses it once the scroll ends", async () => {
+      renderForm()
+      const scrollIntoView = vi.spyOn(Element.prototype, "scrollIntoView")
+
+      await submit()
+
+      const title = screen.getByLabelText("Název akce *")
+      await waitFor(() => expect(scrollIntoView).toHaveBeenCalledOnce())
+      expect(scrollIntoView.mock.contexts[0]).toBe(title)
+      // the middle of the screen, clear of the sticky header
+      expect(scrollIntoView).toHaveBeenCalledWith({ behavior: "smooth", block: "center" })
+      // not react-hook-form's own focus at once: the page would jump before the scroll ends
+      expect(title).not.toHaveFocus()
+
+      window.dispatchEvent(new Event("scrollend"))
+
+      expect(title).toHaveFocus()
+    })
+
+    it("a filled title moves the focus on to the activity", async () => {
+      renderForm()
+
+      await userEvent.type(screen.getByLabelText("Název akce *"), "Deskovky po práci")
+      await submit()
+
+      await waitFor(() =>
+        expect(screen.getByRole("combobox", { name: "Aktivita *" })).toHaveFocus(),
+      )
+    })
+
+    it("Konec in the right half of its row comes before an empty Minimum in the row under it (review #330)", async () => {
+      const start = new Date(Date.now() + 3 * 86_400_000)
+      start.setSeconds(0, 0)
+      renderForm({
+        initialValues: {
+          title: "Deskovky po práci",
+          activityId: "a-deskove-hry",
+          localityId: "l-praha-8",
+          lat: 50.11,
+          lng: 14.47,
+          address: "Herna Karlín",
+          startsAt: start.toISOString(),
+          // „Konec musí být jiný než začátek“
+          endsAt: start.toISOString(),
+          maxParticipants: 6,
+        },
+      })
+      const at = (element: HTMLElement, left: number, top: number) =>
+        vi
+          .spyOn(element, "getBoundingClientRect")
+          .mockReturnValue(DOMRect.fromRect({ x: left, y: top, width: 390, height: 44 }))
+      // D-01d: Začátek | Konec, then Minimum | Maximum, all in the left column
+      at(screen.getByLabelText("Začátek *"), 167, 976)
+      at(screen.getByLabelText("Konec"), 575, 976)
+      at(screen.getByLabelText("Minimum"), 167, 1165)
+      at(screen.getByLabelText("Maximum"), 575, 1165)
+      const scrollIntoView = vi.spyOn(Element.prototype, "scrollIntoView")
+
+      await submit()
+
+      expect(await screen.findByText("Konec musí být jiný než začátek")).toBeInTheDocument()
+      expect(screen.getByText("Vyplň minimum")).toBeInTheDocument()
+      await waitFor(() => expect(scrollIntoView).toHaveBeenCalledOnce())
+      expect(scrollIntoView.mock.contexts[0]).toBe(screen.getByLabelText("Konec"))
+      window.dispatchEvent(new Event("scrollend"))
+      expect(screen.getByLabelText("Konec")).toHaveFocus()
+    })
+
+    it("only the place missing: the map comes into view and takes the focus", async () => {
+      renderForm({
+        initialValues: {
+          title: "Deskovky po práci",
+          activityId: "a-deskove-hry",
+          localityId: "l-praha-8",
+          address: "Herna Karlín",
+          startsAt: new Date(Date.now() + 3 * 86_400_000).toISOString(),
+          minParticipants: 3,
+          maxParticipants: 6,
+        },
+      })
+      const scrollIntoView = vi.spyOn(Element.prototype, "scrollIntoView")
+
+      await submit()
+
+      const map = screen.getByRole("region", { name: "Místo na mapě *" })
+      await waitFor(() => expect(scrollIntoView).toHaveBeenCalledOnce())
+      expect(scrollIntoView.mock.contexts[0]).toBe(map)
+      window.dispatchEvent(new Event("scrollend"))
+      // Leaflet's container, which moves the map from the keyboard
+      expect(map).toContainElement(document.activeElement as HTMLElement)
+      expect(document.activeElement).toHaveClass("leaflet-container")
+      expect(document.activeElement).toHaveAttribute("data-focus-target")
+    })
+
+    it("a server error comes into view as an alert, read out by a screen reader", () => {
+      const client = new QueryClient()
+      const props = { catalog, isSubmitting: false, onSubmit: vi.fn() }
+      const { rerender } = render(
+        <QueryClientProvider client={client}>
+          <EventForm {...props} />
+        </QueryClientProvider>,
+      )
+      const scrollIntoView = vi.spyOn(Element.prototype, "scrollIntoView")
+
+      rerender(
+        <QueryClientProvider client={client}>
+          <EventForm
+            {...props}
+            errorMessage="Nejdřív si ověř e-mail."
+          />
+        </QueryClientProvider>,
+      )
+
+      const alert = screen.getByRole("alert")
+      expect(alert).toHaveTextContent("Nejdřív si ověř e-mail.")
+      expect(scrollIntoView).toHaveBeenCalledOnce()
+      expect(scrollIntoView.mock.contexts[0]).toBe(alert)
+    })
   })
 
   it("min 0, max below min and a date in the past can't be saved", async () => {

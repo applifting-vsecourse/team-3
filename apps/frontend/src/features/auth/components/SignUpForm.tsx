@@ -17,6 +17,7 @@ import {
   FormItem,
   FormLabel,
   FormMessage,
+  useRevealFormErrors,
 } from "@/components/ui/form"
 import { Input } from "@/components/ui/input"
 
@@ -69,8 +70,12 @@ type SignUpFormProps = {
 export function SignUpForm({ isLoading, errorMessage, onSubmit }: SignUpFormProps) {
   const form = useForm<FormValues>({
     resolver: zodResolver(schema),
+    // useRevealFormErrors focuses instead, after scrolling its own way
+    shouldFocusError: false,
     defaultValues,
   })
+  // on a phone, the server's answer at the top is off-screen once one taps the button (#291)
+  const formRef = useRevealFormErrors(form, errorMessage)
 
   const submit = ({ passwordConfirmation: _repeated, ...values }: FormValues) => onSubmit(values)
 
@@ -81,6 +86,7 @@ export function SignUpForm({ isLoading, errorMessage, onSubmit }: SignUpFormProp
   return (
     <Form {...form}>
       <form
+        ref={formRef}
         noValidate
         onSubmit={form.handleSubmit(submit)}
         className="space-y-4"

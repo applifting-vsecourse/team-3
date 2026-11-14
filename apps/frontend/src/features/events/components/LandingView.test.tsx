@@ -193,7 +193,8 @@ describe("LandingView", () => {
         "/akce/Chybi2",
         "/akce/Chybi3",
       ])
-      // „Zobrazit všechny“ opens /akce with the same pick, for all of Czechia (no locality)
+      // „Zobrazit všechny“ opens /akce with the same events, for all of Czechia (no locality):
+      // missing people, not the quick pick „Tady chybíš“ with its +10 km and interests (#305)
       expect(within(section).getAllByRole("link", { name: /Zobrazit všechny/ })[0]).toHaveAttribute(
         "href",
         "/akce?lokalita=cele-cesko&obsazenost=chybi",
