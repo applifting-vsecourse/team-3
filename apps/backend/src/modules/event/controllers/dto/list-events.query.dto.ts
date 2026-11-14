@@ -12,6 +12,7 @@ import {
   PublicEventSort,
 } from '@/modules/event/domain/event';
 import { PUBLIC_EVENTS_LIMIT } from '@/modules/event/services/events.service';
+import { queryBoolean } from '@/shared/validation/query-boolean';
 import { ApiPropertyOptional } from '@nestjs/swagger';
 import { Transform, TransformFnParams, Type } from 'class-transformer';
 import {
@@ -85,10 +86,6 @@ class DistanceNeedsPoint implements ValidatorConstraintInterface {
     return 'sort=distance needs both lat and lng';
   }
 }
-
-// `?past=true` arrives as a string; anything else than true/false is a 400
-const toBoolean = ({ value }: TransformFnParams): unknown =>
-  value === 'true' ? true : value === 'false' ? false : value;
 
 // `?activityId=a` arrives as a string, `?activityId=a&activityId=b` as an array.
 const toArray = ({ value }: TransformFnParams): unknown =>
@@ -234,7 +231,7 @@ export class ListEventsQueryDto {
       'Proběhlé (#61): public events that are over instead of the upcoming ones – after their end, without one after the Prague day they start on (#272) – newest first, each with its average rating. Cancelled events are never listed. It replaces the date range, so dateFrom and dateTo are ignored, and capacity too: a past event has no places left to fill.',
   })
   @IsOptional()
-  @Transform(toBoolean)
+  @Transform(queryBoolean)
   @IsBoolean()
   past?: boolean;
 
