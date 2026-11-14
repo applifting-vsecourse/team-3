@@ -26,8 +26,10 @@ type EventFiltersProps = {
   onChange: (patch: Partial<EventsSearch>) => void
   /** A pick in the locality chip, which the page remembers (#55), with its okolí (#57); without it, `onChange`. */
   onLocalityChange?: (slug: string, radius?: Radius) => void
-  /** „Zrušit vše“; only when something was picked (a default locality isn't). */
+  /** „Zrušit vše“; only when something was picked (a default locality isn't) or a quick pick is on. */
   onClearAll?: () => void
+  /** Its label; „Zrušit rychlý výběr“ when only a quick pick is on. */
+  clearAllLabel?: string
   /** The visitor's default locality on the chip (#55). */
   localityDefault?: LocalityDefault
   /** Mobile: the chips float over the map (Figma A-02) and need their own shadow. */
@@ -43,6 +45,7 @@ export function EventFilters({
   catalog,
   onChange,
   onClearAll,
+  clearAllLabel = "Zrušit vše",
   onLocalityChange,
   localityDefault,
   isFloating,
@@ -94,7 +97,7 @@ export function EventFilters({
           className={cn("hidden h-9 shrink-0 md:inline-flex", isFloating && "bg-background")}
           onClick={onClearAll}
         >
-          Zrušit vše
+          {clearAllLabel}
         </Button>
       ) : null}
       {searchControl ? (

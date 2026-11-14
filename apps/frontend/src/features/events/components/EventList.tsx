@@ -31,9 +31,12 @@ type EventListProps = {
   inertAfter?: number
   /**
    * Mobile: „Zrušit filtry“ next to the count, where it shows in every sheet
-   * position (on desktop „Zrušit vše“ is in the filter bar). Pass only with an active filter.
+   * position (on desktop „Zrušit vše“ is in the filter bar). Pass only with an active filter or
+   * a quick pick (then labelled „Zrušit rychlý výběr“).
    */
   onClearFilters?: () => void
+  /** Its label; „Zrušit rychlý výběr“ when only a quick pick is on. */
+  clearFiltersLabel?: string
   /**
    * What an empty list says and offers instead of the plain sentence, e.g.
    * the filters and ways on (/akce). Marks its own `data-peek-end`.
@@ -56,6 +59,7 @@ export function EventList({
   onHighlight,
   inertAfter,
   onClearFilters,
+  clearFiltersLabel = "Zrušit filtry",
   empty,
   sortControl,
   isDistanceShown = false,
@@ -126,7 +130,7 @@ export function EventList({
                 // a link-sized label with a full-height tap target
                 className="-my-2 h-auto px-1 py-2 font-medium underline md:hidden"
               >
-                Zrušit filtry
+                {clearFiltersLabel}
               </Button>
             </>
           ) : null}
