@@ -13,7 +13,7 @@ import { EventCard } from "@/features/events/components/EventCard"
 import { occupancyLabel } from "@/features/events/components/OccupancyFilter"
 import { useEvents } from "@/features/events/hooks/useEvents"
 import { formatDayRange } from "@/features/events/lib/dateRange"
-import { PICK_LABELS, type EventsSearch } from "@/features/events/lib/eventsSearch"
+import { PAST_TERM, PICK_LABELS, type EventsSearch } from "@/features/events/lib/eventsSearch"
 import { showEventsLabel } from "@/features/events/lib/formatEvent"
 
 type EmptyEventsProps = {
@@ -55,16 +55,20 @@ export function activeFiltersLabel(search: EventsSearch, catalog: Catalog | unde
     // a quick pick narrows the list by its own rules too (interests, well rated, review #321)
     search.vyber && PICK_LABELS[search.vyber],
     activity,
-    formatDayRange({ od: search.od, do: search.do }),
-    occupancyLabel(search.obsazenost),
+    search.termin === PAST_TERM ? "Proběhlé" : formatDayRange({ od: search.od, do: search.do }),
+    search.termin === PAST_TERM ? undefined : occupancyLabel(search.obsazenost),
   ]
     .filter(Boolean)
     .join(" · ")
 }
 
-/** Only the locality makes the list empty: „V lokalitě X teď…“, not „neodpovídá filtrům: X“ (#299). */
+/**
+ * Only the locality makes the list empty: „V lokalitě X teď…“, not „neodpovídá filtrům: X“ (#299).
+ * Not on Proběhlé: that sentence is about the upcoming ones.
+ */
 const isLocalityOnly = (search: EventsSearch) =>
   !hasOtherFilters(search) &&
+  search.termin === undefined &&
   search.q === undefined &&
   search.okoli === undefined &&
   search.oblast === undefined &&
@@ -161,7 +165,9 @@ export function EmptyEvents({
         ) : (
           <>
             <p className="text-sm text-muted-foreground">
-              Žádná nadcházející akce neodpovídá filtrům:
+              {search.termin === PAST_TERM
+                ? "Žádná proběhlá akce neodpovídá filtrům:"
+                : "Žádná nadcházející akce neodpovídá filtrům:"}
             </p>
             <p className="text-sm font-semibold">{activeFiltersLabel(search, catalog)}</p>
           </>

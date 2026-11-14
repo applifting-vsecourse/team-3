@@ -315,6 +315,54 @@ describe("quick picks (#250)", () => {
   })
 })
 
+describe("Proběhlé (#61)", () => {
+  const now = new Date("2026-11-11T10:00:00.000Z")
+
+  it("reads ?termin=probehle and drops anything else", () => {
+    expect(eventsSearchSchema.parse({ termin: "probehle" }).termin).toBe("probehle")
+    expect(eventsSearchSchema.parse({ termin: "zitra" }).termin).toBeUndefined()
+  })
+
+  it("asks for the past instead of a range and without occupancy", () => {
+    const filters = toEventFilters(
+      {
+        termin: "probehle",
+        od: "2026-11-14",
+        do: "2026-11-15",
+        obsazenost: "chybi",
+        lokalita: "praha-8",
+      },
+      catalog,
+    )
+    expect(filters).toMatchObject({ past: true, localityId: "l-praha-8" })
+    expect(filters.dateFrom).toBeUndefined()
+    expect(filters.dateTo).toBeUndefined()
+    expect(filters.capacity).toBeUndefined()
+    expect(toSearchParams(filters).get("past")).toBe("true")
+    expect(toEventFilters({}, catalog).past).toBeUndefined()
+  })
+
+  it("never sends a pick's personal parts, even when a hand-edited URL has both (review #323)", () => {
+    const filters = toEventFilters({ termin: "probehle", vyber: "tady-chybis" }, catalog)
+    expect(filters.past).toBe(true)
+    expect(filters.interests).toBeUndefined()
+    expect(filters.notJoined).toBeUndefined()
+  })
+
+  it("„Zrušit vše“ with a pick goes back to the pick, without Proběhlé", () => {
+    expect(pickSearch("tento-vikend", {}, now).termin).toBeUndefined()
+  })
+
+  it("is a filter of its own: „Zrušit vše“ clears it, no tab holds it", () => {
+    expect(hasActiveFilters({ termin: "probehle" })).toBe(true)
+    expect(isAllEvents({ termin: "probehle" })).toBe(false)
+    // „Podle tvých zájmů“ sets no filter, still Proběhlé leaves it
+    const search = pickSearch("podle-zajmu", { lokalita: "praha-8" }, now)
+    expect(changesPick(search, { termin: "probehle" }, now)).toBe(true)
+    expect(pickSearch("tento-vikend", { termin: "probehle" }, now).termin).toBeUndefined()
+  })
+})
+
 describe("nearestFilters (#299)", () => {
   const praha8 = catalog.localities.find((l) => l.slug === "praha-8")!
 
@@ -336,6 +384,10 @@ describe("nearestFilters (#299)", () => {
     })
     // only the five shown are downloaded (review #321)
     expect(toSearchParams(filters!).get("limit")).toBe("5")
+  })
+
+  it("none on Proběhlé: the past isn't ordered by distance (#61)", () => {
+    expect(nearestFilters({ lokalita: "praha-8", termin: "probehle" }, catalog, 5)).toBeUndefined()
   })
 
   it("none without a centre: all of Czechia, a map area", () => {

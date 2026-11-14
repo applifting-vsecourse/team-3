@@ -1,5 +1,5 @@
 import { MapView, type MapArea, type MapCenter, type MapPinData } from "@/components/map/MapView"
-import { missingLabel } from "@/lib/occupancy"
+import { gatheredLabel, missingLabel, wasHeld } from "@/lib/occupancy"
 
 import type { PublicEvent } from "@/features/events/api/eventSchemas"
 
@@ -9,6 +9,20 @@ const pinLabel = (event: PublicEvent) => {
   if (event.missingToMin > 0) return `${event.title} · ${missingLabel(event.missingToMin)}`
   return event.title
 }
+
+/**
+ * A past event's pin (#61, Figma Map pin › Proběhlá): hollow, never lime — nobody is missing
+ * any more, so clusters stay neutral; the label says how it ended.
+ */
+export const toPastPin = (event: PublicEvent): MapPinData => ({
+  id: event.id,
+  lat: event.lat,
+  lng: event.lng,
+  variant: "past",
+  label: wasHeld(event)
+    ? `${event.title} · proběhlo · ${gatheredLabel(event.approvedCount).toLocaleLowerCase("cs")}`
+    : `${event.title} · nekonalo se`,
+})
 
 export const toPin = (event: PublicEvent): MapPinData => ({
   id: event.id,
@@ -33,6 +47,8 @@ type EventsMapProps = {
   /** What floats over the map's top edge (px), so „Hledat v této oblasti“ sits under it (#288). */
   topInset?: number
   hasZoomControl?: boolean
+  /** Proběhlé (#61): the events are over, their pins hollow. */
+  isPast?: boolean
   className?: string
 }
 
@@ -50,11 +66,12 @@ export function EventsMap({
   onAreaSearch,
   topInset,
   hasZoomControl,
+  isPast = false,
   className,
 }: EventsMapProps) {
   return (
     <MapView
-      pins={events.map(toPin)}
+      pins={events.map(isPast ? toPastPin : toPin)}
       highlightedId={highlightedId}
       selectedId={selectedId}
       center={center}

@@ -65,6 +65,8 @@ const ratedEvent = {
   organizer: { id: 'u-petra', name: 'Petra Nováková' },
   group: null,
   approvedCount: 5,
+  // 5 came, the minimum is 4: it took place
+  missingToMin: 0,
 };
 
 // the transaction runs on the same mock, so the reads and the write show up there

@@ -61,4 +61,20 @@ describe("SortMenu (#57)", () => {
     expect(screen.getByText("Vzdálenost")).toHaveClass("md:hidden")
     expect(screen.getByText("nejmenší vzdálenost")).toHaveClass("max-md:hidden")
   })
+
+  it("on Proběhlé by date is the newest first, a menu even without a locality (#61, #324)", async () => {
+    render(
+      <SortMenu
+        value="termin"
+        isDistanceAvailable={false}
+        onChange={vi.fn()}
+        isPast
+      />,
+    )
+
+    expect(screen.getByText("Nejnovější")).toHaveClass("md:hidden")
+    expect(screen.getByText("nejnovější")).toHaveClass("max-md:hidden")
+    await userEvent.click(screen.getByRole("button", { name: /^Řadit:/ }))
+    expect(screen.getByRole("menuitemradio", { name: "Nejnovější" })).toBeChecked()
+  })
 })

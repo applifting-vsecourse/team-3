@@ -31,6 +31,8 @@ type SortMenuProps = {
   /** A centre to measure from is known; without it the distance order is offered but off. */
   isDistanceAvailable: boolean
   onChange: (sort: Sort) => void
+  /** Proběhlé (#61): by date means the newest first. */
+  isPast?: boolean
 }
 
 /**
@@ -43,8 +45,12 @@ type SortMenuProps = {
  * item stays focusable).
  * DESIGN.md › Menus: card surface, card-border, rounded-2xl, the picked option checked.
  */
-export function SortMenu({ value, isDistanceAvailable, onChange }: SortMenuProps) {
+export function SortMenu({ value, isDistanceAvailable, onChange, isPast = false }: SortMenuProps) {
   const whyOffId = useId()
+  // Proběhlé (#61): by date is the newest first
+  const label = (sort: Sort) => (isPast && sort === "termin" ? "nejnovější" : LABEL[sort])
+  const shortLabel = (sort: Sort) =>
+    isPast && sort === "termin" ? "Nejnovější" : SHORT_LABEL[sort]
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
@@ -53,8 +59,8 @@ export function SortMenu({ value, isDistanceAvailable, onChange }: SortMenuProps
           className="-my-1 h-8 gap-1 px-2 text-xs font-medium text-muted-foreground"
         >
           <span className="max-md:sr-only">Řadit: </span>
-          <span className="md:hidden">{SHORT_LABEL[value]}</span>
-          <span className="max-md:hidden">{LABEL[value]}</span>
+          <span className="md:hidden">{shortLabel(value)}</span>
+          <span className="max-md:hidden">{label(value)}</span>
           <ChevronDown aria-hidden />
         </Button>
       </DropdownMenuTrigger>
@@ -74,7 +80,7 @@ export function SortMenu({ value, isDistanceAvailable, onChange }: SortMenuProps
             value="termin"
             className="rounded-lg py-2"
           >
-            Nejbližší termín
+            {isPast ? "Nejnovější" : "Nejbližší termín"}
           </DropdownMenuRadioItem>
           <DropdownMenuRadioItem
             value="vzdalenost"

@@ -1,3 +1,4 @@
+import { isEventOver } from '@/modules/event/domain/event-over';
 import { isWithinRatingWindow } from './rating-window';
 
 /**
@@ -39,17 +40,6 @@ export type ParticipantRatingState = RatableEventState & {
   ratingDeleted: boolean;
 };
 
-/**
- * Whether an event is over (#180): once its end has passed, or its start
- * when it has no end.
- */
-export function hasEventEnded(
-  event: { startsAt: Date; endsAt: Date | null },
-  now: Date,
-): boolean {
-  return (event.endsAt ?? event.startsAt) <= now;
-}
-
 /** Why an event can't be rated at all, by anyone. */
 export const EVENT_NOT_RATABLE = [
   'EVENT_NOT_PUBLISHED',
@@ -62,7 +52,8 @@ export type EventNotRatable = (typeof EVENT_NOT_RATABLE)[number];
 
 /**
  * Whether an event can be rated now (B-060), the same for rating the event
- * and its participants: it took place – published and over, not cancelled
+ * and its participants: it took place – published and over (`isEventOver`,
+ * #272: without an end after its Prague day), not cancelled
  * or taken down by a superadmin, and enough people came for its minimum
  * (an event below it didn't take place, as its detail says: „Akce se
  * nekonala“) – and it ended at most RATING_WINDOW_DAYS ago. Null when it can.
@@ -72,7 +63,7 @@ export function eventNotRatable(
   now: Date,
 ): EventNotRatable | null {
   if (event.eventStatus !== 'published') return 'EVENT_NOT_PUBLISHED';
-  if (!hasEventEnded(event, now)) return 'EVENT_NOT_ENDED';
+  if (!isEventOver(event, now)) return 'EVENT_NOT_ENDED';
   if (event.approvedCount < event.minParticipants) return 'EVENT_NOT_HELD';
   if (!isWithinRatingWindow(event, now)) return 'RATING_WINDOW_CLOSED';
   return null;

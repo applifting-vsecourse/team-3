@@ -1,5 +1,6 @@
 import { Prisma } from '@/generated/prisma/client';
 import type { PublicEvent } from '@/modules/event/domain/event';
+import { eventOverWhere } from '@/modules/event/domain/event-over';
 import { buildMyEventsWhere } from '@/modules/event/repositories/my-events-where';
 import type { RatingSummary } from '@/modules/rating/domain/rating-summary';
 
@@ -93,9 +94,10 @@ export type ProfileOverview = {
 /**
  * The owner's participations of a section. Upcoming („Kam jdu“) is exactly the
  * Přihlášen tab of Moje akce (`buildMyEventsWhere('attending')`: events that
- * have not started yet, cancelled ones with their label), so the section, its
+ * are not over yet, cancelled ones with their label), so the section, its
  * total and „Všechny v Moje akce“ agree. History counts approved places of
- * published events that are over (the end, or the start when there is none).
+ * events that are over (`eventOverWhere`, #272), cancelled ones too: the card
+ * says „Zrušeno · Akce se nekonala“ and offers no rating (Figma B-05, #272).
  */
 export function participationWhere(
   userId: string,
@@ -112,8 +114,8 @@ export function participationWhere(
     userId,
     status: 'approved',
     event: {
-      status: 'published',
-      OR: [{ endsAt: { lt: now } }, { endsAt: null, startsAt: { lt: now } }],
+      status: { in: ['published', 'cancelled'] },
+      ...eventOverWhere(now),
     },
   };
 }

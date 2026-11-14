@@ -37,6 +37,21 @@ describe("PastEventCard", () => {
     expect(container.querySelector("[data-slot=capacity-track]")).toBeNull()
   })
 
+  it("below its minimum: „Nekonalo se“, why, and nothing to rate (#61)", async () => {
+    await renderWithRouter(
+      <PastEventCard
+        event={{ ...volleyball(), approvedCount: 2, missingToMin: 2 }}
+        rating={{ kind: "open" }}
+        rateAction={<a href="/akce/e1/hodnoceni">Ohodnotit →</a>}
+      />,
+    )
+
+    expect(screen.getByText("Nekonalo se")).toBeInTheDocument()
+    expect(screen.getByText("Do minima chyběli 2 lidé")).toBeInTheDocument()
+    expect(screen.queryByText("Proběhlo")).not.toBeInTheDocument()
+    expect(screen.queryByText("Ohodnotit →")).not.toBeInTheDocument()
+  })
+
   it("open: the page's „Ohodnotit →“ link", async () => {
     await renderWithRouter(
       <PastEventCard

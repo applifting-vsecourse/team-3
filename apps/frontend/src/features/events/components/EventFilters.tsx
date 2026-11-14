@@ -83,10 +83,13 @@ export function EventFilters({
       ) : (
         <FilterChip disabled>Typ aktivity</FilterChip>
       )}
-      <OccupancyFilter
-        search={search}
-        onChange={(obsazenost) => onChange({ obsazenost })}
-      />
+      {/* a past event has no places to fill: no occupancy with Proběhlé (Figma A-02h, #61) */}
+      {search.termin ? null : (
+        <OccupancyFilter
+          search={search}
+          onChange={(obsazenost) => onChange({ obsazenost })}
+        />
+      )}
       {onClearAll ? (
         <Button
           variant="ghost"

@@ -116,6 +116,8 @@ export type RatedEvent = {
   /** For an event of a group the organizer stars count to the group. */
   group: { id: string; name: string } | null;
   approvedCount: number;
+  /** How many were missing to its minimum; above 0 it didn't take place (#61, review #323). */
+  missingToMin: number;
 };
 
 /**

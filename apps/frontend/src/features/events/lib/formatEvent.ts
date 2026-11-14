@@ -1,4 +1,6 @@
 import type { CapacityStatus } from "@/components/StatusBadge/StatusBadge"
+import { inSentence } from "@/lib/inSentence"
+import { missedMinimumLabel, wasHeld } from "@/lib/occupancy"
 
 import {
   PUBLIC_EVENTS_LIMIT,
@@ -140,10 +142,21 @@ export function endOfPragueDay(date: Date): Date {
 /**
  * Whether an event is over: past its end, or — without one — past the end of its day. An
  * 18:00 event with no end time is still going at 18:05 (review #269), so it doesn't read
- * „Akce proběhla“ while people are there.
+ * „Akce proběhla“ while people are there. One rule with the API (#272, backend
+ * modules/event/domain/event-over.ts): rating, the group's Proběhlé, /akce › Proběhlé.
  */
 export const isEventOver = (event: { startsAt: Date; endsAt: Date | null }, now: Date): boolean =>
   (event.endsAt ?? endOfPragueDay(event.startsAt)) <= now
+
+/**
+ * Started and not over yet (#272): still where the user goes (Moje akce, Kam jdu, the group's
+ * upcoming events), but nobody joins or leaves any more (EVENT_STARTED) — „Probíhá“ instead of
+ * the occupancy, so the card doesn't look like one to sign up for (review #323).
+ */
+export const isEventInProgress = (
+  event: { startsAt: Date; endsAt: Date | null; status?: string },
+  now: Date,
+): boolean => event.status !== "cancelled" && event.startsAt <= now && !isEventOver(event, now)
 // „v pondělí“… with the preposition each day takes
 const ON_WEEKDAY = [
   "v neděli",
@@ -217,12 +230,14 @@ export const groupEventTail = (event: GroupEvent): string | undefined =>
 
 /**
  * A past event on the group's page (A-08e), who came: „sešlo se 6“,
- * „sešli se 3“, „sešel se 1“; members-only says so as upcoming ones do.
+ * „sešli se 3“, „sešel se 1“; below its minimum why it didn't take place
+ * (#61): „do minima chyběli 2 lidé“; members-only says so as upcoming ones do.
  */
 export function pastEventFacts(event: GroupEvent): string {
   const count = event.approvedCount
-  const came =
-    count === 1
+  const came = !wasHeld(event)
+    ? inSentence(missedMinimumLabel(event))
+    : count === 1
       ? "sešel se 1"
       : count >= 2 && count <= 4
         ? `sešli se ${count}`
@@ -241,6 +256,25 @@ export function showEventsLabel(count: number | undefined): string {
   if (count === 1) return "Zobrazit 1 akci"
   if (count >= 2 && count <= 4) return `Zobrazit ${count} akce`
   return `Zobrazit ${count} akcí`
+}
+
+/** The count above Proběhlé (#61, Figma A-02h): „1 proběhlá akce“, „4 proběhlé akce“, „5 proběhlých akcí“. */
+export function pastEventCountLabel(count: number): string {
+  if (count >= PUBLIC_EVENTS_LIMIT) return `Víc než ${PUBLIC_EVENTS_LIMIT} proběhlých akcí`
+  if (count === 1) return "1 proběhlá akce"
+  if (count >= 2 && count <= 4) return `${count} proběhlé akce`
+  return `${count} proběhlých akcí`
+}
+
+/**
+ * A past event's average on its card (#61), with its count as DESIGN.md › Copy wants:
+ * „★ 4,5 (3 hodnocení)“; nothing without ratings.
+ */
+export function eventRatingLabel(
+  rating: { average: number | null; count: number } | null | undefined,
+): string | undefined {
+  if (!rating || rating.count === 0 || rating.average === null) return undefined
+  return `★ ${rating.average.toLocaleString("cs-CZ", { maximumFractionDigits: 1 })} (${rating.count} hodnocení)`
 }
 
 /** "1 akce", "3 akce", "24 akcí"; "Víc než 200 akcí" at the API's limit (#57) */

@@ -312,6 +312,35 @@ describe("EventFilters › Termín", () => {
     }
   })
 
+  it("Proběhlé replaces the range and drops the occupancy (#61)", async () => {
+    const { onChange } = renderFilters({
+      search: { od: "2026-10-24", do: "2026-10-25", obsazenost: "chybi" },
+    })
+
+    await userEvent.click(screen.getByRole("button", { name: "Termín: 24.–25. 10." }))
+    const panel = await screen.findByRole("dialog", { name: "Termín" })
+    await userEvent.click(within(panel).getByRole("button", { name: "Proběhlé" }))
+    expect(within(panel).getByRole("button", { name: "Proběhlé" })).toHaveAttribute(
+      "aria-pressed",
+      "true",
+    )
+    await userEvent.click(await within(panel).findByRole("button", { name: /^Zobrazit/ }))
+
+    expect(onChange).toHaveBeenCalledWith({
+      od: undefined,
+      do: undefined,
+      termin: "probehle",
+      obsazenost: undefined,
+    })
+  })
+
+  it("Proběhlé on the chip, without the occupancy chip (#61)", () => {
+    renderFilters({ search: { termin: "probehle" } })
+
+    expect(screen.getByRole("button", { name: "Termín: Proběhlé" })).toBeInTheDocument()
+    expect(screen.queryByRole("button", { name: /^Obsazenost/ })).not.toBeInTheDocument()
+  })
+
   it("shows the range on the chip and clears it", async () => {
     const { onChange } = renderFilters({ search: { od: "2026-10-23", do: "2026-10-29" } })
 
