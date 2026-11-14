@@ -17,7 +17,7 @@ const aGroupEvent = (overrides: Partial<GroupEvent> = {}): GroupEvent => ({
   ...overrides,
 })
 
-const render = async (events: { upcoming: GroupEvent[]; past: GroupEvent[] }) => {
+const render = async (events: { upcoming: GroupEvent[]; past: GroupEvent[] }, now?: Date) => {
   const queryClient = new QueryClient()
   queryClient.setQueryData(groupEventsQueryOptions("g1", "u-jakub", "active").queryKey, events)
   await renderWithRouter(
@@ -26,6 +26,7 @@ const render = async (events: { upcoming: GroupEvent[]; past: GroupEvent[] }) =>
         groupId="g1"
         viewerId="u-jakub"
         membership="active"
+        now={now}
       />
     </QueryClientProvider>,
   )
@@ -52,6 +53,41 @@ describe("GroupEvents", () => {
     )
     expect(within(past).getByText("Proběhlo")).toBeInTheDocument()
     expect(within(past).getByText(/· sešlo se 6$/)).toBeInTheDocument()
+  })
+
+  it("a past event below its minimum: „Nekonalo se“ and why (#61)", async () => {
+    await render({
+      upcoming: [],
+      past: [aGroupEvent({ id: "e02", title: "Prázdná hala", approvedCount: 2, missingToMin: 2 })],
+    })
+
+    const past = screen.getByRole("region", { name: "Proběhlé akce skupiny" })
+    expect(within(past).getByText("Nekonalo se")).toBeInTheDocument()
+    expect(within(past).getByText(/· do minima chyběli 2 lidé$/)).toBeInTheDocument()
+    // it no longer fills up: no capacity bar, as for „Proběhlo“
+    expect(past.querySelector("[data-slot=capacity-track]")).toBeNull()
+  })
+
+  it("an event going on right now stays upcoming and says „Probíhá“, without the bar (#272)", async () => {
+    await render(
+      {
+        upcoming: [
+          aGroupEvent({
+            id: "e03",
+            title: "Zápas právě teď",
+            startsAt: new Date("2026-10-23T15:00:00.000Z"),
+            endsAt: new Date("2026-10-23T17:00:00.000Z"),
+          }),
+        ],
+        past: [],
+      },
+      // a fixed time, as the other tests have (review #323)
+      new Date("2026-10-23T16:00:00.000Z"),
+    )
+
+    const upcoming = screen.getByRole("region", { name: "Nadcházející akce skupiny" })
+    expect(within(upcoming).getByText("Probíhá")).toBeInTheDocument()
+    expect(upcoming.querySelector("[data-slot=capacity-track]")).toBeNull()
   })
 
   it("says when nothing is planned, and leaves out an empty history", async () => {

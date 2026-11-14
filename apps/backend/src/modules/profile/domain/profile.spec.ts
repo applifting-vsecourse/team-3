@@ -1,3 +1,7 @@
+import {
+  eventNotOverWhere,
+  eventOverWhere,
+} from '@/modules/event/domain/event-over';
 import { buildMyEventsWhere } from '@/modules/event/repositories/my-events-where';
 import { participationWhere, selfProfile, type ProfileRow } from './profile';
 
@@ -59,20 +63,20 @@ describe('private participation history (#178)', () => {
       event: buildMyEventsWhere('attending', 'owner', now),
     });
   });
-  it('leaves out events already in progress, as Moje akce does', () => {
+  it('keeps an event in progress in Kam jdu until it is over, as Moje akce does (#272)', () => {
     const where = participationWhere('owner', now, false);
+    expect(where.event).toEqual(buildMyEventsWhere('attending', 'owner', now));
     expect(JSON.stringify(where)).toContain(
-      `"startsAt":${JSON.stringify({ gt: now })}`,
+      JSON.stringify(eventNotOverWhere(now).OR),
     );
-    expect(JSON.stringify(where)).not.toContain('endsAt');
   });
-  it('only counts approved participation in history and uses the end time when available', () => {
+  it('history: approved participation of events that are over, cancelled ones too (#272)', () => {
     expect(participationWhere('other-owner', now, true)).toEqual({
       userId: 'other-owner',
       status: 'approved',
       event: {
-        status: 'published',
-        OR: [{ endsAt: { lt: now } }, { endsAt: null, startsAt: { lt: now } }],
+        status: { in: ['published', 'cancelled'] },
+        ...eventOverWhere(now),
       },
     });
   });

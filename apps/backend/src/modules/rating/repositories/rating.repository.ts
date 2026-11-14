@@ -333,5 +333,9 @@ function toRatedEvent(event: PublicEventRow): RatedEvent {
     organizer: event.organizer,
     group: event.group,
     approvedCount: event._count.participations,
+    missingToMin: Math.max(
+      0,
+      event.minParticipants - event._count.participations,
+    ),
   };
 }

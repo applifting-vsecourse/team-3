@@ -255,6 +255,15 @@ describe("EmptyEvents", () => {
     })
   })
 
+  // #61 meets #299: „V lokalitě … teď žádná nadcházející akce není“ is about the upcoming ones
+  it("Proběhlé with just a locality: names the filters, never „V lokalitě … není“", async () => {
+    await renderEmpty({ lokalita: "bruntal", termin: "probehle" })
+
+    expect(screen.getByText("Žádná proběhlá akce neodpovídá filtrům:")).toBeInTheDocument()
+    expect(screen.getByText("Bruntál · Proběhlé")).toBeInTheDocument()
+    expect(screen.queryByText(/teď žádná nadcházející akce není/)).toBeNull()
+  })
+
   describe("the nearest events instead of nothing (#299)", () => {
     const nearby = [
       anEvent({ id: "n1", title: "Volejbal v Náchodě", distanceKm: 8.4 }),

@@ -142,7 +142,10 @@ const roundDistance = (event: PublicEvent): PublicEvent =>
     ? event
     : { ...event, distanceKm: Math.round(event.distanceKm * 10) / 10 };
 
-/** Nearest first; equally far soonest first (the input is soonest first, the sort is stable). */
+/**
+ * Nearest first; equally far in the input's order – soonest first, Proběhlé newest first
+ * (the sort is stable).
+ */
 const byDistance = (events: PublicEvent[]): PublicEvent[] =>
   [...events].sort(
     (a, b) => (a.distanceKm ?? Infinity) - (b.distanceKm ?? Infinity),
@@ -159,9 +162,27 @@ export class EventsService {
 
   /**
    * Upcoming public events matching the filters, at most `limit`: soonest
-   * first, or with `popular` the most interest first (#156).
+   * first, or with `popular` the most interest first (#156). With `past`
+   * (Proběhlé, #61) the events that are over, newest first, each with its
+   * average rating.
    */
   async getPublicEvents(
+    filters: PublicEventFilters,
+    options: { sort?: PublicEventSort; limit?: number } = {},
+    now: Date = new Date(),
+  ): Promise<PublicEvent[]> {
+    const events = await this.findPublicEvents(filters, options, now);
+    if (!filters.past) return events;
+    const ratings = await this.eventRepository.eventRatings(
+      events.map((event) => event.id),
+    );
+    return events.map((event) => ({
+      ...event,
+      rating: ratings.get(event.id) ?? { average: null, count: 0 },
+    }));
+  }
+
+  private async findPublicEvents(
     filters: PublicEventFilters,
     {
       sort = 'date',
@@ -169,7 +190,9 @@ export class EventsService {
     }: { sort?: PublicEventSort; limit?: number } = {},
     now: Date = new Date(),
   ): Promise<PublicEvent[]> {
-    const { capacity, q, point, radiusKm } = filters;
+    const { q, point, radiusKm } = filters;
+    // a past event has no places left to fill: Proběhlé ignores occupancy (review #323)
+    const capacity = filters.past ? undefined : filters.capacity;
     const isSearch = Boolean(q?.trim());
     if (!capacity && !isSearch && !radiusKm && sort === 'date') {
       const events = await this.eventRepository.findPublicEvents({

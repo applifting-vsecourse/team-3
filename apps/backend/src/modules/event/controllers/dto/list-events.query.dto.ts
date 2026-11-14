@@ -12,11 +12,13 @@ import {
   PublicEventSort,
 } from '@/modules/event/domain/event';
 import { PUBLIC_EVENTS_LIMIT } from '@/modules/event/services/events.service';
+import { queryBoolean } from '@/shared/validation/query-boolean';
 import { ApiPropertyOptional } from '@nestjs/swagger';
 import { Transform, TransformFnParams, Type } from 'class-transformer';
 import {
   ArrayMaxSize,
   IsArray,
+  IsBoolean,
   IsDateString,
   IsIn,
   IsInt,
@@ -225,6 +227,15 @@ export class ListEventsQueryDto {
   sort?: PublicEventSort;
 
   @ApiPropertyOptional({
+    description:
+      'Proběhlé (#61): public events that are over instead of the upcoming ones – after their end, without one after the Prague day they start on (#272) – newest first, each with its average rating. Cancelled events are never listed. It replaces the date range, so dateFrom and dateTo are ignored, and capacity too: a past event has no places left to fill.',
+  })
+  @IsOptional()
+  @Transform(queryBoolean)
+  @IsBoolean()
+  past?: boolean;
+
+  @ApiPropertyOptional({
     minimum: 1,
     maximum: PUBLIC_EVENTS_LIMIT,
     default: PUBLIC_EVENTS_LIMIT,
@@ -255,4 +266,5 @@ export const toPublicEventFilters = (
       ? { lat: query.lat, lng: query.lng }
       : undefined,
   radiusKm: query.radiusKm,
+  past: query.past,
 });

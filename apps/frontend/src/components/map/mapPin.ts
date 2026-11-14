@@ -8,8 +8,10 @@
  *   and dot are primary-foreground, dark like text on lime, so
  *   its edge keeps 3:1 against the light map where lime alone would not
  * - full: muted pin — Plno; with an occupancy filter the API sends no full events
+ * - past: hollow pin — only with the Proběhlé filter (#61, Figma Map pin › Proběhlá, PO 3. 11.):
+ *   filled with the background, outline and dot muted-foreground, so it isn't mistaken for Plno
  */
-export type PinVariant = "default" | "highlighted" | "full"
+export type PinVariant = "default" | "highlighted" | "full" | "past"
 
 // Figma: Map pin 32 × 40
 const PIN = { width: 32, height: 40 }
@@ -36,10 +38,17 @@ const limePin = pinSvg(
     `<path class="fill-primary-foreground" d="M20 25.8333C23.6819 25.8333 26.6667 22.8486 26.6667 19.1667C26.6667 15.4848 23.6819 12.5 20 12.5C16.3181 12.5 13.3333 15.4848 13.3333 19.1667C13.3333 22.8486 16.3181 25.8333 20 25.8333Z"/>`,
 )
 
+const hollowPin = pinSvg(
+  "0 0 30 37.5",
+  `<path class="fill-background stroke-muted-foreground" stroke-width="2.5" d="M15 36.25C15 36.25 27.5 24.375 27.5 14.375C27.5 7.125 21.875 1.875 15 1.875C8.125 1.875 2.5 7.125 2.5 14.375C2.5 24.375 15 36.25 15 36.25Z"/>` +
+    `<path class="fill-muted-foreground" d="M15 19.375C17.7614 19.375 20 17.1364 20 14.375C20 11.6136 17.7614 9.375 15 9.375C12.2386 9.375 10 11.6136 10 14.375C10 17.1364 12.2386 19.375 15 19.375Z"/>`,
+)
+
 const SVG: Record<PinVariant, string> = {
   default: darkPin("fill-foreground"),
   highlighted: limePin,
   full: darkPin("fill-muted-foreground"),
+  past: hollowPin,
 }
 
 const escapeHtml = (text: string) => text.replace(/[&<>"']/g, (c) => `&#${c.charCodeAt(0)};`)
