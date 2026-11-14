@@ -19,9 +19,13 @@ const json = (body: unknown) =>
 
 /**
  * /akce on `url` for a visitor; the event list holds `events`, or `occupied` with an occupancy
- * filter.
+ * filter, the catalog `localities`.
  */
-async function renderEvents(url: string, events: unknown[] = [], occupied: unknown[] = []) {
+async function renderEvents(
+  url: string,
+  events: unknown[] = [],
+  { occupied = [], localities = [] }: { occupied?: unknown[]; localities?: unknown[] } = {},
+) {
   vi.stubGlobal(
     "fetch",
     vi.fn((input: RequestInfo | URL) => {
@@ -29,6 +33,7 @@ async function renderEvents(url: string, events: unknown[] = [], occupied: unkno
       if (/\/events(\?|$)/.test(href)) {
         return Promise.resolve(json(href.includes("capacity") ? occupied : events))
       }
+      if (/\/localities(\?|$)/.test(href)) return Promise.resolve(json(localities))
       return Promise.resolve(json([]))
     }),
   )
@@ -111,7 +116,7 @@ describe("/akce: old ?obsazenost= links", () => {
     "?obsazenost=%s asks for capacity=%s and shows it on the chip",
     async (value, capacity, chip) => {
       const event: unknown = JSON.parse(JSON.stringify(anEvent({ id: "cm-e1" })))
-      await renderEvents(`/akce?lokalita=cele-cesko&obsazenost=${value}`, [], [event])
+      await renderEvents(`/akce?lokalita=cele-cesko&obsazenost=${value}`, [], { occupied: [event] })
 
       expect(
         (await screen.findAllByRole("link", { name: "Language exchange: CZ/EN/ES" })).length,
@@ -164,7 +169,7 @@ describe("/akce: old ?obsazenost= links", () => {
 
 // A quick pick lights up its chip („Chybí lidé“): without a filter of one's own there was no way
 // out but the „Všechny akce“ tab. „Zrušit rychlý výběr“ goes there, the locality stays — and
-// so does nothing the pick turned on by itself: the tab adds okolí +10 km (review #326).
+// nothing the pick turned on by itself does: the tab adds okolí +10 km (review #326, #328).
 describe("/akce: „Zrušit rychlý výběr“", () => {
   it.each([
     ["on a phone", false],
@@ -174,7 +179,8 @@ describe("/akce: „Zrušit rychlý výběr“", () => {
     // no locality in the URL: the visitor's default, which isn't a filter of their own
     const app = await renderEvents("/akce")
     await userEvent.click(await screen.findByRole("tab", { name: /^Tady chybíš/ }))
-    expect(app.state.location.search).toMatchObject({ vyber: "tady-chybis", okoli: "10" })
+    // its okolí applies, but stays out of the URL (#328)
+    expect(app.state.location.search).toEqual({ vyber: "tady-chybis", obsazenost: "chybi" })
 
     // the count's (phone) and the bar's (desktop) – CSS shows one of them
     const buttons = await screen.findAllByRole("button", { name: "Zrušit rychlý výběr" })
@@ -183,6 +189,57 @@ describe("/akce: „Zrušit rychlý výběr“", () => {
 
     expect(app.state.location.search).toEqual({})
     expect(screen.queryByRole("button", { name: /Zrušit (vše|filtry)/ })).not.toBeInTheDocument()
+  })
+})
+
+// #328: the okolí a pick turns on applies (the chip says so) but stays out of the URL, so the
+// URL tells it from one set by hand — +10 km included — which stays after the pick.
+describe("/akce: the okolí of „Tady chybíš“ (#328)", () => {
+  const praha8 = {
+    id: "l-p8",
+    slug: "praha-8",
+    name: "Praha 8",
+    parentId: null,
+    lat: 50.1,
+    lng: 14.5,
+  }
+  const eventsUrls = () =>
+    vi
+      .mocked(fetch)
+      .mock.calls.map(([input]) => (input instanceof Request ? input.url : String(input)))
+      .filter((href) => /\/events(\?|$)/.test(href))
+
+  it.each([
+    ["on a phone", false],
+    ["on desktop", true],
+  ])("%s the chip shows the pick's okolí, which leaves with it", async (_, isDesktop) => {
+    stubMatchMedia(isDesktop)
+    const app = await renderEvents("/akce?lokalita=praha-8", [], { localities: [praha8] })
+    await userEvent.click(await screen.findByRole("tab", { name: /^Tady chybíš/ }))
+
+    expect(app.state.location.search).not.toHaveProperty("okoli")
+    expect(
+      await screen.findByRole("button", { name: "Lokalita: Praha 8 · +10 km" }),
+    ).toBeInTheDocument()
+    expect(eventsUrls().some((href) => href.includes("radiusKm=10"))).toBe(true)
+
+    await userEvent.click(screen.getByRole("tab", { name: /^Všechny akce/ }))
+    expect(app.state.location.search).toEqual({ lokalita: "praha-8" })
+    expect(await screen.findByRole("button", { name: "Lokalita: Praha 8" })).toBeInTheDocument()
+  })
+
+  it("an okolí of +10 km set by hand stays after the pick", async () => {
+    // the app writes okolí as a string, „"10"“
+    const app = await renderEvents("/akce?lokalita=praha-8&okoli=%2210%22", [], {
+      localities: [praha8],
+    })
+    await userEvent.click(await screen.findByRole("tab", { name: /^Tady chybíš/ }))
+    await userEvent.click(screen.getByRole("tab", { name: /^Všechny akce/ }))
+
+    expect(app.state.location.search).toEqual({ lokalita: "praha-8", okoli: "10" })
+    expect(
+      await screen.findByRole("button", { name: "Lokalita: Praha 8 · +10 km" }),
+    ).toBeInTheDocument()
   })
 })
 

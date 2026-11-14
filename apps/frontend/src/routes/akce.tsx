@@ -26,7 +26,6 @@ import { SortMenu } from "@/features/events/components/SortMenu"
 import { EventsViewerContext, useEvents, useNearestEvents } from "@/features/events/hooks/useEvents"
 import { usePickCounts } from "@/features/events/hooks/usePickCounts"
 import {
-  changesPick,
   effectiveSort,
   eventsSearchSchema,
   hasActiveFilters,
@@ -35,10 +34,12 @@ import {
   localityCenter,
   PAST_TERM,
   PICK_LABELS,
+  pickPatch,
   PICKS,
   pickSearch,
   toMapArea,
   toOblast,
+  withPicksOkoli,
   type EventsSearch,
   type QuickPick,
   type Radius,
@@ -74,8 +75,9 @@ function EventsPage() {
     urlSearch.lokalita,
     session.isPending ? undefined : (session.user?.id ?? null),
   )
-  // the filters as shown: the visitor's default locality (#55) when the URL has none
-  const search = { ...urlSearch, lokalita: shownLocality.slug }
+  // the filters as shown: the visitor's default locality (#55) when the URL has none, and the
+  // okolí a quick pick turns on by itself, which the URL leaves out (#328)
+  const search = withPicksOkoli({ ...urlSearch, lokalita: shownLocality.slug }, now)
   const { events, catalog, isPending, error, retry } = useEvents(search, {
     // nothing for all of Czechia first while the default locality loads
     isEnabled: shownLocality.slug !== undefined,
@@ -121,14 +123,13 @@ function EventsPage() {
   // replace: changing a filter shouldn't fill the back button with filter states
   // A filter only, nothing remembered: e.g. „… v celém Česku“ from an empty list widens it
   // this once (review #274). A locality replaces the searched area (and the other way round).
-  // Changing a filter the quick pick set leaves the pick (Figma A-02d, #250). Any change closes
-  // the map preview, or Praha → Brno → Praha would open it again by itself (review #276).
+  // Changing a filter the quick pick set leaves the pick (Figma A-02d, #250), the pick's okolí
+  // stays out of the URL otherwise (#328). Any change closes the map preview, or
+  // Praha → Brno → Praha would open it again by itself (review #276).
   const setSearch = (patch: Partial<EventsSearch>) => {
     setSelectedId(undefined)
     const withArea = patch.lokalita !== undefined ? { ...patch, oblast: undefined } : patch
-    const withPick = changesPick(urlSearch, withArea, now)
-      ? { ...withArea, vyber: undefined }
-      : withArea
+    const withPick = pickPatch(urlSearch, withArea, now)
     void navigate({ search: (prev) => ({ ...prev, ...withPick }), replace: true })
   }
   // a tab: the locality and okolí stay, the other filters give way to the pick's
@@ -173,7 +174,9 @@ function EventsPage() {
       (pick !== "kousek-od-tebe" || Boolean(center)),
   )
   const counts = usePickCounts(
-    tabs.map(({ pick }) => ({ ...pickSearch(pick, urlSearch, now), lokalita: search.lokalita })),
+    tabs.map(({ pick }) =>
+      withPicksOkoli({ ...pickSearch(pick, urlSearch, now), lokalita: search.lokalita }, now),
+    ),
     { isEnabled: shownLocality.slug !== undefined },
   )
   const activeTab = urlSearch.vyber ?? (isAllEvents(urlSearch) ? ALL_EVENTS_TAB : "")

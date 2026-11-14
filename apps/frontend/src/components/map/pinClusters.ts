@@ -1,6 +1,6 @@
 import Supercluster from "supercluster"
 
-import type { MapPinData } from "./MapView"
+import type { MapArea, MapPinData } from "./MapView"
 
 export type ClusterItem =
   | { kind: "pin"; pin: MapPinData }
@@ -66,8 +66,23 @@ export class PinClusters {
     })
   }
 
-  /** The zoom where the cluster splits up: a tap on it zooms there. */
+  /** The zoom where the cluster splits up: a tap on it zooms at least there. */
   expansionZoom(clusterId: number): number {
     return Math.min(this.index.getClusterExpansionZoom(clusterId), MAX_ZOOM + 1)
+  }
+
+  /** The rectangle around the cluster's pins: a tap on it zooms to all of them (#306). */
+  bounds(clusterId: number): MapArea {
+    const points = this.index
+      .getLeaves(clusterId, Infinity)
+      .map((leaf) => leaf.geometry.coordinates as [number, number])
+    const lngs = points.map(([lng]) => lng)
+    const lats = points.map(([, lat]) => lat)
+    return {
+      west: Math.min(...lngs),
+      south: Math.min(...lats),
+      east: Math.max(...lngs),
+      north: Math.max(...lats),
+    }
   }
 }
