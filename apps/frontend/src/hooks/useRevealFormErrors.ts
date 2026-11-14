@@ -20,10 +20,14 @@ function afterScrollEnds(onEnd: () => void) {
   const timeout = window.setTimeout(finish, SCROLL_END_FALLBACK_MS)
 }
 
-/** `a` comes before `b` when read: higher up in the same column, or in a column to the left. */
+/**
+ * `a` comes before `b` when read: fields that overlap in height share a row and are read left
+ * to right („Začátek“ before „Konec“), otherwise the higher one comes first („Konec“ before
+ * „Minimum“ in the row under it, even though „Minimum“ sits further left).
+ */
 function isReadBefore(a: DOMRect, b: DOMRect) {
-  const isSameColumn = a.left < b.right && b.left < a.right
-  return isSameColumn ? a.top < b.top : a.left < b.left
+  const isSameRow = a.top < b.bottom && b.top < a.bottom
+  return isSameRow ? a.left < b.left : a.top < b.top
 }
 
 /**
@@ -33,9 +37,10 @@ function isReadBefore(a: DOMRect, b: DOMRect) {
 const INVALID_FIELD = '[aria-invalid="true"], [data-invalid="true"]'
 
 /**
- * The invalid field the reader meets first. Not the first in the DOM: on the phone a form's
- * two columns become one and `order` interleaves their fields (the event's locality comes
- * right after its activity), on desktop the left column is read before the right one.
+ * The invalid field the reader meets first, by where it is on the screen, not where it is in
+ * the DOM: on the phone a form's two columns become one and `order` interleaves their fields
+ * (the event's locality comes right after its activity). On desktop that reads the two columns
+ * row by row: the locality at the top of „Kde“ comes before the date lower in „Co a kdy“.
  */
 function firstInvalidField(form: HTMLFormElement) {
   const fields = [...form.querySelectorAll<HTMLElement>(INVALID_FIELD)]

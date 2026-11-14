@@ -87,10 +87,15 @@ function TestForm({ serverError, place = "" }: { serverError?: string; place?: s
 const submit = () => userEvent.click(screen.getByRole("button", { name: "Odeslat" }))
 
 /** Places an element on the page, as the layout would. */
-const placeAt = (element: HTMLElement, rect: { top: number; left: number; width: number }) =>
+const placeAt = (
+  element: HTMLElement,
+  rect: { top: number; left: number; width: number; height?: number },
+) =>
   vi
     .spyOn(element, "getBoundingClientRect")
-    .mockReturnValue(DOMRect.fromRect({ x: rect.left, y: rect.top, width: rect.width, height: 40 }))
+    .mockReturnValue(
+      DOMRect.fromRect({ x: rect.left, y: rect.top, width: rect.width, height: rect.height ?? 40 }),
+    )
 
 afterEach(() => {
   vi.unstubAllGlobals()
@@ -169,11 +174,44 @@ describe("useRevealFormErrors", () => {
     expect(scrollIntoView.mock.contexts[0]).toBe(screen.getByLabelText("second"))
   })
 
-  it("on desktop the left column is read first, even where the right one starts higher", async () => {
+  it("fields side by side in one row are read left to right", async () => {
     render(<TestForm />)
+    // a row of two half-width fields; the region is far below
+    placeAt(screen.getByLabelText("first"), { top: 500, left: 400, width: 380 })
+    placeAt(screen.getByLabelText("second"), { top: 500, left: 0, width: 380 })
+    placeAt(screen.getByRole("region", { name: "mapa" }), { top: 900, left: 0, width: 780 })
+    const scrollIntoView = vi.spyOn(Element.prototype, "scrollIntoView")
+
+    await submit()
+
+    await waitFor(() => expect(scrollIntoView).toHaveBeenCalledOnce())
+    expect(scrollIntoView.mock.contexts[0]).toBe(screen.getByLabelText("second"))
+  })
+
+  it("a field in the right half of a row comes before a left one in the row under it (Konec before Minimum)", async () => {
+    render(<TestForm place="50.1,14.4" />)
+    // Začátek | Konec, then Minimum | Maximum: Konec is invalid, and so is Minimum below it
+    placeAt(screen.getByLabelText("first"), { top: 600, left: 167, width: 390 })
+    placeAt(screen.getByLabelText("second"), { top: 470, left: 575, width: 390 })
+    const scrollIntoView = vi.spyOn(Element.prototype, "scrollIntoView")
+
+    await submit()
+
+    await waitFor(() => expect(scrollIntoView).toHaveBeenCalledOnce())
+    expect(scrollIntoView.mock.contexts[0]).toBe(screen.getByLabelText("second"))
+  })
+
+  it("on desktop the columns are read row by row: a tall field on the right shares the row it reaches", async () => {
+    render(<TestForm />)
+    // the left column's two fields beside the map, which starts higher and reaches the first
     placeAt(screen.getByLabelText("first"), { top: 500, left: 100, width: 500 })
     placeAt(screen.getByLabelText("second"), { top: 700, left: 100, width: 500 })
-    placeAt(screen.getByRole("region", { name: "mapa" }), { top: 300, left: 650, width: 500 })
+    placeAt(screen.getByRole("region", { name: "mapa" }), {
+      top: 300,
+      left: 650,
+      width: 500,
+      height: 400,
+    })
     const scrollIntoView = vi.spyOn(Element.prototype, "scrollIntoView")
 
     await submit()
