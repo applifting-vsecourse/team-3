@@ -105,9 +105,12 @@ export function requestCountLabel(count: number): string {
   return `${count} žádostí`
 }
 
-/** Requests waiting on an event that still happens; on a cancelled one they no longer matter. */
-const waitingRequests = (event: MyEvent): number =>
-  event.status === "cancelled" ? 0 : (event.pendingRequests ?? 0)
+/**
+ * Requests the organizer can still decide: none on a cancelled event, and none once it runs —
+ * the API refuses approving and declining then (EVENT_STARTED, review #323).
+ */
+const waitingRequests = (event: MyEvent, now: Date): number =>
+  event.status === "cancelled" || isEventInProgress(event, now) ? 0 : (event.pendingRequests ?? 0)
 
 /** Pořádám (C-02): the occupancy, „Zrušeno“ for a cancelled event, „Probíhá“ while it runs (#272). */
 export function organizingStatus(event: MyEvent, now: Date = new Date()): BadgeStatus {
@@ -120,9 +123,9 @@ export function organizingStatus(event: MyEvent, now: Date = new Date()): BadgeS
  * occupancy with the minimum and the requests to decide — „4 z 5 · min. 3 · 2 žádosti“,
  * „3 z 12 · min. 4“, „8 z 8 · min. 6“. The badge says „Chybí 1“, so the line doesn't.
  */
-export function organizingNumbers(event: MyEvent): string {
+export function organizingNumbers(event: MyEvent, now: Date = new Date()): string {
   if (event.status === "cancelled") return occupancyCount(event)
-  const requests = waitingRequests(event)
+  const requests = waitingRequests(event, now)
   const occupancy = occupancyBesideBadge(event)
   return requests > 0 ? `${occupancy} · ${requestCountLabel(requests)}` : occupancy
 }
@@ -132,8 +135,8 @@ const requestsWaiting = (count: number): string =>
   `${requestCountLabel(count)} ${count >= 2 && count <= 4 ? "čekají" : "čeká"}`
 
 /** A row card in Pořádám ends with the requests instead of the place: „18:00 · 2 žádosti čekají“ (C-02). */
-export function organizingRowTail(event: MyEvent): string | undefined {
-  const requests = waitingRequests(event)
+export function organizingRowTail(event: MyEvent, now: Date = new Date()): string | undefined {
+  const requests = waitingRequests(event, now)
   return requests > 0 ? requestsWaiting(requests) : undefined
 }
 
@@ -143,13 +146,14 @@ export function organizingRowTail(event: MyEvent): string | undefined {
  */
 export function pendingRequestsSummary(
   events: MyEvent[],
+  now: Date = new Date(),
 ): { title: string; events: string } | null {
-  const waiting = events.filter((event) => waitingRequests(event) > 0)
-  const total = waiting.reduce((sum, event) => sum + waitingRequests(event), 0)
+  const waiting = events.filter((event) => waitingRequests(event, now) > 0)
+  const total = waiting.reduce((sum, event) => sum + waitingRequests(event, now), 0)
   if (total === 0) return null
   return {
     title: `${requestsWaiting(total)} na schválení`,
-    events: waiting.map((event) => `${event.title} (${waitingRequests(event)})`).join(", "),
+    events: waiting.map((event) => `${event.title} (${waitingRequests(event, now)})`).join(", "),
   }
 }
 
@@ -178,9 +182,9 @@ export function attendingLine(events: MyEvent[] | undefined, now: Date): string 
 }
 
 /** The band's line in Pořádám (Figma C-02d): „… Na schválení čekají 4 žádosti.“ when any wait. */
-export function organizingLine(events: MyEvent[] | undefined): string {
+export function organizingLine(events: MyEvent[] | undefined, now: Date = new Date()): string {
   const line = "Akce, které pořádáš, od nejbližší."
-  const total = (events ?? []).reduce((sum, event) => sum + waitingRequests(event), 0)
+  const total = (events ?? []).reduce((sum, event) => sum + waitingRequests(event, now), 0)
   if (total === 0) return line
   return `${line} Na schválení ${total >= 2 && total <= 4 ? "čekají" : "čeká"} ${requestCountLabel(total)}.`
 }
