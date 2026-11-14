@@ -54,8 +54,19 @@ export function AddressCombobox({
   const [search, setSearch] = useState<AddressSearch | null>(null)
   const [isOpen, setIsOpen] = useState(false)
   const [active, setActive] = useState(NONE)
+  const lastValue = useRef(value)
   // cmdk names the list itself; the field points at it while it is open
   const [listId, setListId] = useState<string>()
+
+  useEffect(() => {
+    if (lastValue.current !== value) {
+      lastValue.current = value
+      setTyped("")
+      setSearch(null)
+      setIsOpen(false)
+      setActive(NONE)
+    }
+  }, [value])
 
   useEffect(() => {
     const text = typed.trim()
@@ -79,6 +90,7 @@ export function AddressCombobox({
   const isExpanded = isOpen && suggestions.length > 0
 
   const pick = (suggestion: AddressSuggestion) => {
+    lastValue.current = suggestion.address
     setTyped("")
     setSearch(null)
     setIsOpen(false)
@@ -108,6 +120,7 @@ export function AddressCombobox({
             listId={listId}
             hasActive={active !== NONE}
             onChange={(event) => {
+              lastValue.current = event.target.value
               onChange(event.target.value)
               setTyped(event.target.value)
               setActive(NONE)

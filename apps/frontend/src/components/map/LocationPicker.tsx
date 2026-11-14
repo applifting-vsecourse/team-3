@@ -22,7 +22,7 @@ export type LatLng = { lat: number; lng: number }
 
 type LocationPickerProps = {
   value: LatLng | null
-  onChange: (point: LatLng) => void
+  onChange: (point: LatLng, source: "map" | "center") => void
   /** Where the map looks while no place is picked, e.g. the chosen locality. */
   center: LatLng
   /** Id of the visible heading that names the map. */
@@ -60,9 +60,9 @@ export function LocationPicker({
   const mapRef = useRef<LeafletMap | null>(null)
   // the place the map already shows: the one it opened on, or one picked on it
   const shownRef = useRef(value)
-  const pick = (point: LatLng) => {
+  const pick = (point: LatLng, source: "map" | "center") => {
     shownRef.current = point
-    onChange(point)
+    onChange(point, source)
   }
   const icon = useMemo(() => {
     const { width, height } = PIN_BOX
@@ -102,7 +102,7 @@ export function LocationPicker({
             attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
             url="https://tile.openstreetmap.org/{z}/{x}/{y}.png"
           />
-          <PickOnClick onPick={pick} />
+          <PickOnClick onPick={(point) => pick(point, "map")} />
           <FollowCenter
             center={center}
             hasPoint={value !== null}
@@ -133,7 +133,7 @@ export function LocationPicker({
         className="self-start"
         onClick={() => {
           const middle = mapRef.current?.getCenter()
-          if (middle) pick({ lat: middle.lat, lng: middle.lng })
+          if (middle) pick({ lat: middle.lat, lng: middle.lng }, "center")
         }}
       >
         Umístit špendlík do středu mapy

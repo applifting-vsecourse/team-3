@@ -1,5 +1,6 @@
-import { useId, useMemo, useState, type Ref } from "react"
+import { useEffect, useId, useMemo, useRef, useState, type Ref } from "react"
 import { zodResolver } from "@hookform/resolvers/zod"
+import { useQueryClient } from "@tanstack/react-query"
 import { ChevronDown, Loader2, Users } from "lucide-react"
 import { cs } from "react-day-picker/locale"
 import { useForm, useWatch } from "react-hook-form"
@@ -24,11 +25,19 @@ import { Input } from "@/components/ui/input"
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
 import { Textarea } from "@/components/ui/textarea"
+import { catalogKeys } from "@/lib/catalog/catalogQueryOptions"
+import type { Locality } from "@/lib/catalog/catalogSchemas"
 import type { Catalog } from "@/lib/catalog/catalogSearch"
 import { PRAHA_SLUG } from "@/lib/catalog/localityOptions"
 import { cn } from "@/lib/utils"
 
-import { localityOfAddress } from "@/features/events/api/addressSearch"
+import {
+  distanceKm,
+  localityOfAddress,
+  nearestTown,
+  reverseAddress,
+  type AddressSuggestion,
+} from "@/features/events/api/addressSearch"
 import {
   EVENT_ADDRESS_MAX_LENGTH,
   EVENT_DESCRIPTION_MAX_LENGTH,
@@ -201,6 +210,14 @@ export function EventForm({
   const whatId = useId()
   const whereId = useId()
   const [isCalendarOpen, setIsCalendarOpen] = useState(false)
+  const queryClient = useQueryClient()
+  const reverseRequest = useRef<AbortController | null>(null)
+  const [shouldCheckAddress, setCheckAddress] = useState(false)
+  const [isCoordinateAddress, setCoordinateAddress] = useState(false)
+  const [nearbyLocality, setNearbyLocality] = useState<string | null>(null)
+  const [isLocalityUnknown, setLocalityUnknown] = useState(false)
+  const [isCorrectingLocality, setCorrectingLocality] = useState(false)
+  useEffect(() => () => reverseRequest.current?.abort(), [])
   const [today] = useState(() => pragueToday())
   const isEdit = mode === "edit"
   const isGroupCreate = !isEdit && group !== undefined
@@ -235,6 +252,107 @@ export function EventForm({
     // before a locality is picked: the biggest city, as the picker lists it first
     catalog.localities.find((l) => l.slug === PRAHA_SLUG) ??
     catalog.localities[0] ?? { lat: 50.0755, lng: 14.4378 }
+
+  const setLocalityForAddress = (
+    suggestion: AddressSuggestion,
+    point: { lat: number; lng: number },
+  ) => {
+    const available =
+      queryClient.getQueryData<Locality[]>(catalogKeys.localities()) ?? catalog.localities
+    const exact = localityOfAddress({ ...suggestion, ...point }, available, "", {
+      allowNearest: false,
+    })
+    const selected = available.find((item) => item.id === form.getValues("localityId"))
+    const approximate = exact
+      ? undefined
+      : selected && distanceKm(point, selected) <= 1
+        ? selected
+        : nearestTown(point, available)
+    // A city-only result does not disprove a nearby selected district.
+    const locality =
+      exact &&
+      !suggestion.district &&
+      selected?.parentId === exact.id &&
+      distanceKm(point, selected) <= 1
+        ? selected
+        : (exact ?? approximate)
+    form.setValue("localityId", locality?.id ?? "", {
+      shouldDirty: true,
+      shouldValidate: form.formState.isSubmitted,
+    })
+    setNearbyLocality(approximate?.name ?? null)
+    setLocalityUnknown(!locality)
+  }
+
+  const setApproximateLocality = (point: { lat: number; lng: number }) => {
+    const available =
+      queryClient.getQueryData<Locality[]>(catalogKeys.localities()) ?? catalog.localities
+    const selected = available.find((item) => item.id === form.getValues("localityId"))
+    const nearest =
+      selected && distanceKm(point, selected) <= 1 ? selected : nearestTown(point, available)
+    form.setValue("localityId", nearest?.id ?? "", { shouldDirty: true })
+    setNearbyLocality(nearest?.name ?? null)
+    setLocalityUnknown(!nearest)
+  }
+
+  const pickPoint = async (
+    point: { lat: number; lng: number },
+    shouldUpdateLocality = true,
+    isCenterButton = false,
+  ) => {
+    const previous = form.getValues("place")
+    // Pressing the centre button on the existing pin must not discard its address or locality.
+    if (isCenterButton && previous && distanceKm(previous, point) < 0.005) return
+    reverseRequest.current?.abort()
+    const controller = new AbortController()
+    reverseRequest.current = controller
+    form.setValue("place", point, { shouldDirty: true, shouldValidate: form.formState.isSubmitted })
+    // Once a different point is chosen, the previous address may be wrong.
+    form.setValue("address", "", { shouldDirty: true, shouldValidate: form.formState.isSubmitted })
+    setCheckAddress(false)
+    setCoordinateAddress(false)
+    setNearbyLocality(null)
+    setLocalityUnknown(false)
+    setCorrectingLocality(false)
+    if (shouldUpdateLocality) setApproximateLocality(point)
+    const fillCoordinates = () => {
+      form.setValue("address", `GPS: ${point.lat.toFixed(6)}, ${point.lng.toFixed(6)}`, {
+        shouldDirty: true,
+        shouldValidate: form.formState.isSubmitted,
+      })
+      setCoordinateAddress(true)
+      if (shouldUpdateLocality) setApproximateLocality(point)
+    }
+    let isTimedOut = false
+    const timeout = setTimeout(() => {
+      isTimedOut = true
+      controller.abort()
+    }, 5000)
+    try {
+      const suggestion = await reverseAddress(point, controller.signal)
+      if (controller.signal.aborted) return
+      if (suggestion) {
+        if (shouldUpdateLocality) {
+          setLocalityForAddress(suggestion, point)
+        }
+        form.setValue("address", suggestion.address, {
+          shouldDirty: true,
+          shouldValidate: form.formState.isSubmitted,
+        })
+        setCheckAddress(true)
+      } else {
+        fillCoordinates()
+      }
+    } catch {
+      // An unavailable service must not stop a user from entering an address.
+      if (reverseRequest.current === controller && (!controller.signal.aborted || isTimedOut)) {
+        fillCoordinates()
+      }
+    } finally {
+      clearTimeout(timeout)
+      if (reverseRequest.current === controller) reverseRequest.current = null
+    }
+  }
 
   return (
     <Form {...form}>
@@ -590,10 +708,60 @@ export function EventForm({
                       localities={catalog.localities}
                       ref={field.ref}
                       value={field.value}
-                      onChange={field.onChange}
+                      onChange={(value) => {
+                        if (isCorrectingLocality) {
+                          field.onChange(value)
+                          setCorrectingLocality(false)
+                          setNearbyLocality(null)
+                          setLocalityUnknown(false)
+                          return
+                        }
+                        if (value === field.value) return
+                        reverseRequest.current?.abort()
+                        setLocalityUnknown(false)
+                        field.onChange(value)
+                        const localities = queryClient.getQueryData<Locality[]>(
+                          catalogKeys.localities(),
+                        )
+                        const selected =
+                          localities?.find((item) => item.id === value) ??
+                          catalog.localities.find((item) => item.id === value)
+                        if (selected) {
+                          void pickPoint({ lat: selected.lat, lng: selected.lng }, false)
+                        } else {
+                          form.setValue("place", null, { shouldDirty: true })
+                          form.setValue("address", "", { shouldDirty: true })
+                        }
+                      }}
                       onBlur={field.onBlur}
                     />
                   </FormControl>
+                  {place && (nearbyLocality || isLocalityUnknown) && !isCorrectingLocality ? (
+                    <Button
+                      type="button"
+                      variant="link"
+                      className="h-auto p-0"
+                      onClick={() => {
+                        reverseRequest.current?.abort()
+                        if (!form.getValues("address").trim()) {
+                          form.setValue(
+                            "address",
+                            `GPS: ${place.lat.toFixed(6)}, ${place.lng.toFixed(6)}`,
+                            { shouldDirty: true },
+                          )
+                          setCoordinateAddress(true)
+                        }
+                        setCorrectingLocality(true)
+                      }}
+                    >
+                      Upravit lokalitu bez přesunu špendlíku
+                    </Button>
+                  ) : null}
+                  {isCorrectingLocality ? (
+                    <FormDescription>
+                      Vyber lokalitu. Místo na mapě zůstane beze změny.
+                    </FormDescription>
+                  ) : null}
                   <FormMessage />
                 </FormItem>
               )}
@@ -612,11 +780,12 @@ export function EventForm({
                     Místo na mapě *
                   </p>
                   <p className="text-sm text-muted-foreground">
-                    Klepni do mapy tam, kde se sejdete.
+                    Klepni do mapy tam, kde se sejdete. Nebo mapu posuň a umísti špendlík na křížek
+                    uprostřed.
                   </p>
                   <LocationPicker
                     value={field.value}
-                    onChange={(point) => field.onChange(point)}
+                    onChange={(point, source) => void pickPoint(point, true, source === "center")}
                     center={mapCenter}
                     labelledBy={placeLabelId}
                     isInvalid={Boolean(fieldState.error)}
@@ -641,10 +810,30 @@ export function EventForm({
                       autoComplete="off"
                       className="h-11"
                       {...field}
+                      onFocus={(event) => {
+                        if (isCoordinateAddress) event.currentTarget.select()
+                      }}
+                      onMouseUp={(event) => {
+                        if (isCoordinateAddress) {
+                          event.preventDefault()
+                          event.currentTarget.select()
+                        }
+                      }}
+                      onChange={(value) => {
+                        reverseRequest.current?.abort()
+                        setCheckAddress(false)
+                        setCoordinateAddress(false)
+                        field.onChange(value)
+                      }}
                       near={place ?? mapCenter}
                       // a picked address also moves the pin, and sets the locality
                       // when the catalog has a more precise one for it
                       onPick={(suggestion) => {
+                        reverseRequest.current?.abort()
+                        setCheckAddress(false)
+                        setCoordinateAddress(false)
+                        setNearbyLocality(null)
+                        setLocalityUnknown(false)
                         const options = {
                           shouldDirty: true,
                           shouldValidate: form.formState.isSubmitted,
@@ -655,15 +844,30 @@ export function EventForm({
                           { lat: suggestion.lat, lng: suggestion.lng },
                           options,
                         )
-                        const locality = localityOfAddress(
-                          suggestion,
-                          catalog.localities,
-                          form.getValues("localityId"),
-                        )
-                        if (locality) form.setValue("localityId", locality.id, options)
+                        setLocalityForAddress(suggestion, {
+                          lat: suggestion.lat,
+                          lng: suggestion.lng,
+                        })
                       }}
                     />
                   </FormControl>
+                  {shouldCheckAddress ||
+                  isCoordinateAddress ||
+                  nearbyLocality ||
+                  isLocalityUnknown ? (
+                    <FormDescription>
+                      {shouldCheckAddress ? "Zkontroluj, že adresa odpovídá místu na mapě. " : null}
+                      {isCoordinateAddress
+                        ? "Adresu se nepodařilo určit, proto jsme doplnili souřadnice. Můžeš je nahradit vlastním popisem místa. "
+                        : null}
+                      {nearbyLocality
+                        ? `Pro orientaci jsme zvolili lokalitu ${nearbyLocality}. Zkontroluj, jestli odpovídá místu.`
+                        : null}
+                      {isLocalityUnknown
+                        ? "Nepodařilo se určit lokalitu. Vyber ji prosím ručně."
+                        : null}
+                    </FormDescription>
+                  ) : null}
                   <FormMessage />
                 </FormItem>
               )}

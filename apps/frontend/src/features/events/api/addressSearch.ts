@@ -123,14 +123,14 @@ const NEAREST_TOWN_KM = 20
 const SAME_TOWN_KM = 25
 
 // equirectangular distance: plenty at the scale of Czechia
-const distanceKm = (a: LatLng, b: LatLng): number => {
+export const distanceKm = (a: LatLng, b: LatLng): number => {
   const toRad = Math.PI / 180
   const x = (b.lng - a.lng) * toRad * Math.cos(((a.lat + b.lat) / 2) * toRad)
   const y = (b.lat - a.lat) * toRad
   return Math.hypot(x, y) * 6371
 }
 
-const nearestTown = (point: LatLng, localities: Locality[]): Locality | undefined => {
+export const nearestTown = (point: LatLng, localities: Locality[]): Locality | undefined => {
   let nearest: Locality | undefined
   let nearestKm = NEAREST_TOWN_KM
   for (const locality of localities) {
@@ -161,16 +161,17 @@ export const localityOfAddress = (
   }: Pick<AddressSuggestion, "district" | "city"> & Partial<Pick<AddressSuggestion, "lat" | "lng">>,
   localities: Locality[],
   chosenId: string,
+  options: { allowNearest?: boolean } = {},
 ): Locality | undefined => {
   const point = lat !== undefined && lng !== undefined ? { lat, lng } : undefined
   // a town of the same name far away is another place (Planá u Tachova is not
   // Planá u Českých Budějovic); 25 km still covers the edge of Praha
   const isNear = (locality: Locality) => !point || distanceKm(point, locality) <= SAME_TOWN_KM
   const found =
-    localities.find((l) => l.parentId !== null && l.name === district) ??
+    localities.find((l) => l.parentId !== null && l.name === district && isNear(l)) ??
     // without a city, OpenStreetMap's district is the town
     localities.find((l) => l.parentId === null && l.name === (city ?? district) && isNear(l)) ??
-    (point ? nearestTown(point, localities) : undefined)
+    (point && options.allowNearest !== false ? nearestTown(point, localities) : undefined)
   const chosen = localities.find((l) => l.id === chosenId)
   if (!found || found.id === chosen?.id || chosen?.parentId === found.id) return undefined
   return found
@@ -180,6 +181,7 @@ export const addressSearchUrl = (text: string, near: LatLng): string => {
   const url = new URL(PHOTON_URL)
   url.searchParams.set("q", text)
   url.searchParams.set("limit", String(FETCHED))
+  url.searchParams.set("lang", "default")
   // results near the picked place or the chosen locality come first
   url.searchParams.set("lat", near.lat.toFixed(4))
   url.searchParams.set("lon", near.lng.toFixed(4))
@@ -187,6 +189,25 @@ export const addressSearchUrl = (text: string, near: LatLng): string => {
   // foreign hits would take the slots before toAddressSuggestions drops them
   url.searchParams.set("countrycode", "CZ")
   return url.toString()
+}
+
+/** The nearest address is only a suggestion; a map point need not have an address. */
+export const reverseAddress = async (
+  point: LatLng,
+  signal: AbortSignal,
+): Promise<AddressSuggestion | undefined> => {
+  const url = new URL("https://photon.komoot.io/reverse")
+  url.searchParams.set("lat", String(point.lat))
+  url.searchParams.set("lon", String(point.lng))
+  url.searchParams.set("limit", "5")
+  // Use local OSM names even when the browser prefers another language.
+  url.searchParams.set("lang", "default")
+  const response = await fetch(url, { signal })
+  if (!response.ok) throw new Error(`Photon ${response.status}`)
+  // Do not present a distant street or building as the selected point's address.
+  return toAddressSuggestions(await response.json()).find(
+    (suggestion) => distanceKm(point, suggestion) <= 0.1,
+  )
 }
 
 const searchAddresses = async (

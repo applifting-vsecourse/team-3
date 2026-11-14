@@ -1,4 +1,4 @@
-import { render, screen } from "@testing-library/react"
+import { fireEvent, render, screen } from "@testing-library/react"
 import userEvent from "@testing-library/user-event"
 import { describe, expect, it, vi } from "vitest"
 
@@ -38,12 +38,20 @@ describe("LocationPicker", () => {
     const point = onChange.mock.calls[0]![0] as { lat: number; lng: number }
     expect(point.lat).toBeCloseTo(karlin.lat, 3)
     expect(point.lng).toBeCloseTo(karlin.lng, 3)
+    expect(onChange.mock.calls[0]![1]).toBe("center")
   })
 
   it("shows the picked place as a pin", () => {
     const { container } = renderPicker(karlin)
 
     expect(container.querySelectorAll(".leaflet-marker-icon")).toHaveLength(1)
+  })
+
+  it("distinguishes a direct map click from the centre button", () => {
+    const { container, onChange } = renderPicker(null)
+    fireEvent.click(container.querySelector(".leaflet-container")!, { clientX: 20, clientY: 20 })
+    expect(onChange).toHaveBeenCalledOnce()
+    expect(onChange.mock.calls[0]![1]).toBe("map")
   })
 
   it("brings a place set from outside, e.g. a found address, into view", async () => {

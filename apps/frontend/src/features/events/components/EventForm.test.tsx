@@ -1,5 +1,5 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query"
-import { render, screen, waitFor } from "@testing-library/react"
+import { act, fireEvent, render, screen, waitFor } from "@testing-library/react"
 import userEvent from "@testing-library/user-event"
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest"
 
@@ -20,6 +20,14 @@ const catalog: Catalog = {
       lng: 14.47,
     },
     {
+      id: "l-praha-9",
+      slug: "praha-9",
+      name: "Praha 9",
+      parentId: "l-praha",
+      lat: 50.1224,
+      lng: 14.489,
+    },
+    {
       id: "l-usti-nad-orlici",
       slug: "usti-nad-orlici",
       name: "Ústí nad Orlicí",
@@ -27,6 +35,7 @@ const catalog: Catalog = {
       lat: 49.9739,
       lng: 16.3936,
     },
+    { id: "l-louny", slug: "louny", name: "Louny", parentId: null, lat: 50.3573, lng: 13.7969 },
   ],
   categories: [
     {
@@ -119,6 +128,232 @@ afterEach(() => {
 })
 
 describe("EventForm", () => {
+  it("updates the locality immediately even if the user types before reverse lookup finishes", async () => {
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(
+        () =>
+          new Promise<Response>(() => {
+            /* lookup remains pending */
+          }),
+      ),
+    )
+    const { container } = render(
+      <QueryClientProvider client={new QueryClient()}>
+        <EventForm
+          catalog={catalog}
+          isSubmitting={false}
+          onSubmit={vi.fn()}
+          initialValues={{ localityId: "l-louny", lat: 50.08, lng: 14.44, address: "Stará adresa" }}
+        />
+      </QueryClientProvider>,
+    )
+    fireEvent.click(container.querySelector(".leaflet-container")!, { clientX: 20, clientY: 20 })
+    await userEvent.type(screen.getByLabelText("Adresa *"), "Moje místo")
+    expect(screen.getByRole("combobox", { name: "Lokalita *" })).toHaveTextContent("Praha")
+    expect(screen.getByLabelText("Adresa *")).toHaveValue("Moje místo")
+  })
+  it("keeps a nearby district when the selected address only names its parent city", async () => {
+    answerAddresses({
+      type: "Feature",
+      geometry: { type: "Point", coordinates: [14.489, 50.1224] },
+      properties: {
+        type: "house",
+        osm_key: "place",
+        countrycode: "CZ",
+        street: "Bílinská",
+        housenumber: "1",
+        city: "Praha",
+      },
+    })
+    renderForm({ initialValues: { localityId: "l-praha-9" } })
+    await userEvent.type(screen.getByLabelText("Adresa *"), "Bílinská")
+    await userEvent.click(await screen.findByRole("option", { name: /Bílinská/ }))
+    expect(screen.getByRole("combobox", { name: "Lokalita *" })).toHaveTextContent("Praha 9")
+  })
+  it("lets the user correct an approximate locality without moving the selected point", async () => {
+    const { onSubmit } = renderForm({
+      initialValues: {
+        title: "Setkání",
+        activityId: "a-deskove-hry",
+        localityId: "l-louny",
+        startsAt: new Date(Date.now() + 3 * 86_400_000).toISOString(),
+        minParticipants: 2,
+        maxParticipants: 4,
+      },
+    })
+    await userEvent.click(screen.getByRole("button", { name: "Umístit špendlík do středu mapy" }))
+    await waitFor(() =>
+      expect(screen.getByLabelText("Adresa *")).toHaveValue("GPS: 50.357300, 13.796900"),
+    )
+    await userEvent.click(
+      screen.getByRole("button", { name: "Upravit lokalitu bez přesunu špendlíku" }),
+    )
+    await pick("Lokalita *", "Hledat lokalitu", "Ústí nad Orlicí")
+    await submit()
+    expect(onSubmit).toHaveBeenCalledWith(
+      expect.objectContaining({
+        localityId: "l-usti-nad-orlici",
+        lat: 50.3573,
+        lng: 13.7969,
+        address: "GPS: 50.357300, 13.796900",
+      }),
+    )
+  })
+
+  it("does not show old address suggestions after the map changes the address", async () => {
+    answerAddresses(letenska)
+    renderForm({ initialValues: { localityId: "l-louny" } })
+    await userEvent.type(screen.getByLabelText("Adresa *"), "Letenská")
+    expect(await screen.findByRole("option", { name: /Letenská/ })).toBeInTheDocument()
+    await userEvent.click(screen.getByRole("button", { name: "Umístit špendlík do středu mapy" }))
+    await waitFor(() =>
+      expect(screen.getByLabelText("Adresa *")).toHaveValue("GPS: 50.357300, 13.796900"),
+    )
+    await userEvent.click(screen.getByLabelText("Adresa *"))
+    await userEvent.keyboard("{ArrowDown}")
+    expect(screen.queryByRole("option", { name: /Letenská/ })).not.toBeInTheDocument()
+  })
+  it("keeps the locality and address when the map centre is already the selected place", async () => {
+    const fetchMock = answerAddresses()
+    renderForm({
+      initialValues: {
+        localityId: "l-louny",
+        lat: 50.3573,
+        lng: 13.7969,
+        address: "Sraz u radnice",
+      },
+    })
+
+    await userEvent.click(screen.getByRole("button", { name: "Umístit špendlík do středu mapy" }))
+
+    expect(screen.getByRole("combobox", { name: "Lokalita *" })).toHaveTextContent("Louny")
+    expect(screen.getByLabelText("Adresa *")).toHaveValue("Sraz u radnice")
+    expect(fetchMock).not.toHaveBeenCalled()
+  })
+
+  it("keeps a nearby locality when the found address names a place outside the catalog", async () => {
+    answerAddresses({
+      type: "Feature",
+      geometry: { type: "Point", coordinates: [13.7969, 50.3573] },
+      properties: {
+        type: "street",
+        osm_key: "highway",
+        countrycode: "CZ",
+        name: "Polní",
+        city: "Obec mimo katalog",
+      },
+    })
+    renderForm({ initialValues: { localityId: "l-louny" } })
+
+    await userEvent.click(screen.getByRole("button", { name: "Umístit špendlík do středu mapy" }))
+
+    await waitFor(() =>
+      expect(screen.getByLabelText("Adresa *")).toHaveValue("Polní, Obec mimo katalog"),
+    )
+    expect(screen.getByRole("combobox", { name: "Lokalita *" })).toHaveTextContent("Louny")
+    expect(screen.getByText(/Pro orientaci jsme zvolili lokalitu Louny/)).toBeInTheDocument()
+  })
+
+  it("uses exact coordinates and suggests a nearby locality for a place without an address", async () => {
+    renderForm({ initialValues: { localityId: "l-louny" } })
+    await userEvent.click(screen.getByRole("button", { name: "Umístit špendlík do středu mapy" }))
+    await waitFor(() =>
+      expect(screen.getByLabelText("Adresa *")).toHaveValue("GPS: 50.357300, 13.796900"),
+    )
+    expect(screen.getByRole("combobox", { name: "Lokalita *" })).toHaveTextContent("Louny")
+    expect(screen.getByText(/Pro orientaci jsme zvolili lokalitu Louny/)).toBeInTheDocument()
+  })
+  it("fills an empty address from the point selected on the map", async () => {
+    const addressAtCenter = {
+      ...krizikova,
+      geometry: { type: "Point", coordinates: [14.47, 50.11] },
+    }
+    answerAddresses(addressAtCenter)
+    renderForm({ initialValues: { localityId: "l-praha-8" } })
+
+    await userEvent.click(screen.getByRole("button", { name: "Umístit špendlík do středu mapy" }))
+
+    await waitFor(() =>
+      expect(screen.getByLabelText("Adresa *")).toHaveValue("Křižíkova 53/52, Praha 8 – Karlín"),
+    )
+    expect(screen.getByText("Zkontroluj, že adresa odpovídá místu na mapě.")).toBeInTheDocument()
+  })
+
+  it("does not overwrite an address typed while the reverse lookup is pending", async () => {
+    let resolveLookup!: (value: Response) => void
+    const result = new Promise<Response>((resolve) => {
+      resolveLookup = resolve
+    })
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(() => result),
+    )
+    renderForm({ initialValues: { localityId: "l-praha-8" } })
+    await userEvent.click(screen.getByRole("button", { name: "Umístit špendlík do středu mapy" }))
+    await userEvent.type(screen.getByLabelText("Adresa *"), "Moje místo")
+    await act(async () => {
+      resolveLookup(
+        Response.json({
+          features: [{ ...krizikova, geometry: { type: "Point", coordinates: [14.47, 50.11] } }],
+        }),
+      )
+      await result
+    })
+    expect(screen.getByLabelText("Adresa *")).toHaveValue("Moje místo")
+  })
+
+  it("replaces the previous address when a pin is placed elsewhere", async () => {
+    answerAddresses({ ...krizikova, geometry: { type: "Point", coordinates: [14.47, 50.11] } })
+    renderForm({ initialValues: { localityId: "l-praha-8", address: "Vlastní místo" } })
+    await userEvent.click(screen.getByRole("button", { name: "Umístit špendlík do středu mapy" }))
+    await waitFor(() =>
+      expect(screen.getByLabelText("Adresa *")).toHaveValue("Křižíkova 53/52, Praha 8 – Karlín"),
+    )
+    expect(screen.getByRole("combobox", { name: "Lokalita *" })).toHaveTextContent("Praha 8")
+  })
+
+  it("changing the locality places a pin at its centre and fills an address there", async () => {
+    answerAddresses({
+      type: "Feature",
+      geometry: { type: "Point", coordinates: [16.3936, 49.9739] },
+      properties: {
+        type: "house",
+        osm_key: "place",
+        countrycode: "CZ",
+        street: "Mírové náměstí",
+        housenumber: "1",
+        city: "Ústí nad Orlicí",
+      },
+    })
+    const { onSubmit } = renderForm({
+      initialValues: {
+        title: "Setkání",
+        activityId: "a-deskove-hry",
+        localityId: "l-praha-8",
+        lat: 50.11,
+        lng: 14.47,
+        address: "Stará adresa, Praha",
+        startsAt: new Date(Date.now() + 3 * 86_400_000).toISOString(),
+        minParticipants: 2,
+        maxParticipants: 4,
+      },
+    })
+    await pick("Lokalita *", "Hledat lokalitu", "Ústí nad Orlicí")
+    await waitFor(() =>
+      expect(screen.getByLabelText("Adresa *")).toHaveValue("Mírové náměstí 1, Ústí nad Orlicí"),
+    )
+    await submit()
+    expect(onSubmit).toHaveBeenCalledWith(
+      expect.objectContaining({
+        localityId: "l-usti-nad-orlici",
+        lat: 49.9739,
+        lng: 16.3936,
+        address: "Mírové náměstí 1, Ústí nad Orlicí",
+      }),
+    )
+  })
+
   it("an untouched form can be sent and says, under each field, what is missing", async () => {
     const { onSubmit } = renderForm()
 
@@ -321,8 +556,8 @@ describe("EventForm", () => {
         address: "Letenská 525/15, Praha – Malá Strana",
         lat: 50.0891477,
         lng: 14.4072071,
-        // OpenStreetMap only says „Praha“ here: the chosen district stays
-        localityId: "l-praha-8",
+        // OpenStreetMap only says „Praha“; don't retain an unrelated district.
+        localityId: "l-praha",
       })
     })
 
@@ -346,6 +581,26 @@ describe("EventForm", () => {
         address: "Křižíkova 53/52, Praha 8 – Karlín",
         localityId: "l-praha-8",
       })
+    })
+
+    it("an address in Prague 9 replaces a previously selected town", async () => {
+      answerAddresses({
+        type: "Feature",
+        geometry: { type: "Point", coordinates: [14.4889715, 50.1224138] },
+        properties: {
+          type: "street",
+          osm_key: "highway",
+          countrycode: "CZ",
+          name: "Bílinská",
+          district: "Praha 9",
+          locality: "Střížkov",
+          city: "Praha",
+        },
+      })
+      renderForm({ initialValues: { localityId: "l-usti-nad-orlici" } })
+      await userEvent.type(addressField(), "Bílinská")
+      await userEvent.click(await screen.findByRole("option", { name: /Bílinská.*Praha 9/ }))
+      expect(screen.getByRole("combobox", { name: "Lokalita *" })).toHaveTextContent("Praha 9")
     })
 
     it("an address in another town of the catalog sets that town (Ústí nad Orlicí)", async () => {
@@ -441,7 +696,7 @@ describe("EventForm", () => {
     it.each([
       ["offline", () => Promise.reject(new TypeError("Failed to fetch"))],
       ["the service is down", () => Promise.resolve(new Response("", { status: 503 }))],
-    ])("%s: no suggestions, no extra message, and the typed address is sent", async (_, answer) => {
+    ])("%s: the user can enter an address after placing the pin", async (_, answer) => {
       const fetchMock = vi.fn(answer)
       vi.stubGlobal("fetch", fetchMock)
       const { onSubmit } = renderForm({
@@ -452,9 +707,11 @@ describe("EventForm", () => {
         },
       })
 
-      await userEvent.type(addressField(), "Hřiště u školy, Praha 8")
-      await waitFor(() => expect(fetchMock).toHaveBeenCalled())
       await userEvent.click(screen.getByRole("button", { name: "Umístit špendlík do středu mapy" }))
+      await waitFor(() => expect(fetchMock).toHaveBeenCalled())
+      expect(await screen.findByText(/Adresu se nepodařilo určit/)).toBeInTheDocument()
+      await userEvent.clear(addressField())
+      await userEvent.type(addressField(), "Hřiště u školy, Praha 8")
       await fillTheRest()
       await submit()
 
