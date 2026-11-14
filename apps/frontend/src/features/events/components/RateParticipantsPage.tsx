@@ -48,17 +48,18 @@ import { NOT_RATABLE } from "@/features/events/lib/ratingRefusal"
 
 type RateParticipantsPageProps = {
   eventId: string
-  /** The organizer who created the event: the API told the rating page so (OWN_EVENT). */
+  /** The signed-in user; the API refuses anyone but the organizer who created it (NOT_ORGANIZER). */
   viewerId: string
   /** After saving: the participants' public profiles show the ratings. */
   onSaved?: () => Promise<void>
 }
 
 /**
- * /akce/:id/hodnoceni for the organizer (Figma D-05, D-05d; B-060, #66): „Všem stejně“ – 5★ to
- * start with and one comment – and each approved participant, who follows it („Jako všichni“) or
- * gets their own stars and comment. One save for the whole list. The event comes from its detail,
- * which its organizer always sees.
+ * /akce/:id/hodnoceni-ucastniku for the organizer (Figma D-05, D-05d; B-060, #66), from the
+ * event's management; /akce/:id/hodnoceni sends them here. „Všem stejně“ – 5★ to start with and
+ * one comment – and each approved participant, who follows it („Jako všichni“) or gets their own
+ * stars and comment. One save for the whole list. The event comes from its detail, which its
+ * organizer always sees.
  */
 export function RateParticipantsPage({ eventId, viewerId, onSaved }: RateParticipantsPageProps) {
   const detail = useEventDetail(eventId, viewerId)

@@ -808,7 +808,7 @@ Doménová logika (čistá funkce + testy): `approvedCount`, `missingToMin = max
 - Rychlé hodnocení účastníků (PO 4. 11., Figma D-05): organizátor nejdřív „Všem stejně“ – hvězdičky (předvyplněno 5★) a jeden komentář pro všechny, pak jednotlivým účastníkům dá individuální hodnocení (hvězdičky i komentář). Odškrtnout, kdo nepřišel, půjde až v dalších sprintech. Uloží se hodnocení každého účastníka zvlášť, výchozí hodnota pro akci se neukládá. Jeden zápis v transakci; `decideParticipantRating` platí pro každého.
 - Organizátor vidí hodnocení a komentáře svých akcí (ve správě akce): `GET /api/events/:id/ratings` – průměry s počtem a jednotlivá hodnocení s autorem a komentářem; vidí ho organizátor a u akce skupiny i aktivní správci skupiny, jako správu akce ([#322](https://github.com/applifting-vsecourse/team-3/pull/322)).
 - Hodnocení účastníka i s komentářem je vidět na jeho veřejném profilu (B-013).
-- FE: stránka `/akce/:id/hodnoceni` (sem vede odkaz z e-mailu) pro účastníka (C-03); organizátor má D-05 na `/akce/:id/hodnoceni-ucastniku`, kam vede správa akce a kam ho první adresa přesměruje (Figma, stránka „Moje akce a správa akce“).
+- FE: stránka `/akce/:id/hodnoceni` pro účastníka (C-03, sem vede e-mail „Ohodnoť akci“); organizátor má D-05 na `/akce/:id/hodnoceni-ucastniku`, kam vede správa akce i e-mail „Ohodnoť účastníky“ a kam ho první adresa přesměruje (Figma, stránka „Moje akce a správa akce“).
 
 **Hotovo, když:**
 
