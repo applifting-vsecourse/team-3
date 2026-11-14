@@ -93,6 +93,12 @@ describe("activeFiltersLabel", () => {
     ).toBe("Bruntál · Šipky a bowling · 1.–7. 11. · Chybí lidé")
   })
 
+  it("names the toggle as its chip does, „Jen s volným místem“ (#305)", () => {
+    expect(activeFiltersLabel({ lokalita: "bruntal", obsazenost: "volna" }, catalog)).toBe(
+      "Bruntál · Jen s volným místem",
+    )
+  })
+
   it("in a map area names the area, not the locality it replaced (#56)", () => {
     expect(
       activeFiltersLabel(

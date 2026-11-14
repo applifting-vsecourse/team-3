@@ -83,30 +83,35 @@ describe("EventFilters", () => {
     expect(screen.queryByRole("button", { name: "Zrušit vše" })).not.toBeInTheDocument()
   })
 
-  it("picks „Volná místa“ in Obsazenost and asks the API for events that aren't full", async () => {
+  it("„Jen s volným místem“ is off by default and turns on „volna“ (#305)", async () => {
     const { onChange } = renderFilters()
 
-    await userEvent.click(screen.getByRole("button", { name: "Obsazenost" }))
-    const panel = await screen.findByRole("dialog", { name: "Obsazenost" })
-    expect(within(panel).getByRole("radio", { name: "Všechny" })).toBeChecked()
-    get.mockClear()
-    await userEvent.click(within(panel).getByRole("radio", { name: "Volná místa" }))
-    await within(panel).findByRole("button", { name: /^Zobrazit \d/ })
-    const eventCalls = get.mock.calls.filter(([path]) => path === "events")
-    expect(eventCalls.at(-1)?.[1]?.searchParams?.get("capacity")).toBe("free")
-
-    await userEvent.click(within(panel).getByRole("button", { name: /^Zobrazit/ }))
+    const toggle = screen.getByRole("button", { name: "Jen s volným místem" })
+    expect(toggle).toHaveAttribute("aria-pressed", "false")
+    // the old panel with „Chybí lidé“ is gone: nothing to open, nothing to choose
+    expect(screen.queryByRole("button", { name: /^Obsazenost/ })).not.toBeInTheDocument()
+    await userEvent.click(toggle)
     expect(onChange).toHaveBeenCalledWith({ obsazenost: "volna" })
   })
 
-  it("shows the occupancy on the chip and „Zrušit obsazenost“ clears it", async () => {
+  it("on, „Jen s volným místem“ switches off", async () => {
+    const { onChange } = renderFilters({ search: { obsazenost: "volna" } })
+
+    const toggle = screen.getByRole("button", { name: "Jen s volným místem" })
+    expect(toggle).toHaveAttribute("aria-pressed", "true")
+    await userEvent.click(toggle)
+    expect(onChange).toHaveBeenCalledWith({ obsazenost: undefined })
+  })
+
+  // „chybi“ is no longer offered, but the quick pick and the landing page's links set it: the
+  // chip names it, so the list never filters by something the bar doesn't show (#305)
+  it("names „chybi“ from the URL as „Chybí lidé“, and switching it off clears it", async () => {
     const { onChange } = renderFilters({ search: { obsazenost: "chybi" } })
 
-    await userEvent.click(screen.getByRole("button", { name: "Obsazenost: Chybí lidé" }))
-    const panel = await screen.findByRole("dialog", { name: "Obsazenost" })
-    expect(within(panel).getByRole("radio", { name: "Chybí lidé" })).toBeChecked()
-    // not „Všechny“ like the option above it, which didn't read as a way out
-    await userEvent.click(within(panel).getByRole("button", { name: "Zrušit obsazenost" }))
+    const toggle = screen.getByRole("button", { name: "Chybí lidé" })
+    expect(toggle).toHaveAttribute("aria-pressed", "true")
+    expect(screen.queryByRole("button", { name: "Jen s volným místem" })).not.toBeInTheDocument()
+    await userEvent.click(toggle)
     expect(onChange).toHaveBeenCalledWith({ obsazenost: undefined })
   })
 
@@ -338,7 +343,7 @@ describe("EventFilters › Termín", () => {
     renderFilters({ search: { termin: "probehle" } })
 
     expect(screen.getByRole("button", { name: "Termín: Proběhlé" })).toBeInTheDocument()
-    expect(screen.queryByRole("button", { name: /^Obsazenost/ })).not.toBeInTheDocument()
+    expect(screen.queryByRole("button", { name: "Jen s volným místem" })).not.toBeInTheDocument()
   })
 
   it("shows the range on the chip and clears it", async () => {
