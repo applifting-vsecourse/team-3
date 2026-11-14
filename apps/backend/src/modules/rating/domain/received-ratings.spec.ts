@@ -1,8 +1,4 @@
-import {
-  canSeeReceivedRatings,
-  ReceivedRating,
-  toReceivedRatings,
-} from './received-ratings';
+import { ReceivedRating, toReceivedRatings } from './received-ratings';
 
 const updatedAt = new Date('2026-11-01T08:00:00.000Z');
 const rating = (
@@ -34,17 +30,5 @@ describe('received ratings (B-060, #66)', () => {
       },
       ratings: [],
     });
-  });
-
-  it('only who manages the event sees them', () => {
-    expect(
-      canSeeReceivedRatings({ isOrganizer: true, isGroupAdmin: false }),
-    ).toBe(true);
-    expect(
-      canSeeReceivedRatings({ isOrganizer: false, isGroupAdmin: true }),
-    ).toBe(true);
-    expect(
-      canSeeReceivedRatings({ isOrganizer: false, isGroupAdmin: false }),
-    ).toBe(false);
   });
 });

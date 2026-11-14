@@ -1,3 +1,4 @@
+import { EventViewer } from '@/modules/event/domain/event-viewer';
 import { RatingRepository } from '@/modules/rating/repositories/rating.repository';
 import { ForbiddenException, NotFoundException } from '@nestjs/common';
 import { mock, MockProxy } from 'jest-mock-extended';
@@ -23,6 +24,17 @@ const ratings = [
   },
 ];
 
+// a viewer as the event's detail reads it; canManageEvent decides (B-055, review #322)
+const viewer = (
+  changes: Partial<NonNullable<EventViewer>> = {},
+): NonNullable<EventViewer> => ({
+  isOrganizer: false,
+  participation: null,
+  isGroupMember: false,
+  isGroupAdmin: false,
+  ...changes,
+});
+
 describe('RatingService – received ratings (#66)', () => {
   let repository: MockProxy<RatingRepository>;
   let service: RatingService;
@@ -35,8 +47,8 @@ describe('RatingService – received ratings (#66)', () => {
   it.each([
     ['the organizer', { isOrganizer: true, isGroupAdmin: false }],
     ['an admin of its group', { isOrganizer: false, isGroupAdmin: true }],
-  ])('%s gets the averages and the ratings', async (_who, viewer) => {
-    repository.findEventManager.mockResolvedValue(viewer);
+  ])('%s gets the averages and the ratings', async (_who, roles) => {
+    repository.findEventViewer.mockResolvedValue(viewer(roles));
     repository.findReceivedRatings.mockResolvedValue(ratings);
 
     await expect(service.getReceivedRatings('e1', 'u-petra')).resolves.toEqual({
@@ -46,14 +58,14 @@ describe('RatingService – received ratings (#66)', () => {
       },
       ratings,
     });
-    expect(repository.findEventManager).toHaveBeenCalledWith('e1', 'u-petra');
+    expect(repository.findEventViewer).toHaveBeenCalledWith('e1', 'u-petra');
   });
 
-  it('anyone else is 403 NOT_MANAGER, and no rating is read', async () => {
-    repository.findEventManager.mockResolvedValue({
-      isOrganizer: false,
-      isGroupAdmin: false,
-    });
+  it.each([
+    ['a participant', viewer({ participation: 'approved' as const })],
+    ['a member of its group', viewer({ isGroupMember: true })],
+  ])('%s is 403 NOT_MANAGER, and no rating is read', async (_who, someone) => {
+    repository.findEventViewer.mockResolvedValue(someone);
 
     const error = await service
       .getReceivedRatings('e1', 'u-jakub')
@@ -66,7 +78,7 @@ describe('RatingService – received ratings (#66)', () => {
   });
 
   it('an unknown, hidden or deleted event is 404', async () => {
-    repository.findEventManager.mockResolvedValue(null);
+    repository.findEventViewer.mockResolvedValue(null);
 
     await expect(
       service.getReceivedRatings('e1', 'u-petra'),

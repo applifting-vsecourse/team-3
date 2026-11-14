@@ -7,33 +7,42 @@ import { RatingRepository } from './rating.repository';
 const updatedAt = new Date('2026-11-01T08:00:00.000Z');
 
 describe('RatingRepository – received ratings (#66)', () => {
-  describe('findEventManager', () => {
-    it('the organizer of a personal event', async () => {
+  describe('findEventViewer', () => {
+    it('the organizer of a personal event, with no group to look up', async () => {
       const prisma = mockDeep<PrismaService>();
       prisma.event.findUnique.mockResolvedValue({
         status: 'published',
         organizerUserId: 'u-petra',
         groupId: null,
       } as never);
+      prisma.participation.findUnique.mockResolvedValue(null);
 
       await expect(
-        new RatingRepository(prisma).findEventManager('e1', 'u-petra'),
-      ).resolves.toEqual({ isOrganizer: true, isGroupAdmin: false });
+        new RatingRepository(prisma).findEventViewer('e1', 'u-petra'),
+      ).resolves.toEqual({
+        isOrganizer: true,
+        participation: null,
+        isGroupMember: false,
+        isGroupAdmin: false,
+      });
       expect(prisma.groupMember.findUnique).not.toHaveBeenCalled();
     });
 
     it.each([
-      ['admin', 'active', true],
-      ['member', 'active', false],
-      ['admin', 'blocked', false],
+      ['admin', 'active', true, true],
+      ['member', 'active', true, false],
+      ['admin', 'blocked', false, false],
     ] as const)(
-      'for an event of a group: a %s %s of the group is its admin → %s',
-      async (role, status, isGroupAdmin) => {
+      'for an event of a group: a %s %s → member %s, admin %s',
+      async (role, status, isGroupMember, isGroupAdmin) => {
         const prisma = mockDeep<PrismaService>();
         prisma.event.findUnique.mockResolvedValue({
           status: 'published',
           organizerUserId: 'u-petra',
           groupId: 'g1',
+        } as never);
+        prisma.participation.findUnique.mockResolvedValue({
+          status: 'approved',
         } as never);
         prisma.groupMember.findUnique.mockResolvedValue({
           role,
@@ -41,8 +50,13 @@ describe('RatingRepository – received ratings (#66)', () => {
         } as never);
 
         await expect(
-          new RatingRepository(prisma).findEventManager('e1', 'u-tomas'),
-        ).resolves.toEqual({ isOrganizer: false, isGroupAdmin });
+          new RatingRepository(prisma).findEventViewer('e1', 'u-tomas'),
+        ).resolves.toEqual({
+          isOrganizer: false,
+          participation: 'approved',
+          isGroupMember,
+          isGroupAdmin,
+        });
         expect(prisma.groupMember.findUnique).toHaveBeenCalledWith(
           expect.objectContaining({
             where: { groupId_userId: { groupId: 'g1', userId: 'u-tomas' } },
@@ -60,7 +74,7 @@ describe('RatingRepository – received ratings (#66)', () => {
       } as never);
 
       await expect(
-        new RatingRepository(prisma).findEventManager('e1', 'u-petra'),
+        new RatingRepository(prisma).findEventViewer('e1', 'u-petra'),
       ).resolves.toBeNull();
     });
   });

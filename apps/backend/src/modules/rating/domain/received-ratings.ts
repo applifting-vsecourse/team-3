@@ -29,14 +29,3 @@ export function toReceivedRatings(ratings: ReceivedRating[]): ReceivedRatings {
     ratings,
   };
 }
-
-/**
- * Who sees them: who manages the event – its organizer or, for an event of a
- * group, an active admin of the group (as the event's management, B-055).
- */
-export function canSeeReceivedRatings(viewer: {
-  isOrganizer: boolean;
-  isGroupAdmin: boolean;
-}): boolean {
-  return viewer.isOrganizer || viewer.isGroupAdmin;
-}

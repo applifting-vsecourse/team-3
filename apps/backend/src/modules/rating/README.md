@@ -47,4 +47,4 @@ Frontend: `/akce/:id/hodnoceni` podle role – účastník C-03, organizátor D-
 
 - `GET /api/events/:id/ratings`: oba průměry (akce, organizátor – u akce skupiny jsou hvězdičky organizátora skupiny) vždy s počtem, bez hodnocení `null`, a každé hodnocení s autorem a komentářem, nejnovější první. Hodnocení smazaná superadminem se nevrací (B-063).
 
-Vidí ho ten, kdo akci spravuje: organizátor, nebo u akce skupiny aktivní správce skupiny (jako správu akce, B-055); kdokoli jiný 403 `NOT_MANAGER`, neznámá, skrytá a smazaná akce 404. Frontend ho ukazuje ve správě proběhlé akce (B-060).
+Vidí ho ten, kdo akci spravuje: organizátor, nebo u akce skupiny aktivní správce skupiny (rozhoduje stejná `canManageEvent` jako u správy akce, B-055); kdokoli jiný 403 `NOT_MANAGER`, neznámá, skrytá a smazaná akce 404. Frontend ho ukazuje ve správě proběhlé akce (B-060).

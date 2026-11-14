@@ -1,5 +1,6 @@
 import { PrismaService } from '@/core/prisma/prisma.service';
 import { Prisma } from '@/generated/prisma/client';
+import { EventViewer } from '@/modules/event/domain/event-viewer';
 import {
   publicEventInclude,
   PublicEventRow,
@@ -142,28 +143,42 @@ export class RatingRepository {
   }
 
   /**
-   * Who may see the ratings the event got: whether the user is its organizer
-   * and, for an event of a group, an active admin of the group. Null without
-   * the event, or for one a superadmin hid or deleted.
+   * The signed-in user as a viewer of the event, read as the event's detail
+   * reads it (EventsService.viewerOf), so `canManageEvent` decides the same
+   * way for the ratings as for the management (B-055, review #322): the
+   * organizer, their participation, and an active role in the event's group
+   * – not looked up for the organizer. Null for an unknown, hidden or
+   * deleted event.
    */
-  async findEventManager(
+  async findEventViewer(
     eventId: string,
     userId: string,
-  ): Promise<{ isOrganizer: boolean; isGroupAdmin: boolean } | null> {
+  ): Promise<NonNullable<EventViewer> | null> {
     const event = await this.prisma.event.findUnique({
       where: { id: eventId },
       select: { status: true, organizerUserId: true, groupId: true },
     });
     if (!event || isEventGone(event.status)) return null;
-    const member = event.groupId
-      ? await this.prisma.groupMember.findUnique({
-          where: { groupId_userId: { groupId: event.groupId, userId } },
-          select: { role: true, status: true },
-        })
-      : null;
+    const isOrganizer = event.organizerUserId === userId;
+    const [participation, member] = await Promise.all([
+      this.prisma.participation.findUnique({
+        where: { eventId_userId: { eventId, userId } },
+        select: { status: true },
+      }),
+      event.groupId && !isOrganizer
+        ? this.prisma.groupMember.findUnique({
+            where: { groupId_userId: { groupId: event.groupId, userId } },
+            select: { role: true, status: true },
+          })
+        : null,
+    ]);
+    // pending and blocked members have no role here
+    const groupRole = member?.status === 'active' ? member.role : null;
     return {
-      isOrganizer: event.organizerUserId === userId,
-      isGroupAdmin: member?.role === 'admin' && member.status === 'active',
+      isOrganizer,
+      participation: participation?.status ?? null,
+      isGroupMember: groupRole !== null,
+      isGroupAdmin: groupRole === 'admin',
     };
   }
 

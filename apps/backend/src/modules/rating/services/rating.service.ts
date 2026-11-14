@@ -1,3 +1,4 @@
+import { canManageEvent } from '@/modules/event/domain/event-viewer';
 import {
   decideEventRating,
   EVENT_RATING_FORBIDDEN,
@@ -19,7 +20,6 @@ import {
   ratingDeadline,
 } from '@/modules/rating/domain/rating-window';
 import {
-  canSeeReceivedRatings,
   ReceivedRatings,
   toReceivedRatings,
 } from '@/modules/rating/domain/received-ratings';
@@ -246,12 +246,10 @@ export class RatingService {
     eventId: string,
     userId: string,
   ): Promise<ReceivedRatings> {
-    const viewer = await this.ratingRepository.findEventManager(
-      eventId,
-      userId,
-    );
+    const viewer = await this.ratingRepository.findEventViewer(eventId, userId);
     if (!viewer) throw new NotFoundException('Akce neexistuje.');
-    if (!canSeeReceivedRatings(viewer)) {
+    // who manages the event sees them: the one shared check (B-055, review #322)
+    if (!canManageEvent(viewer)) {
       throw new ForbiddenException({
         code: 'NOT_MANAGER',
         message: 'Hodnocení akce vidí jen ten, kdo ji spravuje.',
