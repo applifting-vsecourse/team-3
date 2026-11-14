@@ -422,6 +422,25 @@ describe("/akce/:id/hodnoceni for the organizer (Figma D-05, #66)", () => {
     expect(screen.queryByText("Komentář může mít nejvýš 500 znaků")).not.toBeInTheDocument()
   })
 
+  it("saved, but the answer can't be read: no failure reported, the list is read again (review #322)", async () => {
+    const user = userEvent.setup()
+    const error = vi.spyOn(console, "error").mockImplementation(() => undefined)
+    api.put.mockReturnValue(asJson({ unexpected: true }))
+    await renderPage()
+    await screen.findByText("Účastníci (3)")
+    const reads = () =>
+      api.get.mock.calls.filter(([path]) => path === "events/e1/participant-ratings").length
+    const before = reads()
+
+    await user.click(screen.getByRole("button", { name: "Uložit hodnocení" }))
+
+    expect(await screen.findByText("Uložit hodnocení")).toBeInTheDocument()
+    expect(toast.success).toHaveBeenCalledWith("Hodnocení účastníků je uložené")
+    expect(toast.error).not.toHaveBeenCalled()
+    await vi.waitFor(() => expect(reads()).toBeGreaterThan(before))
+    error.mockRestore()
+  })
+
   it("a comment over 500 characters isn't sent", async () => {
     const user = userEvent.setup()
     await renderPage()

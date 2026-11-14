@@ -187,8 +187,9 @@ function RateParticipantsForm({
         setRowErrors({})
         save.mutateAsync(toInputs(rows, common)).then(
           (view) => {
-            // „Jako všichni“ stays so; the own ones are „Uloženo“; a refusal keeps the edits
-            setRows((current) => savedRows(current, view.participants))
+            // „Jako všichni“ stays so; the own ones are „Uloženo“; a refusal keeps the edits.
+            // Without a readable answer the list is read again and shows what is saved.
+            setRows((current) => savedRows(current, view?.participants ?? []))
             toast.success("Hodnocení účastníků je uložené")
           },
           (error: Error & { data?: unknown }) => {

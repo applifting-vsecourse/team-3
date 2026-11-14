@@ -8,14 +8,16 @@ import {
   receivedRatingsSchema,
 } from "./ratingSchemas"
 
-// The user's own rating: keyed by who is signed in, as other private data (profileKeys).
+// Keyed by who is signed in, as other private data (profileKeys). Each kind has its own segment,
+// so invalidating one never reaches the others by prefix (review #322).
 export const ratingKeys = {
   all: () => ["ratings"] as const,
-  mine: (eventId: string, viewerId: string) => [...ratingKeys.all(), eventId, viewerId] as const,
+  mine: (eventId: string, viewerId: string) =>
+    [...ratingKeys.all(), "mine", eventId, viewerId] as const,
   participants: (eventId: string, viewerId: string) =>
-    [...ratingKeys.all(), eventId, viewerId, "participants"] as const,
+    [...ratingKeys.all(), "participants", eventId, viewerId] as const,
   received: (eventId: string, viewerId: string) =>
-    [...ratingKeys.all(), eventId, viewerId, "received"] as const,
+    [...ratingKeys.all(), "received", eventId, viewerId] as const,
 }
 
 /** GET /api/events/:id/rating — the rating, the event as the page shows it, and until when. */
