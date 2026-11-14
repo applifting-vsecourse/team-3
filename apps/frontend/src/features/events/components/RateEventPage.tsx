@@ -14,15 +14,13 @@ import { PAGE } from "@/lib/pageLayout"
 import { cn } from "@/lib/utils"
 
 import { myEventRatingQueryOptions } from "@/features/events/api/ratingQueryOptions"
-import {
-  RATING_WINDOW_DAYS,
-  type EventRatingRefusal,
-  type MyEventRating,
-} from "@/features/events/api/ratingSchemas"
+import { type EventRatingRefusal, type MyEventRating } from "@/features/events/api/ratingSchemas"
 import { PastEventCard } from "@/features/events/components/PastEventCard"
 import { RateEventForm } from "@/features/events/components/RateEventForm"
+import { RatingExplained } from "@/features/events/components/RatingExplained"
 import { useRateEvent } from "@/features/events/hooks/useRateEvent"
 import { ratingBandLine } from "@/features/events/lib/rating"
+import { NOT_RATABLE } from "@/features/events/lib/ratingRefusal"
 
 type RateEventPageProps = {
   eventId: string
@@ -109,30 +107,6 @@ function RateEventLoading() {
   )
 }
 
-const NOT_RATABLE: Record<EventRatingRefusal, { title: string; body: string }> = {
-  EVENT_NOT_ENDED: {
-    title: "Hodnotit půjde, až akce skončí",
-    body: `Pak na to budeš mít ${RATING_WINDOW_DAYS} dní.`,
-  },
-  EVENT_NOT_PUBLISHED: {
-    title: "Akce je zrušená",
-    body: "Zrušenou akci hodnotit nejde.",
-  },
-  // below its minimum: as the event's detail says, „Akce se nekonala“ (B-060, #314)
-  EVENT_NOT_HELD: {
-    title: "Akce se nekonala",
-    body: "Nesešlo se dost lidí, takže hodnotit ji nejde.",
-  },
-  RATING_WINDOW_CLOSED: {
-    title: "Hodnotit už nejde",
-    body: `Hodnotit šlo jen ${RATING_WINDOW_DAYS} dní po akci.`,
-  },
-  RATING_DELETED: {
-    title: "Hodnocení odstranil správce",
-    body: "Znovu ho dát nejde.",
-  },
-}
-
 /**
  * Why rating isn't possible now, with what the user gave if anything, and somewhere to go next
  * (DESIGN.md › Copy: always with a next step).
@@ -190,7 +164,7 @@ function RateEventError({ error, retry }: { error: Error; retry: () => void }) {
   const code = apiErrorCode(error)
   if (status === 404) {
     return (
-      <Explained title="Akce neexistuje">
+      <RatingExplained title="Akce neexistuje">
         Možná ji organizátor smazal nebo máš špatný odkaz.{" "}
         <Link
           to={ROUTES.events}
@@ -199,12 +173,12 @@ function RateEventError({ error, retry }: { error: Error; retry: () => void }) {
           Prohlédni si akce
         </Link>
         .
-      </Explained>
+      </RatingExplained>
     )
   }
   if (code === "NOT_PARTICIPANT") {
     return (
-      <Explained title="Tuhle akci hodnotit nemůžeš">
+      <RatingExplained title="Tuhle akci hodnotit nemůžeš">
         {error.message}{" "}
         <Link
           to={ROUTES.events}
@@ -213,7 +187,7 @@ function RateEventError({ error, retry }: { error: Error; retry: () => void }) {
           Najdi akci, na kterou půjdeš
         </Link>
         .
-      </Explained>
+      </RatingExplained>
     )
   }
   return (
@@ -229,20 +203,5 @@ function RateEventError({ error, retry }: { error: Error; retry: () => void }) {
         Zkusit znovu
       </Button>
     </div>
-  )
-}
-
-function Explained({ title, children }: { title: string; children: ReactNode }) {
-  return (
-    <Alert
-      variant="neutral"
-      className="md:max-w-xl"
-    >
-      <Info />
-      <AlertTitle>{title}</AlertTitle>
-      <AlertDescription>
-        <p>{children}</p>
-      </AlertDescription>
-    </Alert>
   )
 }

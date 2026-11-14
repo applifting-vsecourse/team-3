@@ -224,7 +224,7 @@ describe("/akce/:id/hodnoceni for a participant (Figma C-03, #66)", () => {
   it.each([
     ["EVENT_NOT_ENDED", "Hodnotit půjde, až akce skončí", "Pak na to budeš mít 14 dní."],
     ["EVENT_NOT_PUBLISHED", "Akce je zrušená", "Zrušenou akci hodnotit nejde."],
-    ["EVENT_NOT_HELD", "Akce se nekonala", "Nesešlo se dost lidí, takže hodnotit ji nejde."],
+    ["EVENT_NOT_HELD", "Akce se nekonala", "Nesešlo se dost lidí, takže hodnotit nejde."],
     ["RATING_DELETED", "Hodnocení odstranil správce", "Znovu ho dát nejde."],
   ])("%s: no form, why not, and a way on", async (refusal, title, body) => {
     answer = { ...fresh, refusal }

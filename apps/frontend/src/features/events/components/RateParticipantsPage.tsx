@@ -1,4 +1,4 @@
-import { useId, useState, type ReactNode } from "react"
+import { useId, useState } from "react"
 import { useQuery } from "@tanstack/react-query"
 import { Link } from "@tanstack/react-router"
 import { Info, Loader2 } from "lucide-react"
@@ -14,7 +14,7 @@ import { Button } from "@/components/ui/button"
 import { Label } from "@/components/ui/label"
 import { Skeleton } from "@/components/ui/skeleton"
 import { Textarea } from "@/components/ui/textarea"
-import { apiErrorCode } from "@/lib/api-client"
+import { apiErrorCode, HTTPError } from "@/lib/api-client"
 import { inSentence } from "@/lib/inSentence"
 import { PAGE } from "@/lib/pageLayout"
 import { cn } from "@/lib/utils"
@@ -28,6 +28,7 @@ import {
   type ParticipantRatingsRefusal,
 } from "@/features/events/api/ratingSchemas"
 import { PastEventCard } from "@/features/events/components/PastEventCard"
+import { RatingExplained } from "@/features/events/components/RatingExplained"
 import { useEventDetail } from "@/features/events/hooks/useEventDetail"
 import { useRateParticipants } from "@/features/events/hooks/useRateParticipants"
 import { formatEventDay } from "@/features/events/lib/formatEvent"
@@ -43,6 +44,7 @@ import {
   type ParticipantRow,
 } from "@/features/events/lib/participantRatingsForm"
 import { ratingBandLine } from "@/features/events/lib/rating"
+import { NOT_RATABLE } from "@/features/events/lib/ratingRefusal"
 
 type RateParticipantsPageProps = {
   eventId: string
@@ -81,23 +83,29 @@ export function RateParticipantsPage({ eventId, viewerId, onSaved }: RatePartici
         isCompactOnMobile
       />
       <div className={cn(PAGE, "gap-6 pb-24")}>
-        {query.error || detail.error ? (
-          <LoadError
-            error={query.error ?? detail.error}
-            retry={() => {
-              void query.refetch()
-              detail.retry()
-            }}
-          />
-        ) : detail.isNotFound ? (
-          <Explained title="Akce neexistuje">
+        {/* by priority (review #322): an answer that explains, then one to try again */}
+        {apiErrorCode(query.error) === "NOT_ORGANIZER" ? (
+          <RatingExplained title="Účastníky hodnotí jen organizátor akce">
+            {query.error?.message}
+          </RatingExplained>
+        ) : detail.isNotFound || isNotFound(query.error) ? (
+          <RatingExplained title="Akce neexistuje">
             <Link
               to={ROUTES.events}
               className="font-medium underline underline-offset-4"
             >
               Prohlédni si akce
             </Link>
-          </Explained>
+          </RatingExplained>
+        ) : query.error || detail.error ? (
+          <LoadError
+            error={query.error ?? detail.error}
+            // only what failed is read again
+            retry={() => {
+              if (query.error) void query.refetch()
+              if (detail.error) detail.retry()
+            }}
+          />
         ) : !query.data || !event ? (
           <Loading />
         ) : query.data.refusal ? (
@@ -107,7 +115,7 @@ export function RateParticipantsPage({ eventId, viewerId, onSaved }: RatePartici
             refusal={query.data.refusal}
           />
         ) : query.data.participants.length === 0 ? (
-          <Explained title="Není koho hodnotit">
+          <RatingExplained title="Není koho hodnotit">
             Na akci kromě tebe nikdo nebyl.{" "}
             <Link
               to={ROUTES.manageEvent}
@@ -116,7 +124,7 @@ export function RateParticipantsPage({ eventId, viewerId, onSaved }: RatePartici
             >
               Zpět na správu akce
             </Link>
-          </Explained>
+          </RatingExplained>
         ) : (
           <RateParticipantsForm
             event={event}
@@ -435,25 +443,6 @@ function participantOf(error: { data?: unknown }): string | undefined {
   return typeof data.participantId === "string" ? data.participantId : undefined
 }
 
-const NOT_RATABLE: Record<ParticipantRatingsRefusal, { title: string; body: string }> = {
-  EVENT_NOT_ENDED: {
-    title: "Hodnotit půjde, až akce skončí",
-    body: `Pak na to budeš mít ${RATING_WINDOW_DAYS} dní.`,
-  },
-  EVENT_NOT_PUBLISHED: {
-    title: "Akce je zrušená",
-    body: "Zrušenou akci hodnotit nejde.",
-  },
-  EVENT_NOT_HELD: {
-    title: "Akce se nekonala",
-    body: "Nesešlo se dost lidí, takže hodnotit nejde.",
-  },
-  RATING_WINDOW_CLOSED: {
-    title: "Hodnotit už nejde",
-    body: `Hodnotit šlo jen ${RATING_WINDOW_DAYS} dní po akci.`,
-  },
-}
-
 function NotRatable({
   event,
   data,
@@ -513,10 +502,10 @@ function Loading() {
   )
 }
 
+const isNotFound = (error: Error | null) =>
+  error instanceof HTTPError && error.response.status === 404
+
 function LoadError({ error, retry }: { error: Error | undefined; retry: () => void }) {
-  if (apiErrorCode(error) === "NOT_ORGANIZER") {
-    return <Explained title="Účastníky hodnotí jen organizátor akce">{error?.message}</Explained>
-  }
   return (
     <div
       role="alert"
@@ -530,20 +519,5 @@ function LoadError({ error, retry }: { error: Error | undefined; retry: () => vo
         Zkusit znovu
       </Button>
     </div>
-  )
-}
-
-function Explained({ title, children }: { title: string; children: ReactNode }) {
-  return (
-    <Alert
-      variant="neutral"
-      className="md:max-w-xl"
-    >
-      <Info />
-      <AlertTitle>{title}</AlertTitle>
-      <AlertDescription>
-        <p>{children}</p>
-      </AlertDescription>
-    </Alert>
   )
 }

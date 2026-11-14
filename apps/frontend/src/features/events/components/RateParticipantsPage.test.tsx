@@ -497,6 +497,38 @@ describe("/akce/:id/hodnoceni for the organizer (Figma D-05, #66)", () => {
     expect(api.put).not.toHaveBeenCalled()
   })
 
+  it("an answer that explains comes first, even when the event's detail failed too (review #322)", async () => {
+    participants = new FakeHTTPError(403, {
+      code: "NOT_ORGANIZER",
+      message: "Účastníky hodnotí jen organizátor akce.",
+    })
+    api.get.mockImplementation((path: string) => {
+      if (path === "events/e1") {
+        return refused(new FakeHTTPError(500, { message: "Něco se pokazilo." }))
+      }
+      return refused(participants as Error)
+    })
+    await renderPage()
+
+    expect(await screen.findByText("Účastníky hodnotí jen organizátor akce")).toBeInTheDocument()
+    expect(screen.queryByRole("button", { name: "Zkusit znovu" })).not.toBeInTheDocument()
+  })
+
+  it("„Zkusit znovu“ reads again only what failed (review #322)", async () => {
+    const user = userEvent.setup()
+    participants = new FakeHTTPError(500, { message: "Něco se pokazilo na naší straně." })
+    await renderPage()
+    const reads = (path: string) => api.get.mock.calls.filter(([one]) => one === path).length
+
+    const retry = await screen.findByRole("button", { name: "Zkusit znovu" })
+    participants = list
+    await user.click(retry)
+
+    expect(await screen.findByText("Účastníci (3)")).toBeInTheDocument()
+    expect(reads("events/e1/participant-ratings")).toBe(2)
+    expect(reads("events/e1")).toBe(1)
+  })
+
   it("nobody else came: nothing to rate", async () => {
     participants = { ...list, participants: [] }
     await renderPage()
