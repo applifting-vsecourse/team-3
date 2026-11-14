@@ -197,6 +197,8 @@ export type EventFilters = {
   sort?: "distance"
   /** Proběhlé (#61): the events that are over, newest first, instead of the upcoming ones. */
   past?: boolean
+  /** At most this many (the API's default and maximum is 200); cut after the order, e.g. the 5 nearest (#299). */
+  limit?: number
   /**
    * The quick picks' personal parts (#250), decided from the session by GET /api/home/events:
    * the activities of one's interests, well rated organizers, no events one already goes to.

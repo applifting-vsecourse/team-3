@@ -11,6 +11,7 @@ import {
   hasActiveFilters,
   hasFiltersBeyondPick,
   isAllEvents,
+  nearestFilters,
   pickSearch,
   toEventFilters,
   toMapArea,
@@ -348,5 +349,40 @@ describe("Proběhlé (#61)", () => {
     const search = pickSearch("podle-zajmu", { lokalita: "praha-8" }, now)
     expect(changesPick(search, { termin: "probehle" }, now)).toBe(true)
     expect(pickSearch("tento-vikend", { termin: "probehle" }, now).termin).toBeUndefined()
+  })
+})
+
+describe("nearestFilters (#299)", () => {
+  const praha8 = catalog.localities.find((l) => l.slug === "praha-8")!
+
+  it("the same filters anywhere, nearest to the locality's centre first", () => {
+    const filters = nearestFilters(
+      { lokalita: "praha-8", okoli: "10", obsazenost: "chybi", od: "2026-11-14" },
+      catalog,
+      5,
+    )
+    expect(filters).toMatchObject({
+      localityId: undefined,
+      radiusKm: undefined,
+      lat: praha8.lat,
+      lng: praha8.lng,
+      sort: "distance",
+      limit: 5,
+      capacity: "missing",
+      dateFrom: "2026-11-14",
+    })
+    // only the five shown are downloaded (review #321)
+    expect(toSearchParams(filters!).get("limit")).toBe("5")
+  })
+
+  it("none on Proběhlé: the past isn't ordered by distance (#61)", () => {
+    expect(nearestFilters({ lokalita: "praha-8", termin: "probehle" }, catalog, 5)).toBeUndefined()
+  })
+
+  it("none without a centre: all of Czechia, a map area", () => {
+    expect(nearestFilters({ lokalita: "cele-cesko" }, catalog, 5)).toBeUndefined()
+    expect(
+      nearestFilters({ lokalita: "praha-8", oblast: "14.3,50,14.6,50.15" }, catalog, 5),
+    ).toBeUndefined()
   })
 })
