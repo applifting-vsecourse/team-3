@@ -87,7 +87,8 @@ function reveal(element: HTMLElement, focusTarget?: HTMLElement): () => void {
  * under the sticky header:
  *
  * - after a failed submit it scrolls the first invalid field to the middle of the screen and
- *   focuses it (a field that can't take focus itself, like the map, passes it on),
+ *   focuses it (a field that can't take focus itself, like the map, passes it to its
+ *   `data-focus-target`),
  * - when `serverError` appears it scrolls to the form's `Alert`, which a screen reader
  *   announces by its `role="alert"`; the focus stays where it is.
  *
@@ -108,8 +109,10 @@ export function useRevealFormErrors<TFieldValues extends FieldValues>(
     if (submitCount === 0 || !formRef.current) return
     const field = firstInvalidField(formRef.current)
     if (!field) return
+    // A field that can't take the focus itself (the map's region) names the element inside it
+    // that should: the first focusable one could be a link or a zoom button instead.
     const focusTarget =
-      field.tabIndex >= 0 ? field : field.querySelector<HTMLElement>('[tabindex="0"]')
+      field.tabIndex >= 0 ? field : field.querySelector<HTMLElement>("[data-focus-target]")
     // a form gone before the scroll ends (or a new submit) leaves no listener or timer behind
     return reveal(field, focusTarget ?? undefined)
   }, [submitCount])

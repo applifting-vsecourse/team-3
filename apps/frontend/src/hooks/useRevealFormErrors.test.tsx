@@ -69,11 +69,18 @@ function TestForm({ serverError, place = "" }: { serverError?: string; place?: s
               aria-label="mapa"
               data-invalid={Boolean(fieldState.error)}
             >
-              {/* stands in for Leaflet's container, which Leaflet makes focusable (tabindex="0") */}
+              {/* focusable, and first: not the one to focus (Leaflet's zoom and attribution) */}
+              <a
+                href="#mapa"
+                tabIndex={0}
+              >
+                OpenStreetMap
+              </a>
+              {/* stands in for Leaflet's container, which LocationPicker marks */}
               <button
                 type="button"
-                tabIndex={0}
                 aria-label="mapa – posun"
+                data-focus-target=""
               />
             </div>
           )}
@@ -240,7 +247,7 @@ describe("useRevealFormErrors", () => {
     expect(scrollIntoView.mock.contexts[0]).toBe(screen.getByLabelText("first"))
   })
 
-  it("a field marked data-invalid (the map) is brought into view and passes the focus inside", async () => {
+  it("a field marked data-invalid (the map) is brought into view and passes the focus to its data-focus-target", async () => {
     render(<TestForm />)
     await userEvent.type(screen.getByLabelText("first"), "a")
     await userEvent.type(screen.getByLabelText("second"), "b")

@@ -249,7 +249,8 @@ describe("EventForm", () => {
       window.dispatchEvent(new Event("scrollend"))
       // Leaflet's container, which moves the map from the keyboard
       expect(map).toContainElement(document.activeElement as HTMLElement)
-      expect(document.activeElement).not.toBe(document.body)
+      expect(document.activeElement).toHaveClass("leaflet-container")
+      expect(document.activeElement).toHaveAttribute("data-focus-target")
     })
 
     it("a server error comes into view as an alert, read out by a screen reader", () => {
