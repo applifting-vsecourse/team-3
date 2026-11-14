@@ -18,7 +18,11 @@ const DAY = /^\d{4}-\d{2}-\d{2}$/
 const NUMBER = String.raw`-?\d{1,3}(?:\.\d{1,8})?`
 const AREA = new RegExp(`^${NUMBER},${NUMBER},${NUMBER},${NUMBER}$`)
 
-/** ?obsazenost= values; Czech in the URL like the other filters, English in the API. */
+/**
+ * ?obsazenost= values; Czech in the URL like the other filters, English in the API. The bar offers
+ * only „volna“, the toggle „Jen s volným místem“ (#305, Q9); „chybi“ stays for the quick pick
+ * „Tady chybíš“, the links under the landing page's section of that name and links shared before.
+ */
 export const OCCUPANCY = ["volna", "chybi"] as const
 export type Occupancy = (typeof OCCUPANCY)[number]
 const CAPACITY_OF = { volna: "free", chybi: "missing" } as const
@@ -67,7 +71,7 @@ export const eventsSearchSchema = z.object({
   termin: z.literal(PAST_TERM).optional().catch(undefined),
   od: z.string().regex(DAY).optional().catch(undefined),
   do: z.string().regex(DAY).optional().catch(undefined),
-  // volna = not full yet, chybi = still missing people (a subset of volna)
+  // volna = not full yet, chybi = still missing people (a subset of volna); see OCCUPANCY
   obsazenost: z.enum(OCCUPANCY).optional().catch(undefined),
   // a hand-edited area the API would refuse (corners swapped, off the Earth) is dropped, not a 400
   oblast: z

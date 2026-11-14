@@ -95,6 +95,15 @@ describe("toEventFilters", () => {
     })
   })
 
+  // #305: the bar offers only „volna“, but „chybi“ still works — the quick pick, the landing
+  // page's links and links shared before set it
+  it.each([
+    ["volna", "free"],
+    ["chybi", "missing"],
+  ] as const)("asks the API for ?obsazenost=%s as capacity=%s", (obsazenost, capacity) => {
+    expect(toEventFilters({ obsazenost }, catalog).capacity).toBe(capacity)
+  })
+
   it("resolves slugs to ids", () => {
     expect(
       toEventFilters(

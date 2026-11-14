@@ -1,29 +1,22 @@
-import { useId, useState } from "react"
+import { useRef } from "react"
 
-import { FilterChip } from "@/components/FilterChip/FilterChip"
-import { FilterPanel } from "@/components/FilterPanel/FilterPanel"
-import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
+import { FilterToggleChip } from "@/components/FilterChip/FilterChip"
 
-import { useEvents } from "@/features/events/hooks/useEvents"
 import type { EventsSearch, Occupancy } from "@/features/events/lib/eventsSearch"
-import { showEventsLabel } from "@/features/events/lib/formatEvent"
 
-// "" = no limit; RadioGroup values are strings
-type Choice = Occupancy | ""
+/**
+ * What the chip says for each ?obsazenost=. Only „volna“ is offered; „chybi“ comes from the
+ * quick pick „Tady chybíš“ and the links under the landing page's section of that name, and
+ * the chip names it so the list never filters by something the bar doesn't show (#305, Q9).
+ */
+const LABELS: Record<Occupancy, string> = {
+  volna: "Jen s volným místem",
+  chybi: "Chybí lidé",
+}
 
-const OPTIONS: { value: Choice; label: string; description: string }[] = [
-  { value: "", label: "Všechny", description: "Včetně akcí, které jsou už plné." },
-  { value: "volna", label: "Volná místa", description: "Jen akce, kam se ještě dá přihlásit." },
-  {
-    value: "chybi",
-    label: "Chybí lidé",
-    description: "Jen akce, které se bez dalších lidí neuskuteční.",
-  },
-]
-
-/** Chip value; nothing for „Všechny“, which is the default. */
+/** The filter's name in a summary („… · Jen s volným místem“); nothing when it is off. */
 export const occupancyLabel = (occupancy: Occupancy | undefined): string | undefined =>
-  occupancy ? OPTIONS.find((option) => option.value === occupancy)?.label : undefined
+  occupancy ? LABELS[occupancy] : undefined
 
 type OccupancyFilterProps = {
   search: EventsSearch
@@ -31,85 +24,39 @@ type OccupancyFilterProps = {
 }
 
 /**
- * Chip „Obsazenost“ › Všechny / Volná místa / Chybí lidé — one choice, as
- * „Chybí lidé“ is a subset of „Volná místa“. Same pattern as the other filters.
+ * „Jen s volným místem“ as an on/off chip (#305, Figma A-02f): off by default, so full events
+ * show with their „Plno“ badge; on, they leave the list and the map. Whoever searches cares
+ * whether they still get in, not whether the minimum is reached (PO 10. 11.).
+ *
+ * A toggle keeps its name whatever its state (review #331), so „chybi“ gets a chip of its own:
+ * „Chybí lidé“, on, beside „Jen s volným místem“, off. Switching „Chybí lidé“ off clears it and
+ * the chip goes; switching „Jen s volným místem“ on replaces it — the URL holds one value.
+ * The chip that goes would take the focus with it, to the page's start: it moves to „Jen s volným
+ * místem“, where the keyboard was.
  */
 export function OccupancyFilter({ search, onChange }: OccupancyFilterProps) {
-  const current: Choice = search.obsazenost ?? ""
-  const [isOpen, setIsOpen] = useState(false)
-  const [draft, setDraft] = useState<Choice>(current)
-  const preview = useEvents({ ...search, obsazenost: draft || undefined }, { isEnabled: isOpen })
-  const idPrefix = useId()
-  const label = occupancyLabel(search.obsazenost)
-
-  const apply = (choice: Choice) => {
-    onChange(choice || undefined)
-    setIsOpen(false)
-  }
-
+  const freeChip = useRef<HTMLButtonElement>(null)
   return (
-    <FilterPanel
-      title="Obsazenost"
-      isOpen={isOpen}
-      onOpenChange={(isOpening) => {
-        if (isOpening) setDraft(current)
-        setIsOpen(isOpening)
-      }}
-      trigger={
-        <FilterChip
-          isSelected={Boolean(label)}
-          filterName="Obsazenost"
+    <>
+      {search.obsazenost === "chybi" ? (
+        <FilterToggleChip
+          pressed
+          onPressedChange={(isPressed) => {
+            if (isPressed) return
+            freeChip.current?.focus()
+            onChange(undefined)
+          }}
         >
-          {label ?? "Obsazenost"}
-        </FilterChip>
-      }
-      // not „Všechny“: the first option above says the same and it didn't read as a way out
-      resetLabel="Zrušit obsazenost"
-      onReset={() => apply("")}
-      applyLabel={showEventsLabel(preview.isPlaceholderData ? undefined : preview.events?.length)}
-      onApply={() => apply(draft)}
-      popoverClassName="w-80"
-    >
-      <RadioGroup
-        aria-label="Obsazenost"
-        value={draft}
-        onValueChange={(value) => setDraft(value as Choice)}
-        className="gap-2"
+          {LABELS.chybi}
+        </FilterToggleChip>
+      ) : null}
+      <FilterToggleChip
+        ref={freeChip}
+        pressed={search.obsazenost === "volna"}
+        onPressedChange={(isPressed) => onChange(isPressed ? "volna" : undefined)}
       >
-        {OPTIONS.map((option) => {
-          const id = `${idPrefix}-${option.value || "vse"}`
-          return (
-            // Figma: Radio card
-            <label
-              key={option.value}
-              htmlFor={id}
-              className="flex cursor-pointer items-start gap-3 rounded-lg border border-border bg-card px-4 py-3 has-data-[state=checked]:border-foreground"
-            >
-              <RadioGroupItem
-                id={id}
-                value={option.value}
-                // the whole card is the click target, but the name is just the title
-                aria-labelledby={`${id}-label`}
-                aria-describedby={`${id}-description`}
-              />
-              <span className="flex flex-col gap-0.5 text-sm">
-                <span
-                  id={`${id}-label`}
-                  className="font-semibold"
-                >
-                  {option.label}
-                </span>
-                <span
-                  id={`${id}-description`}
-                  className="text-muted-foreground"
-                >
-                  {option.description}
-                </span>
-              </span>
-            </label>
-          )
-        })}
-      </RadioGroup>
-    </FilterPanel>
+        {LABELS.volna}
+      </FilterToggleChip>
+    </>
   )
 }
