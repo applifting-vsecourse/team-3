@@ -34,8 +34,10 @@ import { formatEventDay } from "@/features/events/lib/formatEvent"
 import {
   effectiveStars,
   initialForm,
+  reconcileRows,
   rowDescription,
   savedRows,
+  snapshotKey,
   toInputs,
   type CommonRating,
   type ParticipantRow,
@@ -151,13 +153,24 @@ function RateParticipantsForm({
   const [rows, setRows] = useState<ParticipantRow[]>(start.rows)
   // a refusal about one participant, shown at their row (SELF_RATING, NOT_APPROVED, RATING_DELETED)
   const [rowErrors, setRowErrors] = useState<Record<string, string>>({})
+  // a fresh list (another tab saved, or re-read after a refusal) reaches the form (review #322);
+  // set while rendering, as React recommends for state that follows a prop
+  const dataKey = snapshotKey(data.participants)
+  const [seenKey, setSeenKey] = useState(dataKey)
+  if (dataKey !== seenKey) {
+    setSeenKey(dataKey)
+    setRows(reconcileRows(rows, data.participants, common))
+  }
   const [isSubmitted, setIsSubmitted] = useState(false)
   const commonQuestionId = useId()
   const commonCommentId = useId()
   const commonHintId = useId()
 
-  const update = (id: string, change: (row: ParticipantRow) => ParticipantRow) =>
+  const update = (id: string, change: (row: ParticipantRow) => ParticipantRow) => {
     setRows((current) => current.map((row) => (row.id === id ? change(row) : row)))
+    // the row changed: its error may no longer hold (review #322)
+    setRowErrors(({ [id]: _changed, ...rest }) => rest)
+  }
   const tooLong = (text: string) => text.trim().length > RATING_COMMENT_MAX_LENGTH
   const hasTooLong = tooLong(common.comment) || rows.some((row) => tooLong(row.comment))
   // the group's organizer stars belong to the group; these are the participants' own
@@ -180,7 +193,15 @@ function RateParticipantsForm({
           },
           (error: Error & { data?: unknown }) => {
             const participantId = participantOf(error)
-            if (participantId) setRowErrors({ [participantId]: error.message })
+            if (participantId) {
+              // all or nothing: without them the rest can be saved; the list is read again
+              setRows((current) =>
+                current.map((row) =>
+                  row.id === participantId ? { ...row, isLeftOut: true, isEdited: true } : row,
+                ),
+              )
+              setRowErrors({ [participantId]: error.message })
+            }
             toast.error(error.message)
           },
         )
@@ -244,12 +265,13 @@ function RateParticipantsForm({
               onClick={() =>
                 setRows((current) =>
                   current.map((row) =>
-                    row.isDeleted
+                    row.isDeleted || row.isLeftOut
                       ? row
                       : {
                           ...row,
                           mode: "common",
                           comment: "",
+                          isCommentOwn: false,
                           isCommentOpen: false,
                           isEdited: true,
                         },
@@ -282,6 +304,7 @@ function RateParticipantsForm({
                     ...current,
                     mode: "own",
                     stars: effectiveStars(current, common),
+                    isCommentOwn: true,
                     isCommentOpen: true,
                     isEdited: true,
                   }))
@@ -349,7 +372,7 @@ function ParticipantItem({
       >
         Hodnocení: {row.name}
       </span>
-      {row.isDeleted ? null : (
+      {row.isDeleted || row.isLeftOut ? null : (
         <>
           <RatingStars
             value={stars}

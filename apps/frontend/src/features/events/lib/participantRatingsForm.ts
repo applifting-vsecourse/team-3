@@ -5,16 +5,19 @@ export type CommonRating = { stars: number; comment: string }
 
 /**
  * One participant on the organizer's page: „Jako všichni“ follows the common rating, `own` has
- * its own stars and maybe its own comment. A rating a superadmin deleted can't be given again.
+ * its own stars, and its own comment when `isCommentOwn` — an empty one then means none, never
+ * the common one (review #322). A rating a superadmin deleted can't be given again; one the API
+ * refused for this participant (`isLeftOut`) isn't sent until the list is read again.
  */
 export type ParticipantRow = {
   id: string
   name: string
   isDeleted: boolean
+  isLeftOut: boolean
   mode: "common" | "own"
   stars: number
-  /** The participant's own comment; empty uses the common one. */
   comment: string
+  isCommentOwn: boolean
   isCommentOpen: boolean
   /** Changed on this page since it was loaded or saved. */
   isEdited: boolean
@@ -23,11 +26,36 @@ export type ParticipantRow = {
 export const COMMON_START: CommonRating = { stars: 5, comment: "" }
 
 /**
+ * The row of a participant as saved, against the common rating: „Jako všichni“ only with exactly
+ * its stars and its comment (review #322) — a rating saved without a comment stays without one.
+ */
+function rowOf(
+  { id, name, rating, ratingDeleted: isDeleted }: RatedParticipant,
+  common: CommonRating,
+): ParticipantRow {
+  const saved = rating?.comment ?? ""
+  const isCommon = !rating || (saved === common.comment && rating.stars === common.stars)
+  const isCommentOwn = !isCommon && saved !== common.comment
+  return {
+    id,
+    name,
+    isDeleted,
+    isLeftOut: false,
+    mode: isCommon ? "common" : "own",
+    stars: rating?.stars ?? common.stars,
+    comment: isCommentOwn ? saved : "",
+    isCommentOwn,
+    isCommentOpen: isCommentOwn && saved !== "",
+    isEdited: false,
+  }
+}
+
+/**
  * The page as it opens (review #322). The API keeps only each participant's own rating, never
  * „Všem stejně“, so the common rating is read back from what was saved: its comment is the one
  * most participants got (at least two; else none), its stars the most usual among them. Who got
- * both is „Jako všichni“ again — a new common comment reaches them — and the rest keep their own
- * stars and comment. Nothing saved yet: 5★ and no comment, everyone „Jako všichni“.
+ * exactly both is „Jako všichni“ again — a new common comment reaches them — and the rest keep
+ * their own stars and comment. Nothing saved yet: 5★ and no comment, everyone „Jako všichni“.
  */
 export function initialForm(participants: RatedParticipant[]): {
   common: CommonRating
@@ -48,24 +76,7 @@ export function initialForm(participants: RatedParticipant[]): {
     stars: commonStars ?? COMMON_START.stars,
     comment: commonComment ?? COMMON_START.comment,
   }
-  const rows = participants.map(
-    ({ id, name, rating, ratingDeleted: isDeleted }): ParticipantRow => {
-      // the common comment isn't the participant's own: it follows „Komentář pro všechny“
-      const ownComment = rating?.comment && rating.comment !== common.comment ? rating.comment : ""
-      const isCommon = !rating || (ownComment === "" && rating.stars === common.stars)
-      return {
-        id,
-        name,
-        isDeleted,
-        mode: isCommon ? "common" : "own",
-        stars: rating?.stars ?? common.stars,
-        comment: ownComment,
-        isCommentOpen: ownComment !== "",
-        isEdited: false,
-      }
-    },
-  )
-  return { common, rows }
+  return { common, rows: participants.map((participant) => rowOf(participant, common)) }
 }
 
 /** The value most of them have (the first one on a tie), if it passes `isEnough`. */
@@ -81,6 +92,33 @@ function mostUsual<T>(values: T[], isEnough: (count: number) => boolean): T | un
     }
   }
   return best !== undefined && isEnough(bestCount) ? best : undefined
+}
+
+/** What the list says about the ratings: changes when anyone saves, here or in another tab. */
+export function snapshotKey(participants: RatedParticipant[]): string {
+  return participants
+    .map(
+      ({ id, rating, ratingDeleted: isDeleted }) =>
+        `${id}:${rating?.updatedAt.toISOString() ?? "-"}:${isDeleted ? "x" : ""}`,
+    )
+    .join("|")
+}
+
+/**
+ * A fresh list from the server — another tab saved, or the API refused someone and the list was
+ * read again (review #322): who isn't on it any more goes, a deleted rating shows so, and every
+ * row the organizer hasn't touched shows what is saved now. Their own edits stay.
+ */
+export function reconcileRows(
+  rows: ParticipantRow[],
+  participants: RatedParticipant[],
+  common: CommonRating,
+): ParticipantRow[] {
+  return participants.map((participant) => {
+    const current = rows.find((row) => row.id === participant.id)
+    if (!current?.isEdited) return rowOf(participant, common)
+    return { ...current, name: participant.name, isDeleted: participant.ratingDeleted }
+  })
 }
 
 /**
@@ -99,18 +137,18 @@ export function savedRows(rows: ParticipantRow[], saved: RatedParticipant[]): Pa
 export const effectiveStars = (row: ParticipantRow, common: CommonRating): number =>
   row.mode === "common" ? common.stars : row.stars
 
+const isSent = (row: ParticipantRow) => !row.isDeleted && !row.isLeftOut
+
 /**
  * What PUT sends (B-060): each participant gets their own rating — never the common one as a
- * rating of the event — with their own comment, or else the common one. Deleted ones are left out.
+ * rating of the event — with their own comment, or else the common one. Deleted and refused ones
+ * are left out.
  */
 export function toInputs(rows: ParticipantRow[], common: CommonRating): ParticipantRatingInput[] {
-  return rows
-    .filter((row) => !row.isDeleted)
-    .map((row) => {
-      const own = row.mode === "own" ? row.comment.trim() : ""
-      const comment = own || common.comment.trim()
-      return { participantId: row.id, stars: effectiveStars(row, common), comment: comment || null }
-    })
+  return rows.filter(isSent).map((row) => {
+    const comment = (row.mode === "own" && row.isCommentOwn ? row.comment : common.comment).trim()
+    return { participantId: row.id, stars: effectiveStars(row, common), comment: comment || null }
+  })
 }
 
 const starsWord = (stars: number): string =>
@@ -119,7 +157,12 @@ const starsWord = (stars: number): string =>
 /** The row's second line (Figma D-05): „Jako všichni“, „Upraveno: 4 hvězdy a vlastní komentář“. */
 export function rowDescription(row: ParticipantRow): string {
   if (row.isDeleted) return "Hodnocení odstranil správce"
+  if (row.isLeftOut) return "Neuloží se"
   if (row.mode === "common") return "Jako všichni"
-  const what = `${starsWord(row.stars)}${row.comment.trim() ? " a vlastní komentář" : ""}`
-  return `${row.isEdited ? "Upraveno" : "Uloženo"}: ${what}`
+  const comment = !row.isCommentOwn
+    ? ""
+    : row.comment.trim()
+      ? " a vlastní komentář"
+      : " bez komentáře"
+  return `${row.isEdited ? "Upraveno" : "Uloženo"}: ${starsWord(row.stars)}${comment}`
 }

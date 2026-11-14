@@ -1,5 +1,5 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query"
-import { screen, within } from "@testing-library/react"
+import { act, screen, within } from "@testing-library/react"
 import userEvent from "@testing-library/user-event"
 import { beforeEach, describe, expect, it, vi } from "vitest"
 
@@ -111,11 +111,12 @@ beforeEach(() => {
   })
 })
 
-const renderPage = (onSaved = vi.fn().mockResolvedValue(undefined)) =>
+const renderPage = (
+  onSaved = vi.fn().mockResolvedValue(undefined),
+  client = new QueryClient({ defaultOptions: { queries: { retry: false } } }),
+) =>
   renderWithRouter(
-    <QueryClientProvider
-      client={new QueryClient({ defaultOptions: { queries: { retry: false } } })}
-    >
+    <QueryClientProvider client={client}>
       <RateEventPage
         eventId="e1"
         viewerId="u-petra"
@@ -316,11 +317,11 @@ describe("/akce/:id/hodnoceni for the organizer (Figma D-05, #66)", () => {
     })
   })
 
-  it("a refusal about one participant shows at their row, and the edits stay", async () => {
+  it("a refusal about one participant: they are left out, the rest can be saved (review #322)", async () => {
     const user = userEvent.setup()
-    api.put.mockReturnValue(
+    api.put.mockReturnValueOnce(
       refused(
-        new FakeHTTPError(403, {
+        new FakeHTTPError(409, {
           code: "NOT_APPROVED",
           message: "Jakub Král už na akci není.",
           participantId: "u-jakub",
@@ -330,15 +331,95 @@ describe("/akce/:id/hodnoceni for the organizer (Figma D-05, #66)", () => {
     await renderPage()
     await screen.findByText("Účastníci (3)")
 
-    const jakub = row("Jakub Král")
-    await user.click(within(jakub).getByRole("radio", { name: "2 z 5 hvězd" }))
+    await user.click(within(row("Lucie Horáková")).getByRole("radio", { name: "2 z 5 hvězd" }))
     await user.click(screen.getByRole("button", { name: "Uložit hodnocení" }))
 
-    expect(await within(row("Jakub Král")).findByRole("alert")).toHaveTextContent(
-      "Jakub Král už na akci není.",
-    )
-    expect(within(row("Jakub Král")).getByText("Upraveno: 2 hvězdy")).toBeInTheDocument()
+    const jakub = row("Jakub Král")
+    expect(await within(jakub).findByRole("alert")).toHaveTextContent("Jakub Král už na akci není.")
+    expect(within(jakub).getByText("Neuloží se")).toBeInTheDocument()
+    // no stars left to carry a stale aria-invalid
+    expect(within(jakub).queryByRole("radiogroup")).not.toBeInTheDocument()
+    // Lucie's edit stays
+    expect(within(row("Lucie Horáková")).getByText(/^Upraveno: 2 hvězdy/)).toBeInTheDocument()
     expect(toast.error).toHaveBeenCalledWith("Jakub Král už na akci není.")
+
+    // the next save goes without him, and goes through
+    serverSaves()
+    await user.click(screen.getByRole("button", { name: "Uložit hodnocení" }))
+    expect(api.put).toHaveBeenLastCalledWith("events/e1/participant-ratings", {
+      json: { ratings: [{ participantId: "u-lucie", stars: 2, comment: "Skvělé nahrávky" }] },
+    })
+    expect(await screen.findByText("Uloženo: 2 hvězdy a vlastní komentář")).toBeInTheDocument()
+  })
+
+  it("the list read again after a refusal: who isn't on it goes, the edits stay", async () => {
+    const user = userEvent.setup()
+    api.put.mockImplementationOnce(() => {
+      // meanwhile Jakub was removed from the event
+      participants = { ...list, participants: list.participants.slice(1) }
+      return refused(
+        new FakeHTTPError(409, {
+          code: "NOT_APPROVED",
+          message: "Jakub Král už na akci není.",
+          participantId: "u-jakub",
+        }),
+      )
+    })
+    await renderPage()
+    await screen.findByText("Účastníci (3)")
+
+    await user.click(within(row("Lucie Horáková")).getByRole("radio", { name: "2 z 5 hvězd" }))
+    await user.click(screen.getByRole("button", { name: "Uložit hodnocení" }))
+
+    expect(await screen.findByText("Účastníci (2)")).toBeInTheDocument()
+    expect(screen.queryByText("Jakub Král")).not.toBeInTheDocument()
+    expect(within(row("Lucie Horáková")).getByText(/^Upraveno: 2 hvězdy/)).toBeInTheDocument()
+  })
+
+  it("another tab saved: the untouched rows show it, the edited ones stay (review #322)", async () => {
+    const user = userEvent.setup()
+    const client = new QueryClient({ defaultOptions: { queries: { retry: false } } })
+    await renderPage(undefined, client)
+    await screen.findByText("Účastníci (3)")
+
+    await user.click(within(row("Jakub Král")).getByRole("radio", { name: "3 z 5 hvězd" }))
+    // tab B saved Lucie anew; this tab reads the list again (focus)
+    participants = {
+      ...list,
+      participants: list.participants.map((one) =>
+        one.id === "u-lucie"
+          ? {
+              ...one,
+              rating: { stars: 2, comment: "Z jiného tabu", updatedAt: "2026-10-22T08:00:00.000Z" },
+            }
+          : one,
+      ),
+    }
+    await act(() => client.invalidateQueries())
+
+    const lucie = row("Lucie Horáková")
+    expect(
+      await within(lucie).findByText("Uloženo: 2 hvězdy a vlastní komentář"),
+    ).toBeInTheDocument()
+    expect(within(lucie).getByRole("textbox")).toHaveValue("Z jiného tabu")
+    expect(within(row("Jakub Král")).getByText("Upraveno: 3 hvězdy")).toBeInTheDocument()
+  })
+
+  it("a row's own comment error goes once the comment is fixed", async () => {
+    const user = userEvent.setup()
+    await renderPage()
+    await screen.findByText("Účastníci (3)")
+
+    const comment = within(row("Lucie Horáková")).getByLabelText("Vlastní komentář (nepovinné)")
+    await user.click(comment)
+    await user.paste("a".repeat(501))
+    await user.click(screen.getByRole("button", { name: "Uložit hodnocení" }))
+    expect(comment).toHaveAttribute("aria-invalid", "true")
+
+    await user.clear(comment)
+    await user.type(comment, "Kratší")
+    expect(comment).toHaveAttribute("aria-invalid", "false")
+    expect(screen.queryByText("Komentář může mít nejvýš 500 znaků")).not.toBeInTheDocument()
   })
 
   it("a comment over 500 characters isn't sent", async () => {

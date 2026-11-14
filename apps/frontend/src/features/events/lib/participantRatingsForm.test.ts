@@ -3,8 +3,10 @@ import { describe, expect, it } from "vitest"
 import {
   effectiveStars,
   initialForm,
+  reconcileRows,
   rowDescription,
   savedRows,
+  snapshotKey,
   toInputs,
   type ParticipantRow,
 } from "./participantRatingsForm"
@@ -124,21 +126,74 @@ describe("the organizer's rating form (Figma D-05, #66)", () => {
     ])
   })
 
+  it("a rating saved without a comment never gets the common one (review #322)", () => {
+    // A and B got the common „Super“, C the same stars and no comment
+    const { common, rows } = initialForm([
+      person("a", rated(4, "Super")),
+      person("b", rated(4, "Super")),
+      person("c", rated(4, null)),
+    ])
+    expect(common).toEqual({ stars: 4, comment: "Super" })
+    expect(rows.map(rowDescription)).toEqual([
+      "Jako všichni",
+      "Jako všichni",
+      "Uloženo: 4 hvězdy bez komentáře",
+    ])
+    // the organizer changes only A and saves: C stays without a comment
+    const edited = rows.map((row) =>
+      row.id === "a" ? { ...row, mode: "own" as const, stars: 5, isEdited: true } : row,
+    )
+    expect(toInputs(edited, common)).toEqual([
+      { participantId: "a", stars: 5, comment: "Super" },
+      { participantId: "b", stars: 4, comment: "Super" },
+      { participantId: "c", stars: 4, comment: null },
+    ])
+  })
+
+  it("a participant the API refused isn't sent again", () => {
+    const { rows } = initialForm(participants)
+    const refused = rows.map((row) => (row.id === "u-jakub" ? { ...row, isLeftOut: true } : row))
+    expect(toInputs(refused, common).map((input) => input.participantId)).toEqual(["u-lucie"])
+    expect(rowDescription(refused[0]!)).toBe("Neuloží se")
+  })
+
+  it("a fresh list: untouched rows show what is saved now, edits stay, who left goes", () => {
+    const { rows } = initialForm(participants)
+    const edited = rows.map((row) =>
+      row.id === "u-jakub" ? { ...row, mode: "own" as const, stars: 2, isEdited: true } : row,
+    )
+    const fresh = [
+      { ...participants[0]!, rating: rated(3, null) },
+      { ...participants[1]!, rating: rated(5, "Jiný tab") },
+    ]
+    expect(snapshotKey(fresh)).not.toBe(snapshotKey(participants))
+    const next = reconcileRows(edited, fresh, common)
+    expect(next.map((row) => [row.id, row.stars, row.comment, row.isEdited])).toEqual([
+      ["u-jakub", 2, "", true],
+      ["u-lucie", 5, "Jiný tab", false],
+    ])
+  })
+
   it("„Upraveno“ names the stars in Czech", () => {
     const row: ParticipantRow = {
       id: "u",
       name: "U",
       isDeleted: false,
+      isLeftOut: false,
       mode: "own",
       stars: 1,
       comment: "",
+      isCommentOwn: false,
       isCommentOpen: false,
       isEdited: true,
     }
     expect(rowDescription(row)).toBe("Upraveno: 1 hvězda")
     expect(rowDescription({ ...row, stars: 3 })).toBe("Upraveno: 3 hvězdy")
-    expect(rowDescription({ ...row, stars: 5, comment: "Díky" })).toBe(
+    expect(rowDescription({ ...row, stars: 5, comment: "Díky", isCommentOwn: true })).toBe(
       "Upraveno: 5 hvězd a vlastní komentář",
+    )
+    expect(rowDescription({ ...row, stars: 4, isCommentOwn: true })).toBe(
+      "Upraveno: 4 hvězdy bez komentáře",
     )
   })
 })
