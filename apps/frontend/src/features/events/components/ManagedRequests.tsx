@@ -1,23 +1,15 @@
-import { useId, useState } from "react"
-import { Check, Loader2, RefreshCw, X } from "lucide-react"
+import { useId, useRef, useState } from "react"
+import { Check, RefreshCw, X } from "lucide-react"
 
 import { PersonRow } from "@/components/PersonRow/PersonRow"
+import { formatRequestTime } from "@/components/RequestDecision/formatRequestTime"
+import { RejectRequestDialog } from "@/components/RequestDecision/RejectRequestDialog"
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 import { Button } from "@/components/ui/button"
-import {
-  Dialog,
-  DialogClose,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog"
 import { Skeleton } from "@/components/ui/skeleton"
 import { cn } from "@/lib/utils"
 
 import type { EventRequest } from "@/features/events/api/eventSchemas"
-import { formatRequestTime } from "@/features/events/lib/formatEvent"
 
 type ManagedRequestsProps = {
   /** undefined until they load */
@@ -60,10 +52,14 @@ export function ManagedRequests({
   // kept after closing, so the dialog's text doesn't vanish while it fades out
   const [rejecting, setRejecting] = useState<EventRequest | null>(null)
   const [isRejectOpen, setIsRejectOpen] = useState(false)
+  // the focus comes back here after a rejection: the rejected row is gone (review #318)
+  const sectionRef = useRef<HTMLElement>(null)
   return (
     <section
+      ref={sectionRef}
+      tabIndex={-1}
       aria-labelledby={headingId}
-      className="flex flex-col gap-3"
+      className="flex flex-col gap-3 outline-none"
     >
       <h2
         id={headingId}
@@ -170,53 +166,15 @@ export function ManagedRequests({
           </ul>
         </>
       )}
-      <Dialog
-        open={isRejectOpen}
-        onOpenChange={(isNowOpen) => {
-          // while the rejection is on its way, Esc, a click outside and the ✕ wait for
-          // the answer: closing would hide whether it went through (review #262)
-          if (!isNowOpen && isDeciding) return
-          setIsRejectOpen(isNowOpen)
-        }}
-      >
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Zamítnout žádost?</DialogTitle>
-            <DialogDescription>
-              {/* what ParticipationAction shows them; no e-mail goes out yet (#177) */}
-              {rejecting?.name} uvidí na detailu akce, že žádost byla zamítnuta, a novou na tuhle
-              akci už poslat nepůjde.
-            </DialogDescription>
-          </DialogHeader>
-          <DialogFooter>
-            <DialogClose asChild>
-              <Button
-                variant="outline"
-                disabled={isDeciding}
-              >
-                Zpět
-              </Button>
-            </DialogClose>
-            <Button
-              variant="destructive"
-              // a second rejection while the first is on its way would only fail
-              disabled={isDeciding}
-              onClick={async () => {
-                if (!rejecting) return
-                try {
-                  await onDecide(rejecting, "reject")
-                  setIsRejectOpen(false)
-                } catch {
-                  // the page's toast says why; the dialog stays to try again
-                }
-              }}
-            >
-              {isDeciding ? <Loader2 className="size-4 animate-spin" /> : null}
-              Zamítnout
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+      <RejectRequestDialog
+        isOpen={isRejectOpen}
+        onOpenChange={setIsRejectOpen}
+        isPending={isDeciding}
+        fallbackFocusRef={sectionRef}
+        // what ParticipationAction shows them; no e-mail goes out yet (#177)
+        description={`${rejecting?.name ?? ""} uvidí na detailu akce, že žádost byla zamítnuta, a novou na tuhle akci už poslat nepůjde.`}
+        onConfirm={() => (rejecting ? onDecide(rejecting, "reject") : Promise.resolve())}
+      />
     </section>
   )
 }

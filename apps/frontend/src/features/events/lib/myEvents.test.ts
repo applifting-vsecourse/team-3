@@ -16,7 +16,6 @@ import {
   organizingSections,
   organizingStatus,
   pendingRequestsSummary,
-  requestCountLabel,
 } from "./myEvents"
 
 describe("attendingSections", () => {
@@ -89,17 +88,6 @@ describe("attendingStatus", () => {
     expect(attendingStatus(aMyEvent({ status: "cancelled", myParticipation: "pending" }))).toEqual({
       kind: "cancelled",
     })
-  })
-})
-
-describe("requestCountLabel", () => {
-  it.each([
-    [1, "1 žádost"],
-    [2, "2 žádosti"],
-    [4, "4 žádosti"],
-    [5, "5 žádostí"],
-  ])("%i → %s", (count, label) => {
-    expect(requestCountLabel(count)).toBe(label)
   })
 })
 

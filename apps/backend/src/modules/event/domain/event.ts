@@ -134,7 +134,8 @@ export type GroupEvents = { upcoming: GroupEvent[]; past: GroupEvent[] };
  * Tabs of „Moje akce“ (B-035). `past` (Proběhlé) comes with #61; under
  * `organizing` are the events of the groups I'm an admin of too (B-055).
  */
-export const MY_EVENTS_TABS = ['attending', 'organizing'] as const;
+/** `groups`: Moje › Akce › Z mých skupin (#304), events of my groups I don't go to yet. */
+export const MY_EVENTS_TABS = ['attending', 'organizing', 'groups'] as const;
 export type MyEventsTab = (typeof MY_EVENTS_TABS)[number];
 
 /** An event in „Moje akce“: with the user's own place in it. */

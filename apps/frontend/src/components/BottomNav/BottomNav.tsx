@@ -1,6 +1,6 @@
 import type { ReactNode } from "react"
 import { Link, useLocation, type LinkProps } from "@tanstack/react-router"
-import { Calendar, List, LogIn, User, Users } from "lucide-react"
+import { Bookmark, List, LogIn, User, Users } from "lucide-react"
 
 import { ROUTES } from "@/app/routes"
 import { navSection, type NavSection } from "@/components/navSection"
@@ -17,7 +17,8 @@ type BottomNavProps = {
 /**
  * Mobile navigation (Figma: Nav/Bottom). The map is part of /akce, not a
  * separate item. A visitor gets Akce, Skupiny, Přihlásit; a signed-in user
- * Akce, Skupiny, Moje akce, Profil.
+ * Akce, Skupiny, Moje, Profil. Moje holds events and groups (#304), so its icon is a
+ * bookmark, not the calendar of Moje akce.
  */
 export function BottomNav({ isSignedIn, isSessionPending }: BottomNavProps) {
   return (
@@ -44,11 +45,11 @@ export function BottomNav({ isSignedIn, isSessionPending }: BottomNavProps) {
       ) : isSignedIn ? (
         <>
           <BottomNavLink
-            to={ROUTES.myEvents}
-            section="myEvents"
-            icon={<Calendar className="size-5" />}
+            to={ROUTES.my}
+            section="my"
+            icon={<Bookmark className="size-5" />}
           >
-            Moje akce
+            Moje
           </BottomNavLink>
           <BottomNavLink
             to={ROUTES.profile}

@@ -63,7 +63,8 @@ export function OccupancyFilter({ search, onChange }: OccupancyFilterProps) {
           {label ?? "Obsazenost"}
         </FilterChip>
       }
-      resetLabel="Všechny"
+      // not „Všechny“: the first option above says the same and it didn't read as a way out
+      resetLabel="Zrušit obsazenost"
       onReset={() => apply("")}
       applyLabel={showEventsLabel(preview.isPlaceholderData ? undefined : preview.events?.length)}
       onApply={() => apply(draft)}

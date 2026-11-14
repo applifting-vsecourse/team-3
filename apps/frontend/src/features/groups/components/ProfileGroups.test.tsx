@@ -24,6 +24,7 @@ const volleyball: MyGroup = {
   locality: { id: "l", slug: "praha-7", name: "Praha 7" },
   memberCount: 6,
   membership: { role: "admin", status: "active" },
+  pendingRequests: null,
 }
 
 const show = () =>

@@ -138,19 +138,27 @@ export function PageBand({
           {description}
         </p>
       ) : null}
-      {children}
+      {isHero ? (
+        // the ring hangs under the buttons, wherever the panel beside them puts them
+        <div className="relative">
+          {children}
+          <HeroMotif />
+        </div>
+      ) : (
+        children
+      )}
     </>
   )
 
   return (
     <div
       className={cn(
-        "relative overflow-hidden border-b border-hero on-hero",
+        // isolate: the landing page's motif sits behind the content (-z-10), not behind the band
+        "relative isolate overflow-hidden border-b border-hero on-hero",
         isPlainOnMobile && "max-md:border-b-0 max-md:bg-background",
       )}
     >
       {isSection || isDetail ? <LogoMotif isAboveTabs={hasTabs && isMotifAboveTabs} /> : null}
-      {isHero ? <HeroMotif /> : null}
       {/* a phone has the corner motif on the landing page too (Figma A-01 › Motiv loga (návrh 16)) */}
       {/* the landing page keeps it until its big motif shows (lg), the detail until md (review #263) */}
       {isDetail || isHero ? <CornerMotif isUntilLg={isHero} /> : null}
@@ -196,15 +204,24 @@ export function PageBand({
  * Motiv loga (vychází zespodu)): the faint dots behind the title, the lime ring's arc under the
  * buttons — the panel takes the right side. From lg, where the panel stands beside the title.
  * Decoration — hidden from assistive tech.
+ *
+ * Anchored to the buttons, not to the band's bottom: the panel beside them sets the band's
+ * height, so a ring hung from the bottom ran through „Zaregistrovat se“ at some widths, and one
+ * at the screen's left edge through „Prohlédnout akce“ once the content moved right (#324).
+ * As in Figma A-01d: the ring's top 5 px under the buttons (its outer edge is at y 510 of the
+ * drawing), its left 160 px right of where the content starts (x 280 of the drawing). The
+ * drawing goes on to the ring's bottom and past its left edge; the band cuts it wherever it ends.
  */
 function HeroMotif() {
   return (
     <svg
       aria-hidden="true"
-      viewBox="0 0 700 630"
+      viewBox="0 0 700 930"
       width={700}
-      height={630}
-      className="pointer-events-none absolute bottom-0 left-0 hidden lg:block"
+      height={930}
+      // overflow-visible: the circles go on past the drawing's left edge, the band cuts them at
+      // the screen's edge — never a straight cut in the middle of a wide screen
+      className="pointer-events-none absolute top-[calc(100%-505px)] -left-30 -z-10 hidden overflow-visible lg:block"
     >
       <circle
         cx="30"

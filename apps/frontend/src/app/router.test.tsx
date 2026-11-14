@@ -85,7 +85,7 @@ describe("router", () => {
   // inside the signed-in layout the 404 would get that layout's header on top of its own
   it("an unknown address under a signed-in page has the header once", async () => {
     stubApi()
-    await renderApp("/moje-akce/neco", { isSignedIn: true })
+    await renderApp("/moje/neco", { isSignedIn: true })
 
     expect(
       await screen.findByRole("heading", { level: 1, name: "Stránka nenalezena" }),
@@ -140,7 +140,8 @@ describe("router", () => {
       const app = await renderApp(`/email-overen?from=${encodeURIComponent("/moje-akce")}`)
 
       expect(await screen.findByRole("dialog", { name: "E-mail je ověřený" })).toBeInTheDocument()
-      expect(app.state.location.href).toBe("/login?from=%2Fmoje-akce")
+      // the old address of Moje akce leads to its new one, the dialog along (#304)
+      expect(app.state.location.href).toBe("/login?from=%2Fmoje%2Fakce")
     })
 
     it("the same with an old link, `from` encoded twice", async () => {

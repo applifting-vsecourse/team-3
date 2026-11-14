@@ -1,132 +1,167 @@
-import { useId } from "react"
-import { useQuery } from "@tanstack/react-query"
+import { useId, type ReactNode } from "react"
 import { Link } from "@tanstack/react-router"
-import { RefreshCw } from "lucide-react"
+import { Info, RefreshCw } from "lucide-react"
 
 import { ROUTES } from "@/app/routes"
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 import { Button } from "@/components/ui/button"
 
 import type { MyGroup } from "@/features/groups/api/groupSchemas"
-import { myGroupsQueryOptions } from "@/features/groups/api/groupsQueryOptions"
 import { GroupCard } from "@/features/groups/components/GroupCard"
 import { GROUP_GRID, GroupCardSkeleton } from "@/features/groups/components/GroupList"
-import { myGroupTypeLabel } from "@/features/groups/lib/formatGroup"
+import type { MyGroupsQuery } from "@/features/groups/hooks/useMyGroups"
+import {
+  membershipRequestsSummary,
+  MY_GROUP_TYPE,
+  runningFacts,
+} from "@/features/groups/lib/myGroups"
 
 /**
- * „Moje“ on /skupiny (Figma A-07m, A-07md; B-056): my requests waiting for
- * approval on top, then the groups I run and the groups I am a member of,
- * like Moje akce (C-01). No filters here, all my groups show. A group I run
- * opens its management.
+ * Moje › Skupiny › Jsem členem (Figma C-04, C-04d; #304), as Přihlášen in Moje › Akce: my
+ * requests waiting for an admin on top, with the same badge as a request for an event, then
+ * the groups I am a member of. A card opens the group's page.
  */
-export function MyGroups({ viewerId }: { viewerId: string }) {
-  const query = useQuery(myGroupsQueryOptions(viewerId))
+export function MemberGroups({ groups: { sections, error, retry } }: { groups: MyGroupsQuery }) {
+  if (error) return <MyGroupsError onRetry={retry} />
+  if (!sections) return <MyGroupsLoading />
 
-  if (query.error) {
-    return (
-      <Alert variant="destructive">
-        <AlertTitle>Skupiny se nepodařilo načíst</AlertTitle>
-        <AlertDescription className="flex items-center justify-between gap-3">
-          <span>Zkontroluj připojení a zkus to znovu.</span>
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => void query.refetch()}
-          >
-            <RefreshCw className="size-4" />
-            Zkusit znovu
-          </Button>
-        </AlertDescription>
-      </Alert>
-    )
-  }
-
-  if (!query.data) {
-    return (
-      <div
-        className={GROUP_GRID}
-        aria-busy
-        aria-label="Načítám moje skupiny"
-      >
-        {[0, 1, 2].map((i) => (
-          <GroupCardSkeleton key={i} />
-        ))}
-      </div>
-    )
-  }
-
-  const pending = query.data.filter((group) => group.membership.status === "pending")
-  const active = query.data.filter((group) => group.membership.status === "active")
-  const running = active.filter((group) => group.membership.role === "admin")
-  const joined = active.filter((group) => group.membership.role === "member")
-
-  if (query.data.length === 0) {
-    return (
-      <div className="flex flex-col items-center gap-4 py-8 text-center text-sm text-muted-foreground">
-        <p>Zatím nejsi v žádné skupině. Najdi partu, se kterou se budete potkávat pravidelně.</p>
-        <Button
-          asChild
-          variant="outline"
-        >
-          <Link to={ROUTES.groups}>Projít všechny skupiny</Link>
-        </Button>
-      </div>
-    )
-  }
-
+  const { pending, joined } = sections
   return (
     <div className="flex flex-col gap-6">
-      {pending.length > 0 ? (
-        <MyGroupsSection
-          title={`Čeká na schválení (${pending.length})`}
-          groups={pending}
-        />
+      {pending.length + joined.length === 0 ? (
+        <MyGroupsEmpty>
+          <p>Zatím nejsi v žádné skupině. Najdi partu, se kterou se budete potkávat pravidelně.</p>
+          <Button
+            asChild
+            variant="outline"
+          >
+            <Link to={ROUTES.groups}>Projít všechny skupiny</Link>
+          </Button>
+        </MyGroupsEmpty>
       ) : null}
-      {running.length > 0 ? (
-        <MyGroupsSection
-          title={`Spravuju (${running.length})`}
-          groups={running}
-        />
-      ) : null}
-      {joined.length > 0 ? (
-        <MyGroupsSection
-          title={`Jsem členem (${joined.length})`}
-          groups={joined}
-        />
-      ) : null}
+      <MyGroupsSection
+        title="Čeká na schválení"
+        groups={pending}
+      />
+      <MyGroupsSection
+        title="Jsem členem"
+        groups={joined}
+      />
     </div>
   )
 }
 
+/**
+ * Moje › Skupiny › Spravuju (Figma C-05, C-05d; #304), as Pořádám in Moje › Akce: the strip
+ * on top sums up the requests to decide, a card says how many wait and opens the group's
+ * management, where they are decided as an event's requests. „Založit skupinu“ is the page's.
+ */
+export function RunningGroups({ groups: { sections, error, retry } }: { groups: MyGroupsQuery }) {
+  if (error) return <MyGroupsError onRetry={retry} />
+  if (!sections) return <MyGroupsLoading />
+
+  const summary = membershipRequestsSummary(sections.running)
+  return (
+    <div className="flex flex-col gap-6">
+      {sections.running.length === 0 ? (
+        // Hlas aplikace; „Založit skupinu“ is right there, in the band or floating
+        <MyGroupsEmpty>
+          <p>Zatím nespravuješ žádnou skupinu. Založ ji a parta se bude potkávat pravidelně.</p>
+        </MyGroupsEmpty>
+      ) : null}
+      {summary ? (
+        <Alert
+          variant="info"
+          role="status"
+        >
+          <Info />
+          <AlertTitle>{summary.title}</AlertTitle>
+          <AlertDescription>{summary.groups}</AlertDescription>
+        </Alert>
+      ) : null}
+      <MyGroupsSection
+        title="Spravuju"
+        groups={sections.running}
+      />
+    </div>
+  )
+}
+
+/** A section of my groups, left out while empty (C-04, C-05). */
 function MyGroupsSection({ title, groups }: { title: string; groups: MyGroup[] }) {
   const headingId = useId()
+  if (groups.length === 0) return null
   return (
     <section
       aria-labelledby={headingId}
-      className="flex flex-col gap-3"
+      className="flex flex-col gap-3 md:gap-4"
     >
       <h2
         id={headingId}
-        className="text-lg font-semibold tracking-tight"
+        className="type-feature"
       >
-        {title}
+        {`${title} (${groups.length})`}
       </h2>
       <ul className={GROUP_GRID}>
-        {groups.map((group) => (
-          <li key={group.id}>
-            <GroupCard
-              group={group}
-              typeLabel={myGroupTypeLabel(group)}
-              linkTo={
-                group.membership.role === "admin" && group.membership.status === "active"
-                  ? "manage"
-                  : "page"
-              }
-              titleAs="h3"
-            />
-          </li>
-        ))}
+        {groups.map((group) => {
+          const isRunning =
+            group.membership.role === "admin" && group.membership.status === "active"
+          return (
+            <li key={group.id}>
+              <GroupCard
+                group={group}
+                typeLabel={MY_GROUP_TYPE[group.type]}
+                facts={isRunning ? runningFacts(group) : undefined}
+                isRequestPending={group.membership.status === "pending"}
+                linkTo={isRunning ? "manage" : "page"}
+                titleAs="h3"
+              />
+            </li>
+          )
+        })}
       </ul>
     </section>
+  )
+}
+
+/** The cards' places while my groups load. */
+export function MyGroupsLoading() {
+  return (
+    <div
+      className={GROUP_GRID}
+      aria-busy
+      aria-label="Načítám moje skupiny"
+    >
+      {[0, 1, 2].map((i) => (
+        <GroupCardSkeleton key={i} />
+      ))}
+    </div>
+  )
+}
+
+function MyGroupsError({ onRetry }: { onRetry: () => void }) {
+  return (
+    <Alert variant="destructive">
+      <AlertTitle>Skupiny se nepodařilo načíst</AlertTitle>
+      <AlertDescription className="flex items-center justify-between gap-3">
+        <span>Zkontroluj připojení a zkus to znovu.</span>
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={onRetry}
+        >
+          <RefreshCw className="size-4" />
+          Zkusit znovu
+        </Button>
+      </AlertDescription>
+    </Alert>
+  )
+}
+
+function MyGroupsEmpty({ children }: { children: ReactNode }) {
+  return (
+    <div className="flex flex-col items-center gap-4 py-8 text-center text-sm text-muted-foreground">
+      {children}
+    </div>
   )
 }

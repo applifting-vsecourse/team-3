@@ -151,9 +151,15 @@ function EventsPage() {
       replace: true,
     })
   }
-  const canClear =
+  const hasOwnFilters =
     (urlSearch.vyber ? hasFiltersBeyondPick(urlSearch, now) : hasActiveFilters(urlSearch)) ||
     shownLocality.isPicked
+  // only a quick pick is on: its chips light up too, so there must be a way out of it —
+  // „Zrušit rychlý výběr“ goes to „Všechny akce“, the locality and an okolí set by hand stay
+  const isPickOnly = Boolean(urlSearch.vyber) && !hasOwnFilters
+  const canClear = hasOwnFilters || isPickOnly
+  const clear = isPickOnly ? () => selectPick(undefined) : clearFilters
+  const clearLabel = isPickOnly ? "Zrušit rychlý výběr" : undefined
   // the order and the distances need the chosen locality's centre (#57)
   const center = catalog ? localityCenter(search, catalog) : undefined
   const sort = catalog ? effectiveSort(search, catalog) : "termin"
@@ -298,7 +304,8 @@ function EventsPage() {
                   catalog={catalog}
                   onChange={setSearch}
                   onLocalityChange={pickLocality}
-                  onClearAll={canClear ? clearFilters : undefined}
+                  onClearAll={canClear ? clear : undefined}
+                  clearAllLabel={clearLabel}
                   localityDefault={localityDefault(shownLocality, clearLocality, pickLocality)}
                   isFloating={!isDesktop && !isListExpanded}
                   searchControl={isDesktop ? searchField() : undefined}
@@ -327,7 +334,8 @@ function EventsPage() {
                     // desktop: the selected pin's card stays marked in the list (Figma A-03ad)
                     highlightedId={highlightedId ?? selectedEvent?.id}
                     onHighlight={setHighlightedId}
-                    onClearFilters={canClear ? clearFilters : undefined}
+                    onClearFilters={canClear ? clear : undefined}
+                    clearFiltersLabel={clearLabel}
                     sortControl={
                       <SortMenu
                         value={sort}

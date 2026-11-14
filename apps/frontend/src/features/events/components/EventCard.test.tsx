@@ -150,6 +150,30 @@ describe("EventCard", () => {
     expect(screen.getByText(/· 1,3 km$/)).toBeInTheDocument()
   })
 
+  // Figma Karta akce › Skupina (#304): where it happens, at a glance — in Moje
+  it("in Moje a group's event names its group under the title", async () => {
+    const event = { ...anEvent(), group: { id: "grp", name: "Běžci ze Stromovky" } }
+    await renderWithRouter(
+      <EventCard
+        event={event}
+        variant="grid"
+        isGroupShown
+      />,
+    )
+
+    const group = screen.getByText("Běžci ze Stromovky").closest("p")!
+    expect(group).toHaveTextContent("Skupina: Běžci ze Stromovky")
+    const title = screen.getByRole("heading", { name: event.title })
+    expect(title.compareDocumentPosition(group) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
+  })
+
+  it("elsewhere (/akce, the landing page, the group's page) it leaves the group out", async () => {
+    const event = { ...anEvent(), group: { id: "grp", name: "Běžci ze Stromovky" } }
+    await renderWithRouter(<EventCard event={event} />)
+
+    expect(screen.queryByText("Běžci ze Stromovky")).not.toBeInTheDocument()
+  })
+
   it("never cuts the distance off: only the place before it is truncated (#299)", async () => {
     await renderWithRouter(
       <EventCard

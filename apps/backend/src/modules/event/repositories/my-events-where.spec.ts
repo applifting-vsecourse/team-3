@@ -1,5 +1,6 @@
 import { Prisma } from '@/generated/prisma/client';
 import { eventNotOverWhere } from '@/modules/event/domain/event-over';
+import { NO_NEW_REQUEST_STATUSES } from '@/modules/event/domain/participation';
 import { buildMyEventsWhere } from './my-events-where';
 
 const now = new Date('2026-10-23T08:00:00.000Z');
@@ -54,4 +55,42 @@ describe('buildMyEventsWhere', () => {
       expect(visibility).toEqual(UPCOMING_NOT_HIDDEN);
     },
   );
+});
+
+describe('buildMyEventsWhere › groups (Z mých skupin, #304)', () => {
+  const [when, open, notOwn, mine, notGoing] = buildMyEventsWhere(
+    'groups',
+    'u1',
+    now,
+  ).AND as Prisma.EventWhereInput[];
+
+  it('upcoming published events only: nothing to go to in a cancelled one', () => {
+    expect(when).toEqual({ status: 'published', startsAt: { gt: now } });
+  });
+
+  it('public and members-only, never link-only', () => {
+    expect(open).toEqual({ visibility: { in: ['public', 'members'] } });
+  });
+
+  it('not my own: an organizer who is a plain member now still has it in Pořádám (review #318)', () => {
+    expect(notOwn).toEqual({ organizerUserId: { not: 'u1' } });
+  });
+
+  it("of the active groups I am an active member of; a group I run is Pořádám's", () => {
+    expect(mine).toEqual({
+      group: {
+        status: 'active',
+        members: { some: { userId: 'u1', role: 'member', status: 'active' } },
+      },
+    });
+  });
+
+  // which statuses those are is participation.spec's (NO_NEW_REQUEST_STATUSES, #182)
+  it('only events I can still ask to join: no place, no request, not rejected or removed', () => {
+    expect(notGoing).toEqual({
+      participations: {
+        none: { userId: 'u1', status: { in: NO_NEW_REQUEST_STATUSES } },
+      },
+    });
+  });
 });

@@ -8,6 +8,7 @@ import {
   occupancyCount,
   occupancySummary,
 } from "@/lib/occupancy"
+import { requestCountLabel, requestsWaitingLabel, waitVerb } from "@/lib/requestCount"
 
 import type { MyEvent } from "@/features/events/api/eventSchemas"
 import {
@@ -78,7 +79,7 @@ export type MyEventsTabName = NonNullable<MyEventsSearch["tab"]>
 type TabData = { events?: MyEvent[]; isPending: boolean }
 
 /**
- * The tab `/moje-akce` opens on without `?tab` (#188): Pořádám while requests wait there —
+ * The chip `/moje/akce` opens on without `?tab` (#188, #304): Pořádám while requests wait there —
  * known as soon as Pořádám is, without waiting for Přihlášen — or when there is nothing to go
  * to and something to run; otherwise Přihlášen. Undefined while it can't be told yet. The
  * „nothing“ and „something“ are what the tabs count (cancelled events left out); a tab that
@@ -96,13 +97,6 @@ export function initialMyEventsTab(
   const isOrganizingSomething =
     organizing.events !== undefined && organizingSections(organizing.events).upcoming.length > 0
   return isAttendingNothing && isOrganizingSomething ? "poradam" : "prihlasen"
-}
-
-/** "1 žádost", "2 žádosti", "5 žádostí" */
-export function requestCountLabel(count: number): string {
-  if (count === 1) return "1 žádost"
-  if (count >= 2 && count <= 4) return `${count} žádosti`
-  return `${count} žádostí`
 }
 
 /**
@@ -130,14 +124,10 @@ export function organizingNumbers(event: MyEvent, now: Date = new Date()): strin
   return requests > 0 ? `${occupancy} · ${requestCountLabel(requests)}` : occupancy
 }
 
-/** „2 žádosti čekají“, „1 žádost čeká“, „5 žádostí čeká“ */
-const requestsWaiting = (count: number): string =>
-  `${requestCountLabel(count)} ${count >= 2 && count <= 4 ? "čekají" : "čeká"}`
-
 /** A row card in Pořádám ends with the requests instead of the place: „18:00 · 2 žádosti čekají“ (C-02). */
 export function organizingRowTail(event: MyEvent, now: Date = new Date()): string | undefined {
   const requests = waitingRequests(event, now)
-  return requests > 0 ? requestsWaiting(requests) : undefined
+  return requests > 0 ? requestsWaitingLabel(requests) : undefined
 }
 
 /**
@@ -152,7 +142,7 @@ export function pendingRequestsSummary(
   const total = waiting.reduce((sum, event) => sum + waitingRequests(event, now), 0)
   if (total === 0) return null
   return {
-    title: `${requestsWaiting(total)} na schválení`,
+    title: `${requestsWaitingLabel(total)} na schválení`,
     events: waiting.map((event) => `${event.title} (${waitingRequests(event, now)})`).join(", "),
   }
 }
@@ -186,5 +176,5 @@ export function organizingLine(events: MyEvent[] | undefined, now: Date = new Da
   const line = "Akce, které pořádáš, od nejbližší."
   const total = (events ?? []).reduce((sum, event) => sum + waitingRequests(event, now), 0)
   if (total === 0) return line
-  return `${line} Na schválení ${total >= 2 && total <= 4 ? "čekají" : "čeká"} ${requestCountLabel(total)}.`
+  return `${line} Na schválení ${waitVerb(total)} ${requestCountLabel(total)}.`
 }
