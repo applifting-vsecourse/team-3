@@ -84,6 +84,19 @@ describe("PastEventCard", () => {
     expect(screen.queryByRole("link", { name: "Ohodnotit →" })).not.toBeInTheDocument()
   })
 
+  it("below its minimum but not over yet: it may still fill up, no „Nekonalo se“ (review #322)", async () => {
+    const event = { ...volleyball(), approvedCount: 2, minParticipants: 4 }
+    await renderWithRouter(
+      <PastEventCard
+        event={event}
+        now={new Date(event.startsAt.getTime() - 60 * 60 * 1000)}
+      />,
+    )
+
+    expect(screen.queryByText("Nekonalo se")).not.toBeInTheDocument()
+    expect(screen.queryByText(/Do minima/)).not.toBeInTheDocument()
+  })
+
   it("exactly the minimum took place", async () => {
     await renderWithRouter(
       <PastEventCard event={{ ...volleyball(), approvedCount: 4, minParticipants: 4 }} />,

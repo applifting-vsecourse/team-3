@@ -46,6 +46,7 @@ export const publicProfileSchema = person.extend({
         }),
       }),
       approvedCount: z.number().int().nonnegative(),
+      minParticipants: z.number().int().positive(),
       rating: summary,
     }),
   ),

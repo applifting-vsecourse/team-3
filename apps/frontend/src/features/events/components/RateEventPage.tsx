@@ -143,12 +143,15 @@ function NotRatable({ data, refusal }: { data: MyEventRating; refusal: EventRati
   const given = data.rating
   return (
     <div className="flex flex-col gap-6 md:max-w-xl">
-      <PastEventCard
-        event={data.event}
-        rating={given ? { kind: "given", stars: given.eventStars } : undefined}
-        // the detail: a former member of the group gets a 403 there (review #315)
-        isLinked={false}
-      />
+      {/* before it ends, the past event's card would say how it went (review #322) */}
+      {refusal === "EVENT_NOT_ENDED" ? null : (
+        <PastEventCard
+          event={data.event}
+          rating={given ? { kind: "given", stars: given.eventStars } : undefined}
+          // the detail: a former member of the group gets a 403 there (review #315)
+          isLinked={false}
+        />
+      )}
       <Alert variant="neutral">
         <Info />
         <AlertTitle>{title}</AlertTitle>

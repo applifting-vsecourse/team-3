@@ -31,6 +31,7 @@ const event = (
     name: 'Volejbal',
     category: { id: 'sport', slug: 'sport', name: 'Sport', icon: 'ball' },
   },
+  minParticipants: 2,
   _count: { participations: 3 },
   ...changes,
 });
@@ -153,6 +154,8 @@ describe('public profile privacy (#179)', () => {
       };
       const result = publicProfile(user, [], [], [row], now);
       expect(result.organizedEvents[0].approvedCount).toBe(count);
+      // the card tells an event below its minimum by it (review #322)
+      expect(result.organizedEvents[0].minParticipants).toBe(2);
       expect(JSON.stringify(result.organizedEvents)).not.toMatch(
         /private-participant|private-name|participations|_count/,
       );

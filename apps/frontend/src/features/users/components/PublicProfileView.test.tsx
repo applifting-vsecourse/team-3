@@ -89,6 +89,7 @@ describe("public profile", () => {
                 category: { id: "sport", slug: "sport", name: "Sport", icon: "ball" },
               },
               approvedCount: 3,
+              minParticipants: 2,
               rating: { average: 4, count: 1 },
             },
           ],

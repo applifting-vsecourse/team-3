@@ -123,15 +123,32 @@ export function gatheredLabel(count: number): string {
 }
 
 /**
- * A past event that never reached its minimum (review #269): „Nikdo se nepřihlásil.“, or how
- * many were missing — „Do minima chyběl 1 člověk.“, „chyběli 2 lidé“, „chybělo 5 lidí“.
+ * Below its minimum an event doesn't take place (the detail's missingToMin > 0, the API's
+ * EVENT_NOT_HELD): the one rule for the past card and the rating (review #322).
  */
-export function missedMinimumLabel({
+export const isBelowMinimum = ({
+  approvedCount,
+  minParticipants,
+}: {
+  approvedCount: number
+  minParticipants: number
+}): boolean => approvedCount < minParticipants
+
+/**
+ * A past event that never reached its minimum, as a phrase for a card's line (review #322):
+ * „Nikdo se nepřihlásil“, or how many were missing — „Do minima chyběl 1 člověk“, „chyběli 2
+ * lidé“, „chybělo 5 lidí“. No full stop: the sentence is missedMinimumLabel.
+ */
+export function missedMinimumPhrase({
   approvedCount,
   missingToMin,
 }: Pick<Occupancy, "approvedCount" | "missingToMin">): string {
-  if (approvedCount === 0) return "Nikdo se nepřihlásil."
-  if (missingToMin === 1) return "Do minima chyběl 1 člověk."
-  if (missingToMin >= 2 && missingToMin <= 4) return `Do minima chyběli ${missingToMin} lidé.`
-  return `Do minima chybělo ${missingToMin} lidí.`
+  if (approvedCount === 0) return "Nikdo se nepřihlásil"
+  if (missingToMin === 1) return "Do minima chyběl 1 člověk"
+  if (missingToMin >= 2 && missingToMin <= 4) return `Do minima chyběli ${missingToMin} lidé`
+  return `Do minima chybělo ${missingToMin} lidí`
 }
+
+/** The same as a sentence (review #269): „Do minima chyběl 1 člověk.“ */
+export const missedMinimumLabel = (event: Pick<Occupancy, "approvedCount" | "missingToMin">) =>
+  `${missedMinimumPhrase(event)}.`

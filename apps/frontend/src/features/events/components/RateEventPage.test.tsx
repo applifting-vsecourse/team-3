@@ -236,6 +236,19 @@ describe("/akce/:id/hodnoceni for a participant (Figma C-03, #66)", () => {
     expect(screen.getByRole("link", { name: "Najdi další akci" })).toHaveAttribute("href", "/akce")
   })
 
+  it("before the event ends, no past event's card: below its minimum it may still fill up (review #322)", async () => {
+    answer = {
+      ...fresh,
+      event: { ...event, approvedCount: 2, minParticipants: 4 },
+      refusal: "EVENT_NOT_ENDED",
+    }
+    await renderPage()
+
+    expect(await screen.findByText("Hodnotit půjde, až akce skončí")).toBeInTheDocument()
+    expect(screen.queryByText("Nekonalo se")).not.toBeInTheDocument()
+    expect(screen.queryByText(/Do minima/)).not.toBeInTheDocument()
+  })
+
   it("after the window, the rating given stays to read", async () => {
     answer = { ...given, refusal: "RATING_WINDOW_CLOSED" }
     await renderPage()

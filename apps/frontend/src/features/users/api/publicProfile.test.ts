@@ -71,6 +71,7 @@ describe("public profile API", () => {
             category: { id: "sport", slug: "sport", name: "Sport", icon: "ball" },
           },
           approvedCount,
+          minParticipants: 2,
           rating: { average: null, count: 0 },
         },
       ],

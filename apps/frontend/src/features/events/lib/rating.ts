@@ -1,5 +1,5 @@
 import { inSentence } from "@/lib/inSentence"
-import { gatheredLabel } from "@/lib/occupancy"
+import { gatheredLabel, isBelowMinimum } from "@/lib/occupancy"
 
 import { RATING_WINDOW_DAYS } from "@/features/events/api/ratingSchemas"
 import {
@@ -63,9 +63,7 @@ type HeldEvent = {
 
 /** Over, not cancelled, its minimum reached: participants could rate it (#66). */
 export const tookPlace = (event: HeldEvent, now: Date): boolean =>
-  event.status === "published" &&
-  event.approvedCount >= event.minParticipants &&
-  isEventOver(event, now)
+  event.status === "published" && !isBelowMinimum(event) && isEventOver(event, now)
 
 /**
  * Whether to offer „Ohodnotit účastníky“ (D-05, #66): the API's rules for the organizer — the
