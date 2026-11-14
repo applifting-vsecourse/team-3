@@ -150,11 +150,11 @@ function EventsPage() {
     (urlSearch.vyber ? hasFiltersBeyondPick(urlSearch, now) : hasActiveFilters(urlSearch)) ||
     shownLocality.isPicked
   // only a quick pick is on: its chips light up too, so there must be a way out of it —
-  // „Zrušit výběr“ goes to „Všechny akce“, the locality and okolí stay
+  // „Zrušit rychlý výběr“ goes to „Všechny akce“, the locality and an okolí set by hand stay
   const isPickOnly = Boolean(urlSearch.vyber) && !hasOwnFilters
   const canClear = hasOwnFilters || isPickOnly
   const clear = isPickOnly ? () => selectPick(undefined) : clearFilters
-  const clearLabel = isPickOnly ? "Zrušit výběr" : undefined
+  const clearLabel = isPickOnly ? "Zrušit rychlý výběr" : undefined
   // the order and the distances need the chosen locality's centre (#57)
   const center = catalog ? localityCenter(search, catalog) : undefined
   const sort = catalog ? effectiveSort(search, catalog) : "termin"

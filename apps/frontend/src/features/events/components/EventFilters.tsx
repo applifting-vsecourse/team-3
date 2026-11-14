@@ -28,7 +28,7 @@ type EventFiltersProps = {
   onLocalityChange?: (slug: string, radius?: Radius) => void
   /** „Zrušit vše“; only when something was picked (a default locality isn't) or a quick pick is on. */
   onClearAll?: () => void
-  /** Its label; „Zrušit výběr“ when only a quick pick is on. */
+  /** Its label; „Zrušit rychlý výběr“ when only a quick pick is on. */
   clearAllLabel?: string
   /** The visitor's default locality on the chip (#55). */
   localityDefault?: LocalityDefault
