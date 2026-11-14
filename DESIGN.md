@@ -48,6 +48,8 @@ There is no `band-edge` or `accent-bar` (they existed for dark mode only): the b
 
 The page sets `color-scheme: light`, so native scrollbars and form controls stay light even when the system is set to dark.
 
+The page always shows its scrollbar (`overflow-y: scroll` on `html`, #319), and an open dialog, menu or select leaves it visible, so switching pages never shifts the centred layout. A full-height layout with its own inner scroll will therefore show two scrollbars side by side on Windows — account for that before adding one.
+
 **Kit aliases.** The vendored kit reads shadcn's own names; `global.css` keeps them and points them at the tokens above, so the kit restyles without edits: `input` = `input-border`, `popover` = `card`, `card-foreground` = `popover-foreground` = `foreground`, `accent` / `accent-foreground` = `muted` / `foreground` (hover in buttons, menus, selects, the calendar, and the active row of a list); `destructive-hover` is mixed from `destructive`. Both `muted` (the Detail row's icon box, empty bars, banners) and `accent` must stay visible on a card: tokens.test.ts wants at least 1.25:1 on `card`. They are part of the contract — never delete them as unused.
 
 Tokens under `color/_archiv/*` in Figma belong to archived screens only — do not add them to `global.css`.

@@ -340,7 +340,8 @@
   /* A Radix dialog, menu or select locks the page (react-remove-scroll-bar): it hides the body's
      overflow and pads the body by the scrollbar's width so nothing moves. With html scrolling
      itself the scrollbar stays, so that padding would only narrow the page and move the header
-     by half a scrollbar (review #320) — it is taken back. Wheel and touch stay blocked. */
+     by half a scrollbar (review #320) — it is taken back. Wheel and touch stay blocked, but on a
+     long page dragging the scrollbar or the keyboard can still scroll the page under the dialog. */
   html body[data-scroll-locked] {
     margin-right: 0 !important;
   }
