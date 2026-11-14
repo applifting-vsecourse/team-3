@@ -5,6 +5,11 @@ import { beforeEach, describe, expect, it, vi } from "vitest"
 
 import { renderWithRouter } from "@/test/renderWithRouter"
 
+import { eventDetailSchema } from "@/features/events/api/eventSchemas"
+import { eventKeys } from "@/features/events/api/eventsQueryOptions"
+import { ratingKeys } from "@/features/events/api/ratingQueryOptions"
+import { participantRatingsSchema } from "@/features/events/api/ratingSchemas"
+
 import { RateParticipantsPage } from "./RateParticipantsPage"
 
 const { api, toast, FakeHTTPError } = vi.hoisted(() => {
@@ -114,8 +119,19 @@ beforeEach(() => {
 const renderPage = (
   onSaved = vi.fn().mockResolvedValue(undefined),
   client = new QueryClient({ defaultOptions: { queries: { retry: false } } }),
-) =>
-  renderWithRouter(
+  { isLoaded = true } = {},
+) => {
+  // The page as it opens with its data (re-review #322): a test about the form doesn't race the
+  // first load against findBy's one second, which a cold start on a slow machine overran. The
+  // loading itself has its own tests (isLoaded: false, and every refusal or error).
+  if (isLoaded && !(participants instanceof Error)) {
+    client.setQueryData(eventKeys.detail("e1", "u-petra"), eventDetailSchema.parse(detail))
+    client.setQueryData(
+      ratingKeys.participants("e1", "u-petra"),
+      participantRatingsSchema.parse(participants),
+    )
+  }
+  return renderWithRouter(
     <QueryClientProvider client={client}>
       <RateParticipantsPage
         eventId="e1"
@@ -124,6 +140,7 @@ const renderPage = (
       />
     </QueryClientProvider>,
   )
+}
 
 type Saved = { participantId: string; stars: number; comment: string | null }
 
@@ -150,11 +167,18 @@ const serverSaves = () =>
     return asJson(participants)
   })
 
+// Text goes in at once: the tests are about what the form does with it, not about each key,
+// which re-renders the whole form and made the slowest tests time out under load (re-review #322)
+const fill = async (user: ReturnType<typeof userEvent.setup>, field: HTMLElement, text: string) => {
+  await user.click(field)
+  await user.paste(text)
+}
+
 const row = (name: string) =>
   screen.getByText(name, { selector: "a, p, span:not(.sr-only)" }).closest("li")!
 
 describe("/akce/:id/hodnoceni for the organizer (Figma D-05, #66)", () => {
-  it("after saving and coming back, who got no comment of their own is still „Jako všichni“ (review #322)", async () => {
+  it("after saving, who got no comment of their own is still „Jako všichni“ (review #322)", async () => {
     const user = userEvent.setup()
     participants = {
       ...list,
@@ -165,13 +189,13 @@ describe("/akce/:id/hodnoceni for the organizer (Figma D-05, #66)", () => {
       ],
     }
     serverSaves()
-    const first = await renderPage()
+    await renderPage()
     await screen.findByText("Účastníci (3)")
 
-    await user.type(screen.getByLabelText("Komentář pro všechny (nepovinné)"), "Díky za hru!")
+    await fill(user, screen.getByLabelText("Komentář pro všechny (nepovinné)"), "Díky za hru!")
     await user.click(screen.getByRole("button", { name: "Uložit hodnocení" }))
-    await screen.findByText("Uložit hodnocení")
-    expect(toast.success).toHaveBeenCalled()
+    // the outcome itself, not the button that is there all along
+    await vi.waitFor(() => expect(toast.success).toHaveBeenCalled())
 
     // after saving: the common comment isn't theirs
     for (const name of ["Jakub Král", "Martin Černý"]) {
@@ -181,9 +205,19 @@ describe("/akce/:id/hodnoceni for the organizer (Figma D-05, #66)", () => {
     expect(
       within(row("Lucie Horáková")).getByText("Uloženo: 4 hvězdy a vlastní komentář"),
     ).toBeInTheDocument()
+  })
 
-    // coming back: „Všem stejně“ is read back from what was saved
-    first.unmount()
+  it("coming back: „Všem stejně“ is read back, a new common comment reaches them (review #322)", async () => {
+    const user = userEvent.setup()
+    const saved = { stars: 5, comment: "Díky za hru!", updatedAt: "2026-10-21T08:00:00.000Z" }
+    participants = {
+      ...list,
+      participants: [
+        { id: "u-jakub", name: "Jakub Král", rating: saved, ratingDeleted: false },
+        { id: "u-martin", name: "Martin Černý", rating: saved, ratingDeleted: false },
+        list.participants[1],
+      ],
+    }
     await renderPage()
     await screen.findByText("Účastníci (3)")
     expect(screen.getByLabelText("Komentář pro všechny (nepovinné)")).toHaveValue("Díky za hru!")
@@ -194,7 +228,7 @@ describe("/akce/:id/hodnoceni for the organizer (Figma D-05, #66)", () => {
     // a new common comment reaches them again, not Lucie with her own
     const comment = screen.getByLabelText("Komentář pro všechny (nepovinné)")
     await user.clear(comment)
-    await user.type(comment, "Příště zase!")
+    await fill(user, comment, "Příště zase!")
     await user.click(screen.getByRole("button", { name: "Uložit hodnocení" }))
     expect(api.put).toHaveBeenLastCalledWith("events/e1/participant-ratings", {
       json: {
@@ -207,8 +241,8 @@ describe("/akce/:id/hodnoceni for the organizer (Figma D-05, #66)", () => {
     })
   })
 
-  it("403 OWN_EVENT leads to the participants: band, „Všem stejně“, one row each", async () => {
-    await renderPage()
+  it("loads the event and the participants: band, „Všem stejně“, one row each", async () => {
+    await renderPage(undefined, undefined, { isLoaded: false })
 
     expect(
       await screen.findByRole("heading", { level: 1, name: "Ohodnoť účastníky" }),
@@ -252,7 +286,7 @@ describe("/akce/:id/hodnoceni for the organizer (Figma D-05, #66)", () => {
 
     const common = screen.getByRole("radiogroup", { name: "Všem stejně" })
     await user.click(within(common).getByRole("radio", { name: "4 z 5 hvězd" }))
-    await user.type(screen.getByLabelText("Komentář pro všechny (nepovinné)"), "Díky za hru!")
+    await fill(user, screen.getByLabelText("Komentář pro všechny (nepovinné)"), "Díky za hru!")
     // Jakub follows the common rating; his stars show it
     const jakub = row("Jakub Král")
     expect(within(jakub).getByRole("radio", { name: "4 z 5 hvězd" })).toBeChecked()
@@ -303,7 +337,7 @@ describe("/akce/:id/hodnoceni for the organizer (Figma D-05, #66)", () => {
 
     const jakub = row("Jakub Král")
     await user.click(within(jakub).getByRole("button", { name: "Přidat vlastní komentář" }))
-    await user.type(within(jakub).getByLabelText("Vlastní komentář (nepovinné)"), "Super smeče")
+    await fill(user, within(jakub).getByLabelText("Vlastní komentář (nepovinné)"), "Super smeče")
     expect(within(jakub).getByText("Upraveno: 5 hvězd a vlastní komentář")).toBeInTheDocument()
 
     await user.click(screen.getByRole("button", { name: "Uložit hodnocení" }))
@@ -417,7 +451,7 @@ describe("/akce/:id/hodnoceni for the organizer (Figma D-05, #66)", () => {
     expect(comment).toHaveAttribute("aria-invalid", "true")
 
     await user.clear(comment)
-    await user.type(comment, "Kratší")
+    await fill(user, comment, "Kratší")
     expect(comment).toHaveAttribute("aria-invalid", "false")
     expect(screen.queryByText("Komentář může mít nejvýš 500 znaků")).not.toBeInTheDocument()
   })
@@ -434,8 +468,9 @@ describe("/akce/:id/hodnoceni for the organizer (Figma D-05, #66)", () => {
 
     await user.click(screen.getByRole("button", { name: "Uložit hodnocení" }))
 
-    expect(await screen.findByText("Uložit hodnocení")).toBeInTheDocument()
-    expect(toast.success).toHaveBeenCalledWith("Hodnocení účastníků je uložené")
+    await vi.waitFor(() =>
+      expect(toast.success).toHaveBeenCalledWith("Hodnocení účastníků je uložené"),
+    )
     expect(toast.error).not.toHaveBeenCalled()
     await vi.waitFor(() => expect(reads()).toBeGreaterThan(before))
     error.mockRestore()
@@ -454,7 +489,7 @@ describe("/akce/:id/hodnoceni for the organizer (Figma D-05, #66)", () => {
     await renderPage()
     await screen.findByText("Účastníci (2)")
 
-    await user.type(screen.getByLabelText("Komentář pro všechny (nepovinné)"), "Super akce!{Enter}")
+    await fill(user, screen.getByLabelText("Komentář pro všechny (nepovinné)"), "Super akce!\n")
     await user.click(screen.getByRole("button", { name: "Uložit hodnocení" }))
     expect(api.put).toHaveBeenCalledWith("events/e1/participant-ratings", {
       json: {

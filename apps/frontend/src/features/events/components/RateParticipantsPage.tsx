@@ -1,4 +1,4 @@
-import { useId, useState } from "react"
+import { memo, useCallback, useId, useState } from "react"
 import { useQuery } from "@tanstack/react-query"
 import { Link } from "@tanstack/react-router"
 import { Info, Loader2 } from "lucide-react"
@@ -182,11 +182,36 @@ function RateParticipantsForm({
   const commonCommentId = useId()
   const commonHintId = useId()
 
-  const update = (id: string, change: (row: ParticipantRow) => ParticipantRow) => {
+  // stable, so a row re-renders only when it changes: typing the common comment doesn't redraw
+  // every participant (up to the event's maximum) on each key (re-review #322)
+  const update = useCallback((id: string, change: (row: ParticipantRow) => ParticipantRow) => {
     setRows((current) => current.map((row) => (row.id === id ? change(row) : row)))
     // the row changed: its error may no longer hold (review #322)
     setRowErrors(({ [id]: _changed, ...rest }) => rest)
-  }
+  }, [])
+  const onStars = useCallback(
+    (id: string, stars: number) =>
+      update(id, (current) => ({ ...current, mode: "own", stars, isEdited: true })),
+    [update],
+  )
+  const onOpenComment = useCallback(
+    // the stars it shows now become its own
+    (id: string, stars: number) =>
+      update(id, (current) => ({
+        ...current,
+        mode: "own",
+        stars,
+        isCommentOwn: true,
+        isCommentOpen: true,
+        isEdited: true,
+      })),
+    [update],
+  )
+  const onComment = useCallback(
+    (id: string, comment: string) =>
+      update(id, (current) => ({ ...current, comment, isEdited: true })),
+    [update],
+  )
   const tooLong = (text: string) => text.trim().length > RATING_COMMENT_MAX_LENGTH
   const hasTooLong = tooLong(common.comment) || rows.some((row) => tooLong(row.comment))
   // the group's organizer stars belong to the group; these are the participants' own
@@ -313,22 +338,9 @@ function RateParticipantsForm({
                 stars={effectiveStars(row, common)}
                 error={rowErrors[row.id]}
                 commentError={isSubmitted && tooLong(row.comment) ? COMMENT_TOO_LONG : undefined}
-                onStars={(stars) =>
-                  update(row.id, (current) => ({ ...current, mode: "own", stars, isEdited: true }))
-                }
-                onOpenComment={() =>
-                  update(row.id, (current) => ({
-                    ...current,
-                    mode: "own",
-                    stars: effectiveStars(current, common),
-                    isCommentOwn: true,
-                    isCommentOpen: true,
-                    isEdited: true,
-                  }))
-                }
-                onComment={(comment) =>
-                  update(row.id, (current) => ({ ...current, comment, isEdited: true }))
-                }
+                onStars={onStars}
+                onOpenComment={onOpenComment}
+                onComment={onComment}
               />
             ))}
           </ul>
@@ -353,7 +365,7 @@ function RateParticipantsForm({
   )
 }
 
-function ParticipantItem({
+const ParticipantItem = memo(function ParticipantItem({
   row,
   stars,
   error,
@@ -368,9 +380,9 @@ function ParticipantItem({
   error: string | undefined
   /** About their own comment (too long): at the comment, as the common one has it. */
   commentError: string | undefined
-  onStars: (stars: number) => void
-  onOpenComment: () => void
-  onComment: (comment: string) => void
+  onStars: (id: string, stars: number) => void
+  onOpenComment: (id: string, stars: number) => void
+  onComment: (id: string, comment: string) => void
 }) {
   const nameId = useId()
   const commentId = useId()
@@ -393,7 +405,7 @@ function ParticipantItem({
         <>
           <RatingStars
             value={stars}
-            onChange={onStars}
+            onChange={(value) => onStars(row.id, value)}
             aria-labelledby={nameId}
             aria-describedby={error ? errorId : undefined}
             aria-invalid={Boolean(error)}
@@ -407,7 +419,7 @@ function ParticipantItem({
                 value={row.comment}
                 aria-invalid={Boolean(commentError)}
                 aria-describedby={commentError ? commentErrorId : undefined}
-                onChange={(changeEvent) => onComment(changeEvent.target.value)}
+                onChange={(changeEvent) => onComment(row.id, changeEvent.target.value)}
               />
               {commentError ? (
                 <p
@@ -424,7 +436,7 @@ function ParticipantItem({
               variant="ghost"
               size="lg"
               className="h-11 w-fit"
-              onClick={onOpenComment}
+              onClick={() => onOpenComment(row.id, stars)}
             >
               Přidat vlastní komentář
             </Button>
@@ -442,7 +454,7 @@ function ParticipantItem({
       ) : null}
     </li>
   )
-}
+})
 
 /** The participant a refusal is about, when the API names one (#66). */
 function participantOf(error: { data?: unknown }): string | undefined {
