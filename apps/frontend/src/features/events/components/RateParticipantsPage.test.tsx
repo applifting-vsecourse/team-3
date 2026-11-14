@@ -441,6 +441,35 @@ describe("/akce/:id/hodnoceni for the organizer (Figma D-05, #66)", () => {
     error.mockRestore()
   })
 
+  it("a common comment ending with a new line keeps everyone „Jako všichni“ after saving (re-review #322)", async () => {
+    const user = userEvent.setup()
+    participants = {
+      ...list,
+      participants: [
+        { id: "u-jakub", name: "Jakub Král", rating: null, ratingDeleted: false },
+        { id: "u-martin", name: "Martin Černý", rating: null, ratingDeleted: false },
+      ],
+    }
+    serverSaves()
+    await renderPage()
+    await screen.findByText("Účastníci (2)")
+
+    await user.type(screen.getByLabelText("Komentář pro všechny (nepovinné)"), "Super akce!{Enter}")
+    await user.click(screen.getByRole("button", { name: "Uložit hodnocení" }))
+    expect(api.put).toHaveBeenCalledWith("events/e1/participant-ratings", {
+      json: {
+        ratings: [
+          { participantId: "u-jakub", stars: 5, comment: "Super akce!" },
+          { participantId: "u-martin", stars: 5, comment: "Super akce!" },
+        ],
+      },
+    })
+    await vi.waitFor(() => expect(toast.success).toHaveBeenCalled())
+    for (const name of ["Jakub Král", "Martin Černý"]) {
+      expect(within(row(name)).getByText("Jako všichni")).toBeInTheDocument()
+    }
+  })
+
   it("a comment over 500 characters isn't sent", async () => {
     const user = userEvent.setup()
     await renderPage()

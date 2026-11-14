@@ -174,6 +174,50 @@ describe("the organizer's rating form (Figma D-05, #66)", () => {
     ])
   })
 
+  it.each([
+    ["a space", "Super akce! "],
+    ["a new line", "Super akce!\n"],
+  ])("a common comment ending with %s is the one saved trimmed (re-review #322)", (_end, typed) => {
+    const common = { stars: 4, comment: typed }
+    // what toInputs sent for it, read back after the save
+    const saved = toInputs(initialForm([person("a", null), person("b", null)]).rows, common)
+    expect(saved.map((input) => input.comment)).toEqual(["Super akce!", "Super akce!"])
+    const fresh = saved.map((input) =>
+      person(input.participantId, rated(input.stars, input.comment)),
+    )
+
+    // the fresh list after the save: still „Jako všichni“, the next common comment reaches them
+    const rows = reconcileRows([], fresh, common)
+    expect(rows.map(rowDescription)).toEqual(["Jako všichni", "Jako všichni"])
+    expect(
+      toInputs(rows, { ...common, comment: "Příště zase" }).map((input) => input.comment),
+    ).toEqual(["Příště zase", "Příště zase"])
+    // and when coming back
+    expect(initialForm(fresh).rows.map(rowDescription)).toEqual(["Jako všichni", "Jako všichni"])
+  })
+
+  it("left out after a refusal, still on the list read again: rated again (re-review #322)", () => {
+    const { rows } = initialForm(participants)
+    const refused = rows.map((row) =>
+      row.id === "u-jakub" ? { ...row, isLeftOut: true, isEdited: true } : row,
+    )
+    const [jakub] = reconcileRows(refused, participants, common)
+    expect(jakub?.isLeftOut).toBe(false)
+    expect(
+      toInputs(reconcileRows(refused, participants, common), common).map(
+        (input) => input.participantId,
+      ),
+    ).toContain("u-jakub")
+    // a rating deleted meanwhile stays out, as deleted
+    const deleted = reconcileRows(
+      refused,
+      participants.map((one) => (one.id === "u-jakub" ? { ...one, ratingDeleted: true } : one)),
+      common,
+    )
+    expect(rowDescription(deleted[0]!)).toBe("Hodnocení odstranil správce")
+    expect(toInputs(deleted, common).map((input) => input.participantId)).not.toContain("u-jakub")
+  })
+
   it("„Upraveno“ names the stars in Czech", () => {
     const row: ParticipantRow = {
       id: "u",

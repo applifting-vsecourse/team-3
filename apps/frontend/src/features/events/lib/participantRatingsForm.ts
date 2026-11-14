@@ -7,7 +7,8 @@ export type CommonRating = { stars: number; comment: string }
  * One participant on the organizer's page: „Jako všichni“ follows the common rating, `own` has
  * its own stars, and its own comment when `isCommentOwn` — an empty one then means none, never
  * the common one (review #322). A rating a superadmin deleted can't be given again; one the API
- * refused for this participant (`isLeftOut`) isn't sent until the list is read again.
+ * refused for this participant (`isLeftOut`) isn't sent until the list is read again — still on
+ * it and not deleted, they are rated again (re-review #322).
  */
 export type ParticipantRow = {
   id: string
@@ -26,6 +27,12 @@ export type ParticipantRow = {
 export const COMMON_START: CommonRating = { stars: 5, comment: "" }
 
 /**
+ * A comment as it is sent and saved: trimmed, none when empty (toInputs). Every comparison of
+ * comments goes through it, so „Super akce!\n“ typed is the „Super akce!“ saved (re-review #322).
+ */
+const asSaved = (comment: string | null | undefined): string => (comment ?? "").trim()
+
+/**
  * The row of a participant as saved, against the common rating: „Jako všichni“ only with exactly
  * its stars and its comment (review #322) — a rating saved without a comment stays without one.
  */
@@ -33,9 +40,10 @@ function rowOf(
   { id, name, rating, ratingDeleted: isDeleted }: RatedParticipant,
   common: CommonRating,
 ): ParticipantRow {
-  const saved = rating?.comment ?? ""
-  const isCommon = !rating || (saved === common.comment && rating.stars === common.stars)
-  const isCommentOwn = !isCommon && saved !== common.comment
+  const saved = asSaved(rating?.comment)
+  const commonComment = asSaved(common.comment)
+  const isCommon = !rating || (saved === commonComment && rating.stars === common.stars)
+  const isCommentOwn = !isCommon && saved !== commonComment
   return {
     id,
     name,
@@ -62,7 +70,7 @@ export function initialForm(participants: RatedParticipant[]): {
   rows: ParticipantRow[]
 } {
   const rated = participants.flatMap(({ rating, ratingDeleted: isDeleted }) =>
-    rating && !isDeleted ? [{ stars: rating.stars, comment: rating.comment ?? "" }] : [],
+    rating && !isDeleted ? [{ stars: rating.stars, comment: asSaved(rating.comment) }] : [],
   )
   const commonComment = mostUsual(
     rated.map(({ comment }) => comment).filter(Boolean),
@@ -107,7 +115,8 @@ export function snapshotKey(participants: RatedParticipant[]): string {
 /**
  * A fresh list from the server — another tab saved, or the API refused someone and the list was
  * read again (review #322): who isn't on it any more goes, a deleted rating shows so, and every
- * row the organizer hasn't touched shows what is saved now. Their own edits stay.
+ * row the organizer hasn't touched shows what is saved now. Their own edits stay; one left out
+ * after a refusal who is still on the list is in again (a deleted rating stays out as deleted).
  */
 export function reconcileRows(
   rows: ParticipantRow[],
@@ -117,7 +126,12 @@ export function reconcileRows(
   return participants.map((participant) => {
     const current = rows.find((row) => row.id === participant.id)
     if (!current?.isEdited) return rowOf(participant, common)
-    return { ...current, name: participant.name, isDeleted: participant.ratingDeleted }
+    return {
+      ...current,
+      name: participant.name,
+      isDeleted: participant.ratingDeleted,
+      isLeftOut: false,
+    }
   })
 }
 
@@ -146,7 +160,7 @@ const isSent = (row: ParticipantRow) => !row.isDeleted && !row.isLeftOut
  */
 export function toInputs(rows: ParticipantRow[], common: CommonRating): ParticipantRatingInput[] {
   return rows.filter(isSent).map((row) => {
-    const comment = (row.mode === "own" && row.isCommentOwn ? row.comment : common.comment).trim()
+    const comment = asSaved(row.mode === "own" && row.isCommentOwn ? row.comment : common.comment)
     return { participantId: row.id, stars: effectiveStars(row, common), comment: comment || null }
   })
 }

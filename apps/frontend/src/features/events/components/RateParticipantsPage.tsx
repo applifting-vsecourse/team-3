@@ -168,6 +168,13 @@ function RateParticipantsForm({
   if (dataKey !== seenKey) {
     setSeenKey(dataKey)
     setRows(reconcileRows(rows, data.participants, common))
+    // a refusal stays told only at a rating deleted meanwhile; whoever is in again starts clean
+    const deleted = new Set(
+      data.participants.filter((one) => one.ratingDeleted).map((one) => one.id),
+    )
+    setRowErrors((current) =>
+      Object.fromEntries(Object.entries(current).filter(([id]) => deleted.has(id))),
+    )
   }
   const [isSubmitted, setIsSubmitted] = useState(false)
   const commonQuestionId = useId()
