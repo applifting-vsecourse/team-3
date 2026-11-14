@@ -144,6 +144,26 @@ describe("useRevealFormErrors", () => {
     expect(screen.getByLabelText("second")).toHaveFocus()
   })
 
+  it("a form unmounted before the scroll ends drops the scrollend listener and the timer", async () => {
+    const { unmount } = render(<TestForm />)
+    const scrollIntoView = vi.spyOn(Element.prototype, "scrollIntoView")
+    const removeEventListener = vi.spyOn(window, "removeEventListener")
+    const clearTimeout = vi.spyOn(window, "clearTimeout")
+    const focus = vi.spyOn(HTMLElement.prototype, "focus")
+
+    await submit()
+    await waitFor(() => expect(scrollIntoView).toHaveBeenCalledOnce())
+    unmount()
+
+    expect(removeEventListener).toHaveBeenCalledWith("scrollend", expect.any(Function))
+    expect(clearTimeout).toHaveBeenCalled()
+    focus.mockClear()
+    window.dispatchEvent(new Event("scrollend"))
+    // past the 400 ms fallback: nothing focuses a field that is gone
+    await new Promise((resolve) => setTimeout(resolve, 500))
+    expect(focus).not.toHaveBeenCalled()
+  })
+
   it("with reduced motion jumps to the field and focuses it at once", async () => {
     vi.stubGlobal("matchMedia", (query: string) => ({
       matches: query === "(prefers-reduced-motion: reduce)",

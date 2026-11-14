@@ -9,15 +9,20 @@ const SCROLL_END_FALLBACK_MS = 400
 /**
  * Runs `onEnd` once the page stops scrolling, or after `SCROLL_END_FALLBACK_MS`: Safari without
  * `scrollend`, or an element already in place, so nothing scrolls and no `scrollend` comes.
+ * Returns a cancel that drops both the listener and the timer.
  */
 function afterScrollEnds(onEnd: () => void) {
-  const finish = () => {
+  const cancel = () => {
     window.removeEventListener("scrollend", finish)
     window.clearTimeout(timeout)
+  }
+  const finish = () => {
+    cancel()
     onEnd()
   }
   window.addEventListener("scrollend", finish)
   const timeout = window.setTimeout(finish, SCROLL_END_FALLBACK_MS)
+  return cancel
 }
 
 /**
@@ -55,22 +60,23 @@ function firstInvalidField(form: HTMLFormElement) {
 
 /**
  * Scrolls `element` to the middle of the screen, clear of the sticky header, then focuses
- * `focusTarget` if there is one. With reduced motion it jumps.
+ * `focusTarget` if there is one. With reduced motion it jumps. Returns a cancel for a focus
+ * still waiting for the scroll to end.
  */
-function reveal(element: HTMLElement, focusTarget?: HTMLElement) {
+function reveal(element: HTMLElement, focusTarget?: HTMLElement): () => void {
   const isReducedMotion =
     typeof window.matchMedia === "function" && window.matchMedia(REDUCED_MOTION_QUERY).matches
   if (isReducedMotion) {
     element.scrollIntoView({ behavior: "auto", block: "center" })
     focusTarget?.focus({ preventScroll: true })
-    return
+    return () => undefined
   }
   element.scrollIntoView({ behavior: "smooth", block: "center" })
-  if (!focusTarget) return
+  if (!focusTarget) return () => undefined
   // Focus only once the scroll is over: in iOS Safari a focused input opens the keyboard and
   // Safari scrolls the page itself, cutting the smooth scroll short.
   const focusedAtSubmit = document.activeElement
-  afterScrollEnds(() => {
+  return afterScrollEnds(() => {
     // whoever tapped another field meanwhile keeps it
     if (document.activeElement === focusedAtSubmit) focusTarget.focus({ preventScroll: true })
   })
@@ -104,7 +110,8 @@ export function useRevealFormErrors<TFieldValues extends FieldValues>(
     if (!field) return
     const focusTarget =
       field.tabIndex >= 0 ? field : field.querySelector<HTMLElement>('[tabindex="0"]')
-    reveal(field, focusTarget ?? undefined)
+    // a form gone before the scroll ends (or a new submit) leaves no listener or timer behind
+    return reveal(field, focusTarget ?? undefined)
   }, [submitCount])
 
   useEffect(() => {
