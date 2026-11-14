@@ -1,6 +1,7 @@
+import { useState } from "react"
 import { fireEvent, screen, waitFor } from "@testing-library/react"
 import userEvent from "@testing-library/user-event"
-import { beforeEach, describe, expect, it, vi } from "vitest"
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest"
 
 import { renderWithRouter } from "@/test/renderWithRouter"
 
@@ -25,6 +26,11 @@ beforeEach(() => {
   estimator.checkPassword.mockReset()
   estimator.checkPassword.mockReturnValue({ score: 4, warning: null, suggestions: [] })
   estimator.load.mockClear()
+})
+
+afterEach(() => {
+  // the spies on scrollIntoView
+  vi.restoreAllMocks()
 })
 
 // the consents' labels carry a link (#153), which needs a router
@@ -63,6 +69,51 @@ const fill = async ({
 }
 
 describe("SignUpForm (B-010, #153)", () => {
+  describe("errors stay on screen (#291)", () => {
+    it("a failed submit scrolls to the first invalid field and focuses it once the scroll ends", async () => {
+      await renderForm()
+      const scrollIntoView = vi.spyOn(Element.prototype, "scrollIntoView")
+
+      await submit()
+
+      const name = screen.getByLabelText("Jméno")
+      await waitFor(() => expect(scrollIntoView).toHaveBeenCalledOnce())
+      expect(scrollIntoView.mock.contexts[0]).toBe(name)
+      expect(scrollIntoView).toHaveBeenCalledWith({ behavior: "smooth", block: "center" })
+      expect(name).not.toHaveFocus()
+
+      window.dispatchEvent(new Event("scrollend"))
+
+      expect(name).toHaveFocus()
+    })
+
+    it("the server's answer comes into view as an alert, read out by a screen reader", async () => {
+      // the page shows the API's refusal once the sign-up comes back
+      function SignUpPage() {
+        const [errorMessage, setErrorMessage] = useState<string | null>(null)
+        return (
+          <SignUpForm
+            isLoading={false}
+            errorMessage={errorMessage}
+            onSubmit={() =>
+              setErrorMessage("Účet s tímto e-mailem už existuje. Přihlas se, nebo si obnov heslo.")
+            }
+          />
+        )
+      }
+      await renderWithRouter(<SignUpPage />)
+      await fill()
+      const scrollIntoView = vi.spyOn(Element.prototype, "scrollIntoView")
+
+      await submit()
+
+      const alert = await screen.findByRole("alert")
+      expect(alert).toHaveTextContent("Účet s tímto e-mailem už existuje.")
+      await waitFor(() => expect(scrollIntoView).toHaveBeenCalledOnce())
+      expect(scrollIntoView.mock.contexts[0]).toBe(alert)
+    })
+  })
+
   it("asks for the name, the e-mail, the password twice and both consents", async () => {
     await renderForm()
 
