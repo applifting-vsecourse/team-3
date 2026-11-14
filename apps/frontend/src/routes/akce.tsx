@@ -23,7 +23,7 @@ import { EventSearch } from "@/features/events/components/EventSearch"
 import { EventsMap } from "@/features/events/components/EventsMap"
 import { ListPanel, type PanelSnap } from "@/features/events/components/ListPanel"
 import { SortMenu } from "@/features/events/components/SortMenu"
-import { EventsViewerContext, useEvents } from "@/features/events/hooks/useEvents"
+import { EventsViewerContext, useEvents, useNearestEvents } from "@/features/events/hooks/useEvents"
 import { usePickCounts } from "@/features/events/hooks/usePickCounts"
 import {
   changesPick,
@@ -33,6 +33,9 @@ import {
   hasFiltersBeyondPick,
   isAllEvents,
   localityCenter,
+  PAST_TERM,
+  PICK_LABELS,
+  PICKS,
   pickSearch,
   toMapArea,
   toOblast,
@@ -44,11 +47,7 @@ import {
 // DESIGN.md › Quick picks, in this order (Figma A-02d)
 const PICK_TABS: { pick: QuickPick | undefined; label: string }[] = [
   { pick: undefined, label: "Všechny akce" },
-  { pick: "tady-chybis", label: "Tady chybíš" },
-  { pick: "tento-vikend", label: "Tento víkend" },
-  { pick: "podle-zajmu", label: "Podle tvých zájmů" },
-  { pick: "kousek-od-tebe", label: "Kousek od tebe" },
-  { pick: "od-hodnocenych", label: "Od dobře hodnocených" },
+  ...PICKS.map((pick) => ({ pick, label: PICK_LABELS[pick] })),
 ]
 const ALL_EVENTS_TAB = "vsechny"
 
@@ -81,6 +80,11 @@ function EventsPage() {
     // nothing for all of Czechia first while the default locality loads
     isEnabled: shownLocality.slug !== undefined,
   })
+  // an empty list shows the nearest events instead (#299): only then are they fetched
+  const isListEmpty = !isPending && !error && events?.length === 0
+  const nearest = useNearestEvents(search, { isEnabled: isListEmpty })
+  // the map shows what the list shows: the nearest events when the locality has none
+  const shownEvents = (isListEmpty ? nearest.events : events) ?? []
   const isDesktop = useMediaQuery(DESKTOP_QUERY)
   const [overlayRef, overlayHeight] = useElementHeight<HTMLDivElement>()
   const [panelSnap, setPanelSnap] = useState<PanelSnap>("peek")
@@ -88,7 +92,7 @@ function EventsPage() {
   const [highlightedId, setHighlightedId] = useState<string>()
   // the tapped pin's event (#56); gone with the filters that showed it
   const [selectedId, setSelectedId] = useState<string>()
-  const selectedEvent = events?.find((event) => event.id === selectedId)
+  const selectedEvent = shownEvents.find((event) => event.id === selectedId)
   const area = toMapArea(search.oblast)
   const [panelPeekHeight, setPanelPeekHeight] = useState(0)
   // phone: the preview hides the list sheet and covers the map's bottom instead (review #276)
@@ -96,6 +100,12 @@ function EventsPage() {
   const mapBottomInset = selectedEvent ? previewCover : panelPeekHeight
   const locality = catalog?.localities.find((l) => l.slug === search.lokalita)
   const isMapVisible = isDesktop || !isListExpanded
+  // Proběhlé (#61, Figma A-02h): the events that are over, newest first, with past cards and pins
+  const isPast = search.termin === PAST_TERM
+  const which = isPast ? "Proběhlé" : "Nadcházející"
+  const order = isPast ? ", od nejnovější" : ""
+  // lowered sheet: what is below its edge is out of the Tab order
+  const listInertAfter = isDesktop || isListExpanded ? undefined : panelSnap === "map" ? 0 : 1
 
   // Escape closes the preview, like a tap into the map — unless it closed an open panel or
   // menu first (the kit's layers prevent the default of the Escape they handle)
@@ -236,11 +246,12 @@ function EventsPage() {
             title={title}
             description={
               area
-                ? "Nadcházející akce ve výřezu mapy."
+                ? `${which} akce ve výřezu mapy${order}.`
                 : search.lokalita === ALL_LOCALITIES_SLUG
-                  ? "Nadcházející akce v celém Česku."
+                  ? `${which} akce v celém Česku${order}.`
                   : locality
-                    ? `Nadcházející akce v lokalitě ${locality.name}.`
+                    ? // a guess says where it comes from (Figma A-02d, #299)
+                      `${which} akce v lokalitě ${locality.name}${order}.${shownLocality.source === "ip" ? " Lokalitu odhadujeme podle připojení." : ""}`
                     : // the line keeps its place until the catalog names the locality
                       " "
             }
@@ -288,7 +299,7 @@ function EventsPage() {
                   onChange={setSearch}
                   onLocalityChange={pickLocality}
                   onClearAll={canClear ? clearFilters : undefined}
-                  localityDefault={localityDefault(shownLocality, clearLocality)}
+                  localityDefault={localityDefault(shownLocality, clearLocality, pickLocality)}
                   isFloating={!isDesktop && !isListExpanded}
                   searchControl={isDesktop ? searchField() : undefined}
                   // Chips scroll sideways on narrow screens without a visible scrollbar
@@ -321,6 +332,7 @@ function EventsPage() {
                       <SortMenu
                         value={sort}
                         isDistanceAvailable={Boolean(center)}
+                        isPast={isPast}
                         // the order okolí implies stays out of the URL
                         onChange={(razeni) =>
                           setSearch({
@@ -333,18 +345,20 @@ function EventsPage() {
                       />
                     }
                     isDistanceShown={isDistanceShown}
+                    isPast={isPast}
                     empty={
                       <EmptyEvents
                         search={search}
                         catalog={catalog}
                         isVisitor={!session.user && !session.isPending}
                         onSearchChange={setSearch}
+                        nearest={nearest}
+                        inertAfter={listInertAfter}
+                        highlightedId={highlightedId ?? selectedEvent?.id}
+                        onHighlight={setHighlightedId}
                       />
                     }
-                    // lowered sheet: what is below its edge is out of the Tab order
-                    inertAfter={
-                      isDesktop || isListExpanded ? undefined : panelSnap === "map" ? 0 : 1
-                    }
+                    inertAfter={listInertAfter}
                   />
                 </ListPanel>
 
@@ -367,7 +381,7 @@ function EventsPage() {
                 >
                   <div className="relative size-full overflow-hidden md:rounded-2xl md:border md:border-card-border">
                     <EventsMap
-                      events={events ?? []}
+                      events={shownEvents}
                       highlightedId={highlightedId}
                       selectedId={selectedEvent?.id}
                       onSelect={setSelectedId}
@@ -387,11 +401,13 @@ function EventsPage() {
                       // the phone's search and chips float over the map's top (#288)
                       topInset={isDesktop ? 0 : overlayHeight}
                       hasZoomControl={isDesktop}
+                      isPast={isPast}
                     />
                     {selectedEvent && isDesktop ? (
                       <EventMapPreview
                         event={selectedEvent}
                         isDesktop
+                        isPast={isPast}
                       />
                     ) : null}
                   </div>
@@ -403,6 +419,7 @@ function EventsPage() {
                   event={selectedEvent}
                   isDesktop={false}
                   onCoverChange={setPreviewCover}
+                  isPast={isPast}
                 />
               ) : null}
 

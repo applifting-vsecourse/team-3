@@ -7,13 +7,14 @@ import { HomeSection } from "@/components/HomeSection/HomeSection"
 import { PageBand } from "@/components/PageBand/PageBand"
 import { Button } from "@/components/ui/button"
 import { Skeleton } from "@/components/ui/skeleton"
+import type { LocalityState } from "@/hooks/useLocality"
 import { localitiesQueryOptions } from "@/lib/catalog/catalogQueryOptions"
 import type { Locality } from "@/lib/catalog/catalogSchemas"
 import { ALL_LOCALITIES_SLUG } from "@/lib/catalog/localityOptions"
 import { PAGE } from "@/lib/pageLayout"
 import { cn } from "@/lib/utils"
 
-import { homeQueryOptions } from "@/features/events/api/homeQueryOptions"
+import { HOME_WHOLE_COUNTRY, homeQueryOptions } from "@/features/events/api/homeQueryOptions"
 import type {
   Home,
   HomeEventSection,
@@ -23,6 +24,7 @@ import type {
 import { EventCardSkeleton } from "@/features/events/components/EventList"
 import { HomeEventGrid } from "@/features/events/components/HomeEventGrid"
 import { HowItWorks } from "@/features/events/components/HowItWorks"
+import { LandingLocality } from "@/features/events/components/LandingLocality"
 import {
   EmptyMissingOnePanel,
   MissingOnePanel,
@@ -31,7 +33,9 @@ import {
 } from "@/features/events/components/MissingOnePanel"
 import { NothingForYou } from "@/features/events/components/NothingForYou"
 import { PickedForYou, type QuickPick } from "@/features/events/components/PickedForYou"
+import type { Radius } from "@/features/events/lib/eventsSearch"
 import { areaPhrase, isoDay, weekendDays, weekendLabel } from "@/features/events/lib/homeCopy"
+import { widenedOkoli } from "@/features/events/lib/widenedOkoli"
 
 const VISITOR_TITLE = (
   <>
@@ -55,8 +59,9 @@ type LandingViewProps = {
   /** Part of the sections' cache key: each user gets their own. */
   viewerId: string | null
   /**
-   * `?lokalita=` of the page. Without it the API picks: the profile's home locality, else all
-   * of Czechia (the guess by IP is #55).
+   * The page's locality (useLocality, #55): a slug, or Celé Česko picked on purpose — then all of
+   * Czechia even for a user with a home locality (#299). Without it the API picks: the profile's
+   * home locality, else all of Czechia.
    */
   localitySlug?: string
   /**
@@ -66,7 +71,25 @@ type LandingViewProps = {
   renderGroups?: (groups: unknown[], lokalita: string) => ReactNode
   /** For the dates in the sections' lines; now by default. */
   now?: Date
+  /**
+   * The page's locality with its chip (#299): which locality the sections are for, a guess
+   * marked „odhad“ and dismissable. Without it no chip (tests of the sections alone).
+   */
+  localityControl?: {
+    state: LocalityState
+    onChange: (slug: string) => void
+    onReset: () => void
+  }
 }
+
+/**
+ * `localitySlug` for the page's locality (useLocality): Celé Česko only when the visitor picked
+ * it, so the home locality doesn't come back in its place (#299). Celé Česko as a mere fallback —
+ * the guess by IP failed, a visitor with nothing known — is no choice: the API decides, and a
+ * signed-in user still gets the home locality (review #321).
+ */
+export const pageLocalitySlug = (state: LocalityState): string | undefined =>
+  state.slug === ALL_LOCALITIES_SLUG && !state.isPicked ? undefined : state.slug
 
 /**
  * Landing page (US-01, #182; Figma A-01 / A-01d for a visitor, A-01p / A-01pd signed in). The
@@ -81,6 +104,7 @@ export function LandingView({
   localitySlug,
   renderGroups,
   now = new Date(),
+  localityControl,
 }: LandingViewProps) {
   const localitiesQuery = useQuery(localitiesQueryOptions())
   const localities = localitiesQuery.data
@@ -89,12 +113,14 @@ export function LandingView({
       ? undefined
       : localitySlug === undefined
         ? null
-        : localities
-          ? (localities.find((l) => l.slug === localitySlug)?.id ?? null)
-          : // wait for the slug's id rather than load the sections for elsewhere first
-            localitiesQuery.isError
-            ? null
-            : undefined
+        : localitySlug === ALL_LOCALITIES_SLUG
+          ? HOME_WHOLE_COUNTRY
+          : localities
+            ? (localities.find((l) => l.slug === localitySlug)?.id ?? null)
+            : // wait for the slug's id rather than load the sections for elsewhere first
+              localitiesQuery.isError
+              ? null
+              : undefined
   const homeQuery = useQuery(homeQueryOptions(localityId, viewerId))
   const home = homeQuery.data
   const isVisitor = isSignedIn === false
@@ -157,23 +183,38 @@ export function LandingView({
       </PageBand>
       {/* Figma A-01: 32 px around and between the sections on a phone; A-01d: 72 px under the
           band and at the bottom, 96 px between the sections, 128 before „Nic pro tebe?“ */}
-      <div className={cn(PAGE, "flex-1 gap-8 pt-8 pb-8 md:gap-24 md:pt-18 md:pb-18")}>
-        {home ? (
-          <Sections
-            home={home}
-            isVisitor={isVisitor}
-            localities={localities}
-            now={now}
-            renderGroups={renderGroups}
-          />
-        ) : homeQuery.isError ? (
-          isVisitor ? (
-            <HowItWorks />
-          ) : null
-        ) : (
-          <SectionSkeleton />
-        )}
-        <NothingForYou />
+      <div className={cn(PAGE, "flex-1 pt-8 pb-8 md:pt-18 md:pb-18")}>
+        {home && localities && localityControl ? (
+          // which locality the sections are for (#299), close above the first of them
+          <div className="pb-4 md:pb-6">
+            <LandingLocality
+              state={localityControl.state}
+              home={home}
+              localities={localities}
+              isUpdating={homeQuery.isPlaceholderData}
+              onChange={localityControl.onChange}
+              onReset={localityControl.onReset}
+            />
+          </div>
+        ) : null}
+        <div className="flex flex-1 flex-col gap-8 md:gap-24">
+          {home ? (
+            <Sections
+              home={home}
+              isVisitor={isVisitor}
+              localities={localities}
+              now={now}
+              renderGroups={renderGroups}
+            />
+          ) : homeQuery.isError ? (
+            isVisitor ? (
+              <HowItWorks />
+            ) : null
+          ) : (
+            <SectionSkeleton />
+          )}
+          <NothingForYou />
+        </div>
       </div>
     </main>
   )
@@ -198,8 +239,10 @@ function Panel({ home, isSignedIn, localities, now }: SectionsContext & { isSign
   return (
     <EmptyMissingOnePanel
       hasOtherEvents={home.sections.some((section) => "events" in section)}
+      // the locality has nothing to join (isWidened): there may be events, just none to join
+      isNothingToJoin={home.isWidened}
       isSignedIn={isSignedIn}
-      eventsSearch={{ lokalita: listLocalitySlug(home, localities) }}
+      eventsSearch={listSearch(home, localities)}
     />
   )
 }
@@ -287,6 +330,22 @@ function listLocalitySlug(home: Home, localities: Locality[] | undefined): strin
   return locality.city?.slug ?? locality.slug
 }
 
+/**
+ * /akce for „Zobrazit všechny“ and the panel's link: the page's locality (a district's city,
+ * B-027). Widened (review #321): the locality itself with the okolí that holds the nearest events
+ * shown, so the link opens the list the section promises, not the empty locality.
+ */
+function listSearch(
+  home: Home,
+  localities: Locality[] | undefined,
+  key?: HomeEventSectionKey,
+): { lokalita: string; okoli?: Radius } {
+  if (home.isWidened && home.locality) {
+    return { lokalita: home.locality.slug, okoli: widenedOkoli(home, key) }
+  }
+  return { lokalita: listLocalitySlug(home, localities) }
+}
+
 type SectionCopy = {
   heading: { before?: string; keyword: string; after?: string; hasLogo?: boolean }
   description: string
@@ -304,12 +363,14 @@ function sectionCopy({
   now,
 }: SectionsContext): Record<Exclude<HomeEventSectionKey, "highlight">, SectionCopy> {
   const locality = pageLocality(home, localities)
-  const area = areaPhrase(locality)
-  const lokalita = listLocalitySlug(home, localities)
+  // the nearest events of an empty locality are not in it, they are around it (#299)
+  const area =
+    home.isWidened && locality ? `v okolí lokality ${locality.name}` : areaPhrase(locality)
+  const list = listSearch(home, localities)
   const weekend = weekendDays(now)
-  const events = (search: Record<string, string>): LinkProps => ({
+  const events = (key: HomeEventSectionKey, search: Record<string, string> = {}): LinkProps => ({
     to: ROUTES.events,
-    search: { lokalita, ...search },
+    search: { ...listSearch(home, localities, key), ...search },
   })
   return {
     missing: {
@@ -317,21 +378,21 @@ function sectionCopy({
       description: `Těmhle akcím ${area} ještě chybí lidi do minima.`,
       label: "Tady chybíš",
       pickDescription: `akce ${area}, kterým chybí lidi do minima. Akce, na které už jdeš, tu nejsou. Akce z panelu nahoře se tu neopakuje.`,
-      more: events({ obsazenost: "chybi" }),
+      more: events("missing", { obsazenost: "chybi" }),
     },
     weekend: {
       heading: { before: "Tento ", keyword: "víkend" },
       description: `${weekendLabel(now)} ${area}`,
       label: "Tento víkend",
       pickDescription: `${weekendLabel(now)} ${area}.`,
-      more: events({ od: isoDay(weekend.from), do: isoDay(weekend.to) }),
+      more: events("weekend", { od: isoDay(weekend.from), do: isoDay(weekend.to) }),
     },
     interests: {
       heading: { before: "Podle tvých ", keyword: "zájmů" },
       description: "Aktivity z tvého profilu a z akcí, na které chodíš",
       label: "Podle tvých zájmů",
       pickDescription: `aktivity z tvého profilu a z akcí, na které chodíš, ${area}.`,
-      more: events({}),
+      more: events("interests"),
     },
     nearby: {
       heading: { before: "Kousek ", keyword: "od tebe" },
@@ -340,21 +401,27 @@ function sectionCopy({
       pickDescription: locality
         ? `nejblíž ke středu lokality ${locality.name}.`
         : "nejbližší akce.",
-      more: { to: ROUTES.events, search: { lokalita: locality?.slug ?? lokalita } },
+      more: {
+        to: ROUTES.events,
+        // the nearest are measured from the locality itself, also from a district
+        search: home.isWidened
+          ? listSearch(home, localities, "nearby")
+          : { lokalita: locality?.slug ?? list.lokalita },
+      },
     },
     popular: {
       heading: { before: "O tyhle akce je ", keyword: "zájem" },
       description: "Nejvíc lidí jde nebo čeká na schválení",
       label: "O tyhle akce je zájem",
       pickDescription: "nejvíc lidí jde nebo čeká na schválení.",
-      more: events({}),
+      more: events("popular"),
     },
     wellRated: {
       heading: { before: "Od dobře ", keyword: "hodnocených", after: " organizátorů" },
       description: "Pořádají je lidi a skupiny s průměrem aspoň 4,5",
       label: "Od dobře hodnocených",
       pickDescription: `pořádají je lidi a skupiny s průměrem aspoň 4,5 ${area}.`,
-      more: events({}),
+      more: events("wellRated"),
     },
   }
 }

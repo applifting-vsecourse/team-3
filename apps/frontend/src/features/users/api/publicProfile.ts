@@ -46,7 +46,8 @@ export const publicProfileSchema = person.extend({
         }),
       }),
       approvedCount: z.number().int().nonnegative(),
-      minParticipants: z.number().int().positive(),
+      // above 0 it didn't take place: „Nekonalo se“ on the card, as on its detail (review #323)
+      missingToMin: z.number().int().nonnegative(),
       rating: summary,
     }),
   ),

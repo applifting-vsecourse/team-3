@@ -32,7 +32,8 @@ describe("canRateEvent (#66, review #315)", () => {
     endsAt: new Date("2026-11-01T20:00:00.000Z"),
     status: "published" as const,
     approvedCount: 5,
-    minParticipants: 4,
+    // 5 came, the minimum is 4: it took place
+    missingToMin: 0,
     organizer: { id: "u-petra" },
     myParticipation: "approved",
   }
@@ -53,10 +54,17 @@ describe("canRateEvent (#66, review #315)", () => {
     ["someone without a place", { myParticipation: null }],
     ["a waiting request", { myParticipation: "pending" }],
     ["a cancelled event", { status: "cancelled" as const }],
-    ["an event below its minimum (EVENT_NOT_HELD)", { approvedCount: 3 }],
+    ["an event below its minimum (EVENT_NOT_HELD)", { approvedCount: 3, missingToMin: 1 }],
     ["an event not over yet", { endsAt: new Date("2026-11-02T20:00:00.000Z") }],
   ])("not for %s", (_who, overrides) => {
     expect(canRateEvent({ ...event, ...overrides }, "u-jakub", dayAfter)).toBe(false)
+  })
+
+  it("without an end: not on its day, from Prague midnight after it, as the API (#272)", () => {
+    // 19:00 on Sunday 1. 11. in Prague, no end
+    const noEnd = { ...event, endsAt: null }
+    expect(canRateEvent(noEnd, "u-jakub", new Date("2026-11-01T20:00:00.000Z"))).toBe(false)
+    expect(canRateEvent(noEnd, "u-jakub", new Date("2026-11-01T23:00:00.000Z"))).toBe(true)
   })
 
   it("not for a visitor", () => {
@@ -71,7 +79,8 @@ describe("canRateParticipants (#66)", () => {
     endsAt: new Date("2026-11-01T20:00:00.000Z"),
     status: "published" as const,
     approvedCount: 5,
-    minParticipants: 4,
+    // 5 came, the minimum is 4: it took place
+    missingToMin: 0,
     organizer: { id: "u-petra" },
   }
   const dayAfter = new Date("2026-11-02T10:00:00.000Z")
@@ -85,7 +94,7 @@ describe("canRateParticipants (#66)", () => {
   it.each([
     ["a group's other admin, not its creator", { organizer: { id: "u-admin" } }],
     ["a cancelled event", { status: "cancelled" as const }],
-    ["an event below its minimum (EVENT_NOT_HELD)", { approvedCount: 3 }],
+    ["an event below its minimum (EVENT_NOT_HELD)", { approvedCount: 3, missingToMin: 1 }],
     ["an event not over yet", { endsAt: new Date("2026-11-02T20:00:00.000Z") }],
   ])("not for %s", (_who, overrides) => {
     expect(canRateParticipants({ ...event, ...overrides }, "u-petra", dayAfter)).toBe(false)

@@ -88,7 +88,7 @@ export function EventCard({
     distanceKm === null || distanceKm === undefined
       ? undefined
       : `${distanceKm.toLocaleString("cs", { maximumFractionDigits: 1 })} km`
-  const rowLine = [rowLead, time, ...(rowTail ? [rowTail] : [place, event.locality.name]), distance]
+  const rowLine = [rowLead, time, ...(rowTail ? [rowTail] : [place, event.locality.name])]
     .filter(Boolean)
     .join(" · ")
 
@@ -150,11 +150,12 @@ export function EventCard({
         {variant === "grid" ? null : (
           <p
             className={cn(
-              "truncate text-caption text-muted-foreground",
+              "flex min-w-0 text-caption text-muted-foreground",
               variant === "responsive" && "md:hidden",
             )}
           >
-            {rowLine}
+            <span className="truncate">{rowLine}</span>
+            {distance ? <Distance km={distance} /> : null}
           </p>
         )}
         {variant === "row" && summary ? (
@@ -165,11 +166,14 @@ export function EventCard({
         ) : (
           <p
             className={cn(
-              "truncate text-sm text-muted-foreground",
-              variant === "responsive" && "hidden md:block",
+              "flex min-w-0 text-sm text-muted-foreground",
+              variant === "responsive" && "hidden md:flex",
             )}
           >
-            {place} · {event.locality.name}
+            <span className="truncate">
+              {place} · {event.locality.name}
+            </span>
+            {distance ? <Distance km={distance} /> : null}
           </p>
         )}
         <div
@@ -184,7 +188,7 @@ export function EventCard({
           <StatusBadge status={status ?? capacityStatus(event)} />
           {/* the row card draws the numbers only as the bar, so a screen reader still gets them
               (a past event says who came in its line) */}
-          {variant === "row" && status?.kind === "past" ? null : (
+          {variant === "row" && (status?.kind === "past" || status?.kind === "not-held") ? null : (
             <>
               {/* the row card and a phone show the numbers only to a screen reader — without
                   „chybí N“ when the line already starts with it (DESIGN.md › Occupancy in words) */}
@@ -205,8 +209,12 @@ export function EventCard({
               ) : null}
             </>
           )}
-          {/* a cancelled or past event no longer fills up */}
-          {!hasBar || isCancelled || status?.kind === "past" ? null : (
+          {/* a cancelled, past or running event no longer fills up (#272) */}
+          {!hasBar ||
+          isCancelled ||
+          status?.kind === "past" ||
+          status?.kind === "not-held" ||
+          status?.kind === "in-progress" ? null : (
             <CapacityBar
               variant="compact"
               approvedCount={event.approvedCount}
@@ -227,5 +235,18 @@ export function EventCard({
         </div>
       </div>
     </article>
+  )
+}
+
+/**
+ * „ · 22,7 km“ at the end of a card's line, never the part cut off (#299): the place before it
+ * gives way.
+ */
+function Distance({ km }: { km: string }) {
+  return (
+    <span className="shrink-0 whitespace-nowrap">
+      {"\u00a0· "}
+      {km}
+    </span>
   )
 }

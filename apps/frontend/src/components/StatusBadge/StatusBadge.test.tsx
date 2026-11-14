@@ -13,7 +13,7 @@ describe("StatusBadge", () => {
     [{ kind: "full" }, "Plno", ["bg-badge-neutral", "border-control-border"]],
     [{ kind: "cancelled" }, "Zrušeno", ["bg-foreground", "text-background"]],
     [{ kind: "past" }, "Proběhlo", ["text-muted-foreground", "border-control-border"]],
-    [{ kind: "notHeld" }, "Nekonalo se", ["text-muted-foreground", "border-control-border"]],
+    [{ kind: "not-held" }, "Nekonalo se", ["text-muted-foreground", "border-control-border"]],
     [{ kind: "going" }, "Jdu", ["bg-secondary", "border-tile-border"]],
     [{ kind: "pending" }, "Čeká na schválení", ["bg-badge-neutral", "border-control-border"]],
   ])("%o reads „%s“", (status, text, classes) => {

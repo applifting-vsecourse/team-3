@@ -3,7 +3,7 @@ import { Link } from "@tanstack/react-router"
 
 import { ROUTES } from "@/app/routes"
 import { StatusBadge } from "@/components/StatusBadge/StatusBadge"
-import { gatheredLabel, isBelowMinimum, missedMinimumPhrase } from "@/lib/occupancy"
+import { gatheredLabel, missedMinimumLabel, wasHeld } from "@/lib/occupancy"
 
 import type { PublicEvent } from "@/features/events/api/eventSchemas"
 import { EventPhoto } from "@/features/events/components/EventPhoto"
@@ -32,11 +32,11 @@ type PastEventCardProps = {
     | "activity"
     | "locality"
     | "approvedCount"
-    | "minParticipants"
-  > & {
-    status?: "published" | "cancelled"
-  }
-  /** Ignored for an event that didn't take place: cancelled, or below its minimum. */
+    // required, so no caller forgets it: above 0 it didn't take place, „Nekonalo se“ (#61,
+    // review #323 — the public profile once sent none and said „Proběhlo“)
+    | "missingToMin"
+  > & { status?: "published" | "cancelled" }
+  /** Ignored for a cancelled event or one that didn't take place. */
   rating?: PastRating
   /** After how many came, e.g. the event's rating on a public profile: „★ 4,5 (3 hodnocení)“ (#179). */
   detail?: string
@@ -66,10 +66,9 @@ export function PastEventCard({
 }: PastEventCardProps) {
   // from the event, not the rating: a cancelled event never offers „Ohodnotit“
   const isCancelled = event.status === "cancelled"
-  // over and below its minimum: it didn't take place, as the detail says (review #315); before
-  // it ends it may still fill up (review #322)
-  const isNotHeld = !isCancelled && isBelowMinimum(event) && isEventOver(event, now)
-  const didNotHappen = isCancelled || isNotHeld
+  // over and below its minimum: „Nekonalo se“ and why, as its detail says (#61); nothing to
+  // rate either. Before it ends it may still fill up (review #322)
+  const isNotHeld = !isCancelled && !wasHeld(event) && isEventOver(event, now)
   const line = [formatEventDay(event.startsAt), placeName(event.address), event.locality.name].join(
     " · ",
   )
@@ -77,10 +76,9 @@ export function PastEventCard({
     isCancelled
       ? "Akce se nekonala"
       : isNotHeld
-        ? // „Do minima chyběl 1 člověk“, as the detail says it
-          missedMinimumPhrase({
+        ? missedMinimumLabel({
             approvedCount: event.approvedCount,
-            missingToMin: event.minParticipants - event.approvedCount,
+            missingToMin: event.missingToMin,
           })
         : rating?.kind === "given"
           ? `${gatheredLabel(event.approvedCount)} · tvoje ★ ${rating.stars}`
@@ -119,10 +117,13 @@ export function PastEventCard({
         <p className="truncate text-caption text-muted-foreground">{line}</p>
         <div className="flex items-center gap-2 pt-1">
           <StatusBadge
-            status={{ kind: isCancelled ? "cancelled" : isNotHeld ? "notHeld" : "past" }}
+            status={{ kind: isCancelled ? "cancelled" : isNotHeld ? "not-held" : "past" }}
           />
-          <span className="truncate text-caption text-muted-foreground">{attendance}</span>
-          {!didNotHappen && rating?.kind === "open" && rateAction ? (
+          {/* up to two lines: „Do minima chyběli 2 lidé“ and the rating don't fit one on a phone */}
+          <span className="line-clamp-2 min-w-0 text-caption text-muted-foreground">
+            {attendance}
+          </span>
+          {!isCancelled && !isNotHeld && rating?.kind === "open" && rateAction ? (
             // above the card's stretched link, so it stays its own target
             <span className="relative ml-auto shrink-0 text-sm font-semibold">{rateAction}</span>
           ) : null}

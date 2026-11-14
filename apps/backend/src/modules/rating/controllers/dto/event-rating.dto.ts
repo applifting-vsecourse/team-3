@@ -153,10 +153,11 @@ export class RatedEventDto {
   @ApiProperty({ description: 'Approved participants', example: 5 })
   approvedCount!: number;
   @ApiProperty({
-    description: "Its minimum: below it the event didn't take place",
-    example: 4,
+    description:
+      'How many were missing to the minimum; above 0 the event did not take place („Nekonalo se“)',
+    example: 0,
   })
-  minParticipants!: number;
+  missingToMin!: number;
 
   static fromDomain(event: RatedEvent): RatedEventDto {
     return {
@@ -178,7 +179,7 @@ export class RatedEventDto {
         ? { id: event.group.id, name: event.group.name }
         : null,
       approvedCount: event.approvedCount,
-      minParticipants: event.minParticipants,
+      missingToMin: event.missingToMin,
     };
   }
 }

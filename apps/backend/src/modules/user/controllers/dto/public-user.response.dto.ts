@@ -59,10 +59,11 @@ class PublicOrganizedEventDto implements PublicOrganizedEvent {
   activity!: PublicOrganizedEvent['activity'];
   @ApiProperty({ minimum: 0 }) approvedCount!: number;
   @ApiProperty({
-    minimum: 1,
-    description: 'Below it the event did not take place (Nekonalo se).',
+    minimum: 0,
+    description:
+      'How many were missing to the minimum; above 0 the event did not take place',
   })
-  minParticipants!: number;
+  missingToMin!: number;
   @ApiProperty({ type: PublicRatingSummaryDto }) rating!: RatingSummary;
 }
 export class PublicUserResponseDto

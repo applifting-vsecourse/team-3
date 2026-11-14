@@ -37,6 +37,21 @@ describe("PastEventCard", () => {
     expect(container.querySelector("[data-slot=capacity-track]")).toBeNull()
   })
 
+  it("below its minimum: „Nekonalo se“, why, and nothing to rate (#61)", async () => {
+    await renderWithRouter(
+      <PastEventCard
+        event={{ ...volleyball(), approvedCount: 2, missingToMin: 2 }}
+        rating={{ kind: "open" }}
+        rateAction={<a href="/akce/e1/hodnoceni">Ohodnotit →</a>}
+      />,
+    )
+
+    expect(screen.getByText("Nekonalo se")).toBeInTheDocument()
+    expect(screen.getByText("Do minima chyběli 2 lidé")).toBeInTheDocument()
+    expect(screen.queryByText("Proběhlo")).not.toBeInTheDocument()
+    expect(screen.queryByText("Ohodnotit →")).not.toBeInTheDocument()
+  })
+
   it("open: the page's „Ohodnotit →“ link", async () => {
     await renderWithRouter(
       <PastEventCard
@@ -68,24 +83,8 @@ describe("PastEventCard", () => {
     expect(screen.queryByRole("link")).not.toBeInTheDocument()
   })
 
-  it("below its minimum: „Nekonalo se“ and how many were missing, as on the detail (review #315)", async () => {
-    await renderWithRouter(
-      <PastEventCard
-        event={{ ...volleyball(), approvedCount: 3, minParticipants: 4 }}
-        rating={{ kind: "open" }}
-        rateAction={<a href="/hodnoceni">Ohodnotit →</a>}
-      />,
-    )
-
-    expect(screen.getByText("Nekonalo se")).toBeInTheDocument()
-    expect(screen.getByText("Do minima chyběl 1 člověk")).toBeInTheDocument()
-    expect(screen.queryByText("Proběhlo")).not.toBeInTheDocument()
-    // nothing to rate
-    expect(screen.queryByRole("link", { name: "Ohodnotit →" })).not.toBeInTheDocument()
-  })
-
   it("below its minimum but not over yet: it may still fill up, no „Nekonalo se“ (review #322)", async () => {
-    const event = { ...volleyball(), approvedCount: 2, minParticipants: 4 }
+    const event = { ...volleyball(), approvedCount: 2, missingToMin: 2 }
     await renderWithRouter(
       <PastEventCard
         event={event}
@@ -99,7 +98,7 @@ describe("PastEventCard", () => {
 
   it("exactly the minimum took place", async () => {
     await renderWithRouter(
-      <PastEventCard event={{ ...volleyball(), approvedCount: 4, minParticipants: 4 }} />,
+      <PastEventCard event={{ ...volleyball(), approvedCount: 4, missingToMin: 0 }} />,
     )
 
     expect(screen.getByText("Proběhlo")).toBeInTheDocument()

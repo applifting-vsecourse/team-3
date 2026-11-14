@@ -64,7 +64,7 @@ export class EventsController {
   @Get()
   @ApiOperation({
     summary:
-      'Upcoming public events, soonest first or the most interest first (sort=popular), at most 200 (list, map and landing page)',
+      'Upcoming public events, soonest first or the most interest first (sort=popular), at most 200 (list, map and landing page); with past=true the events that are over, newest first (Proběhlé, #61)',
   })
   @ApiResponse({ status: 200, type: [PublicEventResponseDto] })
   @ApiResponse({ status: 400, description: 'Invalid filter' })

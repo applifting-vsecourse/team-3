@@ -3,7 +3,6 @@ import {
   decideParticipantRating,
   decideParticipantRatings,
   eventNotRatable,
-  hasEventEnded,
   ParticipantRatingState,
   RatedParticipantState,
 } from './participant-rating';
@@ -11,26 +10,6 @@ import {
 const now = new Date('2026-11-01T12:00:00.000Z');
 const yesterday = new Date('2026-10-31T17:00:00.000Z');
 const tomorrow = new Date('2026-11-02T17:00:00.000Z');
-
-describe('hasEventEnded', () => {
-  it('with an end: once the end has passed', () => {
-    expect(hasEventEnded({ startsAt: yesterday, endsAt: now }, now)).toBe(true);
-    // started but still going on
-    expect(hasEventEnded({ startsAt: yesterday, endsAt: tomorrow }, now)).toBe(
-      false,
-    );
-  });
-
-  it('without an end: once the start has passed', () => {
-    expect(hasEventEnded({ startsAt: yesterday, endsAt: null }, now)).toBe(
-      true,
-    );
-    expect(hasEventEnded({ startsAt: now, endsAt: null }, now)).toBe(true);
-    expect(hasEventEnded({ startsAt: tomorrow, endsAt: null }, now)).toBe(
-      false,
-    );
-  });
-});
 
 const state = (
   overrides: Partial<ParticipantRatingState> = {},
@@ -61,6 +40,19 @@ describe('decideParticipantRating (#180)', () => {
       ok: false,
       refusal: 'EVENT_NOT_ENDED',
     });
+  });
+
+  it('without an end: not on its day, from Prague midnight after it (#272)', () => {
+    // 11:00 in Prague today; now is 13:00
+    const thisMorning = new Date('2026-11-01T10:00:00.000Z');
+    expect(
+      decideParticipantRating(state({ startsAt: thisMorning }), now),
+    ).toEqual({ ok: false, refusal: 'EVENT_NOT_ENDED' });
+    // 00:00 on Monday 2. 11. in Prague (winter time, UTC+1)
+    const midnight = new Date('2026-11-01T23:00:00.000Z');
+    expect(
+      decideParticipantRating(state({ startsAt: thisMorning }), midnight),
+    ).toEqual({ ok: true });
   });
 
   it('within 14 Prague calendar days of the end: day 14 passes, the day before it is RATING_WINDOW_CLOSED (#66)', () => {

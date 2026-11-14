@@ -8,7 +8,12 @@ import { cn } from "@/lib/utils"
 
 import type { PublicEvent } from "@/features/events/api/eventSchemas"
 import { EventCard } from "@/features/events/components/EventCard"
-import { eventCountLabel } from "@/features/events/lib/formatEvent"
+import { PastEventCard } from "@/features/events/components/PastEventCard"
+import {
+  eventCountLabel,
+  eventRatingLabel,
+  pastEventCountLabel,
+} from "@/features/events/lib/formatEvent"
 
 type EventListProps = {
   events: PublicEvent[]
@@ -38,6 +43,8 @@ type EventListProps = {
   sortControl?: ReactNode
   /** With okolí the cards say how far each event is (#57, Figma A-02gd). */
   isDistanceShown?: boolean
+  /** Proběhlé (#61, Figma A-02h): past cards with how it ended and the event's rating. */
+  isPast?: boolean
 }
 
 export function EventList({
@@ -52,6 +59,7 @@ export function EventList({
   empty,
   sortControl,
   isDistanceShown = false,
+  isPast = false,
 }: EventListProps) {
   if (error) {
     return (
@@ -103,7 +111,7 @@ export function EventList({
         className="flex items-center justify-between gap-3"
       >
         <p className="flex items-center gap-1 text-sm font-semibold">
-          {eventCountLabel(events.length)}
+          {isPast ? pastEventCountLabel(events.length) : eventCountLabel(events.length)}
           {onClearFilters ? (
             <>
               <span
@@ -136,7 +144,9 @@ export function EventList({
               data-peek-end
               className="py-8 text-center text-sm text-muted-foreground"
             >
-              Pro zvolené filtry teď nejsou žádné nadcházející akce.
+              {isPast
+                ? "Pro zvolené filtry tu nejsou žádné proběhlé akce."
+                : "Pro zvolené filtry teď nejsou žádné nadcházející akce."}
             </p>
           )}
         </div>
@@ -148,13 +158,30 @@ export function EventList({
               data-peek-end={index === 0 ? "" : undefined}
               inert={inertAfter !== undefined && index >= inertAfter}
             >
-              <EventCard
-                distanceKm={isDistanceShown ? event.distanceKm : undefined}
-                event={event}
-                isHighlighted={event.id === highlightedId}
-                onMouseEnter={() => onHighlight?.(event.id)}
-                onMouseLeave={() => onHighlight?.(undefined)}
-              />
+              {isPast ? (
+                // the past card has no hover of its own: the wrapper marks it as EventCard does
+                <div
+                  onMouseEnter={() => onHighlight?.(event.id)}
+                  onMouseLeave={() => onHighlight?.(undefined)}
+                  className={cn(
+                    "rounded-2xl",
+                    event.id === highlightedId && "ring-2 ring-foreground",
+                  )}
+                >
+                  <PastEventCard
+                    event={event}
+                    detail={eventRatingLabel(event.rating)}
+                  />
+                </div>
+              ) : (
+                <EventCard
+                  distanceKm={isDistanceShown ? event.distanceKm : undefined}
+                  event={event}
+                  isHighlighted={event.id === highlightedId}
+                  onMouseEnter={() => onHighlight?.(event.id)}
+                  onMouseLeave={() => onHighlight?.(undefined)}
+                />
+              )}
             </li>
           ))}
         </ul>

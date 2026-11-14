@@ -87,7 +87,7 @@ describe("ProfileEventCard (#178, Figma B-05)", () => {
     ["after the window", { approvedCount: 5 }, "u-jakub", "2026-11-06T23:00:00.000Z"],
     [
       "below its minimum: it didn't take place",
-      { approvedCount: 3 },
+      { approvedCount: 3, missingToMin: 1 },
       "u-jakub",
       "2026-10-24T10:00:00.000Z",
     ],

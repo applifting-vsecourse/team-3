@@ -1,3 +1,4 @@
+import type { RatingSummary } from '@/modules/rating/domain/rating-summary';
 import { LatLng } from '@/shared/geo/distance';
 import { BoundingBox } from './bounding-box';
 import { Capacity, CapacityFilter } from './capacity';
@@ -26,6 +27,11 @@ export type PublicEventFilters = {
   point?: LatLng;
   /** Only events at most this far from `point` („okolí +10 km“, #57). */
   radiusKm?: number;
+  /**
+   * Proběhlé (#61): events that are over (`eventOverWhere`, #272), newest
+   * first, instead of the upcoming ones. Still only published public events.
+   */
+  past?: boolean;
 };
 
 /**
@@ -65,6 +71,8 @@ export type PublicEvent = {
   isPromoted: boolean;
   /** From the filters' `point`, null without one (#57). */
   distanceKm: number | null;
+  /** Proběhlé only (#61): the event's average rating, for its past card. */
+  rating?: RatingSummary;
 };
 
 /** An approved participant, as listed on the event detail. */

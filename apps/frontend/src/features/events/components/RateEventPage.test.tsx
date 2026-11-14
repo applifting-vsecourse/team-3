@@ -52,7 +52,7 @@ const event = {
   organizer: { id: "u-petra", name: "Petra Nováková" },
   group: null,
   approvedCount: 5,
-  minParticipants: 4,
+  missingToMin: 0,
 }
 const fresh = {
   event,

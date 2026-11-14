@@ -21,7 +21,7 @@ type FilterChipProps = ComponentProps<typeof Button> & {
   isSelected?: boolean
   /**
    * Which filter this is, so a screen reader hears „Lokalita: Praha 8“, not just „Praha 8“ —
-   * also on a light chip that shows a default value („Lokalita: Praha · podle polohy“).
+   * also on a light chip that shows a default value („Lokalita: Praha · odhad“).
    */
   filterName?: string
 }

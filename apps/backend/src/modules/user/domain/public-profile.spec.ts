@@ -24,6 +24,7 @@ const event = (
   startsAt: new Date('2026-11-01T10:00:00Z'),
   endsAt: null,
   address: 'Hala Strahov, Vaníčkova 2, Praha 6',
+  minParticipants: 1,
   locality: { id: 'p6', slug: 'praha-6', name: 'Praha' },
   activity: {
     id: 'volejbal',
@@ -31,7 +32,6 @@ const event = (
     name: 'Volejbal',
     category: { id: 'sport', slug: 'sport', name: 'Sport', icon: 'ball' },
   },
-  minParticipants: 2,
   _count: { participations: 3 },
   ...changes,
 });
@@ -154,13 +154,23 @@ describe('public profile privacy (#179)', () => {
       };
       const result = publicProfile(user, [], [], [row], now);
       expect(result.organizedEvents[0].approvedCount).toBe(count);
-      // the card tells an event below its minimum by it (review #322)
-      expect(result.organizedEvents[0].minParticipants).toBe(2);
       expect(JSON.stringify(result.organizedEvents)).not.toMatch(
         /private-participant|private-name|participations|_count/,
       );
     },
   );
+  it('says how many were missing to the minimum, so the card can say „Nekonalo se“ (review #323)', () => {
+    const below = event({
+      minParticipants: 4,
+      _count: { participations: 1 },
+    });
+    const held = event({ id: 'held', _count: { participations: 5 } });
+    const result = publicProfile(user, [], [], [below, held], now);
+    expect(result.organizedEvents.map((e) => [e.id, e.missingToMin])).toEqual([
+      ['public-event', 3],
+      ['held', 0],
+    ]);
+  });
   it('lists only finished public personal events and their own nondeleted rating averages', () => {
     const privateEvent = event({ id: 'private-event', visibility: 'private' });
     const personalRows = [

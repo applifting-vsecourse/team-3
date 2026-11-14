@@ -6,10 +6,8 @@ import {
   freeSpotsLabel,
   gatheredLabel,
   happeningThanks,
-  isBelowMinimum,
   isMinimumReachedByLast,
   missedMinimumLabel,
-  missedMinimumPhrase,
   missingLabel,
   occupancyBesideBadge,
   occupancyCount,
@@ -168,25 +166,11 @@ describe("gatheredLabel", () => {
 
 describe("missedMinimumLabel (review #269)", () => {
   it.each([
-    [0, 4, "Nikdo se nepřihlásil."],
-    [3, 1, "Do minima chyběl 1 člověk."],
-    [2, 2, "Do minima chyběli 2 lidé."],
-    [1, 5, "Do minima chybělo 5 lidí."],
+    [0, 4, "Nikdo se nepřihlásil"],
+    [3, 1, "Do minima chyběl 1 člověk"],
+    [2, 2, "Do minima chyběli 2 lidé"],
+    [1, 5, "Do minima chybělo 5 lidí"],
   ])("%i přihlášených, chybí %i: „%s“", (approvedCount, missingToMin, label) => {
     expect(missedMinimumLabel({ approvedCount, missingToMin })).toBe(label)
-  })
-})
-
-describe("the minimum, one rule for the card and the rating (review #322)", () => {
-  it("below it, not at it", () => {
-    expect(isBelowMinimum({ approvedCount: 3, minParticipants: 4 })).toBe(true)
-    expect(isBelowMinimum({ approvedCount: 4, minParticipants: 4 })).toBe(false)
-  })
-
-  it("the card's phrase is the sentence without its full stop", () => {
-    expect(missedMinimumPhrase({ approvedCount: 2, missingToMin: 2 })).toBe(
-      "Do minima chyběli 2 lidé",
-    )
-    expect(missedMinimumPhrase({ approvedCount: 0, missingToMin: 4 })).toBe("Nikdo se nepřihlásil")
   })
 })

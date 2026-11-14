@@ -1,4 +1,5 @@
 import type { Prisma } from '@/generated/prisma/client';
+import { eventOverWhere, isEventOver } from '@/modules/event/domain/event-over';
 import {
   organizerRatingSummary,
   participantRatingSummary,
@@ -74,8 +75,8 @@ export type PublicOrganizedEvent = {
   locality: PublicPlace;
   activity: PublicActivity;
   approvedCount: number;
-  /** Below it the event didn't take place: the card says „Nekonalo se“ as its detail (review #322). */
-  minParticipants: number;
+  /** Above 0 it didn't take place: the card says „Nekonalo se“, as its detail (review #323). */
+  missingToMin: number;
   rating: RatingSummary;
 };
 export type PublicUserProfile = PublicPerson & {
@@ -86,14 +87,12 @@ export type PublicUserProfile = PublicPerson & {
   participantRatings: PublicReceivedRating[];
   organizedEvents: PublicOrganizedEvent[];
 };
+/** Events that are over (#272), as everywhere else. */
 export function finishedEventWhere(now: Date): Prisma.EventWhereInput {
-  return {
-    OR: [{ endsAt: { lte: now } }, { endsAt: null, startsAt: { lte: now } }],
-  };
+  return eventOverWhere(now);
 }
 const visibleFinished = (event: EventBoundary, now: Date): boolean =>
-  event.status === 'published' &&
-  (event.endsAt ?? event.startsAt).getTime() <= now.getTime();
+  event.status === 'published' && isEventOver(event, now);
 
 /** Public projection: no account, home locality, attendance or membership data. */
 export function publicProfile(
@@ -178,7 +177,10 @@ export function publicProfile(
           },
         },
         approvedCount: event._count.participations,
-        minParticipants: event.minParticipants,
+        missingToMin: Math.max(
+          0,
+          event.minParticipants - event._count.participations,
+        ),
         rating: summarizeStars(eventRatings.get(event.id) ?? []),
       })),
   };
