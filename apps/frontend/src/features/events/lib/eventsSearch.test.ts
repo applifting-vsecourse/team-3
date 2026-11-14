@@ -274,6 +274,17 @@ describe("quick picks (#250)", () => {
     expect(pickSearch(undefined, search, now)).toEqual({ lokalita: "praha-8", okoli: "25" })
   })
 
+  it("an okolí the pick turned on leaves with it, one set by hand stays (review #326)", () => {
+    const picked = pickSearch("tady-chybis", { lokalita: "praha-8" }, now)
+    expect(pickSearch(undefined, picked, now)).toEqual({ lokalita: "praha-8", okoli: undefined })
+    expect(pickSearch("tento-vikend", picked, now)).toMatchObject({ okoli: undefined })
+    expect(pickSearch("kousek-od-tebe", picked, now)).toMatchObject({ okoli: "10" })
+
+    const byHand = pickSearch("tady-chybis", { lokalita: "praha-8", okoli: "25" }, now)
+    expect(byHand.okoli).toBe("25")
+    expect(pickSearch(undefined, byHand, now)).toMatchObject({ okoli: "25" })
+  })
+
   it("changing a filter the pick set leaves the pick, another filter keeps it", () => {
     const search = pickSearch("tady-chybis", { lokalita: "praha-8" }, now)
     expect(changesPick(search, { obsazenost: undefined }, now)).toBe(true)

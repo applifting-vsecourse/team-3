@@ -179,16 +179,27 @@ const PICK_FILTER_KEYS = [
 ] as const
 
 /**
+ * Whether the okolí is the one the current pick turned on by itself („Tady chybíš“ adds +10 km
+ * when none is on). The URL can't tell it from the same okolí set by hand; then it goes too.
+ */
+const isPicksOkoli = (search: EventsSearch, now: Date): boolean =>
+  search.vyber !== undefined &&
+  search.okoli !== undefined &&
+  pickPreset(search.vyber, undefined, now).okoli === search.okoli
+
+/**
  * The URL a pick leads to: the locality and okolí stay, the other filters give way to the
- * pick's. Without a pick „Všechny akce“.
+ * pick's. Without a pick „Všechny akce“. An okolí the previous pick turned on leaves with it,
+ * or „Zrušit rychlý výběr“ would leave behind a filter nobody set (review #326).
  */
 export function pickSearch(
   pick: QuickPick | undefined,
   search: EventsSearch,
   now: Date,
 ): EventsSearch {
-  const base = { lokalita: search.lokalita, okoli: search.okoli }
-  return pick ? { ...base, ...pickPreset(pick, search.okoli, now), vyber: pick } : base
+  const okoli = isPicksOkoli(search, now) ? undefined : search.okoli
+  const base = { lokalita: search.lokalita, okoli }
+  return pick ? { ...base, ...pickPreset(pick, okoli, now), vyber: pick } : base
 }
 
 /** Whether a change touches what the pick set; then the pick no longer holds (Figma A-02d). */
