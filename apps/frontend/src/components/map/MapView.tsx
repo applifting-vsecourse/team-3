@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react"
-import { divIcon, latLngBounds, type Map as LeafletMap } from "leaflet"
+import { divIcon, latLngBounds, point, type Map as LeafletMap } from "leaflet"
 import { RotateCw } from "lucide-react"
 import {
   AttributionControl,
@@ -257,10 +257,29 @@ function Pins({ pins, highlightedId, selectedId, onPinClick, isClustered }: Pins
         lng={item.lng}
         count={item.count}
         hasMissing={item.hasMissing}
-        onClick={() => map.flyTo([item.lat, item.lng], clusters!.expansionZoom(item.id))}
+        onClick={() => zoomToCluster(map, clusters!, item.id)}
       />
     ),
   )
+}
+
+/**
+ * Where a tapped cluster zooms (#306): to all its events, at least as far as it splits up. Only
+ * to where it splits, zoomed far out (all of Czechia) a tap moved the map a step, the clusters
+ * barely changed, and it looked as if the tap did nothing (PO 10. 11.).
+ */
+export function clusterZoom(fitZoom: number, expansionZoom: number): number {
+  // a map without a size (not laid out yet) can't fit anything
+  if (!Number.isFinite(fitZoom)) return expansionZoom
+  return Math.max(expansionZoom, Math.min(fitZoom, FIT_MAX_ZOOM))
+}
+
+function zoomToCluster(map: LeafletMap, clusters: PinClusters, clusterId: number) {
+  const { west, south, east, north } = clusters.bounds(clusterId)
+  const bounds = latLngBounds([south, west], [north, east])
+  // the same margin as fitting the pins: 48 px on each side
+  const fitZoom = map.getBoundsZoom(bounds, false, point(96, 96))
+  map.flyTo(bounds.getCenter(), clusterZoom(fitZoom, clusters.expansionZoom(clusterId)))
 }
 
 type PinProps = {
