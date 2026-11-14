@@ -81,6 +81,8 @@ export function LocationPicker({
         aria-labelledby={labelledBy}
         // a region can't be aria-invalid: the error is its description
         aria-describedby={describedBy}
+        // what useRevealFormErrors looks for to bring the map into view (#291)
+        data-invalid={isInvalid}
         className={cn(
           "relative isolate z-0 h-64 overflow-hidden rounded-lg border border-border",
           isInvalid && "border-destructive",
