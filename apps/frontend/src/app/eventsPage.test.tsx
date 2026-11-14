@@ -129,7 +129,14 @@ describe("/akce: „Zrušit rychlý výběr“", () => {
 // #328: the okolí a pick turns on applies (the chip says so) but stays out of the URL, so the
 // URL tells it from one set by hand — +10 km included — which stays after the pick.
 describe("/akce: the okolí of „Tady chybíš“ (#328)", () => {
-  const praha8 = { id: "l-p8", slug: "praha-8", name: "Praha 8", parentId: null, lat: 50.1, lng: 14.5 }
+  const praha8 = {
+    id: "l-p8",
+    slug: "praha-8",
+    name: "Praha 8",
+    parentId: null,
+    lat: 50.1,
+    lng: 14.5,
+  }
   const eventsUrls = () =>
     vi
       .mocked(fetch)

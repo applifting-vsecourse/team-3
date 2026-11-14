@@ -39,10 +39,10 @@ import {
   pickSearch,
   toMapArea,
   toOblast,
+  withPicksOkoli,
   type EventsSearch,
   type QuickPick,
   type Radius,
-  withPicksOkoli,
 } from "@/features/events/lib/eventsSearch"
 
 // DESIGN.md › Quick picks, in this order (Figma A-02d)
