@@ -148,6 +148,7 @@ function GroupAdmins({ admins }: { admins: GroupDetail["admins"] }) {
           >
             <PersonRow
               name={admin.name}
+              userId={admin.id}
               description="Správce skupiny"
             />
           </li>

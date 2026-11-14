@@ -79,4 +79,13 @@ describe("GroupProfile", () => {
     await renderWithRouter(profile({ description: null }))
     expect(screen.queryByRole("heading", { name: "O skupině" })).not.toBeInTheDocument()
   })
+
+  it("an admin's name under „Spravuje“ leads to their public profile (#289)", async () => {
+    await renderWithRouter(profile())
+
+    expect(screen.getByRole("link", { name: "Lucie Svobodová" })).toHaveAttribute(
+      "href",
+      "/uzivatele/u-lucie",
+    )
+  })
 })

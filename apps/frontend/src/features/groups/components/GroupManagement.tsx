@@ -183,6 +183,7 @@ function RequestList({ groupId, requests }: { groupId: string; requests: GroupMe
             >
               <PersonRow
                 name={request.name}
+                userId={request.userId}
                 description={formatRequestTime(request.since)}
                 quote={request.message}
                 actions={
@@ -248,6 +249,7 @@ function MemberList({ members }: { members: GroupMemberEntry[] }) {
         >
           <PersonRow
             name={member.name}
+            userId={member.userId}
             description={member.role === "admin" ? "Správce skupiny" : "Člen skupiny"}
           />
         </li>

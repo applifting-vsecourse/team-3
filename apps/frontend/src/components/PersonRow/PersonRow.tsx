@@ -36,7 +36,22 @@ export function PersonRow({
   const hasMore = Boolean(actions) || Boolean(quote)
   return (
     <div className={cn("flex min-w-0 gap-3", hasMore ? "items-start" : "items-center", className)}>
-      <PersonAvatar name={name} />
+      {userId ? (
+        // the avatar leads to the profile too (#289), for a mouse or a finger:
+        // out of the tab order and hidden, so a keyboard or a screen reader
+        // meets the profile link once, on the name
+        <Link
+          className="shrink-0 rounded-full"
+          to={ROUTES.userProfile}
+          params={{ userId }}
+          tabIndex={-1}
+          aria-hidden
+        >
+          <PersonAvatar name={name} />
+        </Link>
+      ) : (
+        <PersonAvatar name={name} />
+      )}
       <div className={cn("flex min-w-0 flex-col", hasMore && "gap-1")}>
         {userId ? (
           <Link
