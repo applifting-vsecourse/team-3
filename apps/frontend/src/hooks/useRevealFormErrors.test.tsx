@@ -13,9 +13,9 @@ import {
   FormItem,
   FormLabel,
   FormMessage,
-  useRevealFormErrors,
 } from "@/components/ui/form"
 import { Input } from "@/components/ui/input"
+import { useRevealFormErrors } from "@/hooks/useRevealFormErrors"
 
 const schema = z.object({
   first: z.string().min(1, "Vyplň první"),
@@ -69,8 +69,9 @@ function TestForm({ serverError, place = "" }: { serverError?: string; place?: s
               aria-label="mapa"
               data-invalid={Boolean(fieldState.error)}
             >
-              {/* Leaflet makes its container focusable */}
-              <div
+              {/* stands in for Leaflet's container, which Leaflet makes focusable (tabindex="0") */}
+              <button
+                type="button"
                 tabIndex={0}
                 aria-label="mapa – posun"
               />
@@ -195,7 +196,7 @@ describe("useRevealFormErrors", () => {
     expect(screen.getByLabelText("mapa – posun")).toHaveFocus()
   })
 
-  it("a server error scrolls to the alert, which a screen reader announces; the focus stays", async () => {
+  it("a server error scrolls to the alert, which a screen reader announces; the focus stays", () => {
     const { rerender } = render(<TestForm />)
     const button = screen.getByRole("button", { name: "Odeslat" })
     act(() => button.focus())
