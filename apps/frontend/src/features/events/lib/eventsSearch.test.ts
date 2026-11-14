@@ -12,10 +12,12 @@ import {
   hasFiltersBeyondPick,
   isAllEvents,
   nearestFilters,
+  pickPatch,
   pickSearch,
   toEventFilters,
   toMapArea,
   toOblast,
+  withPicksOkoli,
 } from "./eventsSearch"
 
 const locality = (slug: string, parentId: string | null = null): Locality => ({
@@ -266,23 +268,77 @@ describe("quick picks (#250)", () => {
       do: "2026-11-15",
       vyber: "tento-vikend",
     })
-    expect(pickSearch("tady-chybis", { lokalita: "praha-8" }, now)).toMatchObject({
+    expect(pickSearch("tady-chybis", { lokalita: "praha-8" }, now)).toEqual({
+      lokalita: "praha-8",
       obsazenost: "chybi",
-      okoli: "10",
       vyber: "tady-chybis",
     })
     expect(pickSearch(undefined, search, now)).toEqual({ lokalita: "praha-8", okoli: "25" })
   })
 
-  it("an okolí the pick turned on leaves with it, one set by hand stays (review #326)", () => {
+  it("the okolí a pick turns on applies but stays out of the URL (#328)", () => {
     const picked = pickSearch("tady-chybis", { lokalita: "praha-8" }, now)
-    expect(pickSearch(undefined, picked, now)).toEqual({ lokalita: "praha-8", okoli: undefined })
-    expect(pickSearch("tento-vikend", picked, now)).toMatchObject({ okoli: undefined })
-    expect(pickSearch("kousek-od-tebe", picked, now)).toMatchObject({ okoli: "10" })
+    expect(picked.okoli).toBeUndefined()
+    expect(withPicksOkoli(picked, now).okoli).toBe("10")
+    expect(withPicksOkoli(pickSearch("kousek-od-tebe", {}, now), now).okoli).toBe("10")
+    expect(withPicksOkoli(pickSearch("tento-vikend", {}, now), now).okoli).toBeUndefined()
+    expect(toEventFilters(withPicksOkoli(picked, now), catalog).radiusKm).toBe(10)
+  })
 
-    const byHand = pickSearch("tady-chybis", { lokalita: "praha-8", okoli: "25" }, now)
-    expect(byHand.okoli).toBe("25")
-    expect(pickSearch(undefined, byHand, now)).toMatchObject({ okoli: "25" })
+  it("an okolí the pick turned on leaves with it (review #326)", () => {
+    const picked = pickSearch("tady-chybis", { lokalita: "praha-8" }, now)
+    const shown = (search: ReturnType<typeof pickSearch>) => withPicksOkoli(search, now).okoli
+    expect(shown(pickSearch(undefined, picked, now))).toBeUndefined()
+    expect(shown(pickSearch("tento-vikend", picked, now))).toBeUndefined()
+    expect(shown(pickSearch("kousek-od-tebe", picked, now))).toBe("10")
+  })
+
+  it.each(["10", "25", "50"] as const)(
+    "an okolí of +%s km set by hand stays after the pick, also +10 km (#328)",
+    (okoli) => {
+      const picked = pickSearch("tady-chybis", { lokalita: "praha-8", okoli }, now)
+      expect(withPicksOkoli(picked, now).okoli).toBe(okoli)
+      expect(pickSearch(undefined, picked, now).okoli).toBe(okoli)
+      expect(pickSearch("tento-vikend", picked, now).okoli).toBe(okoli)
+      expect(pickSearch("kousek-od-tebe", picked, now).okoli).toBe(okoli)
+    },
+  )
+
+  it("a filter change keeps the pick's okolí out of the URL while the pick holds (#328)", () => {
+    const picked = pickSearch("tady-chybis", { lokalita: "praha-8" }, now)
+    // the locality panel applied with its okolí unchanged
+    expect(pickPatch(picked, { lokalita: "brno", okoli: "10" }, now)).toStrictEqual({
+      lokalita: "brno",
+      okoli: undefined,
+    })
+    expect(pickPatch(picked, { kategorie: "hry" }, now)).toStrictEqual({ kategorie: "hry" })
+    // a hand-set okolí stays the visitor's
+    const byHand = pickSearch("tady-chybis", { lokalita: "praha-8", okoli: "10" }, now)
+    expect(pickPatch(byHand, { lokalita: "brno", okoli: "10" }, now)).toStrictEqual({
+      lokalita: "brno",
+      okoli: "10",
+    })
+    // a pick without okolí leaves one set alone
+    const weekend = pickSearch("tento-vikend", { lokalita: "praha-8" }, now)
+    expect(pickPatch(weekend, { okoli: "10" }, now)).toStrictEqual({ okoli: "10" })
+  })
+
+  it("leaving the pick by a filter keeps what it showed, its okolí as one's own (#328)", () => {
+    const picked = pickSearch("tady-chybis", { lokalita: "praha-8" }, now)
+    expect(pickPatch(picked, { obsazenost: undefined }, now)).toStrictEqual({
+      okoli: "10",
+      obsazenost: undefined,
+      vyber: undefined,
+    })
+    expect(pickPatch(picked, { okoli: "25" }, now)).toStrictEqual({ okoli: "25", vyber: undefined })
+    // „Jen obec“
+    expect(pickPatch(picked, { okoli: undefined }, now)).toStrictEqual({
+      okoli: undefined,
+      vyber: undefined,
+    })
+    expect(pickPatch({ lokalita: "praha-8" }, { kategorie: "hry" }, now)).toStrictEqual({
+      kategorie: "hry",
+    })
   })
 
   it("changing a filter the pick set leaves the pick, another filter keeps it", () => {

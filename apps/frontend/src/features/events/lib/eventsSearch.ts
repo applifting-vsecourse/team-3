@@ -189,27 +189,45 @@ const PICK_FILTER_KEYS = [
 ] as const
 
 /**
- * Whether the okolí is the one the current pick turned on by itself („Tady chybíš“ adds +10 km
- * when none is on). The URL can't tell it from the same okolí set by hand; then it goes too.
+ * The search as it applies: with the okolí the pick turns on by itself when none is set by hand
+ * („Tady chybíš“, „Kousek od tebe“: +10 km). That okolí never goes into the URL, which holds only
+ * what the visitor chose (#328): so it leaves with the pick, and a hand-set +10 km stays.
  */
-const isPicksOkoli = (search: EventsSearch, now: Date): boolean =>
-  search.vyber !== undefined &&
-  search.okoli !== undefined &&
-  pickPreset(search.vyber, undefined, now).okoli === search.okoli
+export function withPicksOkoli(search: EventsSearch, now: Date): EventsSearch {
+  if (!search.vyber || search.okoli !== undefined) return search
+  const { okoli } = pickPreset(search.vyber, undefined, now)
+  return okoli ? { ...search, okoli } : search
+}
 
 /**
- * The URL a pick leads to: the locality and okolí stay, the other filters give way to the
- * pick's. Without a pick „Všechny akce“. An okolí the previous pick turned on leaves with it,
- * or „Zrušit rychlý výběr“ would leave behind a filter nobody set (review #326).
+ * The URL a pick leads to: the locality and an okolí set by hand stay, the other filters give way
+ * to the pick's. Without a pick „Všechny akce“. The pick's own okolí stays out (withPicksOkoli).
  */
 export function pickSearch(
   pick: QuickPick | undefined,
   search: EventsSearch,
   now: Date,
 ): EventsSearch {
-  const okoli = isPicksOkoli(search, now) ? undefined : search.okoli
-  const base = { lokalita: search.lokalita, okoli }
-  return pick ? { ...base, ...pickPreset(pick, okoli, now), vyber: pick } : base
+  const base = { lokalita: search.lokalita, okoli: search.okoli }
+  return pick ? { ...pickPreset(pick, search.okoli, now), ...base, vyber: pick } : base
+}
+
+/**
+ * A filter change as the URL takes it under a pick (#328). Changing what the pick set leaves the
+ * pick (Figma A-02d) and keeps what it showed: its okolí is written down as the visitor's. Else the
+ * pick's own okolí stays out of the URL, also when the locality panel hands it back unchanged.
+ */
+export function pickPatch(
+  search: EventsSearch,
+  patch: Partial<EventsSearch>,
+  now: Date,
+): Partial<EventsSearch> {
+  if (!search.vyber) return patch
+  const picksOkoli = search.okoli === undefined ? withPicksOkoli(search, now).okoli : undefined
+  if (changesPick(search, patch, now)) return { okoli: picksOkoli, ...patch, vyber: undefined }
+  return picksOkoli !== undefined && patch.okoli === picksOkoli
+    ? { ...patch, okoli: undefined }
+    : patch
 }
 
 /** Whether a change touches what the pick set; then the pick no longer holds (Figma A-02d). */
