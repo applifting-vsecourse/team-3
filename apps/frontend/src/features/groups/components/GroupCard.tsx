@@ -3,14 +3,19 @@ import { Lock, Users } from "lucide-react"
 
 import { activityPhoto } from "@/assets/activity-photos"
 import { ActivityTile } from "@/components/ActivityTile/ActivityTile"
+import { StatusBadge } from "@/components/StatusBadge/StatusBadge"
 
 import type { Group } from "@/features/groups/api/groupSchemas"
 import { GROUP_TYPE_SHORT, groupFacts } from "@/features/groups/lib/formatGroup"
 
 type GroupCardProps = {
   group: Group
-  /** The type line; on „Moje“ it says when my request waits. */
+  /** The type line. */
   typeLabel?: string
+  /** Instead of „Florbal · Praha 9 · 8 členů“, e.g. the requests to decide in Spravuju. */
+  facts?: string
+  /** My request waits: the badge „Čeká na schválení“ as on an event's card (Figma C-04, #304). */
+  isRequestPending?: boolean
   /** A group I run opens its management (A-07m), any other its page. */
   linkTo?: "page" | "manage"
   /** h3 under a section heading („Spravuju (1)“), h2 straight in the list. */
@@ -24,6 +29,8 @@ type GroupCardProps = {
 export function GroupCard({
   group,
   typeLabel = GROUP_TYPE_SHORT[group.type],
+  facts,
+  isRequestPending = false,
   linkTo = "page",
   titleAs: Title = "h2",
 }: GroupCardProps) {
@@ -51,14 +58,17 @@ export function GroupCard({
       )}
       <div className="flex min-w-0 flex-1 flex-col gap-1">
         <Title className="truncate type-card-heading">{group.name}</Title>
-        <p className="truncate text-sm text-muted-foreground">{groupFacts(group)}</p>
-        <p className="flex items-center gap-1.5 text-caption font-medium text-muted-foreground">
-          <TypeIcon
-            aria-hidden
-            className="size-4 shrink-0"
-          />
-          <span className="truncate">{typeLabel}</span>
-        </p>
+        <p className="truncate text-sm text-muted-foreground">{facts ?? groupFacts(group)}</p>
+        <div className="flex min-w-0 items-center gap-2">
+          {isRequestPending ? <StatusBadge status={{ kind: "pending" }} /> : null}
+          <p className="flex min-w-0 items-center gap-1.5 text-caption font-medium text-muted-foreground">
+            <TypeIcon
+              aria-hidden
+              className="size-4 shrink-0"
+            />
+            <span className="truncate">{typeLabel}</span>
+          </p>
+        </div>
       </div>
     </Link>
   )

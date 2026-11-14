@@ -1,5 +1,5 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query"
-import { render, screen, within } from "@testing-library/react"
+import { render, screen, waitFor, within } from "@testing-library/react"
 import userEvent from "@testing-library/user-event"
 import { beforeEach, describe, expect, it, vi } from "vitest"
 
@@ -81,7 +81,8 @@ describe("GroupManagement", () => {
     expect(await screen.findByRole("heading", { name: "Žádosti (2)" })).toBeInTheDocument()
     expect(screen.getByRole("heading", { name: "Členové (2)" })).toBeInTheDocument()
     expect(screen.getByText("Jakub Král")).toBeInTheDocument()
-    expect(screen.getAllByText("Žádá o členství")).toHaveLength(2)
+    // when they asked, as with an event's requests (#304)
+    expect(screen.getByText("Žádost z 21. 10. v 12:00")).toBeInTheDocument()
     expect(screen.getByText("Správce skupiny")).toBeInTheDocument()
     expect(screen.getByText("Člen skupiny")).toBeInTheDocument()
     expect(api.get).toHaveBeenCalledWith("groups/g-florbal/members")
@@ -98,16 +99,116 @@ describe("GroupManagement", () => {
     expect(screen.getByText("Ondřej Procházka")).toBeInTheDocument()
   })
 
-  it("approving and rejecting call the request's endpoint", async () => {
+  it("approving is one click (#304: the same as an event's requests)", async () => {
     renderManagement(true)
 
-    const jakub = (await screen.findByText("Jakub Král")).closest("li")!
-    await userEvent.click(within(jakub).getByRole("button", { name: "Schválit" }))
-    expect(api.post).toHaveBeenCalledWith("groups/g-florbal/requests/u-jakub/approve")
+    await userEvent.click(
+      await screen.findByRole("button", { name: "Schválit žádost: Jakub Král" }),
+    )
 
-    const petr = screen.getByText("Petr Holub").closest("li")!
-    await userEvent.click(within(petr).getByRole("button", { name: "Zamítnout" }))
-    expect(api.post).toHaveBeenCalledWith("groups/g-florbal/requests/u-petr/reject")
+    expect(api.post).toHaveBeenCalledExactlyOnceWith("groups/g-florbal/requests/u-jakub/approve")
+    expect(screen.queryByRole("dialog")).not.toBeInTheDocument()
+  })
+
+  it("rejecting asks first and says what the applicant will see (#304, as D-03a)", async () => {
+    renderManagement(true)
+
+    await userEvent.click(
+      await screen.findByRole("button", { name: "Zamítnout žádost: Petr Holub" }),
+    )
+
+    const dialog = screen.getByRole("dialog", { name: "Zamítnout žádost?" })
+    expect(dialog).toHaveAccessibleDescription(
+      "Petr Holub uvidí na stránce skupiny zase „Požádat o členství“ a o členství může požádat znovu.",
+    )
+    expect(api.post).not.toHaveBeenCalled()
+
+    await userEvent.click(within(dialog).getByRole("button", { name: "Zpět" }))
+    expect(screen.queryByRole("dialog")).not.toBeInTheDocument()
+    expect(api.post).not.toHaveBeenCalled()
+  })
+
+  it("confirming rejects that one request and closes the dialog", async () => {
+    renderManagement(true)
+
+    await userEvent.click(
+      await screen.findByRole("button", { name: "Zamítnout žádost: Petr Holub" }),
+    )
+    await userEvent.click(
+      within(screen.getByRole("dialog")).getByRole("button", { name: "Zamítnout" }),
+    )
+
+    expect(api.post).toHaveBeenCalledExactlyOnceWith("groups/g-florbal/requests/u-petr/reject")
+    await waitFor(() => expect(screen.queryByRole("dialog")).not.toBeInTheDocument())
+  })
+
+  it("a rejection that fails keeps the dialog open to try again", async () => {
+    api.post.mockRejectedValueOnce(new Error("Žádost už vyřídil jiný správce."))
+    renderManagement(true)
+
+    await userEvent.click(
+      await screen.findByRole("button", { name: "Zamítnout žádost: Petr Holub" }),
+    )
+    await userEvent.click(
+      within(screen.getByRole("dialog")).getByRole("button", { name: "Zamítnout" }),
+    )
+
+    await waitFor(() => expect(api.post).toHaveBeenCalledOnce())
+    expect(screen.getByRole("dialog", { name: "Zamítnout žádost?" })).toBeInTheDocument()
+  })
+
+  it("deciding one request leaves the others usable (review #318)", async () => {
+    let finishJakub!: () => void
+    let finishPetr!: () => void
+    api.post
+      .mockReturnValueOnce(new Promise<void>((resolve) => (finishJakub = resolve)))
+      .mockReturnValueOnce(new Promise<void>((resolve) => (finishPetr = resolve)))
+    renderManagement(true)
+
+    await userEvent.click(
+      await screen.findByRole("button", { name: "Schválit žádost: Jakub Král" }),
+    )
+
+    expect(screen.getByRole("button", { name: "Schválit žádost: Jakub Král" })).toBeDisabled()
+    expect(screen.getByRole("button", { name: "Schválit žádost: Petr Holub" })).toBeEnabled()
+
+    // a second row while the first is on its way: the first stays locked (review #318, 2nd round)
+    await userEvent.click(screen.getByRole("button", { name: "Schválit žádost: Petr Holub" }))
+
+    expect(screen.getByRole("button", { name: "Schválit žádost: Jakub Král" })).toBeDisabled()
+    expect(screen.getByRole("button", { name: "Zamítnout žádost: Jakub Král" })).toBeDisabled()
+    expect(screen.getByRole("button", { name: "Schválit žádost: Petr Holub" })).toBeDisabled()
+
+    finishPetr()
+    await waitFor(() =>
+      expect(screen.getByRole("button", { name: "Schválit žádost: Petr Holub" })).toBeEnabled(),
+    )
+    expect(screen.getByRole("button", { name: "Schválit žádost: Jakub Král" })).toBeDisabled()
+    finishJakub()
+  })
+
+  it("rejecting the last request closes the dialog and leaves the focus on the list, not <body> (review #318)", async () => {
+    const onlyPetr = { ...members, requests: [members.requests[1]!] }
+    api.get
+      .mockReturnValueOnce({ json: () => Promise.resolve(onlyPetr) })
+      .mockReturnValue({ json: () => Promise.resolve({ ...members, requests: [] }) })
+    renderManagement(true)
+
+    await userEvent.click(
+      await screen.findByRole("button", { name: "Zamítnout žádost: Petr Holub" }),
+    )
+    await userEvent.click(
+      within(screen.getByRole("dialog")).getByRole("button", { name: "Zamítnout" }),
+    )
+
+    expect(await screen.findByText("Žádné žádosti o členství teď nečekají.")).toBeInTheDocument()
+    await waitFor(() => expect(screen.queryByRole("dialog")).not.toBeInTheDocument())
+    await waitFor(() => expect(document.activeElement).not.toBe(document.body))
+    // a named place, so a screen reader says where it is (review #318, 2nd round)
+    expect(document.activeElement).toBe(screen.getByRole("region", { name: "Žádosti o členství" }))
+    expect(document.activeElement).toContainElement(
+      screen.getByText("Žádné žádosti o členství teď nečekají."),
+    )
   })
 
   it("no requests: one sentence instead of an empty list", async () => {

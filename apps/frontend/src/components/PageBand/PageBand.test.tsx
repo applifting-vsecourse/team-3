@@ -25,13 +25,13 @@ describe("PageBand", () => {
     await renderWithRouter(
       <PageBand
         title="Nová akce"
-        back={{ to: "/moje-akce", fallbackLabel: "Moje akce", label: "Moje akce" }}
+        back={{ to: "/moje/akce", fallbackLabel: "Moje akce", label: "Moje akce" }}
         isCompactOnMobile
       />,
     )
 
     // the label stays the link's name even where a phone shows only the arrow
-    expect(screen.getByRole("link", { name: "Moje akce" })).toHaveAttribute("href", "/moje-akce")
+    expect(screen.getByRole("link", { name: "Moje akce" })).toHaveAttribute("href", "/moje/akce")
   })
 
   it("puts the leading picture before the title, outside its name (#178)", async () => {

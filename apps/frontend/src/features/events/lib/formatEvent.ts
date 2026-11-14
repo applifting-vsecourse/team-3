@@ -96,14 +96,6 @@ const dayMonthFormat = new Intl.DateTimeFormat("cs-CZ", {
   month: "numeric",
 })
 
-/** When a request was sent, on the management page (#53): "Žádost z 23. 10. v 17:30". */
-export function formatRequestTime(date: Date): string {
-  const parts = dayMonthFormat.formatToParts(date)
-  const get = (type: Intl.DateTimeFormatPartTypes) =>
-    parts.find((part) => part.type === type)?.value ?? ""
-  return `Žádost z ${get("day")}. ${get("month")}. v ${timeFormat.format(date)}`
-}
-
 /** When the organizer wrote to the participants (#176, Figma A-05c): "pá 23. 10. v 16:20", Prague time. */
 export function formatMessageTime(date: Date): string {
   const { weekday, day, month, time } = startParts(date)

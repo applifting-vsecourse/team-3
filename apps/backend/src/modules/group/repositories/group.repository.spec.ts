@@ -133,6 +133,79 @@ describe('GroupRepository: the request message stays with the admins (#175)', ()
     ).not.toContain('message');
   });
 
+  describe('findMyGroups (#304)', () => {
+    it('asks for no counts when I run no group', async () => {
+      const prisma = mockDeep<PrismaService>();
+      prisma.group.findMany.mockResolvedValue([] as never);
+
+      await new GroupRepository(prisma).findMyGroups('u1');
+
+      expect(prisma.groupMember.groupBy).not.toHaveBeenCalled();
+    });
+
+    const row = (id: string, members: object[]): object => ({
+      id,
+      name: `Skupina ${id}`,
+      type: 'closed',
+      activity: {
+        id: 'a1',
+        slug: 'volejbal',
+        name: 'Volejbal',
+        category: { id: 'c1', slug: 'sport', name: 'Sport', icon: 'ball' },
+      },
+      locality: { id: 'l1', slug: 'praha-7', name: 'Praha 7' },
+      _count: { members: 6 },
+      members,
+    });
+
+    it('counts the requests waiting in a group I run, none in a group I am only in', async () => {
+      const prisma = mockDeep<PrismaService>();
+      prisma.group.findMany.mockResolvedValue([
+        row('g-admin', [{ role: 'admin', status: 'active' }]),
+        row('g-member', [{ role: 'member', status: 'active' }]),
+        row('g-asked', [{ role: 'member', status: 'pending' }]),
+      ] as never);
+      // groupBy's generic overloads are too deep for jest-mock-extended's types
+      const groupBy = prisma.groupMember.groupBy as unknown as jest.Mock;
+      groupBy.mockResolvedValue([
+        { groupId: 'g-admin', _count: { _all: 1 } },
+      ] as never);
+
+      const groups = await new GroupRepository(prisma).findMyGroups('u1');
+
+      // counted by the database, and only in the groups I run
+      expect(prisma.groupMember.groupBy).toHaveBeenCalledWith({
+        by: ['groupId'],
+        where: { groupId: { in: ['g-admin'] }, status: 'pending' },
+        _count: { _all: true },
+      });
+
+      expect(
+        groups.map(({ id, membership, pendingRequests }) => ({
+          id,
+          membership,
+          pendingRequests,
+        })),
+      ).toEqual([
+        {
+          id: 'g-admin',
+          membership: { role: 'admin', status: 'active' },
+          pendingRequests: 1,
+        },
+        {
+          id: 'g-member',
+          membership: { role: 'member', status: 'active' },
+          pendingRequests: null,
+        },
+        {
+          id: 'g-asked',
+          membership: { role: 'member', status: 'pending' },
+          pendingRequests: null,
+        },
+      ]);
+    });
+  });
+
   describe('findRecruitingGroups (#182)', () => {
     const now = new Date('2026-11-07T10:00:00.000Z');
     const row = (id: string, events: { startsAt: Date }[]): object => ({

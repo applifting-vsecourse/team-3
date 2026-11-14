@@ -8,7 +8,7 @@ const invalidOf = (query: Record<string, unknown>): string[] =>
   }).map((error) => error.property);
 
 describe('MyEventsQueryDto', () => {
-  it.each(['attending', 'organizing'])('accepts tab=%s', (tab) => {
+  it.each(['attending', 'organizing', 'groups'])('accepts tab=%s', (tab) => {
     expect(invalidOf({ tab })).toEqual([]);
   });
 

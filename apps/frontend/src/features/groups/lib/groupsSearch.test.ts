@@ -47,7 +47,7 @@ describe("groupsSearchSchema", () => {
 })
 
 describe("groupsSearchSchema › tab", () => {
-  it("?tab=moje is „Moje“, anything else falls back to Všechny", () => {
+  it("?tab=moje is kept for the redirect to Moje › Skupiny (#304), anything else dropped", () => {
     expect(groupsSearchSchema.parse({ tab: "moje" }).tab).toBe("moje")
     expect(groupsSearchSchema.parse({ tab: "vsechny" }).tab).toBeUndefined()
     expect(groupsSearchSchema.parse({}).tab).toBeUndefined()
