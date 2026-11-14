@@ -60,7 +60,7 @@ beforeEach(() => {
 })
 afterEach(() => {
   vi.unstubAllGlobals()
-  // the spies on scrollIntoView and setTimeout
+  // the spies on scrollIntoView
   vi.restoreAllMocks()
 })
 
@@ -87,6 +87,7 @@ describe("GroupForm", () => {
     expect(screen.getByRole("radio", { name: /Neveřejná/ })).not.toBeChecked()
   })
 
+  // the timing (scrollend, Safari's fallback, reduced motion) is useRevealFormErrors' own: form.test.tsx
   it("a failed submit scrolls to the first invalid field and focuses it once the scroll ends (#190)", async () => {
     renderForm()
     const scrollIntoView = vi.spyOn(Element.prototype, "scrollIntoView")
@@ -105,32 +106,6 @@ describe("GroupForm", () => {
     expect(name).toHaveFocus()
   })
 
-  it("without a scrollend (Safari, nothing to scroll) the field is focused after 400 ms", async () => {
-    renderForm()
-    const scrollIntoView = vi.spyOn(Element.prototype, "scrollIntoView")
-    const setTimeout = vi.spyOn(window, "setTimeout")
-
-    await userEvent.click(screen.getByRole("button", { name: "Založit skupinu" }))
-
-    const name = screen.getByLabelText("Název skupiny *")
-    await waitFor(() => expect(scrollIntoView).toHaveBeenCalledOnce())
-    expect(setTimeout).toHaveBeenCalledWith(expect.any(Function), 400)
-    expect(name).not.toHaveFocus()
-    await waitFor(() => expect(name).toHaveFocus())
-  })
-
-  it("a field tapped while the page scrolls keeps the focus", async () => {
-    renderForm()
-    const scrollIntoView = vi.spyOn(Element.prototype, "scrollIntoView")
-
-    await userEvent.click(screen.getByRole("button", { name: "Založit skupinu" }))
-    await waitFor(() => expect(scrollIntoView).toHaveBeenCalledOnce())
-    await userEvent.click(screen.getByLabelText("Popis"))
-    window.dispatchEvent(new Event("scrollend"))
-
-    expect(screen.getByLabelText("Popis")).toHaveFocus()
-  })
-
   it("a valid name moves the focus on to the next invalid field, the activity", async () => {
     renderForm()
 
@@ -138,6 +113,36 @@ describe("GroupForm", () => {
     await userEvent.click(screen.getByRole("button", { name: "Založit skupinu" }))
 
     await waitFor(() => expect(screen.getByRole("combobox", { name: "Aktivita *" })).toHaveFocus())
+  })
+
+  it("a server error comes into view as an alert, read out by a screen reader (#291)", () => {
+    const props = {
+      catalog,
+      submitLabel: "Založit skupinu",
+      isSubmitting: false,
+      onSubmit: vi.fn(),
+    }
+    const client = new QueryClient()
+    const { rerender } = render(
+      <QueryClientProvider client={client}>
+        <GroupForm {...props} />
+      </QueryClientProvider>,
+    )
+    const scrollIntoView = vi.spyOn(Element.prototype, "scrollIntoView")
+
+    rerender(
+      <QueryClientProvider client={client}>
+        <GroupForm
+          {...props}
+          errorMessage="Neznámá aktivita"
+        />
+      </QueryClientProvider>,
+    )
+
+    const alert = screen.getByRole("alert")
+    expect(alert).toHaveTextContent("Neznámá aktivita")
+    expect(scrollIntoView).toHaveBeenCalledOnce()
+    expect(scrollIntoView.mock.contexts[0]).toBe(alert)
   })
 
   it("with reduced motion it jumps to the field and focuses it at once", async () => {

@@ -116,6 +116,8 @@ beforeEach(() => {
 
 afterEach(() => {
   vi.unstubAllGlobals()
+  // the spies on scrollIntoView
+  vi.restoreAllMocks()
 })
 
 describe("EventForm", () => {
@@ -154,6 +156,88 @@ describe("EventForm", () => {
 
     const map = screen.getByRole("region", { name: "Místo na mapě *" })
     expect(map).toHaveAccessibleDescription("Vyber místo na mapě")
+  })
+
+  describe("errors stay on screen (#291)", () => {
+    it("a failed submit scrolls to the first invalid field and focuses it once the scroll ends", async () => {
+      renderForm()
+      const scrollIntoView = vi.spyOn(Element.prototype, "scrollIntoView")
+
+      await submit()
+
+      const title = screen.getByLabelText("Název akce *")
+      await waitFor(() => expect(scrollIntoView).toHaveBeenCalledOnce())
+      expect(scrollIntoView.mock.contexts[0]).toBe(title)
+      // the middle of the screen, clear of the sticky header
+      expect(scrollIntoView).toHaveBeenCalledWith({ behavior: "smooth", block: "center" })
+      // not react-hook-form's own focus at once: the page would jump before the scroll ends
+      expect(title).not.toHaveFocus()
+
+      window.dispatchEvent(new Event("scrollend"))
+
+      expect(title).toHaveFocus()
+    })
+
+    it("a filled title moves the focus on to the activity", async () => {
+      renderForm()
+
+      await userEvent.type(screen.getByLabelText("Název akce *"), "Deskovky po práci")
+      await submit()
+
+      await waitFor(() =>
+        expect(screen.getByRole("combobox", { name: "Aktivita *" })).toHaveFocus(),
+      )
+    })
+
+    it("only the place missing: the map comes into view and takes the focus", async () => {
+      renderForm({
+        initialValues: {
+          title: "Deskovky po práci",
+          activityId: "a-deskove-hry",
+          localityId: "l-praha-8",
+          address: "Herna Karlín",
+          startsAt: new Date(Date.now() + 3 * 86_400_000).toISOString(),
+          minParticipants: 3,
+          maxParticipants: 6,
+        },
+      })
+      const scrollIntoView = vi.spyOn(Element.prototype, "scrollIntoView")
+
+      await submit()
+
+      const map = screen.getByRole("region", { name: "Místo na mapě *" })
+      await waitFor(() => expect(scrollIntoView).toHaveBeenCalledOnce())
+      expect(scrollIntoView.mock.contexts[0]).toBe(map)
+      window.dispatchEvent(new Event("scrollend"))
+      // Leaflet's container, which moves the map from the keyboard
+      expect(map).toContainElement(document.activeElement as HTMLElement)
+      expect(document.activeElement).not.toBe(document.body)
+    })
+
+    it("a server error comes into view as an alert, read out by a screen reader", () => {
+      const client = new QueryClient()
+      const props = { catalog, isSubmitting: false, onSubmit: vi.fn() }
+      const { rerender } = render(
+        <QueryClientProvider client={client}>
+          <EventForm {...props} />
+        </QueryClientProvider>,
+      )
+      const scrollIntoView = vi.spyOn(Element.prototype, "scrollIntoView")
+
+      rerender(
+        <QueryClientProvider client={client}>
+          <EventForm
+            {...props}
+            errorMessage="Nejdřív si ověř e-mail."
+          />
+        </QueryClientProvider>,
+      )
+
+      const alert = screen.getByRole("alert")
+      expect(alert).toHaveTextContent("Nejdřív si ověř e-mail.")
+      expect(scrollIntoView).toHaveBeenCalledOnce()
+      expect(scrollIntoView.mock.contexts[0]).toBe(alert)
+    })
   })
 
   it("min 0, max below min and a date in the past can't be saved", async () => {
