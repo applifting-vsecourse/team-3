@@ -127,6 +127,8 @@ describe("PageBand", () => {
     expect(motif.parentElement).toContainElement(
       screen.getByRole("link", { name: "Zaregistrovat se" }),
     )
+    // jsdom has no layout: this only pins the placement; that the ring clears the buttons at
+    // 1024–1920 px was measured by hand in the browser (PR #326)
     expect(motif).toHaveClass("top-[calc(100%-505px)]", "-z-10", "overflow-visible")
     expect(motif).not.toHaveClass("bottom-0")
     expect(motif).toHaveAttribute("aria-hidden", "true")

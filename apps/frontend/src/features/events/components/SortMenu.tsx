@@ -19,7 +19,7 @@ const LABEL: Record<Sort, string> = {
   vzdalenost: "nejmenší vzdálenost",
 }
 
-// a phone shows just the value (Figma A-02h: „Nejnovější ▾“), so the count, „Zrušit filtry“ and
+// a phone shows just the value (Figma A-02h: „Termín ▾“), so the count, „Zrušit filtry“ and
 // the order fit one line (#324); „Řadit:“ stays for a screen reader
 const SHORT_LABEL: Record<Sort, string> = {
   termin: "Termín",
