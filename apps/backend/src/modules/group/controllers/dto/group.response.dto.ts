@@ -57,10 +57,13 @@ class ViewerMembershipDto {
 }
 
 class GroupAdminDto {
-  @ApiProperty()
+  @ApiProperty({
+    description:
+      "The admin's user id, for the public profile `GET /api/users/:userId` (#289)",
+  })
   id!: string;
 
-  @ApiProperty()
+  @ApiProperty({ example: 'Petra Nováková' })
   name!: string;
 }
 
@@ -121,7 +124,8 @@ export class GroupDetailResponseDto extends GroupResponseDto {
       ...GroupResponseDto.fromDomain(group),
       description: group.description,
       status: group.status,
-      admins: group.admins,
+      // only who they are and where their profile is, whatever the domain carries
+      admins: group.admins.map(({ id, name }) => ({ id, name })),
       viewerMembership: group.viewerMembership,
     };
   }

@@ -23,6 +23,7 @@ export function GroupOrganizer({ group }: { group: GroupDetail }) {
           >
             <PersonRow
               name={admin.name}
+              userId={admin.id}
               description="Správce skupiny"
             />
           </li>

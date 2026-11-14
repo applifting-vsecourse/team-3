@@ -1,6 +1,8 @@
-import { render, screen, waitFor, within } from "@testing-library/react"
+import { screen, waitFor, within } from "@testing-library/react"
 import userEvent from "@testing-library/user-event"
 import { describe, expect, it, vi } from "vitest"
+
+import { renderWithRouter } from "@/test/renderWithRouter"
 
 import type { EventRequest } from "@/features/events/api/eventSchemas"
 import { ManagedRequests } from "@/features/events/components/ManagedRequests"
@@ -18,12 +20,12 @@ const eva: EventRequest = {
   message: null,
 }
 
-const renderRequests = (props: Partial<Parameters<typeof ManagedRequests>[0]> = {}) => {
+const renderRequests = async (props: Partial<Parameters<typeof ManagedRequests>[0]> = {}) => {
   const onDecide = vi.fn<(r: EventRequest, d: "approve" | "reject") => Promise<unknown>>(() =>
     Promise.resolve(),
   )
   const onRetry = vi.fn()
-  const view = render(
+  const view = await renderWithRouter(
     <ManagedRequests
       requests={[jakub, eva]}
       error={undefined}
@@ -39,8 +41,8 @@ const renderRequests = (props: Partial<Parameters<typeof ManagedRequests>[0]> = 
 }
 
 describe("ManagedRequests (#53)", () => {
-  it("shows the applicant's message in quotes under them, none for a request without one (D-03, #175)", () => {
-    renderRequests()
+  it("shows the applicant's message in quotes under them, none for a request without one (D-03, #175)", async () => {
+    await renderRequests()
 
     const [jakubRow, evaRow] = screen.getAllByRole("listitem")
     expect(
@@ -49,8 +51,8 @@ describe("ManagedRequests (#53)", () => {
     expect(within(evaRow!).queryByText(/„/)).not.toBeInTheDocument()
   })
 
-  it("lists the waiting requests, oldest first, with when they were sent", () => {
-    renderRequests()
+  it("lists the waiting requests, oldest first, with when they were sent", async () => {
+    await renderRequests()
 
     expect(screen.getByRole("heading", { name: "Žádosti 2" })).toBeInTheDocument()
     const [first, second] = screen.getAllByRole("listitem")
@@ -60,7 +62,7 @@ describe("ManagedRequests (#53)", () => {
   })
 
   it("approves each request on its own, at one click", async () => {
-    const { onDecide } = renderRequests()
+    const { onDecide } = await renderRequests()
 
     await userEvent.click(screen.getByRole("button", { name: "Schválit žádost: Jakub Král" }))
 
@@ -69,7 +71,7 @@ describe("ManagedRequests (#53)", () => {
   })
 
   it("rejecting asks first and says what the applicant will see (#185)", async () => {
-    const { onDecide } = renderRequests()
+    const { onDecide } = await renderRequests()
 
     await userEvent.click(screen.getByRole("button", { name: "Zamítnout žádost: Eva Malá" }))
 
@@ -81,7 +83,7 @@ describe("ManagedRequests (#53)", () => {
   })
 
   it("„Zpět“ leaves the request waiting (#185)", async () => {
-    const { onDecide } = renderRequests()
+    const { onDecide } = await renderRequests()
 
     await userEvent.click(screen.getByRole("button", { name: "Zamítnout žádost: Eva Malá" }))
     await userEvent.click(screen.getByRole("button", { name: "Zpět" }))
@@ -91,7 +93,7 @@ describe("ManagedRequests (#53)", () => {
   })
 
   it("confirming rejects that one request and closes the dialog (#185)", async () => {
-    const { onDecide } = renderRequests()
+    const { onDecide } = await renderRequests()
 
     await userEvent.click(screen.getByRole("button", { name: "Zamítnout žádost: Eva Malá" }))
     await userEvent.click(
@@ -103,7 +105,7 @@ describe("ManagedRequests (#53)", () => {
   })
 
   it("a rejection that fails keeps the dialog open to try again (the page's toast says why)", async () => {
-    const { onDecide } = renderRequests()
+    const { onDecide } = await renderRequests()
     onDecide.mockRejectedValueOnce(new Error("Žádost už vyřízená."))
 
     await userEvent.click(screen.getByRole("button", { name: "Zamítnout žádost: Jakub Král" }))
@@ -116,7 +118,7 @@ describe("ManagedRequests (#53)", () => {
   })
 
   it("while the rejection is on its way, it can't be confirmed twice", async () => {
-    const { onDecide, rerender } = renderRequests()
+    const { onDecide, rerender } = await renderRequests()
     await userEvent.click(screen.getByRole("button", { name: "Zamítnout žádost: Jakub Král" }))
 
     rerender(
@@ -136,14 +138,14 @@ describe("ManagedRequests (#53)", () => {
     ).toBeDisabled()
   })
 
-  it("while a decision is on its way, no other can be sent (a second click would only fail)", () => {
-    renderRequests({ isDeciding: true })
+  it("while a decision is on its way, no other can be sent (a second click would only fail)", async () => {
+    await renderRequests({ isDeciding: true })
 
     for (const button of screen.getAllByRole("button")) expect(button).toBeDisabled()
   })
 
   it("while the rejection is on its way, the dialog can't be closed (review #262)", async () => {
-    const { onDecide, rerender } = renderRequests()
+    const { onDecide, rerender } = await renderRequests()
     await userEvent.click(screen.getByRole("button", { name: "Zamítnout žádost: Jakub Král" }))
     rerender(
       <ManagedRequests
@@ -175,7 +177,7 @@ describe("ManagedRequests (#53)", () => {
       const decided = vi.fn()
       // not a vi.fn: Vitest attaches a handler to what a mock returns, which would
       // hide the very rejection this test looks for
-      renderRequests({
+      await renderRequests({
         onDecide: (request, decision) => {
           decided(request, decision)
           return Promise.reject(new Error("Akce je plná."))
@@ -194,16 +196,16 @@ describe("ManagedRequests (#53)", () => {
     }
   })
 
-  it("a started event lists the requests without buttons, saying why", () => {
-    renderRequests({ canDecide: false })
+  it("a started event lists the requests without buttons, saying why", async () => {
+    await renderRequests({ canDecide: false })
 
     expect(screen.getByText("Akce už začala, žádosti už vyřídit nejde.")).toBeInTheDocument()
     expect(screen.getByText("Jakub Král")).toBeInTheDocument()
     expect(screen.queryByRole("button")).not.toBeInTheDocument()
   })
 
-  it("a full event says why approving waits; rejecting still works", () => {
-    renderRequests({ isFull: true })
+  it("a full event says why approving waits; rejecting still works", async () => {
+    await renderRequests({ isFull: true })
 
     expect(
       screen.getByText("Akce je plná. Schválit půjde, až se uvolní místo."),
@@ -212,24 +214,34 @@ describe("ManagedRequests (#53)", () => {
     expect(screen.getByRole("button", { name: "Zamítnout žádost: Jakub Král" })).toBeEnabled()
   })
 
-  it("says in one sentence that nothing is waiting", () => {
-    renderRequests({ requests: [] })
+  it("says in one sentence that nothing is waiting", async () => {
+    await renderRequests({ requests: [] })
 
     expect(screen.getByRole("heading", { name: "Žádosti 0" })).toBeInTheDocument()
     expect(screen.getByText("Žádné žádosti o účast teď nečekají.")).toBeInTheDocument()
   })
 
-  it("shows that it is loading", () => {
-    renderRequests({ requests: undefined })
+  it("shows that it is loading", async () => {
+    await renderRequests({ requests: undefined })
 
     expect(screen.getByLabelText("Načítám žádosti")).toHaveAttribute("aria-busy", "true")
   })
 
   it("an error says so and offers a retry", async () => {
-    const { onRetry } = renderRequests({ requests: undefined, error: new Error("HTTP 500") })
+    const { onRetry } = await renderRequests({ requests: undefined, error: new Error("HTTP 500") })
 
     expect(screen.getByText("Žádosti se nepodařilo načíst")).toBeInTheDocument()
     await userEvent.click(screen.getByRole("button", { name: "Zkusit znovu" }))
     expect(onRetry).toHaveBeenCalledOnce()
+  })
+
+  it("each applicant's name leads to their public profile, to see who is asking (#289)", async () => {
+    await renderRequests()
+
+    expect(screen.getByRole("link", { name: "Jakub Král" })).toHaveAttribute(
+      "href",
+      "/uzivatele/u5",
+    )
+    expect(screen.getByRole("link", { name: "Eva Malá" })).toHaveAttribute("href", "/uzivatele/u6")
   })
 })
