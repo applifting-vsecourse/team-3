@@ -83,7 +83,7 @@ describe("ratings on the event's management page (B-060, #66, review #322)", () 
   it("its creator, within the window: both the link to D-05 and how they rated", async () => {
     await renderRatings({}, "u-petra", dayAfter)
 
-    expect(rateLink()).toHaveAttribute("href", "/akce/e1/hodnoceni")
+    expect(rateLink()).toHaveAttribute("href", "/akce/e1/hodnoceni-ucastniku")
     expect(section()).toBeInTheDocument()
     expect(await screen.findByText("Organizátor")).toBeInTheDocument()
   })

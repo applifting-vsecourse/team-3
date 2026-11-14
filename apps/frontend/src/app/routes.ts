@@ -7,6 +7,8 @@ export const ROUTES = {
   manageEvent: "/akce/$eventId/sprava",
   // the participant rates the event and its organizer (Figma C-03, #66)
   rateEvent: "/akce/$eventId/hodnoceni",
+  // the organizer rates the participants (Figma D-05, #66): its own page, from the management
+  rateParticipants: "/akce/$eventId/hodnoceni-ucastniku",
   myEvents: "/moje-akce",
   groups: "/skupiny",
   profile: "/profil",

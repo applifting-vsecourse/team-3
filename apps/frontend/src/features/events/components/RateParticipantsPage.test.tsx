@@ -5,7 +5,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest"
 
 import { renderWithRouter } from "@/test/renderWithRouter"
 
-import { RateEventPage } from "./RateEventPage"
+import { RateParticipantsPage } from "./RateParticipantsPage"
 
 const { api, toast, FakeHTTPError } = vi.hoisted(() => {
   // An API refusal as ky hands it over: the status, and the body the API sent.
@@ -117,7 +117,7 @@ const renderPage = (
 ) =>
   renderWithRouter(
     <QueryClientProvider client={client}>
-      <RateEventPage
+      <RateParticipantsPage
         eventId="e1"
         viewerId="u-petra"
         onSaved={onSaved}

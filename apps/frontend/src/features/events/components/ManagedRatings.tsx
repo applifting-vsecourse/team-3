@@ -31,7 +31,7 @@ export function ManagedRatings({ event, viewerId, now }: ManagedRatingsProps) {
           className="w-full"
         >
           <Link
-            to={ROUTES.rateEvent}
+            to={ROUTES.rateParticipants}
             params={{ eventId: event.id }}
           >
             <Star />

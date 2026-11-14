@@ -1,6 +1,6 @@
 import type { ReactNode } from "react"
 import { useQuery } from "@tanstack/react-query"
-import { Link } from "@tanstack/react-router"
+import { Link, Navigate } from "@tanstack/react-router"
 import { Info } from "lucide-react"
 
 import { ROUTES } from "@/app/routes"
@@ -21,7 +21,6 @@ import {
 } from "@/features/events/api/ratingSchemas"
 import { PastEventCard } from "@/features/events/components/PastEventCard"
 import { RateEventForm } from "@/features/events/components/RateEventForm"
-import { RateParticipantsPage } from "@/features/events/components/RateParticipantsPage"
 import { useRateEvent } from "@/features/events/hooks/useRateEvent"
 import { ratingBandLine } from "@/features/events/lib/rating"
 
@@ -36,21 +35,21 @@ type RateEventPageProps = {
 /**
  * /akce/:id/hodnoceni for a participant (Figma C-03, C-03d; B-060, #66). Everything comes from
  * GET /api/events/:id/rating, never from the event's detail: a former member of the group no
- * longer gets the detail of a members-only event, and still rates it. Its organizer gets their
- * side of the same address (D-05, RateParticipantsPage): the API's 403 OWN_EVENT tells.
+ * longer gets the detail of a members-only event, and still rates it. Its organizer has their own
+ * page (D-05, /akce/:id/hodnoceni-ucastniku); one who comes here is sent on (403 OWN_EVENT).
  */
 export function RateEventPage({ eventId, viewerId, onSaved }: RateEventPageProps) {
   const query = useQuery(myEventRatingQueryOptions(eventId, viewerId))
   const save = useRateEvent(eventId, viewerId, onSaved)
   const data = query.data
 
-  // the organizer's side of the same address: the API says whose event it is (403 OWN_EVENT)
+  // the organizer has their own page (D-05): a link from elsewhere still lands right (review #322)
   if (apiErrorCode(query.error) === "OWN_EVENT") {
     return (
-      <RateParticipantsPage
-        eventId={eventId}
-        viewerId={viewerId}
-        onSaved={onSaved}
+      <Navigate
+        to={ROUTES.rateParticipants}
+        params={{ eventId }}
+        replace
       />
     )
   }

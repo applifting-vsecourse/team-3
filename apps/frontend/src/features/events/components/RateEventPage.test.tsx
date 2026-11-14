@@ -275,23 +275,17 @@ describe("/akce/:id/hodnoceni for a participant (Figma C-03, #66)", () => {
     ).toBeInTheDocument()
   })
 
-  it("for the organizer 403 OWN_EVENT is an answer, not a failure (review #313)", async () => {
-    // the page can't tell the organizer before asking: it has no event's detail to look at.
-    // Their side of the page (D-05) is in RateParticipantsPage.test.tsx.
-    const ownEvent = new FakeHTTPError(403, {
+  it("the organizer (403 OWN_EVENT) is sent on to their own page (review #313, #322)", async () => {
+    // a link from elsewhere: the management leads straight to /akce/:id/hodnoceni-ucastniku
+    answer = new FakeHTTPError(403, {
       code: "OWN_EVENT",
       message: "Svou vlastní akci hodnotit nejde.",
     })
-    api.get.mockImplementation((path: string) => {
-      if (path === "events/e1/rating") return { json: () => Promise.reject(ownEvent) }
-      // the organizer's page loads on: it stays loading here
-      return { json: () => new Promise(() => undefined) }
-    })
-    await renderPage()
+    const { router } = await renderPage()
 
-    expect(
-      await screen.findByRole("heading", { level: 1, name: "Ohodnoť účastníky" }),
-    ).toBeInTheDocument()
+    await vi.waitFor(() =>
+      expect(router.state.location.pathname).toBe("/akce/e1/hodnoceni-ucastniku"),
+    )
     // asked once, not retried; no error toast, no participant's form, no „Zkusit znovu“
     expect(api.get.mock.calls.filter(([path]) => path === "events/e1/rating")).toHaveLength(1)
     expect(toast.error).not.toHaveBeenCalled()
