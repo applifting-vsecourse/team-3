@@ -350,6 +350,27 @@ describe("quick picks (#250)", () => {
     })
   })
 
+  it.each(["10", "25"] as const)(
+    "leaving the pick by a filter keeps a +%s km okolí set by hand (review #333)",
+    (okoli) => {
+      // no `okoli` key at all: `setSearch` spreads the patch over the URL
+      const missing = pickSearch("tady-chybis", { lokalita: "praha-8", okoli }, now)
+      expect(pickPatch(missing, { obsazenost: undefined }, now)).toStrictEqual({
+        obsazenost: undefined,
+        vyber: undefined,
+      })
+      expect(pickPatch(missing, { obsazenost: "volna" }, now)).toStrictEqual({
+        obsazenost: "volna",
+        vyber: undefined,
+      })
+      const weekend = pickSearch("tento-vikend", { lokalita: "praha-8", okoli }, now)
+      expect(pickPatch(weekend, { od: "2026-11-20" }, now)).toStrictEqual({
+        od: "2026-11-20",
+        vyber: undefined,
+      })
+    },
+  )
+
   it("changing a filter the pick set leaves the pick, another filter keeps it", () => {
     const search = pickSearch("tady-chybis", { lokalita: "praha-8" }, now)
     expect(changesPick(search, { obsazenost: undefined }, now)).toBe(true)

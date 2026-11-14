@@ -228,7 +228,11 @@ export function pickPatch(
 ): Partial<EventsSearch> {
   if (!search.vyber) return patch
   const picksOkoli = search.okoli === undefined ? withPicksOkoli(search, now).okoli : undefined
-  if (changesPick(search, patch, now)) return { okoli: picksOkoli, ...patch, vyber: undefined }
+  // only the pick's own okolí is written: an `okoli: undefined` would wipe one set by hand, as
+  // `setSearch` spreads the patch over the URL (review #333)
+  if (changesPick(search, patch, now)) {
+    return { ...(picksOkoli && { okoli: picksOkoli }), ...patch, vyber: undefined }
+  }
   return picksOkoli !== undefined && patch.okoli === picksOkoli
     ? { ...patch, okoli: undefined }
     : patch
