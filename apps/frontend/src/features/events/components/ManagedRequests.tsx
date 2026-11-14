@@ -123,6 +123,7 @@ export function ManagedRequests({
               >
                 <PersonRow
                   name={request.name}
+                  userId={request.id}
                   description={formatRequestTime(request.requestedAt)}
                   quote={request.message}
                   actions={

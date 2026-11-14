@@ -329,3 +329,39 @@ describe('GroupRepository: the request message stays with the admins (#175)', ()
     });
   });
 });
+
+describe('GroupRepository: findGroupById admins (#289)', () => {
+  it("are the admins' users, so their id is the one their public profile has", async () => {
+    const prisma = mockDeep<PrismaService>();
+    prisma.group.findUnique.mockResolvedValue({
+      id: 'g1',
+      name: 'Deskovky Vinohrady',
+      type: 'public',
+      description: null,
+      status: 'active',
+      activity: {
+        id: 'a1',
+        slug: 'deskove-hry',
+        name: 'Deskové hry',
+        category: { id: 'c1', slug: 'hry', name: 'Hry', icon: 'dices' },
+      },
+      locality: { id: 'l1', slug: 'praha-2', name: 'Praha 2' },
+      _count: { members: 2 },
+      members: [{ user: { id: 'u1', name: 'Petra Nováková' } }],
+    } as never);
+
+    const group = await new GroupRepository(prisma).findGroupById('g1');
+
+    expect(group?.admins).toEqual([{ id: 'u1', name: 'Petra Nováková' }]);
+    expect(prisma.group.findUnique).toHaveBeenCalledWith(
+      expect.objectContaining({
+        include: expect.objectContaining({
+          members: expect.objectContaining({
+            where: { role: 'admin', status: 'active' },
+            select: { user: { select: { id: true, name: true } } },
+          }),
+        }),
+      }),
+    );
+  });
+});
