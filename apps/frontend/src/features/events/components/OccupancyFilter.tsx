@@ -12,8 +12,6 @@ const LABELS: Record<Occupancy, string> = {
   chybi: "Chybí lidé",
 }
 
-const OFFERED_LABEL = LABELS.volna
-
 /** The filter's name in a summary („… · Jen s volným místem“); nothing when it is off. */
 export const occupancyLabel = (occupancy: Occupancy | undefined): string | undefined =>
   occupancy ? LABELS[occupancy] : undefined
@@ -26,18 +24,29 @@ type OccupancyFilterProps = {
 /**
  * „Jen s volným místem“ as an on/off chip (#305, Figma A-02f): off by default, so full events
  * show with their „Plno“ badge; on, they leave the list and the map. Whoever searches cares
- * whether they still get in, not whether the minimum is reached (PO 10. 11.). With „chybi“ in
- * the URL the chip is on and reads „Chybí lidé“; switching it off clears it, the next tap is
- * „Jen s volným místem“.
+ * whether they still get in, not whether the minimum is reached (PO 10. 11.).
+ *
+ * A toggle keeps its name whatever its state (review #331), so „chybi“ gets a chip of its own:
+ * „Chybí lidé“, on, beside „Jen s volným místem“, off. Switching „Chybí lidé“ off clears it and
+ * the chip goes; switching „Jen s volným místem“ on replaces it — the URL holds one value.
  */
 export function OccupancyFilter({ search, onChange }: OccupancyFilterProps) {
-  const isOn = search.obsazenost !== undefined
   return (
-    <FilterToggleChip
-      pressed={isOn}
-      onPressedChange={(isPressed) => onChange(isPressed ? "volna" : undefined)}
-    >
-      {occupancyLabel(search.obsazenost) ?? OFFERED_LABEL}
-    </FilterToggleChip>
+    <>
+      {search.obsazenost === "chybi" ? (
+        <FilterToggleChip
+          pressed
+          onPressedChange={(isPressed) => onChange(isPressed ? "chybi" : undefined)}
+        >
+          {LABELS.chybi}
+        </FilterToggleChip>
+      ) : null}
+      <FilterToggleChip
+        pressed={search.obsazenost === "volna"}
+        onPressedChange={(isPressed) => onChange(isPressed ? "volna" : undefined)}
+      >
+        {LABELS.volna}
+      </FilterToggleChip>
+    </>
   )
 }

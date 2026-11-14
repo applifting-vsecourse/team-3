@@ -103,16 +103,40 @@ describe("EventFilters", () => {
     expect(onChange).toHaveBeenCalledWith({ obsazenost: undefined })
   })
 
-  // „chybi“ is no longer offered, but the quick pick and the landing page's links set it: the
-  // chip names it, so the list never filters by something the bar doesn't show (#305)
-  it("names „chybi“ from the URL as „Chybí lidé“, and switching it off clears it", async () => {
+  // „chybi“ is no longer offered, but the quick pick and the landing page's links set it. A
+  // toggle keeps its name in both states (review #331): „chybi“ gets a chip of its own, on, next
+  // to „Jen s volným místem“, off (#305).
+  it("with „chybi“ shows „Chybí lidé“ on beside „Jen s volným místem“ off", () => {
+    renderFilters({ search: { obsazenost: "chybi" } })
+
+    expect(screen.getByRole("button", { name: "Chybí lidé" })).toHaveAttribute(
+      "aria-pressed",
+      "true",
+    )
+    expect(screen.getByRole("button", { name: "Jen s volným místem" })).toHaveAttribute(
+      "aria-pressed",
+      "false",
+    )
+  })
+
+  it("switching „Chybí lidé“ off clears it", async () => {
     const { onChange } = renderFilters({ search: { obsazenost: "chybi" } })
 
-    const toggle = screen.getByRole("button", { name: "Chybí lidé" })
-    expect(toggle).toHaveAttribute("aria-pressed", "true")
-    expect(screen.queryByRole("button", { name: "Jen s volným místem" })).not.toBeInTheDocument()
-    await userEvent.click(toggle)
+    await userEvent.click(screen.getByRole("button", { name: "Chybí lidé" }))
     expect(onChange).toHaveBeenCalledWith({ obsazenost: undefined })
+  })
+
+  it("switching „Jen s volným místem“ on replaces „chybi“ with „volna“", async () => {
+    const { onChange } = renderFilters({ search: { obsazenost: "chybi" } })
+
+    await userEvent.click(screen.getByRole("button", { name: "Jen s volným místem" }))
+    expect(onChange).toHaveBeenCalledWith({ obsazenost: "volna" })
+  })
+
+  it("without „chybi“ there is no „Chybí lidé“ chip, on or off", () => {
+    renderFilters({ search: { obsazenost: "volna" } })
+
+    expect(screen.queryByRole("button", { name: "Chybí lidé" })).not.toBeInTheDocument()
   })
 
   it("offers „Zrušit vše“ with an active filter", async () => {

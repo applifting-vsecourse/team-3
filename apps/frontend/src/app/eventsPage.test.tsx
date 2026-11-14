@@ -125,6 +125,20 @@ describe("/akce: old ?obsazenost= links", () => {
       expect(screen.getByRole("button", { name: chip })).toHaveAttribute("aria-pressed", "true")
     },
   )
+
+  // review #331: the URL holds one value; „Jen s volným místem“ replaces „chybi“
+  it("?obsazenost=chybi: „Jen s volným místem“ on replaces it, „Chybí lidé“ goes", async () => {
+    const app = await renderEvents("/akce?lokalita=cele-cesko&obsazenost=chybi")
+
+    await userEvent.click(await screen.findByRole("button", { name: "Jen s volným místem" }))
+
+    expect(app.state.location.search).toMatchObject({ obsazenost: "volna" })
+    expect(screen.getByRole("button", { name: "Jen s volným místem" })).toHaveAttribute(
+      "aria-pressed",
+      "true",
+    )
+    expect(screen.queryByRole("button", { name: "Chybí lidé" })).not.toBeInTheDocument()
+  })
 })
 
 // A quick pick lights up its chip („Chybí lidé“): without a filter of one's own there was no way
