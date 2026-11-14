@@ -8,13 +8,16 @@ import {
   endOfPragueDay,
   eventCountLabel,
   eventDateParts,
+  eventRatingLabel,
   formatEventDay,
   formatEventStart,
   formatEventTime,
   formatRequestEventStart,
   formatStartInSentence,
   groupEventTail,
+  isEventInProgress,
   isEventOver,
+  pastEventCountLabel,
   pastEventFacts,
   placeName,
   showEventsLabel,
@@ -124,6 +127,35 @@ describe("pastEventFacts (#70)", () => {
       "sešlo se 6 · jen pro členy",
     )
   })
+
+  it("below its minimum says why it didn't take place (#61)", () => {
+    expect(
+      pastEventFacts({ ...anEvent({ approvedCount: 2, missingToMin: 2 }), visibility: "public" }),
+    ).toBe("do minima chyběli 2 lidé")
+    expect(
+      pastEventFacts({ ...anEvent({ approvedCount: 0, missingToMin: 4 }), visibility: "public" }),
+    ).toBe("nikdo se nepřihlásil")
+  })
+})
+
+describe("pastEventCountLabel (#61)", () => {
+  it("uses Czech plural forms", () => {
+    expect([1, 2, 4, 5, 200].map(pastEventCountLabel)).toEqual([
+      "1 proběhlá akce",
+      "2 proběhlé akce",
+      "4 proběhlé akce",
+      "5 proběhlých akcí",
+      "Víc než 200 proběhlých akcí",
+    ])
+  })
+})
+
+describe("eventRatingLabel (#61)", () => {
+  it("the average with its count, nothing without ratings", () => {
+    expect(eventRatingLabel({ average: 4.5, count: 3 })).toBe("★ 4,5 (3 hodnocení)")
+    expect(eventRatingLabel({ average: null, count: 0 })).toBeUndefined()
+    expect(eventRatingLabel(null)).toBeUndefined()
+  })
 })
 
 describe("eventCountLabel", () => {
@@ -167,6 +199,28 @@ describe("formatStartInSentence", () => {
     expect(formatStartInSentence(new Date("2026-10-22T16:00:00.000Z"), monday)).toBe(
       "ve čtvrtek v 18:00",
     )
+  })
+})
+
+describe("isEventInProgress (#272)", () => {
+  const startsAt = new Date("2026-10-23T16:00:00.000Z") // 18:00 in Prague
+  it("from its start until it is over, never when cancelled", () => {
+    expect(
+      isEventInProgress({ startsAt, endsAt: null }, new Date("2026-10-23T15:59:00.000Z")),
+    ).toBe(false)
+    expect(isEventInProgress({ startsAt, endsAt: null }, startsAt)).toBe(true)
+    expect(
+      isEventInProgress({ startsAt, endsAt: null }, new Date("2026-10-23T21:59:00.000Z")),
+    ).toBe(true)
+    expect(
+      isEventInProgress({ startsAt, endsAt: null }, new Date("2026-10-23T22:00:00.000Z")),
+    ).toBe(false)
+    expect(
+      isEventInProgress(
+        { startsAt, endsAt: null, status: "cancelled" },
+        new Date("2026-10-23T17:00:00.000Z"),
+      ),
+    ).toBe(false)
   })
 })
 

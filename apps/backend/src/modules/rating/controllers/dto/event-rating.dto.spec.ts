@@ -90,6 +90,7 @@ describe('MyEventRatingResponseDto', () => {
       organizer: { id: 'u-petra', name: 'Petra Nováková' },
       group: { id: 'g1', name: 'Volejbal Letná' },
       approvedCount: 5,
+      missingToMin: 0,
     };
     expect(
       MyEventRatingResponseDto.fromDomain({

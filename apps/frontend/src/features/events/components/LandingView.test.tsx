@@ -1,15 +1,17 @@
+import { useState, type ComponentProps } from "react"
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query"
 import { screen, waitFor, within } from "@testing-library/react"
 import userEvent from "@testing-library/user-event"
 import { beforeEach, describe, expect, it, vi } from "vitest"
 
+import type { LocalityState } from "@/hooks/useLocality"
 import { api } from "@/lib/api-client"
 import type * as ApiClient from "@/lib/api-client"
 import { renderWithRouter } from "@/test/renderWithRouter"
 
 import type { PublicEvent } from "@/features/events/api/eventSchemas"
 import { homeKeys } from "@/features/events/api/homeQueryOptions"
-import { LandingView } from "@/features/events/components/LandingView"
+import { LandingView, pageLocalitySlug } from "@/features/events/components/LandingView"
 import { anEvent } from "@/features/events/test/anEvent"
 
 vi.mock("@/lib/api-client", async (importOriginal) => ({
@@ -70,7 +72,12 @@ const group = {
 }
 
 type Section = { key: string; events?: PublicEvent[]; groups?: unknown[] }
-type HomeBody = { locality: unknown; sections: Section[] }
+type HomeBody = {
+  locality: unknown
+  sections: Section[]
+  isWidened?: boolean
+  hasLocalityEvents?: boolean
+}
 
 const visitorHome: HomeBody = {
   locality: null,
@@ -109,11 +116,16 @@ const mockApi = () =>
 type RenderOptions = {
   session?: "visitor" | "signedIn" | "loading"
   localitySlug?: string
+  localityControl?: ComponentProps<typeof LandingView>["localityControl"]
 }
 
 let queryClient: QueryClient
 
-const renderLanding = ({ session = "visitor", localitySlug }: RenderOptions = {}) => {
+const renderLanding = ({
+  session = "visitor",
+  localitySlug,
+  localityControl,
+}: RenderOptions = {}) => {
   const isSignedIn = session === "loading" ? undefined : session === "signedIn"
   queryClient = new QueryClient({ defaultOptions: { queries: { retry: 0 } } })
   return renderWithRouter(
@@ -122,6 +134,7 @@ const renderLanding = ({ session = "visitor", localitySlug }: RenderOptions = {}
         isSignedIn={isSignedIn}
         viewerId={isSignedIn ? "u-jakub" : null}
         localitySlug={localitySlug}
+        localityControl={localityControl}
         renderGroups={(groups) => <p>{groups.length} skupin z API</p>}
         // Sunday 8. 11. 2026, so „Tento víkend“ is just today
         now={new Date("2026-11-08T10:00:00.000Z")}
@@ -222,6 +235,21 @@ describe("LandingView", () => {
       await renderLanding({ localitySlug: "praha-3" })
       await waitFor(() => expect(homeRequests()).toHaveLength(1))
       expect(homeRequests()[0]?.[1]).toEqual({ searchParams: { localityId: "l-praha-3" } })
+    })
+    it("Celé Česko picked on purpose asks for all of Czechia, never for the home locality (#299)", async () => {
+      home = { ...signedInHome, locality: null }
+      await renderLanding({ session: "signedIn", localitySlug: "cele-cesko" })
+
+      await waitFor(() => expect(homeRequests()).toHaveLength(1))
+      expect(homeRequests()[0]?.[1]).toEqual({ searchParams: { wholeCountry: "true" } })
+    })
+
+    it("without a locality of the page the API decides: no parameter", async () => {
+      home = signedInHome
+      await renderLanding({ session: "signedIn" })
+
+      await waitFor(() => expect(homeRequests()).toHaveLength(1))
+      expect(homeRequests()[0]?.[1]).toEqual({ searchParams: undefined })
     })
   })
 
@@ -356,5 +384,259 @@ describe("LandingView", () => {
     await user.click(screen.getByRole("button", { name: "Zkusit znovu" }))
 
     expect(await screen.findByRole("heading", { name: "Tady chybíš" })).toBeInTheDocument()
+  })
+
+  describe("which locality the page is for (#299)", () => {
+    const guess = (slug: string): LocalityState => ({
+      slug,
+      source: "ip",
+      isPicked: false,
+      pick: vi.fn(),
+      forget: vi.fn(),
+    })
+    const policeHome: HomeBody = {
+      locality: { id: "l-praha-3", slug: "praha-3", name: "Praha 3", source: "query" },
+      isWidened: true,
+      hasLocalityEvents: false,
+      sections: [
+        {
+          key: "missing",
+          events: [anEvent({ id: "n1", title: "Florbal v Trutnově", distanceKm: 22.7 })],
+        },
+      ],
+    }
+
+    it("a guess shows on its chip, and one tap dismisses it to all of Czechia", async () => {
+      home = {
+        ...visitorHome,
+        locality: { id: "l-praha-3", slug: "praha-3", name: "Praha 3", source: "query" },
+      }
+      const onChange = vi.fn()
+      await renderLanding({
+        localitySlug: "praha-3",
+        localityControl: { state: guess("praha-3"), onChange, onReset: vi.fn() },
+      })
+
+      expect(
+        await screen.findByRole("button", { name: "Lokalita: Praha 3 · odhad" }),
+      ).toBeInTheDocument()
+      expect(screen.getByText("Ukazujeme akce pro lokalitu")).toBeInTheDocument()
+      await userEvent.click(
+        screen.getByRole("button", { name: "Zrušit odhad lokality, zobrazit celé Česko" }),
+      )
+      expect(onChange).toHaveBeenCalledWith("cele-cesko")
+    })
+
+    it("an empty locality: says so, and the sections are the nearest events with their distance", async () => {
+      home = policeHome
+      await renderLanding({
+        localitySlug: "praha-3",
+        localityControl: { state: guess("praha-3"), onChange: vi.fn(), onReset: vi.fn() },
+      })
+
+      expect(
+        await screen.findByText((_, element) =>
+          element?.tagName === "P"
+            ? element.textContent ===
+              "V okolí lokality Praha 3 teď žádná akce není. Ukazujeme nejbližší akce v okolí."
+            : false,
+        ),
+      ).toBeInTheDocument()
+      // not „v lokalitě Praha 3“: the events are around it
+      expect(screen.getByText(/Těmhle akcím v okolí lokality Praha 3/)).toBeInTheDocument()
+      const card = screen.getByRole("link", { name: "Florbal v Trutnově" }).closest("article")
+      expect(card).toHaveTextContent("22,7 km")
+      // „Zobrazit všechny“ opens the list the section promises: around the locality, as far as
+      // its events go — not the empty locality (review #321)
+      const more = new URL(
+        screen.getAllByRole("link", { name: /Zobrazit všechny/ })[0]!.getAttribute("href")!,
+        "http://localhost",
+      )
+      expect(more.pathname).toBe("/akce")
+      // the router writes a number-like string as JSON („"25"“), as /akce's own okolí links
+      const search = Object.fromEntries(
+        [...more.searchParams].map(([key, value]) => [
+          key,
+          value.startsWith('"') ? JSON.parse(value) : value,
+        ]),
+      )
+      expect(search).toEqual({ lokalita: "praha-3", okoli: "25", obsazenost: "chybi" })
+    })
+
+    it("only full events or one's own there: never says the locality is empty (review #321)", async () => {
+      home = {
+        ...policeHome,
+        locality: { id: "l-praha", slug: "praha", name: "Praha", source: "query" },
+        hasLocalityEvents: true,
+      }
+      await renderLanding({
+        session: "signedIn",
+        localitySlug: "praha",
+        localityControl: { state: guess("praha"), onChange: vi.fn(), onReset: vi.fn() },
+      })
+
+      expect(
+        await screen.findByText((_, element) =>
+          element?.tagName === "P"
+            ? element.textContent ===
+              "V lokalitě Praha teď není akce, kam se dá přidat. Ukazujeme nejbližší akce v okolí."
+            : false,
+        ),
+      ).toBeInTheDocument()
+      expect(screen.queryByText(/žádná akce není/)).toBeNull()
+    })
+
+    it("nothing near to join either: says so, the line and the panel, never „žádná akce“ (review #321)", async () => {
+      home = {
+        locality: { id: "l-praha", slug: "praha", name: "Praha", source: "query" },
+        isWidened: true,
+        hasLocalityEvents: true,
+        sections: [],
+      }
+      await renderLanding({
+        localitySlug: "praha",
+        localityControl: { state: guess("praha"), onChange: vi.fn(), onReset: vi.fn() },
+      })
+
+      expect(
+        await screen.findByText((_, element) =>
+          element?.tagName === "P"
+            ? element.textContent ===
+              "V lokalitě Praha ani v okolí teď není akce, kam se dá přidat."
+            : false,
+        ),
+      ).toBeInTheDocument()
+      expect(screen.getByText("V okolí teď není kam se přidat")).toBeInTheDocument()
+      expect(screen.queryByText(/žádná akce není/)).toBeNull()
+      expect(screen.queryByText("Ukazujeme akce pro lokalitu")).toBeNull()
+    })
+
+    it("names the locality the API answered for: an unknown ?lokalita= gets the home locality's sections (review #321)", async () => {
+      home = { ...signedInHome }
+      const state: LocalityState = {
+        slug: "neznama-obec",
+        source: "url",
+        isPicked: true,
+        pick: vi.fn(),
+        forget: vi.fn(),
+      }
+      await renderLanding({
+        session: "signedIn",
+        localitySlug: "neznama-obec",
+        localityControl: { state, onChange: vi.fn(), onReset: vi.fn() },
+      })
+
+      // a light chip: the default the API fell back to, not a pick
+      const chip = await screen.findByRole("button", { name: "Lokalita: Praha 3" })
+      expect(chip).not.toHaveClass("bg-foreground")
+      expect(screen.queryByRole("button", { name: /neznama/i })).toBeNull()
+    })
+
+    it("a failed guess is no choice of all of Czechia: the API decides, the chip names the home locality (review #321)", async () => {
+      home = { ...signedInHome }
+      // useLocality after GET /api/geo/locality failed
+      const state: LocalityState = {
+        slug: "cele-cesko",
+        source: "none",
+        isPicked: false,
+        pick: vi.fn(),
+        forget: vi.fn(),
+      }
+      await renderLanding({
+        session: "signedIn",
+        localitySlug: pageLocalitySlug(state),
+        localityControl: { state, onChange: vi.fn(), onReset: vi.fn() },
+      })
+
+      await waitFor(() => expect(homeRequests()).toHaveLength(1))
+      expect(homeRequests()[0]?.[1]).toEqual({ searchParams: undefined })
+      expect(await screen.findByRole("button", { name: "Lokalita: Praha 3" })).toBeInTheDocument()
+    })
+
+    it("× keeps the chip on screen and the keyboard's focus on it while the new sections load (review #321)", async () => {
+      // Praha 3 guessed; all of Czechia is held back, as a slow network does
+      const { promise: wholeCountry, resolve: release } = Promise.withResolvers<void>()
+      get.mockImplementation(((
+        path: string,
+        options?: { searchParams?: Record<string, string> },
+      ) => {
+        if (path === "localities") return asJson(localities)
+        if (options?.searchParams?.wholeCountry) {
+          return {
+            json: () => wholeCountry.then((): unknown => JSON.parse(JSON.stringify(visitorHome))),
+          } as never
+        }
+        return asJson({
+          ...visitorHome,
+          locality: { id: "l-praha-3", slug: "praha-3", name: "Praha 3", source: "query" },
+        })
+      }) as never)
+
+      function Page() {
+        const [state, setState] = useState<LocalityState>(guess("praha-3"))
+        const pick = (slug: string) =>
+          setState({ ...state, slug, source: "remembered", isPicked: true })
+        return (
+          <LandingView
+            isSignedIn={false}
+            viewerId={null}
+            localitySlug={pageLocalitySlug(state)}
+            localityControl={{ state, onChange: pick, onReset: vi.fn() }}
+            now={new Date("2026-11-08T10:00:00.000Z")}
+          />
+        )
+      }
+      queryClient = new QueryClient({ defaultOptions: { queries: { retry: 0 } } })
+      await renderWithRouter(
+        <QueryClientProvider client={queryClient}>
+          <Page />
+        </QueryClientProvider>,
+      )
+
+      const dismiss = await screen.findByRole("button", {
+        name: "Zrušit odhad lokality, zobrazit celé Česko",
+      })
+      dismiss.focus()
+      await userEvent.keyboard("{Enter}")
+
+      // still loading all of Czechia: the old sections stay, the chip shows the new choice
+      const chip = screen.getByRole("button", { name: "Lokalita: Celé Česko" })
+      expect(chip).toHaveFocus()
+      expect(screen.getByText("Ukazujeme akce pro lokalitu")).toBeInTheDocument()
+
+      release()
+      await waitFor(() =>
+        expect(homeRequests().at(-1)?.[1]).toEqual({ searchParams: { wholeCountry: "true" } }),
+      )
+      expect(screen.getByRole("button", { name: "Lokalita: Celé Česko" })).toHaveFocus()
+    })
+
+    it("no chip without the page's locality control", async () => {
+      home = visitorHome
+      await renderLanding()
+
+      await screen.findByText("Chybí 1")
+      expect(screen.queryByRole("button", { name: /^Lokalita:/ })).not.toBeInTheDocument()
+    })
+  })
+})
+
+describe("pageLocalitySlug (review #321)", () => {
+  const state = (slug: string, isPicked: boolean): LocalityState => ({
+    slug,
+    source: isPicked ? "remembered" : "none",
+    isPicked,
+    pick: vi.fn(),
+    forget: vi.fn(),
+  })
+
+  it("Celé Česko only as a choice: a fallback lets the API decide", () => {
+    expect(pageLocalitySlug(state("cele-cesko", true))).toBe("cele-cesko")
+    expect(pageLocalitySlug(state("cele-cesko", false))).toBeUndefined()
+  })
+
+  it("any other locality as it is", () => {
+    expect(pageLocalitySlug(state("brno", false))).toBe("brno")
+    expect(pageLocalitySlug(state("brno", true))).toBe("brno")
   })
 })

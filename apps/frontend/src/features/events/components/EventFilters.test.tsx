@@ -99,13 +99,14 @@ describe("EventFilters", () => {
     expect(onChange).toHaveBeenCalledWith({ obsazenost: "volna" })
   })
 
-  it("shows the occupancy on the chip and „Všechny“ clears it", async () => {
+  it("shows the occupancy on the chip and „Zrušit obsazenost“ clears it", async () => {
     const { onChange } = renderFilters({ search: { obsazenost: "chybi" } })
 
     await userEvent.click(screen.getByRole("button", { name: "Obsazenost: Chybí lidé" }))
     const panel = await screen.findByRole("dialog", { name: "Obsazenost" })
     expect(within(panel).getByRole("radio", { name: "Chybí lidé" })).toBeChecked()
-    await userEvent.click(within(panel).getByRole("button", { name: "Všechny" }))
+    // not „Všechny“ like the option above it, which didn't read as a way out
+    await userEvent.click(within(panel).getByRole("button", { name: "Zrušit obsazenost" }))
     expect(onChange).toHaveBeenCalledWith({ obsazenost: undefined })
   })
 
@@ -309,6 +310,35 @@ describe("EventFilters › Termín", () => {
     for (const [, options] of eventCalls) {
       expect(options?.searchParams?.has("dateFrom")).toBe(false)
     }
+  })
+
+  it("Proběhlé replaces the range and drops the occupancy (#61)", async () => {
+    const { onChange } = renderFilters({
+      search: { od: "2026-10-24", do: "2026-10-25", obsazenost: "chybi" },
+    })
+
+    await userEvent.click(screen.getByRole("button", { name: "Termín: 24.–25. 10." }))
+    const panel = await screen.findByRole("dialog", { name: "Termín" })
+    await userEvent.click(within(panel).getByRole("button", { name: "Proběhlé" }))
+    expect(within(panel).getByRole("button", { name: "Proběhlé" })).toHaveAttribute(
+      "aria-pressed",
+      "true",
+    )
+    await userEvent.click(await within(panel).findByRole("button", { name: /^Zobrazit/ }))
+
+    expect(onChange).toHaveBeenCalledWith({
+      od: undefined,
+      do: undefined,
+      termin: "probehle",
+      obsazenost: undefined,
+    })
+  })
+
+  it("Proběhlé on the chip, without the occupancy chip (#61)", () => {
+    renderFilters({ search: { termin: "probehle" } })
+
+    expect(screen.getByRole("button", { name: "Termín: Proběhlé" })).toBeInTheDocument()
+    expect(screen.queryByRole("button", { name: /^Obsazenost/ })).not.toBeInTheDocument()
   })
 
   it("shows the range on the chip and clears it", async () => {

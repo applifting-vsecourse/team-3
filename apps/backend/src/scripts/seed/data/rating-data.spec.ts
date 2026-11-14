@@ -1,7 +1,5 @@
-import {
-  decideParticipantRating,
-  hasEventEnded,
-} from '@/modules/rating/domain/participant-rating';
+import { isEventOver } from '@/modules/event/domain/event-over';
+import { decideParticipantRating } from '@/modules/rating/domain/participant-rating';
 import {
   organizerRatingSummary,
   participantRatingSummary,
@@ -46,7 +44,7 @@ describe('past events and ratings (#180)', () => {
         expect(row.endsAt.getTime()).toBeLessThanOrEqual(
           at.getTime() - 60 * 60 * 1000,
         );
-        expect(hasEventEnded(row, at)).toBe(true);
+        expect(isEventOver(row, at)).toBe(true);
       }
     }
   });

@@ -1,4 +1,5 @@
 import { PrismaService } from '@/core/prisma/prisma.service';
+import { eventOverWhere } from '@/modules/event/domain/event-over';
 import { NO_NEW_REQUEST_STATUSES } from '@/modules/event/domain/participation';
 import {
   groupRatingSummary,
@@ -58,12 +59,12 @@ export class HomeRepository {
           interests: { select: { activityId: true } },
         },
       }),
-      // B-027: „podle akcí, na kterých byl“ = an approved place at a past event
+      // B-027: „podle akcí, na kterých byl“ = an approved place at a past event (#272)
       this.prisma.participation.findMany({
         where: {
           userId,
           status: 'approved',
-          event: { status: 'published', startsAt: { lte: now } },
+          event: { status: 'published', ...eventOverWhere(now) },
         },
         select: { event: { select: { activityId: true } } },
         distinct: ['eventId'],

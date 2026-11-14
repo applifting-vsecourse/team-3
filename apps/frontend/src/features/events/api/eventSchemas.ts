@@ -33,6 +33,8 @@ export const publicEventSchema = z.object({
   summary: z.string().nullable(),
   // km from the chosen locality's centre when the request gave it (okolí, distance order; #57)
   distanceKm: z.number().nullable(),
+  // Proběhlé only (#61): the event's average rating for its past card; null otherwise
+  rating: z.object({ average: z.number().nullable(), count: z.number() }).nullish(),
 })
 
 export const publicEventsSchema = z.array(publicEventSchema)
@@ -194,6 +196,10 @@ export type EventFilters = {
   radiusKm?: number
   /** Nearest to lat,lng first (#57); soonest first without it. */
   sort?: "distance"
+  /** Proběhlé (#61): the events that are over, newest first, instead of the upcoming ones. */
+  past?: boolean
+  /** At most this many (the API's default and maximum is 200); cut after the order, e.g. the 5 nearest (#299). */
+  limit?: number
   /**
    * The quick picks' personal parts (#250), decided from the session by GET /api/home/events:
    * the activities of one's interests, well rated organizers, no events one already goes to.

@@ -303,14 +303,14 @@ describe("ParticipationAction", () => {
     expect(screen.queryByRole("button")).not.toBeInTheDocument()
   })
 
-  it("once over, it says when it was and how many came (Figma A-05 · Stavy › Proběhlá akce)", async () => {
+  it("once over, it says when it was; how many came is in the panel above (Figma A-05h, #61)", async () => {
     await renderAction(
       { approvedCount: 8, missingToMin: 0, endsAt: afterNow },
       { viewer: null, now: new Date("2026-10-24T08:00:00.000Z") },
     )
 
     expect(screen.getByText("Akce proběhla v pá 23. 10.")).toBeInTheDocument()
-    expect(screen.getByText(/^Sešlo se 8 lidí\./)).toBeInTheDocument()
+    expect(screen.queryByText(/Sešlo se/)).not.toBeInTheDocument()
     // a way on, not just a sentence about it (review #269)
     expect(screen.getByRole("link", { name: "Podobné akce najdeš v Akcích" })).toHaveAttribute(
       "href",
@@ -373,10 +373,10 @@ describe("ParticipationAction", () => {
   })
 
   it.each([
-    [{ approvedCount: 0, missingToMin: 4 }, "Nikdo se nepřihlásil."],
-    [{ approvedCount: 3, missingToMin: 1 }, "Do minima chyběl 1 člověk."],
+    [{ approvedCount: 0, missingToMin: 4 }, "Nikdo se nepřihlásil"],
+    [{ approvedCount: 3, missingToMin: 1 }, "Do minima chyběl 1 člověk"],
   ])(
-    "over without its minimum %o: it didn't take place — „%s“ (review #269)",
+    "over without its minimum %o: it didn't take place, why is in the panel above, not again (#61)",
     async (numbers, line) => {
       await renderAction(
         { ...numbers, endsAt: afterNow },
@@ -384,7 +384,7 @@ describe("ParticipationAction", () => {
       )
 
       expect(screen.getByText("Akce se v pá 23. 10. nekonala")).toBeInTheDocument()
-      expect(screen.getByRole("alert")).toHaveTextContent(line)
+      expect(screen.getByRole("alert")).not.toHaveTextContent(line)
       expect(screen.getByRole("alert")).not.toHaveTextContent(/Sešl/)
     },
   )

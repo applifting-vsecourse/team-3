@@ -173,4 +173,18 @@ describe("EventCard", () => {
 
     expect(screen.queryByText("Běžci ze Stromovky")).not.toBeInTheDocument()
   })
+
+  it("never cuts the distance off: only the place before it is truncated (#299)", async () => {
+    await renderWithRouter(
+      <EventCard
+        event={anEvent()}
+        distanceKm={22.7}
+      />,
+    )
+
+    const distance = screen.getByText(/· 22,7 km$/)
+    expect(distance).not.toHaveClass("truncate")
+    expect(distance).toHaveClass("shrink-0")
+    expect(distance.previousElementSibling).toHaveClass("truncate")
+  })
 })

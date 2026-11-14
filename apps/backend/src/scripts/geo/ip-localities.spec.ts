@@ -1,6 +1,8 @@
 import {
+  isCoarseRange,
   mergeRanges,
   parseDbIpLine,
+  tableRanges,
   townFor,
   type DbIpRow,
   type Town,
@@ -116,6 +118,105 @@ describe('mergeRanges', () => {
       { start: '01000000', end: '010001ff', slug: 'brno' },
       { start: '01000200', end: '010002ff', slug: 'praha' },
       { start: '01000400', end: '010004ff', slug: 'praha' },
+    ]);
+  });
+});
+
+describe('isCoarseRange (#299)', () => {
+  it("a provider's whole IPv6 allocation says no town (Police nad Metují for 2a07:bc0::/29)", () => {
+    expect(
+      isCoarseRange({
+        start: '2a070bc0000000000000000000000000',
+        end: '2a070bc7ffffffffffffffffffffffff',
+      }),
+    ).toBe(true);
+    // the part of it left beside a /48 of another town, still a /36 or so
+    expect(
+      isCoarseRange({
+        start: '2a070bc0000000000000000000000000',
+        end: '2a070bc013ffffffffffffffffffffff',
+      }),
+    ).toBe(true);
+    // a /32
+    expect(
+      isCoarseRange({
+        start: '2001067c000000000000000000000000',
+        end: '2001067cffffffffffffffffffffffff',
+      }),
+    ).toBe(true);
+  });
+
+  it("keeps narrower IPv6 ranges: a /40 and a customer's /48", () => {
+    expect(
+      isCoarseRange({
+        start: '2001067c2f0000000000000000000000',
+        end: '2001067c2fffffffffffffffffffffff',
+      }),
+    ).toBe(false);
+    expect(
+      isCoarseRange({
+        start: '2001067c2f1800000000000000000000',
+        end: '2001067c2f18ffffffffffffffffffff',
+      }),
+    ).toBe(false);
+  });
+
+  it('IPv4: a /16 is kept, anything wider is not', () => {
+    expect(isCoarseRange({ start: '93e50000', end: '93e5ffff' })).toBe(false);
+    expect(isCoarseRange({ start: '93200000', end: '9321ffff' })).toBe(true);
+    expect(isCoarseRange({ start: '25303200', end: '253032ff' })).toBe(false);
+  });
+});
+
+describe('tableRanges (review #321)', () => {
+  // four neighbouring /40s of Praha: fine each, a /38 together
+  const prahaRows = ['00', '01', '02', '03'].map((byte) => ({
+    start: `2a020100${byte}${'0'.repeat(22)}`,
+    end: `2a020100${byte}${'f'.repeat(22)}`,
+    slug: 'praha',
+  }));
+
+  it('neighbouring fine rows of one town merge, and the wide result stays', () => {
+    const ranges = tableRanges(prahaRows);
+
+    expect(ranges).toEqual([
+      {
+        start: '2a020100000000000000000000000000',
+        end: '2a02010003ffffffffffffffffffffff',
+        slug: 'praha',
+      },
+    ]);
+    // wider than a /40 after merging, yet kept: each row said the town
+    expect(isCoarseRange(ranges[0])).toBe(true);
+  });
+
+  it("a provider's wide row is left out, its neighbours kept", () => {
+    const police = {
+      start: '2a070bc0000000000000000000000000',
+      end: '2a070bc7ffffffffffffffffffffffff',
+      slug: 'police-nad-metuji',
+    };
+    const brno = {
+      start: '2a070bc8000000000000000000000000',
+      end: '2a070bc800ffffffffffffffffffffff',
+      slug: 'brno',
+    };
+    expect(tableRanges([police, brno, ...prahaRows])).toEqual([
+      expect.objectContaining({ slug: 'praha' }),
+      brno,
+    ]);
+  });
+
+  it('sorts IPv4 before IPv6 before merging', () => {
+    expect(
+      tableRanges([
+        prahaRows[0],
+        { start: '01000100', end: '010001ff', slug: 'brno' },
+        { start: '01000000', end: '010000ff', slug: 'brno' },
+      ]),
+    ).toEqual([
+      { start: '01000000', end: '010001ff', slug: 'brno' },
+      prahaRows[0],
     ]);
   });
 });

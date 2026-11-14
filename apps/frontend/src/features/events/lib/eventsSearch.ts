@@ -40,6 +40,17 @@ export const PICKS = [
 ] as const
 export type QuickPick = (typeof PICKS)[number]
 
+/** ?termin=probehle — Proběhlé (#61, Figma A-02h): the events that are over instead of a range. */
+export const PAST_TERM = "probehle"
+/** The picks' tabs as the band names them (DESIGN.md › Quick picks). */
+export const PICK_LABELS: Record<QuickPick, string> = {
+  "tady-chybis": "Tady chybíš",
+  "tento-vikend": "Tento víkend",
+  "podle-zajmu": "Podle tvých zájmů",
+  "kousek-od-tebe": "Kousek od tebe",
+  "od-hodnocenych": "Od dobře hodnocených",
+}
+
 /** ?razeni= (#57, Figma A-02j); without it soonest first, or nearest first with okolí. */
 export const SORTS = ["termin", "vzdalenost"] as const
 export type Sort = (typeof SORTS)[number]
@@ -52,6 +63,8 @@ export type Sort = (typeof SORTS)[number]
  */
 export const eventsSearchSchema = z.object({
   ...catalogSearchShape,
+  // Proběhlé replaces the range (Figma A-02c: „ruší rozsah“)
+  termin: z.literal(PAST_TERM).optional().catch(undefined),
   od: z.string().regex(DAY).optional().catch(undefined),
   do: z.string().regex(DAY).optional().catch(undefined),
   // volna = not full yet, chybi = still missing people (a subset of volna)
@@ -81,6 +94,7 @@ export type EventsSearch = z.infer<typeof eventsSearchSchema>
 /** Whether the URL has a filter for „Zrušit vše“ to clear; a remembered locality is the page's to add (useLocality). */
 export const hasActiveFilters = (search: EventsSearch): boolean =>
   hasCatalogFilters(search) ||
+  search.termin !== undefined ||
   search.od !== undefined ||
   search.do !== undefined ||
   search.obsazenost !== undefined ||
@@ -95,6 +109,8 @@ export const hasActiveFilters = (search: EventsSearch): boolean =>
 export function toEventFilters(search: EventsSearch, catalog: Catalog): EventFilters {
   // An inverted range in a hand-edited URL would be a 400; keep just the start.
   const dateTo = search.od && search.do && search.do < search.od ? undefined : search.do
+  // Proběhlé (#61) instead of a range, and without occupancy, which a past event no longer has
+  const isPast = search.termin === PAST_TERM
 
   const filters = toCatalogFilters(search, catalog)
   const center = localityCenter(search, catalog)
@@ -105,16 +121,18 @@ export function toEventFilters(search: EventsSearch, catalog: Catalog): EventFil
     // the area replaces the locality: moving the map from Praha to Brno would otherwise find nothing;
     // okolí replaces it too: „do 10 km od středu Prahy 8“ (Figma A-02gd)
     localityId: search.oblast || radiusKm ? undefined : filters.localityId,
-    dateFrom: search.od,
-    dateTo,
-    capacity: search.obsazenost && CAPACITY_OF[search.obsazenost],
+    dateFrom: isPast ? undefined : search.od,
+    dateTo: isPast ? undefined : dateTo,
+    capacity: isPast ? undefined : search.obsazenost && CAPACITY_OF[search.obsazenost],
     bbox: search.oblast,
     q: search.q,
     // the centre only when something needs it: the circle, or the distance order
     ...(center && (radiusKm || sort === "vzdalenost") ? { lat: center.lat, lng: center.lng } : {}),
     radiusKm,
     sort: sort === "vzdalenost" ? "distance" : undefined,
-    ...(search.vyber ? PICK_FLAGS[search.vyber] : {}),
+    // a pick's personal parts are about events still to come; Proběhlé leaves the pick anyway,
+    // only a hand-edited URL has both (review #323)
+    ...(isPast ? { past: true } : search.vyber ? PICK_FLAGS[search.vyber] : {}),
   }
 }
 
@@ -159,6 +177,7 @@ export function pickPreset(
 }
 
 const PICK_FILTER_KEYS = [
+  "termin",
   "od",
   "do",
   "kategorie",
@@ -170,16 +189,27 @@ const PICK_FILTER_KEYS = [
 ] as const
 
 /**
+ * Whether the okolí is the one the current pick turned on by itself („Tady chybíš“ adds +10 km
+ * when none is on). The URL can't tell it from the same okolí set by hand; then it goes too.
+ */
+const isPicksOkoli = (search: EventsSearch, now: Date): boolean =>
+  search.vyber !== undefined &&
+  search.okoli !== undefined &&
+  pickPreset(search.vyber, undefined, now).okoli === search.okoli
+
+/**
  * The URL a pick leads to: the locality and okolí stay, the other filters give way to the
- * pick's. Without a pick „Všechny akce“.
+ * pick's. Without a pick „Všechny akce“. An okolí the previous pick turned on leaves with it,
+ * or „Zrušit rychlý výběr“ would leave behind a filter nobody set (review #326).
  */
 export function pickSearch(
   pick: QuickPick | undefined,
   search: EventsSearch,
   now: Date,
 ): EventsSearch {
-  const base = { lokalita: search.lokalita, okoli: search.okoli }
-  return pick ? { ...base, ...pickPreset(pick, search.okoli, now), vyber: pick } : base
+  const okoli = isPicksOkoli(search, now) ? undefined : search.okoli
+  const base = { lokalita: search.lokalita, okoli }
+  return pick ? { ...base, ...pickPreset(pick, okoli, now), vyber: pick } : base
 }
 
 /** Whether a change touches what the pick set; then the pick no longer holds (Figma A-02d). */
@@ -189,6 +219,8 @@ export function changesPick(
   now: Date,
 ): boolean {
   if (!search.vyber) return false
+  // Proběhlé is a view of its own (Figma A-02h): no pick holds there
+  if (patch.termin !== undefined) return true
   const preset = pickPreset(search.vyber, search.okoli, now)
   return Object.keys(patch).some(
     (key) =>
@@ -221,6 +253,32 @@ export function localityCenter(
   if (search.oblast || !search.lokalita || search.lokalita === ALL_LOCALITIES_SLUG) return undefined
   const locality = catalog.localities.find((l) => l.slug === search.lokalita)
   return locality ? { lat: locality.lat, lng: locality.lng } : undefined
+}
+
+/**
+ * The same filters without the locality and its okolí, nearest to the locality's centre first
+ * (#299): what an empty list shows instead of nothing — „V lokalitě … teď nic není, nejbližší
+ * akce“. None without a centre (Celé Česko, a searched map area): there is no „nearest“ there.
+ * None on Proběhlé either: the API orders the past newest first, not by distance, and the
+ * section is about where one can still go.
+ */
+export function nearestFilters(
+  search: EventsSearch,
+  catalog: Catalog,
+  limit: number,
+): EventFilters | undefined {
+  const center = localityCenter(search, catalog)
+  if (!center || search.termin === PAST_TERM) return undefined
+  return {
+    ...toEventFilters(search, catalog),
+    localityId: undefined,
+    radiusKm: undefined,
+    lat: center.lat,
+    lng: center.lng,
+    sort: "distance",
+    // only what is shown: the API cuts after ordering by distance (review #321)
+    limit,
+  }
 }
 
 /** The order in effect: as picked, else nearest first with okolí; soonest first without a centre. */

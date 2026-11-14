@@ -18,6 +18,8 @@ export function HomeEventGrid({ events }: { events: PublicEvent[] }) {
             event={event}
             variant={isSingle ? "row" : "responsive"}
             titleAs="h3"
+            // only the nearest events of an empty locality have one (#299)
+            distanceKm={event.distanceKm}
           />
         </li>
       ))}

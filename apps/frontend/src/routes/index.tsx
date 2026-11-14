@@ -3,11 +3,10 @@ import { z } from "zod"
 
 import { Seo } from "@/components/Seo"
 import { useLocality } from "@/hooks/useLocality"
-import { ALL_LOCALITIES_SLUG } from "@/lib/catalog/localityOptions"
 
 import { AppHeader } from "@/features/auth/components/AppHeader"
 import { useSession } from "@/features/auth/hooks/useSession"
-import { LandingView } from "@/features/events/components/LandingView"
+import { LandingView, pageLocalitySlug } from "@/features/events/components/LandingView"
 import { RecruitingGroups } from "@/features/groups/components/RecruitingGroups"
 
 /**
@@ -32,6 +31,10 @@ function LandingPage() {
   const { user, isPending } = useSession()
   const { lokalita } = Route.useSearch()
   const locality = useLocality(lokalita, isPending ? undefined : (user?.id ?? null))
+  const navigate = Route.useNavigate()
+  // the chip's pick and reset replace `?lokalita=` of a shared link: it would win over them
+  const dropUrlLocality = () =>
+    void navigate({ search: (prev) => ({ ...prev, lokalita: undefined }), replace: true })
 
   return (
     <>
@@ -42,8 +45,18 @@ function LandingPage() {
       <LandingView
         isSignedIn={isPending || locality.slug === undefined ? undefined : Boolean(user)}
         viewerId={user?.id ?? null}
-        // Celé Česko is no locality: the API decides (the home locality, else all of Czechia)
-        localitySlug={locality.slug === ALL_LOCALITIES_SLUG ? undefined : locality.slug}
+        localitySlug={pageLocalitySlug(locality)}
+        localityControl={{
+          state: locality,
+          onChange: (slug) => {
+            locality.pick(slug)
+            dropUrlLocality()
+          },
+          onReset: () => {
+            locality.forget()
+            dropUrlLocality()
+          },
+        }}
         renderGroups={(groups, groupsLokalita) => (
           <RecruitingGroups
             groups={groups}

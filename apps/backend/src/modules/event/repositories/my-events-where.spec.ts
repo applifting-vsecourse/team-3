@@ -1,4 +1,5 @@
 import { Prisma } from '@/generated/prisma/client';
+import { eventNotOverWhere } from '@/modules/event/domain/event-over';
 import { NO_NEW_REQUEST_STATUSES } from '@/modules/event/domain/participation';
 import { buildMyEventsWhere } from './my-events-where';
 
@@ -6,7 +7,8 @@ const now = new Date('2026-10-23T08:00:00.000Z');
 
 const UPCOMING_NOT_HIDDEN: Prisma.EventWhereInput = {
   status: { in: ['published', 'cancelled'] },
-  startsAt: { gt: now },
+  // not over yet (#272): an event going on right now stays until it ends
+  ...eventNotOverWhere(now),
 };
 
 describe('buildMyEventsWhere', () => {

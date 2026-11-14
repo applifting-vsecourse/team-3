@@ -79,7 +79,7 @@ function GroupsPage() {
         onChange={setSearch}
         onLocalityChange={pickLocality}
         onClearAll={canClear ? clearFilters : undefined}
-        localityDefault={localityDefault(shownLocality, clearLocality)}
+        localityDefault={localityDefault(shownLocality, clearLocality, pickLocality)}
       />
       <GroupList
         groups={groups ?? []}

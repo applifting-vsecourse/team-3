@@ -1,5 +1,6 @@
 import { Prisma } from '@/generated/prisma/client';
 import { MyEventsTab } from '@/modules/event/domain/event';
+import { eventNotOverWhere } from '@/modules/event/domain/event-over';
 import { NO_NEW_REQUEST_STATUSES } from '@/modules/event/domain/participation';
 
 /**
@@ -16,9 +17,12 @@ import { NO_NEW_REQUEST_STATUSES } from '@/modules/event/domain/participation';
  *   that they can still ask to join: no place, no waiting request, and not
  *   rejected or removed by the organizer (`NO_NEW_REQUEST_STATUSES`, as the
  *   lists of #182).
- * All list upcoming events only (past ones are Proběhlé, #61); `attending` and
- * `organizing` keep cancelled ones with their label, `groups` doesn't (there is
- * nothing to go to); hidden and deleted never.
+ * `attending` and `organizing` list the events that are not over yet (#272),
+ * also one going on right now: joining or leaving it is no longer possible
+ * (EVENT_STARTED), but it is still where the user goes; past ones are Proběhlé
+ * in the profile. They keep cancelled ones with their label. `groups` lists
+ * only events that haven't started – one can't join once it runs – and no
+ * cancelled ones (there is nothing to go to). Hidden and deleted never.
  */
 export const buildMyEventsWhere = (
   tab: MyEventsTab,
@@ -50,7 +54,7 @@ export const buildMyEventsWhere = (
   }
   return {
     AND: [
-      { status: { in: ['published', 'cancelled'] }, startsAt: { gt: now } },
+      { status: { in: ['published', 'cancelled'] }, ...eventNotOverWhere(now) },
       tab === 'attending'
         ? {
             participations: {

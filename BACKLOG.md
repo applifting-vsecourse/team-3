@@ -383,7 +383,8 @@ Doménová logika (čistá funkce + testy): `approvedCount`, `missingToMin = max
 
 - `GET /api/events` bez přihlášení. Parametry: `q` (název), `localityId` nebo `lat,lng,radiusKm` nebo `bbox` (výřez mapy – „Hledat v této oblasti“), `dateFrom`, `dateTo` (rozsah, oba včetně), `activityId[]`, `categoryId[]` (celá kategorie = všechny její aktivity, i nově přidané), `capacity` (obsazenost: `free` = jen akce, které nejsou plné, `missing` = jen akce s `missingToMin > 0`; změna 23. 10. z `missingOnly`), `sort` (`date` výchozí / `distance`), stránkování. `activityId[]` a `categoryId[]` se sčítají (OR).
 - `GET /api/events/facets` – stejné filtry kromě typu aktivity, vrací počty akcí po kategoriích a aktivitách pro výběr typu aktivity. Pokud se nevejde do sprintu, FE počty skryje.
-- Vrací jen `status = published`, `visibility = public`, `startsAt > now`. Nevrací soukromé a „jen pro členy“.
+- Vrací jen `status = published`, `visibility = public`, `startsAt > now` (bez `past`, viz níže). Nevrací soukromé a „jen pro členy“.
+- `past=true` (#61, filtr Proběhlé na `/akce`): místo nadcházejících akce, které proběhly – po `endsAt`, bez konce po konci dne v Praze (#272, `event-over.ts`, stejné pravidlo jako detail, stránka skupiny, profil a hodnocení) – od nejnovější, každá s průměrem hodnocení akce (`rating`). Zrušené nikdy: nekonaly se, vidí je jen ten, koho se týkají (Moje akce, Můj profil › Proběhlé). Kombinuje se s ostatními filtry; FE s ním neposílá rozsah termínu ani obsazenost.
 - Každá položka: aktivita, název, termín, místo (lat/lng + adresa), `missingToMin`, `freeSpots`, `isFull`, organizátor (osoba nebo skupina), `isPromoted`.
 - `GET /api/events/map` – stejné filtry, odlehčené body pro mapu (bez stránkování, limit 500).
 - Stav po #57: `q` hledá v názvu, názvu aktivity a `Activity.keywords` bez diakritiky (všechna slova); `lat`+`lng` je bod pro `distanceKm` a `sort=distance`, `radiusKm` (1–100) okruh kolem něj. Databáze předfiltruje obdélníkem, přesnou vzdálenost, hledání a řazení dělá služba před limitem 200 (jako obsazenost). Stránkování ani `/events/map` zatím nejsou; FE ukáže „Víc než 200 akcí“. Známé omezení: hledání (`q`) databáze neumí, služba prochází jen 2000 nejbližších termínů v lokalitě (u celého Česka v celé ČR, `SCAN_LIMIT`), takže při větším počtu akcí shodu s pozdějším termínem nenajde. Řešením je fulltext v databázi (sloupec bez diakritiky nebo `unaccent`).
@@ -410,7 +411,7 @@ Doménová logika (čistá funkce + testy): `approvedCount`, `missingToMin = max
   - Čip **Další** (cena, úroveň) je Nice to have – dokud není hotový, nezobrazuje se.
 - Stav filtrů v URL (`?q=&lokalita=&od=&do=&kategorie=&aktivita=&obsazenost=volna|chybi`), aby šel sdílet.
 - Přihlášenému se předvyplní domovská lokalita a v typu aktivity „Moje zájmy“ z profilu; obojí jde změnit.
-- Tři stavy seznamu: načítání (skeleton), prázdno (jedna věta), chyba s možností zkusit znovu.
+- Tři stavy seznamu: načítání (skeleton), prázdno (jedna věta), chyba s možností zkusit znovu. Prázdná lokalita ukáže pod větou pět nejbližších akcí se stejnými ostatními filtry a vzdáleností (#299, DESIGN.md › An empty locality).
 
 **Hotovo, když:**
 
@@ -485,8 +486,9 @@ Doménová logika (čistá funkce + testy): `approvedCount`, `missingToMin = max
 `US-01` · FS · M · závisí na: B-023, B-026
 
 - Výchozí lokalita na `/`, `/akce` a `/skupiny` (tým 28. 10., #55): domovská lokalita z profilu → jinak odhad podle IP → když selže, **celé Česko** (ne Praha). „Zrušit vše“ zruší všechny filtry včetně lokality a vrátí výchozí.
-- `GET /api/geo/locality` – výchozí lokalita: domovská z profilu, jinak odhad podle IP (Q2), jinak `null` = celé Česko; `source` říká odkud (`home` / `ip` / `none`). IP ani výsledek se **neukládají** (ani do logů), odpověď má `Cache-Control: private, no-store`.
-- Odhad: tabulka českých rozsahů z DB-IP „IP to City Lite“ (CC BY 4.0) přiřazených k městům katalogu, v repu `modules/geo/data/ip-localities-cz.txt`; obnoví ji `pnpm backend geo:build` (DB-IP vydává jednou měsíčně). Zdroj je uvedený v Ochraně osobních údajů.
+- `GET /api/geo/locality` – výchozí lokalita: domovská z profilu, jinak odhad podle IP (Q2), jinak `null` = celé Česko; `source` říká odkud (`home` / `ip` / `none`). IP ani výsledek se **neukládají** (ani do logů), odpověď má `Cache-Control: private, no-store`. IP je Express `request.ip` (#299): za proxy stagingu (`TRUST_PROXY_HOPS=1`) adresa, kterou viděla proxy, ne hlavička, kterou může poslat klient.
+- Odhad: tabulka českých rozsahů z DB-IP „IP to City Lite“ (CC BY 4.0) přiřazených k městům katalogu, v repu `modules/geo/data/ip-localities-cz.txt`; obnoví ji `pnpm backend geo:build` (DB-IP vydává jednou měsíčně). Zdroj je uvedený v Ochraně osobních údajů. Řádky DB-IP širší než /40 (IPv6) a /16 (IPv4) build vynechá ještě před slučováním (`isCoarseRange`, `tableRanges`, #299, review #321 – sloučené jemné bloky města zůstanou): DB-IP je umístí do sídla poskytovatele, takže by celý blok dostal jedno město (2a07:bc0::/29 → Police nad Metují); pro ně platí celé Česko. Mobilní sítě s rozsahy /24 tím nechytí – proto:
+- Odhad nikdy nevyprázdní výpis (#299): čip „Praha · odhad“ s ×, které jedním klepnutím ukáže celé Česko; lokalita bez akcí ukáže nejbližší akce se vzdáleností (/akce: `EmptyEvents`, `GET /api/events?lat&lng&sort=distance`; `/`: `GET /api/home` vrátí `isWidened` a sekce z 30 nejbližších akcí, když v lokalitě není nic, kam se dá přidat; `hasLocalityEvents` říká, jestli tam není vůbec nic, nebo jen plné či vlastní akce – podle toho úvodní stránka napíše „žádná akce není“, nebo „není akce, kam se dá přidat“). Celé Česko vybrané na úvodní stránce (jen volba, ne záloha po neúspěšném odhadu) posílá `wholeCountry=true`, aby ho API nenahradilo domovskou lokalitou; čip jmenuje lokalitu z odpovědi API (review #321). Nejbližší akce hledá `EventsService.getPublicEvents` s bodem a `sort: 'distance'` jako /akce, nejdřív do 100 km, pak celá ČR; když se nedá přidat ani na ně, `isWidened` zůstane true se sekcemi prázdnými a stránka to řekne. „Zobrazit všechny“ rozšířené sekce vede na /akce s okolím, do kterého se vejdou její karty. Potvrzení panelu lokality beze změny odhad neuloží jako volbu.
 - Ruční volba lokality se pamatuje jen v prohlížeči (`localStorage`), bez registrace; „Zrušit vše“ ji zapomene.
 - Stránka `/` podle Figmy A-01 / A-01d (návštěvník) a A-01p / A-01pd (přihlášený): pás s panelem „Teď chybí jeden“, sekce Tady chybíš, Jak to funguje, Tento víkend, Kousek od tebe, O tyhle akce je zájem, Od dobře hodnocených organizátorů, Tyhle skupiny rozšiřují partu, výzva „Nic pro tebe?“ (#182). Pravidla v `docs/ux-audit.md` › Úvodní stránka:
   - akce se ukáže jen v první sekci, kam patří (panel nahoře je první);
@@ -500,6 +502,8 @@ Doménová logika (čistá funkce + testy): `approvedCount`, `missingToMin = max
 **Hotovo, když:**
 
 - [x] Test: služba při chybě geolokace vrátí celé Česko; přihlášený s domovskou lokalitou dostane ji.
+- [x] Testy prázdné lokality a předvyplněného filtru (#299): nejbližší akce na /akce i na `/`, čip odhadu, potvrzení beze změny, `request.ip`, hrubé rozsahy.
+- [ ] Odhad ověřený na stagingu (#299): `curl` v popisu PR, spustí tým.
 
 ---
 
@@ -990,7 +994,7 @@ Dokud tým nebo PO nerozhodne jinak, agent použije výchozí volbu.
 | #   | Otázka                                                                            | Výchozí volba                                                                                                                                 | Kdo rozhodne |
 | --- | --------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------- | ------------ |
 | Q1  | Mapa a našeptávač míst (poznámky zmiňují Google Maps)                             | Leaflet + OSM, místo klikem do mapy + textová adresa, lokality z vlastního číselníku                                                          | Tým          |
-| Q2  | Služba pro odhad lokality z IP                                                    | Offline tabulka z DB-IP Lite (CC BY 4.0) v repu, při chybě celé Česko (tým 28. 10., #55)                                                      | Tým          |
+| Q2  | Služba pro odhad lokality z IP                                                    | Offline tabulka z DB-IP Lite (CC BY 4.0) v repu, při chybě a u příliš širokých rozsahů celé Česko (tým 28. 10., #55, #299)                    | Tým          |
 | Q3  | Nahrávání fotek (profil, skupina, akce)                                           | Akce: organizátor nahraje obrázek jako soubor, bez něj obrázek aktivity (PO 10. 11., #77). Profil a skupina zatím jen URL obrázku             | PO           |
 | Q4  | Podle čeho vybírat akce na úvodní stránce (F-68)                                  | Nejbližší termín v lokalitě, topované první; sekce podle #182, pravidla v docs/ux-audit.md                                                    | PO           |
 | Q5  | Text obchodních podmínek a zásad ochrany údajů (F-65)                             | Placeholder                                                                                                                                   | PO           |
