@@ -18,7 +18,6 @@ const json = (body: unknown) =>
   new Response(JSON.stringify(body), { headers: { "content-type": "application/json" } })
 
 /**
-/**
  * /akce on `url` for a visitor; the event list holds `events`, or `occupied` with an occupancy
  * filter, the catalog `localities`.
  */

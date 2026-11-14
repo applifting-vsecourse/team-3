@@ -209,8 +209,8 @@ describe("clusterZoom (#306)", () => {
   })
 
   it("without a laid-out map zooms to where the cluster splits up", () => {
+    // Leaflet's getBoundsZoom gives NaN for a map without a size
     expect(clusterZoom(Number.NaN, 9)).toBe(9)
-    expect(clusterZoom(Infinity, 9)).toBe(9)
   })
 })
 

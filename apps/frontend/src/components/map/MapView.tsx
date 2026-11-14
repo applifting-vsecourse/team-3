@@ -269,7 +269,7 @@ function Pins({ pins, highlightedId, selectedId, onPinClick, isClustered }: Pins
  * barely changed, and it looked as if the tap did nothing (PO 10. 11.).
  */
 export function clusterZoom(fitZoom: number, expansionZoom: number): number {
-  // a map without a size (not laid out yet) can't fit anything
+  // a map without a size (not laid out yet) can't fit anything: Leaflet gives NaN
   if (!Number.isFinite(fitZoom)) return expansionZoom
   return Math.max(expansionZoom, Math.min(fitZoom, FIT_MAX_ZOOM))
 }
