@@ -378,6 +378,9 @@ function sectionCopy({
       description: `Těmhle akcím ${area} ještě chybí lidi do minima.`,
       label: "Tady chybíš",
       pickDescription: `akce ${area}, kterým chybí lidi do minima. Akce, na které už jdeš, tu nejsou. Akce z panelu nahoře se tu neopakuje.`,
+      // the section's events: missing people, in its locality and okolí (#321). Not the quick pick
+      // „Tady chybíš“, which adds +10 km, one's interests and leaves out one's events (#305);
+      // the filter no longer offers „chybi“, but the chip names it („Chybí lidé“)
       more: events("missing", { obsazenost: "chybi" }),
     },
     weekend: {

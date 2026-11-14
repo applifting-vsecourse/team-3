@@ -17,14 +17,17 @@ vi.mock("@/features/auth/lib/auth-client", () => ({
 const json = (body: unknown) =>
   new Response(JSON.stringify(body), { headers: { "content-type": "application/json" } })
 
-/** /akce on `url` for a visitor; the event list holds `events` unless an occupancy filter is set. */
-async function renderEvents(url: string, events: unknown[] = []) {
+/**
+ * /akce on `url` for a visitor; the event list holds `events`, or `occupied` with an occupancy
+ * filter.
+ */
+async function renderEvents(url: string, events: unknown[] = [], occupied: unknown[] = []) {
   vi.stubGlobal(
     "fetch",
     vi.fn((input: RequestInfo | URL) => {
       const href = input instanceof Request ? input.url : String(input)
       if (/\/events(\?|$)/.test(href)) {
-        return Promise.resolve(json(href.includes("capacity") ? [] : events))
+        return Promise.resolve(json(href.includes("capacity") ? occupied : events))
       }
       return Promise.resolve(json([]))
     }),
@@ -97,7 +100,34 @@ describe("/akce on a phone: „Zrušit filtry“", () => {
   })
 })
 
-// A quick pick lights up its chips („Chybí lidé“): without a filter of one's own there was no way
+// #305: „Volná místa“ / „Chybí lidé“ became one toggle, „Jen s volným místem“. Links shared before
+// it, and the landing page's „Zobrazit všechny“ under „Tady chybíš“ (?obsazenost=chybi), keep
+// working: the same events, and the chip says which filter is on.
+describe("/akce: old ?obsazenost= links", () => {
+  it.each([
+    ["volna", "free", "Jen s volným místem"],
+    ["chybi", "missing", "Chybí lidé"],
+  ])(
+    "?obsazenost=%s asks for capacity=%s and shows it on the chip",
+    async (value, capacity, chip) => {
+      const event: unknown = JSON.parse(JSON.stringify(anEvent({ id: "cm-e1" })))
+      await renderEvents(`/akce?lokalita=cele-cesko&obsazenost=${value}`, [], [event])
+
+      expect(
+        (await screen.findAllByRole("link", { name: "Language exchange: CZ/EN/ES" })).length,
+      ).toBeGreaterThan(0)
+      const urls = vi
+        .mocked(fetch)
+        .mock.calls.map(([input]) =>
+          typeof input === "string" ? input : input instanceof Request ? input.url : input.href,
+        )
+      expect(urls.some((url) => url.includes(`capacity=${capacity}`))).toBe(true)
+      expect(screen.getByRole("button", { name: chip })).toHaveAttribute("aria-pressed", "true")
+    },
+  )
+})
+
+// A quick pick lights up its chip („Chybí lidé“): without a filter of one's own there was no way
 // out but the „Všechny akce“ tab. „Zrušit rychlý výběr“ goes there, the locality stays — and
 // so does nothing the pick turned on by itself: the tab adds okolí +10 km (review #326).
 describe("/akce: „Zrušit rychlý výběr“", () => {
