@@ -2,6 +2,7 @@ import { SMTPConfig } from '@/core/email/adapters/smtp/interfaces/smtp-config.in
 import { EmailService } from '@/core/email/interfaces/email-service.interface';
 import { Injectable } from '@nestjs/common';
 import * as nodemailer from 'nodemailer';
+import { toPlainText } from 'react-email';
 
 @Injectable()
 export class SMTPAdapter implements EmailService {
@@ -25,6 +26,7 @@ export class SMTPAdapter implements EmailService {
       to,
       subject,
       html,
+      text: toPlainText(html),
     });
   }
 }

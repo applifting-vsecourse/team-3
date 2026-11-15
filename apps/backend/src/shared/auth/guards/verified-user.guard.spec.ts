@@ -33,10 +33,16 @@ const session = { user: { id: 'u1', name: 'Jakub' } };
 
 describe('VerifiedUserGuard', () => {
   const setup = (
-    user: { emailVerified: boolean; blockedAt: Date | null } | null,
+    user: {
+      emailVerified: boolean;
+      blockedAt: Date | null;
+      ageConfirmedAt?: Date | null;
+    } | null,
   ): VerifiedUserGuard => {
     const prisma = mockDeep<PrismaService>();
-    prisma.user.findUnique.mockResolvedValue(user as never);
+    prisma.user.findUnique.mockResolvedValue(
+      user ? ({ ageConfirmedAt: new Date(), ...user } as never) : null,
+    );
     return new VerifiedUserGuard(mock<BetterAuth>(), prisma);
   };
 
@@ -50,6 +56,21 @@ describe('VerifiedUserGuard', () => {
       ),
     ).resolves.toBe(true);
     expect(request.session).toBe(session);
+  });
+
+  it('refuses a signed-in user who has not confirmed age', async () => {
+    getSession.mockResolvedValue(session);
+    const error = await setup({
+      emailVerified: true,
+      blockedAt: null,
+      ageConfirmedAt: null,
+    })
+      .canActivate(contextFor({}))
+      .catch((e) => e);
+    expect(error).toBeInstanceOf(ForbiddenException);
+    expect(error.getResponse()).toMatchObject({
+      code: 'AGE_CONFIRMATION_REQUIRED',
+    });
   });
 
   it('an unverified e-mail is 403 EMAIL_NOT_VERIFIED', async () => {

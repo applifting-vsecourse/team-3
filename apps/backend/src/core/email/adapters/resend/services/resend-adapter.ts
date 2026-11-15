@@ -1,6 +1,7 @@
 import { ResendConfig } from '@/core/email/adapters/resend/interfaces/resend-config.interface';
 import { EmailService } from '@/core/email/interfaces/email-service.interface';
 import { Injectable, Logger } from '@nestjs/common';
+import { toPlainText } from 'react-email';
 import { Resend } from 'resend';
 
 @Injectable()
@@ -18,6 +19,7 @@ export class ResendAdapter implements EmailService {
       to,
       subject,
       html,
+      text: toPlainText(html),
     });
 
     if (error) {

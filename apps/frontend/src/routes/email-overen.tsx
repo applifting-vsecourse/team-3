@@ -20,10 +20,8 @@ export const Route = createFileRoute("/email-overen")({
     from: z.string().optional().catch(undefined),
   }),
   beforeLoad: async ({ context, search }) => {
-    // The cached session may still say „unverified“ (one from before #236):
-    // fetch it anew first, so the dialog trusts a fresh one (success never
-    // flashes up as a failure). Unreachable: the dialog still says what the
-    // link did.
+    // Refresh the session before redirecting so the destination has current
+    // account data. The link's error belongs to the link, not that session.
     await context.queryClient
       .fetchQuery({ ...authSessionQueryOptions(), staleTime: 0 })
       .catch(() => undefined)

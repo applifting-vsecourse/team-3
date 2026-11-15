@@ -27,6 +27,10 @@ export class OptionalUserGuard implements CanActivate {
     try {
       request.session =
         (await getSessionFromRequest(request, this.betterAuth)) ?? null;
+      // Public routes must not expose signed-in-only data before confirmation.
+      if (request.session && !request.session.user.ageConfirmedAt) {
+        request.session = null;
+      }
     } catch (error) {
       // The endpoint is public: a failed session lookup serves the visitor
       // variant instead of a 500.

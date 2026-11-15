@@ -56,9 +56,7 @@ describe("EmailVerifiedDialog", () => {
     const { router } = await renderDialog({ url: "/akce?obsazenost=chybi" })
 
     const dialog = screen.getByRole("dialog", { name: "E-mail je ověřený" })
-    expect(dialog).toHaveTextContent(
-      "Teď se můžeš hlásit na akce a zakládat vlastní akce i skupiny.",
-    )
+    expect(dialog).toHaveTextContent("E-mail z odkazu je ověřený.")
 
     await userEvent.click(within(dialog).getByRole("button", { name: "Procházet akce" }))
 
@@ -101,12 +99,12 @@ describe("EmailVerifiedDialog", () => {
     expect(screen.getByRole("dialog", { name: "E-mail je ověřený" })).toBeInTheDocument()
   })
 
-  it("an old link opened again once the e-mail is verified: says why, but no failure", async () => {
+  it("a failed link stays a failure even if another verified account is signed in", async () => {
     await renderDialog({ result: { error: "TOKEN_EXPIRED" }, user: verified })
 
-    const dialog = screen.getByRole("dialog", { name: "E-mail je ověřený" })
+    const dialog = screen.getByRole("dialog", { name: "E-mail se nepodařilo ověřit" })
     expect(dialog).toHaveTextContent(
-      "Odkaz už vypršel. Nevadí, e-mail už máš ověřený. Teď se můžeš hlásit na akce",
+      "Odkaz už vypršel. Pro nový odkaz se přihlas k účtu, kterému odkaz patří.",
     )
     expect(within(dialog).queryByRole("button", { name: "Poslat odkaz znovu" })).toBeNull()
   })
@@ -115,7 +113,9 @@ describe("EmailVerifiedDialog", () => {
     await renderDialog({ url: "/akce/e1", result: { error: "TOKEN_EXPIRED" }, user: unverified })
 
     const dialog = screen.getByRole("dialog", { name: "E-mail se nepodařilo ověřit" })
-    expect(dialog).toHaveTextContent("Odkaz už vypršel. Pošli si nový, platí 24 hodin.")
+    expect(dialog).toHaveTextContent(
+      "Odkaz už vypršel. Pro přihlášený účet si můžeš poslat nový, platí 24 hodin.",
+    )
     expect(within(dialog).getByRole("button", { name: "Zpět na akci" })).toBeInTheDocument()
 
     await userEvent.click(within(dialog).getByRole("button", { name: "Poslat odkaz znovu" }))
@@ -165,13 +165,12 @@ describe("EmailVerifiedDialog", () => {
     )
   })
 
-  it("doesn't claim success to a signed-in user who is still unverified", async () => {
+  it("reports the link result even when another unverified account is signed in", async () => {
     await renderDialog({ user: unverified })
 
-    const dialog = screen.getByRole("dialog", { name: "E-mail zatím není ověřený" })
-    expect(dialog).toHaveTextContent("Otevři odkaz z e-mailu, nebo si pošli nový.")
-    expect(within(dialog).getByRole("button", { name: "Poslat odkaz znovu" })).toBeInTheDocument()
-    expect(screen.queryByText("E-mail je ověřený")).not.toBeInTheDocument()
+    const dialog = screen.getByRole("dialog", { name: "E-mail je ověřený" })
+    expect(dialog).toHaveTextContent("E-mail z odkazu je ověřený.")
+    expect(within(dialog).queryByRole("button", { name: "Poslat odkaz znovu" })).toBeNull()
   })
 })
 

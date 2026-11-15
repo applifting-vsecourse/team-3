@@ -3,6 +3,7 @@ import { PrismaModule } from '@/core/prisma/prisma.module';
 import { Config } from '@/shared/config/config.service';
 import { ConfigModule } from '@applifting-io/nestjs-decorated-config';
 import { Module } from '@nestjs/common';
+import { AgeConfirmationController } from './controllers/age-confirmation.controller';
 import { betterAuthProvider } from './providers/better-auth.provider';
 
 @Module({
@@ -12,6 +13,7 @@ import { betterAuthProvider } from './providers/better-auth.provider';
     MailModule,
   ],
   providers: [betterAuthProvider],
+  controllers: [AgeConfirmationController],
   exports: [betterAuthProvider],
 })
 export class AuthModule {}

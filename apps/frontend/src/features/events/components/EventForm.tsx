@@ -41,6 +41,7 @@ import { AddressCombobox } from "@/features/events/components/AddressCombobox"
 import { dateToDay, dayToDate, pragueToday } from "@/features/events/lib/dateRange"
 import { formatDay } from "@/features/events/lib/formatEvent"
 import { eventTimes, toPragueWallTime } from "@/features/events/lib/pragueTime"
+import { usePragueToday } from "@/features/events/lib/usePragueToday"
 
 const count = (name: string) =>
   z
@@ -202,7 +203,7 @@ export function EventForm({
   const whatId = useId()
   const whereId = useId()
   const [isCalendarOpen, setIsCalendarOpen] = useState(false)
-  const [today] = useState(() => pragueToday())
+  const today = usePragueToday()
   const isEdit = mode === "edit"
   const isGroupCreate = !isEdit && group !== undefined
   const schema = useMemo(() => buildSchema(approvedCount), [approvedCount])
@@ -236,6 +237,7 @@ export function EventForm({
 
   const localityId = useWatch({ control: form.control, name: "localityId" })
   const place = useWatch({ control: form.control, name: "place" })
+  const start = useWatch({ control: form.control, name: "start" })
   const mapCenter = catalog.localities.find((l) => l.id === localityId) ??
     // before a locality is picked: the biggest city, as the picker lists it first
     catalog.localities.find((l) => l.slug === PRAHA_SLUG) ??
@@ -389,6 +391,8 @@ export function EventForm({
                         disabled={{ before: dayToDate(today) }}
                         selected={field.value ? dayToDate(field.value) : undefined}
                         onSelect={(date) => {
+                          // Timers can be delayed while a device sleeps.
+                          if (date && dateToDay(date) < pragueToday()) return
                           field.onChange(date ? dateToDay(date) : "")
                           setIsCalendarOpen(false)
                         }}
@@ -415,6 +419,11 @@ export function EventForm({
                         {...field}
                       />
                     </FormControl>
+                    {start && start < "05:00" ? (
+                      <FormDescription role="status">
+                        Začátek je mezi půlnocí a pátou ráno. Zkontroluj, že je čas správně.
+                      </FormDescription>
+                    ) : null}
                     <FormMessage />
                   </FormItem>
                 )}
@@ -726,7 +735,8 @@ function RadioCards<T extends string>({
           key={option.value}
           htmlFor={`${id}-${option.value}`}
           className={cn(
-            "flex cursor-pointer items-start gap-3 rounded-lg border border-border bg-card px-4 py-3 transition-colors hover:bg-accent",
+            "flex items-start gap-3 rounded-lg border border-border bg-card px-4 py-3 transition-colors",
+            isDisabled ? "cursor-not-allowed" : "cursor-pointer hover:bg-accent",
             value === option.value && "border-foreground",
           )}
         >
