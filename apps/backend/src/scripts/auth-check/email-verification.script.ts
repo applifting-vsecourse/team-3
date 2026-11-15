@@ -60,10 +60,10 @@ const main = async (): Promise<void> => {
       body: {
         name: 'Ověření Testovací',
         email: EMAIL,
+        callbackURL: 'http://localhost:5173/email-overen?from=%2Fakce',
         password,
         termsAccepted: true,
         privacyAcknowledged: true,
-        callbackURL: 'http://localhost:5173/email-overen?from=%2Fakce',
       } as never,
       asResponse: true,
     });
