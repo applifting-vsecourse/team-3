@@ -53,6 +53,7 @@ const main = async (): Promise<void> => {
         password,
         termsAccepted: true,
         privacyAcknowledged: true,
+        ageConfirmed: true,
       } as never,
       asResponse: true,
     });

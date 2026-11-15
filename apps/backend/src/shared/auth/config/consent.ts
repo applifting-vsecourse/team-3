@@ -40,6 +40,21 @@ export const requireConsent = async (ctx: {
   }
 };
 
+/** E-mail registration requires an explicit confirmation, including direct API requests. */
+export const requireAdult = async (ctx: {
+  path: string;
+  body?: unknown;
+}): Promise<void> => {
+  if (ctx.path !== '/sign-up/email') return;
+  const body = ctx.body as { ageConfirmed?: unknown } | undefined;
+  if (body?.ageConfirmed !== true) {
+    throw APIError.from('BAD_REQUEST', {
+      code: 'AGE_CONFIRMATION_REQUIRED',
+      message: 'K registraci musíš potvrdit, že ti je alespoň 18 let.',
+    });
+  }
+};
+
 /**
  * #153: the database hook that writes when the consent was given. The time is
  * the server's: `termsAcceptedAt` is a field the client can't send

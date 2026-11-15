@@ -1,5 +1,5 @@
 import { CONSENT_RULE, SIGN_UP_CONSENT } from '@/shared/auth/domain/consent';
-import { requireConsent, stampConsent } from './consent';
+import { requireAdult, requireConsent, stampConsent } from './consent';
 
 // better-auth is ESM-only, which Jest can't load: the error is a plain class
 // keeping what it was given.
@@ -76,5 +76,27 @@ describe('stampConsent (#153)', () => {
     ).resolves.toBeUndefined();
     // outside an endpoint, e.g. straight through the adapter
     await expect(stampConsent({}, null)).resolves.toBeUndefined();
+  });
+});
+
+describe('requireAdult (#107)', () => {
+  it.each([undefined, false, 'true', 1])(
+    'rejects %p on e-mail sign-up',
+    async (ageConfirmed) => {
+      await expect(
+        requireAdult({ path: '/sign-up/email', body: { ageConfirmed } }),
+      ).rejects.toMatchObject({
+        status: 'BAD_REQUEST',
+        body: { code: 'AGE_CONFIRMATION_REQUIRED' },
+      });
+    },
+  );
+  it('accepts true on sign-up and leaves other endpoints alone', async () => {
+    await expect(
+      requireAdult({ path: '/sign-up/email', body: { ageConfirmed: true } }),
+    ).resolves.toBeUndefined();
+    await expect(
+      requireAdult({ path: '/sign-in/social' }),
+    ).resolves.toBeUndefined();
   });
 });

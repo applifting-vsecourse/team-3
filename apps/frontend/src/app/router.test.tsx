@@ -12,7 +12,13 @@ vi.mock("@/features/auth/lib/auth-client", () => ({
   authClient: { getSession: vi.fn() },
 }))
 
-const user = { id: "u1", email: "user@example.com", name: "Jana Nováková", emailVerified: true }
+const user = {
+  id: "u1",
+  email: "user@example.com",
+  name: "Jana Nováková",
+  emailVerified: true,
+  ageConfirmedAt: "2026-01-01T00:00:00.000Z",
+}
 
 /**
  * The app's own routes and pages on `url`, for a visitor or a signed-in user.
@@ -113,8 +119,7 @@ describe("router", () => {
           cachedUser: { ...user, emailVerified: false },
         })
 
-        // the session was fetched anew before the dialog trusted it: success,
-        // never „not verified“ first
+        // the session is refreshed while the link's outcome is shown
         expect(await screen.findByRole("dialog", { name: "E-mail je ověřený" })).toBeInTheDocument()
         expect(screen.queryByText("E-mail zatím není ověřený")).not.toBeInTheDocument()
         expect(screen.queryByText(/Ověř si e-mail/)).not.toBeInTheDocument()
