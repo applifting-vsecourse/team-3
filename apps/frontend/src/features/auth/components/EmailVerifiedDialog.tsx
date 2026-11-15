@@ -122,9 +122,9 @@ function VerificationOutcome({
   onBeforeSignIn,
 }: VerificationOutcomeProps) {
   const label = continueLabel(location.pathname)
-  // Signed in, the fresh session decides (an old link opened again after the
-  // e-mail was verified needs nothing more); signed out, the link itself.
-  const isVerified = user ? user.emailVerified : !result.error
+  // A session belongs to the currently signed-in account, which need not be
+  // the account from the link. Never turn a failed link into a success.
+  const isVerified = !result.error
   const reason = result.error ? (REASONS[result.error] ?? "Odkaz je neplatný.") : null
   // Signed out over the sign-in form, „Přihlásit se“ just closes the dialog
   // onto it: a second button closing it too would only say the same thing.
@@ -141,9 +141,8 @@ function VerificationOutcome({
         <DialogHeader>
           <DialogTitle>E-mail je ověřený</DialogTitle>
           <DialogDescription>
-            {/* the link still gets its explanation, just not as a failure */}
-            {reason ? `${reason} Nevadí, e-mail už máš ověřený. ` : null}
-            Teď se můžeš hlásit na akce a zakládat vlastní akce i skupiny.
+            E-mail z odkazu je ověřený.
+            {!user ? " Pro pokračování se přihlas k tomuto účtu." : null}
           </DialogDescription>
         </DialogHeader>
         <DialogFooter>
@@ -169,23 +168,25 @@ function VerificationOutcome({
           {!reason
             ? "Otevři odkaz z e-mailu, nebo si pošli nový."
             : user
-              ? `${reason} Pošli si nový, platí 24 hodin.`
+              ? user.emailVerified
+                ? `${reason} Pro nový odkaz se přihlas k účtu, kterému odkaz patří.`
+                : `${reason} Pro přihlášený účet si můžeš poslat nový, platí 24 hodin.`
               : `${reason} Nový si pošleš při přihlášení.`}
         </DialogDescription>
       </DialogHeader>
       <DialogFooter>
         {closeButton}
-        {user ? (
+        {user && !user.emailVerified ? (
           <ResendVerificationButton
             email={user.email}
             onDone={onDone}
           />
-        ) : (
+        ) : !user ? (
           <SignInAction
             location={location}
             onBeforeSignIn={onBeforeSignIn}
           />
-        )}
+        ) : null}
       </DialogFooter>
     </>
   )
