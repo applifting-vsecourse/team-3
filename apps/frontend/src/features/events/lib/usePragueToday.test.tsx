@@ -12,9 +12,13 @@ describe("usePragueToday", () => {
     const { result, unmount } = renderHook(() => usePragueToday())
     expect(result.current).toBe("2026-03-28")
 
-    act(() => vi.advanceTimersByTime(500))
+    act(() => {
+      vi.advanceTimersByTime(500)
+    })
     expect(result.current).toBe("2026-03-29")
-    act(() => vi.advanceTimersByTime(23 * 60 * 60 * 1000))
+    act(() => {
+      vi.advanceTimersByTime(23 * 60 * 60 * 1000)
+    })
     expect(result.current).toBe("2026-03-30")
     unmount()
   })
@@ -24,7 +28,9 @@ describe("usePragueToday", () => {
     vi.setSystemTime(new Date("2026-10-24T12:00:00Z"))
     const { result, unmount } = renderHook(() => usePragueToday())
     vi.setSystemTime(new Date("2026-10-26T12:00:00Z"))
-    act(() => fireEvent.focus(window))
+    act(() => {
+      fireEvent.focus(window)
+    })
     expect(result.current).toBe("2026-10-26")
     unmount()
   })
