@@ -30,7 +30,7 @@ export function AgeConfirmationDialog() {
   })
 
   return (
-    <Dialog open={Boolean(user && user.ageConfirmedAt === null)}>
+    <Dialog open={user?.ageConfirmedAt === null}>
       <DialogContent
         showCloseButton={false}
         onEscapeKeyDown={(event) => event.preventDefault()}
