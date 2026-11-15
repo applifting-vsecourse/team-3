@@ -25,6 +25,10 @@ Secrets i variables jsou v repu na GitHubu v **Settings → Secrets and variable
 
 ## Krok B: skutečné e-maily
 
+E-maily odeslané přes SMTP i Resend obsahují vedle HTML také prostou textovou
+verzi se stejnými odkazy. Samotná textová verze nezaručuje doručení do doručené
+pošty: odesílací doménu a SPF, DKIM a DMARC je ještě třeba ověřit podle #302.
+
 1. **Gmail pro odesílání:** účet, ze kterého budou e-maily chodit (nejlépe vlastní Gmail týmu, ne osobní). Zapnout dvoufázové ověření → Účet Google → Zabezpečení → **Hesla aplikací** → vytvořit heslo (16 znaků, bez mezer).
 
 2. **Secrets:**
