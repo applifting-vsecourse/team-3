@@ -1,7 +1,7 @@
 import { act, fireEvent, renderHook } from "@testing-library/react"
 import { afterEach, describe, expect, it, vi } from "vitest"
 
-import { usePragueToday } from "@/features/events/lib/usePragueToday"
+import { usePragueToday } from "@/features/events/hooks/usePragueToday"
 
 afterEach(() => vi.useRealTimers())
 
@@ -23,13 +23,13 @@ describe("usePragueToday", () => {
     unmount()
   })
 
-  it("refreshes after the device wakes and the window regains focus", () => {
+  it.each(["focus", "visibilitychange"])("refreshes on %s after sleep", (event) => {
     vi.useFakeTimers()
     vi.setSystemTime(new Date("2026-10-24T12:00:00Z"))
     const { result, unmount } = renderHook(() => usePragueToday())
     vi.setSystemTime(new Date("2026-10-26T12:00:00Z"))
     act(() => {
-      fireEvent.focus(window)
+      fireEvent(event === "focus" ? window : document, new Event(event))
     })
     expect(result.current).toBe("2026-10-26")
     unmount()

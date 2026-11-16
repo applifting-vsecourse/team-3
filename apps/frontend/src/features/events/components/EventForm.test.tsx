@@ -705,7 +705,8 @@ describe("EventForm", () => {
       expect(screen.getByRole("radio", { name: /Schvaluji přihlášky/ })).toBeDisabled()
       const card = screen.getByRole("radio", { name: /Schvaluji přihlášky/ }).closest("label")
       expect(card).toHaveClass("cursor-not-allowed")
-      expect(card).not.toHaveClass("hover:bg-accent", "cursor-pointer")
+      expect(card).not.toHaveClass("hover:bg-accent")
+      expect(card).not.toHaveClass("cursor-pointer")
       // each disabled control says why, right under it
       expect(screen.getByText("Aktivitu po založení změnit nejde.")).toBeInTheDocument()
       expect(screen.getByText("Způsob přihlašování po založení změnit nejde.")).toBeInTheDocument()

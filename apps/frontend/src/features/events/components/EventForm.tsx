@@ -38,10 +38,10 @@ import {
   type EventInput,
 } from "@/features/events/api/eventSchemas"
 import { AddressCombobox } from "@/features/events/components/AddressCombobox"
+import { usePragueToday } from "@/features/events/hooks/usePragueToday"
 import { dateToDay, dayToDate, pragueToday } from "@/features/events/lib/dateRange"
 import { formatDay } from "@/features/events/lib/formatEvent"
 import { eventTimes, toPragueWallTime } from "@/features/events/lib/pragueTime"
-import { usePragueToday } from "@/features/events/lib/usePragueToday"
 
 const count = (name: string) =>
   z
@@ -237,7 +237,6 @@ export function EventForm({
 
   const localityId = useWatch({ control: form.control, name: "localityId" })
   const place = useWatch({ control: form.control, name: "place" })
-  const start = useWatch({ control: form.control, name: "start" })
   const mapCenter = catalog.localities.find((l) => l.id === localityId) ??
     // before a locality is picked: the biggest city, as the picker lists it first
     catalog.localities.find((l) => l.slug === PRAHA_SLUG) ??
@@ -391,8 +390,6 @@ export function EventForm({
                         disabled={{ before: dayToDate(today) }}
                         selected={field.value ? dayToDate(field.value) : undefined}
                         onSelect={(date) => {
-                          // Timers can be delayed while a device sleeps.
-                          if (date && dateToDay(date) < pragueToday()) return
                           field.onChange(date ? dateToDay(date) : "")
                           setIsCalendarOpen(false)
                         }}
@@ -419,11 +416,11 @@ export function EventForm({
                         {...field}
                       />
                     </FormControl>
-                    {start && start < "05:00" ? (
-                      <FormDescription role="status">
-                        Začátek je mezi půlnocí a pátou ráno. Zkontroluj, že je čas správně.
-                      </FormDescription>
-                    ) : null}
+                    <FormDescription role="status">
+                      {field.value && field.value < "05:00"
+                        ? "Začátek je mezi půlnocí a pátou ráno. Zkontroluj, jestli je čas správný."
+                        : ""}
+                    </FormDescription>
                     <FormMessage />
                   </FormItem>
                 )}
