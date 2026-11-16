@@ -38,7 +38,8 @@ import {
 } from "@/features/events/api/eventSchemas"
 import { AddressCombobox } from "@/features/events/components/AddressCombobox"
 import { useEventLocation } from "@/features/events/hooks/useEventLocation"
-import { dateToDay, dayToDate, pragueToday } from "@/features/events/lib/dateRange"
+import { usePragueToday } from "@/features/events/hooks/usePragueToday"
+import { dateToDay, dayToDate } from "@/features/events/lib/dateRange"
 import { formatDay } from "@/features/events/lib/formatEvent"
 import { eventTimes, toPragueWallTime } from "@/features/events/lib/pragueTime"
 
@@ -202,7 +203,7 @@ export function EventForm({
   const whatId = useId()
   const whereId = useId()
   const [isCalendarOpen, setIsCalendarOpen] = useState(false)
-  const [today] = useState(() => pragueToday())
+  const today = usePragueToday()
   const isEdit = mode === "edit"
   const isGroupCreate = !isEdit && group !== undefined
   const schema = useMemo(() => buildSchema(approvedCount), [approvedCount])
@@ -436,6 +437,11 @@ export function EventForm({
                         {...field}
                       />
                     </FormControl>
+                    <FormDescription role="status">
+                      {field.value && field.value < "05:00"
+                        ? "Začátek je mezi půlnocí a pátou ráno. Zkontroluj, jestli je čas správný."
+                        : ""}
+                    </FormDescription>
                     <FormMessage />
                   </FormItem>
                 )}
@@ -766,7 +772,8 @@ function RadioCards<T extends string>({
           key={option.value}
           htmlFor={`${id}-${option.value}`}
           className={cn(
-            "flex cursor-pointer items-start gap-3 rounded-lg border border-border bg-card px-4 py-3 transition-colors hover:bg-accent",
+            "flex items-start gap-3 rounded-lg border border-border bg-card px-4 py-3 transition-colors",
+            isDisabled ? "cursor-not-allowed" : "cursor-pointer hover:bg-accent",
             value === option.value && "border-foreground",
           )}
         >
