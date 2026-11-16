@@ -2,8 +2,8 @@
  * #236: checks the real BetterAuth behind `requireEmailVerification`, which
  * Jest can't load (ESM-only, see better-auth.provider.spec.ts). It runs our
  * `betterAuthCoreConfig` on BetterAuth's memory adapter, so it needs no
- * database and sends no e-mail. It captures the actual verification link and follows it through BetterAuth before signing in. Run it by hand after a BetterAuth upgrade or
- * a change to the auth config:
+ * database and sends no e-mail. It follows the actual verification link before
+ * signing in. CI and check-all run it automatically; to run it separately:
  *
  *   pnpm backend auth:check-email-verification
  *
@@ -34,7 +34,10 @@ const main = async (): Promise<void> => {
   };
   const sent: Array<{ email: string; html: string }> = [];
   const flows = emailFlowOptions(
-    { frontendUrl: 'http://localhost:5173' } as Config,
+    {
+      frontendUrl: 'http://localhost:5173',
+      frontendResetPasswordUrl: 'nove-heslo',
+    } as Config,
     {
       sendEmail: async (email, _subject, html) => {
         sent.push({ email, html });
@@ -135,6 +138,7 @@ const main = async (): Promise<void> => {
     },
   );
 
+  // Synthetic expired JWT depends on BetterAuth internals; recheck after upgrades.
   const expired = new URL(link);
   expired.searchParams.set(
     'token',
@@ -189,6 +193,10 @@ const main = async (): Promise<void> => {
   expect(
     'replaying an already-used valid link is harmless',
     repeated.status === 302 &&
+      !new URL(
+        repeated.headers.get('location') ?? '',
+        'http://localhost:5173',
+      ).searchParams.has('error') &&
       db.user.find((row) => row.email === EMAIL)?.emailVerified === true,
     { status: repeated.status },
   );
@@ -217,6 +225,7 @@ const main = async (): Promise<void> => {
     accountId: 'google-subject',
     providerId: 'google',
   });
+  const sessionsBeforeGoogle = db.session.length;
   const googleOnly = await auth.api.signInEmail({
     body: { email: 'google-only@example.com', password: PASSWORD },
     asResponse: true,
@@ -226,8 +235,62 @@ const main = async (): Promise<void> => {
     'Google-only account has no password: same 401 as bad credentials',
     googleOnly.status === 401 &&
       googleOnlyBody.code === 'INVALID_EMAIL_OR_PASSWORD' &&
-      db.session.length === 1,
+      db.session.length === sessionsBeforeGoogle,
     { status: googleOnly.status, code: googleOnlyBody.code },
+  );
+
+  const googleSignup = await auth.api.signUpEmail({
+    body: {
+      name: 'Google Test',
+      email: 'google-only@example.com',
+      password: PASSWORD,
+      termsAccepted: true,
+      privacyAcknowledged: true,
+    } as never,
+    asResponse: true,
+  });
+  expect(
+    'Google-only duplicate signup appears successful without adding a password',
+    googleSignup.status === 200 &&
+      !db.account.some(
+        (row) =>
+          row.userId === 'google-only-user' && row.providerId === 'credential',
+      ),
+    { status: googleSignup.status },
+  );
+
+  const reset = await auth.api.requestPasswordReset({
+    body: {
+      email: 'google-only@example.com',
+      redirectTo: 'http://localhost:5173/nove-heslo',
+    },
+    asResponse: true,
+  });
+  const resetMail = sent
+    .filter((mail) => mail.email === 'google-only@example.com')
+    .slice(-1)[0];
+  const resetHref = resetMail?.html.match(
+    /href="([^"\s]*\/nove-heslo\?[^"\s]+)"/,
+  )?.[1];
+  if (!resetHref) throw new Error('Password reset e-mail has no usable link');
+  const resetToken = new URL(resetHref.replace(/&amp;/g, '&')).searchParams.get(
+    'token',
+  )!;
+  const changed = await auth.api.resetPassword({
+    body: { token: resetToken, newPassword: PASSWORD },
+    asResponse: true,
+  });
+  const afterReset = await auth.api.signInEmail({
+    body: { email: 'google-only@example.com', password: PASSWORD },
+    asResponse: true,
+  });
+  expect(
+    'Google-only account can set a password through reset and then sign in',
+    reset.status === 200 &&
+      changed.status === 200 &&
+      afterReset.status === 200 &&
+      Boolean(afterReset.headers.get('set-cookie')),
+    { reset: reset.status, changed: changed.status, signIn: afterReset.status },
   );
 
   if (failures.length > 0) {
