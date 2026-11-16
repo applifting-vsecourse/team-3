@@ -39,7 +39,7 @@ import {
 } from "@/features/events/api/eventSchemas"
 import { AddressCombobox } from "@/features/events/components/AddressCombobox"
 import { usePragueToday } from "@/features/events/hooks/usePragueToday"
-import { dateToDay, dayToDate, pragueToday } from "@/features/events/lib/dateRange"
+import { dateToDay, dayToDate } from "@/features/events/lib/dateRange"
 import { formatDay } from "@/features/events/lib/formatEvent"
 import { eventTimes, toPragueWallTime } from "@/features/events/lib/pragueTime"
 
