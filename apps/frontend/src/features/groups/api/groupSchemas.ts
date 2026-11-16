@@ -64,6 +64,8 @@ export const myGroupSchema = groupSchema.extend({
     role: z.enum(["admin", "member"]),
     status: z.enum(["active", "pending"]),
   }),
+  /** Requests waiting in a group I run (Moje › Skupiny › Spravuju, #304); null in any other. */
+  pendingRequests: z.number().nullable(),
 })
 
 export const myGroupsSchema = z.array(myGroupSchema)

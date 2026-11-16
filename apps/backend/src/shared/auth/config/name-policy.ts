@@ -1,4 +1,4 @@
-import { nameProblem } from '@/shared/auth/domain/name-policy';
+import { nameProblem, trimName } from '@/shared/auth/domain/name-policy';
 import { APIError } from 'better-auth/api';
 
 // The endpoints that set a name: signing up and changing the profile.
@@ -26,4 +26,18 @@ export const rejectInvalidNames = async (ctx: {
       message: problem,
     });
   }
+};
+
+/**
+ * #199: the database hook that saves a name without the spaces around it, for
+ * every account BetterAuth writes — an e-mail sign-up, Google (#154) and
+ * `update-user` alike. The before-hook above has checked the name already;
+ * the profile (#178) saves through Prisma and trims with the same trimName.
+ */
+export const trimSavedName = async (user: {
+  name?: unknown;
+}): Promise<{ data: { name: string } } | undefined> => {
+  if (typeof user.name !== 'string') return undefined;
+  const name = trimName(user.name);
+  return name === user.name ? undefined : { data: { name } };
 };

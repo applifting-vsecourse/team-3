@@ -110,6 +110,7 @@ export class UserRepository {
           groupId: true,
           organizerUserId: true,
           address: true,
+          minParticipants: true,
           locality: { select: { id: true, slug: true, name: true } },
           activity: {
             select: {

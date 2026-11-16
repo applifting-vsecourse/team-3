@@ -11,8 +11,8 @@ import type { GroupFilters } from "@/features/groups/api/groupSchemas"
 
 /**
  * Filters of /skupiny in the URL, like /akce: `?lokalita=praha-9&kategorie=hry&aktivita=florbal`.
- * Activity + locality only (PO 19. 10.); no name search in sprint 2. `?tab=moje` is
- * the signed-in user's „Moje“ (B-056, Figma A-07m); without it the tab is Všechny.
+ * Activity + locality only (PO 19. 10.); no name search in sprint 2. `?tab=moje` was the
+ * signed-in user's „Moje“ (B-056); since #304 the page sends it to Moje › Skupiny.
  */
 export const groupsSearchSchema = z.object({
   ...catalogSearchShape,

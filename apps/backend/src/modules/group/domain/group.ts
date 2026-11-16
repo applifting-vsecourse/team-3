@@ -66,6 +66,11 @@ export type GroupInput = {
 /** A group on „Moje“ (B-056): my own membership comes with it. */
 export type MyGroup = GroupSummary & {
   membership: Membership & { status: 'active' | 'pending' };
+  /**
+   * Requests waiting for the admins (Moje › Skupiny › Spravuju, #304); null unless I am
+   * an active admin, as `pendingRequests` of an event is only the organizer's business.
+   */
+  pendingRequests: number | null;
 };
 
 /** „Moje“: my requests waiting for approval on top, then my groups, each by name. */

@@ -2,6 +2,8 @@ import { useEffect, useRef } from "react"
 
 import type { PublicEvent } from "@/features/events/api/eventSchemas"
 import { EventCard } from "@/features/events/components/EventCard"
+import { PastEventCard } from "@/features/events/components/PastEventCard"
+import { eventRatingLabel } from "@/features/events/lib/formatEvent"
 
 type EventMapPreviewProps = {
   event: PublicEvent
@@ -12,6 +14,8 @@ type EventMapPreviewProps = {
    * map's attribution can sit above it while the list sheet is hidden (review #276).
    */
   onCoverChange?: (px: number) => void
+  /** Proběhlé (#61): the past card, how it ended instead of the capacity. */
+  isPast?: boolean
 }
 
 // bottom-4
@@ -22,7 +26,12 @@ const PREVIEW_BOTTOM = 16
  * a tap on it opens the detail. A tap into the map, a second tap on the pin or Escape closes it
  * (the page's). Pointer only, like the pins: the list is the way for a keyboard.
  */
-export function EventMapPreview({ event, isDesktop, onCoverChange }: EventMapPreviewProps) {
+export function EventMapPreview({
+  event,
+  isDesktop,
+  onCoverChange,
+  isPast = false,
+}: EventMapPreviewProps) {
   const ref = useRef<HTMLElement>(null)
 
   useEffect(() => {
@@ -47,12 +56,20 @@ export function EventMapPreview({ event, isDesktop, onCoverChange }: EventMapPre
           : "absolute inset-x-4 bottom-4 z-20 rounded-2xl shadow-md"
       }
     >
-      <EventCard
-        event={event}
-        variant={isDesktop ? "grid" : "row"}
-        summary={event.summary}
-        titleAs="h2"
-      />
+      {isPast ? (
+        <PastEventCard
+          event={event}
+          detail={eventRatingLabel(event.rating)}
+          titleAs="h2"
+        />
+      ) : (
+        <EventCard
+          event={event}
+          variant={isDesktop ? "grid" : "row"}
+          summary={event.summary}
+          titleAs="h2"
+        />
+      )}
     </section>
   )
 }

@@ -249,7 +249,7 @@ function CategoryRow({
         type="button"
         onClick={onOpen}
         aria-current={isHighlighted ? "true" : undefined}
-        className="flex h-full min-w-0 flex-1 items-center gap-3 rounded-lg pr-4 text-left text-sm font-medium outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50"
+        className="flex h-full min-w-0 flex-1 items-center gap-3 rounded-lg pr-4 text-left text-sm font-medium outline-none focus-visible:ring-[3px] focus-visible:ring-ring"
       >
         <ActivityTile
           icon={category.icon}

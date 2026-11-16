@@ -1,4 +1,4 @@
-import { useMemo } from "react"
+import { useMemo, useState } from "react"
 import { zodResolver } from "@hookform/resolvers/zod"
 import { Link } from "@tanstack/react-router"
 import { useForm, useWatch } from "react-hook-form"
@@ -106,10 +106,14 @@ export function ChangePasswordForm({ profile }: { profile: AccountProfile }) {
     () => passwordUserInputs(profile.name, profile.email),
     [profile.name, profile.email],
   )
+  // #199: the strength area stays once shown (so typing doesn't move the
+  // form); after a successful change the emptied field starts afresh
+  const [strengthKey, setStrengthKey] = useState(0)
   const submit = form.handleSubmit(async ({ currentPassword, newPassword }) => {
     try {
       await mutation.mutateAsync({ currentPassword, newPassword })
       form.reset()
+      setStrengthKey((key) => key + 1)
     } catch (error) {
       const field = passwordFieldOfError(error)
       if (field && error instanceof Error) {
@@ -157,6 +161,7 @@ export function ChangePasswordForm({ profile }: { profile: AccountProfile }) {
                 />
               </FormControl>
               <PasswordStrength
+                key={strengthKey}
                 password={password}
                 userInputs={userInputs}
               />

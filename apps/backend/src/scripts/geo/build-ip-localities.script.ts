@@ -8,8 +8,8 @@ import { ipToHex } from '@/modules/geo/domain/ip-address';
 import { czechTowns } from '@/scripts/seed/data/czech-towns';
 import { demoLocalities } from '@/scripts/seed/data/demo-data';
 import {
-  mergeRanges,
   parseDbIpLine,
+  tableRanges,
   townFor,
   type SlugRange,
 } from './ip-localities';
@@ -54,26 +54,25 @@ async function main(): Promise<void> {
     ranges.push({ start, end, slug: townFor(row, towns).slug });
   }
 
-  const merged = mergeRanges(ranges.sort(byStart));
+  // a provider's whole allocation says no town (#299): all of Czechia instead;
+  // judged on DB-IP's rows, before merging (review #321)
+  const kept = tableRanges(ranges);
   const file = join(__dirname, '../../modules/geo/data/ip-localities-cz.txt');
   writeFileSync(
     file,
     [
       `# IP Geolocation by DB-IP (https://db-ip.com), „IP to City Lite“ ${month}, CC BY 4.0.`,
-      '# Czech ranges only, each with its nearest catalog town. Built by `pnpm backend geo:build`; do not edit.',
+      '# Czech ranges only, each with its nearest catalog town, without ranges too wide to say a town (isCoarseRange, #299).',
+      '# Built by `pnpm backend geo:build`; do not edit.',
       '# start end slug (addresses as fixed-width hex, IPv4 then IPv6)',
-      ...merged.map((range) => `${range.start} ${range.end} ${range.slug}`),
+      ...kept.map((range) => `${range.start} ${range.end} ${range.slug}`),
       '',
     ].join('\n'),
   );
   console.log(
-    `${ranges.length} ranges, ${merged.length} after merging → ${file}`,
+    `${ranges.length} ranges, ${kept.length} after leaving out the wide ones and merging → ${file}`,
   );
 }
-
-// IPv4 (8 digits) before IPv6 (32), then by address
-const byStart = (a: SlugRange, b: SlugRange): number =>
-  a.start.length - b.start.length || (a.start < b.start ? -1 : 1);
 
 main().catch((error) => {
   console.error(error);

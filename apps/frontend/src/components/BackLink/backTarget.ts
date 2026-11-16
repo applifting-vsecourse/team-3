@@ -19,7 +19,8 @@ export const forgetHistory = (): void => pathByIndex.clear()
 const LABELS: [RegExp, string][] = [
   [/^\/$/, "Úvod"],
   [/^\/akce\/?$/, "Akce"],
-  [/^\/moje-akce\/?$/, "Moje akce"],
+  [/^\/moje\/akce\/?$/, "Moje akce"],
+  [/^\/moje\/skupiny\/?$/, "Moje skupiny"],
   [/^\/skupiny\/?$/, "Skupiny"],
   [/^\/profil\/?$/, "Profil"],
   [/^\/akce\/[^/]+\/sprava\/?$/, "Správa akce"],

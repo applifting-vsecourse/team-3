@@ -6,9 +6,10 @@ import { Toggle } from "@/components/ui/toggle"
 import { cn } from "@/lib/utils"
 
 // Figma: Filter chip. Selected (has a value / is on) = dark fill; default = hairline outline.
-const chip = "h-9 shrink-0 rounded-full border px-4 text-sm whitespace-nowrap hover:text-foreground"
-const chipDefault = "border-border bg-background font-medium text-foreground hover:bg-accent"
-const chipSelected =
+export const chip =
+  "h-9 shrink-0 rounded-full border px-4 text-sm whitespace-nowrap hover:text-foreground"
+export const chipDefault = "border-border bg-background font-medium text-foreground hover:bg-accent"
+export const chipSelected =
   "border-foreground bg-foreground font-semibold text-background hover:bg-foreground/90 hover:text-background"
 // chipSelected behind data-[state=on], class for class. Tailwind only generates classes it finds
 // written out, so this can't be built from chipSelected at runtime; FilterChip.test.tsx checks
@@ -21,7 +22,7 @@ type FilterChipProps = ComponentProps<typeof Button> & {
   isSelected?: boolean
   /**
    * Which filter this is, so a screen reader hears „Lokalita: Praha 8“, not just „Praha 8“ —
-   * also on a light chip that shows a default value („Lokalita: Praha · podle polohy“).
+   * also on a light chip that shows a default value („Lokalita: Praha · odhad“).
    */
   filterName?: string
 }

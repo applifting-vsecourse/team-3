@@ -1,6 +1,14 @@
 import { PublicEvent } from '@/modules/event/domain/event';
 import { ApiProperty } from '@nestjs/swagger';
 
+class EventRatingDto {
+  @ApiProperty({ type: Number, nullable: true, example: 4.5 })
+  average!: number | null;
+
+  @ApiProperty({ example: 3 })
+  count!: number;
+}
+
 class EventCategoryDto {
   @ApiProperty()
   id!: string;
@@ -135,6 +143,14 @@ export class PublicEventResponseDto {
   })
   distanceKm!: number | null;
 
+  @ApiProperty({
+    type: EventRatingDto,
+    nullable: true,
+    description:
+      'With past=true (Proběhlé, #61): the average rating of the event, null average without ratings; otherwise null',
+  })
+  rating!: EventRatingDto | null;
+
   static fromDomain(event: PublicEvent): PublicEventResponseDto {
     return {
       id: event.id,
@@ -163,6 +179,7 @@ export class PublicEventResponseDto {
       isPromoted: event.isPromoted,
       summary: event.summary,
       distanceKm: event.distanceKm,
+      rating: event.rating ?? null,
     };
   }
 }

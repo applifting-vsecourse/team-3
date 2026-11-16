@@ -83,30 +83,60 @@ describe("EventFilters", () => {
     expect(screen.queryByRole("button", { name: "Zrušit vše" })).not.toBeInTheDocument()
   })
 
-  it("picks „Volná místa“ in Obsazenost and asks the API for events that aren't full", async () => {
+  it("„Jen s volným místem“ is off by default and turns on „volna“ (#305)", async () => {
     const { onChange } = renderFilters()
 
-    await userEvent.click(screen.getByRole("button", { name: "Obsazenost" }))
-    const panel = await screen.findByRole("dialog", { name: "Obsazenost" })
-    expect(within(panel).getByRole("radio", { name: "Všechny" })).toBeChecked()
-    get.mockClear()
-    await userEvent.click(within(panel).getByRole("radio", { name: "Volná místa" }))
-    await within(panel).findByRole("button", { name: /^Zobrazit \d/ })
-    const eventCalls = get.mock.calls.filter(([path]) => path === "events")
-    expect(eventCalls.at(-1)?.[1]?.searchParams?.get("capacity")).toBe("free")
-
-    await userEvent.click(within(panel).getByRole("button", { name: /^Zobrazit/ }))
+    const toggle = screen.getByRole("button", { name: "Jen s volným místem" })
+    expect(toggle).toHaveAttribute("aria-pressed", "false")
+    // the old panel with „Chybí lidé“ is gone: nothing to open, nothing to choose
+    expect(screen.queryByRole("button", { name: /^Obsazenost/ })).not.toBeInTheDocument()
+    await userEvent.click(toggle)
     expect(onChange).toHaveBeenCalledWith({ obsazenost: "volna" })
   })
 
-  it("shows the occupancy on the chip and „Všechny“ clears it", async () => {
+  it("on, „Jen s volným místem“ switches off", async () => {
+    const { onChange } = renderFilters({ search: { obsazenost: "volna" } })
+
+    const toggle = screen.getByRole("button", { name: "Jen s volným místem" })
+    expect(toggle).toHaveAttribute("aria-pressed", "true")
+    await userEvent.click(toggle)
+    expect(onChange).toHaveBeenCalledWith({ obsazenost: undefined })
+  })
+
+  // „chybi“ is no longer offered, but the quick pick and the landing page's links set it. A
+  // toggle keeps its name in both states (review #331): „chybi“ gets a chip of its own, on, next
+  // to „Jen s volným místem“, off (#305).
+  it("with „chybi“ shows „Chybí lidé“ on beside „Jen s volným místem“ off", () => {
+    renderFilters({ search: { obsazenost: "chybi" } })
+
+    expect(screen.getByRole("button", { name: "Chybí lidé" })).toHaveAttribute(
+      "aria-pressed",
+      "true",
+    )
+    expect(screen.getByRole("button", { name: "Jen s volným místem" })).toHaveAttribute(
+      "aria-pressed",
+      "false",
+    )
+  })
+
+  it("switching „Chybí lidé“ off clears it", async () => {
     const { onChange } = renderFilters({ search: { obsazenost: "chybi" } })
 
-    await userEvent.click(screen.getByRole("button", { name: "Obsazenost: Chybí lidé" }))
-    const panel = await screen.findByRole("dialog", { name: "Obsazenost" })
-    expect(within(panel).getByRole("radio", { name: "Chybí lidé" })).toBeChecked()
-    await userEvent.click(within(panel).getByRole("button", { name: "Všechny" }))
+    await userEvent.click(screen.getByRole("button", { name: "Chybí lidé" }))
     expect(onChange).toHaveBeenCalledWith({ obsazenost: undefined })
+  })
+
+  it("switching „Jen s volným místem“ on replaces „chybi“ with „volna“", async () => {
+    const { onChange } = renderFilters({ search: { obsazenost: "chybi" } })
+
+    await userEvent.click(screen.getByRole("button", { name: "Jen s volným místem" }))
+    expect(onChange).toHaveBeenCalledWith({ obsazenost: "volna" })
+  })
+
+  it("without „chybi“ there is no „Chybí lidé“ chip, on or off", () => {
+    renderFilters({ search: { obsazenost: "volna" } })
+
+    expect(screen.queryByRole("button", { name: "Chybí lidé" })).not.toBeInTheDocument()
   })
 
   it("offers „Zrušit vše“ with an active filter", async () => {
@@ -309,6 +339,35 @@ describe("EventFilters › Termín", () => {
     for (const [, options] of eventCalls) {
       expect(options?.searchParams?.has("dateFrom")).toBe(false)
     }
+  })
+
+  it("Proběhlé replaces the range and drops the occupancy (#61)", async () => {
+    const { onChange } = renderFilters({
+      search: { od: "2026-10-24", do: "2026-10-25", obsazenost: "chybi" },
+    })
+
+    await userEvent.click(screen.getByRole("button", { name: "Termín: 24.–25. 10." }))
+    const panel = await screen.findByRole("dialog", { name: "Termín" })
+    await userEvent.click(within(panel).getByRole("button", { name: "Proběhlé" }))
+    expect(within(panel).getByRole("button", { name: "Proběhlé" })).toHaveAttribute(
+      "aria-pressed",
+      "true",
+    )
+    await userEvent.click(await within(panel).findByRole("button", { name: /^Zobrazit/ }))
+
+    expect(onChange).toHaveBeenCalledWith({
+      od: undefined,
+      do: undefined,
+      termin: "probehle",
+      obsazenost: undefined,
+    })
+  })
+
+  it("Proběhlé on the chip, without the occupancy chip (#61)", () => {
+    renderFilters({ search: { termin: "probehle" } })
+
+    expect(screen.getByRole("button", { name: "Termín: Proběhlé" })).toBeInTheDocument()
+    expect(screen.queryByRole("button", { name: "Jen s volným místem" })).not.toBeInTheDocument()
   })
 
   it("shows the range on the chip and clears it", async () => {

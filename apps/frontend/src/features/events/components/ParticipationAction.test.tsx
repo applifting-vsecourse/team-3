@@ -1,5 +1,5 @@
 import { useState } from "react"
-import { act, screen, waitFor, within } from "@testing-library/react"
+import { act, cleanup, screen, waitFor, within } from "@testing-library/react"
 import userEvent from "@testing-library/user-event"
 import { describe, expect, it, vi } from "vitest"
 
@@ -303,14 +303,14 @@ describe("ParticipationAction", () => {
     expect(screen.queryByRole("button")).not.toBeInTheDocument()
   })
 
-  it("once over, it says when it was and how many came (Figma A-05 · Stavy › Proběhlá akce)", async () => {
+  it("once over, it says when it was; how many came is in the panel above (Figma A-05h, #61)", async () => {
     await renderAction(
       { approvedCount: 8, missingToMin: 0, endsAt: afterNow },
       { viewer: null, now: new Date("2026-10-24T08:00:00.000Z") },
     )
 
     expect(screen.getByText("Akce proběhla v pá 23. 10.")).toBeInTheDocument()
-    expect(screen.getByText(/^Sešlo se 8 lidí\./)).toBeInTheDocument()
+    expect(screen.queryByText(/Sešlo se/)).not.toBeInTheDocument()
     // a way on, not just a sentence about it (review #269)
     expect(screen.getByRole("link", { name: "Podobné akce najdeš v Akcích" })).toHaveAttribute(
       "href",
@@ -319,11 +319,64 @@ describe("ParticipationAction", () => {
     expect(screen.queryByRole("button")).not.toBeInTheDocument()
   })
 
+  it("over, who had a place gets „Ohodnotit akci“ to the rating page (Figma C-03, #66)", async () => {
+    await renderAction(
+      { approvedCount: 8, missingToMin: 0, endsAt: afterNow, myParticipation: "approved" },
+      { now: new Date("2026-10-24T08:00:00.000Z") },
+    )
+
+    expect(screen.getByRole("link", { name: "Ohodnotit akci" })).toHaveAttribute(
+      "href",
+      "/akce/e1/hodnoceni",
+    )
+  })
+
   it.each([
-    [{ approvedCount: 0, missingToMin: 4 }, "Nikdo se nepřihlásil."],
-    [{ approvedCount: 3, missingToMin: 1 }, "Do minima chyběl 1 člověk."],
+    ["a visitor", {}, null],
+    ["someone without a place", { myParticipation: null }, jakub],
+    ["a rejected applicant", { myParticipation: "rejected" as const }, jakub],
+    ["the organizer, even with a place (Q12)", { myParticipation: "approved" as const }, organizer],
+  ])("over, %s gets no „Ohodnotit akci“", async (_who, participation, viewer) => {
+    await renderAction(
+      { approvedCount: 8, missingToMin: 0, endsAt: afterNow, ...participation },
+      { viewer, now: new Date("2026-10-24T08:00:00.000Z") },
+    )
+
+    expect(screen.queryByRole("link", { name: "Ohodnotit akci" })).not.toBeInTheDocument()
+  })
+
+  it("„Ohodnotit akci“ only within the window, as the API counts it (review #315)", async () => {
+    // ended Fri 23. 10. 20:00 in Prague: rating until Fri 6. 11., 23:59:59.999 (winter time)
+    const event = {
+      approvedCount: 8,
+      missingToMin: 0,
+      endsAt: afterNow,
+      myParticipation: "approved" as const,
+    }
+    await renderAction(event, { now: new Date("2026-11-06T22:59:59.999Z") })
+    expect(screen.getByRole("link", { name: "Ohodnotit akci" })).toBeInTheDocument()
+    cleanup()
+
+    await renderAction(event, { now: new Date("2026-11-06T23:00:00.000Z") })
+    expect(screen.queryByRole("link", { name: "Ohodnotit akci" })).not.toBeInTheDocument()
+    // the past event still says how it went
+    expect(screen.getByText("Akce proběhla v pá 23. 10.")).toBeInTheDocument()
+  })
+
+  it("over without its minimum, a participant has nothing to rate: it didn't take place", async () => {
+    await renderAction(
+      { approvedCount: 3, missingToMin: 1, endsAt: afterNow, myParticipation: "approved" },
+      { now: new Date("2026-10-24T08:00:00.000Z") },
+    )
+
+    expect(screen.queryByRole("link", { name: "Ohodnotit akci" })).not.toBeInTheDocument()
+  })
+
+  it.each([
+    [{ approvedCount: 0, missingToMin: 4 }, "Nikdo se nepřihlásil"],
+    [{ approvedCount: 3, missingToMin: 1 }, "Do minima chyběl 1 člověk"],
   ])(
-    "over without its minimum %o: it didn't take place — „%s“ (review #269)",
+    "over without its minimum %o: it didn't take place, why is in the panel above, not again (#61)",
     async (numbers, line) => {
       await renderAction(
         { ...numbers, endsAt: afterNow },
@@ -331,7 +384,7 @@ describe("ParticipationAction", () => {
       )
 
       expect(screen.getByText("Akce se v pá 23. 10. nekonala")).toBeInTheDocument()
-      expect(screen.getByRole("alert")).toHaveTextContent(line)
+      expect(screen.getByRole("alert")).not.toHaveTextContent(line)
       expect(screen.getByRole("alert")).not.toHaveTextContent(/Sešl/)
     },
   )

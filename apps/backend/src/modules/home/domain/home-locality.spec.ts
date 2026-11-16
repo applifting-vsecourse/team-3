@@ -17,6 +17,15 @@ describe('resolveHomeLocalityId', () => {
     });
   });
 
+  it('all of Czechia picked on purpose: no home locality in its place (#299)', () => {
+    expect(
+      resolveHomeLocalityId({
+        isWholeCountry: true,
+        profileLocalityId: 'l-praha-3',
+      }),
+    ).toBeNull();
+  });
+
   it('a visitor without a choice gets all of Czechia (null), not Prague', () => {
     expect(resolveHomeLocalityId({})).toBeNull();
     expect(resolveHomeLocalityId({ profileLocalityId: null })).toBeNull();

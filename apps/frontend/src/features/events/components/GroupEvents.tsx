@@ -4,12 +4,17 @@ import { RefreshCw } from "lucide-react"
 
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 import { Button } from "@/components/ui/button"
+import { wasHeld } from "@/lib/occupancy"
 
 import type { GroupEvent } from "@/features/events/api/eventSchemas"
 import { groupEventsQueryOptions } from "@/features/events/api/eventsQueryOptions"
 import { EventCard } from "@/features/events/components/EventCard"
 import { EventCardSkeleton } from "@/features/events/components/EventList"
-import { groupEventTail, pastEventFacts } from "@/features/events/lib/formatEvent"
+import {
+  groupEventTail,
+  isEventInProgress,
+  pastEventFacts,
+} from "@/features/events/lib/formatEvent"
 
 type GroupEventsProps = {
   groupId: string
@@ -17,6 +22,8 @@ type GroupEventsProps = {
   viewerId: string | null | undefined
   /** The viewer's membership status, so joining or leaving loads the events again. */
   membership?: string | null
+  /** For tests; an event is going on between its start and its end (or midnight without one). */
+  now?: Date
 }
 
 /**
@@ -24,7 +31,12 @@ type GroupEventsProps = {
  * skupiny“ soonest first and „Proběhlé akce skupiny“, the latest first, so a
  * member sees what the group has done. Members-only ones say so.
  */
-export function GroupEvents({ groupId, viewerId, membership = null }: GroupEventsProps) {
+export function GroupEvents({
+  groupId,
+  viewerId,
+  membership = null,
+  now = new Date(),
+}: GroupEventsProps) {
   const query = useQuery(groupEventsQueryOptions(groupId, viewerId, membership))
 
   if (query.error) {
@@ -53,6 +65,7 @@ export function GroupEvents({ groupId, viewerId, membership = null }: GroupEvent
         title="Nadcházející akce skupiny"
         events={events?.upcoming}
         empty="Skupina zatím nemá naplánovanou žádnou akci."
+        now={now}
       />
       {/* nothing yet is no news: the section shows once there is history */}
       {events?.past.length ? (
@@ -60,6 +73,7 @@ export function GroupEvents({ groupId, viewerId, membership = null }: GroupEvent
           title="Proběhlé akce skupiny"
           events={events.past}
           isPast
+          now={now}
         />
       ) : null}
     </>
@@ -71,12 +85,14 @@ function EventsSection({
   events,
   empty,
   isPast = false,
+  now,
 }: {
   title: string
   /** Undefined while loading. */
   events: GroupEvent[] | undefined
   empty?: string
   isPast?: boolean
+  now: Date
 }) {
   const headingId = useId()
   return (
@@ -101,7 +117,14 @@ function EventsSection({
               <EventCard
                 event={event}
                 titleAs="h3"
-                status={isPast ? { kind: "past" } : undefined}
+                status={
+                  isPast
+                    ? { kind: wasHeld(event) ? "past" : "not-held" }
+                    : // still upcoming until it's over (#272): one going on now says so
+                      isEventInProgress(event, now)
+                      ? { kind: "in-progress" }
+                      : undefined
+                }
                 rowTail={isPast ? pastEventFacts(event) : groupEventTail(event)}
               />
             </li>

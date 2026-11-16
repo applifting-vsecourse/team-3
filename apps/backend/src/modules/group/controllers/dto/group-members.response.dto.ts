@@ -5,7 +5,10 @@ import {
 import { ApiProperty } from '@nestjs/swagger';
 
 class GroupMemberEntryDto {
-  @ApiProperty()
+  @ApiProperty({
+    description:
+      "The member's or applicant's user id, for the public profile `GET /api/users/:userId` (#289)",
+  })
   userId!: string;
 
   @ApiProperty({ example: 'Jakub Král' })

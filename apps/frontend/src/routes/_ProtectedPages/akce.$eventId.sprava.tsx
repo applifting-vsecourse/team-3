@@ -24,6 +24,7 @@ import { CancelEventDialog } from "@/features/events/components/CancelEventDialo
 import { EventCard } from "@/features/events/components/EventCard"
 import { EventFacts } from "@/features/events/components/EventFacts"
 import { ManagedParticipants } from "@/features/events/components/ManagedParticipants"
+import { ManagedRatings } from "@/features/events/components/ManagedRatings"
 import { ManagedRequests } from "@/features/events/components/ManagedRequests"
 import { SendEventMessageButton } from "@/features/events/components/SendEventMessageButton"
 import { ShareEventButton } from "@/features/events/components/ShareEventButton"
@@ -249,6 +250,12 @@ function ManageEventPage() {
                   className="w-full"
                 />
               ) : null}
+              {/* D-05 and what the participants said (B-060, #66) */}
+              <ManagedRatings
+                event={event}
+                viewerId={viewerId ?? null}
+                now={new Date()}
+              />
             </section>
             {/* the right column (D-03d): an event with approval adds the requests (#53),
                 unless it's cancelled — then only who was coming, read-only (#183) */}

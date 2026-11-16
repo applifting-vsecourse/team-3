@@ -13,11 +13,12 @@ import { BandActivity } from "@/components/PageBand/BandActivity"
 import { PageBand } from "@/components/PageBand/PageBand"
 import { SubBar } from "@/components/PageBand/SubBar"
 import { PersonRow } from "@/components/PersonRow/PersonRow"
+import { StatusBadge } from "@/components/StatusBadge/StatusBadge"
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 import { Button } from "@/components/ui/button"
 import { Skeleton } from "@/components/ui/skeleton"
 import { DESKTOP_QUERY, useMediaQuery } from "@/hooks/useMediaQuery"
-import { occupancyInBand } from "@/lib/occupancy"
+import { gatheredLabel, missedMinimumLabel, occupancyInBand, wasHeld } from "@/lib/occupancy"
 import { PAGE } from "@/lib/pageLayout"
 import { cn } from "@/lib/utils"
 
@@ -171,6 +172,15 @@ export function EventDetailView({
         <AlertDescription className="whitespace-pre-line">{event.cancelReason}</AlertDescription>
       ) : null}
     </Alert>
+  ) : isOver ? (
+    // instead of the bar, how it ended (Figma A-05h, #61): „Proběhlo · Sešlo se 5 lidí“, or
+    // below its minimum „Nekonalo se · Do minima chyběli 2 lidé“
+    <div className="flex items-center gap-2">
+      <StatusBadge status={{ kind: wasHeld(event) ? "past" : "not-held" }} />
+      <span className="text-sm text-muted-foreground">
+        {wasHeld(event) ? gatheredLabel(event.approvedCount) : missedMinimumLabel(event)}
+      </span>
+    </div>
   ) : (
     <CapacityBar
       // a phone has no panel: the bar lies on the page

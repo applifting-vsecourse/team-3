@@ -6,7 +6,12 @@ import { describe, expect, it, vi } from "vitest"
 import { api } from "@/lib/api-client"
 import type * as ApiClient from "@/lib/api-client"
 
-import { useJoinGroup, useLeaveGroup } from "@/features/groups/hooks/useGroupMutations"
+import { groupKeys } from "@/features/groups/api/groupsQueryOptions"
+import {
+  useDeactivateGroup,
+  useJoinGroup,
+  useLeaveGroup,
+} from "@/features/groups/hooks/useGroupMutations"
 
 vi.mock("@/lib/api-client", async (importOriginal) => ({
   ...(await importOriginal<typeof ApiClient>()),
@@ -33,4 +38,22 @@ describe("joining or leaving a group", () => {
       expect(invalidate).toHaveBeenCalledWith({ queryKey: ["events", "list", "home"] })
     },
   )
+})
+
+describe("deactivating a group", () => {
+  it("refreshes the group, but not its members: the management being left would get a 409 (#304)", async () => {
+    vi.mocked(api.post).mockResolvedValue(undefined as never)
+    const queryClient = new QueryClient()
+    queryClient.setQueryData(groupKeys.detail("g1"), {})
+    queryClient.setQueryData(groupKeys.members("g1"), { requests: [], members: [] })
+    const wrapper = ({ children }: { children: ReactNode }) => (
+      <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>
+    )
+    const { result } = renderHook(() => useDeactivateGroup("g1"), { wrapper })
+
+    await act(() => result.current.mutateAsync())
+
+    expect(queryClient.getQueryState(groupKeys.detail("g1"))?.isInvalidated).toBe(true)
+    expect(queryClient.getQueryState(groupKeys.members("g1"))?.isInvalidated).toBe(false)
+  })
 })

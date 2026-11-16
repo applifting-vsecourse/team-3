@@ -6,7 +6,8 @@ import { BandTabs, BandTabsItem } from "@/components/PageBand/BandTabs"
 import { PageBand } from "@/components/PageBand/PageBand"
 import { Seo } from "@/components/Seo"
 import { Button } from "@/components/ui/button"
-import { Tabs } from "@/components/ui/tabs"
+import { Tabs, TabsContent } from "@/components/ui/tabs"
+import { useElementHeight } from "@/hooks/useElementHeight"
 import { localityDefault, useLocality } from "@/hooks/useLocality"
 import { DESKTOP_QUERY, useMediaQuery } from "@/hooks/useMediaQuery"
 import { ALL_LOCALITIES_SLUG } from "@/lib/catalog/localityOptions"
@@ -22,19 +23,23 @@ import { EventSearch } from "@/features/events/components/EventSearch"
 import { EventsMap } from "@/features/events/components/EventsMap"
 import { ListPanel, type PanelSnap } from "@/features/events/components/ListPanel"
 import { SortMenu } from "@/features/events/components/SortMenu"
-import { EventsViewerContext, useEvents } from "@/features/events/hooks/useEvents"
+import { EventsViewerContext, useEvents, useNearestEvents } from "@/features/events/hooks/useEvents"
 import { usePickCounts } from "@/features/events/hooks/usePickCounts"
 import {
-  changesPick,
   effectiveSort,
   eventsSearchSchema,
   hasActiveFilters,
   hasFiltersBeyondPick,
   isAllEvents,
   localityCenter,
+  PAST_TERM,
+  PICK_LABELS,
+  pickPatch,
+  PICKS,
   pickSearch,
   toMapArea,
   toOblast,
+  withPicksOkoli,
   type EventsSearch,
   type QuickPick,
   type Radius,
@@ -43,11 +48,7 @@ import {
 // DESIGN.md › Quick picks, in this order (Figma A-02d)
 const PICK_TABS: { pick: QuickPick | undefined; label: string }[] = [
   { pick: undefined, label: "Všechny akce" },
-  { pick: "tady-chybis", label: "Tady chybíš" },
-  { pick: "tento-vikend", label: "Tento víkend" },
-  { pick: "podle-zajmu", label: "Podle tvých zájmů" },
-  { pick: "kousek-od-tebe", label: "Kousek od tebe" },
-  { pick: "od-hodnocenych", label: "Od dobře hodnocených" },
+  ...PICKS.map((pick) => ({ pick, label: PICK_LABELS[pick] })),
 ]
 const ALL_EVENTS_TAB = "vsechny"
 
@@ -74,19 +75,26 @@ function EventsPage() {
     urlSearch.lokalita,
     session.isPending ? undefined : (session.user?.id ?? null),
   )
-  // the filters as shown: the visitor's default locality (#55) when the URL has none
-  const search = { ...urlSearch, lokalita: shownLocality.slug }
+  // the filters as shown: the visitor's default locality (#55) when the URL has none, and the
+  // okolí a quick pick turns on by itself, which the URL leaves out (#328)
+  const search = withPicksOkoli({ ...urlSearch, lokalita: shownLocality.slug }, now)
   const { events, catalog, isPending, error, retry } = useEvents(search, {
     // nothing for all of Czechia first while the default locality loads
     isEnabled: shownLocality.slug !== undefined,
   })
+  // an empty list shows the nearest events instead (#299): only then are they fetched
+  const isListEmpty = !isPending && !error && events?.length === 0
+  const nearest = useNearestEvents(search, { isEnabled: isListEmpty })
+  // the map shows what the list shows: the nearest events when the locality has none
+  const shownEvents = (isListEmpty ? nearest.events : events) ?? []
   const isDesktop = useMediaQuery(DESKTOP_QUERY)
+  const [overlayRef, overlayHeight] = useElementHeight<HTMLDivElement>()
   const [panelSnap, setPanelSnap] = useState<PanelSnap>("peek")
   const isListExpanded = panelSnap === "list"
   const [highlightedId, setHighlightedId] = useState<string>()
   // the tapped pin's event (#56); gone with the filters that showed it
   const [selectedId, setSelectedId] = useState<string>()
-  const selectedEvent = events?.find((event) => event.id === selectedId)
+  const selectedEvent = shownEvents.find((event) => event.id === selectedId)
   const area = toMapArea(search.oblast)
   const [panelPeekHeight, setPanelPeekHeight] = useState(0)
   // phone: the preview hides the list sheet and covers the map's bottom instead (review #276)
@@ -94,6 +102,12 @@ function EventsPage() {
   const mapBottomInset = selectedEvent ? previewCover : panelPeekHeight
   const locality = catalog?.localities.find((l) => l.slug === search.lokalita)
   const isMapVisible = isDesktop || !isListExpanded
+  // Proběhlé (#61, Figma A-02h): the events that are over, newest first, with past cards and pins
+  const isPast = search.termin === PAST_TERM
+  const which = isPast ? "Proběhlé" : "Nadcházející"
+  const order = isPast ? ", od nejnovější" : ""
+  // lowered sheet: what is below its edge is out of the Tab order
+  const listInertAfter = isDesktop || isListExpanded ? undefined : panelSnap === "map" ? 0 : 1
 
   // Escape closes the preview, like a tap into the map — unless it closed an open panel or
   // menu first (the kit's layers prevent the default of the Escape they handle)
@@ -109,14 +123,13 @@ function EventsPage() {
   // replace: changing a filter shouldn't fill the back button with filter states
   // A filter only, nothing remembered: e.g. „… v celém Česku“ from an empty list widens it
   // this once (review #274). A locality replaces the searched area (and the other way round).
-  // Changing a filter the quick pick set leaves the pick (Figma A-02d, #250). Any change closes
-  // the map preview, or Praha → Brno → Praha would open it again by itself (review #276).
+  // Changing a filter the quick pick set leaves the pick (Figma A-02d, #250), the pick's okolí
+  // stays out of the URL otherwise (#328). Any change closes the map preview, or
+  // Praha → Brno → Praha would open it again by itself (review #276).
   const setSearch = (patch: Partial<EventsSearch>) => {
     setSelectedId(undefined)
     const withArea = patch.lokalita !== undefined ? { ...patch, oblast: undefined } : patch
-    const withPick = changesPick(urlSearch, withArea, now)
-      ? { ...withArea, vyber: undefined }
-      : withArea
+    const withPick = pickPatch(urlSearch, withArea, now)
     void navigate({ search: (prev) => ({ ...prev, ...withPick }), replace: true })
   }
   // a tab: the locality and okolí stay, the other filters give way to the pick's
@@ -139,9 +152,15 @@ function EventsPage() {
       replace: true,
     })
   }
-  const canClear =
+  const hasOwnFilters =
     (urlSearch.vyber ? hasFiltersBeyondPick(urlSearch, now) : hasActiveFilters(urlSearch)) ||
     shownLocality.isPicked
+  // only a quick pick is on: its chips light up too, so there must be a way out of it —
+  // „Zrušit rychlý výběr“ goes to „Všechny akce“, the locality and an okolí set by hand stay
+  const isPickOnly = Boolean(urlSearch.vyber) && !hasOwnFilters
+  const canClear = hasOwnFilters || isPickOnly
+  const clear = isPickOnly ? () => selectPick(undefined) : clearFilters
+  const clearLabel = isPickOnly ? "Zrušit rychlý výběr" : undefined
   // the order and the distances need the chosen locality's centre (#57)
   const center = catalog ? localityCenter(search, catalog) : undefined
   const sort = catalog ? effectiveSort(search, catalog) : "termin"
@@ -155,10 +174,14 @@ function EventsPage() {
       (pick !== "kousek-od-tebe" || Boolean(center)),
   )
   const counts = usePickCounts(
-    tabs.map(({ pick }) => ({ ...pickSearch(pick, urlSearch, now), lokalita: search.lokalita })),
+    tabs.map(({ pick }) =>
+      withPicksOkoli({ ...pickSearch(pick, urlSearch, now), lokalita: search.lokalita }, now),
+    ),
     { isEnabled: shownLocality.slug !== undefined },
   )
   const activeTab = urlSearch.vyber ?? (isAllEvents(urlSearch) ? ALL_EVENTS_TAB : "")
+  // a hand-changed filter, or a pick whose tab is not shown: no tab names the panel
+  const hasActiveTrigger = tabs.some(({ pick }) => (pick ?? ALL_EVENTS_TAB) === activeTab)
   const title = urlSearch.vyber
     ? (PICK_TABS.find(({ pick }) => pick === urlSearch.vyber)?.label ?? "Akce")
     : isAllEvents(urlSearch)
@@ -222,18 +245,22 @@ function EventsPage() {
           onValueChange={(value) =>
             selectPick(value === ALL_EVENTS_TAB ? undefined : (value as QuickPick))
           }
-          className="gap-0"
+          // it holds the band and the rest of the page, so it takes the page's height as the
+          // rest did before (#298)
+          className="flex-1 gap-0 md:min-h-0 md:basis-0"
         >
           <PageBand
             variant="section"
+            isMotifAboveTabs
             title={title}
             description={
               area
-                ? "Nadcházející akce ve výřezu mapy."
+                ? `${which} akce ve výřezu mapy${order}.`
                 : search.lokalita === ALL_LOCALITIES_SLUG
-                  ? "Nadcházející akce v celém Česku."
+                  ? `${which} akce v celém Česku${order}.`
                   : locality
-                    ? `Nadcházející akce v lokalitě ${locality.name}.`
+                    ? // a guess says where it comes from (Figma A-02d, #299)
+                      `${which} akce v lokalitě ${locality.name}${order}.${shownLocality.source === "ip" ? " Lokalitu odhadujeme podle připojení." : ""}`
                     : // the line keeps its place until the catalog names the locality
                       " "
             }
@@ -250,154 +277,177 @@ function EventsPage() {
               ))}
             </BandTabs>
           </PageBand>
-        </Tabs>
-        {/* Desktop: the rest under the band, the list scrolls on its own and the map fills
-            the height beside it. */}
-        <div className="relative flex flex-1 flex-col overflow-hidden md:min-h-0 md:basis-0">
-          <div
-            className={cn(
-              // mobile: chips over the map, or a bar above the pulled-up list
-              "absolute inset-x-0 top-0 z-20",
-              // pb-1: the bar reaches the sheet below it (top-16), no strip of map between
-              isListExpanded && "border-b border-border bg-background pb-1",
-              // desktop: no hairline under the bar, the list and the map start below it; on the
-              // 1200 grid like the band (Figma A-02d)
-              "md:static md:mx-auto md:w-full md:max-w-7xl md:border-b-0 md:bg-background",
-            )}
+          {/* Desktop: the rest under the band, the list scrolls on its own and the map fills
+              the height beside it. It is the tabs' panel, so the active tab points at what it
+              shows (aria-controls, #298). Without an active tab it is named by the title. */}
+          <TabsContent
+            value={activeTab}
+            asChild
+            {...(hasActiveTrigger ? {} : { "aria-labelledby": undefined, "aria-label": title })}
           >
-            {hasSearchRow ? (
-              <div className="px-4 pt-3 md:hidden">{searchField(isSearchOpened)}</div>
-            ) : null}
-            <EventFilters
-              search={search}
-              catalog={catalog}
-              onChange={setSearch}
-              onLocalityChange={pickLocality}
-              onClearAll={canClear ? clearFilters : undefined}
-              localityDefault={localityDefault(shownLocality, clearLocality)}
-              isFloating={!isDesktop && !isListExpanded}
-              searchControl={isDesktop ? searchField() : undefined}
-              // Chips scroll sideways on narrow screens without a visible scrollbar
-              // (Figma A-02); a desktop scrollbar would also make the bar taller
-              // and cover the top of the pulled-up list.
-              className="[scrollbar-width:none] overflow-x-auto px-4 py-3 md:px-10 [&::-webkit-scrollbar]:hidden"
-            />
-          </div>
-
-          <div className="flex flex-1 md:mx-auto md:min-h-0 md:w-full md:max-w-7xl md:gap-8 md:px-10">
-            <ListPanel
-              snap={panelSnap}
-              onSnapChange={setPanelSnap}
-              scrollResetKey={JSON.stringify(search)}
-              onVisibleHeightChange={setPanelPeekHeight}
-              isHidden={selectedEvent !== undefined}
-              hasSearchRow={hasSearchRow}
-            >
-              <EventList
-                events={events ?? []}
-                isLoading={isPending}
-                error={error}
-                // Only the error state offers a retry; refocusing the tab refetches.
-                onRetry={retry}
-                // desktop: the selected pin's card stays marked in the list (Figma A-03ad)
-                highlightedId={highlightedId ?? selectedEvent?.id}
-                onHighlight={setHighlightedId}
-                onClearFilters={canClear ? clearFilters : undefined}
-                sortControl={
-                  <SortMenu
-                    value={sort}
-                    isDistanceAvailable={Boolean(center)}
-                    // the order okolí implies stays out of the URL
-                    onChange={(razeni) =>
-                      setSearch({
-                        razeni:
-                          razeni === (search.okoli ? "vzdalenost" : "termin") ? undefined : razeni,
-                      })
-                    }
-                  />
-                }
-                isDistanceShown={isDistanceShown}
-                empty={
-                  <EmptyEvents
-                    search={search}
-                    catalog={catalog}
-                    isVisitor={!session.user && !session.isPending}
-                    onSearchChange={setSearch}
-                  />
-                }
-                // lowered sheet: what is below its edge is out of the Tab order
-                inertAfter={isDesktop || isListExpanded ? undefined : panelSnap === "map" ? 0 : 1}
-              />
-            </ListPanel>
-
-            <div
-              // hidden, not unmounted, under the pulled-up list; inert keeps it out of Tab order
-              aria-hidden={!isMapVisible}
-              inert={!isMapVisible}
-              // mobile: the OSM attribution sits bottom right just above the closed list
-              // sheet, or above the preview that took its place, instead of hiding under it
-              // (! because leaflet.css isn't layered)
-              style={
-                isDesktop
-                  ? undefined
-                  : ({ "--map-bottom-inset": `${mapBottomInset}px` } as CSSProperties)
-              }
-              className={cn(
-                "absolute inset-0 md:static md:min-w-0 md:flex-1 md:py-8",
-                !isDesktop && "[&_.leaflet-bottom]:bottom-(--map-bottom-inset)!",
-              )}
-            >
-              <div className="relative size-full overflow-hidden md:rounded-2xl md:border md:border-card-border">
-                <EventsMap
-                  events={events ?? []}
-                  highlightedId={highlightedId}
-                  selectedId={selectedEvent?.id}
-                  onSelect={setSelectedId}
-                  area={area}
-                  onAreaSearch={(searched) => {
-                    setSelectedId(undefined)
-                    void navigate({
-                      search: (prev) => ({ ...prev, oblast: toOblast(searched) }),
-                      replace: true,
-                    })
-                  }}
-                  center={
-                    search.lokalita === ALL_LOCALITIES_SLUG
-                      ? CZECHIA_CENTER
-                      : (locality ?? CZECHIA_CENTER)
-                  }
-                  hasZoomControl={isDesktop}
-                />
-                {selectedEvent && isDesktop ? (
-                  <EventMapPreview
-                    event={selectedEvent}
-                    isDesktop
-                  />
+            <div className="relative flex flex-1 flex-col overflow-hidden md:min-h-0 md:basis-0">
+              <div
+                // on a phone it floats over the map's top: „Hledat v této oblasti“ goes under it
+                ref={overlayRef}
+                className={cn(
+                  // mobile: chips over the map, or a bar above the pulled-up list
+                  "absolute inset-x-0 top-0 z-20",
+                  // pb-1: the bar reaches the sheet below it (top-16), no strip of map between
+                  isListExpanded && "border-b border-border bg-background pb-1",
+                  // desktop: no hairline under the bar, the list and the map start below it; on the
+                  // 1200 grid like the band (Figma A-02d)
+                  "md:static md:mx-auto md:w-full md:max-w-7xl md:border-b-0 md:bg-background",
+                )}
+              >
+                {hasSearchRow ? (
+                  <div className="px-4 pt-3 md:hidden">{searchField(isSearchOpened)}</div>
                 ) : null}
+                <EventFilters
+                  search={search}
+                  catalog={catalog}
+                  onChange={setSearch}
+                  onLocalityChange={pickLocality}
+                  onClearAll={canClear ? clear : undefined}
+                  clearAllLabel={clearLabel}
+                  localityDefault={localityDefault(shownLocality, clearLocality, pickLocality)}
+                  isFloating={!isDesktop && !isListExpanded}
+                  searchControl={isDesktop ? searchField() : undefined}
+                  // Chips scroll sideways on narrow screens without a visible scrollbar
+                  // (Figma A-02); a desktop scrollbar would also make the bar taller
+                  // and cover the top of the pulled-up list.
+                  className="[scrollbar-width:none] overflow-x-auto px-4 py-3 md:px-10 [&::-webkit-scrollbar]:hidden"
+                />
               </div>
+
+              <div className="flex flex-1 md:mx-auto md:min-h-0 md:w-full md:max-w-7xl md:gap-8 md:px-10">
+                <ListPanel
+                  snap={panelSnap}
+                  onSnapChange={setPanelSnap}
+                  scrollResetKey={JSON.stringify(search)}
+                  onVisibleHeightChange={setPanelPeekHeight}
+                  isHidden={selectedEvent !== undefined}
+                  hasSearchRow={hasSearchRow}
+                >
+                  <EventList
+                    events={events ?? []}
+                    isLoading={isPending}
+                    error={error}
+                    // Only the error state offers a retry; refocusing the tab refetches.
+                    onRetry={retry}
+                    // desktop: the selected pin's card stays marked in the list (Figma A-03ad)
+                    highlightedId={highlightedId ?? selectedEvent?.id}
+                    onHighlight={setHighlightedId}
+                    onClearFilters={canClear ? clear : undefined}
+                    clearFiltersLabel={clearLabel}
+                    sortControl={
+                      <SortMenu
+                        value={sort}
+                        isDistanceAvailable={Boolean(center)}
+                        isPast={isPast}
+                        // the order okolí implies stays out of the URL
+                        onChange={(razeni) =>
+                          setSearch({
+                            razeni:
+                              razeni === (search.okoli ? "vzdalenost" : "termin")
+                                ? undefined
+                                : razeni,
+                          })
+                        }
+                      />
+                    }
+                    isDistanceShown={isDistanceShown}
+                    isPast={isPast}
+                    empty={
+                      <EmptyEvents
+                        search={search}
+                        catalog={catalog}
+                        isVisitor={!session.user && !session.isPending}
+                        onSearchChange={setSearch}
+                        nearest={nearest}
+                        inertAfter={listInertAfter}
+                        highlightedId={highlightedId ?? selectedEvent?.id}
+                        onHighlight={setHighlightedId}
+                      />
+                    }
+                    inertAfter={listInertAfter}
+                  />
+                </ListPanel>
+
+                <div
+                  // hidden, not unmounted, under the pulled-up list; inert keeps it out of Tab order
+                  aria-hidden={!isMapVisible}
+                  inert={!isMapVisible}
+                  // mobile: the OSM attribution sits bottom right just above the closed list
+                  // sheet, or above the preview that took its place, instead of hiding under it
+                  // (! because leaflet.css isn't layered)
+                  style={
+                    isDesktop
+                      ? undefined
+                      : ({ "--map-bottom-inset": `${mapBottomInset}px` } as CSSProperties)
+                  }
+                  className={cn(
+                    "absolute inset-0 md:static md:min-w-0 md:flex-1 md:py-8",
+                    !isDesktop && "[&_.leaflet-bottom]:bottom-(--map-bottom-inset)!",
+                  )}
+                >
+                  <div className="relative size-full overflow-hidden md:rounded-2xl md:border md:border-card-border">
+                    <EventsMap
+                      events={shownEvents}
+                      highlightedId={highlightedId}
+                      selectedId={selectedEvent?.id}
+                      onSelect={setSelectedId}
+                      area={area}
+                      onAreaSearch={(searched) => {
+                        setSelectedId(undefined)
+                        void navigate({
+                          search: (prev) => ({ ...prev, oblast: toOblast(searched) }),
+                          replace: true,
+                        })
+                      }}
+                      center={
+                        search.lokalita === ALL_LOCALITIES_SLUG
+                          ? CZECHIA_CENTER
+                          : (locality ?? CZECHIA_CENTER)
+                      }
+                      // the phone's search and chips float over the map's top (#288)
+                      topInset={isDesktop ? 0 : overlayHeight}
+                      hasZoomControl={isDesktop}
+                      isPast={isPast}
+                    />
+                    {selectedEvent && isDesktop ? (
+                      <EventMapPreview
+                        event={selectedEvent}
+                        isDesktop
+                        isPast={isPast}
+                      />
+                    ) : null}
+                  </div>
+                </div>
+              </div>
+
+              {selectedEvent && !isDesktop ? (
+                <EventMapPreview
+                  event={selectedEvent}
+                  isDesktop={false}
+                  onCoverChange={setPreviewCover}
+                  isPast={isPast}
+                />
+              ) : null}
+
+              {isListExpanded ? (
+                // Figma: Map action „Mapa“ over the pulled-up list
+                <Button
+                  variant="outline"
+                  onClick={() => setPanelSnap("peek")}
+                  className="absolute bottom-4 left-4 z-20 h-11 bg-background shadow-md md:hidden"
+                >
+                  <MapIcon />
+                  Mapa
+                </Button>
+              ) : null}
             </div>
-          </div>
-
-          {selectedEvent && !isDesktop ? (
-            <EventMapPreview
-              event={selectedEvent}
-              isDesktop={false}
-              onCoverChange={setPreviewCover}
-            />
-          ) : null}
-
-          {isListExpanded ? (
-            // Figma: Map action „Mapa“ over the pulled-up list
-            <Button
-              variant="outline"
-              onClick={() => setPanelSnap("peek")}
-              className="absolute bottom-4 left-4 z-20 h-11 bg-background shadow-md md:hidden"
-            >
-              <MapIcon />
-              Mapa
-            </Button>
-          ) : null}
-        </div>
+          </TabsContent>
+        </Tabs>
       </main>
     </EventsViewerContext>
   )

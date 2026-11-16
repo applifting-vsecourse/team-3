@@ -7,14 +7,11 @@ import {
 } from "lucide-react"
 import { Toaster as Sonner, type ToasterProps } from "sonner"
 
-import { useTheme } from "@/hooks/useTheme"
-
 const Toaster = ({ ...props }: ToasterProps) => {
-  const { theme = "system" } = useTheme()
-
   return (
     <Sonner
-      theme={theme as ToasterProps["theme"]}
+      // light mode only (DESIGN.md › Colour); sonner's default "system" would follow a dark OS
+      theme="light"
       // the toast region's name for screen readers; sonner's default is English
       containerAriaLabel="Oznámení"
       className="toaster group"

@@ -64,9 +64,26 @@ export class HomeResponseDto {
   })
   sections!: HomeSectionDto[];
 
+  @ApiProperty({
+    description:
+      "Nothing in the locality one can join (#299) — no events, or only full ones and the signed-in user's own or joined ones: " +
+      'the event sections hold the nearest events anywhere instead, each with distanceKm from its centre, ' +
+      "none when nothing near can be joined either; groups stay the locality's",
+  })
+  isWidened!: boolean;
+
+  @ApiProperty({
+    description:
+      "The locality (all of Czechia without one) has upcoming public events at all, full ones and the viewer's own included (#299). " +
+      'With isWidened false here means „nothing here at all“, true „nothing here one can join“',
+  })
+  hasLocalityEvents!: boolean;
+
   static fromDomain(home: HomeView): HomeResponseDto {
     return {
       locality: home.locality,
+      isWidened: home.isWidened,
+      hasLocalityEvents: home.hasLocalityEvents,
       sections: home.sections.map((section) =>
         section.key === 'groups'
           ? {

@@ -63,24 +63,27 @@ class ProfileRatingSummaryDto implements RatingSummary {
 export class ProfileOverviewResponseDto {
   @ApiProperty({
     type: [ProfileEventResponseDto],
-    description: `Events I organize, latest first; at most ${PROFILE_OVERVIEW_TAKE}`,
+    description: `Events I organize that are not over yet (one going on right now too), cancelled ones with their status, soonest first; at most ${PROFILE_OVERVIEW_TAKE}`,
   })
   organizing!: ProfileEventResponseDto[];
   @ApiProperty({ description: 'How many events I organize in all' })
   organizingTotal!: number;
   @ApiProperty({
     type: [ProfileEventResponseDto],
-    description: `Upcoming events I go to or wait for, soonest first; at most ${PROFILE_OVERVIEW_TAKE}`,
+    description: `Events I go to or wait for that are not over yet – one going on right now too, where joining or leaving is no longer possible (#272) – cancelled ones with their status, soonest first; at most ${PROFILE_OVERVIEW_TAKE}`,
   })
   upcoming!: ProfileEventResponseDto[];
-  @ApiProperty({ description: 'How many upcoming events in all' })
+  @ApiProperty({ description: 'How many of them in all (`upcoming`)' })
   upcomingTotal!: number;
   @ApiProperty({
     type: [ProfileEventResponseDto],
-    description: `Past events I took part in, latest first; at most ${PROFILE_OVERVIEW_TAKE}`,
+    description: `Events that are over where I had an approved place, latest first; cancelled ones too, with \`status: cancelled\` – they didn't take place and can't be rated (#272); at most ${PROFILE_OVERVIEW_TAKE}`,
   })
   past!: ProfileEventResponseDto[];
-  @ApiProperty({ description: 'How many past events in all' })
+  @ApiProperty({
+    description:
+      'How many of them in all (`past`), cancelled ones included: what the section lists, not how many events I attended',
+  })
   pastTotal!: number;
   @ApiProperty({
     type: [ProfileRatingResponseDto],

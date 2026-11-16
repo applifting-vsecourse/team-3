@@ -2,13 +2,12 @@ import type { ReactNode } from "react"
 
 import { HeaderLogo } from "@/components/Header/HeaderLogo"
 import { HeaderNav } from "@/components/Header/HeaderNav"
-import { ThemeSwitcher } from "@/components/Header/ThemeSwitcher"
 
 type HeaderProps = {
   // Auth-aware menu (sign-in CTA / user dropdown). Passed as a slot so
   // `components/` doesn't have to import from `features/auth`.
   userMenu: ReactNode
-  /** Adds „Moje akce“ to the navigation. */
+  /** Adds „Moje“ to the navigation. */
   isSignedIn?: boolean
   /** Phone only: the screen's action (Figma Header/Screen), e.g. „Hledat“ on /akce (#57). */
   screenAction?: ReactNode
@@ -28,7 +27,6 @@ export function Header({ userMenu, isSignedIn = false, screenAction }: HeaderPro
         <HeaderLogo />
         <HeaderNav isSignedIn={isSignedIn} />
         <div className="ml-auto flex items-center gap-2">
-          <ThemeSwitcher />
           {screenAction ? <div className="md:hidden">{screenAction}</div> : null}
           {userMenu}
         </div>

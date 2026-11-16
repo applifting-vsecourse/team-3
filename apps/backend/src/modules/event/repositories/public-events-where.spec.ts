@@ -1,5 +1,6 @@
 import { Prisma } from '@/generated/prisma/client';
 import { PublicEventFilters } from '@/modules/event/domain/event';
+import { eventOverWhere } from '@/modules/event/domain/event-over';
 import { buildPublicEventsWhere } from './public-events-where';
 
 const now = new Date('2026-10-23T08:00:00.000Z');
@@ -44,6 +45,53 @@ describe('buildPublicEventsWhere', () => {
     // so none can loosen them
     const rest = JSON.stringify(conditions.slice(1));
     expect(rest).not.toMatch(/"(status|visibility)"/);
+  });
+
+  describe('Proběhlé (#61)', () => {
+    const PAST_ONLY: Prisma.EventWhereInput = {
+      status: 'published',
+      visibility: 'public',
+      ...eventOverWhere(now),
+    };
+
+    it('published public events that are over, by the one rule (#272)', () => {
+      expect(conditionsOf({ past: true })).toEqual([PAST_ONLY]);
+    });
+
+    it('never cancelled, hidden, private or members-only, whatever else is filtered', () => {
+      const conditions = conditionsOf({
+        past: true,
+        localityId: 'l-praha',
+        activityIds: ['a-volejbal'],
+        categoryIds: ['c-hry'],
+        q: 'volejbal',
+      });
+      expect(conditions[0]).toEqual(PAST_ONLY);
+      expect(JSON.stringify(conditions.slice(1))).not.toMatch(
+        /"(status|visibility)"/,
+      );
+    });
+
+    it('replaces the date range: dateFrom and dateTo are ignored (review #323)', () => {
+      expect(
+        conditionsOf({
+          past: true,
+          dateFrom: '2026-10-01',
+          dateTo: '2026-12-31',
+        }),
+      ).toEqual([PAST_ONLY]);
+    });
+
+    it('combines with the other filters (AND)', () => {
+      expect(
+        conditionsOf({ past: true, localityId: 'l-praha-8' }),
+      ).toContainEqual({
+        OR: [
+          { localityId: 'l-praha-8' },
+          { locality: { parentId: 'l-praha-8' } },
+        ],
+      });
+    });
   });
 
   it('a date from the past does not bring back events that already started', () => {

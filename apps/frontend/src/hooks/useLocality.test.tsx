@@ -11,7 +11,7 @@ import {
   resetRememberedLocalityMemory,
 } from "@/lib/catalog/rememberedLocality"
 
-import { useLocality } from "./useLocality"
+import { localityDefault, useLocality, type LocalityState } from "./useLocality"
 
 vi.mock("@/lib/api-client", async (importOriginal) => ({
   ...(await importOriginal<typeof ApiClient>()),
@@ -180,5 +180,33 @@ describe("useLocality without storage (a private window)", () => {
 
     act(() => result.current.forget())
     expect(result.current).toMatchObject({ slug: "brno", isPicked: false })
+  })
+})
+
+describe("localityDefault (#299)", () => {
+  const state = (overrides: Partial<LocalityState>): LocalityState => ({
+    slug: "brno",
+    source: "ip",
+    isPicked: false,
+    pick: vi.fn(),
+    forget: vi.fn(),
+    ...overrides,
+  })
+
+  it("a guess says so on the chip and can be dismissed to all of Czechia", () => {
+    const onPick = vi.fn()
+    const chip = localityDefault(state({}), vi.fn(), onPick)
+
+    expect(chip).toMatchObject({ isDefault: true, hint: "odhad" })
+    chip.onDismiss?.()
+    expect(onPick).toHaveBeenCalledWith("cele-cesko")
+  })
+
+  it("the home locality and a pick are no guess: no hint, nothing to dismiss", () => {
+    for (const shown of [state({ source: "home" }), state({ source: "url", isPicked: true })]) {
+      const chip = localityDefault(shown, vi.fn(), vi.fn())
+      expect(chip.hint).toBeUndefined()
+      expect(chip.onDismiss).toBeUndefined()
+    }
   })
 })

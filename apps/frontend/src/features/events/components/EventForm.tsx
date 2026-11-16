@@ -20,6 +20,7 @@ import {
   FormItem,
   FormLabel,
   FormMessage,
+  useRevealFormErrors,
 } from "@/components/ui/form"
 import { Input } from "@/components/ui/input"
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
@@ -226,6 +227,8 @@ export function EventForm({
   const [, initialEnd] = splitWallTime(initialValues?.endsAt)
   const form = useForm<FormValues>({
     resolver: zodResolver(schema),
+    // useRevealFormErrors focuses instead, after scrolling its own way (#291)
+    shouldFocusError: false,
     defaultValues: {
       title: initialValues?.title ?? "",
       activityId: initialValues?.activityId ?? "",
@@ -245,6 +248,8 @@ export function EventForm({
       description: initialValues?.description ?? "",
     },
   })
+
+  const formRef = useRevealFormErrors(form, errorMessage)
 
   const localityId = useWatch({ control: form.control, name: "localityId" })
   const place = useWatch({ control: form.control, name: "place" })
@@ -357,6 +362,7 @@ export function EventForm({
   return (
     <Form {...form}>
       <form
+        ref={formRef}
         noValidate
         onSubmit={form.handleSubmit((values) => {
           // entered as Prague time, whatever the device's time zone

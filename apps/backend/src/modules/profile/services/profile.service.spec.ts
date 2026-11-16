@@ -39,6 +39,13 @@ describe('ProfileService (#178)', () => {
     });
     expect(repository.get).toHaveBeenCalledWith('owner');
   });
+  it('saves the name without the spaces around it (#199)', async () => {
+    await service.update('owner', { name: ' Anna Marie Nová   ' });
+    expect(repository.save).toHaveBeenCalledWith('owner', {
+      name: 'Anna Marie Nová',
+      updatedAt: expect.any(Date),
+    });
+  });
   it('clears the locality and replaces interests in one nested update', async () => {
     await service.update('owner', { homeLocalityId: null, interestIds: [] });
     expect(repository.save).toHaveBeenCalledWith('owner', {
@@ -47,7 +54,7 @@ describe('ProfileService (#178)', () => {
       updatedAt: expect.any(Date),
     });
   });
-  it.each(['Jana 123', '🙂', 'A', 'x'.repeat(61)])(
+  it.each(['Jana 123', '🙂', 'A', 'x'.repeat(61), '', '   '])(
     'rejects invalid names before persistence (%s)',
     async (name) => {
       await expect(service.update('owner', { name })).rejects.toBeInstanceOf(

@@ -1,6 +1,7 @@
+import { useState } from "react"
 import { fireEvent, screen, waitFor } from "@testing-library/react"
 import userEvent from "@testing-library/user-event"
-import { beforeEach, describe, expect, it, vi } from "vitest"
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest"
 
 import { renderWithRouter } from "@/test/renderWithRouter"
 
@@ -25,6 +26,11 @@ beforeEach(() => {
   estimator.checkPassword.mockReset()
   estimator.checkPassword.mockReturnValue({ score: 4, warning: null, suggestions: [] })
   estimator.load.mockClear()
+})
+
+afterEach(() => {
+  // the spies on scrollIntoView
+  vi.restoreAllMocks()
 })
 
 // the consents' labels carry a link (#153), which needs a router
@@ -63,6 +69,51 @@ const fill = async ({
 }
 
 describe("SignUpForm (B-010, #153)", () => {
+  describe("errors stay on screen (#291)", () => {
+    it("a failed submit scrolls to the first invalid field and focuses it once the scroll ends", async () => {
+      await renderForm()
+      const scrollIntoView = vi.spyOn(Element.prototype, "scrollIntoView")
+
+      await submit()
+
+      const name = screen.getByLabelText("Jméno")
+      await waitFor(() => expect(scrollIntoView).toHaveBeenCalledOnce())
+      expect(scrollIntoView.mock.contexts[0]).toBe(name)
+      expect(scrollIntoView).toHaveBeenCalledWith({ behavior: "smooth", block: "center" })
+      expect(name).not.toHaveFocus()
+
+      window.dispatchEvent(new Event("scrollend"))
+
+      expect(name).toHaveFocus()
+    })
+
+    it("the server's answer comes into view as an alert, read out by a screen reader", async () => {
+      // the page shows the API's refusal once the sign-up comes back
+      function SignUpPage() {
+        const [errorMessage, setErrorMessage] = useState<string | null>(null)
+        return (
+          <SignUpForm
+            isLoading={false}
+            errorMessage={errorMessage}
+            onSubmit={() =>
+              setErrorMessage("Účet s tímto e-mailem už existuje. Přihlas se, nebo si obnov heslo.")
+            }
+          />
+        )
+      }
+      await renderWithRouter(<SignUpPage />)
+      await fill()
+      const scrollIntoView = vi.spyOn(Element.prototype, "scrollIntoView")
+
+      await submit()
+
+      const alert = await screen.findByRole("alert")
+      expect(alert).toHaveTextContent("Účet s tímto e-mailem už existuje.")
+      await waitFor(() => expect(scrollIntoView).toHaveBeenCalledOnce())
+      expect(scrollIntoView.mock.contexts[0]).toBe(alert)
+    })
+  })
+
   it("asks for the name, the e-mail, the password twice and both consents", async () => {
     await renderForm()
 
@@ -252,6 +303,70 @@ describe("SignUpForm (B-010, #153)", () => {
       // and doesn't come back with the next password's first character
       await userEvent.type(password, "x")
       expect(status).toBeEmptyDOMElement()
+    })
+  })
+
+  describe("room for the password strength (#199)", () => {
+    const area = () => document.querySelector('[data-slot="password-strength"]')
+    const bar = () => document.querySelector('[data-slot="password-strength-bar"]')
+    const room = () => document.querySelector('[data-slot="password-strength-room"]')
+
+    it("takes no room under the password until the first character, yet the live region is there", async () => {
+      await renderForm()
+
+      // out of the flow, so the form item's gap doesn't count it either
+      expect(area()).toHaveClass("sr-only")
+      expect(bar()).toBeNull()
+      expect(room()).toBeNull()
+      const status = screen.getByRole("status")
+      expect(status).toHaveAttribute("aria-live", "polite")
+      expect(area()).toContainElement(status)
+    })
+
+    it("appears whole with the first character and keeps its parts while the verdict changes", async () => {
+      await renderForm()
+      const status = screen.getByRole("status")
+      const password = screen.getByLabelText("Heslo")
+
+      await userEvent.type(password, "h")
+      // at once, before the pause that brings the verdict: the bar (empty yet)
+      // and the room for the verdict with two lines of advice
+      expect(area()).not.toHaveClass("sr-only")
+      const shownBar = bar()
+      const shownRoom = room()
+      expect(shownBar?.children).toHaveLength(4)
+      expect(shownBar?.querySelectorAll(".bg-foreground")).toHaveLength(0)
+      expect(shownRoom).toHaveClass("invisible")
+      expect(shownRoom).toHaveAttribute("aria-hidden")
+      expect(shownRoom?.querySelectorAll("br")).toHaveLength(2)
+      // three lines, each a no-break space: a line of a plain space alone
+      // would have no height and the room would hold only two lines
+      expect(shownRoom?.textContent).toBe("\u00a0".repeat(3))
+      expect(status).toBeEmptyDOMElement()
+
+      await waitFor(() => expect(status).toHaveTextContent("Síla hesla: slabé."))
+      expect(bar()).toBe(shownBar)
+      expect(room()).toBe(shownRoom)
+
+      // strong has no advice: the room stays all the same
+      estimator.checkPassword.mockReturnValue({ score: 4, warning: null, suggestions: [] })
+      await userEvent.type(password, "eslo jede po silnici 2026")
+      await waitFor(() => expect(status).toHaveTextContent(/^Síla hesla: silné\.$/))
+      expect(room()).toBe(shownRoom)
+      expect(shownBar?.querySelectorAll(".bg-foreground")).toHaveLength(4)
+    })
+
+    it("stays when the password is deleted, so retyping doesn't move the form", async () => {
+      await renderForm()
+      const password = screen.getByLabelText("Heslo")
+
+      await userEvent.type(password, "heslo")
+      await userEvent.clear(password)
+
+      expect(area()).not.toHaveClass("sr-only")
+      expect(screen.getByRole("status")).toBeEmptyDOMElement()
+      expect(bar()?.querySelectorAll(".bg-foreground")).toHaveLength(0)
+      expect(room()).not.toBeNull()
     })
   })
 

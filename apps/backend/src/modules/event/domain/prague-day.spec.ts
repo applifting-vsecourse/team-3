@@ -123,3 +123,18 @@ describe('pragueDayOf / startOfPragueDayOf', () => {
     ).toBe('2026-07-14T22:00:00.000Z');
   });
 });
+
+describe('startOfPragueDay with days later (#66)', () => {
+  it('counts calendar days across the change of time', () => {
+    // 20. 10. is summer time (UTC+2), 4. 11. winter time (UTC+1)
+    expect(startOfPragueDay('2026-10-20', 15)).toEqual(
+      new Date('2026-11-03T23:00:00.000Z'),
+    );
+    expect(startOfPragueDay('2026-10-20', 1)).toEqual(
+      startOfNextPragueDay('2026-10-20'),
+    );
+    expect(startOfPragueDay('2026-10-20', 0)).toEqual(
+      startOfPragueDay('2026-10-20'),
+    );
+  });
+});

@@ -187,14 +187,14 @@ describe("/profil overview (#178, Figma B-05)", () => {
     ).toEqual(["upcoming: Výlet na Zbraslav", "upcoming: Volejbal"])
     expect(within(going).getByRole("link", { name: "Všechny v Moje akce" })).toHaveAttribute(
       "href",
-      "/moje-akce",
+      "/moje/akce",
     )
 
     const organizing = section("Co pořádám")
     expect(within(organizing).getByText("organizing: Deskovky")).toBeInTheDocument()
     expect(within(organizing).getByRole("link", { name: "Všechny v Moje akce" })).toHaveAttribute(
       "href",
-      "/moje-akce?tab=poradam",
+      "/moje/akce?tab=poradam",
     )
   })
 

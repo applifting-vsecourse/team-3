@@ -3,7 +3,10 @@ import { ApiProperty } from '@nestjs/swagger';
 import { PublicEventResponseDto } from './public-event.response.dto';
 
 export class EventParticipantDto {
-  @ApiProperty()
+  @ApiProperty({
+    description:
+      "The participant's user id, for the public profile `GET /api/users/:userId` (#289)",
+  })
   id!: string;
 
   @ApiProperty({ example: 'Petra Nováková' })

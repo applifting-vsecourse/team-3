@@ -51,4 +51,17 @@ describe("PinClusters", () => {
     expect(zoom).toBeGreaterThan(8)
     expect(clusters.at(zoom).filter((item) => item.kind === "pin").length).toBeGreaterThan(1)
   })
+
+  it("knows the rectangle around a cluster's pins, where a tap zooms (#306)", () => {
+    const clusters = new PinClusters(pins)
+    const cluster = clusters.at(8).find((item) => item.kind === "cluster")
+    if (cluster?.kind !== "cluster") throw new Error("no cluster")
+
+    expect(clusters.bounds(cluster.id)).toEqual({
+      west: 14.439,
+      south: 50.1,
+      east: 14.441,
+      north: 50.102,
+    })
+  })
 })

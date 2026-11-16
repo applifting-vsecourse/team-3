@@ -5,15 +5,18 @@ import { Slot } from "radix-ui"
 import { cn } from "@/lib/utils"
 
 const buttonVariants = cva(
-  "inline-flex shrink-0 items-center justify-center gap-2 rounded-lg text-sm font-medium whitespace-nowrap transition-all outline-none focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50 disabled:pointer-events-none disabled:opacity-50 aria-invalid:border-destructive aria-invalid:ring-destructive/20 [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4",
+  "inline-flex shrink-0 items-center justify-center gap-2 rounded-lg text-sm font-medium whitespace-nowrap transition-all outline-none focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-50 aria-invalid:border-destructive aria-invalid:ring-destructive [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4",
   {
     variants: {
       variant: {
-        default: "bg-primary text-primary-foreground hover:bg-primary/90",
-        // Text on the fill is its -foreground token (dark text in dark mode); /90 hover would drop
+        // lime on a light surface is about 1.1:1, so the fill carries its primary-edge outline
+        // (DESIGN.md › Colour, Figma Button/Primary)
+        default:
+          "border border-primary-edge bg-primary text-primary-foreground hover:bg-primary/90",
+        // Text on the fill is its -foreground token; /90 hover would drop
         // white text to 4.28:1, so hover mixes in foreground instead (global.css).
         destructive:
-          "bg-destructive text-destructive-foreground hover:bg-destructive-hover focus-visible:ring-destructive/20",
+          "bg-destructive text-destructive-foreground hover:bg-destructive-hover focus-visible:ring-destructive",
         outline:
           "border border-control-border bg-transparent hover:bg-accent hover:text-accent-foreground",
         secondary: "bg-secondary text-secondary-foreground hover:bg-secondary/80",

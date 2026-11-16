@@ -125,6 +125,8 @@ describe('generated past events (#181)', () => {
 
   // Pravidla #180 a #66 pro hodnocení účastníka: kdyby se změnila, seed to má poznat
   // (review PR #233). Stejná kontrola jako v rating-data.spec.ts, nad všemi akcemi.
+  // Seed zapíše hodnocení i po lhůtě 14 dní (#66); pravidla se proto ověřují ke dni
+  // po akci, kdy by hodnocení dal organizátor.
   it('pass every participant rating through decideParticipantRating', () => {
     const now = new Date('2026-11-02T12:00:00+01:00');
     for (const event of allPast) {
@@ -135,6 +137,8 @@ describe('generated past events (#181)', () => {
             {
               eventStatus: event.cancelReason ? 'cancelled' : 'published',
               startsAt: row.startsAt,
+              minParticipants: event.minParticipants,
+              approvedCount: event.participantKeys.length,
               endsAt: row.endsAt,
               organizerUserId: event.organizerKey,
               raterId: event.organizerKey,
@@ -144,8 +148,9 @@ describe('generated past events (#181)', () => {
               )
                 ? 'approved'
                 : 'pending',
+              ratingDeleted: false,
             },
-            now,
+            new Date(row.endsAt.getTime() + 24 * 60 * 60 * 1000),
           ),
         ).toEqual({ ok: true });
       }

@@ -7,6 +7,10 @@ import { cn } from "@/lib/utils"
  * Tabs on the band's bottom edge (Figma Tab/Rychlý výběr, Pozadí=Tmavé — Moje akce, Skupiny,
  * later the quick picks on /akce): a phone scrolls them sideways. Built on the kit's Tabs, so
  * the page wraps the band and the content in one `<Tabs>`.
+ *
+ * The strip reaches past its container by the page's padding (`-mx-4 md:-mx-10`), so it expects a
+ * parent with `px-4 md:px-10` (PageBand, PAGE). In a container with less padding the page would
+ * scroll sideways — pass your own `-mx-*`/`px-*` in `className`, as PickedForYou does.
  */
 export function BandTabs({ className, ...props }: ComponentProps<typeof TabsList>) {
   return (
@@ -17,10 +21,11 @@ export function BandTabs({ className, ...props }: ComponentProps<typeof TabsList
         // (tailwind-merge sees no conflict, the variant wins): the 36 px strip clipped the
         // tabs and their lime underline. So the height is replaced with the same variant.
         "group-data-[orientation=horizontal]/tabs:h-auto",
-        // the scroll strip reaches the screen edge on a phone (-mx-4 px-4), like Figma A-02; it
-        // scrolls sideways only, without a visible scrollbar (like the filter chips); on desktop
-        // 4 px either side for the focus frame of the first and last tab
-        "-mx-4 h-auto w-auto max-w-none [scrollbar-width:none] justify-start gap-6 overflow-x-auto overflow-y-hidden rounded-none p-0 px-4 md:-mx-1 md:gap-7 md:px-1 [&::-webkit-scrollbar]:hidden",
+        // the scroll strip reaches the screen edge (-mx px, the page's padding), like Figma A-02,
+        // so a tab scrolled past the start is cut by the screen, not mid-band at the content's
+        // edge (#298); from xl the page is narrower than the screen and the tabs fit. It scrolls
+        // sideways only, without a visible scrollbar (like the filter chips).
+        "-mx-4 h-auto w-auto max-w-none [scrollbar-width:none] justify-start gap-6 overflow-x-auto overflow-y-hidden rounded-none p-0 px-4 md:-mx-10 md:gap-7 md:px-10 [&::-webkit-scrollbar]:hidden",
         className,
       )}
       {...props}
@@ -50,8 +55,10 @@ export function BandTabsItem({
     <TabsTrigger
       className={cn(
         // the kit's line indicator and shadow are not used; it sits 5 px below the tab and made
-        // the strip scroll, so it is hidden too
-        "group/tab h-auto flex-none gap-1.5 rounded-none border-0 border-b-3 border-transparent px-0 pt-3 pb-2.5 text-body after:hidden",
+        // the strip scroll, so it is hidden too.
+        // The strip is `h-band-tabs` tall, the same token PageBand's motif ends above (#298),
+        // so the two cannot drift apart; the text is centred above the underline.
+        "group/tab h-band-tabs flex-none gap-1.5 rounded-none border-0 border-b-3 border-transparent px-0 py-0 text-body after:hidden",
         // The focus ring as a frame 4 px into the gap beside the tab, as tall as the tab: the
         // strip scrolls sideways and the band clips, so the kit's ring outside the tab lost its
         // top and bottom and only two lines at the sides were left. Not padding: the lime

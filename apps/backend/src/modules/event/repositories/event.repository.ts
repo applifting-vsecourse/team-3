@@ -31,6 +31,10 @@ import {
   RequestsState,
 } from '@/modules/event/domain/participation';
 import { summarize } from '@/modules/event/domain/summary';
+import {
+  RatingSummary,
+  summarizeTotals,
+} from '@/modules/rating/domain/rating-summary';
 import { requestMessageFor } from '@/shared/request-message/request-message';
 import { Injectable } from '@nestjs/common';
 import { buildGroupEventsWhere } from './group-events-where';
@@ -108,14 +112,37 @@ export class EventRepository {
     now: Date;
     limit: number;
   }): Promise<PublicEvent[]> {
+    // soonest first; Proběhlé newest first (#61)
+    const order = query.filters.past ? 'desc' : 'asc';
     const events = await this.prisma.event.findMany({
       where: buildPublicEventsWhere(query.filters, query.now),
       include: publicEventInclude,
       // id breaks ties so the cut-off at `limit` is stable
-      orderBy: [{ startsAt: 'asc' }, { id: 'asc' }],
+      orderBy: [{ startsAt: order }, { id: order }],
       take: query.limit,
     });
     return events.map((event) => toPublicEvent(event, query.now));
+  }
+
+  /**
+   * The average rating of each event (its `eventStars`) for the past cards of
+   * Proběhlé (#61), without ratings a superadmin deleted. An event nobody
+   * rated isn't there.
+   */
+  async eventRatings(eventIds: string[]): Promise<Map<string, RatingSummary>> {
+    if (eventIds.length === 0) return new Map();
+    const rows = await this.prisma.rating.groupBy({
+      by: ['eventId'],
+      where: { eventId: { in: eventIds }, deletedAt: null },
+      _sum: { eventStars: true },
+      _count: { _all: true },
+    });
+    return new Map(
+      rows.map((row) => [
+        row.eventId,
+        summarizeTotals(row._sum.eventStars ?? 0, row._count._all),
+      ]),
+    );
   }
 
   /**

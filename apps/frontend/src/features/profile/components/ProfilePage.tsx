@@ -11,6 +11,7 @@ import { Avatar, AvatarFallback } from "@/components/ui/avatar"
 import { Button } from "@/components/ui/button"
 import { initials } from "@/lib/initials"
 import { PAGE } from "@/lib/pageLayout"
+import { ratingSummaryLabel } from "@/lib/ratingSummary"
 import { cn } from "@/lib/utils"
 
 import {
@@ -18,7 +19,6 @@ import {
   profileQueryOptions,
 } from "@/features/profile/api/profileQueryOptions"
 import type { ProfileOverviewData, SelfProfile } from "@/features/profile/api/profileSchemas"
-import { formatRatingSummary } from "@/features/profile/lib/formatRating"
 
 import {
   EventSection,
@@ -112,7 +112,7 @@ function ProfileBand({
           </AvatarFallback>
         </Avatar>
       }
-      description={`${profile.homeLocality?.name ?? "Bez domovské lokality"} · ${formatRatingSummary(overview.participantSummary)}`}
+      description={`${profile.homeLocality?.name ?? "Bez domovské lokality"} · ${ratingSummaryLabel(overview.participantSummary)}`}
       action={
         <Button
           asChild

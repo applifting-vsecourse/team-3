@@ -70,8 +70,8 @@ export function NearestEvents({ locality: shown, footer }: NearestEventsProps) {
             localities={localitiesQuery.data}
             onChange={shown.pick}
             applyLabel="Zobrazit akce"
-            // a guess says so on the chip, „Praha · podle polohy“ (wireframe A-01: „odhad z IP“)
-            localityDefault={localityDefault(shown, shown.forget)}
+            // a guess says so on the chip, „Praha · odhad“ (wireframe A-01: „odhad z IP“)
+            localityDefault={localityDefault(shown, shown.forget, shown.pick)}
           />
         ) : /* From the resolved locality, so the label can't name a place the list isn't for. */
         locality ? (

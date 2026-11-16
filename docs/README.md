@@ -10,6 +10,7 @@ Rozcestník podkladů k projektu. Agent i lidé začínají tady.
 | [../BACKLOG.md](../BACKLOG.md)                               | Rozpad stories na úkoly B-0xx pro agenta, pořadí a závislosti                                                            |
 | [zapis-planning-sprint2.md](zapis-planning-sprint2.md)       | Zápis z planningu s PO 13. 10. 2026 a změny ze standupu 19. 10.: happy path a scope sprintu 2                            |
 | [zapis-planning-sprint3.md](zapis-planning-sprint3.md)       | Zápis z planningu s PO 28. 10. 2026: životní cyklus akce, scope a rozhodnutí sprintu 3                                   |
+| [zapis-planning-sprint4.md](zapis-planning-sprint4.md)       | Zápis z planningu s PO 10. 11. 2026: zpětná vazba ke sprintu 3, scope a rozhodnutí sprintu 4                             |
 | [design-rozhodnuti.md](design-rozhodnuti.md)                 | Kde se design vědomě liší od wireframů a proč                                                                            |
 | [ux-audit.md](ux-audit.md)                                   | UX audit a nový brand (#173): rozhodnutí, pravidla úvodní stránky a hodnocení, hlas aplikace, přehled obrazovek ve Figmě |
 | [datovy-model.md](datovy-model.md)                           | Datový model MVP: ER diagram, přehled tabulek a pravidla, která hlídá backend                                            |

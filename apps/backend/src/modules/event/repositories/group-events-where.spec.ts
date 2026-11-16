@@ -1,3 +1,7 @@
+import {
+  eventNotOverWhere,
+  eventOverWhere,
+} from '@/modules/event/domain/event-over';
 import { buildGroupEventsWhere } from './group-events-where';
 
 const now = new Date('2026-10-23T08:00:00.000Z');
@@ -5,7 +9,7 @@ const now = new Date('2026-10-23T08:00:00.000Z');
 const MEMBER_VISIBILITY = { visibility: { in: ['public', 'members'] } };
 
 describe('buildGroupEventsWhere (B-055)', () => {
-  it("upcoming: the group's published events still ahead", () => {
+  it("upcoming: the group's published events not over yet, also one going on now (#272)", () => {
     expect(
       buildGroupEventsWhere(
         'g1',
@@ -16,19 +20,19 @@ describe('buildGroupEventsWhere (B-055)', () => {
     ).toEqual({
       AND: [
         { groupId: 'g1', status: 'published' },
-        { startsAt: { gt: now } },
+        eventNotOverWhere(now),
         MEMBER_VISIBILITY,
       ],
     });
   });
 
-  it('past: the published events that have started', () => {
+  it('past: the published events that are over, as on their detail (#272)', () => {
     expect(
       buildGroupEventsWhere('g1', 'past', { includeMembersOnly: true }, now),
     ).toEqual({
       AND: [
         { groupId: 'g1', status: 'published' },
-        { startsAt: { lte: now } },
+        eventOverWhere(now),
         MEMBER_VISIBILITY,
       ],
     });

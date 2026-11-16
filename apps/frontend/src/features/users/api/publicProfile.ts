@@ -46,6 +46,8 @@ export const publicProfileSchema = person.extend({
         }),
       }),
       approvedCount: z.number().int().nonnegative(),
+      // above 0 it didn't take place: „Nekonalo se“ on the card, as on its detail (review #323)
+      missingToMin: z.number().int().nonnegative(),
       rating: summary,
     }),
   ),
@@ -53,13 +55,6 @@ export const publicProfileSchema = person.extend({
 export type PublicProfile = z.infer<typeof publicProfileSchema>
 export type PublicSummary = PublicProfile["participantSummary"]
 export type PublicOrganizedEvent = PublicProfile["organizedEvents"][number]
-
-/** DESIGN.md › Copy: an average always shows its count — „★ 4,5 (6 hodnocení)“. */
-export function summaryLabel(value: PublicSummary): string {
-  return value.count > 0 && value.average !== null
-    ? `★ ${value.average.toLocaleString("cs-CZ", { maximumFractionDigits: 1 })} (${value.count} hodnocení)`
-    : "zatím bez hodnocení"
-}
 
 export const publicUserKeys = {
   all: () => ["public-users"] as const,

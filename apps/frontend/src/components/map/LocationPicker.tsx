@@ -81,6 +81,8 @@ export function LocationPicker({
         aria-labelledby={labelledBy}
         // a region can't be aria-invalid: the error is its description
         aria-describedby={describedBy}
+        // what useRevealFormErrors looks for to bring the map into view (#291)
+        data-invalid={isInvalid}
         className={cn(
           "relative isolate z-0 h-64 overflow-hidden rounded-lg border border-border",
           isInvalid && "border-destructive",
@@ -103,6 +105,7 @@ export function LocationPicker({
             url="https://tile.openstreetmap.org/{z}/{x}/{y}.png"
           />
           <PickOnClick onPick={(point) => pick(point, "map")} />
+          <MarkFocusTarget />
           <FollowCenter
             center={center}
             hasPoint={value !== null}
@@ -146,6 +149,24 @@ function PickOnClick({ onPick }: { onPick: (point: LatLng) => void }) {
   useMapEvents({
     click: (event) => onPick({ lat: event.latlng.lat, lng: event.latlng.lng }),
   })
+  return null
+}
+
+/**
+ * Marks Leaflet's container, the map's one focusable element (Leaflet gives it tabindex="0" to
+ * move the map from the keyboard), as where useRevealFormErrors puts the focus when the place
+ * is missing (#291). The region around it can't take the focus, and inside it are links
+ * (attribution) and buttons (zoom) that mustn't get it instead.
+ */
+function MarkFocusTarget() {
+  const map = useMap()
+  useEffect(() => {
+    const container = map.getContainer()
+    container.dataset.focusTarget = ""
+    return () => {
+      delete container.dataset.focusTarget
+    }
+  }, [map])
   return null
 }
 

@@ -182,4 +182,39 @@ describe("EventList", () => {
     await userEvent.click(screen.getByRole("button", { name: "Zkusit znovu" }))
     expect(onRetry).toHaveBeenCalledOnce()
   })
+
+  it("Proběhlé: past cards with how each ended and its rating (#61, Figma A-02h)", async () => {
+    const { container } = await renderWithRouter(
+      <EventList
+        isPast
+        events={[
+          anEvent({
+            id: "e1",
+            title: "Volejbal na Letné",
+            approvedCount: 5,
+            missingToMin: 0,
+            rating: { average: 4.5, count: 3 },
+          }),
+          anEvent({
+            id: "e2",
+            title: "Volejbal ve Stromovce",
+            approvedCount: 2,
+            missingToMin: 2,
+            rating: { average: null, count: 0 },
+          }),
+        ]}
+      />,
+    )
+
+    expect(screen.getByText("2 proběhlé akce")).toBeInTheDocument()
+    expect(screen.getByText("Proběhlo")).toBeInTheDocument()
+    expect(screen.getByText("Sešlo se 5 lidí · ★ 4,5 (3 hodnocení)")).toBeInTheDocument()
+    expect(screen.getByText("Nekonalo se")).toBeInTheDocument()
+    expect(screen.getByText("Do minima chyběli 2 lidé")).toBeInTheDocument()
+    expect(container.querySelector("[data-slot=capacity-track]")).toBeNull()
+    expect(screen.getByRole("link", { name: "Volejbal na Letné" })).toHaveAttribute(
+      "href",
+      "/akce/e1",
+    )
+  })
 })

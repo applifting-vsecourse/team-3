@@ -1,10 +1,11 @@
 import { readFileSync } from "node:fs"
 import { resolve } from "node:path"
-import { render, screen } from "@testing-library/react"
-import { describe, expect, it } from "vitest"
+import { fireEvent, render, screen } from "@testing-library/react"
+import { Map as LeafletMap } from "leaflet"
+import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "vitest"
 
 import { clusterHtml, PIN_BOX, pinHtml } from "./mapPin"
-import { MapView, toArea, viewKey } from "./MapView"
+import { AreaSearchButton, clusterZoom, MapView, toArea, viewKey, type MapPinData } from "./MapView"
 
 const praha = { lat: 50.0755, lng: 14.4378 }
 
@@ -81,6 +82,138 @@ describe("MapView with clusters (#56)", () => {
   })
 })
 
+// #306 (PO 10. 11.): zoomed far out a tap on the map's points seemed to do nothing. The map opens
+// on the locality, a pin answers at every zoom and a cluster zooms to all its events.
+describe("MapView zoomed out (#306)", () => {
+  // Leaflet can't remove an init hook, so one hook for the file, and its list emptied per test
+  const maps: LeafletMap[] = []
+  beforeAll(() => {
+    LeafletMap.addInitHook(function (this: LeafletMap) {
+      maps.push(this)
+    })
+  })
+  beforeEach(() => {
+    maps.length = 0
+    // jsdom has no layout: an 800 × 600 map, so fitting and zooming work as in a browser
+    vi.spyOn(HTMLElement.prototype, "clientWidth", "get").mockReturnValue(800)
+    vi.spyOn(HTMLElement.prototype, "clientHeight", "get").mockReturnValue(600)
+  })
+  afterEach(() => vi.restoreAllMocks())
+
+  const lastMap = () => {
+    const map = maps.at(-1)
+    if (!map) throw new Error("no map")
+    return map
+  }
+  const czechia = { lat: 49.8, lng: 15.5, zoom: 7 }
+  const pin = (id: string, lat: number, lng: number): MapPinData => ({
+    id,
+    lat,
+    lng,
+    variant: "default",
+    label: id,
+  })
+  // five events across Praha, a few kilometres apart, and one in Brno
+  const praguePins = [
+    pin("letna", 50.1, 14.42),
+    pin("karlin", 50.093, 14.45),
+    pin("smichov", 50.07, 14.4),
+    pin("vrsovice", 50.068, 14.46),
+    pin("dejvice", 50.105, 14.39),
+  ]
+  const brno = pin("brno", 49.195, 16.607)
+
+  it("opens on the locality at city zoom while it has no pins", () => {
+    render(
+      <MapView
+        center={praha}
+        pins={[]}
+      />,
+    )
+
+    expect(lastMap().getZoom()).toBe(12)
+    expect(lastMap().getCenter()).toMatchObject({ lat: praha.lat, lng: praha.lng })
+  })
+
+  it("opens on the locality's pins, never zoomed out past them", () => {
+    render(
+      <MapView
+        center={praha}
+        pins={praguePins}
+      />,
+    )
+
+    const map = lastMap()
+    expect(map.getZoom()).toBeGreaterThanOrEqual(11)
+    expect(map.getZoom()).toBeLessThanOrEqual(14)
+    for (const { lat, lng } of praguePins) expect(map.getBounds().contains([lat, lng])).toBe(true)
+  })
+
+  it("all of Czechia opens on the whole country", () => {
+    render(
+      <MapView
+        center={czechia}
+        pins={[]}
+      />,
+    )
+
+    expect(lastMap().getZoom()).toBe(7)
+  })
+
+  it("a pin answers a tap zoomed out too", () => {
+    const onPinClick = vi.fn()
+    const { container } = render(
+      <MapView
+        center={czechia}
+        pins={[brno]}
+        isClustered
+        onPinClick={onPinClick}
+        area={{ west: 12, south: 48.5, east: 19, north: 51 }}
+      />,
+    )
+
+    fireEvent.click(container.querySelector(".leaflet-marker-icon")!)
+    expect(onPinClick).toHaveBeenCalledWith("brno")
+  })
+
+  it("a tap on a cluster zooms to all its events, not just a step", () => {
+    // Praha and a town beside it: one cluster for the whole country, which a step closer only
+    // loses the town (the seed's Praha: 61 events, splitting at 8, all of them in view at 10)
+    const region = [...praguePins, pin("hostivice", 50.081, 14.258)]
+    render(
+      <MapView
+        center={czechia}
+        pins={[...region, brno]}
+        isClustered
+        // keep the country in view: no fitting to the pins
+        area={{ west: 12, south: 48.5, east: 19, north: 51 }}
+      />,
+    )
+    const map = lastMap()
+    const before = map.getZoom()
+
+    fireEvent.click(screen.getByTitle("6 akcí – přiblížit"))
+
+    expect(map.getZoom()).toBeGreaterThanOrEqual(before + 2)
+    for (const { lat, lng } of region) expect(map.getBounds().contains([lat, lng])).toBe(true)
+  })
+})
+
+describe("clusterZoom (#306)", () => {
+  it("fits the cluster's events, at least where it splits up, at most the district", () => {
+    expect(clusterZoom(12, 9)).toBe(12)
+    expect(clusterZoom(8, 9)).toBe(9)
+    expect(clusterZoom(18, 9)).toBe(14)
+    // events in one place split up only at street level
+    expect(clusterZoom(18, 17)).toBe(17)
+  })
+
+  it("without a laid-out map zooms to where the cluster splits up", () => {
+    // Leaflet's getBoundsZoom gives NaN for a map without a size
+    expect(clusterZoom(Number.NaN, 9)).toBe(9)
+  })
+})
+
 describe("viewKey: what a user's move belongs to (review #276)", () => {
   const pin = (id: string) => ({ id, lat: 50, lng: 14, variant: "default" as const, label: id })
   const view = { pins: [pin("a"), pin("b")], center: praha }
@@ -112,9 +245,9 @@ describe("viewKey: what a user's move belongs to (review #276)", () => {
 const mapCss = readFileSync(resolve(process.cwd(), "src/components/map/map.css"), "utf8")
 
 describe("map.css", () => {
-  it("styles Leaflet with tokens only and darkens just the tiles in dark mode", () => {
+  it("styles Leaflet with tokens only and leaves the tiles as they are", () => {
     expect(mapCss).not.toMatch(/#[0-9a-f]{3,6}\b|rgba?\(/i)
-    expect(mapCss).toMatch(/\.dark \.leaflet-tile-pane\s*\{[^}]*filter:/)
+    expect(mapCss).not.toMatch(/filter:/)
   })
 })
 
@@ -154,6 +287,7 @@ describe("pinHtml", () => {
 describe("clusterHtml", () => {
   it("rings a cluster lime only when an event in it misses people", () => {
     expect(clusterHtml(16, true)).toContain("ring-primary")
+    expect(clusterHtml(16, true)).toContain("outline-primary-edge")
     expect(clusterHtml(16, false)).not.toContain("ring-primary")
     expect(clusterHtml(16, false)).not.toMatch(/#[0-9a-f]{3,6}\b|rgb\(/i)
   })
@@ -176,5 +310,29 @@ describe("toArea (review #276)", () => {
       east: 14.6,
       north: 50.2,
     })
+  })
+})
+
+// #288: on a phone the search and the chips float over the map's top; the button was under them
+describe("AreaSearchButton", () => {
+  it("sits 12 px under what floats over the map's top", () => {
+    render(
+      <AreaSearchButton
+        topInset={108}
+        onClick={vi.fn()}
+      />,
+    )
+
+    const button = screen.getByRole("button", { name: "Hledat v této oblasti" })
+    expect(button).toHaveStyle({ top: "108px" })
+    expect(button).toHaveClass("mt-3")
+  })
+
+  it("without anything over the map it sits 12 px from the map's top (desktop)", () => {
+    render(<AreaSearchButton onClick={vi.fn()} />)
+
+    const button = screen.getByRole("button", { name: "Hledat v této oblasti" })
+    expect(button).toHaveClass("top-0", "mt-3")
+    expect(button.style.top).toBe("")
   })
 })

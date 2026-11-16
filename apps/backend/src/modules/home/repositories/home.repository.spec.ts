@@ -1,4 +1,5 @@
 import { PrismaService } from '@/core/prisma/prisma.service';
+import { eventOverWhere } from '@/modules/event/domain/event-over';
 import { mockDeep } from 'jest-mock-extended';
 import { HomeRepository } from './home.repository';
 
@@ -33,7 +34,7 @@ describe('HomeRepository', () => {
       expect(attended).toEqual({
         userId: 'u1',
         status: 'approved',
-        event: { status: 'published', startsAt: { lte: now } },
+        event: { status: 'published', ...eventOverWhere(now) },
       });
       expect(joined).toEqual({
         userId: 'u1',

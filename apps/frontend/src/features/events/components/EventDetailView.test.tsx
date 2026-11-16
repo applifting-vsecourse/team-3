@@ -20,7 +20,17 @@ const stubDesktop = (isDesktop: boolean) =>
   }))
 
 describe("EventDetailView", () => {
-  afterEach(() => vi.unstubAllGlobals())
+  // the fixture's event is on 23. 10. 2026: render it before it starts, unless a test says
+  // otherwise with `now`; a past event shows how it ended instead of the capacity (#61).
+  // Only Date is faked, the timers stay real for the async rendering.
+  beforeEach(() => {
+    vi.useFakeTimers({ toFake: ["Date"] })
+    vi.setSystemTime(beforeStart)
+  })
+  afterEach(() => {
+    vi.useRealTimers()
+    vi.unstubAllGlobals()
+  })
 
   it("shows what, when, where, who organizes it and how many are coming", async () => {
     await renderWithRouter(
@@ -255,6 +265,25 @@ describe("EventDetailView", () => {
 
     expect(screen.queryByText("Koná se")).not.toBeInTheDocument()
   })
+
+  it.each([
+    [{ approvedCount: 5, missingToMin: 0 }, "Proběhlo", "Sešlo se 5 lidí"],
+    [{ approvedCount: 2, missingToMin: 2 }, "Nekonalo se", "Do minima chyběli 2 lidé"],
+  ])(
+    "an event that is over says how it ended instead of the capacity (Figma A-05h, #61)",
+    async (occupancy, badge, outcome) => {
+      const { container } = await renderWithRouter(
+        <EventDetailView
+          event={anEventDetail(occupancy)}
+          now={new Date("2026-10-24T08:00:00.000Z")}
+        />,
+      )
+
+      expect(screen.getAllByText(badge).length).toBeGreaterThan(0)
+      expect(screen.getAllByText(outcome).length).toBeGreaterThan(0)
+      expect(container.querySelector("[data-slot=capacity-track]")).toBeNull()
+    },
+  )
 
   it("shows the organizer's actions the page passes in", async () => {
     await renderWithRouter(

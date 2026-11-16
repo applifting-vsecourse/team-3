@@ -62,6 +62,12 @@ describe('ListEventsQueryDto', () => {
     ]);
   });
 
+  it('turns past=true into the Proběhlé filter and rejects anything else (#61)', () => {
+    expect(parse({ past: 'true' }).dto.past).toBe(true);
+    expect(parse({ past: 'false' }).dto.past).toBe(false);
+    expect(parse({ past: 'yes' }).invalid).toEqual(['past']);
+  });
+
   it('accepts capacity free or missing and rejects anything else', () => {
     expect(parse({ capacity: 'free' }).dto.capacity).toBe('free');
     expect(parse({ capacity: 'missing' }).invalid).toEqual([]);

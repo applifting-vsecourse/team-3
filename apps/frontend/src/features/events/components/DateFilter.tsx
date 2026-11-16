@@ -16,37 +16,61 @@ import {
   rangeLengthLabel,
   type DayRange,
 } from "@/features/events/lib/dateRange"
-import type { EventsSearch } from "@/features/events/lib/eventsSearch"
+import { PAST_TERM, type EventsSearch } from "@/features/events/lib/eventsSearch"
 import { showEventsLabel } from "@/features/events/lib/formatEvent"
 
 const captionFormat = new Intl.DateTimeFormat("cs-CZ", { month: "long", year: "numeric" })
 const weekdayFormat = new Intl.DateTimeFormat("cs-CZ", { weekday: "short" })
 const capitalize = (text: string) => text.charAt(0).toUpperCase() + text.slice(1)
 
+/** A range from–to, or Proběhlé (#61), which replaces it. */
+type Term = DayRange & { termin?: typeof PAST_TERM }
+
 type DateFilterProps = {
   search: EventsSearch
-  onChange: (range: DayRange) => void
+  /** Proběhlé also drops the occupancy filter: a past event has no places to fill (Figma A-02h). */
+  onChange: (patch: Partial<EventsSearch>) => void
 }
 
 /**
  * Chip „Termín“ › a range from–to (Figma: Popover – termín, Spodní panel – termín):
- * quick options and a calendar. Past days can't be picked.
+ * quick options and a calendar. Past days can't be picked; the past is the quick option
+ * „Proběhlé“ (#61), the events that are over, newest first.
  */
 export function DateFilter({ search, onChange }: DateFilterProps) {
-  const current: DayRange = { od: search.od, do: search.do }
+  const current: Term = { od: search.od, do: search.do, termin: search.termin }
   const [isOpen, setIsOpen] = useState(false)
-  const [draft, setDraft] = useState<DayRange>(current)
+  const [draft, setDraft] = useState<Term>(current)
   const [today, setToday] = useState(() => pragueToday())
+  const isPastDraft = draft.termin === PAST_TERM
   // A start without an end is one day („klepnout dvakrát na stejné datum“ is optional).
-  const chosen: DayRange = draft.od ? { od: draft.od, do: draft.do ?? draft.od } : {}
-  // od/do explicitly: an emptied range must preview no date limit, not the URL's
-  const preview = useEvents({ ...search, od: chosen.od, do: chosen.do }, { isEnabled: isOpen })
+  const chosen: Term = isPastDraft
+    ? { termin: PAST_TERM }
+    : draft.od
+      ? { od: draft.od, do: draft.do ?? draft.od }
+      : {}
+  // all three explicitly: an emptied term must preview no date limit, not the URL's
+  const preview = useEvents(
+    {
+      ...search,
+      od: chosen.od,
+      do: chosen.do,
+      termin: chosen.termin,
+      ...(chosen.termin ? { obsazenost: undefined } : {}),
+    },
+    { isEnabled: isOpen },
+  )
 
-  const apply = (range: DayRange) => {
-    onChange(range)
+  const apply = (term: Term) => {
+    onChange({
+      od: term.od,
+      do: term.do,
+      termin: term.termin,
+      ...(term.termin ? { obsazenost: undefined } : {}),
+    })
     setIsOpen(false)
   }
-  const label = formatDayRange(current)
+  const label = current.termin === PAST_TERM ? "Proběhlé" : formatDayRange(current)
 
   return (
     <FilterPanel
@@ -68,9 +92,9 @@ export function DateFilter({ search, onChange }: DateFilterProps) {
         </FilterChip>
       }
       resetLabel="Zrušit termín"
-      onReset={() => apply({ od: undefined, do: undefined })}
+      onReset={() => apply({})}
       applyLabel={showEventsLabel(preview.isPlaceholderData ? undefined : preview.events?.length)}
-      onApply={() => apply({ od: chosen.od, do: chosen.do })}
+      onApply={() => apply(chosen)}
       popoverClassName="w-auto"
     >
       <div className="flex flex-col gap-4 md:flex-row">
@@ -84,13 +108,19 @@ export function DateFilter({ search, onChange }: DateFilterProps) {
             return (
               <FilterToggleChip
                 key={option}
-                pressed={chosen.od === range.od && chosen.do === range.do}
+                pressed={!isPastDraft && chosen.od === range.od && chosen.do === range.do}
                 onPressedChange={() => setDraft(range)}
               >
                 {option}
               </FilterToggleChip>
             )
           })}
+          <FilterToggleChip
+            pressed={isPastDraft}
+            onPressedChange={() => setDraft({ termin: PAST_TERM })}
+          >
+            Proběhlé
+          </FilterToggleChip>
         </div>
         <Calendar
           mode="range"
@@ -118,7 +148,7 @@ export function DateFilter({ search, onChange }: DateFilterProps) {
           className="p-0"
         />
       </div>
-      {chosen.od && chosen.do ? (
+      {!isPastDraft && chosen.od && chosen.do ? (
         <p className="mt-4 text-sm text-muted-foreground md:hidden">
           {formatDayRange(chosen)} · {rangeLengthLabel({ od: chosen.od, do: chosen.do })}
         </p>

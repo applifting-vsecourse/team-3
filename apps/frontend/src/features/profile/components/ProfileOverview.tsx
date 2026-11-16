@@ -3,13 +3,13 @@ import { Link, type LinkProps } from "@tanstack/react-router"
 
 import { ROUTES } from "@/app/routes"
 import { Button } from "@/components/ui/button"
+import { ratingSummaryLabel } from "@/lib/ratingSummary"
 
 import type {
   ProfileEvent,
   ProfileRating,
   RatingSummary,
 } from "@/features/profile/api/profileSchemas"
-import { formatRatingSummary } from "@/features/profile/lib/formatRating"
 
 /** A section of the overview on /profil (Figma B-05, B-05d): heading, content, the way to the rest. */
 export function ProfileSection({
@@ -187,7 +187,7 @@ function RatingList({ title, ratings, summary }: RatingGroup & { title: string }
         >
           {title}
         </h3>
-        <p className="text-sm text-muted-foreground">{formatRatingSummary(summary)}</p>
+        <p className="text-sm text-muted-foreground">{ratingSummaryLabel(summary)}</p>
       </div>
       {ratings.length ? (
         <ul className="divide-y divide-border">

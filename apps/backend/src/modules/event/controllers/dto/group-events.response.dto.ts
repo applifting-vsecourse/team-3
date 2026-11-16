@@ -21,13 +21,15 @@ export class GroupEventResponseDto extends PublicEventResponseDto {
 export class GroupEventsResponseDto {
   @ApiProperty({
     type: [GroupEventResponseDto],
-    description: 'Published events still ahead, soonest first',
+    description:
+      'Published events that are not over yet – also one going on right now – soonest first (#272)',
   })
   upcoming!: GroupEventResponseDto[];
 
   @ApiProperty({
     type: [GroupEventResponseDto],
-    description: 'Published events that have started, the latest first',
+    description:
+      'Published events that are over – after their end, without one after the Prague day they start on (#272) – the latest first',
   })
   past!: GroupEventResponseDto[];
 

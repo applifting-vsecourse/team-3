@@ -59,7 +59,7 @@ export class HomeController {
   ): Promise<HomeResponseDto> {
     return HomeResponseDto.fromDomain(
       await this.homeService.getHome(
-        { localityId: query.localityId },
+        { localityId: query.localityId, wholeCountry: query.wholeCountry },
         viewer?.id ?? null,
       ),
     );

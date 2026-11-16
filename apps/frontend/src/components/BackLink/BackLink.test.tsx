@@ -18,14 +18,14 @@ describe("BackLink (N9, #187)", () => {
   afterEach(forgetHistory)
 
   it("is named after the page it returns to — Moje akce, not a fixed „Akce“", async () => {
-    rememberHistoryEntry(0, "/moje-akce")
-    await renderWithRouter(back, { url: "/akce/e1", previous: ["/moje-akce"] })
+    rememberHistoryEntry(0, "/moje/akce")
+    await renderWithRouter(back, { url: "/akce/e1", previous: ["/moje/akce"] })
 
     expect(screen.getByRole("link", { name: "Moje akce" })).toBeInTheDocument()
   })
 
   it("says „Zpět“ where the page it returns to isn't known (after a reload)", async () => {
-    await renderWithRouter(back, { url: "/akce/e1", previous: ["/moje-akce"] })
+    await renderWithRouter(back, { url: "/akce/e1", previous: ["/moje/akce"] })
 
     expect(screen.getByRole("link", { name: "Zpět" })).toBeInTheDocument()
   })
@@ -41,7 +41,8 @@ describe("backLabel", () => {
   it.each([
     ["/", "Úvod"],
     ["/akce", "Akce"],
-    ["/moje-akce", "Moje akce"],
+    ["/moje/akce", "Moje akce"],
+    ["/moje/skupiny", "Moje skupiny"],
     ["/skupiny", "Skupiny"],
     ["/skupiny/g1", "Skupina"],
     ["/akce/e1", "Detail akce"],

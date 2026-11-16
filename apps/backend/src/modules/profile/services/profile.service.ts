@@ -7,7 +7,7 @@ import {
   type UpdateProfileInput,
 } from '@/modules/profile/domain/profile';
 import { ProfileRepository } from '@/modules/profile/repositories/profile.repository';
-import { nameProblem } from '@/shared/auth/domain/name-policy';
+import { nameProblem, trimName } from '@/shared/auth/domain/name-policy';
 import {
   BadRequestException,
   ForbiddenException,
@@ -47,7 +47,7 @@ export class ProfileService {
           code: 'INVALID_NAME',
           message: problem,
         });
-      data.name = input.name.trim();
+      data.name = trimName(input.name);
     }
     if (input.homeLocalityId !== undefined) {
       if (

@@ -9,7 +9,12 @@ import { GroupRepository } from '@/modules/group/repositories/group.repository';
 import { HomeRepository } from '@/modules/home/repositories/home.repository';
 import { BadRequestException } from '@nestjs/common';
 import { mock, MockProxy } from 'jest-mock-extended';
-import { GROUP_SCAN_LIMIT, HomeService } from './home.service';
+import {
+  GROUP_SCAN_LIMIT,
+  HomeService,
+  NEAR_KM,
+  NEAREST_POOL,
+} from './home.service';
 
 const now = new Date('2026-11-04T10:00:00.000Z');
 const PRAHA_3 = {
@@ -79,6 +84,7 @@ describe('HomeService', () => {
     groupRepository.findRecruitingGroups.mockResolvedValue([]);
     homeRepository.findRatingSummaries.mockResolvedValue(new Map());
     eventsService = mock<EventsService>();
+    eventsService.getPublicEvents.mockResolvedValue([]);
     service = new HomeService(
       homeRepository,
       eventRepository,
@@ -90,7 +96,12 @@ describe('HomeService', () => {
   it('a visitor without a locality: all of Czechia, nothing personal asked for', async () => {
     const home = await service.getHome({}, null, now);
 
-    expect(home).toEqual({ locality: null, sections: [] });
+    expect(home).toEqual({
+      locality: null,
+      sections: [],
+      isWidened: false,
+      hasLocalityEvents: false,
+    });
     expect(homeRepository.findViewer).not.toHaveBeenCalled();
     expect(eventRepository.findPublicEvents).toHaveBeenCalledWith({
       filters: { localityId: undefined },
@@ -102,6 +113,160 @@ describe('HomeService', () => {
       viewerId: null,
       now,
       limit: GROUP_SCAN_LIMIT,
+    });
+  });
+
+  describe('a locality with no events (#299)', () => {
+    const POLICE = {
+      id: 'l-police',
+      slug: 'police-nad-metuji',
+      name: 'Police nad Metují',
+      lat: 50.5369,
+      lng: 16.2335,
+      parentId: null,
+    };
+    // Trutnov misses one person, Praha three; distances as EventsService
+    // gives them (sort: 'distance')
+    const trutnov = anEvent('trutnov', 3, {
+      lat: 50.561,
+      lng: 15.9127,
+      distanceKm: 22.8,
+    });
+    const praha = anEvent('praha', 1, { distanceKm: 136.3 });
+    const point = { lat: POLICE.lat, lng: POLICE.lng };
+
+    beforeEach(() => {
+      homeRepository.findLocality.mockResolvedValue(POLICE);
+      eventRepository.findPublicEvents.mockResolvedValue([]);
+      // within 100 km only Trutnov, the whole country both
+      eventsService.getPublicEvents.mockImplementation((filters) =>
+        Promise.resolve(filters.radiusKm ? [trutnov] : [trutnov, praha]),
+      );
+    });
+
+    it('the sections come from the nearest events, by the search of /akce, with their distance', async () => {
+      const home = await service.getHome({ localityId: POLICE.id }, null, now);
+
+      expect(home.isWidened).toBe(true);
+      // nothing there at all: the page may say so
+      expect(home.hasLocalityEvents).toBe(false);
+      expect(home.locality?.slug).toBe('police-nad-metuji');
+      // review #321: the same search as /akce, near first, then the country
+      expect(eventsService.getPublicEvents).toHaveBeenNthCalledWith(
+        1,
+        { point, radiusKm: NEAR_KM },
+        { sort: 'distance', limit: NEAREST_POOL },
+        now,
+      );
+      expect(eventsService.getPublicEvents).toHaveBeenNthCalledWith(
+        2,
+        { point },
+        { sort: 'distance', limit: NEAREST_POOL },
+        now,
+      );
+      expect(eventRepository.countInterest).toHaveBeenLastCalledWith({}, now);
+      const events = home.sections.flatMap((section) =>
+        'events' in section ? section.events : [],
+      );
+      expect(home.sections.map((section) => section.key)).toEqual([
+        'highlight',
+        'missing',
+      ]);
+      expect(events.map((event) => [event.id, event.distanceKm])).toEqual([
+        ['trutnov', 22.8],
+        ['praha', 136.3],
+      ]);
+    });
+
+    it('enough events near: the whole country is not asked', async () => {
+      const near = Array.from({ length: NEAREST_POOL }, (_, i) =>
+        anEvent(`n${i}`, 3, { distanceKm: i }),
+      );
+      eventsService.getPublicEvents.mockResolvedValue(near);
+
+      await service.getHome({ localityId: POLICE.id }, null, now);
+
+      expect(eventsService.getPublicEvents).toHaveBeenCalledTimes(1);
+    });
+
+    it('only full events in the locality: widened, but the locality is not empty', async () => {
+      const full = anEvent('full', 10, { distanceKm: 0.4 });
+      eventRepository.findPublicEvents.mockResolvedValue([full]);
+      eventsService.getPublicEvents.mockResolvedValue([full, trutnov]);
+
+      const home = await service.getHome({ localityId: POLICE.id }, null, now);
+
+      expect(home).toMatchObject({ isWidened: true, hasLocalityEvents: true });
+      const ids = home.sections.flatMap((section) =>
+        'events' in section ? section.events.map((event) => event.id) : [],
+      );
+      expect(ids).toEqual(['trutnov']);
+    });
+
+    it("only the signed-in organizer's own event: widened, the locality is not empty", async () => {
+      const own = anEvent('own', 1, {
+        organizer: { id: 'u-me', name: 'Já' },
+        distanceKm: 0.2,
+      });
+      homeRepository.findViewer.mockResolvedValue({
+        homeLocalityId: null,
+        interestActivityIds: [],
+        joinedEventIds: [],
+      });
+      eventRepository.findPublicEvents.mockResolvedValue([own]);
+      eventsService.getPublicEvents.mockResolvedValue([own, trutnov]);
+
+      const home = await service.getHome(
+        { localityId: POLICE.id },
+        'u-me',
+        now,
+      );
+
+      expect(home).toMatchObject({ isWidened: true, hasLocalityEvents: true });
+      const ids = home.sections.flatMap((section) =>
+        'events' in section ? section.events.map((event) => event.id) : [],
+      );
+      expect(ids).not.toContain('own');
+      expect(ids).toContain('trutnov');
+    });
+
+    it('nothing near to join either: still widened, with no sections, so the page can say so (review #321)', async () => {
+      // the only near event is full
+      eventsService.getPublicEvents.mockResolvedValue([
+        anEvent('full', 10, { distanceKm: 3 }),
+      ]);
+
+      const home = await service.getHome({ localityId: POLICE.id }, null, now);
+
+      expect(home).toMatchObject({
+        isWidened: true,
+        hasLocalityEvents: false,
+        sections: [],
+      });
+    });
+
+    it('nothing anywhere: widened, no sections', async () => {
+      eventsService.getPublicEvents.mockResolvedValue([]);
+
+      const home = await service.getHome({ localityId: POLICE.id }, null, now);
+
+      expect(home).toMatchObject({ isWidened: true, sections: [] });
+    });
+
+    it('a locality with events of its own is never widened', async () => {
+      eventRepository.findPublicEvents.mockResolvedValue([trutnov]);
+
+      const home = await service.getHome({ localityId: POLICE.id }, null, now);
+
+      expect(home.isWidened).toBe(false);
+      expect(eventsService.getPublicEvents).not.toHaveBeenCalled();
+    });
+
+    it('all of Czechia has nothing to widen to', async () => {
+      const home = await service.getHome({}, null, now);
+
+      expect(home.isWidened).toBe(false);
+      expect(eventsService.getPublicEvents).not.toHaveBeenCalled();
     });
   });
 
@@ -191,6 +356,24 @@ describe('HomeService', () => {
     expect(eventRepository.findPublicEvents).toHaveBeenCalledWith(
       expect.objectContaining({ filters: { localityId: PRAHA.id } }),
     );
+  });
+
+  it('all of Czechia picked on purpose: no home locality in its place (#299)', async () => {
+    homeRepository.findViewer.mockResolvedValue({
+      homeLocalityId: PRAHA_3.id,
+      interestActivityIds: [],
+      joinedEventIds: [],
+    });
+
+    const home = await service.getHome({ wholeCountry: true }, 'u-jakub', now);
+
+    expect(home.locality).toBeNull();
+    expect(homeRepository.findLocality).not.toHaveBeenCalled();
+    expect(eventRepository.findPublicEvents).toHaveBeenCalledWith({
+      filters: { localityId: undefined },
+      now,
+      limit: SCAN_LIMIT,
+    });
   });
 
   it('the locality asked for wins over the profile', async () => {

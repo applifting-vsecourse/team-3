@@ -11,10 +11,13 @@ import {
   hasActiveFilters,
   hasFiltersBeyondPick,
   isAllEvents,
+  nearestFilters,
+  pickPatch,
   pickSearch,
   toEventFilters,
   toMapArea,
   toOblast,
+  withPicksOkoli,
 } from "./eventsSearch"
 
 const locality = (slug: string, parentId: string | null = null): Locality => ({
@@ -92,6 +95,15 @@ describe("toEventFilters", () => {
       categoryIds: [],
       capacity: undefined,
     })
+  })
+
+  // #305: the bar offers only „volna“, but „chybi“ still works — the quick pick, the landing
+  // page's links and links shared before set it
+  it.each([
+    ["volna", "free"],
+    ["chybi", "missing"],
+  ] as const)("asks the API for ?obsazenost=%s as capacity=%s", (obsazenost, capacity) => {
+    expect(toEventFilters({ obsazenost }, catalog).capacity).toBe(capacity)
   })
 
   it("resolves slugs to ids", () => {
@@ -265,13 +277,99 @@ describe("quick picks (#250)", () => {
       do: "2026-11-15",
       vyber: "tento-vikend",
     })
-    expect(pickSearch("tady-chybis", { lokalita: "praha-8" }, now)).toMatchObject({
+    expect(pickSearch("tady-chybis", { lokalita: "praha-8" }, now)).toEqual({
+      lokalita: "praha-8",
       obsazenost: "chybi",
-      okoli: "10",
       vyber: "tady-chybis",
     })
     expect(pickSearch(undefined, search, now)).toEqual({ lokalita: "praha-8", okoli: "25" })
   })
+
+  it("the okolí a pick turns on applies but stays out of the URL (#328)", () => {
+    const picked = pickSearch("tady-chybis", { lokalita: "praha-8" }, now)
+    expect(picked.okoli).toBeUndefined()
+    expect(withPicksOkoli(picked, now).okoli).toBe("10")
+    expect(withPicksOkoli(pickSearch("kousek-od-tebe", {}, now), now).okoli).toBe("10")
+    expect(withPicksOkoli(pickSearch("tento-vikend", {}, now), now).okoli).toBeUndefined()
+    expect(toEventFilters(withPicksOkoli(picked, now), catalog).radiusKm).toBe(10)
+  })
+
+  it("an okolí the pick turned on leaves with it (review #326)", () => {
+    const picked = pickSearch("tady-chybis", { lokalita: "praha-8" }, now)
+    const shown = (search: ReturnType<typeof pickSearch>) => withPicksOkoli(search, now).okoli
+    expect(shown(pickSearch(undefined, picked, now))).toBeUndefined()
+    expect(shown(pickSearch("tento-vikend", picked, now))).toBeUndefined()
+    expect(shown(pickSearch("kousek-od-tebe", picked, now))).toBe("10")
+  })
+
+  it.each(["10", "25", "50"] as const)(
+    "an okolí of +%s km set by hand stays after the pick, also +10 km (#328)",
+    (okoli) => {
+      const picked = pickSearch("tady-chybis", { lokalita: "praha-8", okoli }, now)
+      expect(withPicksOkoli(picked, now).okoli).toBe(okoli)
+      expect(pickSearch(undefined, picked, now).okoli).toBe(okoli)
+      expect(pickSearch("tento-vikend", picked, now).okoli).toBe(okoli)
+      expect(pickSearch("kousek-od-tebe", picked, now).okoli).toBe(okoli)
+    },
+  )
+
+  it("a filter change keeps the pick's okolí out of the URL while the pick holds (#328)", () => {
+    const picked = pickSearch("tady-chybis", { lokalita: "praha-8" }, now)
+    // the locality panel applied with its okolí unchanged
+    expect(pickPatch(picked, { lokalita: "brno", okoli: "10" }, now)).toStrictEqual({
+      lokalita: "brno",
+      okoli: undefined,
+    })
+    expect(pickPatch(picked, { kategorie: "hry" }, now)).toStrictEqual({ kategorie: "hry" })
+    // a hand-set okolí stays the visitor's
+    const byHand = pickSearch("tady-chybis", { lokalita: "praha-8", okoli: "10" }, now)
+    expect(pickPatch(byHand, { lokalita: "brno", okoli: "10" }, now)).toStrictEqual({
+      lokalita: "brno",
+      okoli: "10",
+    })
+    // a pick without okolí leaves one set alone
+    const weekend = pickSearch("tento-vikend", { lokalita: "praha-8" }, now)
+    expect(pickPatch(weekend, { okoli: "10" }, now)).toStrictEqual({ okoli: "10" })
+  })
+
+  it("leaving the pick by a filter keeps what it showed, its okolí as one's own (#328)", () => {
+    const picked = pickSearch("tady-chybis", { lokalita: "praha-8" }, now)
+    expect(pickPatch(picked, { obsazenost: undefined }, now)).toStrictEqual({
+      okoli: "10",
+      obsazenost: undefined,
+      vyber: undefined,
+    })
+    expect(pickPatch(picked, { okoli: "25" }, now)).toStrictEqual({ okoli: "25", vyber: undefined })
+    // „Jen obec“
+    expect(pickPatch(picked, { okoli: undefined }, now)).toStrictEqual({
+      okoli: undefined,
+      vyber: undefined,
+    })
+    expect(pickPatch({ lokalita: "praha-8" }, { kategorie: "hry" }, now)).toStrictEqual({
+      kategorie: "hry",
+    })
+  })
+
+  it.each(["10", "25"] as const)(
+    "leaving the pick by a filter keeps a +%s km okolí set by hand (review #333)",
+    (okoli) => {
+      // no `okoli` key at all: `setSearch` spreads the patch over the URL
+      const missing = pickSearch("tady-chybis", { lokalita: "praha-8", okoli }, now)
+      expect(pickPatch(missing, { obsazenost: undefined }, now)).toStrictEqual({
+        obsazenost: undefined,
+        vyber: undefined,
+      })
+      expect(pickPatch(missing, { obsazenost: "volna" }, now)).toStrictEqual({
+        obsazenost: "volna",
+        vyber: undefined,
+      })
+      const weekend = pickSearch("tento-vikend", { lokalita: "praha-8", okoli }, now)
+      expect(pickPatch(weekend, { od: "2026-11-20" }, now)).toStrictEqual({
+        od: "2026-11-20",
+        vyber: undefined,
+      })
+    },
+  )
 
   it("changing a filter the pick set leaves the pick, another filter keeps it", () => {
     const search = pickSearch("tady-chybis", { lokalita: "praha-8" }, now)
@@ -300,5 +398,88 @@ describe("quick picks (#250)", () => {
     })
     expect(toEventFilters({ vyber: "od-hodnocenych" }, catalog)).toMatchObject({ wellRated: true })
     expect(toEventFilters({ vyber: "tento-vikend" }, catalog).interests).toBeUndefined()
+  })
+})
+
+describe("Proběhlé (#61)", () => {
+  const now = new Date("2026-11-11T10:00:00.000Z")
+
+  it("reads ?termin=probehle and drops anything else", () => {
+    expect(eventsSearchSchema.parse({ termin: "probehle" }).termin).toBe("probehle")
+    expect(eventsSearchSchema.parse({ termin: "zitra" }).termin).toBeUndefined()
+  })
+
+  it("asks for the past instead of a range and without occupancy", () => {
+    const filters = toEventFilters(
+      {
+        termin: "probehle",
+        od: "2026-11-14",
+        do: "2026-11-15",
+        obsazenost: "chybi",
+        lokalita: "praha-8",
+      },
+      catalog,
+    )
+    expect(filters).toMatchObject({ past: true, localityId: "l-praha-8" })
+    expect(filters.dateFrom).toBeUndefined()
+    expect(filters.dateTo).toBeUndefined()
+    expect(filters.capacity).toBeUndefined()
+    expect(toSearchParams(filters).get("past")).toBe("true")
+    expect(toEventFilters({}, catalog).past).toBeUndefined()
+  })
+
+  it("never sends a pick's personal parts, even when a hand-edited URL has both (review #323)", () => {
+    const filters = toEventFilters({ termin: "probehle", vyber: "tady-chybis" }, catalog)
+    expect(filters.past).toBe(true)
+    expect(filters.interests).toBeUndefined()
+    expect(filters.notJoined).toBeUndefined()
+  })
+
+  it("„Zrušit vše“ with a pick goes back to the pick, without Proběhlé", () => {
+    expect(pickSearch("tento-vikend", {}, now).termin).toBeUndefined()
+  })
+
+  it("is a filter of its own: „Zrušit vše“ clears it, no tab holds it", () => {
+    expect(hasActiveFilters({ termin: "probehle" })).toBe(true)
+    expect(isAllEvents({ termin: "probehle" })).toBe(false)
+    // „Podle tvých zájmů“ sets no filter, still Proběhlé leaves it
+    const search = pickSearch("podle-zajmu", { lokalita: "praha-8" }, now)
+    expect(changesPick(search, { termin: "probehle" }, now)).toBe(true)
+    expect(pickSearch("tento-vikend", { termin: "probehle" }, now).termin).toBeUndefined()
+  })
+})
+
+describe("nearestFilters (#299)", () => {
+  const praha8 = catalog.localities.find((l) => l.slug === "praha-8")!
+
+  it("the same filters anywhere, nearest to the locality's centre first", () => {
+    const filters = nearestFilters(
+      { lokalita: "praha-8", okoli: "10", obsazenost: "chybi", od: "2026-11-14" },
+      catalog,
+      5,
+    )
+    expect(filters).toMatchObject({
+      localityId: undefined,
+      radiusKm: undefined,
+      lat: praha8.lat,
+      lng: praha8.lng,
+      sort: "distance",
+      limit: 5,
+      capacity: "missing",
+      dateFrom: "2026-11-14",
+    })
+    // only the five shown are downloaded (review #321)
+    expect(toSearchParams(filters!).get("limit")).toBe("5")
+  })
+
+  it("none on Proběhlé: the past isn't ordered by distance (#61)", () => {
+    expect(nearestFilters({ lokalita: "praha-8", termin: "probehle" }, catalog, 5)).toBeUndefined()
+  })
+
+  it("none without a centre: all of Czechia, a map area", () => {
+    expect(nearestFilters({ lokalita: "cele-cesko" }, catalog, 5)).toBeUndefined()
+    expect(
+      nearestFilters({ lokalita: "praha-8", oblast: "14.3,50,14.6,50.15" }, catalog, 5),
+    ).toBeUndefined()
   })
 })

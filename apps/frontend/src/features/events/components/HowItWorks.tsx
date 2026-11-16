@@ -33,7 +33,7 @@ export function HowItWorks() {
   return (
     <section
       aria-labelledby={headingId}
-      className="relative flex flex-col gap-7 overflow-hidden rounded-2xl border border-band-edge on-hero px-5 py-7 md:gap-11 md:p-14"
+      className="relative flex flex-col gap-7 overflow-hidden rounded-2xl border border-hero on-hero px-5 py-7 md:gap-11 md:p-14"
     >
       <CornerDots />
       <div className="relative flex flex-col gap-2">

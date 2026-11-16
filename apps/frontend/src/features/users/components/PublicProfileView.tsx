@@ -7,10 +7,10 @@ import { PageBand } from "@/components/PageBand/PageBand"
 import { PersonRow } from "@/components/PersonRow/PersonRow"
 import { Button } from "@/components/ui/button"
 import { PAGE } from "@/lib/pageLayout"
+import { formatAverage, ratingSummaryLabel } from "@/lib/ratingSummary"
 import { cn } from "@/lib/utils"
 
 import {
-  summaryLabel,
   type PublicOrganizedEvent,
   type PublicProfile,
   type PublicSummary,
@@ -90,7 +90,7 @@ export function PublicProfileView({
       <PageBand
         title={<span className="break-words">{profile.name}</span>}
         back={BACK}
-        description={`Jako účastník ${summaryLabel(profile.participantSummary)} · Jako organizátor ${summaryLabel(profile.organizerSummary)}`}
+        description={`Jako účastník ${ratingSummaryLabel(profile.participantSummary)} · Jako organizátor ${ratingSummaryLabel(profile.organizerSummary)}`}
       >
         <section
           aria-label="Zájmy"
@@ -242,7 +242,7 @@ function Summary({ value }: { value: PublicSummary }) {
       {value.count > 0 && value.average !== null ? (
         // DESIGN.md › Copy: an average always shows its count
         <>
-          <strong>★ {value.average.toLocaleString("cs-CZ", { maximumFractionDigits: 1 })}</strong>{" "}
+          <strong>★ {formatAverage(value.average)}</strong>{" "}
           <span className="text-muted-foreground">({value.count} hodnocení)</span>
         </>
       ) : (

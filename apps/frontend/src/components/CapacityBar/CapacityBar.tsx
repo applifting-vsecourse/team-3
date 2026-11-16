@@ -59,7 +59,7 @@ export function CapacityBar({
   )
 
   // after the fill, so it is drawn above it; the ring in the surface's colour is a gap that
-  // keeps it visible on the track, the hatch and lime in both modes (tokens.test.ts)
+  // keeps it visible on the track, the hatch and lime (tokens.test.ts)
   const marker = isFull ? null : (
     <div
       aria-hidden

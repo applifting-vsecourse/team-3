@@ -44,4 +44,19 @@ describe("useOpenSavedGroup", () => {
     router.history.back()
     await waitFor(() => expect(router.state.location.pathname).toBe("/skupiny/g1/sprava"))
   })
+
+  it("after deactivating a group, back from its detail skips Správa skupiny", async () => {
+    const { router } = await renderWithRouter(<SaveButton />, {
+      url: "/skupiny/g1/sprava",
+      previous: ["/skupiny", "/skupiny/g1"],
+    })
+
+    await userEvent.click(screen.getByRole("button", { name: "Uložit" }))
+    await waitFor(() => expect(router.state.location.pathname).toBe("/skupiny/g1"))
+
+    router.history.back()
+    await waitFor(() => expect(router.state.location.pathname).toBe("/skupiny/g1"))
+    router.history.back()
+    await waitFor(() => expect(router.state.location.pathname).toBe("/skupiny"))
+  })
 })
