@@ -56,7 +56,7 @@ describe("EmailVerifiedDialog", () => {
     const { router } = await renderDialog({ url: "/akce?obsazenost=chybi" })
 
     const dialog = screen.getByRole("dialog", { name: "E-mail je ověřený" })
-    expect(dialog).toHaveTextContent("E-mail z odkazu je ověřený.")
+    expect(dialog).toHaveTextContent("Ověření e-mailu proběhlo úspěšně.")
 
     await userEvent.click(within(dialog).getByRole("button", { name: "Procházet akce" }))
 
@@ -99,12 +99,18 @@ describe("EmailVerifiedDialog", () => {
     expect(screen.getByRole("dialog", { name: "E-mail je ověřený" })).toBeInTheDocument()
   })
 
+  it("directs an expired email-change link back to the profile", async () => {
+    await renderDialog({ url: "/profil", result: { error: "TOKEN_EXPIRED" }, user: verified })
+    const dialog = screen.getByRole("dialog", { name: "E-mail se nepodařilo ověřit" })
+    expect(dialog).toHaveTextContent("Pokud měníš e-mail, nový odkaz si vyžádej v profilu.")
+  })
+
   it("a failed link stays a failure even if another verified account is signed in", async () => {
     await renderDialog({ result: { error: "TOKEN_EXPIRED" }, user: verified })
 
     const dialog = screen.getByRole("dialog", { name: "E-mail se nepodařilo ověřit" })
     expect(dialog).toHaveTextContent(
-      "Odkaz už vypršel. Pro nový odkaz se přihlas k účtu, kterému odkaz patří.",
+      "Odkaz už vypršel. Pokud odkaz patří aktuálnímu účtu, jeho přihlašovací e-mail už máš ověřený.",
     )
     expect(within(dialog).queryByRole("button", { name: "Poslat odkaz znovu" })).toBeNull()
   })
@@ -114,7 +120,7 @@ describe("EmailVerifiedDialog", () => {
 
     const dialog = screen.getByRole("dialog", { name: "E-mail se nepodařilo ověřit" })
     expect(dialog).toHaveTextContent(
-      "Odkaz už vypršel. Pro přihlášený účet si můžeš poslat nový, platí 24 hodin.",
+      "Odkaz už vypršel. Pro aktuální účet si můžeš poslat nový odkaz, platí 24 hodin.",
     )
     expect(within(dialog).getByRole("button", { name: "Zpět na akci" })).toBeInTheDocument()
 
@@ -133,7 +139,7 @@ describe("EmailVerifiedDialog", () => {
     await renderDialog({ url: "/akce/e1", result: { error: "INVALID_TOKEN" }, user: null })
 
     const dialog = screen.getByRole("dialog", { name: "E-mail se nepodařilo ověřit" })
-    expect(dialog).toHaveTextContent("Odkaz je neplatný. Nový si pošleš při přihlášení.")
+    expect(dialog).toHaveTextContent("Odkaz je neplatný. Nový odkaz si pošleš při přihlášení.")
     const signIn = within(dialog).getByRole("link", { name: "Přihlásit se" })
     const loginUrl = new URL(signIn.getAttribute("href")!, window.location.origin)
     expect(loginUrl.pathname).toBe("/login")
@@ -169,7 +175,7 @@ describe("EmailVerifiedDialog", () => {
     await renderDialog({ user: unverified })
 
     const dialog = screen.getByRole("dialog", { name: "E-mail je ověřený" })
-    expect(dialog).toHaveTextContent("E-mail z odkazu je ověřený.")
+    expect(dialog).toHaveTextContent("Ověření e-mailu proběhlo úspěšně.")
     expect(within(dialog).queryByRole("button", { name: "Poslat odkaz znovu" })).toBeNull()
   })
 })

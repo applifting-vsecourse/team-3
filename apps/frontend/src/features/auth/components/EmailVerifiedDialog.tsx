@@ -141,8 +141,10 @@ function VerificationOutcome({
         <DialogHeader>
           <DialogTitle>E-mail je ověřený</DialogTitle>
           <DialogDescription>
-            E-mail z odkazu je ověřený.
-            {!user ? " Pro pokračování se přihlas k tomuto účtu." : null}
+            Ověření e-mailu proběhlo úspěšně.
+            {user
+              ? " Můžeš pokračovat na akce nebo do svého profilu."
+              : " Pro pokračování se přihlas k tomuto účtu."}
           </DialogDescription>
         </DialogHeader>
         <DialogFooter>
@@ -158,35 +160,37 @@ function VerificationOutcome({
     )
   }
 
+  let guidance = "Nový odkaz si pošleš při přihlášení."
+  let action = !user ? (
+    <SignInAction
+      location={location}
+      onBeforeSignIn={onBeforeSignIn}
+    />
+  ) : null
+  if (user && !user.emailVerified) {
+    guidance = "Pro aktuální účet si můžeš poslat nový odkaz, platí 24 hodin."
+    action = (
+      <ResendVerificationButton
+        email={user.email}
+        onDone={onDone}
+      />
+    )
+  } else if (user) {
+    guidance =
+      "Pokud odkaz patří aktuálnímu účtu, jeho přihlašovací e-mail už máš ověřený. Pokud měníš e-mail, nový odkaz si vyžádej v profilu. Pro jiný účet se nejdřív přihlas k němu."
+  }
+
   return (
     <>
       <DialogHeader>
-        <DialogTitle>
-          {reason ? "E-mail se nepodařilo ověřit" : "E-mail zatím není ověřený"}
-        </DialogTitle>
+        <DialogTitle>E-mail se nepodařilo ověřit</DialogTitle>
         <DialogDescription>
-          {!reason
-            ? "Otevři odkaz z e-mailu, nebo si pošli nový."
-            : user
-              ? user.emailVerified
-                ? `${reason} Pro nový odkaz se přihlas k účtu, kterému odkaz patří.`
-                : `${reason} Pro přihlášený účet si můžeš poslat nový, platí 24 hodin.`
-              : `${reason} Nový si pošleš při přihlášení.`}
+          {reason} {guidance}
         </DialogDescription>
       </DialogHeader>
       <DialogFooter>
         {closeButton}
-        {user && !user.emailVerified ? (
-          <ResendVerificationButton
-            email={user.email}
-            onDone={onDone}
-          />
-        ) : !user ? (
-          <SignInAction
-            location={location}
-            onBeforeSignIn={onBeforeSignIn}
-          />
-        ) : null}
+        {action}
       </DialogFooter>
     </>
   )
