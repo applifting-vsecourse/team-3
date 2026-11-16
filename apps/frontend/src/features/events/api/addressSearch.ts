@@ -196,7 +196,7 @@ export const reverseAddress = async (
   point: LatLng,
   signal: AbortSignal,
 ): Promise<AddressSuggestion | undefined> => {
-  const url = new URL("https://photon.komoot.io/reverse")
+  const url = new URL("../reverse", PHOTON_URL)
   url.searchParams.set("lat", String(point.lat))
   url.searchParams.set("lon", String(point.lng))
   url.searchParams.set("limit", "5")
