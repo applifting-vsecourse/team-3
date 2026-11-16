@@ -110,6 +110,7 @@ const krizikova = {
 }
 
 beforeEach(() => {
+  vi.clearAllMocks()
   // no test talks to the real address service
   answerAddresses()
 })
