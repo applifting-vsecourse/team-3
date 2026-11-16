@@ -25,10 +25,6 @@ Secrets i variables jsou v repu na GitHubu v **Settings → Secrets and variable
 
 ## Krok B: skutečné e-maily
 
-E-maily odeslané přes SMTP i Resend obsahují vedle HTML také prostou textovou
-verzi se stejnými odkazy. Samotná textová verze nezaručuje doručení do doručené
-pošty: odesílací doménu a SPF, DKIM a DMARC je ještě třeba ověřit podle #302.
-
 1. **Gmail pro odesílání:** účet, ze kterého budou e-maily chodit (nejlépe vlastní Gmail týmu, ne osobní). Zapnout dvoufázové ověření → Účet Google → Zabezpečení → **Hesla aplikací** → vytvořit heslo (16 znaků, bez mezer).
 
 2. **Secrets:**
@@ -59,3 +55,13 @@ Jakmile jsou nastavené všechny tři hodnoty `SMTP_HOST`, `SMTP_USERNAME` a `SM
 
 - **Účty ověřené simulací** nemají doložené vlastnictví adresy: ověřovací odkaz viděl ten, kdo se registroval, ne majitel adresy. Se skutečnou poštou BetterAuth propojí Google s existujícím účtem se stejnou ověřenou adresou, takže by šlo převzít cizí účet. Tým rozhodl **nechat je ověřené**: riziko se týká jen účtů založených s adresou, která registrujícímu nepatří, a demo účty ze seedu jsou na `@example.com`, ty ohrožené nejsou. Kdyby se to mělo změnit, alternativy jsou nechat účty znovu ověřit, nebo vynulovat databázi stagingu.
 - Hodnoty jsou zapečené v image. Kdo image stáhne, přečte je: používejte jen klíče pro staging. Nikdy je nedávejte do repa, chatu ani issue.
+
+## Textová verze a ověření doručování
+
+E-maily odeslané přes SMTP i Resend obsahují vedle HTML také prostou textovou
+verzi se stejnými odkazy. Samotná textová verze nezaručuje doručení do doručené
+pošty: odesílací doménu a SPF, DKIM a DMARC je ještě třeba ověřit podle #302.
+
+Při řešení #302 nejdřív ověř na stagingu `EMAIL_FROM` a jeho soulad s odesílacím účtem nebo ověřenou doménou. Výsledek potvrď hlavičkami skutečně doručené zprávy (`Authentication-Results`: SPF, DKIM a DMARC) a zapiš do issue. Aktuální nastavení zde není ověřené.
+
+Text šablon včetně zmínky o tlačítku v prosté textové verzi navazuje na #177.
