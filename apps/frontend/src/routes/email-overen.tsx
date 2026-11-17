@@ -2,6 +2,7 @@ import { createFileRoute, redirect } from "@tanstack/react-router"
 import { z } from "zod"
 
 import { ROUTES } from "@/app/routes"
+import { authKeys } from "@/lib/auth-keys"
 
 import { authSessionQueryOptions } from "@/features/auth/api/authSessionQueryOptions"
 import { safeRedirect } from "@/features/auth/lib/redirect"
@@ -20,11 +21,14 @@ export const Route = createFileRoute("/email-overen")({
     from: z.string().optional().catch(undefined),
   }),
   beforeLoad: async ({ context, search }) => {
-    // Refresh the session before redirecting so the destination has current
-    // account data. The link's error belongs to the link, not that session.
+    // BetterAuth sets the cookie before this callback. Refresh before a protected
+    // destination reads the session: a valid link may have switched accounts.
     await context.queryClient
       .fetchQuery({ ...authSessionQueryOptions(), staleTime: 0 })
-      .catch(() => undefined)
+      .catch(() => {
+        // A failed refresh must not keep showing a different cached account.
+        context.queryClient.setQueryData(authKeys.session(), null)
+      })
     throw redirect({
       href: safeRedirect(search.from, ROUTES.events),
       // „Zpět“ then leads where the link was opened from, not here again

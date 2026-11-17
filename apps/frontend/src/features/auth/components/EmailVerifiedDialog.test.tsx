@@ -2,7 +2,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query"
 import { createBrowserHistory } from "@tanstack/react-router"
 import { act, screen, waitFor, within } from "@testing-library/react"
 import userEvent from "@testing-library/user-event"
-import { describe, expect, it, vi } from "vitest"
+import { beforeEach, describe, expect, it, vi } from "vitest"
 
 import { authKeys } from "@/lib/auth-keys"
 import { renderWithRouter } from "@/test/renderWithRouter"
@@ -50,6 +50,10 @@ const renderDialog = ({ url = "/akce", result = {}, user = verified }: RenderOpt
     { url, state: result ? { emailVerification: result } : undefined },
   )
 }
+
+beforeEach(() => {
+  vi.clearAllMocks()
+})
 
 describe("EmailVerifiedDialog", () => {
   it("over the page the sign-up started from: the e-mail is verified, the page's address stays clean", async () => {
@@ -143,12 +147,12 @@ describe("EmailVerifiedDialog", () => {
     await renderDialog({ url: "/akce/e1", result: { error: "INVALID_TOKEN" }, user: null })
 
     const dialog = screen.getByRole("dialog", { name: "E-mail se nepodařilo ověřit" })
-    expect(dialog).toHaveTextContent("Odkaz je neplatný. Nový odkaz si pošleš při přihlášení.")
+    expect(dialog).toHaveTextContent("Odkaz je neplatný. Zadej e-mail a pošli si nový odkaz.")
     const signIn = within(dialog).getByRole("link", { name: "Přihlásit se" })
     const loginUrl = new URL(signIn.getAttribute("href")!, window.location.origin)
     expect(loginUrl.pathname).toBe("/login")
     expect(safeRedirect(loginUrl.searchParams.get("from") ?? undefined, "/akce")).toBe("/akce/e1")
-    expect(within(dialog).queryByRole("button", { name: "Poslat odkaz znovu" })).toBeNull()
+    expect(within(dialog).getByRole("button", { name: "Poslat odkaz znovu" })).toBeInTheDocument()
   })
 
   it("a link that didn't work, over the sign-in of a page that needs it: „Přihlásit se“ leaves that sign-in as it is", async () => {
@@ -165,6 +169,36 @@ describe("EmailVerifiedDialog", () => {
 
     await waitFor(() => expect(screen.queryByRole("dialog")).not.toBeInTheDocument())
     expect(router.state.location.href).toBe("/login?from=%2Fmoje-akce")
+  })
+
+  it("resends directly from a failed link with a neutral confirmation and the original return page", async () => {
+    await renderDialog({
+      url: "/akce/e1?obsazenost=chybi",
+      result: { error: "TOKEN_EXPIRED" },
+      user: null,
+    })
+    const dialog = screen.getByRole("dialog")
+    await userEvent.click(within(dialog).getByRole("button", { name: "Poslat odkaz znovu" }))
+    expect(await screen.findByText("Vyplň e-mail")).toBeInTheDocument()
+    expect(authClient.sendVerificationEmail).not.toHaveBeenCalled()
+    await userEvent.type(screen.getByLabelText("E-mail k ověření"), "jana@example.com")
+    await userEvent.click(within(dialog).getByRole("button", { name: "Poslat odkaz znovu" }))
+    await waitFor(() => expect(authClient.sendVerificationEmail).toHaveBeenCalledOnce())
+    const [request] = vi.mocked(authClient.sendVerificationEmail).mock.lastCall!
+    expect(request.email).toBe("jana@example.com")
+    expect(new URL(request.callbackURL!).searchParams.get("from")).toBe("/akce/e1?obsazenost=chybi")
+    expect(await screen.findByRole("status")).toHaveTextContent("Pokud e-mail čeká na ověření")
+  })
+
+  it("shows resend failure and allows another attempt", async () => {
+    vi.mocked(authClient.sendVerificationEmail).mockRejectedValueOnce(
+      new Error("Zkontroluj připojení a zkus to znovu."),
+    )
+    await renderDialog({ result: { error: "TOKEN_EXPIRED" }, user: null })
+    await userEvent.type(screen.getByLabelText("E-mail k ověření"), "jana@example.com")
+    await userEvent.click(screen.getByRole("button", { name: "Poslat odkaz znovu" }))
+    expect(await screen.findByRole("alert")).toHaveTextContent("Zkontroluj připojení")
+    expect(screen.getByRole("button", { name: "Poslat odkaz znovu" })).toBeEnabled()
   })
 
   it("an unknown code still says the link didn't work", async () => {

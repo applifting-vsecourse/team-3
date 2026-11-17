@@ -21,7 +21,9 @@ import {
 
 import type { SessionUser } from "@/features/auth/api/authSessionQueryOptions"
 import { ResendVerificationButton } from "@/features/auth/components/ResendVerificationButton"
+import { ResendVerificationForm } from "@/features/auth/components/ResendVerificationForm"
 import { useSession } from "@/features/auth/hooks/useSession"
+import { resendFrom } from "@/features/auth/lib/callback-url"
 import { redirectFrom } from "@/features/auth/lib/redirect"
 import type { VerificationResult } from "@/features/auth/lib/verification-result"
 
@@ -30,6 +32,7 @@ const REASONS: Record<string, string> = {
   TOKEN_EXPIRED: "Odkaz už vypršel.",
   INVALID_TOKEN: "Odkaz je neplatný.",
   USER_NOT_FOUND: "Účet k tomuto odkazu už neexistuje.",
+  INVALID_USER: "Odkaz patří jinému účtu. Otevři ho po odhlášení z aktuálního účtu.",
 }
 
 /**
@@ -159,11 +162,12 @@ function VerificationOutcome({
     )
   }
 
-  let guidance = "Nový odkaz si pošleš při přihlášení."
+  let guidance = "Zadej e-mail a pošli si nový odkaz. Už máš e-mail ověřený? Přihlas se."
   let action = !user ? (
     <SignInAction
       location={location}
       onBeforeSignIn={onBeforeSignIn}
+      variant="outline"
     />
   ) : null
   if (user && !user.emailVerified) {
@@ -189,6 +193,7 @@ function VerificationOutcome({
           {reason} {guidance}
         </DialogDescription>
       </DialogHeader>
+      {!user ? <ResendVerificationForm from={resendFrom(location) ?? ROUTES.events} /> : null}
       <DialogFooter>
         {closeButton}
         {action}
@@ -200,20 +205,25 @@ function VerificationOutcome({
 function SignInAction({
   location,
   onBeforeSignIn,
+  variant = "default",
 }: {
   location: ParsedLocation
   onBeforeSignIn: (event: MouseEvent<HTMLAnchorElement>) => void
+  variant?: "default" | "outline"
 }) {
   if (location.pathname === ROUTES.login) {
     // The sign-in form is already under the dialog; preserve its existing from.
     return (
       <DialogClose asChild>
-        <Button>Přihlásit se</Button>
+        <Button variant={variant}>Přihlásit se</Button>
       </DialogClose>
     )
   }
   return (
-    <Button asChild>
+    <Button
+      asChild
+      variant={variant}
+    >
       <Link
         to={ROUTES.login}
         search={{ from: redirectFrom(location) }}

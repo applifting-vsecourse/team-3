@@ -39,7 +39,8 @@
     "auth:generate": "npx @better-auth/cli generate --config ./src/shared/auth/utils/cli-auth-client.ts",
     "db:reset": "prisma migrate reset --force",
     "email:dev": "email dev --dir ./src/core/email/templates",
-    "email:export": "email export --dir ./src/core/email/templates"
+    "email:export": "email export --dir ./src/core/email/templates",
+    "auth:check-verification-link": "ts-node -r tsconfig-paths/register src/scripts/auth-check/verification-link.script.ts"
   },
   "dependencies": {
     "@applifting-io/nestjs-decorated-config": "^1.0.8",

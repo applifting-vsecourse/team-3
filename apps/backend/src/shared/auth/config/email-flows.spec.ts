@@ -52,6 +52,7 @@ describe('emailFlowOptions', () => {
     expect(emailVerification.expiresIn).toBe(EMAIL_VERIFICATION_TTL_SECONDS);
     expect(EMAIL_VERIFICATION_TTL_SECONDS).toBe(86_400);
     expect(emailVerification.sendOnSignUp).toBe(true);
+    expect(emailVerification.autoSignInAfterVerification).toBe(true);
   });
 
   it('the reset e-mail links to the frontend page with the token, for a limited time', async () => {
@@ -113,6 +114,7 @@ describe('withEmailFlows', () => {
     );
     expect(options.emailAndPassword.enabled).toBe(true);
     expect(options.emailVerification.expiresIn).toBe(86_400);
+    expect(options.emailVerification.autoSignInAfterVerification).toBe(true);
     expect(options.user).toBe(core.user);
   });
 
