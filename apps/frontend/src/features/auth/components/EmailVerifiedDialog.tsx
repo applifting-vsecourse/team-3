@@ -141,10 +141,9 @@ function VerificationOutcome({
         <DialogHeader>
           <DialogTitle>E-mail je ověřený</DialogTitle>
           <DialogDescription>
-            Ověření e-mailu proběhlo úspěšně.
-            {user
-              ? " Můžeš pokračovat na akce nebo do svého profilu."
-              : " Pro pokračování se přihlas k tomuto účtu."}
+            {user?.emailVerified
+              ? "Teď se můžeš hlásit na akce a zakládat vlastní akce i skupiny."
+              : "Pro pokračování se přihlas k ověřenému účtu."}
           </DialogDescription>
         </DialogHeader>
         <DialogFooter>
@@ -177,7 +176,9 @@ function VerificationOutcome({
     )
   } else if (user) {
     guidance =
-      "Pokud odkaz patří aktuálnímu účtu, jeho přihlašovací e-mail už máš ověřený. Pokud měníš e-mail, nový odkaz si vyžádej v profilu. Pro jiný účet se nejdřív přihlas k němu."
+      location.pathname === ROUTES.profile
+        ? "Nový odkaz ke změně e-mailu si vyžádej v profilu."
+        : "Pokud odkaz patří aktuálnímu účtu, e-mail už máš ověřený a nic dalšího dělat nemusíš."
   }
 
   return (

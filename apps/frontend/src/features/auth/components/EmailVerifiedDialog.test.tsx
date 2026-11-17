@@ -56,7 +56,9 @@ describe("EmailVerifiedDialog", () => {
     const { router } = await renderDialog({ url: "/akce?obsazenost=chybi" })
 
     const dialog = screen.getByRole("dialog", { name: "E-mail je ověřený" })
-    expect(dialog).toHaveTextContent("Ověření e-mailu proběhlo úspěšně.")
+    expect(dialog).toHaveTextContent(
+      "Teď se můžeš hlásit na akce a zakládat vlastní akce i skupiny.",
+    )
 
     await userEvent.click(within(dialog).getByRole("button", { name: "Procházet akce" }))
 
@@ -102,7 +104,8 @@ describe("EmailVerifiedDialog", () => {
   it("directs an expired email-change link back to the profile", async () => {
     await renderDialog({ url: "/profil", result: { error: "TOKEN_EXPIRED" }, user: verified })
     const dialog = screen.getByRole("dialog", { name: "E-mail se nepodařilo ověřit" })
-    expect(dialog).toHaveTextContent("Pokud měníš e-mail, nový odkaz si vyžádej v profilu.")
+    expect(dialog).toHaveTextContent("Nový odkaz ke změně e-mailu si vyžádej v profilu.")
+    expect(dialog).not.toHaveTextContent("nic dalšího dělat nemusíš")
   })
 
   it("a failed link stays a failure even if another verified account is signed in", async () => {
@@ -110,9 +113,10 @@ describe("EmailVerifiedDialog", () => {
 
     const dialog = screen.getByRole("dialog", { name: "E-mail se nepodařilo ověřit" })
     expect(dialog).toHaveTextContent(
-      "Odkaz už vypršel. Pokud odkaz patří aktuálnímu účtu, jeho přihlašovací e-mail už máš ověřený.",
+      "Odkaz už vypršel. Pokud odkaz patří aktuálnímu účtu, e-mail už máš ověřený a nic dalšího dělat nemusíš.",
     )
     expect(within(dialog).queryByRole("button", { name: "Poslat odkaz znovu" })).toBeNull()
+    expect(dialog).not.toHaveTextContent("Nový odkaz ke změně e-mailu")
   })
 
   it("an expired link, signed in: says so and sends a new one that leads back to this page", async () => {
@@ -175,7 +179,7 @@ describe("EmailVerifiedDialog", () => {
     await renderDialog({ user: unverified })
 
     const dialog = screen.getByRole("dialog", { name: "E-mail je ověřený" })
-    expect(dialog).toHaveTextContent("Ověření e-mailu proběhlo úspěšně.")
+    expect(dialog).toHaveTextContent("Pro pokračování se přihlas k ověřenému účtu.")
     expect(within(dialog).queryByRole("button", { name: "Poslat odkaz znovu" })).toBeNull()
   })
 })
