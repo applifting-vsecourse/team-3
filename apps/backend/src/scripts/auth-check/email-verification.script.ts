@@ -199,12 +199,14 @@ const main = async (): Promise<void> => {
     { status: repeated.status },
   );
 
+  // Verification may already have created a session (#300).
+  const sessionsBeforePasswordSignIn = db.session.length;
   const verified = await signIn(PASSWORD);
   expect(
     'verified sign-in: 200 with a cookie and a session',
     verified.status === 200 &&
       Boolean(verified.headers.get('set-cookie')) &&
-      db.session.length === 1,
+      db.session.length === sessionsBeforePasswordSignIn + 1,
     { status: verified.status, sessions: db.session.length },
   );
 
