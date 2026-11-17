@@ -8,7 +8,7 @@ Planning sprintu 4 (`zapis-planning-sprint4.md`): notifikační centrum v aplika
 
 Seznam událostí a texty se na refinementu neschvalovaly. Otázky Q1–Q5 níže proto rozhodne tým, nebo je písemně položí PO. Do té doby platí návrh týmu. Z refinementu se upozornění týká:
 
-- **Přátelé** jsou v backlogu na další sprinty (PO). Řádky 13 a 14 proto do sprintu 4 nepatří a přibudou s přáteli (#307).
+- **Přátelé** (#307) zůstávají ve sprintu 4. Řádky 13 a 14 proto patří do #86 a přibudou, jakmile bude v #307 hotová žádost o přátelství.
 - **Jméno a přezdívka** (backlog): přezdívku uvidí všichni, celé jméno jen organizátor akce, správce skupiny a přátelé. Až to přijde, `{jméno}` v upozornění bude to, co smí vidět adresát. Upozornění dnes chodí jen organizátorům, správcům a dotčeným uživatelům, takže se texty měnit nebudou, jen zdroj jména.
 - **Výzva k hodnocení** po akci přijde e-mailem (#65), viz Q4.
 - **Skupiny** dostanou pozvánku odkazem, předání role správce a vyhození člena (backlog). Upozornění k nim jsou mimo #86 a přibudou s nimi.
@@ -55,7 +55,7 @@ Seznam událostí a texty se na refinementu neschvalovaly. Otázky Q1–Q5 níž
 
 Řádek 10 v zadání #86 není, doplňujeme ho jako protějšek řádků 4 a 5: kdo o vstup požádal, má se dozvědět, jak to dopadlo.
 
-### Přátelé (až s #307, další sprint)
+### Přátelé (až s #307)
 
 | #   | Událost             | Komu    | Text v centru                            | Proklik              | E-mail   |
 | --- | ------------------- | ------- | ---------------------------------------- | -------------------- | -------- |
@@ -111,4 +111,4 @@ Wireframy zvonek ani centrum nemají: stránka C ve Figmě uvádí, že „zvone
 
 - **Teď (nezávisí na otázkách):** tabulka `Notification` s migrací, API (seznam, počet nepřečtených, označit přečtené, označit vše), zápis upozornění z událostí, které už posílají e-mail (řádky 1, 3–8, 12), zvonek a centrum.
 - **Po rozhodnutí Q1 a Q2:** nové události (řádek 2 a skupiny v řádcích 9–11) včetně e-mailů.
-- **S přáteli (#307, další sprint):** řádky 13 a 14.
+- **S přáteli (#307, sprint 4):** řádky 13 a 14.
