@@ -1,8 +1,5 @@
 import { ResendConfig } from '@/core/email/adapters/resend/interfaces/resend-config.interface';
-import {
-  EmailContent,
-  EmailSender,
-} from '@/core/email/interfaces/email-service.interface';
+import { EmailContent, EmailSender } from '@/core/email/email-sender';
 import { Injectable, Logger } from '@nestjs/common';
 import { Resend } from 'resend';
 

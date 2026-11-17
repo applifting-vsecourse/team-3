@@ -1,7 +1,4 @@
-import {
-  EmailContent,
-  EmailSender,
-} from '@/core/email/interfaces/email-service.interface';
+import { EmailContent, EmailSender } from '@/core/email/email-sender';
 import { SimulatedInbox } from '@/core/email/simulated-inbox/simulated-inbox';
 import { Injectable } from '@nestjs/common';
 import { consoleEmailLog } from './console-email-log';

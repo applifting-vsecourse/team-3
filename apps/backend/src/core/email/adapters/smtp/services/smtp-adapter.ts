@@ -1,8 +1,5 @@
 import { SMTPConfig } from '@/core/email/adapters/smtp/interfaces/smtp-config.interface';
-import {
-  EmailContent,
-  EmailSender,
-} from '@/core/email/interfaces/email-service.interface';
+import { EmailContent, EmailSender } from '@/core/email/email-sender';
 import { Injectable } from '@nestjs/common';
 import * as nodemailer from 'nodemailer';
 

@@ -61,7 +61,3 @@ Jakmile jsou nastavené všechny tři hodnoty `SMTP_HOST`, `SMTP_USERNAME` a `SM
 E-maily odeslané přes SMTP i Resend obsahují vedle HTML také prostou textovou
 verzi se stejnými odkazy. Samotná textová verze nezaručuje doručení do doručené
 pošty: odesílací doménu a SPF, DKIM a DMARC je ještě třeba ověřit podle #302.
-
-Při řešení #302 nejdřív ověř na stagingu `EMAIL_FROM` a jeho soulad s odesílacím účtem nebo ověřenou doménou. Výsledek potvrď hlavičkami skutečně doručené zprávy (`Authentication-Results`: SPF, DKIM a DMARC) a zapiš do issue. Aktuální nastavení zde není ověřené.
-
-Text šablon včetně zmínky o tlačítku v prosté textové verzi navazuje na #177.
