@@ -1,8 +1,17 @@
 # HobbyHub – upozornění v aplikaci (návrh na refinement 16. 11. 2026)
 
-**Issue:** #86 (F-40, B-044) · **Navazuje na:** #177 (e-maily k účasti a akci), #307 (přátelé) · **Stav:** návrh týmu, schvaluje PO na refinementu 16. 11. 2026
+**Issue:** #86 (F-40, B-044) · **Navazuje na:** #177 (e-maily k účasti a akci), #307 (přátelé) · **Stav:** návrh týmu; na refinementu 16. 11. se neprobíral, otázky rozhodne tým, případně je písemně položí PO
 
 Planning sprintu 4 (`zapis-planning-sprint4.md`): notifikační centrum v aplikaci i e-maily, zpráva v centru je krátká („Na tvou akci se přihlásil…“) a vede na detail. Tým měl na refinement připravit seznam událostí a jejich texty. Tady je.
+
+## Co z refinementu 16. 11. se upozornění týká
+
+Seznam událostí a texty se na refinementu neschvalovaly. Otázky Q1–Q5 níže proto rozhodne tým, nebo je písemně položí PO. Do té doby platí návrh týmu. Z refinementu se upozornění týká:
+
+- **Přátelé** jsou v backlogu na další sprinty (PO). Řádky 13 a 14 proto do sprintu 4 nepatří a přibudou s přáteli (#307).
+- **Jméno a přezdívka** (backlog): přezdívku uvidí všichni, celé jméno jen organizátor akce, správce skupiny a přátelé. Až to přijde, `{jméno}` v upozornění bude to, co smí vidět adresát. Upozornění dnes chodí jen organizátorům, správcům a dotčeným uživatelům, takže se texty měnit nebudou, jen zdroj jména.
+- **Výzva k hodnocení** po akci přijde e-mailem (#65), viz Q4.
+- **Skupiny** dostanou pozvánku odkazem, předání role správce a vyhození člena (backlog). Upozornění k nim jsou mimo #86 a přibudou s nimi.
 
 ## Jak upozornění funguje
 
@@ -46,7 +55,7 @@ Planning sprintu 4 (`zapis-planning-sprint4.md`): notifikační centrum v aplika
 
 Řádek 10 v zadání #86 není, doplňujeme ho jako protějšek řádků 4 a 5: kdo o vstup požádal, má se dozvědět, jak to dopadlo.
 
-### Přátelé (až s #307)
+### Přátelé (až s #307, další sprint)
 
 | #   | Událost             | Komu    | Text v centru                            | Proklik              | E-mail   |
 | --- | ------------------- | ------- | ---------------------------------------- | -------------------- | -------- |
@@ -88,9 +97,9 @@ Indexy `(userId, createdAt)` pro seznam a `(userId, readAt)` pro počet nepřeč
 
 ## Wireframy
 
-Wireframy zvonek ani centrum nemají: stránka C ve Figmě uvádí, že „zvonek… přijde po schválení MVP“, a komponenty `Header/Mobile` a `Header/Desktop` ho neobsahují. Návrh proto popisuje chování slovy. Na refinementu potřebujeme rozhodnout, jestli stačí tento popis a design podle DESIGN.md, nebo se wireframe zvonku a centra nejdřív doplní do Figmy (Q5).
+Wireframy zvonek ani centrum nemají: stránka C ve Figmě uvádí, že „zvonek… přijde po schválení MVP“, a komponenty `Header/Mobile` a `Header/Desktop` ho neobsahují. Návrh proto popisuje chování slovy. Zbývá rozhodnout, jestli stačí tento popis a design podle DESIGN.md, nebo se wireframe zvonku a centra nejdřív doplní do Figmy (Q5).
 
-## Otevřené otázky pro PO
+## Otevřené otázky (tým, případně PO)
 
 - **Q1 Přihláška na akci bez schvalování:** má organizátor dostat upozornění na každou přihlášku? Návrh týmu: ano v centru, e-mail ne, aby organizátor oblíbené akce nedostával desítky e-mailů. Zadání #86 přitom říká, že ke stejným událostem chodí e-mail.
 - **Q2 Nová akce skupiny e-mailem:** upozornění v centru ano. Posílat i e-mail všem členům? Návrh týmu: ano, je to hlavní důvod, proč člověk ve skupině je.
@@ -98,8 +107,8 @@ Wireframy zvonek ani centrum nemají: stránka C ve Figmě uvádí, že „zvone
 - **Q4 Plánované e-maily v centru:** připomínka den před akcí a výzva k hodnocení jen e-mailem (návrh), nebo i v centru?
 - **Q5 Wireframe:** stačí popis výše, nebo doplnit zvonek a centrum do Figmy před implementací UI?
 
-## Co tým udělá před refinementem a po něm
+## Postup
 
-- **Hned (nezávisí na textech):** tabulka `Notification` s migrací, API (seznam, počet nepřečtených, označit přečtené, označit vše), zápis upozornění z událostí, které už posílají e-mail (řádky 1, 3–8, 12), zvonek a centrum.
-- **Po refinementu:** texty podle rozhodnutí, nové události (řádek 2 a skupiny v řádcích 9–11) včetně e-mailů.
-- **S #307:** řádky 13 a 14.
+- **Teď (nezávisí na otázkách):** tabulka `Notification` s migrací, API (seznam, počet nepřečtených, označit přečtené, označit vše), zápis upozornění z událostí, které už posílají e-mail (řádky 1, 3–8, 12), zvonek a centrum.
+- **Po rozhodnutí Q1 a Q2:** nové události (řádek 2 a skupiny v řádcích 9–11) včetně e-mailů.
+- **S přáteli (#307, další sprint):** řádky 13 a 14.
