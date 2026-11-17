@@ -368,6 +368,7 @@ Doménová logika (čistá funkce + testy): `approvedCount`, `missingToMin = max
 - Stránka `/akce/nova`: povinná a nepovinná pole podle US-11, výběr místa mapou (B-004, režim výběru) + textová adresa, volba způsobu přihlašování (výchozí „Bez schválení“) a viditelnosti s krátkým vysvětlením.
 - Lokalita, adresa a špendlík (#147, PR #295): výběr adresy posune špendlík a doplní lokalitu, umístění špendlíku dohledá adresu a lokalitu, volba lokality umístí špendlík do jejího středu. Lokalita se tak odvodí z místa akce a dá se upravit ručně („Upravit lokalitu bez přesunu špendlíku“). Co lokalita a co adresa znamená, je otevřené (Q14).
 - Klientská validace stejná jako na BE, chyby pod polem, tlačítko s pending stavem (DESIGN.md › Forms).
+- Časy začátku a konce (#200): `Input` z kitu, 24hodinový textový vstup. Přijme `9:00`, `09:00`, `900` a `0900`; na blur a před odesláním normalizuje na `09:00`. Neplatný/neúplný čas ponechá viditelný s chybou pod polem. Konec je nepovinný, dřívější konec znamená následující pražský den; porovnání až po normalizaci. Platný začátek 00:00–04:59 ukáže nezakazující upozornění.
 - Po zveřejnění přesměruj na detail a nabídni „Sdílet odkaz“ (kopírování do schránky + Web Share API na mobilu).
 - Stav „neověřený“ ve formuláři se odstraní (PO 4. 11., B-011): neověřený se nepřihlásí a neověřené session se při nasazení smažou.
 
