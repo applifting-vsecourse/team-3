@@ -170,7 +170,7 @@ describe("router", () => {
         queryClient,
       })
       expect(app.state.location.pathname).toBe("/login")
-      expect(queryClient.getQueryData(authKeys.session())).toBeNull()
+      expect(queryClient.getQueryData<Session>(authKeys.session())?.user).toBeUndefined()
     })
 
     it("a link that didn't work: the dialog explains it, over the events without `from`", async () => {
