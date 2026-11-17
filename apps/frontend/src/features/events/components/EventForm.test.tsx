@@ -214,9 +214,8 @@ describe("EventForm", () => {
         expect(await screen.findByText(CLOCK_TIME_ERROR)).toBeInTheDocument()
         expect(field).toHaveValue(value)
         expect(field).toHaveAttribute("aria-invalid", "true")
-        expect(field).toHaveAccessibleDescription(
-          new RegExp(CLOCK_TIME_ERROR.replace(/[.]/g, "\\.")),
-        )
+        const hint = label === "Začátek *" ? "Čas napiš jako 9:00 nebo 0900." : "Nepovinné"
+        expect(field).toHaveAccessibleDescription(`${hint} ${CLOCK_TIME_ERROR}`)
         await submit()
         expect(onSubmit).not.toHaveBeenCalled()
         expect(screen.queryByText("Termín musí být v budoucnosti")).not.toBeInTheDocument()
