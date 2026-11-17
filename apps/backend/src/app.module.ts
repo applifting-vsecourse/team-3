@@ -1,5 +1,6 @@
 import { ConfigModule } from '@applifting-io/nestjs-decorated-config';
 import { Module } from '@nestjs/common';
+import { ScheduleModule } from '@nestjs/schedule';
 import { CatalogModule } from './modules/catalog/catalog.module';
 import { EventModule } from './modules/event/event.module';
 import { GeoModule } from './modules/geo/geo.module';
@@ -15,6 +16,7 @@ import { AuthModule } from './shared/auth/auth.module';
 import { Config } from './shared/config/config.service';
 
 const imports = [
+  ScheduleModule.forRoot(),
   ConfigModule.forRootAsync(Config, { validate: true }),
   AuthModule,
   WelcomeModule,

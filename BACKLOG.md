@@ -672,11 +672,11 @@ Doménová logika (čistá funkce + testy): `approvedCount`, `missingToMin = max
 - Plánovač (`@nestjs/schedule`), každá úloha idempotentní (záznam o odeslání, aby po restartu nepřišel e-mail dvakrát).
 - **Připomínka účastníkům** den před akcí.
 - **Organizátorovi 48 a 24 h před akcí**, kolik lidí chybí do minima, s odkazy Sdílet / Topovat / Zrušit. Při naplněném minimu nepřijde.
-- **Výzva k hodnocení**: dávkově jednou denně večer pro akce, které ten den skončily, všem `approved` (odkaz na hodnocení z B-060). Účastníkům „Ohodnoť akci“, organizátorovi „Ohodnoť účastníky“ (E-01 typy 11 a 12).
+- **Výzva k hodnocení** (#65, sprint 4): denní dávka ve 21:00 v pražském čase, všem `approved` a zakladateli akce (odkaz na hodnocení z B-060). Účastníkům „Ohodnoť akci“, organizátorovi „Ohodnoť účastníky“ (E-01 typy 11 a 12). Akce skončené po večerní dávce nebo bez `endsAt` (konec pražského dne) přijdou na řadu další večer. Obnova po výpadku jen v otevřené lhůtě hodnocení; opakování neúspěšných odeslání každých 15 minut a po startu, potvrzené odeslání se eviduje v `NotificationLog`. Zrušené, skryté a smazané akce a akce pod minimem se neposílají; příjemci a omezení doručení v `modules/notification/README.md`. Připomínky před akcí a chybějící lidé jsou mimo sprint 4.
 
 **Hotovo, když:**
 
-- [ ] Testy výběru příjemců s fixním „teď“ (fake timers).
+- [x] Testy výběru příjemců výzvy k hodnocení s fixním „teď“ (fake timers), hranic večerní dávky a lhůty hodnocení, změny času, obnovy po výpadku a evidence odeslání (#65). Připomínky před akcí a chybějící lidé zůstávají na později.
 
 ---
 
