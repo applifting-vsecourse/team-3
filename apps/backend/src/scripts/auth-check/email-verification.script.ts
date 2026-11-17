@@ -110,13 +110,11 @@ const main = async (): Promise<void> => {
 
   const mail = sent[0];
   if (!mail) {
-    console.error('No verification link was sent');
-    process.exit(1);
+    throw new Error('No verification link was sent');
   }
   const href = mail.html.match(/href="([^"]*\/verify-email\?[^"]+)"/)?.[1];
   if (!href) {
-    console.error('Verification e-mail has no usable link');
-    process.exit(1);
+    throw new Error('Verification e-mail has no usable link');
   }
   const link = new URL(href.replace(/&amp;/g, '&'));
   const invalid = new URL(link);
@@ -294,10 +292,12 @@ const main = async (): Promise<void> => {
   );
 
   if (failures.length > 0) {
-    console.error(`${failures.length} expectation(s) failed`);
-    process.exit(1);
+    throw new Error(`${failures.length} expectation(s) failed`);
   }
   console.log('all expectations hold');
 };
 
-void main();
+void main().catch((error: unknown) => {
+  console.error(error instanceof Error ? error.message : error);
+  process.exitCode = 1;
+});
