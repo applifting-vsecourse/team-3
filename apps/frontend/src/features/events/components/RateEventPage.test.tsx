@@ -132,6 +132,15 @@ describe("/akce/:id/hodnoceni for a participant (Figma C-03, #66)", () => {
     ).toBeInTheDocument()
   })
 
+  it("without history (the e-mail's link) the way back leads to Moje › Proběhlé (#367)", async () => {
+    await renderPage()
+
+    expect(screen.getByRole("link", { name: "Proběhlé akce" })).toHaveAttribute(
+      "href",
+      "/moje/akce?tab=probehle",
+    )
+  })
+
   it("never asks for the event's detail: a former member of the group doesn't get it", async () => {
     await renderPage()
     await screen.findByRole("button", { name: "Odeslat hodnocení" })

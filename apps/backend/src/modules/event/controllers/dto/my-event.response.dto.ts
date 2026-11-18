@@ -24,12 +24,23 @@ export class MyEventResponseDto extends PublicEventResponseDto {
   })
   pendingRequests!: number | null;
 
+  @ApiProperty({
+    type: Number,
+    nullable: true,
+    minimum: 1,
+    maximum: 5,
+    description:
+      'The stars I gave the event (#66), null while I have not rated it or moderation deleted the rating; shown under tab=past (#367)',
+  })
+  myEventStars!: number | null;
+
   static fromDomain(event: MyEvent): MyEventResponseDto {
     return {
       ...PublicEventResponseDto.fromDomain(event),
       status: event.status,
       myParticipation: event.myParticipation,
       pendingRequests: event.pendingRequests,
+      myEventStars: event.myEventStars,
     };
   }
 }

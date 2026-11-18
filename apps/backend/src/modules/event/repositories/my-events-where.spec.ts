@@ -1,5 +1,8 @@
 import { Prisma } from '@/generated/prisma/client';
-import { eventNotOverWhere } from '@/modules/event/domain/event-over';
+import {
+  eventNotOverWhere,
+  eventOverWhere,
+} from '@/modules/event/domain/event-over';
 import { NO_NEW_REQUEST_STATUSES } from '@/modules/event/domain/participation';
 import { buildMyEventsWhere } from './my-events-where';
 
@@ -45,7 +48,16 @@ describe('buildMyEventsWhere', () => {
     });
   });
 
-  // Past events are Proběhlé (#61); hidden and deleted never leave the API;
+  it('past: events that are over where the user had an approved place, cancelled ones too (#367)', () => {
+    expect(buildMyEventsWhere('past', 'u1', now)).toEqual({
+      AND: [
+        { status: { in: ['published', 'cancelled'] }, ...eventOverWhere(now) },
+        { participations: { some: { userId: 'u1', status: 'approved' } } },
+      ],
+    });
+  });
+
+  // Past events are Proběhlé (#367); hidden and deleted never leave the API;
   // a withdrawn, rejected or removed participation doesn't put the event in Přihlášen.
   it.each(['attending', 'organizing'] as const)(
     '%s keeps only upcoming published or cancelled events',

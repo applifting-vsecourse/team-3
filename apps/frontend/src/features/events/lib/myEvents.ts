@@ -66,10 +66,11 @@ export function attendingRowLead(event: MyEvent, now: Date = new Date()): string
 
 /**
  * The tab in the URL, as Figma names it: `?tab=prihlasen` is Přihlášen, `?tab=poradam`
- * Pořádám. Without one (or with anything else) the page picks the tab itself (#188).
+ * Pořádám, `?tab=probehle` Proběhlé (#367). Without one (or with anything else) the page picks
+ * the tab itself (#188) — never Proběhlé, which is only ever chosen.
  */
 export const myEventsSearchSchema = z.object({
-  tab: z.enum(["prihlasen", "poradam"]).optional().catch(undefined),
+  tab: z.enum(["prihlasen", "poradam", "probehle"]).optional().catch(undefined),
 })
 
 export type MyEventsSearch = z.infer<typeof myEventsSearchSchema>

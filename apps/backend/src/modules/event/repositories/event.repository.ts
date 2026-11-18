@@ -166,9 +166,9 @@ export class EventRepository {
   }
 
   /**
-   * A tab of „Moje akce“ (B-035), soonest first, at most `limit`. Besides the
-   * user's own participation, the organizer's tab loads the waiting requests
-   * to count them.
+   * A tab of „Moje akce“ (B-035), soonest first – Proběhlé the latest first –
+   * at most `limit`. Besides the user's own participation, the organizer's tab
+   * loads the waiting requests to count them.
    */
   async findMyEvents(query: {
     tab: MyEventsTab;
@@ -188,8 +188,16 @@ export class EventRepository {
               : { userId },
           select: { userId: true, status: true },
         },
+        // my own rating only: an upcoming event has none yet (#367)
+        ratings: {
+          where: { userId, deletedAt: null },
+          select: { eventStars: true },
+        },
       },
-      orderBy: [{ startsAt: 'asc' }, { id: 'asc' }],
+      orderBy:
+        tab === 'past'
+          ? [{ startsAt: 'desc' }, { id: 'desc' }]
+          : [{ startsAt: 'asc' }, { id: 'asc' }],
       take: query.limit,
     });
     return events.map((event) => {
@@ -208,6 +216,7 @@ export class EventRepository {
                 (participation) => participation.status === 'pending',
               ).length
             : null,
+        myEventStars: event.ratings[0]?.eventStars ?? null,
       };
     });
   }

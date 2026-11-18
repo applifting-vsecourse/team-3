@@ -9,10 +9,12 @@ import { Button } from "@/components/ui/button"
 import type { MyEvent } from "@/features/events/api/eventSchemas"
 import { EventCard } from "@/features/events/components/EventCard"
 import { EventCardSkeleton } from "@/features/events/components/EventList"
+import { PastEventCard } from "@/features/events/components/PastEventCard"
 import {
   useAttendingEvents,
   useGroupsEvents,
   useOrganizingEvents,
+  usePastEvents,
 } from "@/features/events/hooks/useMyEvents"
 import {
   attendingNumbers,
@@ -23,6 +25,7 @@ import {
   organizingStatus,
   pendingRequestsSummary,
 } from "@/features/events/lib/myEvents"
+import { canRateEvent } from "@/features/events/lib/rating"
 
 // Figma C-01d, C-02d: three columns on a wide desktop like Moje skupiny, one on mobile
 // grid-cols-1 = minmax(0, 1fr): a long title truncates instead of widening the page on mobile
@@ -256,6 +259,56 @@ export function OrganizingEvents({ viewerId }: { viewerId: string }) {
         </>
       )}
     </div>
+  )
+}
+
+/**
+ * Proběhlé (Figma C-06, #367): the events that are over where I had a place, the latest first —
+ * the history that was on the profile until #367, as the past card (Karta akce/Proběhlá řádek):
+ * how many came and „tvoje ★ N“ once I rated it (Dáno), „Ohodnotit“ to the rating page (C-03,
+ * #66) while it can be rated by the API's rules and I haven't yet, „Zrušeno · Akce se nekonala“
+ * for a cancelled one. A card opens the detail, where a rating can still be changed.
+ */
+export function PastEvents({ viewerId, now = new Date() }: { viewerId: string; now?: Date }) {
+  const { events, isPending, error, retry } = usePastEvents(viewerId)
+  if (error) return <MyEventsError onRetry={retry} />
+  if (isPending || !events) return <MyEventsLoading />
+  if (events.length === 0) {
+    return (
+      <MyEventsEmpty>
+        <p>Tady uvidíš proběhlé akce, na které máš schválenou účast.</p>
+      </MyEventsEmpty>
+    )
+  }
+  return (
+    <EventsSection title={`Proběhlé (${events.length})`}>
+      {events.map((event) => (
+        <li key={event.id}>
+          <PastEventCard
+            event={event}
+            rating={
+              event.myEventStars === null
+                ? { kind: "open" }
+                : { kind: "given", stars: event.myEventStars }
+            }
+            rateAction={
+              canRateEvent(event, viewerId, now) ? (
+                <Link
+                  to={ROUTES.rateEvent}
+                  params={{ eventId: event.id }}
+                  // Figma: bold text, no arrow; the underline only says it's a link on hover/focus
+                  className="underline-offset-4 hover:underline focus-visible:underline"
+                  aria-label={`Ohodnotit akci ${event.title}`}
+                >
+                  Ohodnotit
+                </Link>
+              ) : undefined
+            }
+            now={now}
+          />
+        </li>
+      ))}
+    </EventsSection>
   )
 }
 

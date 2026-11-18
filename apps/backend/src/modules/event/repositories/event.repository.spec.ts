@@ -355,6 +355,7 @@ describe('EventRepository.findMyEvents', () => {
   const aRow = (
     participations: { userId: string; status: string }[],
     status = 'published',
+    ratings: { eventStars: number }[] = [],
   ): Record<string, unknown> => ({
     id: 'e1',
     title: 'Deskovky',
@@ -378,6 +379,7 @@ describe('EventRepository.findMyEvents', () => {
     group: null,
     _count: { participations: 2 },
     participations,
+    ratings,
   });
 
   it('attending: loads only the user’s own participation and its status', async () => {
@@ -453,6 +455,61 @@ describe('EventRepository.findMyEvents', () => {
     });
 
     expect(event).toMatchObject({ myParticipation: null, pendingRequests: 0 });
+  });
+
+  it('past: the latest first, with the user’s place (#367)', async () => {
+    const prisma = mockDeep<PrismaService>();
+    prisma.event.findMany.mockResolvedValue([
+      aRow([{ userId: 'u1', status: 'approved' }], 'cancelled'),
+    ] as never);
+
+    const [event] = await new EventRepository(prisma).findMyEvents({
+      tab: 'past',
+      userId: 'u1',
+      now,
+      limit: 200,
+    });
+
+    expect(event).toMatchObject({
+      status: 'cancelled',
+      myParticipation: 'approved',
+      pendingRequests: null,
+      myEventStars: null,
+    });
+    expect(prisma.event.findMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        orderBy: [{ startsAt: 'desc' }, { id: 'desc' }],
+        take: 200,
+      }),
+    );
+  });
+
+  it('sends the stars I gave, from my own rating that moderation hasn’t deleted (#367)', async () => {
+    const prisma = mockDeep<PrismaService>();
+    prisma.event.findMany.mockResolvedValue([
+      aRow([{ userId: 'u1', status: 'approved' }], 'published', [
+        { eventStars: 4 },
+      ]),
+    ] as never);
+
+    const [event] = await new EventRepository(prisma).findMyEvents({
+      tab: 'past',
+      userId: 'u1',
+      now,
+      limit: 200,
+    });
+
+    expect(event?.myEventStars).toBe(4);
+    expect(prisma.event.findMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        include: expect.objectContaining({
+          ratings: {
+            where: { userId: 'u1', deletedAt: null },
+            select: { eventStars: true },
+          },
+        }),
+      }),
+    );
   });
 });
 

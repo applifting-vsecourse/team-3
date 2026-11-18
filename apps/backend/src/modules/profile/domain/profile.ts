@@ -1,7 +1,4 @@
 import { Prisma } from '@/generated/prisma/client';
-import type { PublicEvent } from '@/modules/event/domain/event';
-import { eventOverWhere } from '@/modules/event/domain/event-over';
-import { buildMyEventsWhere } from '@/modules/event/repositories/my-events-where';
 import type { RatingSummary } from '@/modules/rating/domain/rating-summary';
 
 export const profileSelect = {
@@ -58,12 +55,6 @@ export function selfProfile(row: ProfileRow): SelfProfile {
     })),
   };
 }
-/** The public event (the same as in GET /api/events, for the event cards) and my place in it. */
-export type ProfileEvent = PublicEvent & {
-  status: 'published' | 'cancelled';
-  localityName: string;
-  participation: 'approved' | 'pending' | null;
-};
 export type ProfileRating = {
   id: string;
   stars: number;
@@ -73,52 +64,20 @@ export type ProfileRating = {
   author: { id: string; name: string };
 };
 /**
- * How many events per section and ratings per role the profile overview
- * loads (Figma B-05 shows a slice with a link to the rest). The totals come
- * alongside: `…Total` for events, `…Summary.count` for ratings.
+ * How many ratings per role the profile overview loads (Figma B-05 shows a
+ * slice); all of them are counted in `…Summary.count`.
  */
 export const PROFILE_OVERVIEW_TAKE = 3;
+/**
+ * The profile's overview: the ratings. Events are in Moje (#367: the profile
+ * is who I am and whom I know, Moje what I do): `GET /api/me/events`.
+ */
 export type ProfileOverview = {
-  organizing: ProfileEvent[];
-  organizingTotal: number;
-  upcoming: ProfileEvent[];
-  upcomingTotal: number;
-  past: ProfileEvent[];
-  pastTotal: number;
   participantRatings: ProfileRating[];
   organizerRatings: ProfileRating[];
   participantSummary: RatingSummary;
   organizerSummary: RatingSummary;
 };
-
-/**
- * The owner's participations of a section. Upcoming („Kam jdu“) is exactly the
- * Přihlášen tab of Moje akce (`buildMyEventsWhere('attending')`: events that
- * are not over yet, cancelled ones with their label), so the section, its
- * total and „Všechny v Moje akce“ agree. History counts approved places of
- * events that are over (`eventOverWhere`, #272), cancelled ones too: the card
- * says „Zrušeno · Akce se nekonala“ and offers no rating (Figma B-05, #272).
- */
-export function participationWhere(
-  userId: string,
-  now: Date,
-  past: boolean,
-): Prisma.ParticipationWhereInput {
-  if (!past)
-    return {
-      userId,
-      status: { in: ['pending', 'approved'] },
-      event: buildMyEventsWhere('attending', userId, now),
-    };
-  return {
-    userId,
-    status: 'approved',
-    event: {
-      status: { in: ['published', 'cancelled'] },
-      ...eventOverWhere(now),
-    },
-  };
-}
 
 export type UpdateProfileInput = {
   name?: string;

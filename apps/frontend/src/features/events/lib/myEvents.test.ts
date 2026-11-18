@@ -251,6 +251,7 @@ describe("myEventsSearchSchema", () => {
   it.each([
     ["prihlasen", "prihlasen"],
     ["poradam", "poradam"],
+    ["probehle", "probehle"],
     ["neco", undefined],
     [undefined, undefined],
   ])("?tab=%s is %s", (tab, expected) => {
