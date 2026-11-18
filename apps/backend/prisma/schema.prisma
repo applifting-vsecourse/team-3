@@ -445,20 +445,31 @@ model EventMessage {
   @@map("event_message")
 }
 
-/// Záznam o odeslaném plánovaném e-mailu (B-043), aby po restartu nepřišel dvakrát.
+/// Doručení plánovaného e-mailu (B-043); sentAt je null, dokud transport nepotvrdí přijetí.
 /// `key` je deterministický, např. `event-reminder:<eventId>:<userId>`.
 model NotificationLog {
-  id      String   @id @default(cuid())
-  key     String   @unique
-  type    String
-  eventId String?
-  event   Event?   @relation(fields: [eventId], references: [id], onDelete: Cascade)
-  userId  String?
-  user    User?    @relation(fields: [userId], references: [id], onDelete: Cascade)
-  sentAt  DateTime @default(now())
+  id          String    @id @default(cuid())
+  key         String    @unique
+  type        String
+  eventId     String?
+  event       Event?    @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  userId      String?
+  user        User?     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  sentAt      DateTime?
+  claimToken  String?
+  lockedUntil DateTime?
+  attempts    Int       @default(0)
 
   @@index([eventId])
   @@map("notification_log")
+}
+
+/// Datum zapnutí výzev k hodnocení. Platí pro všechny instance i restarty.
+model RatingInvitationSchedule {
+  id          Int      @id
+  activatedAt DateTime
+
+  @@map("rating_invitation_schedule")
 }
 
 // ---------------------------------------------------------------------------
