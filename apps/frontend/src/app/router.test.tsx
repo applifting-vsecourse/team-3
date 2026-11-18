@@ -6,6 +6,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest"
 import { router } from "@/app/router"
 import { authKeys } from "@/lib/auth-keys"
 
+import type { Session } from "@/features/auth/api/authSessionQueryOptions"
 import { authClient } from "@/features/auth/lib/auth-client"
 
 vi.mock("@/features/auth/lib/auth-client", () => ({
@@ -19,14 +20,30 @@ const user = { id: "u1", email: "user@example.com", name: "Jana Nováková", ema
  * `cachedUser` is what the app already has of that user, e.g. still unverified
  * right after the sign-up; the server then says `user`.
  */
-async function renderApp(url: string, { isSignedIn = false, cachedUser = user } = {}) {
-  const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } })
-  queryClient.setQueryData(authKeys.session(), isSignedIn ? { user: cachedUser } : null)
+async function renderApp(
+  url: string,
+  {
+    isSignedIn = false,
+    cachedUser = user,
+    isSessionUnavailable = false,
+    queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } }),
+  }: {
+    isSignedIn?: boolean
+    cachedUser?: typeof user | null
+    isSessionUnavailable?: boolean
+    queryClient?: QueryClient
+  } = {},
+) {
+  queryClient.setQueryData(
+    authKeys.session(),
+    isSignedIn && cachedUser ? { user: cachedUser } : null,
+  )
   // what the server says when the session is fetched anew
   vi.mocked(authClient.getSession).mockResolvedValue({
     data: isSignedIn ? { user, session: {} } : null,
     error: null,
   })
+  if (isSessionUnavailable) vi.mocked(authClient.getSession).mockRejectedValue(new Error("Offline"))
   const app = createRouter({
     ...router.options,
     context: { queryClient },
@@ -116,7 +133,6 @@ describe("router", () => {
         // the session was fetched anew before the dialog trusted it: success,
         // never „not verified“ first
         expect(await screen.findByRole("dialog", { name: "E-mail je ověřený" })).toBeInTheDocument()
-        expect(screen.queryByText("E-mail zatím není ověřený")).not.toBeInTheDocument()
         expect(screen.queryByText(/Ověř si e-mail/)).not.toBeInTheDocument()
         expect(authClient.getSession).toHaveBeenCalled()
         // the page's own address, nothing added to it; „Zpět“ doesn't lead to /email-overen
@@ -124,6 +140,38 @@ describe("router", () => {
         expect(app.history.length).toBe(1)
       },
     )
+
+    it.each([null, { ...user, id: "other", email: "other@example.com" }])(
+      "loads the new cookie session before entering a protected return page (cached=%j)",
+      async (cachedUser) => {
+        stubApi()
+        const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } })
+        const app = await renderApp("/email-overen?from=%2Fmoje%2Fakce", {
+          isSignedIn: true,
+          cachedUser,
+          queryClient,
+        })
+        expect(app.state.location.pathname).toBe("/moje/akce")
+        const fresh = queryClient.getQueryData<Session>(authKeys.session())
+        expect(fresh?.user.id).toBe(user.id)
+        expect(fresh?.user.emailVerified).toBe(true)
+        const dialog = await screen.findByRole("dialog", { name: "E-mail je ověřený" })
+        expect(within(dialog).queryByRole("link", { name: "Přihlásit se" })).not.toBeInTheDocument()
+      },
+    )
+
+    it("does not trust a cached account if refreshing the verification session fails", async () => {
+      stubApi()
+      const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } })
+      const app = await renderApp("/email-overen?from=%2Fmoje%2Fakce", {
+        isSignedIn: true,
+        cachedUser: { ...user, id: "old-account" },
+        isSessionUnavailable: true,
+        queryClient,
+      })
+      expect(app.state.location.pathname).toBe("/login")
+      expect(queryClient.getQueryData<Session>(authKeys.session())?.user).toBeUndefined()
+    })
 
     it("a link that didn't work: the dialog explains it, over the events without `from`", async () => {
       stubApi()

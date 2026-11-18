@@ -56,8 +56,22 @@ Jakmile jsou nastavené všechny tři hodnoty `SMTP_HOST`, `SMTP_USERNAME` a `SM
 - **Účty ověřené simulací** nemají doložené vlastnictví adresy: ověřovací odkaz viděl ten, kdo se registroval, ne majitel adresy. Se skutečnou poštou BetterAuth propojí Google s existujícím účtem se stejnou ověřenou adresou, takže by šlo převzít cizí účet. Tým rozhodl **nechat je ověřené**: riziko se týká jen účtů založených s adresou, která registrujícímu nepatří, a demo účty ze seedu jsou na `@example.com`, ty ohrožené nejsou. Kdyby se to mělo změnit, alternativy jsou nechat účty znovu ověřit, nebo vynulovat databázi stagingu.
 - Hodnoty jsou zapečené v image. Kdo image stáhne, přečte je: používejte jen klíče pro staging. Nikdy je nedávejte do repa, chatu ani issue.
 
-## Textová verze a ověření doručování
+## Textová verze e-mailů
 
 E-maily odeslané přes SMTP i Resend obsahují vedle HTML také prostou textovou
-verzi se stejnými odkazy. Samotná textová verze nezaručuje doručení do doručené
-pošty: odesílací doménu a SPF, DKIM a DMARC je ještě třeba ověřit podle #302.
+verzi se stejnými odkazy.
+
+## Ověřovací odkaz a přihlášení (#300)
+
+Registrace sama session nevytvoří. První platné otevření ověřovacího odkazu
+nastaví ověřený e-mail a session cookie; frontend si session znovu načte před
+návratem na původní stránku. Přihlásí se účet z odkazu, i když byl v prohlížeči
+jiný účet. Neplatný nebo prošlý odkaz aktuální přihlášení nemění.
+
+Opakované otevření již použitého odkazu nevytvoří novou session. Bez platné
+session zůstává možnost běžného přihlášení. Odeslání nového odkazu z chybového
+dialogu má pro neznámou a již ověřenou adresu stejnou obecnou odpověď.
+
+Průchod přes skutečnou e-mailovou šablonu, cookie a `/get-session` ověřuje
+`pnpm backend auth:check-verification-link` bez databáze a bez skutečného
+odesílání pošty. Onboarding #296 se implementuje samostatně.
