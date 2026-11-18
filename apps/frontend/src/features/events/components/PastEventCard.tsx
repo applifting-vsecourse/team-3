@@ -51,6 +51,11 @@ type PastEventCardProps = {
   now?: Date
 }
 
+const NO_BREAK_SPACE = " "
+
+/** „tvoje ★ 5“ with no-break spaces: on a phone it wraps whole, never „tvoje ★ / 5“ (#367). */
+const ownStarsLabel = (stars: number): string => ["tvoje", "★", String(stars)].join(NO_BREAK_SPACE)
+
 /**
  * A past event in the profile (#178) and under „Proběhlé“ (#61): the row card with the photo
  * desaturated and the date tile neutral; instead of the bar, how many came and the rating.
@@ -81,7 +86,7 @@ export function PastEventCard({
             missingToMin: event.missingToMin,
           })
         : rating?.kind === "given"
-          ? `${gatheredLabel(event.approvedCount)} · tvoje ★ ${rating.stars}`
+          ? `${gatheredLabel(event.approvedCount)} · ${ownStarsLabel(rating.stars)}`
           : gatheredLabel(event.approvedCount),
     detail,
   ]
