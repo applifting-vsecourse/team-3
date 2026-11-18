@@ -211,12 +211,25 @@ describe("EventForm", () => {
     })
     await pick("Lokalita *", "Hledat lokalitu", "Ústí nad Orlicí")
     expect(addressField()).toHaveValue("Vlastní místo")
+    const moveToLocality = screen.getByRole("button", { name: "Přesunout do středu lokality" })
+    expect(moveToLocality).toBeVisible()
     await userEvent.click(screen.getByRole("button", { name: "Uložit změny" }))
     expect(onSubmit).toHaveBeenCalledWith(
       expect.objectContaining({
         localityId: "l-usti-nad-orlici",
         lat: 50.11,
         lng: 14.47,
+        address: "Vlastní místo",
+      }),
+    )
+    await userEvent.click(moveToLocality)
+    await screen.findByText(/Adresu se nepodařilo určit/)
+    await userEvent.click(screen.getByRole("button", { name: "Uložit změny" }))
+    expect(onSubmit).toHaveBeenLastCalledWith(
+      expect.objectContaining({
+        localityId: "l-usti-nad-orlici",
+        lat: 49.9739,
+        lng: 16.3936,
         address: "Vlastní místo",
       }),
     )

@@ -17,11 +17,14 @@ const suggestion = (address: string, point = first): AddressSuggestion => ({
   city: "Praha",
   ...point,
 })
-const setup = (address = "") => {
-  const values = { address, place: null as typeof first | null, localityId: "praha" }
+const setup = (address = "", localityId = "praha") => {
+  const values = { address, place: null as typeof first | null, localityId }
   const hook = renderHook(() =>
     useEventLocation({
-      localities: [{ id: "praha", name: "Praha", slug: "praha", parentId: null, ...first }],
+      localities: [
+        { id: "praha", name: "Praha", slug: "praha", parentId: null, ...first },
+        { id: "praha-9", name: "Praha 9", slug: "praha-9", parentId: "praha", ...second },
+      ],
       initialAddress: address,
       getValues: () => values,
       setAddress: (value) => {
@@ -98,4 +101,23 @@ describe("useEventLocation", () => {
     expect(values.address).toBe("")
     expect(result.current.notice).toContain("Vyber ji ručně")
   })
+
+  it.each(["missing", "unavailable", "city only"] as const)(
+    "keeps the selected district for a point more than 1 km away when the lookup is %s",
+    async (lookup) => {
+      const park = { lat: 50.112, lng: 14.46 }
+      if (lookup === "unavailable") {
+        vi.mocked(reverseAddress).mockRejectedValue(new Error("Photon unavailable"))
+      } else {
+        vi.mocked(reverseAddress).mockResolvedValue(
+          lookup === "city only" ? suggestion("Park, Praha", park) : undefined,
+        )
+      }
+      const { result, values } = setup("U vchodu do parku", "praha-9")
+      await act(() => result.current.pickPoint(park))
+      expect(values.localityId).toBe("praha-9")
+      expect(values.address).toBe("U vchodu do parku")
+      expect(values.place).toEqual(park)
+    },
+  )
 })
