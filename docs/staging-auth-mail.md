@@ -56,6 +56,11 @@ Jakmile jsou nastavené všechny tři hodnoty `SMTP_HOST`, `SMTP_USERNAME` a `SM
 - **Účty ověřené simulací** nemají doložené vlastnictví adresy: ověřovací odkaz viděl ten, kdo se registroval, ne majitel adresy. Se skutečnou poštou BetterAuth propojí Google s existujícím účtem se stejnou ověřenou adresou, takže by šlo převzít cizí účet. Tým rozhodl **nechat je ověřené**: riziko se týká jen účtů založených s adresou, která registrujícímu nepatří, a demo účty ze seedu jsou na `@example.com`, ty ohrožené nejsou. Kdyby se to mělo změnit, alternativy jsou nechat účty znovu ověřit, nebo vynulovat databázi stagingu.
 - Hodnoty jsou zapečené v image. Kdo image stáhne, přečte je: používejte jen klíče pro staging. Nikdy je nedávejte do repa, chatu ani issue.
 
+## Textová verze e-mailů
+
+E-maily odeslané přes SMTP i Resend obsahují vedle HTML také prostou textovou
+verzi se stejnými odkazy.
+
 ## Ověřovací odkaz a přihlášení (#300)
 
 Registrace sama session nevytvoří. První platné otevření ověřovacího odkazu
