@@ -27,8 +27,11 @@ describe("photoOf", () => {
   const slug = "deskove-hry"
 
   it("is the event's or the group's own upload when there is one (#77)", () => {
+    const src = `${env.VITE_API_URL.replace(/\/$/, "")}/images/abc-123`
+    // two sizes, as the library's photos: a card's `sizes` pick the small one
     expect(photoOf({ activity: { slug }, imageKey: "abc-123" })).toEqual({
-      src: `${env.VITE_API_URL.replace(/\/$/, "")}/images/abc-123`,
+      src,
+      srcSet: `${src}/small 480w, ${src} 1600w`,
     })
   })
 

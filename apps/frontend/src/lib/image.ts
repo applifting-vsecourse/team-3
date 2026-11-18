@@ -30,15 +30,27 @@ export const imageUrl = (key: string): string =>
 
 export type PhotoSource = { src: string; srcSet?: string }
 
+/** The API's sizes of an uploaded image: the longer side, as the backend stores it (`resize-image.ts`). */
+export const IMAGE_FULL_WIDTH = 1600
+export const IMAGE_SMALL_WIDTH = 480
+
 /**
  * The picture of an event or a group (DESIGN.md › Event card): its own upload
  * (#77), or else its activity's photo from the library; undefined without either.
+ * An upload comes in two sizes, as the library's photos do: the card's `sizes`
+ * pick the small one (480 px), the detail the full one (1600 px).
  */
 export function photoOf(item: {
   activity: { slug: string }
   imageKey?: string | null
 }): PhotoSource | undefined {
-  if (item.imageKey) return { src: imageUrl(item.imageKey) }
+  if (item.imageKey) {
+    const src = imageUrl(item.imageKey)
+    return {
+      src,
+      srcSet: `${src}/small ${IMAGE_SMALL_WIDTH}w, ${src} ${IMAGE_FULL_WIDTH}w`,
+    }
+  }
   return activityPhoto(item.activity.slug)
 }
 

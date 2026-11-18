@@ -57,7 +57,9 @@ describe("EventCard", () => {
 
     const img = container.querySelector("[data-slot=event-photo] img")!
     expect(img.getAttribute("src")).toMatch(/\/images\/k-plakat$/)
-    expect(img).not.toHaveAttribute("srcset")
+    // the row card is 104 px: the browser takes the 480 px variant (#77)
+    expect(img.getAttribute("srcset")).toMatch(/\/images\/k-plakat\/small 480w/)
+    expect(img).toHaveAttribute("sizes", "104px")
     expect(img).toHaveClass("saturate-86", "contrast-110")
   })
 
