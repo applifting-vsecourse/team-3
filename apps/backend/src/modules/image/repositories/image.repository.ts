@@ -36,11 +36,7 @@ export async function deleteImage(
 export class ImageRepository {
   constructor(private readonly prisma: PrismaService) {}
 
-  /**
-   * An uploaded image by its key, for serving it; null when there is none.
-   * `small`: the cards' variant, or the image itself when it has none
-   * (uploaded before the variants, #77).
-   */
+  /** An uploaded image by its key, or its small variant for the cards; null when there is none. */
   async findImage(
     key: string,
     size: 'full' | 'small' = 'full',
@@ -54,9 +50,7 @@ export class ImageRepository {
       },
     });
     if (!image) return null;
-    const data = size === 'small' ? (image.small ?? null) : image.data;
-    if (data) return { contentType: image.contentType, data };
-    // no small variant stored: the full image
-    return this.findImage(key, 'full');
+    const data = size === 'small' ? image.small : image.data;
+    return data ? { contentType: image.contentType, data } : null;
   }
 }

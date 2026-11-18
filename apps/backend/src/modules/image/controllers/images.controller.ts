@@ -20,7 +20,7 @@ export class ImagesController {
   @Get(':key/small')
   @ApiOperation({
     summary:
-      'The small variant of an image (480 px), for the cards; the image itself when it has none',
+      'The small variant of an image (WebP, at most 480 px wide), for the cards',
   })
   @ApiProduces('image/webp', 'image/jpeg', 'image/png')
   @ApiResponse({ status: 200, description: 'The image' })
@@ -36,7 +36,7 @@ export class ImagesController {
   @ApiOperation({
     summary: "An event's or a group's own image by its `imageKey` (#77)",
     description:
-      'WebP, the longer side at most 1600 px (uploaded before the resizing: as uploaded). Cached for a year: a replaced image gets a new key, so a key never shows anything else.',
+      'WebP, at most 1600 px wide. Cached for a year: a replaced image gets a new key, so a key never shows anything else.',
   })
   @ApiProduces('image/webp', 'image/jpeg', 'image/png')
   @ApiResponse({ status: 200, description: 'The image' })

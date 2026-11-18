@@ -1,8 +1,8 @@
 import * as sharp from 'sharp';
 import {
   IMAGE_MAX_PIXELS,
-  IMAGE_MAX_SIDE,
-  IMAGE_SMALL_SIDE,
+  IMAGE_MAX_WIDTH,
+  IMAGE_SMALL_WIDTH,
   resizeImage,
 } from './resize-image';
 import { IMAGE_MESSAGES, prepareImage } from './uploaded-image';
@@ -28,7 +28,7 @@ const anImage = async (
 };
 
 describe('resizeImage (#77)', () => {
-  it('a big photo becomes WebP at most 1600 px, with a 480 px variant for the cards', async () => {
+  it('a big photo becomes WebP 1600 px wide, with a 480 px wide variant for the cards', async () => {
     const resized = await resizeImage(await anImage(4000, 3000));
     if (typeof resized === 'string') throw new Error(resized);
 
@@ -36,23 +36,38 @@ describe('resizeImage (#77)', () => {
     const small = await sharp(resized.small).metadata();
     expect(full).toMatchObject({
       format: 'webp',
-      width: IMAGE_MAX_SIDE,
+      width: IMAGE_MAX_WIDTH,
       height: 1200,
     });
     expect(small).toMatchObject({
       format: 'webp',
-      width: IMAGE_SMALL_SIDE,
+      width: IMAGE_SMALL_WIDTH,
       height: 360,
     });
   });
 
-  it('a portrait keeps its shape: the longer side is the height', async () => {
-    const resized = await resizeImage(await anImage(1000, 2000, 'png'));
+  it('a poster keeps its shape and the width the srcSet names (review #366)', async () => {
+    // A4 on its side up: the width is what the browser is told (480w, 1600w)
+    const resized = await resizeImage(await anImage(2480, 3508, 'png'));
     if (typeof resized === 'string') throw new Error(resized);
 
     expect(await sharp(resized.data).metadata()).toMatchObject({
-      width: 800,
-      height: IMAGE_MAX_SIDE,
+      width: IMAGE_MAX_WIDTH,
+      height: 2263,
+    });
+    expect(await sharp(resized.small).metadata()).toMatchObject({
+      width: IMAGE_SMALL_WIDTH,
+      height: 679,
+    });
+  });
+
+  it('a strip taller than 3:1 is cut down in height too', async () => {
+    const resized = await resizeImage(await anImage(1000, 10000, 'png'));
+    if (typeof resized === 'string') throw new Error(resized);
+
+    expect(await sharp(resized.data).metadata()).toMatchObject({
+      width: 480,
+      height: IMAGE_MAX_WIDTH * 3,
     });
   });
 

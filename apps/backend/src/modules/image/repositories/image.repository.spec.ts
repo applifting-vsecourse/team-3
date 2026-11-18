@@ -38,23 +38,6 @@ describe('ImageRepository (#77)', () => {
     });
   });
 
-  it('an image without a small variant (uploaded before it) serves itself', async () => {
-    const prisma = mockDeep<PrismaService>();
-    prisma.uploadedImage.findUnique
-      .mockResolvedValueOnce({ contentType: 'image/png', small: null } as never)
-      .mockResolvedValueOnce({
-        contentType: 'image/png',
-        data: Uint8Array.from([9]),
-      } as never);
-
-    await expect(
-      new ImageRepository(prisma).findImage('k1', 'small'),
-    ).resolves.toEqual({
-      contentType: 'image/png',
-      data: Uint8Array.from([9]),
-    });
-  });
-
   it('an unknown key is null', async () => {
     const prisma = mockDeep<PrismaService>();
     prisma.uploadedImage.findUnique.mockResolvedValue(null);

@@ -30,7 +30,7 @@ export const imageUrl = (key: string): string =>
 
 export type PhotoSource = { src: string; srcSet?: string }
 
-/** The API's sizes of an uploaded image: the longer side, as the backend stores it (`resize-image.ts`). */
+/** The widths of an uploaded image's two sizes, as the backend stores them (`resize-image.ts`): what `srcSet` says. */
 export const IMAGE_FULL_WIDTH = 1600
 export const IMAGE_SMALL_WIDTH = 480
 

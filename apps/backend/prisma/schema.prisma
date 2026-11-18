@@ -411,8 +411,8 @@ model Event {
 }
 
 /// Obrázek, který nahrál organizátor akce nebo správce skupiny (#77): nahrává se
-/// JPEG, PNG nebo WebP do 5 MB, ukládá se zmenšený na WebP (nejvýš 1600 px) a s malou
-/// variantou pro karty. Bajty jsou v databázi, protože staging nemá trvalý
+/// JPEG, PNG nebo WebP do 5 MB, ukládá se zmenšený na WebP (šířka nejvýš 1600 px) a s
+/// malou variantou pro karty. Bajty jsou v databázi, protože staging nemá trvalý
 /// disk (kontejner se při každém nasazení vytvoří znovu) a databáze ano. `key`
 /// je náhodné UUID a je součástí adresy obrázku; nový obrázek = nový klíč, takže
 /// adresa jde cachovat navždy. Výměna nebo odebrání starý řádek smaže.
@@ -423,8 +423,8 @@ model UploadedImage {
   data        Bytes
   /// v bajtech
   size        Int
-  /// Menší varianta pro karty (WebP, 480 px); null u obrázků nahraných před zmenšováním
-  small       Bytes?
+  /// Malá varianta pro karty (WebP, šířka nejvýš 480 px)
+  small       Bytes
   createdAt   DateTime @default(now())
 
   event Event?

@@ -11,6 +11,7 @@ CREATE TABLE "uploaded_image" (
     "contentType" TEXT NOT NULL,
     "data" BYTEA NOT NULL,
     "size" INTEGER NOT NULL,
+    "small" BYTEA NOT NULL,
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
 
     CONSTRAINT "uploaded_image_pkey" PRIMARY KEY ("key")

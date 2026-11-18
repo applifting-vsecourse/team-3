@@ -50,7 +50,7 @@ export function detectImageType(bytes: Uint8Array): ImageType | null {
   return null;
 }
 
-/** An upload as it is stored: WebP, at most 1600 px, and its small variant (`resizeImage`). */
+/** An upload as it is stored: WebP at most 1600 px wide, and its small variant 480 px wide (`resizeImage`). */
 export type NewImage = {
   contentType: 'image/webp';
   data: Uint8Array;
