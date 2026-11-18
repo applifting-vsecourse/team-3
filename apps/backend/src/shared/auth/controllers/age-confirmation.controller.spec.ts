@@ -39,6 +39,7 @@ describe('AgeConfirmationController', () => {
     for (const value of [
       null,
       {},
+      [{ ageConfirmed: true }],
       { ageConfirmed: false },
       { ageConfirmed: 'true' },
       { ageConfirmed: 1 },
