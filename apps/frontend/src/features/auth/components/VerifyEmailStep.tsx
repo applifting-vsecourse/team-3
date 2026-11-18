@@ -30,7 +30,7 @@ export const inboxErrorMessage = (error: Error): string =>
 /**
  * „Ověř si e-mail“ (Figma B-01a, #236): after the sign-up, and when the
  * sign-in is refused because the e-mail isn't verified. Only a verified
- * e-mail signs in, so the next step is the link, then signing in. The
+ * e-mail signs in, so the link verifies and signs in the account. The
  * password was just typed and stays in memory: where e-mails are simulated
  * (#58) it opens the inbox, which has no session to go by, on a click only.
  */
@@ -48,8 +48,9 @@ export function VerifyEmailStep({ email, password, from }: VerifyEmailStepProps)
   return (
     <div className="flex flex-col gap-4">
       <p className="text-body">
-        Otevři odkaz z e-mailu (platí 24 hodin) a pak se přihlas. Nic nepřišlo? Mrkni do spamu, nebo
-        si pošli odkaz znovu. Už máš e-mail ověřený? Rovnou se přihlas.
+        Otevři odkaz z e-mailu (platí 24 hodin). E-mail se ověří a rovnou se přihlásíš. Nic
+        nepřišlo? Mrkni do spamu, nebo si pošli odkaz znovu. Už máš e-mail ověřený? Rovnou se
+        přihlas.
       </p>
       <div className="flex flex-wrap gap-2">
         <ResendVerificationButton
