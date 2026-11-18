@@ -6,27 +6,28 @@ Schéma vzniklo v rámci #47 (testovací data), protože bez něj nešla data na
 
 ## Přehled tabulek
 
-| Model               | Tabulka              | K čemu je                                                                                | Úkol                | Sprint 2 |
-| ------------------- | -------------------- | ---------------------------------------------------------------------------------------- | ------------------- | -------- |
-| `User`              | `user`               | Účet (BetterAuth) a profil: bio, domovská lokalita, viditelnost údajů, souhlasy, blokace | B-003, B-013, B-014 | ano      |
-| `UserInterest`      | `user_interest`      | Zájmy v profilu, vazba M:N uživatel × aktivita                                           | B-003               | ano      |
-| `ActivityCategory`  | `activity_category`  | Kategorie aktivit (první úroveň)                                                         | B-002               | ano      |
-| `Activity`          | `activity`           | Aktivita (druhá úroveň) s klíčovými slovy pro hledání                                    | B-002               | ano      |
-| `Locality`          | `locality`           | Město nebo městská část se souřadnicemi středu                                           | B-002               | ano      |
-| `Event`             | `event`              | Akce jednotlivce i skupiny                                                               | B-020               | ano      |
-| `Participation`     | `participation`      | Přihláška na akci a její stav, docházka                                                  | B-030, B-072        | ano      |
-| `Group`             | `group`              | Skupina (veřejná / neveřejná, aktivní / deaktivovaná)                                    | B-050               | ano      |
-| `GroupMember`       | `group_member`       | Členství a role ve skupině                                                               | B-050               | ano      |
-| `EventMessage`      | `event_message`      | Zpráva organizátora účastníkům (limit 10 za den)                                         | B-042               | ne       |
-| `GroupAnnouncement` | `group_announcement` | Oznámení správce členům skupiny (limit 10 za den na skupinu)                             | #194                | ne       |
-| `NotificationLog`   | `notification_log`   | Záznam o odeslaném plánovaném e-mailu, aby nepřišel dvakrát                              | B-043               | ne       |
-| `Rating`            | `rating`             | Hodnocení akce a organizátora od účastníka                                               | B-060               | ne       |
-| `ParticipantRating` | `participant_rating` | Hodnocení účastníka organizátorem akce                                                   | B-060, #180         | ne       |
-| `Report`            | `report`             | Nahlášení uživatele, akce, skupiny nebo hodnocení                                        | B-061               | ne       |
-| `ModerationAction`  | `moderation_action`  | Zásah superadmina a jeho vrácení                                                         | B-063               | ne       |
-| `Payment`           | `payment`            | Simulovaná platba (předplatné, topování)                                                 | B-070               | ne       |
-| `Subscription`      | `subscription`       | Předplatné organizátora (evidence docházky)                                              | B-071               | ne       |
-| `SeedState`         | `seed_state`         | Verze testovacích dat v databázi, podle ní seed pozná, že má data vyměnit                | #181                | –        |
+| Model               | Tabulka              | K čemu je                                                                                    | Úkol                | Sprint 2 |
+| ------------------- | -------------------- | -------------------------------------------------------------------------------------------- | ------------------- | -------- |
+| `User`              | `user`               | Účet (BetterAuth) a profil: bio, domovská lokalita, viditelnost údajů, souhlasy, blokace     | B-003, B-013, B-014 | ano      |
+| `UserInterest`      | `user_interest`      | Zájmy v profilu, vazba M:N uživatel × aktivita                                               | B-003               | ano      |
+| `ActivityCategory`  | `activity_category`  | Kategorie aktivit (první úroveň)                                                             | B-002               | ano      |
+| `Activity`          | `activity`           | Aktivita (druhá úroveň) s klíčovými slovy pro hledání                                        | B-002               | ano      |
+| `Locality`          | `locality`           | Město nebo městská část se souřadnicemi středu                                               | B-002               | ano      |
+| `Event`             | `event`              | Akce jednotlivce i skupiny                                                                   | B-020               | ano      |
+| `EventImage`        | `event_image`        | Obrázek akce nahraný organizátorem (soubor v databázi, viz [Obrázek akce](#obrázek-akce-77)) | #77                 | ne       |
+| `Participation`     | `participation`      | Přihláška na akci a její stav, docházka                                                      | B-030, B-072        | ano      |
+| `Group`             | `group`              | Skupina (veřejná / neveřejná, aktivní / deaktivovaná)                                        | B-050               | ano      |
+| `GroupMember`       | `group_member`       | Členství a role ve skupině                                                                   | B-050               | ano      |
+| `EventMessage`      | `event_message`      | Zpráva organizátora účastníkům (limit 10 za den)                                             | B-042               | ne       |
+| `GroupAnnouncement` | `group_announcement` | Oznámení správce členům skupiny (limit 10 za den na skupinu)                                 | #194                | ne       |
+| `NotificationLog`   | `notification_log`   | Záznam o odeslaném plánovaném e-mailu, aby nepřišel dvakrát                                  | B-043               | ne       |
+| `Rating`            | `rating`             | Hodnocení akce a organizátora od účastníka                                                   | B-060               | ne       |
+| `ParticipantRating` | `participant_rating` | Hodnocení účastníka organizátorem akce                                                       | B-060, #180         | ne       |
+| `Report`            | `report`             | Nahlášení uživatele, akce, skupiny nebo hodnocení                                            | B-061               | ne       |
+| `ModerationAction`  | `moderation_action`  | Zásah superadmina a jeho vrácení                                                             | B-063               | ne       |
+| `Payment`           | `payment`            | Simulovaná platba (předplatné, topování)                                                     | B-070               | ne       |
+| `Subscription`      | `subscription`       | Předplatné organizátora (evidence docházky)                                                  | B-071               | ne       |
+| `SeedState`         | `seed_state`         | Verze testovacích dat v databázi, podle ní seed pozná, že má data vyměnit                    | #181                | –        |
 
 Tabulky `session`, `account` a `verification` spravuje BetterAuth (přihlášení, ověření e-mailu, obnova hesla).
 
@@ -106,6 +107,7 @@ erDiagram
     Group ||--o{ GroupAnnouncement : "oznámení"
     User ||--o{ GroupAnnouncement : "poslal"
     Event |o--o{ NotificationLog : "e-maily"
+    EventImage |o--o| Event : "obrázek (#77)"
     User |o--o{ NotificationLog : "příjemce"
 
     Event {
@@ -132,6 +134,13 @@ erDiagram
         string cancelReason
         datetime cancelledAt
         datetime promotedUntil "topování"
+        string imageKey FK "vlastní obrázek (#77)"
+    }
+    EventImage {
+        string key PK "náhodné UUID, součást adresy"
+        string contentType "image/jpeg / png / webp"
+        bytes data "nejvýš 5 MB"
+        int size
     }
     Participation {
         string id PK
@@ -185,6 +194,15 @@ erDiagram
         datetime sentAt
     }
 ```
+
+### Obrázek akce (#77)
+
+Organizátor k akci nahraje vlastní plakát nebo fotku jako soubor (PO 10. 11., Q3); bez něj se dál ukazuje fotka aktivity z knihovny ve frontendu.
+
+- **Kde se soubory ukládají: v Postgresu**, tabulka `event_image` (`bytea`), `Event.imageKey` na ni odkazuje. Staging (Coolify) při každém nasazení vytvoří kontejner backendu znovu a tým nemá přístup k jeho nastavení, takže trvalý disk (volume) pro soubory přidat nejde; soubor zapsaný do kontejneru by po restartu zmizel. Databáze trvalý volume má (`db-data`), obrázky v ní tedy přežijí restart i nasazení a jsou ve stejné záloze jako akce. Externí úložiště (S3 a podobně) by potřebovalo další službu a klíče. Při limitu 5 MB a počtu akcí v MVP je to v pořádku; kdyby databáze rostla, úložiště jde vyměnit jen v `EventRepository.replaceImage` a `findImage`, API zůstane.
+- **Formáty a velikost:** JPEG, PNG nebo WebP, nejvýš 5 MB. Backend pozná formát podle prvních bajtů souboru, ne podle přípony ani typu z prohlížeče (SVG nebo HTML přejmenované na `.jpg` neprojde), čistá funkce `checkEventImage` v [`modules/event/domain/event-image.ts`](../apps/backend/src/modules/event/domain/event-image.ts). Oba limity hlídá i `CHECK` v databázi. Formulář soubor zkontroluje už při výběru a řekne česky proč.
+- **API:** `PUT /api/events/:id/image` (multipart, pole `image`) nahraje nebo vymění, `DELETE /api/events/:id/image` odebere. Smí jen ten, kdo smí akci upravit (organizátor, u akce skupiny její správci), a jen do začátku akce, ne u zrušené. Obrázek je na `GET /api/event-images/:imageKey`, veřejně jako karta akce. Klíč je náhodné UUID a při každém nahrání nový, proto se odpověď cachuje rok; výměna nebo odebrání starý řádek smaže.
+- **Akce jen pro členy:** kdo zná klíč, obrázek otevře. Klíč dostane jen ten, komu API akci ukáže, a uhodnout nejde.
 
 ## Důvěra, administrace a monetizace
 
@@ -293,7 +311,6 @@ erDiagram
 | `Notification`           | Upozornění v centru (zvonek, počet nepřečtených = `readAt` je `null`). Zapisuje se ze stejné doménové události jako e-mail                                                                                      | B-044, #86  |
 | `Friendship`             | Jedna žádost na dvojici uživatelů (unikátní dvojice bez ohledu na pořadí hlídá aplikace), přátelé = `accepted`                                                                                                  | B-017, #307 |
 | Onboarding               | `User` dostane `onboardingCompletedAt` (datetime): `null` = průvodce `/vitej` se ještě má nabídnout. Nastaví se po dokončení i po „Teď ne“, aby se průvodce znovu nenabízel ani na jiném zařízení               | B-013, #296 |
-| Obrázek akce             | `Event` dostane odkaz na nahraný soubor (např. `imageKey`), ne URL zadanou uživatelem (Q3); bez něj fotka aktivity. Kde se soubory ukládají, formáty a velikost určí #77                                        | #77         |
 | Úprava akce superadminem | `ModerationActionType` nemá typ pro úpravu akce: doplnit `edit_event` (migrace), nebo zapisovat jen deaktivaci. Deaktivace už model má: `Event.status = hidden` a zásah `hide_event`                            | B-063, #308 |
 | Lokalita a adresa        | Zůstávají dvě nezávislé hodnoty: `localityId` (číselník, filtr a výpis) a `address` (text) s `lat` / `lng`. Formulář lokalitu odvodí z místa a jde upravit ručně (PR #295); co která znamená, rozhodne PO (Q14) | B-022, #303 |
 
