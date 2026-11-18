@@ -59,7 +59,8 @@ export function RateEventPage({ eventId, viewerId, onSaved }: RateEventPageProps
         title="Ohodnoť akci"
         // Figma C-03d: „Volejbal na Letné · Po 19. 10. · Sportovní areál Letná, Praha 7 · …“
         description={data ? ratingBandLine(data.event) : undefined}
-        // back where the user came from; from an e-mail or after a reload to the history (#367)
+        // back where the user came from; with nothing to go back to (the e-mail's link) to the
+        // history (#367)
         back={{
           to: ROUTES.myEvents,
           search: { tab: "probehle" },

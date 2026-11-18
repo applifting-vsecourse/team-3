@@ -58,8 +58,8 @@ const ownStarsLabel = (stars: number): string => ["tvoje", "★", String(stars)]
 
 /**
  * A past event in Moje › Proběhlé (#367), on a public profile (#179) and under /akce › Proběhlé
- * (#61): the row card with the photo
- * desaturated and the date tile neutral; instead of the bar, how many came and the rating.
+ * (#61): the row card with the photo desaturated and the date tile neutral; instead of the bar,
+ * how many came and the rating.
  */
 export function PastEventCard({
   event,
