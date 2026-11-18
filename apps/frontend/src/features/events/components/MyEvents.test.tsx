@@ -388,6 +388,23 @@ describe("PastEvents (Figma C-06, #367)", () => {
     expect(screen.queryByRole("link", { name: /Ohodnotit/ })).not.toBeInTheDocument()
   })
 
+  // review #368: the rating page would refuse it (RATING_DELETED), so the card doesn't offer it
+  it("a rating deleted by moderation: neither stars nor „Ohodnotit“, it can only be restored", async () => {
+    get.mockReturnValue(
+      asJson([aMyEvent({ title: "Florbal", approvedCount: 5, myRatingDeleted: true })]),
+    )
+
+    await renderWithQuery(
+      <PastEvents
+        viewerId="u-jakub"
+        now={inWindow}
+      />,
+    )
+
+    expect(await screen.findByText("Sešlo se 5 lidí")).toBeInTheDocument()
+    expect(screen.queryByRole("link", { name: /Ohodnotit/ })).not.toBeInTheDocument()
+  })
+
   it("a cancelled event says it didn't take place", async () => {
     get.mockReturnValue(asJson([aMyEvent({ status: "cancelled" })]))
 

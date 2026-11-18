@@ -157,6 +157,11 @@ export type MyEvent = PublicEvent & {
    * (#367); null while I haven't rated it, or the rating was deleted by moderation.
    */
   myEventStars: number | null;
+  /**
+   * My rating was deleted by moderation: Proběhlé offers no „Ohodnotit“, as it can only be
+   * restored, not given again (RATING_DELETED, #367). False under the other tabs.
+   */
+  myRatingDeleted: boolean;
 };
 
 /** What the organizer fills in when creating an event (B-021). */

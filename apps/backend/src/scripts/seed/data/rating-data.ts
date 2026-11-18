@@ -11,8 +11,8 @@ const DAY_IN_MS = 24 * 60 * MINUTE_IN_MS;
 const MIN_PAST_MS = 60 * MINUTE_IN_MS;
 
 /**
- * Proběhlé akce a jejich hodnocení (#180), aby měl profil (#178, #179) co
- * ukázat: průměr jako organizátor a jako účastník. Demo data #47 proběhlou akci
+ * Proběhlé akce a jejich hodnocení (#180), aby měl profil (#178, #179) a Moje ›
+ * Proběhlé (#367) co ukázat: průměr jako organizátor a jako účastník. Demo data #47 proběhlou akci
  * nemají, seed každý jejich termín posouvá do budoucna.
  *
  * Co z dat vyjde (hlídá rating-data.spec.ts):

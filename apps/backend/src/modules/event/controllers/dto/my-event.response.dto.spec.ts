@@ -29,6 +29,7 @@ const anEvent = (overrides: Partial<MyEvent> = {}): MyEvent => ({
   myParticipation: 'approved',
   pendingRequests: null,
   myEventStars: null,
+  myRatingDeleted: false,
   ...overrides,
 });
 
@@ -37,6 +38,12 @@ describe('MyEventResponseDto (B-035, #367)', () => {
     expect(
       MyEventResponseDto.fromDomain(anEvent({ myEventStars: 4 })),
     ).toMatchObject({ myEventStars: 4, myParticipation: 'approved' });
+  });
+
+  it('says when moderation deleted my rating: no stars, no „Ohodnotit“', () => {
+    expect(
+      MyEventResponseDto.fromDomain(anEvent({ myRatingDeleted: true })),
+    ).toMatchObject({ myEventStars: null, myRatingDeleted: true });
   });
 
   it('null while I have not rated it: the card offers „Ohodnotit“', () => {

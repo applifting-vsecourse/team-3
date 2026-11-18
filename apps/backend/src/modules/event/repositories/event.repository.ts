@@ -102,6 +102,17 @@ export const toPublicEvent = (
   isPromoted: event.promotedUntil !== null && event.promotedUntil > now,
 });
 
+/**
+ * The user's own rating of a past event (#367): the stars while it stands; deleted by moderation,
+ * no stars and the flag – it can only be restored, not given again (RATING_DELETED).
+ */
+const myRating = (
+  rating: { eventStars: number; deletedAt: Date | null } | undefined,
+): Pick<MyEvent, 'myEventStars' | 'myRatingDeleted'> => ({
+  myEventStars: rating && !rating.deletedAt ? rating.eventStars : null,
+  myRatingDeleted: Boolean(rating?.deletedAt),
+});
+
 @Injectable()
 export class EventRepository {
   constructor(private readonly prisma: PrismaService) {}
@@ -188,10 +199,10 @@ export class EventRepository {
               : { userId },
           select: { userId: true, status: true },
         },
-        // my own rating only: an upcoming event has none yet (#367)
-        ratings: {
-          where: { userId, deletedAt: null },
-          select: { eventStars: true },
+        // Proběhlé only (#367): my own rating, a deleted one too – it can't be given again
+        ratings: tab === 'past' && {
+          where: { userId },
+          select: { eventStars: true, deletedAt: true },
         },
       },
       orderBy:
@@ -216,7 +227,7 @@ export class EventRepository {
                 (participation) => participation.status === 'pending',
               ).length
             : null,
-        myEventStars: event.ratings[0]?.eventStars ?? null,
+        ...myRating(event.ratings?.[0]),
       };
     });
   }

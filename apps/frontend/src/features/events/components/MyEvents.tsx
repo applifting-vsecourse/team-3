@@ -266,7 +266,7 @@ export function OrganizingEvents({ viewerId }: { viewerId: string }) {
  * Proběhlé (Figma C-06, #367): the events that are over where I had a place, the latest first —
  * the history that was on the profile until #367, as the past card (Karta akce/Proběhlá řádek):
  * how many came and „tvoje ★ N“ once I rated it (Dáno), „Ohodnotit“ to the rating page (C-03,
- * #66) while it can be rated by the API's rules and I haven't yet, „Zrušeno · Akce se nekonala“
+ * #66) while it can be rated by the API's rules and I haven't yet (nor had it deleted), „Zrušeno · Akce se nekonala“
  * for a cancelled one. A card opens the detail, where a rating can still be changed.
  */
 export function PastEvents({ viewerId, now = new Date() }: { viewerId: string; now?: Date }) {
@@ -292,7 +292,8 @@ export function PastEvents({ viewerId, now = new Date() }: { viewerId: string; n
                 : { kind: "given", stars: event.myEventStars }
             }
             rateAction={
-              canRateEvent(event, viewerId, now) ? (
+              // a rating moderation deleted can only be restored: the page would refuse (RATING_DELETED)
+              canRateEvent(event, viewerId, now) && !event.myRatingDeleted ? (
                 <Link
                   to={ROUTES.rateEvent}
                   params={{ eventId: event.id }}
