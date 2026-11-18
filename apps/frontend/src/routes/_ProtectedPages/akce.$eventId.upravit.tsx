@@ -103,7 +103,14 @@ function EditEventPage() {
                 updateEvent.mutate(
                   { changes, image },
                   {
-                    onSuccess: () => {
+                    onSuccess: ({ imageError }) => {
+                      if (imageError) {
+                        // the rest is saved; the picked image stays in the form to try again
+                        toast.error(`Změny jsou uložené, obrázek ale ne. ${imageError}`, {
+                          duration: 10_000,
+                        })
+                        return
+                      }
                       toast.success("Změny jsou uložené.")
                       // the detail and Správa akce read the saved event from the cache
                       leaveForm()

@@ -7,11 +7,11 @@ import { api } from "@/lib/api-client"
 import type * as ApiClient from "@/lib/api-client"
 
 import type { GroupDetail, GroupInput } from "@/features/groups/api/groupSchemas"
-import { useCreateGroup } from "@/features/groups/hooks/useGroupMutations"
+import { useCreateGroup, useUpdateGroup } from "@/features/groups/hooks/useGroupMutations"
 
 vi.mock("@/lib/api-client", async (importOriginal) => ({
   ...(await importOriginal<typeof ApiClient>()),
-  api: { post: vi.fn(), put: vi.fn() },
+  api: { post: vi.fn(), put: vi.fn(), patch: vi.fn() },
 }))
 
 const input: GroupInput = {
@@ -89,5 +89,46 @@ describe("useCreateGroup (#77)", () => {
 
     await waitFor(() => expect(result.current.isSuccess).toBe(true))
     expect(api.put).not.toHaveBeenCalled()
+  })
+})
+
+describe("useUpdateGroup with the group's photo (#77)", () => {
+  const setupUpdate = () => {
+    const queryClient = new QueryClient({ defaultOptions: { mutations: { retry: 0 } } })
+    const wrapper = ({ children }: { children: ReactNode }) => (
+      <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>
+    )
+    return renderHook(() => useUpdateGroup("g1"), { wrapper }).result
+  }
+
+  beforeEach(() => {
+    vi.mocked(api.patch).mockReset()
+    vi.mocked(api.put).mockReset()
+    vi.mocked(api.patch).mockReturnValue({ json: () => Promise.resolve(created) } as never)
+  })
+
+  it("saves the changes, then uploads the picked photo", async () => {
+    vi.mocked(api.put).mockReturnValue({
+      json: () => Promise.resolve({ ...created, imageKey: "k1" }),
+    } as never)
+    const result = setupUpdate()
+
+    act(() => result.current.mutate({ input, image: { kind: "set", file } }))
+
+    await waitFor(() => expect(result.current.isSuccess).toBe(true))
+    expect(vi.mocked(api.put).mock.calls[0]![0]).toBe("groups/g1/image")
+    expect(result.current.data?.group.imageKey).toBe("k1")
+  })
+
+  it("a failed photo is no failed edit: imageError", async () => {
+    vi.mocked(api.put).mockReturnValue({
+      json: () => Promise.reject(new Error("Obrázek je moc velký. Nahraj nejvýš 5 MB.")),
+    } as never)
+    const result = setupUpdate()
+
+    act(() => result.current.mutate({ input, image: { kind: "set", file } }))
+
+    await waitFor(() => expect(result.current.isSuccess).toBe(true))
+    expect(result.current.data?.imageError).toBe("Obrázek je moc velký. Nahraj nejvýš 5 MB.")
   })
 })

@@ -14,8 +14,8 @@ type EventPhotoProps = {
 
 /**
  * The top of an event card (Figma Karta akce › Foto): the organizer's own image (#77) or the
- * activity's photo from the library, with one colour grade (saturation −14 %, contrast +10 %; a past event −60 %), and the date
- * tile over it. Without a photo for its activity, the Activity tile on the page colour.
+ * activity's photo from the library, with one colour grade (saturation −14 %, contrast +10 %;
+ * a past event −60 %), and the date tile over it. Without a photo for its activity, the Activity tile on the page colour.
  * Decoration: the card's title and its <time> say what it shows.
  */
 export function EventPhoto({ event, variant }: EventPhotoProps) {

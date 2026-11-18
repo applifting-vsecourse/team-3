@@ -44,7 +44,8 @@ export function useCreateGroup() {
 
 /**
  * PATCH /api/groups/:id, then the photo's change (#77); the API answers 403 to
- * anyone but an admin. When the photo fails, the other changes are saved already.
+ * anyone but an admin. When the photo fails, the other changes are saved
+ * already: the edit succeeds with `imageError`, so the page says both.
  */
 export function useUpdateGroup(id: string) {
   const queryClient = useQueryClient()
@@ -59,10 +60,20 @@ export function useUpdateGroup(id: string) {
       const updated = groupDetailSchema.parse(
         await api.patch(`groups/${id}`, { json: input }).json(),
       )
-      const answer = await sendImageChange(groupImagePath(id), image)
-      return answer === null ? updated : groupDetailSchema.parse(answer)
+      try {
+        const answer = await sendImageChange(groupImagePath(id), image)
+        return {
+          group: answer === null ? updated : groupDetailSchema.parse(answer),
+          imageError: null,
+        }
+      } catch (error) {
+        return {
+          group: updated,
+          imageError: error instanceof Error ? error.message : String(error),
+        }
+      }
     },
-    onSuccess: (group) =>
+    onSuccess: ({ group }) =>
       Promise.all([
         queryClient.invalidateQueries({ queryKey: groupKeys.detail(group.id) }),
         queryClient.invalidateQueries({ queryKey: groupKeys.lists() }),

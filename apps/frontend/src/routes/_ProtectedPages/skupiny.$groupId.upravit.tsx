@@ -77,7 +77,14 @@ function EditGroupPage() {
                 updateGroup.mutate(
                   { input, image },
                   {
-                    onSuccess: () => {
+                    onSuccess: ({ imageError }) => {
+                      if (imageError) {
+                        // the rest is saved; the picked photo stays in the form to try again
+                        toast.error(`Změny jsou uložené, fotka ale ne. ${imageError}`, {
+                          duration: 10_000,
+                        })
+                        return
+                      }
                       toast.success("Změny jsou uložené")
                       openSavedGroup(groupId)
                     },

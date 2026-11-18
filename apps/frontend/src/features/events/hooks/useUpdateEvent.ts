@@ -14,7 +14,8 @@ type UpdateEventVariables = { changes: EventChangesInput; image?: ImageChange }
 /**
  * PATCH /api/events/:id, then the image's change (#77) — the detail and the
  * list show the new values at once. When the image fails, the other changes
- * are saved already; saving again only repeats them.
+ * are saved already: the edit succeeds with `imageError`, so the page says
+ * both, and saving again only repeats them.
  */
 export function useUpdateEvent(eventId: string, viewerId: string) {
   const queryClient = useQueryClient()
@@ -23,10 +24,20 @@ export function useUpdateEvent(eventId: string, viewerId: string) {
       const updated = eventDetailSchema.parse(
         await api.patch(`events/${encodeURIComponent(eventId)}`, { json: changes }).json(),
       )
-      const answer = await sendImageChange(`events/${encodeURIComponent(eventId)}/image`, image)
-      return answer === null ? updated : eventDetailSchema.parse(answer)
+      try {
+        const answer = await sendImageChange(`events/${encodeURIComponent(eventId)}/image`, image)
+        return {
+          event: answer === null ? updated : eventDetailSchema.parse(answer),
+          imageError: null,
+        }
+      } catch (error) {
+        return {
+          event: updated,
+          imageError: error instanceof Error ? error.message : String(error),
+        }
+      }
     },
-    onSuccess: (event) => {
+    onSuccess: ({ event }) => {
       queryClient.setQueryData(eventKeys.detail(eventId, viewerId), event)
       void queryClient.invalidateQueries({ queryKey: eventKeys.lists() })
     },
