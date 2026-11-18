@@ -1,9 +1,13 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query"
 
 import { api } from "@/lib/api-client"
+import { sendImageChange } from "@/lib/image"
 
-import { uploadEventImage } from "@/features/events/api/eventImageApi"
-import { createdEventSchema, type EventInput } from "@/features/events/api/eventSchemas"
+import {
+  createdEventSchema,
+  eventDetailSchema,
+  type EventInput,
+} from "@/features/events/api/eventSchemas"
 import { eventKeys } from "@/features/events/api/eventsQueryOptions"
 
 type CreateEventVariables = { input: EventInput; image?: File | null }
@@ -21,7 +25,12 @@ export function useCreateEvent() {
       const created = createdEventSchema.parse(await api.post("events", { json: input }).json())
       if (!image) return { event: created, imageError: null }
       try {
-        const detail = await uploadEventImage(created.id, image)
+        const detail = eventDetailSchema.parse(
+          await sendImageChange(`events/${encodeURIComponent(created.id)}/image`, {
+            kind: "set",
+            file: image,
+          }),
+        )
         return { event: { ...created, ...detail }, imageError: null }
       } catch (error) {
         return {

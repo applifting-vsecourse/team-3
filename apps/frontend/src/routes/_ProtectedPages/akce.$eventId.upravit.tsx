@@ -7,6 +7,7 @@ import { Seo } from "@/components/Seo"
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 import { Skeleton } from "@/components/ui/skeleton"
 import { useCatalog } from "@/hooks/useCatalog"
+import { imageUrl } from "@/lib/image"
 import { FORM, PAGE } from "@/lib/pageLayout"
 import { cn } from "@/lib/utils"
 
@@ -16,7 +17,6 @@ import { useEventDetail } from "@/features/events/hooks/useEventDetail"
 import { useLeaveEditForm } from "@/features/events/hooks/useLeaveEditForm"
 import { useUpdateEvent } from "@/features/events/hooks/useUpdateEvent"
 import { editRefusal } from "@/features/events/lib/editRefusal"
-import { eventImageUrl } from "@/features/events/lib/eventImage"
 import { CatalogState } from "@/features/groups/components/CatalogState"
 
 export const Route = createFileRoute("/_ProtectedPages/akce/$eventId/upravit")({
@@ -96,7 +96,7 @@ function EditEventPage() {
                 maxParticipants: event.maxParticipants,
                 approvalMode: event.approvalMode,
               }}
-              initialImageSrc={event.imageKey ? eventImageUrl(event.imageKey) : null}
+              initialImageSrc={event.imageKey ? imageUrl(event.imageKey) : null}
               isSubmitting={updateEvent.isPending}
               errorMessage={updateEvent.error?.message}
               onSubmit={({ activityId: _activity, approvalMode: _approval, ...changes }, image) =>

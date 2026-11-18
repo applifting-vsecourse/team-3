@@ -56,7 +56,7 @@ describe("EventCard", () => {
     )
 
     const img = container.querySelector("[data-slot=event-photo] img")!
-    expect(img.getAttribute("src")).toMatch(/\/event-images\/k-plakat$/)
+    expect(img.getAttribute("src")).toMatch(/\/images\/k-plakat$/)
     expect(img).not.toHaveAttribute("srcset")
     expect(img).toHaveClass("saturate-86", "contrast-110")
   })
@@ -67,7 +67,7 @@ describe("EventCard", () => {
     )
 
     expect(container.querySelector("[data-slot=event-photo] img")?.getAttribute("src")).toMatch(
-      /\/event-images\/k-plakat$/,
+      /\/images\/k-plakat$/,
     )
   })
 

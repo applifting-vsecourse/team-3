@@ -828,9 +828,9 @@ describe("EventForm", () => {
       const { onSubmit } = renderForm({
         mode: "edit",
         initialValues: existing,
-        initialImageSrc: "http://api.test/event-images/k1",
+        initialImageSrc: "http://api.test/images/k1",
       })
-      expect(document.querySelector('img[src="http://api.test/event-images/k1"]')).toBeVisible()
+      expect(document.querySelector('img[src="http://api.test/images/k1"]')).toBeVisible()
 
       await userEvent.click(screen.getByRole("button", { name: "Odebrat" }))
 
@@ -845,7 +845,7 @@ describe("EventForm", () => {
       const { onSubmit } = renderForm({
         mode: "edit",
         initialValues: existing,
-        initialImageSrc: "http://api.test/event-images/k1",
+        initialImageSrc: "http://api.test/images/k1",
       })
 
       await save()

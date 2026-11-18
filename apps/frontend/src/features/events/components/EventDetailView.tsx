@@ -18,6 +18,7 @@ import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 import { Button } from "@/components/ui/button"
 import { Skeleton } from "@/components/ui/skeleton"
 import { DESKTOP_QUERY, useMediaQuery } from "@/hooks/useMediaQuery"
+import { photoOf } from "@/lib/image"
 import { gatheredLabel, missedMinimumLabel, occupancyInBand, wasHeld } from "@/lib/occupancy"
 import { PAGE } from "@/lib/pageLayout"
 import { cn } from "@/lib/utils"
@@ -27,7 +28,6 @@ import { EventFacts } from "@/features/events/components/EventFacts"
 import { EventParticipants } from "@/features/events/components/EventParticipants"
 import { toPin } from "@/features/events/components/EventsMap"
 import { ShareEventButton } from "@/features/events/components/ShareEventButton"
-import { eventPhoto } from "@/features/events/lib/eventImage"
 import {
   eventDateParts,
   formatEventStart,
@@ -230,7 +230,7 @@ export function EventDetailView({
   const photo = (
     <ActivityPhoto
       slug={event.activity.slug}
-      photo={eventPhoto(event)}
+      photo={photoOf(event)}
     >
       <DateTile
         weekday={date.weekday}

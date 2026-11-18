@@ -9,10 +9,10 @@ import { DateTile } from "@/components/DateTile/DateTile"
 import { LogoMark } from "@/components/Logo/Logo"
 import { Button } from "@/components/ui/button"
 import { Skeleton } from "@/components/ui/skeleton"
+import { photoOf } from "@/lib/image"
 import { cn } from "@/lib/utils"
 
 import type { PublicEvent } from "@/features/events/api/eventSchemas"
-import { eventPhoto } from "@/features/events/lib/eventImage"
 import { eventDateParts, formatEventStart, placeName } from "@/features/events/lib/formatEvent"
 import { missingNowLabel, missingNowSentence, startsIn } from "@/features/events/lib/homeCopy"
 
@@ -38,7 +38,7 @@ function PanelLabel({ children }: { children: ReactNode }) {
  * the panel, as on the event card.
  */
 export function MissingOnePanel({ event, now }: { event: PublicEvent; now: Date }) {
-  const photo = eventPhoto(event)
+  const photo = photoOf(event)
   const date = eventDateParts(event.startsAt)
   return (
     <article

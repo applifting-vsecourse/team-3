@@ -106,7 +106,7 @@ describe("/akce/:id/hodnoceni for a participant (Figma C-03, #66)", () => {
 
     await screen.findByRole("heading", { name: "Volejbal na Letné" })
     expect(container.querySelector("[data-slot=event-photo] img")?.getAttribute("src")).toMatch(
-      /\/event-images\/k-plakat$/,
+      /\/images\/k-plakat$/,
     )
   })
 

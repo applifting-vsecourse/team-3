@@ -3,21 +3,34 @@ import { ImagePlus } from "lucide-react"
 
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
-
-import { EVENT_IMAGE_ACCEPT, eventImageProblem } from "@/features/events/lib/eventImage"
+import { IMAGE_ACCEPT, imageProblem, type ImageChange } from "@/lib/image"
 
 /**
- * The event's own image in the form (#77): none (the activity's photo shows),
- * the one already uploaded (editing), or a file picked now.
+ * An event's or a group's own image in its form (#77): none (the activity's
+ * photo shows), the one already uploaded (editing), or a file picked now.
  */
-export type EventImageValue =
+export type ImageFieldValue =
   { kind: "none" } | { kind: "uploaded"; src: string } | { kind: "file"; file: File }
 
-type EventImageFieldProps = {
+/** The field's starting value: the image the event or group has, if any. */
+export const initialImageValue = (src: string | null | undefined): ImageFieldValue =>
+  src ? { kind: "uploaded", src } : { kind: "none" }
+
+/** What to send after saving: a picked file, removing the image it had, or nothing. */
+export const imageChangeOf = (value: ImageFieldValue, hasImage: boolean): ImageChange =>
+  value.kind === "file"
+    ? { kind: "set", file: value.file }
+    : value.kind === "none" && hasImage
+      ? { kind: "remove" }
+      : { kind: "keep" }
+
+type ImageFieldProps = {
   /** The visible control; FormControl gives it the label's id and the error's description. */
   ref?: Ref<HTMLButtonElement>
-  value: EventImageValue
-  onChange: (value: EventImageValue) => void
+  value: ImageFieldValue
+  onChange: (value: ImageFieldValue) => void
+  /** The empty field's button, e.g. „Přidat plakát nebo fotku“ (Figma D-01). */
+  addLabel: string
   /** A picked file that can't be used: the field keeps what it had and shows why. */
   onRefuse: (message: string) => void
   /** From FormControl, for the visible control. */
@@ -27,17 +40,18 @@ type EventImageFieldProps = {
 }
 
 /**
- * Figma D-01 „Přidat plakát nebo fotku“ (F-20): without an image one wide
- * outline button; with one its preview as the card will show it, „Vyměnit“
- * and „Odebrat“. The file input is the kit's, hidden: the button opens it.
+ * Figma Pole/Plakát nebo fotka (D-01, F-20): without an image one wide dashed
+ * outline button; with one its preview as the card will show it, „Vyměnit
+ * obrázek“ and „Odebrat“. The file input is the kit's, hidden: the button opens it.
  */
-export function EventImageField({
+export function ImageField({
   ref,
   value,
   onChange,
   onRefuse,
+  addLabel,
   ...control
-}: EventImageFieldProps) {
+}: ImageFieldProps) {
   const fileRef = useRef<HTMLInputElement>(null)
   const pickRef = useRef<HTMLButtonElement | null>(null)
   const file = value.kind === "file" ? value.file : null
@@ -60,7 +74,7 @@ export function EventImageField({
     <Input
       ref={fileRef}
       type="file"
-      accept={EVENT_IMAGE_ACCEPT}
+      accept={IMAGE_ACCEPT}
       // the button is the control: named by the label, in the tab order
       className="sr-only"
       tabIndex={-1}
@@ -70,7 +84,7 @@ export function EventImageField({
         // the same file again must fire a change next time too
         event.target.value = ""
         if (!picked) return
-        const problem = eventImageProblem(picked)
+        const problem = imageProblem(picked)
         if (problem) onRefuse(problem)
         else onChange({ kind: "file", file: picked })
       }}
@@ -89,7 +103,7 @@ export function EventImageField({
           {...control}
         >
           <ImagePlus className="size-5 text-muted-foreground" />
-          Přidat plakát nebo fotku
+          {addLabel}
         </Button>
         {fileInput}
       </>

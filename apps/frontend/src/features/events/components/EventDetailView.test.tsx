@@ -71,7 +71,7 @@ describe("EventDetailView", () => {
     const images = container.querySelectorAll("[data-slot=activity-photo] img")
     expect(images.length).toBeGreaterThan(0)
     for (const img of images) {
-      expect(img.getAttribute("src")).toMatch(/\/event-images\/k-plakat$/)
+      expect(img.getAttribute("src")).toMatch(/\/images\/k-plakat$/)
     }
   })
 

@@ -1,10 +1,10 @@
 import { ActivityTile } from "@/components/ActivityTile/ActivityTile"
 import { DateTile } from "@/components/DateTile/DateTile"
+import { photoOf } from "@/lib/image"
 import { cn } from "@/lib/utils"
 
 import type { PublicEvent } from "@/features/events/api/eventSchemas"
 import type { EventCardVariant } from "@/features/events/components/EventCard"
-import { eventPhoto } from "@/features/events/lib/eventImage"
 import { eventDateParts } from "@/features/events/lib/formatEvent"
 
 type EventPhotoProps = {
@@ -19,7 +19,7 @@ type EventPhotoProps = {
  * Decoration: the card's title and its <time> say what it shows.
  */
 export function EventPhoto({ event, variant }: EventPhotoProps) {
-  const photo = eventPhoto(event)
+  const photo = photoOf(event)
   const date = eventDateParts(event.startsAt)
   const isPast = variant === "past"
   const small = (

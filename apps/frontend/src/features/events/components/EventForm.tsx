@@ -7,6 +7,12 @@ import { z } from "zod"
 
 import { ActivityCombobox } from "@/components/CatalogCombobox/ActivityCombobox"
 import { LocalityCombobox } from "@/components/CatalogCombobox/LocalityCombobox"
+import {
+  imageChangeOf,
+  ImageField,
+  initialImageValue,
+  type ImageFieldValue,
+} from "@/components/ImageField/ImageField"
 import { LocationPicker } from "@/components/map/LocationPicker"
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import { Button } from "@/components/ui/button"
@@ -27,10 +33,10 @@ import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
 import { Textarea } from "@/components/ui/textarea"
 import type { Catalog } from "@/lib/catalog/catalogSearch"
 import { PRAHA_SLUG } from "@/lib/catalog/localityOptions"
+import type { ImageChange } from "@/lib/image"
 import { cn } from "@/lib/utils"
 
 import { localityOfAddress } from "@/features/events/api/addressSearch"
-import type { EventImageChange } from "@/features/events/api/eventImageApi"
 import {
   EVENT_ADDRESS_MAX_LENGTH,
   EVENT_DESCRIPTION_MAX_LENGTH,
@@ -39,7 +45,6 @@ import {
   type EventInput,
 } from "@/features/events/api/eventSchemas"
 import { AddressCombobox } from "@/features/events/components/AddressCombobox"
-import { EventImageField, type EventImageValue } from "@/features/events/components/EventImageField"
 import { usePragueToday } from "@/features/events/hooks/usePragueToday"
 import { dateToDay, dayToDate } from "@/features/events/lib/dateRange"
 import { formatDay } from "@/features/events/lib/formatEvent"
@@ -92,7 +97,7 @@ const buildSchema = (approvedCount: number) =>
           `Popis může mít nejvýš ${EVENT_DESCRIPTION_MAX_LENGTH} znaků`,
         ),
       /** The event's own image (#77); a refused file never gets here (`onRefuse`). */
-      image: z.custom<EventImageValue>(),
+      image: z.custom<ImageFieldValue>(),
     })
     .refine((values) => values.place !== null, {
       message: "Vyber místo na mapě",
@@ -184,7 +189,7 @@ type EventFormProps = {
   isSubmitting: boolean
   errorMessage?: string | null
   /** `image`: what to do with the event's own image after saving it (#77). */
-  onSubmit: (input: EventInput, image: EventImageChange) => void | Promise<void>
+  onSubmit: (input: EventInput, image: ImageChange) => void | Promise<void>
 }
 
 /**
@@ -238,7 +243,7 @@ export function EventForm({
       approvalMode: initialValues?.approvalMode ?? "open",
       visibility: initialValues?.visibility ?? "public",
       description: initialValues?.description ?? "",
-      image: initialImageSrc ? { kind: "uploaded", src: initialImageSrc } : { kind: "none" },
+      image: initialImageValue(initialImageSrc),
     },
   })
 
@@ -259,12 +264,7 @@ export function EventForm({
         onSubmit={form.handleSubmit((values) => {
           // entered as Prague time, whatever the device's time zone
           const { startsAt, endsAt } = eventTimes(values.day, values.start, values.end)
-          const image: EventImageChange =
-            values.image.kind === "file"
-              ? { kind: "set", file: values.image.file }
-              : values.image.kind === "none" && initialImageSrc
-                ? { kind: "remove" }
-                : { kind: "keep" }
+          const image = imageChangeOf(values.image, Boolean(initialImageSrc))
           return onSubmit(
             {
               title: values.title.trim(),
@@ -604,7 +604,7 @@ export function EventForm({
                 <FormItem className="order-12 md:order-none">
                   <FormLabel>Plakát nebo fotka</FormLabel>
                   <FormControl>
-                    <EventImageField
+                    <ImageField
                       ref={field.ref}
                       value={field.value}
                       onChange={(value) => {
@@ -612,6 +612,7 @@ export function EventForm({
                         form.clearErrors("image")
                       }}
                       onRefuse={(message) => form.setError("image", { message })}
+                      addLabel="Přidat plakát nebo fotku"
                     />
                   </FormControl>
                   <FormDescription>
