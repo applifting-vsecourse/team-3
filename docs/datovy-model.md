@@ -6,28 +6,28 @@ Schéma vzniklo v rámci #47 (testovací data), protože bez něj nešla data na
 
 ## Přehled tabulek
 
-| Model               | Tabulka              | K čemu je                                                                                    | Úkol                | Sprint 2 |
-| ------------------- | -------------------- | -------------------------------------------------------------------------------------------- | ------------------- | -------- |
-| `User`              | `user`               | Účet (BetterAuth) a profil: bio, domovská lokalita, viditelnost údajů, souhlasy, blokace     | B-003, B-013, B-014 | ano      |
-| `UserInterest`      | `user_interest`      | Zájmy v profilu, vazba M:N uživatel × aktivita                                               | B-003               | ano      |
-| `ActivityCategory`  | `activity_category`  | Kategorie aktivit (první úroveň)                                                             | B-002               | ano      |
-| `Activity`          | `activity`           | Aktivita (druhá úroveň) s klíčovými slovy pro hledání                                        | B-002               | ano      |
-| `Locality`          | `locality`           | Město nebo městská část se souřadnicemi středu                                               | B-002               | ano      |
-| `Event`             | `event`              | Akce jednotlivce i skupiny                                                                   | B-020               | ano      |
-| `EventImage`        | `event_image`        | Obrázek akce nahraný organizátorem (soubor v databázi, viz [Obrázek akce](#obrázek-akce-77)) | #77                 | ne       |
-| `Participation`     | `participation`      | Přihláška na akci a její stav, docházka                                                      | B-030, B-072        | ano      |
-| `Group`             | `group`              | Skupina (veřejná / neveřejná, aktivní / deaktivovaná)                                        | B-050               | ano      |
-| `GroupMember`       | `group_member`       | Členství a role ve skupině                                                                   | B-050               | ano      |
-| `EventMessage`      | `event_message`      | Zpráva organizátora účastníkům (limit 10 za den)                                             | B-042               | ne       |
-| `GroupAnnouncement` | `group_announcement` | Oznámení správce členům skupiny (limit 10 za den na skupinu)                                 | #194                | ne       |
-| `NotificationLog`   | `notification_log`   | Záznam o odeslaném plánovaném e-mailu, aby nepřišel dvakrát                                  | B-043               | ne       |
-| `Rating`            | `rating`             | Hodnocení akce a organizátora od účastníka                                                   | B-060               | ne       |
-| `ParticipantRating` | `participant_rating` | Hodnocení účastníka organizátorem akce                                                       | B-060, #180         | ne       |
-| `Report`            | `report`             | Nahlášení uživatele, akce, skupiny nebo hodnocení                                            | B-061               | ne       |
-| `ModerationAction`  | `moderation_action`  | Zásah superadmina a jeho vrácení                                                             | B-063               | ne       |
-| `Payment`           | `payment`            | Simulovaná platba (předplatné, topování)                                                     | B-070               | ne       |
-| `Subscription`      | `subscription`       | Předplatné organizátora (evidence docházky)                                                  | B-071               | ne       |
-| `SeedState`         | `seed_state`         | Verze testovacích dat v databázi, podle ní seed pozná, že má data vyměnit                    | #181                | –        |
+| Model               | Tabulka              | K čemu je                                                                                                                | Úkol                | Sprint 2 |
+| ------------------- | -------------------- | ------------------------------------------------------------------------------------------------------------------------ | ------------------- | -------- |
+| `User`              | `user`               | Účet (BetterAuth) a profil: bio, domovská lokalita, viditelnost údajů, souhlasy, blokace                                 | B-003, B-013, B-014 | ano      |
+| `UserInterest`      | `user_interest`      | Zájmy v profilu, vazba M:N uživatel × aktivita                                                                           | B-003               | ano      |
+| `ActivityCategory`  | `activity_category`  | Kategorie aktivit (první úroveň)                                                                                         | B-002               | ano      |
+| `Activity`          | `activity`           | Aktivita (druhá úroveň) s klíčovými slovy pro hledání                                                                    | B-002               | ano      |
+| `Locality`          | `locality`           | Město nebo městská část se souřadnicemi středu                                                                           | B-002               | ano      |
+| `Event`             | `event`              | Akce jednotlivce i skupiny                                                                                               | B-020               | ano      |
+| `UploadedImage`     | `uploaded_image`     | Obrázek akce nebo fotka skupiny nahraná jako soubor (v databázi, viz [Obrázky akcí a skupin](#obrázky-akcí-a-skupin-77)) | #77                 | ne       |
+| `Participation`     | `participation`      | Přihláška na akci a její stav, docházka                                                                                  | B-030, B-072        | ano      |
+| `Group`             | `group`              | Skupina (veřejná / neveřejná, aktivní / deaktivovaná)                                                                    | B-050               | ano      |
+| `GroupMember`       | `group_member`       | Členství a role ve skupině                                                                                               | B-050               | ano      |
+| `EventMessage`      | `event_message`      | Zpráva organizátora účastníkům (limit 10 za den)                                                                         | B-042               | ne       |
+| `GroupAnnouncement` | `group_announcement` | Oznámení správce členům skupiny (limit 10 za den na skupinu)                                                             | #194                | ne       |
+| `NotificationLog`   | `notification_log`   | Záznam o odeslaném plánovaném e-mailu, aby nepřišel dvakrát                                                              | B-043               | ne       |
+| `Rating`            | `rating`             | Hodnocení akce a organizátora od účastníka                                                                               | B-060               | ne       |
+| `ParticipantRating` | `participant_rating` | Hodnocení účastníka organizátorem akce                                                                                   | B-060, #180         | ne       |
+| `Report`            | `report`             | Nahlášení uživatele, akce, skupiny nebo hodnocení                                                                        | B-061               | ne       |
+| `ModerationAction`  | `moderation_action`  | Zásah superadmina a jeho vrácení                                                                                         | B-063               | ne       |
+| `Payment`           | `payment`            | Simulovaná platba (předplatné, topování)                                                                                 | B-070               | ne       |
+| `Subscription`      | `subscription`       | Předplatné organizátora (evidence docházky)                                                                              | B-071               | ne       |
+| `SeedState`         | `seed_state`         | Verze testovacích dat v databázi, podle ní seed pozná, že má data vyměnit                                                | #181                | –        |
 
 Tabulky `session`, `account` a `verification` spravuje BetterAuth (přihlášení, ověření e-mailu, obnova hesla).
 
@@ -107,7 +107,8 @@ erDiagram
     Group ||--o{ GroupAnnouncement : "oznámení"
     User ||--o{ GroupAnnouncement : "poslal"
     Event |o--o{ NotificationLog : "e-maily"
-    EventImage |o--o| Event : "obrázek (#77)"
+    UploadedImage |o--o| Event : "obrázek (#77)"
+    UploadedImage |o--o| Group : "fotka (#77)"
     User |o--o{ NotificationLog : "příjemce"
 
     Event {
@@ -136,7 +137,7 @@ erDiagram
         datetime promotedUntil "topování"
         string imageKey FK "vlastní obrázek (#77)"
     }
-    EventImage {
+    UploadedImage {
         string key PK "náhodné UUID, součást adresy"
         string contentType "image/jpeg / png / webp"
         bytes data "nejvýš 5 MB"
@@ -155,7 +156,7 @@ erDiagram
         string id PK
         string name
         string description
-        string imageUrl
+        string imageKey FK "vlastní fotka (#77)"
         string activityId FK
         string localityId FK
         group_type type "public / closed"
@@ -195,14 +196,14 @@ erDiagram
     }
 ```
 
-### Obrázek akce (#77)
+### Obrázky akcí a skupin (#77)
 
-Organizátor k akci nahraje vlastní plakát nebo fotku jako soubor (PO 10. 11., Q3); bez něj se dál ukazuje fotka aktivity z knihovny ve frontendu.
+Organizátor k akci nahraje vlastní plakát nebo fotku a správce skupiny fotku skupiny, obojí jako soubor (PO 10. 11., Q3; skupina přidaná do #77 18. 11.). Bez nich se dál ukazuje fotka aktivity z knihovny ve frontendu. Dřívější `Group.imageUrl` (URL zadaná uživatelem) se nikde nepoužíval a migrace ho nahradila `Group.imageKey`.
 
-- **Kde se soubory ukládají: v Postgresu**, tabulka `event_image` (`bytea`), `Event.imageKey` na ni odkazuje. Staging (Coolify) při každém nasazení vytvoří kontejner backendu znovu a tým nemá přístup k jeho nastavení, takže trvalý disk (volume) pro soubory přidat nejde; soubor zapsaný do kontejneru by po restartu zmizel. Databáze trvalý volume má (`db-data`), obrázky v ní tedy přežijí restart i nasazení a jsou ve stejné záloze jako akce. Externí úložiště (S3 a podobně) by potřebovalo další službu a klíče. Při limitu 5 MB a počtu akcí v MVP je to v pořádku; kdyby databáze rostla, úložiště jde vyměnit jen v `EventRepository.replaceImage` a `findImage`, API zůstane.
-- **Formáty a velikost:** JPEG, PNG nebo WebP, nejvýš 5 MB. Backend pozná formát podle prvních bajtů souboru, ne podle přípony ani typu z prohlížeče (SVG nebo HTML přejmenované na `.jpg` neprojde), čistá funkce `checkEventImage` v [`modules/event/domain/event-image.ts`](../apps/backend/src/modules/event/domain/event-image.ts). Oba limity hlídá i `CHECK` v databázi. Formulář soubor zkontroluje už při výběru a řekne česky proč.
-- **API:** `PUT /api/events/:id/image` (multipart, pole `image`) nahraje nebo vymění, `DELETE /api/events/:id/image` odebere. Smí jen ten, kdo smí akci upravit (organizátor, u akce skupiny její správci), a jen do začátku akce, ne u zrušené. Obrázek je na `GET /api/event-images/:imageKey`, veřejně jako karta akce. Klíč je náhodné UUID a při každém nahrání nový, proto se odpověď cachuje rok; výměna nebo odebrání starý řádek smaže.
-- **Akce jen pro členy:** kdo zná klíč, obrázek otevře. Klíč dostane jen ten, komu API akci ukáže, a uhodnout nejde.
+- **Kde se soubory ukládají: v Postgresu**, tabulka `uploaded_image` (`bytea`), `Event.imageKey` a `Group.imageKey` na ni odkazují. Staging (Coolify) při každém nasazení vytvoří kontejner backendu znovu a tým nemá přístup k jeho nastavení, takže trvalý disk (volume) pro soubory přidat nejde; soubor zapsaný do kontejneru by po restartu zmizel. Databáze trvalý volume má (`db-data`), obrázky v ní tedy přežijí restart i nasazení a jsou ve stejné záloze jako akce. Externí úložiště (S3 a podobně) by potřebovalo další službu a klíče. Při limitu 5 MB a počtu akcí a skupin v MVP je to v pořádku; kdyby databáze rostla, úložiště jde vyměnit jen v [`modules/image/repositories/image.repository.ts`](../apps/backend/src/modules/image/repositories/image.repository.ts), API zůstane.
+- **Formáty a velikost:** JPEG, PNG nebo WebP, nejvýš 5 MB. Backend pozná formát podle prvních bajtů souboru, ne podle přípony ani typu z prohlížeče (SVG nebo HTML přejmenované na `.jpg` neprojde), čistá funkce `checkImageFile` v [`modules/image/domain/uploaded-image.ts`](../apps/backend/src/modules/image/domain/uploaded-image.ts). Oba limity hlídá i `CHECK` v databázi. Formulář soubor zkontroluje už při výběru a řekne česky proč.
+- **API:** `PUT /api/events/:id/image` a `PUT /api/groups/:id/image` (multipart, pole `image`) nahrají nebo vymění, `DELETE` na stejné adrese odebere. U akce smí jen ten, kdo smí akci upravit (organizátor, u akce skupiny její správci), a jen do začátku akce, ne u zrušené; u skupiny jen její správce a jen u aktivní skupiny. Obrázek je na `GET /api/images/:imageKey`, veřejně jako karta akce nebo skupiny. Klíč je náhodné UUID a při každém nahrání nový, proto se odpověď cachuje rok; výměna nebo odebrání starý řádek smaže.
+- **Akce jen pro členy:** kdo zná klíč, obrázek otevře. Klíč dostane jen ten, komu API akci ukáže, a uhodnout nejde. Fotka neveřejné skupiny je veřejná stejně jako její karta v seznamu.
 
 ## Důvěra, administrace a monetizace
 
