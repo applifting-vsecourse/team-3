@@ -2,6 +2,7 @@ import { PrismaModule } from '@/core/prisma/prisma.module';
 import { NotificationModule } from '@/modules/notification/notification.module';
 import { AuthModule } from '@/shared/auth/auth.module';
 import { Module } from '@nestjs/common';
+import { EventImagesController } from './controllers/event-images.controller';
 import { EventsController } from './controllers/events.controller';
 import { GroupEventsController } from './controllers/group-events.controller';
 import { MyEventsController } from './controllers/my-events.controller';
@@ -12,7 +13,12 @@ import { EventsService } from './services/events.service';
   // AuthModule: the detail resolves the session when there is one
   // NotificationModule: e-mails about the participation and the event (#177)
   imports: [PrismaModule, AuthModule, NotificationModule],
-  controllers: [EventsController, GroupEventsController, MyEventsController],
+  controllers: [
+    EventsController,
+    EventImagesController,
+    GroupEventsController,
+    MyEventsController,
+  ],
   providers: [EventsService, EventRepository],
   exports: [EventsService, EventRepository],
 })

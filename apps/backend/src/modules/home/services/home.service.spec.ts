@@ -64,6 +64,7 @@ const anEvent = (
     approved,
   ),
   isPromoted: false,
+  imageKey: null,
   distanceKm: null,
   ...extra,
 });

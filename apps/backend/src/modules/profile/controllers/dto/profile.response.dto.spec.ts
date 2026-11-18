@@ -31,6 +31,7 @@ describe('ProfileOverviewResponseDto (#178)', () => {
         isFull: false,
       },
       isPromoted: false,
+      imageKey: null,
       distanceKm: null,
       status: 'published' as const,
       localityName: 'Praha 8',

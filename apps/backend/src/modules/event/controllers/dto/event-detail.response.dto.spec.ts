@@ -26,6 +26,7 @@ const aView = (overrides: Partial<EventDetailView> = {}): EventDetailView => ({
   maxParticipants: 6,
   capacity: computeCapacity({ minParticipants: 3, maxParticipants: 6 }, 2),
   isPromoted: false,
+  imageKey: null,
   description: null,
   approvalMode: 'approval',
   visibility: 'private',

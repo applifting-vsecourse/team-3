@@ -144,6 +144,15 @@ export class PublicEventResponseDto {
   distanceKm!: number | null;
 
   @ApiProperty({
+    type: String,
+    nullable: true,
+    format: 'uuid',
+    description:
+      "The organizer's own image (#77), at GET /api/event-images/{imageKey}; null = show the activity's photo",
+  })
+  imageKey!: string | null;
+
+  @ApiProperty({
     type: EventRatingDto,
     nullable: true,
     description:
@@ -180,6 +189,7 @@ export class PublicEventResponseDto {
       summary: event.summary,
       distanceKm: event.distanceKm,
       rating: event.rating ?? null,
+      imageKey: event.imageKey,
     };
   }
 }

@@ -60,6 +60,7 @@ const anEvent = (id: string, approvedCount: number): PublicEvent => ({
     approvedCount,
   ),
   isPromoted: false,
+  imageKey: null,
 });
 
 describe('EventsService', () => {
@@ -2161,5 +2162,176 @@ describe('EventsService messages to the participants (#176)', () => {
       expect(warned).toHaveBeenCalledTimes(2);
       warned.mockRestore();
     });
+  });
+});
+
+describe('EventsService.setEventImage (#77)', () => {
+  const PNG = Uint8Array.from([
+    0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a, 0x00,
+  ]);
+
+  const setup = (
+    detail: EventDetail = aDetail(),
+  ): {
+    repository: MockProxy<EventRepository>;
+    notifications: MockProxy<NotificationService>;
+    service: EventsService;
+  } => {
+    const repository = mock<EventRepository>();
+    repository.findEventDetail.mockResolvedValue(detail);
+    repository.findApprovedParticipants.mockResolvedValue(participants);
+    repository.findParticipationStatus.mockResolvedValue(null);
+    // what the lock reads: by default the same event as the pre-read
+    repository.replaceImage.mockImplementation(async (_id, _image, refuse) => {
+      const refusal = refuse({
+        status: detail.status,
+        startsAt: detail.startsAt,
+      });
+      return refusal ? { ok: false, refusal } : { ok: true };
+    });
+    const notifications = mock<NotificationService>();
+    return {
+      repository,
+      notifications,
+      service: new EventsService(repository, notifications),
+    };
+  };
+
+  it('the organizer uploads a PNG: it is stored as image/png, nobody is told', async () => {
+    const { repository, notifications, service } = setup();
+
+    await service.setEventImage('e1', 'u1', PNG, now);
+
+    expect(repository.replaceImage).toHaveBeenCalledWith(
+      'e1',
+      { contentType: 'image/png', data: PNG },
+      expect.any(Function),
+    );
+    expect(notifications.notify).not.toHaveBeenCalled();
+  });
+
+  it('null removes the image, and the activity photo shows again', async () => {
+    const { repository, service } = setup();
+
+    await service.setEventImage('e1', 'u1', null, now);
+
+    expect(repository.replaceImage).toHaveBeenCalledWith(
+      'e1',
+      null,
+      expect.any(Function),
+    );
+  });
+
+  it('anyone but the organizer gets 403 and nothing is stored', async () => {
+    const { repository, service } = setup();
+
+    const error = (await service
+      .setEventImage('e1', 'u9', PNG, now)
+      .catch((e: unknown) => e)) as ForbiddenException;
+
+    expect(error).toBeInstanceOf(ForbiddenException);
+    expect(error.getResponse()).toMatchObject({ code: 'NOT_ORGANIZER' });
+    expect(repository.replaceImage).not.toHaveBeenCalled();
+  });
+
+  it('removing is the organizer’s too', async () => {
+    const { repository, service } = setup();
+
+    await expect(service.setEventImage('e1', 'u9', null, now)).rejects.toThrow(
+      ForbiddenException,
+    );
+    expect(repository.replaceImage).not.toHaveBeenCalled();
+  });
+
+  it("any admin of the event's group may, not a regular member (B-055)", async () => {
+    const admin = setup(groupEventDetail());
+    admin.repository.findActiveGroupRole.mockResolvedValue('admin');
+    await admin.service.setEventImage('e1', 'u9', PNG, now);
+    expect(admin.repository.replaceImage).toHaveBeenCalled();
+
+    const member = setup(groupEventDetail());
+    member.repository.findActiveGroupRole.mockResolvedValue('member');
+    await expect(
+      member.service.setEventImage('e1', 'u9', PNG, now),
+    ).rejects.toThrow(ForbiddenException);
+    expect(member.repository.replaceImage).not.toHaveBeenCalled();
+  });
+
+  it('a file that is not JPEG, PNG or WebP is 400 with a Czech reason', async () => {
+    const { repository, service } = setup();
+    const svg = new TextEncoder().encode('<svg><script/></svg>');
+
+    const error = (await service
+      .setEventImage('e1', 'u1', svg, now)
+      .catch((e: unknown) => e)) as BadRequestException;
+
+    expect(error).toBeInstanceOf(BadRequestException);
+    expect(JSON.stringify(error.getResponse())).toContain(
+      'Nahraj obrázek ve formátu JPEG, PNG nebo WebP.',
+    );
+    expect(repository.replaceImage).not.toHaveBeenCalled();
+  });
+
+  it('no file is 400 „Vyber obrázek.“', async () => {
+    const { service } = setup();
+
+    await expect(
+      service.setEventImage('e1', 'u1', new Uint8Array(), now),
+    ).rejects.toThrow(BadRequestException);
+  });
+
+  it('a started event is 400 and a cancelled one 409, as an edit', async () => {
+    const started = setup(aDetail({ startsAt: now }));
+    await expect(
+      started.service.setEventImage('e1', 'u1', PNG, now),
+    ).rejects.toThrow(BadRequestException);
+    expect(started.repository.replaceImage).not.toHaveBeenCalled();
+
+    const cancelled = setup(aDetail({ status: 'cancelled' }));
+    await expect(
+      cancelled.service.setEventImage('e1', 'u1', PNG, now),
+    ).rejects.toThrow(ConflictException);
+  });
+
+  it('an upload that waited for the lock behind a cancel is 409', async () => {
+    const { repository, service } = setup();
+    repository.replaceImage.mockImplementation(async (_id, _image, refuse) => {
+      const refusal = refuse({
+        status: 'cancelled',
+        startsAt: aDetail().startsAt,
+      });
+      return refusal ? { ok: false, refusal } : { ok: true };
+    });
+
+    await expect(service.setEventImage('e1', 'u1', PNG, now)).rejects.toThrow(
+      ConflictException,
+    );
+  });
+
+  it('a members-only event of a group the user is not in is 403 first', async () => {
+    const { repository, service } = setup(
+      aDetail({ visibility: 'members', group: { id: 'g1', name: 'Skupina' } }),
+    );
+
+    await expect(service.setEventImage('e1', 'u9', PNG, now)).rejects.toThrow(
+      ForbiddenException,
+    );
+    expect(repository.replaceImage).not.toHaveBeenCalled();
+  });
+});
+
+describe('EventsService.getEventImage (#77)', () => {
+  it('serves a stored image and 404s an unknown key', async () => {
+    const repository = mock<EventRepository>();
+    const image = { contentType: 'image/webp', data: Uint8Array.from([1]) };
+    repository.findImage.mockImplementation(async (key) =>
+      key === 'k1' ? image : null,
+    );
+    const service = new EventsService(repository, mock<NotificationService>());
+
+    await expect(service.getEventImage('k1')).resolves.toBe(image);
+    await expect(service.getEventImage('k2')).rejects.toThrow(
+      NotFoundException,
+    );
   });
 });

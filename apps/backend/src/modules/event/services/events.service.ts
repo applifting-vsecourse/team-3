@@ -13,6 +13,11 @@ import {
   PublicEventSort,
 } from '@/modules/event/domain/event';
 import {
+  checkEventImage,
+  EventImageType,
+  StoredEventImage,
+} from '@/modules/event/domain/event-image';
+import {
   canReadMessages,
   canSendMessages,
   decideMessage,
@@ -485,6 +490,50 @@ export class EventsService {
       });
     }
     return updated;
+  }
+
+  /**
+   * The organizer's own image of the event (#77): sets or, with `null`,
+   * removes it, then the activity's photo shows again. Whoever may edit the
+   * event may (the organizer, a group's admins), until it starts, as an edit.
+   * The file is checked by its content: JPEG, PNG or WebP, at most 5 MB.
+   * Nobody is told: a new picture is nobody's news (#177).
+   */
+  async setEventImage(
+    id: string,
+    userId: string,
+    file: Uint8Array | null,
+    now: Date = new Date(),
+  ): Promise<EventDetailView> {
+    const event = await this.getEventDetail(id, userId, now); // 404 or MEMBERS_ONLY first
+    this.assertCanManage(
+      event,
+      'Obrázek akce může změnit jen její organizátor.',
+    );
+    const refusal = lifecycleRefusal(event, now);
+    if (refusal) throw updateRefused(refusal);
+    let image: { contentType: EventImageType; data: Uint8Array } | null = null;
+    if (file) {
+      const check = checkEventImage(file);
+      if (!check.ok) throw new BadRequestException([check.message]);
+      image = { contentType: check.contentType, data: file };
+    }
+    const result = await this.eventRepository.replaceImage(id, image, (state) =>
+      lifecycleRefusal(state, now),
+    );
+    if (!result) throw new NotFoundException('Akce neexistuje.');
+    if (!result.ok) throw updateRefused(result.refusal);
+    return this.getEventDetail(id, userId, now);
+  }
+
+  /**
+   * An uploaded image to show (#77). Public, as the event's card is: the key
+   * is a random UUID, so only those who were shown the event know it.
+   */
+  async getEventImage(key: string): Promise<StoredEventImage> {
+    const image = await this.eventRepository.findImage(key);
+    if (!image) throw new NotFoundException('Obrázek neexistuje.');
+    return image;
   }
 
   /**

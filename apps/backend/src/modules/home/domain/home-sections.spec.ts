@@ -57,6 +57,7 @@ const anEvent = (id: string, spec: EventSpec = {}): PublicEvent => {
       spec.approved ?? min,
     ),
     isPromoted: false,
+    imageKey: null,
     distanceKm: null,
   };
 };

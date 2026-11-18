@@ -1,3 +1,7 @@
+import {
+  EVENT_IMAGE_FIELD,
+  EVENT_IMAGE_MAX_BYTES,
+} from '@/modules/event/domain/event-image';
 import { EventsService } from '@/modules/event/services/events.service';
 import { OptionalUser } from '@/shared/auth/decorators/optional-user.decorator';
 import { User } from '@/shared/auth/decorators/user.decorator';
@@ -16,12 +20,19 @@ import {
   Param,
   Patch,
   Post,
+  Put,
   Query,
+  UploadedFile,
+  UseFilters,
   UseGuards,
+  UseInterceptors,
   UsePipes,
   ValidationPipe,
 } from '@nestjs/common';
+import { FileInterceptor } from '@nestjs/platform-express';
 import {
+  ApiBody,
+  ApiConsumes,
   ApiCookieAuth,
   ApiOperation,
   ApiResponse,
@@ -44,6 +55,7 @@ import {
 } from './dto/list-events.query.dto';
 import { PublicEventResponseDto } from './dto/public-event.response.dto';
 import { UpdateEventDto } from './dto/update-event.dto';
+import { EventImageUploadFilter } from './event-image-upload.filter';
 
 // Public on purpose: visitors browse upcoming events without an account (US-02).
 @ApiTags('events')
@@ -469,4 +481,88 @@ export class EventsController {
       }),
     );
   }
+
+  @Put(':id/image')
+  @UseGuards(VerifiedUserGuard)
+  // guards run first: no file of a stranger is read into memory
+  @UseInterceptors(
+    FileInterceptor(EVENT_IMAGE_FIELD, {
+      limits: { fileSize: EVENT_IMAGE_MAX_BYTES, files: 1 },
+    }),
+  )
+  @UseFilters(EventImageUploadFilter)
+  @ApiCookieAuth()
+  @ApiConsumes('multipart/form-data')
+  @ApiBody({
+    schema: {
+      type: 'object',
+      required: [EVENT_IMAGE_FIELD],
+      properties: {
+        [EVENT_IMAGE_FIELD]: { type: 'string', format: 'binary' },
+      },
+    },
+  })
+  @ApiOperation({
+    summary:
+      "Upload the event's own image (#77), replacing the previous one; only its organizer, before it starts",
+    description:
+      "JPEG, PNG or WebP by the file's content, at most 5 MB. The detail then has `imageKey`; the image is at GET /api/event-images/{imageKey}.",
+  })
+  @ApiResponse({ status: 200, type: EventDetailResponseDto })
+  @ApiResponse({
+    status: 400,
+    description:
+      'No file, not JPEG/PNG/WebP, or the event already started (Czech message)',
+  })
+  @ApiResponse({ status: 401, description: 'Not signed in' })
+  @ApiResponse({
+    status: 403,
+    description:
+      'NOT_ORGANIZER, EMAIL_NOT_VERIFIED, USER_BLOCKED, or MEMBERS_ONLY',
+  })
+  @ApiResponse({ status: 404, description: 'No such event for this user' })
+  @ApiResponse({ status: 409, description: 'EVENT_CANCELLED' })
+  @ApiResponse({ status: 413, description: 'Over 5 MB (Czech message)' })
+  async setImage(
+    @Param('id') id: string,
+    @UploadedFile() file: UploadedImage | undefined,
+    @User() user: Identity,
+  ): Promise<EventDetailResponseDto> {
+    return EventDetailResponseDto.fromDomain(
+      await this.eventsService.setEventImage(
+        id,
+        user.id,
+        file ? new Uint8Array(file.buffer) : new Uint8Array(),
+      ),
+    );
+  }
+
+  @Delete(':id/image')
+  @UseGuards(VerifiedUserGuard)
+  @ApiCookieAuth()
+  @ApiOperation({
+    summary:
+      "Remove the event's own image (#77): the activity's photo shows again; only its organizer, before it starts",
+  })
+  @ApiResponse({ status: 200, type: EventDetailResponseDto })
+  @ApiResponse({ status: 400, description: 'The event already started' })
+  @ApiResponse({ status: 401, description: 'Not signed in' })
+  @ApiResponse({
+    status: 403,
+    description:
+      'NOT_ORGANIZER, EMAIL_NOT_VERIFIED, USER_BLOCKED, or MEMBERS_ONLY',
+  })
+  @ApiResponse({ status: 404, description: 'No such event for this user' })
+  @ApiResponse({ status: 409, description: 'EVENT_CANCELLED' })
+  async removeImage(
+    @Param('id') id: string,
+    @User() user: Identity,
+  ): Promise<EventDetailResponseDto> {
+    return EventDetailResponseDto.fromDomain(
+      await this.eventsService.setEventImage(id, user.id, null),
+    );
+  }
 }
+
+/** What multer's memory storage hands over; only the bytes matter (#77). */
+type UploadedImage = { buffer: Buffer };
