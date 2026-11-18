@@ -3,7 +3,6 @@ import { Link } from "@tanstack/react-router"
 import { RefreshCw } from "lucide-react"
 
 import { ROUTES } from "@/app/routes"
-import { activityPhoto } from "@/assets/activity-photos"
 import { ActivityTile } from "@/components/ActivityTile/ActivityTile"
 import { CapacityBar } from "@/components/CapacityBar/CapacityBar"
 import { DateTile } from "@/components/DateTile/DateTile"
@@ -13,6 +12,7 @@ import { Skeleton } from "@/components/ui/skeleton"
 import { cn } from "@/lib/utils"
 
 import type { PublicEvent } from "@/features/events/api/eventSchemas"
+import { eventPhoto } from "@/features/events/lib/eventImage"
 import { eventDateParts, formatEventStart, placeName } from "@/features/events/lib/formatEvent"
 import { missingNowLabel, missingNowSentence, startsIn } from "@/features/events/lib/homeCopy"
 
@@ -38,7 +38,7 @@ function PanelLabel({ children }: { children: ReactNode }) {
  * the panel, as on the event card.
  */
 export function MissingOnePanel({ event, now }: { event: PublicEvent; now: Date }) {
-  const photo = activityPhoto(event.activity.slug)
+  const photo = eventPhoto(event)
   const date = eventDateParts(event.startsAt)
   return (
     <article

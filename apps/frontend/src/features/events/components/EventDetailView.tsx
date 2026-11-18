@@ -27,6 +27,7 @@ import { EventFacts } from "@/features/events/components/EventFacts"
 import { EventParticipants } from "@/features/events/components/EventParticipants"
 import { toPin } from "@/features/events/components/EventsMap"
 import { ShareEventButton } from "@/features/events/components/ShareEventButton"
+import { eventPhoto } from "@/features/events/lib/eventImage"
 import {
   eventDateParts,
   formatEventStart,
@@ -227,7 +228,10 @@ export function EventDetailView({
   // without the names (#174) the count and when the names show (Figma A-05, A-05d)
   const date = eventDateParts(event.startsAt)
   const photo = (
-    <ActivityPhoto slug={event.activity.slug}>
+    <ActivityPhoto
+      slug={event.activity.slug}
+      photo={eventPhoto(event)}
+    >
       <DateTile
         weekday={date.weekday}
         day={date.day}

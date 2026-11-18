@@ -1,25 +1,25 @@
-import { activityPhoto } from "@/assets/activity-photos"
 import { ActivityTile } from "@/components/ActivityTile/ActivityTile"
 import { DateTile } from "@/components/DateTile/DateTile"
 import { cn } from "@/lib/utils"
 
 import type { PublicEvent } from "@/features/events/api/eventSchemas"
 import type { EventCardVariant } from "@/features/events/components/EventCard"
+import { eventPhoto } from "@/features/events/lib/eventImage"
 import { eventDateParts } from "@/features/events/lib/formatEvent"
 
 type EventPhotoProps = {
-  event: Pick<PublicEvent, "activity" | "startsAt">
+  event: Pick<PublicEvent, "activity" | "startsAt" | "imageKey">
   variant: EventCardVariant | "past"
 }
 
 /**
- * The top of an event card (Figma Karta akce › Foto): the activity's photo from the library
- * with one colour grade (saturation −14 %, contrast +10 %; a past event −60 %), and the date
+ * The top of an event card (Figma Karta akce › Foto): the organizer's own image (#77) or the
+ * activity's photo from the library, with one colour grade (saturation −14 %, contrast +10 %; a past event −60 %), and the date
  * tile over it. Without a photo for its activity, the Activity tile on the page colour.
  * Decoration: the card's title and its <time> say what it shows.
  */
 export function EventPhoto({ event, variant }: EventPhotoProps) {
-  const photo = activityPhoto(event.activity.slug)
+  const photo = eventPhoto(event)
   const date = eventDateParts(event.startsAt)
   const isPast = variant === "past"
   const small = (
