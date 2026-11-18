@@ -484,7 +484,8 @@ export class EventsController {
 
   @Put(':id/image')
   @UseGuards(VerifiedUserGuard)
-  // guards run first: no file of a stranger is read into memory
+  // guards run first: no file from someone signed out or unverified is read;
+  // whether the user manages the event the service decides after the upload
   @UseInterceptors(
     FileInterceptor(EVENT_IMAGE_FIELD, {
       limits: { fileSize: EVENT_IMAGE_MAX_BYTES, files: 1 },

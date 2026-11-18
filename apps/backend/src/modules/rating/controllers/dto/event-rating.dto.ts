@@ -158,6 +158,14 @@ export class RatedEventDto {
     example: 0,
   })
   missingToMin!: number;
+  @ApiProperty({
+    type: String,
+    nullable: true,
+    format: 'uuid',
+    description:
+      "The organizer's own image (#77), at GET /api/event-images/{imageKey}; null = the activity's photo",
+  })
+  imageKey!: string | null;
 
   static fromDomain(event: RatedEvent): RatedEventDto {
     return {
@@ -180,6 +188,7 @@ export class RatedEventDto {
         : null,
       approvedCount: event.approvedCount,
       missingToMin: event.missingToMin,
+      imageKey: event.imageKey,
     };
   }
 }

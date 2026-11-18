@@ -100,6 +100,16 @@ const renderPage = (onSaved = vi.fn().mockResolvedValue(undefined)) =>
   )
 
 describe("/akce/:id/hodnoceni for a participant (Figma C-03, #66)", () => {
+  it("the event's card shows the organizer's own image (#77)", async () => {
+    answer = { ...fresh, event: { ...event, imageKey: "k-plakat" } }
+    const { container } = await renderPage()
+
+    await screen.findByRole("heading", { name: "Volejbal na Letné" })
+    expect(container.querySelector("[data-slot=event-photo] img")?.getAttribute("src")).toMatch(
+      /\/event-images\/k-plakat$/,
+    )
+  })
+
   it("shows the band, the event's card, the two questions and the comment", async () => {
     await renderPage()
 
