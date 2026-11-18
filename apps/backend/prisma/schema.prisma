@@ -488,7 +488,7 @@ model NotificationLog {
 // Skupiny (B-050)
 // ---------------------------------------------------------------------------
 
-/// Skupina má právě jednu aktivitu a jednu lokalitu. Obrázek jen jako URL (Q3).
+/// Skupina má právě jednu aktivitu a jednu lokalitu. Fotka je nahraný soubor (`imageKey`, #77), bez ní fotka aktivity.
 model Group {
   id            String         @id @default(cuid())
   name          String

@@ -160,7 +160,8 @@ export class GroupsController {
   @ApiResponse({ status: 401, description: 'Not signed in' })
   @ApiResponse({
     status: 403,
-    description: 'Not an admin of the group, or EMAIL_NOT_VERIFIED',
+    description:
+      'Not an admin of the group, EMAIL_NOT_VERIFIED, or USER_BLOCKED',
   })
   @ApiResponse({ status: 404, description: 'No such group' })
   @ApiResponse({ status: 409, description: 'GROUP_INACTIVE' })
@@ -185,7 +186,8 @@ export class GroupsController {
   @ApiResponse({ status: 401, description: 'Not signed in' })
   @ApiResponse({
     status: 403,
-    description: 'Not an admin of the group, or EMAIL_NOT_VERIFIED',
+    description:
+      'Not an admin of the group, EMAIL_NOT_VERIFIED, or USER_BLOCKED',
   })
   @ApiResponse({ status: 404, description: 'No such group' })
   @ApiResponse({ status: 409, description: 'GROUP_INACTIVE' })

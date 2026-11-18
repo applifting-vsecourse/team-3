@@ -163,7 +163,7 @@ export class RatedEventDto {
     nullable: true,
     format: 'uuid',
     description:
-      "The organizer's own image (#77), at GET /api/event-images/{imageKey}; null = the activity's photo",
+      "The organizer's own image (#77), at GET /api/images/{imageKey}; null = the activity's photo",
   })
   imageKey!: string | null;
 
