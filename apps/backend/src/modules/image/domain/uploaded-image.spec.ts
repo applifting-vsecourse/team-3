@@ -44,7 +44,7 @@ describe('checkImageFile', () => {
 
     expect(checkImageFile(file)).toEqual({
       ok: true,
-      image: { contentType: 'image/png', data: file },
+      contentType: 'image/png',
     });
   });
 

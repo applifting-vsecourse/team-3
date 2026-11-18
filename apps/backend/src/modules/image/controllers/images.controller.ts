@@ -17,20 +17,43 @@ import type { Response } from 'express';
 export class ImagesController {
   constructor(private readonly images: ImageRepository) {}
 
+  @Get(':key/small')
+  @ApiOperation({
+    summary:
+      'The small variant of an image (480 px), for the cards; the image itself when it has none',
+  })
+  @ApiProduces('image/webp', 'image/jpeg', 'image/png')
+  @ApiResponse({ status: 200, description: 'The image' })
+  @ApiResponse({ status: 404, description: 'No such image' })
+  async small(
+    @Param('key') key: string,
+    @Res() response: Response,
+  ): Promise<void> {
+    await this.send(key, 'small', response);
+  }
+
   @Get(':key')
   @ApiOperation({
     summary: "An event's or a group's own image by its `imageKey` (#77)",
     description:
-      'Cached for a year: a replaced image gets a new key, so a key never shows anything else.',
+      'WebP, the longer side at most 1600 px (uploaded before the resizing: as uploaded). Cached for a year: a replaced image gets a new key, so a key never shows anything else.',
   })
-  @ApiProduces('image/jpeg', 'image/png', 'image/webp')
+  @ApiProduces('image/webp', 'image/jpeg', 'image/png')
   @ApiResponse({ status: 200, description: 'The image' })
   @ApiResponse({ status: 404, description: 'No such image' })
   async image(
     @Param('key') key: string,
     @Res() response: Response,
   ): Promise<void> {
-    const image = await this.images.findImage(key);
+    await this.send(key, 'full', response);
+  }
+
+  private async send(
+    key: string,
+    size: 'full' | 'small',
+    response: Response,
+  ): Promise<void> {
+    const image = await this.images.findImage(key, size);
     if (!image) throw new NotFoundException('Obrázek neexistuje.');
     response
       .status(200)

@@ -18,6 +18,7 @@ export async function createImage(
       // a copy backed by a plain ArrayBuffer, as Prisma's Bytes wants
       data: Uint8Array.from(image.data),
       size: image.data.length,
+      small: Uint8Array.from(image.small),
     },
     select: { key: true },
   });
@@ -35,11 +36,27 @@ export async function deleteImage(
 export class ImageRepository {
   constructor(private readonly prisma: PrismaService) {}
 
-  /** An uploaded image by its key, for serving it; null when there is none. */
-  async findImage(key: string): Promise<StoredImage | null> {
-    return this.prisma.uploadedImage.findUnique({
+  /**
+   * An uploaded image by its key, for serving it; null when there is none.
+   * `small`: the cards' variant, or the image itself when it has none
+   * (uploaded before the variants, #77).
+   */
+  async findImage(
+    key: string,
+    size: 'full' | 'small' = 'full',
+  ): Promise<StoredImage | null> {
+    const image = await this.prisma.uploadedImage.findUnique({
       where: { key },
-      select: { contentType: true, data: true },
+      select: {
+        contentType: true,
+        data: size === 'full',
+        small: size === 'small',
+      },
     });
+    if (!image) return null;
+    const data = size === 'small' ? (image.small ?? null) : image.data;
+    if (data) return { contentType: image.contentType, data };
+    // no small variant stored: the full image
+    return this.findImage(key, 'full');
   }
 }

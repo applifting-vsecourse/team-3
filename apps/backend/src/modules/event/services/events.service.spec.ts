@@ -20,6 +20,7 @@ import {
   UnauthorizedException,
 } from '@nestjs/common';
 import { mock, MockProxy } from 'jest-mock-extended';
+import * as sharp from 'sharp';
 import {
   EventsService,
   GROUP_EVENTS_LIMIT,
@@ -2166,9 +2167,17 @@ describe('EventsService messages to the participants (#176)', () => {
 });
 
 describe('EventsService.setEventImage (#77)', () => {
-  const PNG = Uint8Array.from([
-    0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a, 0x00,
-  ]);
+  // a real 4×4 PNG: the service resizes it with sharp
+  let PNG: Uint8Array;
+  beforeAll(async () => {
+    PNG = new Uint8Array(
+      await sharp({
+        create: { width: 4, height: 4, channels: 3, background: '#ff0000' },
+      })
+        .png()
+        .toBuffer(),
+    );
+  });
 
   const setup = (
     detail: EventDetail = aDetail(),
@@ -2197,14 +2206,18 @@ describe('EventsService.setEventImage (#77)', () => {
     };
   };
 
-  it('the organizer uploads a PNG: it is stored as image/png, nobody is told', async () => {
+  it('the organizer uploads a PNG: it is stored as WebP with a small variant, nobody is told', async () => {
     const { repository, notifications, service } = setup();
 
     await service.setEventImage('e1', 'u1', PNG, now);
 
     expect(repository.replaceImage).toHaveBeenCalledWith(
       'e1',
-      { contentType: 'image/png', data: PNG },
+      {
+        contentType: 'image/webp',
+        data: expect.any(Uint8Array),
+        small: expect.any(Uint8Array),
+      },
       expect.any(Function),
     );
     expect(notifications.notify).not.toHaveBeenCalled();

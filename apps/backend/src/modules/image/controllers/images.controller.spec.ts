@@ -22,7 +22,7 @@ describe('ImagesController (#77)', () => {
 
     await new ImagesController(service).image('k1', response);
 
-    expect(service.findImage).toHaveBeenCalledWith('k1');
+    expect(service.findImage).toHaveBeenCalledWith('k1', 'full');
     expect(response.status).toHaveBeenCalledWith(200);
     expect(response.set).toHaveBeenCalledWith(
       expect.objectContaining({
@@ -44,5 +44,19 @@ describe('ImagesController (#77)', () => {
       new ImagesController(service).image('k2', response),
     ).rejects.toThrow(NotFoundException);
     expect(response.send).not.toHaveBeenCalled();
+  });
+
+  it("/small serves the cards' variant", async () => {
+    const service = mock<ImageRepository>();
+    service.findImage.mockResolvedValue({
+      contentType: 'image/webp',
+      data: Uint8Array.from([7]),
+    });
+    const response = aResponse();
+
+    await new ImagesController(service).small('k1', response);
+
+    expect(service.findImage).toHaveBeenCalledWith('k1', 'small');
+    expect(response.send).toHaveBeenCalledWith(Buffer.from([7]));
   });
 });

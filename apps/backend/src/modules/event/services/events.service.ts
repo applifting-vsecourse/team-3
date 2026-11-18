@@ -44,10 +44,7 @@ import {
 } from '@/modules/event/domain/participation';
 import { startOfPragueDayOf } from '@/modules/event/domain/prague-day';
 import { EventRepository } from '@/modules/event/repositories/event.repository';
-import {
-  checkImageFile,
-  NewImage,
-} from '@/modules/image/domain/uploaded-image';
+import { NewImage, prepareImage } from '@/modules/image/domain/uploaded-image';
 import { summarizeChange } from '@/modules/notification/domain/event-change';
 import { NotificationService } from '@/modules/notification/services/notification.service';
 import { distanceKm, LatLng } from '@/shared/geo/distance';
@@ -513,7 +510,7 @@ export class EventsService {
     if (refusal) throw updateRefused(refusal);
     let image: NewImage | null = null;
     if (file) {
-      const check = checkImageFile(file);
+      const check = await prepareImage(file);
       if (!check.ok) throw new BadRequestException([check.message]);
       image = check.image;
     }

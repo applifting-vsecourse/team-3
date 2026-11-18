@@ -382,8 +382,9 @@ describe('GroupRepository: findGroupById admins (#289)', () => {
       return prisma;
     };
     const png = {
-      contentType: 'image/png' as const,
+      contentType: 'image/webp' as const,
       data: Uint8Array.from([1]),
+      small: Uint8Array.from([1]),
     };
 
     it('locks the group, stores the new photo, points the group at it, deletes the old one', async () => {

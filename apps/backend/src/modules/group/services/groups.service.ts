@@ -26,10 +26,7 @@ import {
   MembershipError,
 } from '@/modules/group/domain/membership';
 import { GroupRepository } from '@/modules/group/repositories/group.repository';
-import {
-  checkImageFile,
-  NewImage,
-} from '@/modules/image/domain/uploaded-image';
+import { NewImage, prepareImage } from '@/modules/image/domain/uploaded-image';
 import { NotificationService } from '@/modules/notification/services/notification.service';
 import {
   BadRequestException,
@@ -157,7 +154,7 @@ export class GroupsService {
     );
     let image: NewImage | null = null;
     if (file) {
-      const check = checkImageFile(file);
+      const check = await prepareImage(file);
       if (!check.ok) throw new BadRequestException([check.message]);
       image = check.image;
     }

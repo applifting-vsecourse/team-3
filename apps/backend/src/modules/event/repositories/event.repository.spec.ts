@@ -760,7 +760,7 @@ describe('EventRepository – Proběhlé (#61)', () => {
       await expect(
         new EventRepository(prisma).replaceImage(
           'e1',
-          { contentType: 'image/png', data: png },
+          { contentType: 'image/webp', data: png, small: png },
           () => null,
         ),
       ).resolves.toEqual({ ok: true });
@@ -768,7 +768,7 @@ describe('EventRepository – Proběhlé (#61)', () => {
       expect(prisma.$executeRaw).toHaveBeenCalled();
       expect(prisma.uploadedImage.create).toHaveBeenCalledWith(
         expect.objectContaining({
-          data: { contentType: 'image/png', data: png, size: 4 },
+          data: { contentType: 'image/webp', data: png, size: 4, small: png },
         }),
       );
       expect(prisma.event.update).toHaveBeenCalledWith({
@@ -800,7 +800,7 @@ describe('EventRepository – Proběhlé (#61)', () => {
 
       await new EventRepository(prisma).replaceImage(
         'e1',
-        { contentType: 'image/png', data: png },
+        { contentType: 'image/webp', data: png, small: png },
         () => null,
       );
 
@@ -814,7 +814,7 @@ describe('EventRepository – Proběhlé (#61)', () => {
       await expect(
         new EventRepository(prisma).replaceImage(
           'e1',
-          { contentType: 'image/png', data: png },
+          { contentType: 'image/webp', data: png, small: png },
           refuse,
         ),
       ).resolves.toEqual({ ok: false, refusal: { code: 'EVENT_CANCELLED' } });

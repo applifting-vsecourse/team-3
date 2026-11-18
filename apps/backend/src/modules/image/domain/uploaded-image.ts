@@ -1,3 +1,5 @@
+import { resizeImage } from './resize-image';
+
 /**
  * An image an organizer or a group's admin uploaded (#77): an event's poster
  * or photo, a group's photo, in place of the activity's. JPEG, PNG or WebP,
@@ -17,6 +19,7 @@ export const IMAGE_MESSAGES = {
   tooBig: 'Obrázek je moc velký. Nahraj nejvýš 5 MB.',
   wrongType:
     'Tenhle soubor nejde použít. Nahraj obrázek ve formátu JPEG, PNG nebo WebP.',
+  tooLarge: 'Obrázek má moc velké rozměry. Zmenši ho a zkus to znovu.',
 } as const;
 
 const startsWith = (
@@ -47,14 +50,18 @@ export function detectImageType(bytes: Uint8Array): ImageType | null {
   return null;
 }
 
-/** An upload that passed `checkImageFile`, ready to store. */
-export type NewImage = { contentType: ImageType; data: Uint8Array };
+/** An upload as it is stored: WebP, at most 1600 px, and its small variant (`resizeImage`). */
+export type NewImage = {
+  contentType: 'image/webp';
+  data: Uint8Array;
+  small: Uint8Array;
+};
 
-export type ImageCheck =
-  { ok: true; image: NewImage } | { ok: false; message: string };
+export type FileCheck =
+  { ok: true; contentType: ImageType } | { ok: false; message: string };
 
-/** Whether an uploaded file may be stored as an image, and as what. */
-export function checkImageFile(bytes: Uint8Array | undefined): ImageCheck {
+/** Whether an uploaded file may be an image at all: present, at most 5 MB, JPEG, PNG or WebP by its content. */
+export function checkImageFile(bytes: Uint8Array | undefined): FileCheck {
   if (!bytes || bytes.length === 0) {
     return { ok: false, message: IMAGE_MESSAGES.missing };
   }
@@ -65,7 +72,26 @@ export function checkImageFile(bytes: Uint8Array | undefined): ImageCheck {
   if (!contentType) {
     return { ok: false, message: IMAGE_MESSAGES.wrongType };
   }
-  return { ok: true, image: { contentType, data: bytes } };
+  return { ok: true, contentType };
+}
+
+/**
+ * The upload checked and made ready to store (#77): refused with the Czech
+ * reason, or resized to WebP with its small variant.
+ */
+export async function prepareImage(
+  bytes: Uint8Array | undefined,
+): Promise<{ ok: true; image: NewImage } | { ok: false; message: string }> {
+  const check = checkImageFile(bytes);
+  if (!check.ok) return check;
+  const resized = await resizeImage(bytes!);
+  if (resized === 'tooLarge') {
+    return { ok: false, message: IMAGE_MESSAGES.tooLarge };
+  }
+  if (resized === 'unreadable') {
+    return { ok: false, message: IMAGE_MESSAGES.wrongType };
+  }
+  return { ok: true, image: { contentType: 'image/webp', ...resized } };
 }
 
 /** The image as the API serves it. */

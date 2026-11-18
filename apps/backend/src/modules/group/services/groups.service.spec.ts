@@ -9,6 +9,7 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import { mock, MockProxy } from 'jest-mock-extended';
+import * as sharp from 'sharp';
 import { GROUPS_LIMIT, GroupsService } from './groups.service';
 
 const input: GroupInput = {
@@ -612,9 +613,17 @@ describe('GroupsService', () => {
   });
 
   describe('setGroupImage (#77)', () => {
-    const PNG = Uint8Array.from([
-      0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a, 0x00,
-    ]);
+    // a real 4×4 PNG: the service resizes it with sharp
+    let PNG: Uint8Array;
+    beforeAll(async () => {
+      PNG = new Uint8Array(
+        await sharp({
+          create: { width: 4, height: 4, channels: 3, background: '#00ff00' },
+        })
+          .png()
+          .toBuffer(),
+      );
+    });
     const admin = (): ReturnType<typeof setup> => {
       const context = setup();
       context.repository.findGroupById.mockResolvedValue(aGroup('g1'));
@@ -623,15 +632,16 @@ describe('GroupsService', () => {
       return context;
     };
 
-    it('an admin uploads a PNG: it is stored as image/png', async () => {
+    it('an admin uploads a PNG: it is stored as WebP with a small variant', async () => {
       const { repository, service } = admin();
 
       await service.setGroupImage('g1', 'u-petra', PNG);
 
       expect(repository.isActiveAdmin).toHaveBeenCalledWith('g1', 'u-petra');
       expect(repository.replaceImage).toHaveBeenCalledWith('g1', {
-        contentType: 'image/png',
-        data: PNG,
+        contentType: 'image/webp',
+        data: expect.any(Uint8Array),
+        small: expect.any(Uint8Array),
       });
     });
 
