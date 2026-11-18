@@ -13,11 +13,6 @@ import {
   PublicEventSort,
 } from '@/modules/event/domain/event';
 import {
-  checkEventImage,
-  EventImageType,
-  StoredEventImage,
-} from '@/modules/event/domain/event-image';
-import {
   canReadMessages,
   canSendMessages,
   decideMessage,
@@ -49,6 +44,10 @@ import {
 } from '@/modules/event/domain/participation';
 import { startOfPragueDayOf } from '@/modules/event/domain/prague-day';
 import { EventRepository } from '@/modules/event/repositories/event.repository';
+import {
+  checkImageFile,
+  NewImage,
+} from '@/modules/image/domain/uploaded-image';
 import { summarizeChange } from '@/modules/notification/domain/event-change';
 import { NotificationService } from '@/modules/notification/services/notification.service';
 import { distanceKm, LatLng } from '@/shared/geo/distance';
@@ -512,11 +511,11 @@ export class EventsService {
     );
     const refusal = lifecycleRefusal(event, now);
     if (refusal) throw updateRefused(refusal);
-    let image: { contentType: EventImageType; data: Uint8Array } | null = null;
+    let image: NewImage | null = null;
     if (file) {
-      const check = checkEventImage(file);
+      const check = checkImageFile(file);
       if (!check.ok) throw new BadRequestException([check.message]);
-      image = { contentType: check.contentType, data: file };
+      image = check.image;
     }
     const result = await this.eventRepository.replaceImage(id, image, (state) =>
       lifecycleRefusal(state, now),
@@ -524,16 +523,6 @@ export class EventsService {
     if (!result) throw new NotFoundException('Akce neexistuje.');
     if (!result.ok) throw updateRefused(result.refusal);
     return this.getEventDetail(id, userId, now);
-  }
-
-  /**
-   * An uploaded image to show (#77). Public, as the event's card is: the key
-   * is a random UUID, so only those who were shown the event know it.
-   */
-  async getEventImage(key: string): Promise<StoredEventImage> {
-    const image = await this.eventRepository.findImage(key);
-    if (!image) throw new NotFoundException('Obrázek neexistuje.');
-    return image;
   }
 
   /**

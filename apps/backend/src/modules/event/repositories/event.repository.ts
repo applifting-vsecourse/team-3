@@ -14,10 +14,6 @@ import {
   PublicEventFilters,
 } from '@/modules/event/domain/event';
 import {
-  EventImageType,
-  StoredEventImage,
-} from '@/modules/event/domain/event-image';
-import {
   EventMessage,
   MessageInput,
   MessageRefusal,
@@ -36,6 +32,11 @@ import {
   RequestsState,
 } from '@/modules/event/domain/participation';
 import { summarize } from '@/modules/event/domain/summary';
+import { NewImage } from '@/modules/image/domain/uploaded-image';
+import {
+  createImage,
+  deleteImage,
+} from '@/modules/image/repositories/image.repository';
 import {
   RatingSummary,
   summarizeTotals,
@@ -586,7 +587,7 @@ export class EventRepository {
    */
   async replaceImage(
     id: string,
-    image: { contentType: EventImageType; data: Uint8Array } | null,
+    image: NewImage | null,
     refuse: (
       state: Pick<UpdateState, 'status' | 'startsAt'>,
     ) => UpdateRefusal | null,
@@ -600,33 +601,10 @@ export class EventRepository {
       if (!event) return null;
       const refusal = refuse(event);
       if (refusal) return { ok: false, refusal };
-      const created = image
-        ? await tx.eventImage.create({
-            data: {
-              contentType: image.contentType,
-              // a copy backed by a plain ArrayBuffer, as Prisma's Bytes wants
-              data: Uint8Array.from(image.data),
-              size: image.data.length,
-            },
-            select: { key: true },
-          })
-        : null;
-      await tx.event.update({
-        where: { id },
-        data: { imageKey: created?.key ?? null },
-      });
-      if (event.imageKey) {
-        await tx.eventImage.delete({ where: { key: event.imageKey } });
-      }
+      const imageKey = image ? await createImage(tx, image) : null;
+      await tx.event.update({ where: { id }, data: { imageKey } });
+      if (event.imageKey) await deleteImage(tx, event.imageKey);
       return { ok: true };
-    });
-  }
-
-  /** An uploaded image by its key (#77), for serving it; null when there is none. */
-  async findImage(key: string): Promise<StoredEventImage | null> {
-    return this.prisma.eventImage.findUnique({
-      where: { key },
-      select: { contentType: true, data: true },
     });
   }
 

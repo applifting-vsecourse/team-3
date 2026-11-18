@@ -367,4 +367,70 @@ describe('GroupRepository: findGroupById admins (#289)', () => {
       }),
     );
   });
+
+  describe('replaceImage (#77)', () => {
+    const setup = (
+      group: { status: string; imageKey: string | null } | null,
+    ): ReturnType<typeof mockDeep<PrismaService>> => {
+      const prisma = mockDeep<PrismaService>();
+      // the transaction client is the same mock
+      prisma.$transaction.mockImplementation(((
+        run: (tx: PrismaService) => Promise<unknown>,
+      ) => run(prisma)) as never);
+      prisma.group.findUnique.mockResolvedValue(group as never);
+      prisma.uploadedImage.create.mockResolvedValue({ key: 'k-new' } as never);
+      return prisma;
+    };
+    const png = {
+      contentType: 'image/png' as const,
+      data: Uint8Array.from([1]),
+    };
+
+    it('locks the group, stores the new photo, points the group at it, deletes the old one', async () => {
+      const prisma = setup({ status: 'active', imageKey: 'k-old' });
+
+      await expect(
+        new GroupRepository(prisma).replaceImage('g1', png),
+      ).resolves.toBe('ok');
+
+      expect(prisma.$executeRaw).toHaveBeenCalled();
+      expect(prisma.group.update).toHaveBeenCalledWith({
+        where: { id: 'g1' },
+        data: { imageKey: 'k-new' },
+      });
+      expect(prisma.uploadedImage.delete).toHaveBeenCalledWith({
+        where: { key: 'k-old' },
+      });
+    });
+
+    it('null clears the key', async () => {
+      const prisma = setup({ status: 'active', imageKey: 'k-old' });
+
+      await new GroupRepository(prisma).replaceImage('g1', null);
+
+      expect(prisma.uploadedImage.create).not.toHaveBeenCalled();
+      expect(prisma.group.update).toHaveBeenCalledWith({
+        where: { id: 'g1' },
+        data: { imageKey: null },
+      });
+    });
+
+    it('a group deactivated meanwhile keeps its photo', async () => {
+      const prisma = setup({ status: 'inactive', imageKey: 'k-old' });
+
+      await expect(
+        new GroupRepository(prisma).replaceImage('g1', png),
+      ).resolves.toBe('inactive');
+      expect(prisma.group.update).not.toHaveBeenCalled();
+      expect(prisma.uploadedImage.delete).not.toHaveBeenCalled();
+    });
+
+    it('no such group → null', async () => {
+      const prisma = setup(null);
+
+      await expect(
+        new GroupRepository(prisma).replaceImage('g1', null),
+      ).resolves.toBeNull();
+    });
+  });
 });

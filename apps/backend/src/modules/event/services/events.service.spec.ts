@@ -2319,19 +2319,3 @@ describe('EventsService.setEventImage (#77)', () => {
     expect(repository.replaceImage).not.toHaveBeenCalled();
   });
 });
-
-describe('EventsService.getEventImage (#77)', () => {
-  it('serves a stored image and 404s an unknown key', async () => {
-    const repository = mock<EventRepository>();
-    const image = { contentType: 'image/webp', data: Uint8Array.from([1]) };
-    repository.findImage.mockImplementation(async (key) =>
-      key === 'k1' ? image : null,
-    );
-    const service = new EventsService(repository, mock<NotificationService>());
-
-    await expect(service.getEventImage('k1')).resolves.toBe(image);
-    await expect(service.getEventImage('k2')).rejects.toThrow(
-      NotFoundException,
-    );
-  });
-});

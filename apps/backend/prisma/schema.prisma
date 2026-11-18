@@ -391,7 +391,7 @@ model Event {
   promotedUntil   DateTime?
   /// Obrázek nahraný organizátorem (#77); bez něj fotka aktivity
   imageKey        String?         @unique
-  image           EventImage?     @relation(fields: [imageKey], references: [key], onDelete: SetNull)
+  image           UploadedImage?  @relation(fields: [imageKey], references: [key], onDelete: SetNull)
   createdAt       DateTime        @default(now())
   updatedAt       DateTime        @default(now()) @updatedAt
 
@@ -410,12 +410,12 @@ model Event {
   @@map("event")
 }
 
-/// Obrázek akce, který nahrál organizátor (#77): JPEG, PNG nebo WebP, nejvýš 5 MB.
-/// Bajty jsou v databázi, protože staging nemá trvalý disk (kontejner se při
-/// každém nasazení vytvoří znovu) a databáze ano. `key` je náhodné UUID a je
-/// součástí adresy obrázku; nový obrázek = nový klíč, takže adresa jde cachovat
-/// navždy. Výměna nebo odebrání starý řádek smaže.
-model EventImage {
+/// Obrázek, který nahrál organizátor akce nebo správce skupiny (#77): JPEG, PNG
+/// nebo WebP, nejvýš 5 MB. Bajty jsou v databázi, protože staging nemá trvalý
+/// disk (kontejner se při každém nasazení vytvoří znovu) a databáze ano. `key`
+/// je náhodné UUID a je součástí adresy obrázku; nový obrázek = nový klíč, takže
+/// adresa jde cachovat navždy. Výměna nebo odebrání starý řádek smaže.
+model UploadedImage {
   key         String   @id @default(uuid())
   /// `image/jpeg`, `image/png` nebo `image/webp`, podle obsahu souboru, ne podle toho, co poslal prohlížeč
   contentType String
@@ -425,8 +425,9 @@ model EventImage {
   createdAt   DateTime @default(now())
 
   event Event?
+  group Group?
 
-  @@map("event_image")
+  @@map("uploaded_image")
 }
 
 /// Přihláška na akci. Organizátor se může přihlásit na vlastní akci (Q12).
@@ -489,19 +490,21 @@ model NotificationLog {
 
 /// Skupina má právě jednu aktivitu a jednu lokalitu. Obrázek jen jako URL (Q3).
 model Group {
-  id            String      @id @default(cuid())
+  id            String         @id @default(cuid())
   name          String
-  description   String?     @db.Text
-  imageUrl      String?     @db.Text
+  description   String?        @db.Text
+  /// Fotka nahraná správcem (#77); bez ní fotka aktivity
+  imageKey      String?        @unique
+  image         UploadedImage? @relation(fields: [imageKey], references: [key], onDelete: SetNull)
   activityId    String
-  activity      Activity    @relation(fields: [activityId], references: [id], onDelete: Restrict)
+  activity      Activity       @relation(fields: [activityId], references: [id], onDelete: Restrict)
   localityId    String
-  locality      Locality    @relation(fields: [localityId], references: [id], onDelete: Restrict)
+  locality      Locality       @relation(fields: [localityId], references: [id], onDelete: Restrict)
   type          GroupType
-  status        GroupStatus @default(active)
+  status        GroupStatus    @default(active)
   deactivatedAt DateTime?
-  createdAt     DateTime    @default(now())
-  updatedAt     DateTime    @default(now()) @updatedAt
+  createdAt     DateTime       @default(now())
+  updatedAt     DateTime       @default(now()) @updatedAt
 
   members       GroupMember[]
   events        Event[]

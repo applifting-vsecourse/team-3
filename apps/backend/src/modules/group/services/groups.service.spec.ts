@@ -31,6 +31,7 @@ const aGroup = (id: string): GroupDetail => ({
   },
   locality: { id: 'l-praha-7', slug: 'praha-7', name: 'Praha 7' },
   memberCount: 1,
+  imageKey: null,
   description: null,
   status: 'active',
   admins: [{ id: 'u-petra', name: 'Petra' }],
@@ -607,6 +608,93 @@ describe('GroupsService', () => {
           service.sendAnnouncement('g1', 'u-petra', input, now),
         ).rejects.toBeInstanceOf(ConflictException);
       });
+    });
+  });
+
+  describe('setGroupImage (#77)', () => {
+    const PNG = Uint8Array.from([
+      0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a, 0x00,
+    ]);
+    const admin = (): ReturnType<typeof setup> => {
+      const context = setup();
+      context.repository.findGroupById.mockResolvedValue(aGroup('g1'));
+      context.repository.isActiveAdmin.mockResolvedValue(true);
+      context.repository.replaceImage.mockResolvedValue('ok');
+      return context;
+    };
+
+    it('an admin uploads a PNG: it is stored as image/png', async () => {
+      const { repository, service } = admin();
+
+      await service.setGroupImage('g1', 'u-petra', PNG);
+
+      expect(repository.isActiveAdmin).toHaveBeenCalledWith('g1', 'u-petra');
+      expect(repository.replaceImage).toHaveBeenCalledWith('g1', {
+        contentType: 'image/png',
+        data: PNG,
+      });
+    });
+
+    it('null removes the photo', async () => {
+      const { repository, service } = admin();
+
+      await service.setGroupImage('g1', 'u-petra', null);
+
+      expect(repository.replaceImage).toHaveBeenCalledWith('g1', null);
+    });
+
+    it('anyone but an admin gets 403 and nothing is stored', async () => {
+      const { repository, service } = admin();
+      repository.isActiveAdmin.mockResolvedValue(false);
+
+      await expect(
+        service.setGroupImage('g1', 'u-cizi', PNG),
+      ).rejects.toBeInstanceOf(ForbiddenException);
+      await expect(
+        service.setGroupImage('g1', 'u-cizi', null),
+      ).rejects.toBeInstanceOf(ForbiddenException);
+      expect(repository.replaceImage).not.toHaveBeenCalled();
+    });
+
+    it('a file that is not JPEG, PNG or WebP is 400 with a Czech reason', async () => {
+      const { repository, service } = admin();
+
+      const error = (await service
+        .setGroupImage('g1', 'u-petra', new TextEncoder().encode('GIF89a'))
+        .catch((e: unknown) => e)) as BadRequestException;
+
+      expect(error).toBeInstanceOf(BadRequestException);
+      expect(JSON.stringify(error.getResponse())).toContain(
+        'Nahraj obrázek ve formátu JPEG, PNG nebo WebP.',
+      );
+      expect(repository.replaceImage).not.toHaveBeenCalled();
+    });
+
+    it('a deactivated group is 409, before and under the lock', async () => {
+      const before = admin();
+      before.repository.findGroupById.mockResolvedValue({
+        ...aGroup('g1'),
+        status: 'inactive',
+      });
+      await expect(
+        before.service.setGroupImage('g1', 'u-petra', PNG),
+      ).rejects.toBeInstanceOf(ConflictException);
+      expect(before.repository.replaceImage).not.toHaveBeenCalled();
+
+      const meanwhile = admin();
+      meanwhile.repository.replaceImage.mockResolvedValue('inactive');
+      await expect(
+        meanwhile.service.setGroupImage('g1', 'u-petra', PNG),
+      ).rejects.toBeInstanceOf(ConflictException);
+    });
+
+    it('an unknown group is 404', async () => {
+      const { repository, service } = admin();
+      repository.findGroupById.mockResolvedValue(null);
+
+      await expect(
+        service.setGroupImage('nope', 'u-petra', PNG),
+      ).rejects.toBeInstanceOf(NotFoundException);
     });
   });
 });

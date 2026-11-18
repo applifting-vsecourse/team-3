@@ -1,9 +1,9 @@
 import { ArgumentsHost, PayloadTooLargeException } from '@nestjs/common';
 import type { Response } from 'express';
 import { mock } from 'jest-mock-extended';
-import { EventImageUploadFilter } from './event-image-upload.filter';
+import { ImageUploadFilter } from './image-upload.filter';
 
-describe('EventImageUploadFilter (#77)', () => {
+describe('ImageUploadFilter (#77)', () => {
   it("turns multer's English „File too large“ into the form's Czech sentence", () => {
     const response = mock<Response>();
     response.status.mockReturnValue(response);
@@ -14,7 +14,7 @@ describe('EventImageUploadFilter (#77)', () => {
       getNext: jest.fn(),
     } as never);
 
-    new EventImageUploadFilter().catch(
+    new ImageUploadFilter().catch(
       new PayloadTooLargeException('File too large'),
       host,
     );

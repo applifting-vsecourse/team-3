@@ -1,8 +1,8 @@
-import { EventsService } from '@/modules/event/services/events.service';
+import { ImageRepository } from '@/modules/image/repositories/image.repository';
 import { NotFoundException } from '@nestjs/common';
 import type { Response } from 'express';
 import { mock } from 'jest-mock-extended';
-import { EventImagesController } from './event-images.controller';
+import { ImagesController } from './images.controller';
 
 const aResponse = (): ReturnType<typeof mock<Response>> => {
   const response = mock<Response>();
@@ -11,18 +11,18 @@ const aResponse = (): ReturnType<typeof mock<Response>> => {
   return response;
 };
 
-describe('EventImagesController (#77)', () => {
+describe('ImagesController (#77)', () => {
   it('serves the image as its checked type, never sniffed, cached for good', async () => {
-    const service = mock<EventsService>();
-    service.getEventImage.mockResolvedValue({
+    const service = mock<ImageRepository>();
+    service.findImage.mockResolvedValue({
       contentType: 'image/webp',
       data: Uint8Array.from([1, 2, 3]),
     });
     const response = aResponse();
 
-    await new EventImagesController(service).image('k1', response);
+    await new ImagesController(service).image('k1', response);
 
-    expect(service.getEventImage).toHaveBeenCalledWith('k1');
+    expect(service.findImage).toHaveBeenCalledWith('k1');
     expect(response.status).toHaveBeenCalledWith(200);
     expect(response.set).toHaveBeenCalledWith(
       expect.objectContaining({
@@ -36,12 +36,12 @@ describe('EventImagesController (#77)', () => {
   });
 
   it('an unknown key is 404 and sends nothing', async () => {
-    const service = mock<EventsService>();
-    service.getEventImage.mockRejectedValue(new NotFoundException());
+    const service = mock<ImageRepository>();
+    service.findImage.mockResolvedValue(null);
     const response = aResponse();
 
     await expect(
-      new EventImagesController(service).image('k2', response),
+      new ImagesController(service).image('k2', response),
     ).rejects.toThrow(NotFoundException);
     expect(response.send).not.toHaveBeenCalled();
   });

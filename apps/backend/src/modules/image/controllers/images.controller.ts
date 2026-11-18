@@ -1,5 +1,5 @@
-import { EventsService } from '@/modules/event/services/events.service';
-import { Controller, Get, Param, Res } from '@nestjs/common';
+import { ImageRepository } from '@/modules/image/repositories/image.repository';
+import { Controller, Get, NotFoundException, Param, Res } from '@nestjs/common';
 import {
   ApiOperation,
   ApiProduces,
@@ -9,17 +9,17 @@ import {
 import type { Response } from 'express';
 
 /**
- * The organizers' uploaded images (#77). Public, as the cards that show them:
- * the event's `imageKey` is a random UUID, a new one for every upload.
+ * The uploaded images of events and groups (#77). Public, as the cards that
+ * show them: an `imageKey` is a random UUID, a new one for every upload.
  */
-@ApiTags('events')
-@Controller('event-images')
-export class EventImagesController {
-  constructor(private readonly eventsService: EventsService) {}
+@ApiTags('images')
+@Controller('images')
+export class ImagesController {
+  constructor(private readonly images: ImageRepository) {}
 
   @Get(':key')
   @ApiOperation({
-    summary: "An event's own image by its `imageKey` (#77)",
+    summary: "An event's or a group's own image by its `imageKey` (#77)",
     description:
       'Cached for a year: a replaced image gets a new key, so a key never shows anything else.',
   })
@@ -30,7 +30,8 @@ export class EventImagesController {
     @Param('key') key: string,
     @Res() response: Response,
   ): Promise<void> {
-    const image = await this.eventsService.getEventImage(key);
+    const image = await this.images.findImage(key);
+    if (!image) throw new NotFoundException('Obrázek neexistuje.');
     response
       .status(200)
       .set({

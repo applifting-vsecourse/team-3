@@ -1,8 +1,9 @@
-import {
-  EVENT_IMAGE_FIELD,
-  EVENT_IMAGE_MAX_BYTES,
-} from '@/modules/event/domain/event-image';
 import { EventsService } from '@/modules/event/services/events.service';
+import {
+  ImageUpload,
+  uploadedBytes,
+  type UploadedImageFile,
+} from '@/modules/image/controllers/image-upload';
 import { OptionalUser } from '@/shared/auth/decorators/optional-user.decorator';
 import { User } from '@/shared/auth/decorators/user.decorator';
 import { Identity } from '@/shared/auth/domain/identity';
@@ -23,16 +24,11 @@ import {
   Put,
   Query,
   UploadedFile,
-  UseFilters,
   UseGuards,
-  UseInterceptors,
   UsePipes,
   ValidationPipe,
 } from '@nestjs/common';
-import { FileInterceptor } from '@nestjs/platform-express';
 import {
-  ApiBody,
-  ApiConsumes,
   ApiCookieAuth,
   ApiOperation,
   ApiResponse,
@@ -55,7 +51,6 @@ import {
 } from './dto/list-events.query.dto';
 import { PublicEventResponseDto } from './dto/public-event.response.dto';
 import { UpdateEventDto } from './dto/update-event.dto';
-import { EventImageUploadFilter } from './event-image-upload.filter';
 
 // Public on purpose: visitors browse upcoming events without an account (US-02).
 @ApiTags('events')
@@ -486,28 +481,13 @@ export class EventsController {
   @UseGuards(VerifiedUserGuard)
   // guards run first: no file from someone signed out or unverified is read;
   // whether the user manages the event the service decides after the upload
-  @UseInterceptors(
-    FileInterceptor(EVENT_IMAGE_FIELD, {
-      limits: { fileSize: EVENT_IMAGE_MAX_BYTES, files: 1 },
-    }),
-  )
-  @UseFilters(EventImageUploadFilter)
+  @ImageUpload()
   @ApiCookieAuth()
-  @ApiConsumes('multipart/form-data')
-  @ApiBody({
-    schema: {
-      type: 'object',
-      required: [EVENT_IMAGE_FIELD],
-      properties: {
-        [EVENT_IMAGE_FIELD]: { type: 'string', format: 'binary' },
-      },
-    },
-  })
   @ApiOperation({
     summary:
       "Upload the event's own image (#77), replacing the previous one; only its organizer, before it starts",
     description:
-      "JPEG, PNG or WebP by the file's content, at most 5 MB. The detail then has `imageKey`; the image is at GET /api/event-images/{imageKey}.",
+      "JPEG, PNG or WebP by the file's content, at most 5 MB. The detail then has `imageKey`; the image is at GET /api/images/{imageKey}.",
   })
   @ApiResponse({ status: 200, type: EventDetailResponseDto })
   @ApiResponse({
@@ -523,18 +503,13 @@ export class EventsController {
   })
   @ApiResponse({ status: 404, description: 'No such event for this user' })
   @ApiResponse({ status: 409, description: 'EVENT_CANCELLED' })
-  @ApiResponse({ status: 413, description: 'Over 5 MB (Czech message)' })
   async setImage(
     @Param('id') id: string,
-    @UploadedFile() file: UploadedImage | undefined,
+    @UploadedFile() file: UploadedImageFile | undefined,
     @User() user: Identity,
   ): Promise<EventDetailResponseDto> {
     return EventDetailResponseDto.fromDomain(
-      await this.eventsService.setEventImage(
-        id,
-        user.id,
-        file ? new Uint8Array(file.buffer) : new Uint8Array(),
-      ),
+      await this.eventsService.setEventImage(id, user.id, uploadedBytes(file)),
     );
   }
 
@@ -564,6 +539,3 @@ export class EventsController {
     );
   }
 }
-
-/** What multer's memory storage hands over; only the bytes matter (#77). */
-type UploadedImage = { buffer: Buffer };

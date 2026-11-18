@@ -474,6 +474,7 @@ describe('orderRecruitingGroups', () => {
     },
     locality: { id: 'l1', slug: 'praha-3', name: 'Praha 3' },
     memberCount: 5,
+    imageKey: null,
     nextEventAt: new Date(next),
   });
 

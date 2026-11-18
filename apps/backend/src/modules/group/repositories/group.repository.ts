@@ -20,6 +20,11 @@ import {
   GroupMemberEntry,
   GroupMembers,
 } from '@/modules/group/domain/membership';
+import { NewImage } from '@/modules/image/domain/uploaded-image';
+import {
+  createImage,
+  deleteImage,
+} from '@/modules/image/repositories/image.repository';
 import { requestMessageFor } from '@/shared/request-message/request-message';
 import { Injectable } from '@nestjs/common';
 import { buildActiveGroupsWhere } from './active-groups-where';
@@ -78,6 +83,7 @@ const toSummary = (group: SummaryRow): GroupSummary => ({
     name: group.locality.name,
   },
   memberCount: group._count.members,
+  imageKey: group.imageKey,
 });
 
 @Injectable()
@@ -282,6 +288,30 @@ export class GroupRepository {
         },
       }),
     ]);
+  }
+
+  /**
+   * Sets the group's own photo (#77), or with `null` removes it; the previous
+   * one is deleted. Under the group's lock: a group deactivated meanwhile
+   * keeps its photo (`inactive`). Null when there is no such group.
+   */
+  async replaceImage(
+    id: string,
+    image: NewImage | null,
+  ): Promise<'ok' | 'inactive' | null> {
+    return this.prisma.$transaction(async (tx) => {
+      await tx.$executeRaw`SELECT 1 FROM "group" WHERE "id" = ${id} FOR UPDATE`;
+      const group = await tx.group.findUnique({
+        where: { id },
+        select: { status: true, imageKey: true },
+      });
+      if (!group) return null;
+      if (group.status !== 'active') return 'inactive';
+      const imageKey = image ? await createImage(tx, image) : null;
+      await tx.group.update({ where: { id }, data: { imageKey } });
+      if (group.imageKey) await deleteImage(tx, group.imageKey);
+      return 'ok';
+    });
   }
 
   /** Pending requests and active members for the group's management (D-07). */

@@ -1,9 +1,9 @@
 import {
-  checkEventImage,
+  checkImageFile,
   detectImageType,
-  EVENT_IMAGE_MAX_BYTES,
-  EVENT_IMAGE_MESSAGES,
-} from './event-image';
+  IMAGE_MAX_BYTES,
+  IMAGE_MESSAGES,
+} from './uploaded-image';
 
 const bytes = (...values: number[]): Uint8Array => Uint8Array.from(values);
 const text = (value: string): Uint8Array => new TextEncoder().encode(value);
@@ -37,42 +37,42 @@ describe('detectImageType', () => {
   });
 });
 
-describe('checkEventImage', () => {
+describe('checkImageFile', () => {
   it('accepts an image up to 5 MB and says what it is', () => {
-    const file = new Uint8Array(EVENT_IMAGE_MAX_BYTES);
+    const file = new Uint8Array(IMAGE_MAX_BYTES);
     file.set(PNG);
 
-    expect(checkEventImage(file)).toEqual({
+    expect(checkImageFile(file)).toEqual({
       ok: true,
-      contentType: 'image/png',
+      image: { contentType: 'image/png', data: file },
     });
   });
 
   it('refuses one byte over 5 MB', () => {
-    const file = new Uint8Array(EVENT_IMAGE_MAX_BYTES + 1);
+    const file = new Uint8Array(IMAGE_MAX_BYTES + 1);
     file.set(JPEG);
 
-    expect(checkEventImage(file)).toEqual({
+    expect(checkImageFile(file)).toEqual({
       ok: false,
-      message: EVENT_IMAGE_MESSAGES.tooBig,
+      message: IMAGE_MESSAGES.tooBig,
     });
   });
 
   it('refuses a file that is not JPEG, PNG or WebP and says why', () => {
-    expect(checkEventImage(text('GIF89a'))).toEqual({
+    expect(checkImageFile(text('GIF89a'))).toEqual({
       ok: false,
-      message: EVENT_IMAGE_MESSAGES.wrongType,
+      message: IMAGE_MESSAGES.wrongType,
     });
   });
 
   it('asks for a file when none came', () => {
-    expect(checkEventImage(undefined)).toEqual({
+    expect(checkImageFile(undefined)).toEqual({
       ok: false,
-      message: EVENT_IMAGE_MESSAGES.missing,
+      message: IMAGE_MESSAGES.missing,
     });
-    expect(checkEventImage(bytes())).toEqual({
+    expect(checkImageFile(bytes())).toEqual({
       ok: false,
-      message: EVENT_IMAGE_MESSAGES.missing,
+      message: IMAGE_MESSAGES.missing,
     });
   });
 });

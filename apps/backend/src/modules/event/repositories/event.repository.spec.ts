@@ -749,7 +749,7 @@ describe('EventRepository – Proběhlé (#61)', () => {
         startsAt,
         imageKey,
       } as never);
-      prisma.eventImage.create.mockResolvedValue({ key: 'k-new' } as never);
+      prisma.uploadedImage.create.mockResolvedValue({ key: 'k-new' } as never);
       return { prisma };
     };
     const png = Uint8Array.from([0x89, 0x50, 0x4e, 0x47]);
@@ -766,7 +766,7 @@ describe('EventRepository – Proběhlé (#61)', () => {
       ).resolves.toEqual({ ok: true });
 
       expect(prisma.$executeRaw).toHaveBeenCalled();
-      expect(prisma.eventImage.create).toHaveBeenCalledWith(
+      expect(prisma.uploadedImage.create).toHaveBeenCalledWith(
         expect.objectContaining({
           data: { contentType: 'image/png', data: png, size: 4 },
         }),
@@ -775,7 +775,7 @@ describe('EventRepository – Proběhlé (#61)', () => {
         where: { id: 'e1' },
         data: { imageKey: 'k-new' },
       });
-      expect(prisma.eventImage.delete).toHaveBeenCalledWith({
+      expect(prisma.uploadedImage.delete).toHaveBeenCalledWith({
         where: { key: 'k-old' },
       });
     });
@@ -785,12 +785,12 @@ describe('EventRepository – Proběhlé (#61)', () => {
 
       await new EventRepository(prisma).replaceImage('e1', null, () => null);
 
-      expect(prisma.eventImage.create).not.toHaveBeenCalled();
+      expect(prisma.uploadedImage.create).not.toHaveBeenCalled();
       expect(prisma.event.update).toHaveBeenCalledWith({
         where: { id: 'e1' },
         data: { imageKey: null },
       });
-      expect(prisma.eventImage.delete).toHaveBeenCalledWith({
+      expect(prisma.uploadedImage.delete).toHaveBeenCalledWith({
         where: { key: 'k-old' },
       });
     });
@@ -804,7 +804,7 @@ describe('EventRepository – Proběhlé (#61)', () => {
         () => null,
       );
 
-      expect(prisma.eventImage.delete).not.toHaveBeenCalled();
+      expect(prisma.uploadedImage.delete).not.toHaveBeenCalled();
     });
 
     it('a refusal under the lock writes nothing', async () => {
@@ -822,9 +822,9 @@ describe('EventRepository – Proběhlé (#61)', () => {
       expect(refuse).toHaveBeenCalledWith(
         expect.objectContaining({ status: 'published', startsAt }),
       );
-      expect(prisma.eventImage.create).not.toHaveBeenCalled();
+      expect(prisma.uploadedImage.create).not.toHaveBeenCalled();
       expect(prisma.event.update).not.toHaveBeenCalled();
-      expect(prisma.eventImage.delete).not.toHaveBeenCalled();
+      expect(prisma.uploadedImage.delete).not.toHaveBeenCalled();
     });
 
     it('no such event → null', async () => {
