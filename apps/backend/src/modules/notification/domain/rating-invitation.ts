@@ -28,7 +28,7 @@ export type InvitationEvent = {
     user: InvitationRecipient;
     rating: { deletedAt: Date | null } | null;
   }[];
-  /** Deleted event ratings cannot be given again, even inside the window. */
+  /** Includes removed ratings, which the participant cannot give again. */
   ratings: { userId: string }[];
 };
 
@@ -48,6 +48,13 @@ export function ratingBatchCutoff(now: Date): Date {
     : new Date(startOfPragueDay(day).getTime() - 3 * 3600_000);
 }
 
+/** Recovery is for recent deliveries. The rating form stays open longer. */
+export function ratingInvitationEarliest(now: Date, activatedAt: Date): Date {
+  return new Date(
+    Math.max(activatedAt.getTime(), now.getTime() - 48 * 3600_000),
+  );
+}
+
 const deliverable = (user: InvitationRecipient): boolean =>
   user.blockedAt === null && user.deletedAt === null;
 
@@ -56,9 +63,12 @@ const deliverable = (user: InvitationRecipient): boolean =>
 export function ratingInvitations(
   event: InvitationEvent,
   now: Date,
+  earliest?: Date,
 ): RatingInvitation[] {
+  const endedAt = eventOverAt(event);
   if (
-    eventOverAt(event) > ratingBatchCutoff(now) ||
+    (earliest && endedAt < earliest) ||
+    endedAt > ratingBatchCutoff(now) ||
     eventNotRatable(
       {
         ...event,
@@ -70,12 +80,12 @@ export function ratingInvitations(
   ) {
     return [];
   }
-  const deletedRatings = new Set(event.ratings.map((rating) => rating.userId));
+  const alreadyRated = new Set(event.ratings.map((rating) => rating.userId));
   const others = event.participations.filter(
     ({ user }) => user.id !== event.organizerUserId,
   );
   const invitations: RatingInvitation[] = others
-    .filter(({ user }) => deliverable(user) && !deletedRatings.has(user.id))
+    .filter(({ user }) => deliverable(user) && !alreadyRated.has(user.id))
     .map(({ user }) => ({
       role: 'participant',
       userId: user.id,
@@ -84,7 +94,7 @@ export function ratingInvitations(
   // Only the event's creator rates participants, also for a group event.
   if (
     deliverable(event.organizer) &&
-    others.some(({ rating }) => !rating?.deletedAt)
+    others.some(({ rating }) => rating === null)
   ) {
     invitations.push({
       role: 'organizer',

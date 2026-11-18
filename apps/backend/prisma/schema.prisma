@@ -458,9 +458,18 @@ model NotificationLog {
   sentAt      DateTime?
   claimToken  String?
   lockedUntil DateTime?
+  attempts    Int       @default(0)
 
   @@index([eventId])
   @@map("notification_log")
+}
+
+/// Datum zapnutí výzev k hodnocení. Platí pro všechny instance i restarty.
+model RatingInvitationSchedule {
+  id          Int      @id
+  activatedAt DateTime
+
+  @@map("rating_invitation_schedule")
 }
 
 // ---------------------------------------------------------------------------

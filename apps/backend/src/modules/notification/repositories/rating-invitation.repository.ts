@@ -10,9 +10,9 @@ import {
   InvitationEvent,
   ratingBatchCutoff,
   RatingInvitation,
+  ratingInvitationEarliest,
   ratingInvitationKey,
 } from '@/modules/notification/domain/rating-invitation';
-import { RATING_WINDOW_DAYS } from '@/modules/rating/domain/rating-window';
 import { Injectable } from '@nestjs/common';
 
 const recipientSelect = {
@@ -22,10 +22,18 @@ const recipientSelect = {
   deletedAt: true,
 } as const;
 
+const MAX_RATING_INVITATION_ATTEMPTS = 3;
+
 /** Coarse SQL bounds, then the shared rating rules make the final decision.
  * Includes missed batches and late/no-end events while rating is still open. */
-export function ratingInvitationEventsWhere(now: Date): Prisma.EventWhereInput {
-  const earliest = startOfPragueDay(pragueDayOf(now), -RATING_WINDOW_DAYS);
+export function ratingInvitationEventsWhere(
+  now: Date,
+  activatedAt: Date,
+): Prisma.EventWhereInput {
+  const earliest = ratingInvitationEarliest(now, activatedAt);
+  // The implicit end is the midnight after the start day. The service checks
+  // the exact midnight before sending, including a deployment around midnight.
+  const earliestStart = startOfPragueDay(pragueDayOf(earliest), -1);
   return {
     status: 'published',
     AND: [
@@ -33,7 +41,7 @@ export function ratingInvitationEventsWhere(now: Date): Prisma.EventWhereInput {
       {
         OR: [
           { endsAt: { gte: earliest } },
-          { endsAt: null, startsAt: { gte: earliest } },
+          { endsAt: null, startsAt: { gte: earliestStart } },
         ],
       },
     ],
@@ -44,10 +52,23 @@ export function ratingInvitationEventsWhere(now: Date): Prisma.EventWhereInput {
 export class RatingInvitationRepository {
   constructor(private readonly prisma: PrismaService) {}
 
-  findEventIds(now: Date, after?: string): Promise<{ id: string }[]> {
+  async getActivationTime(): Promise<Date> {
+    const { activatedAt } =
+      await this.prisma.ratingInvitationSchedule.findUniqueOrThrow({
+        where: { id: 1 },
+        select: { activatedAt: true },
+      });
+    return activatedAt;
+  }
+
+  findEventIds(
+    now: Date,
+    after: string | undefined,
+    activatedAt: Date,
+  ): Promise<{ id: string }[]> {
     return this.prisma.event.findMany({
       where: {
-        ...ratingInvitationEventsWhere(now),
+        ...ratingInvitationEventsWhere(now, activatedAt),
         ...(after && { id: { gt: after } }),
       },
       select: { id: true },
@@ -77,11 +98,25 @@ export class RatingInvitationRepository {
           },
         },
         ratings: {
-          where: { deletedAt: { not: null } },
           select: { userId: true },
         },
       },
     });
+  }
+
+  async findUnavailableKeys(eventId: string, now: Date): Promise<Set<string>> {
+    const logs = await this.prisma.notificationLog.findMany({
+      where: {
+        eventId,
+        OR: [
+          { sentAt: { not: null } },
+          { attempts: { gte: MAX_RATING_INVITATION_ATTEMPTS } },
+          { lockedUntil: { gt: now } },
+        ],
+      },
+      select: { key: true },
+    });
+    return new Set(logs.map(({ key }) => key));
   }
 
   /** A unique key plus an atomic conditional UPDATE arbitrates between workers.
@@ -106,9 +141,14 @@ export class RatingInvitationRepository {
       where: {
         key,
         sentAt: null,
+        attempts: { lt: MAX_RATING_INVITATION_ATTEMPTS },
         OR: [{ lockedUntil: null }, { lockedUntil: { lte: now } }],
       },
-      data: { claimToken, lockedUntil: new Date(now.getTime() + 3600_000) },
+      data: {
+        claimToken,
+        lockedUntil: new Date(now.getTime() + 3600_000),
+        attempts: { increment: 1 },
+      },
     });
     return count === 1 ? claimToken : null;
   }

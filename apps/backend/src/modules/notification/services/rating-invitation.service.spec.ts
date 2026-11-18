@@ -23,6 +23,10 @@ const setup = (): {
   const service = new RatingInvitationService(repository, email, {
     frontendUrl: 'https://hobbyhub.test',
   } as Config);
+  repository.getActivationTime.mockResolvedValue(
+    new Date('2026-11-16T00:00:00Z'),
+  );
+  repository.findUnavailableKeys.mockResolvedValue(new Set());
   repository.findEventIds.mockImplementation((_now, after) =>
     Promise.resolve(after ? [] : [{ id: 'event-1' }]),
   );
@@ -48,6 +52,31 @@ describe('scheduled rating invitation delivery', () => {
   afterEach(() => {
     jest.useRealTimers();
     jest.restoreAllMocks();
+  });
+
+  it('skips events over before activation, even when still ratable at startup', async () => {
+    const { repository, email, service } = setup();
+    repository.getActivationTime.mockResolvedValue(
+      new Date('2026-11-17T19:00:00Z'),
+    );
+    await service.run();
+    expect(email.sendEmail).not.toHaveBeenCalled();
+    expect(repository.claim).not.toHaveBeenCalled();
+  });
+
+  it('skips exhausted and sent recipients before attempting a claim', async () => {
+    const { repository, email, service } = setup();
+    repository.findUnavailableKeys.mockResolvedValue(
+      new Set([
+        'rating-invitation:participant:event-1:alice',
+        'rating-invitation:organizer:event-1:organizer',
+      ]),
+    );
+    await service.run();
+    expect(repository.claim).toHaveBeenCalledTimes(1);
+    expect(email.sendEmail.mock.calls.map(([to]) => to)).toEqual([
+      'bob@example.test',
+    ]);
   });
 
   it('sends both variants and records each accepted delivery', async () => {

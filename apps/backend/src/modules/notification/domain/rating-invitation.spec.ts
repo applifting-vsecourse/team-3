@@ -3,12 +3,34 @@ import {
   composeRatingInvitation,
   InvitationEvent,
   ratingBatchCutoff,
+  ratingInvitationEarliest,
   ratingInvitations,
 } from './rating-invitation';
 
 const evening = new Date('2026-11-17T20:00:00Z');
 const ids = (event: InvitationEvent, now = evening): string[] =>
   ratingInvitations(event, now).map(({ userId }) => userId);
+
+it('limits recovery to 48 hours and never before activation', () => {
+  const earlierActivation = new Date('2026-11-10T15:00:00Z');
+  const laterActivation = new Date('2026-11-17T19:00:00Z');
+  const earliest = ratingInvitationEarliest(evening, earlierActivation);
+  expect(earliest).toEqual(new Date('2026-11-15T20:00:00Z'));
+  expect(ratingInvitationEarliest(evening, laterActivation)).toEqual(
+    laterActivation,
+  );
+  const event = invitationEvent();
+  expect(ratingInvitations(event, evening, laterActivation)).toEqual([]);
+  expect(ratingInvitations(event, evening, earliest)).toHaveLength(3);
+});
+
+it('skips participants and organizers who already completed their ratings', () => {
+  const event = invitationEvent();
+  event.ratings = [{ userId: 'alice' }];
+  for (const participant of event.participations)
+    participant.rating = { deletedAt: null };
+  expect(ids(event)).toEqual(['bob']);
+});
 
 describe('daily rating batch in Prague', () => {
   it.each([

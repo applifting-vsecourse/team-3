@@ -4,6 +4,7 @@ import { EventNotificationEmail } from '@/core/email/templates/event-notificatio
 import {
   composeRatingInvitation,
   RatingInvitation,
+  ratingInvitationEarliest,
   ratingInvitationKey,
   ratingInvitations,
 } from '@/modules/notification/domain/rating-invitation';
@@ -46,16 +47,33 @@ export class RatingInvitationService implements OnApplicationBootstrap {
     this.running = true;
     try {
       const now = new Date();
+      const activatedAt = await this.repository.getActivationTime();
       let after: string | undefined;
       for (;;) {
-        const events = await this.repository.findEventIds(now, after);
+        const events = await this.repository.findEventIds(
+          now,
+          after,
+          activatedAt,
+        );
         if (events.length === 0) break;
         for (const { id } of events) {
           try {
             const event = await this.repository.findEvent(id);
             if (!event) continue;
-            for (const invitation of ratingInvitations(event, new Date())) {
-              await this.deliver(id, invitation);
+            const invitations = ratingInvitations(
+              event,
+              now,
+              ratingInvitationEarliest(now, activatedAt),
+            );
+            if (!invitations.length) continue;
+            const unavailable = await this.repository.findUnavailableKeys(
+              id,
+              now,
+            );
+            for (const invitation of invitations) {
+              if (!unavailable.has(ratingInvitationKey(id, invitation))) {
+                await this.deliver(id, invitation, activatedAt);
+              }
             }
           } catch {
             // Provider/DB error messages can contain addresses and credentials.
@@ -78,6 +96,7 @@ export class RatingInvitationService implements OnApplicationBootstrap {
   private async deliver(
     eventId: string,
     invitation: RatingInvitation,
+    activatedAt: Date,
   ): Promise<void> {
     const key = ratingInvitationKey(eventId, invitation);
     let claimToken: string | null = null;
@@ -88,9 +107,14 @@ export class RatingInvitationService implements OnApplicationBootstrap {
       // A cancellation, changed participation or blocked user during the batch
       // must not use the stale recipient list, address or rating deadline.
       const event = await this.repository.findEvent(eventId);
+      const now = new Date();
       const current =
         event &&
-        ratingInvitations(event, new Date()).find(
+        ratingInvitations(
+          event,
+          now,
+          ratingInvitationEarliest(now, activatedAt),
+        ).find(
           (target) =>
             target.role === invitation.role &&
             target.userId === invitation.userId,

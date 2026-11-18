@@ -6,6 +6,7 @@ import {
 } from './rating-invitation.repository';
 
 const now = new Date('2026-11-17T20:00:00Z');
+const activatedAt = new Date('2026-11-16T10:00:00Z');
 const target = {
   role: 'participant',
   userId: 'alice',
@@ -19,7 +20,7 @@ describe('rating invitation persistence', () => {
 
   it('bounds catch-up by Prague days and the last evening, with a stable cursor', async () => {
     prisma.event.findMany.mockResolvedValue([]);
-    await repository.findEventIds(now, 'last-id');
+    await repository.findEventIds(now, 'last-id', activatedAt);
     expect(prisma.event.findMany).toHaveBeenCalledWith({
       where: {
         status: 'published',
@@ -36,10 +37,10 @@ describe('rating invitation persistence', () => {
           },
           {
             OR: [
-              { endsAt: { gte: new Date('2026-11-02T23:00:00Z') } },
+              { endsAt: { gte: activatedAt } },
               {
                 endsAt: null,
-                startsAt: { gte: new Date('2026-11-02T23:00:00Z') },
+                startsAt: { gte: new Date('2026-11-14T23:00:00Z') },
               },
             ],
           },
@@ -52,7 +53,10 @@ describe('rating invitation persistence', () => {
   });
 
   it('a daytime restart uses yesterday evening, not newly ended events', () => {
-    const where = ratingInvitationEventsWhere(new Date('2026-11-18T09:00:00Z'));
+    const where = ratingInvitationEventsWhere(
+      new Date('2026-11-18T09:00:00Z'),
+      activatedAt,
+    );
     expect(where.AND).toEqual(
       expect.arrayContaining([
         {
@@ -79,7 +83,6 @@ describe('rating invitation persistence', () => {
           }),
           organizerUserId: true,
           ratings: {
-            where: { deletedAt: { not: null } },
             select: { userId: true },
           },
         }),
@@ -105,16 +108,18 @@ describe('rating invitation persistence', () => {
       where: {
         key: 'rating-invitation:participant:event-1:alice',
         sentAt: null,
+        attempts: { lt: 3 },
         OR: [{ lockedUntil: null }, { lockedUntil: { lte: now } }],
       },
       data: {
         claimToken: token,
+        attempts: { increment: 1 },
         lockedUntil: new Date('2026-11-17T21:00:00Z'),
       },
     });
   });
 
-  it('a sent or actively claimed key is not claimed by another worker', async () => {
+  it('a sent, exhausted or actively claimed key is not claimed by another worker', async () => {
     prisma.notificationLog.createMany.mockResolvedValue({ count: 0 });
     prisma.notificationLog.updateMany.mockResolvedValue({ count: 0 });
     expect(await repository.claim('event-1', target, now)).toBeNull();
