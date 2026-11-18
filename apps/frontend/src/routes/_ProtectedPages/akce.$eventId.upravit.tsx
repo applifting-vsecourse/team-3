@@ -16,6 +16,7 @@ import { useEventDetail } from "@/features/events/hooks/useEventDetail"
 import { useLeaveEditForm } from "@/features/events/hooks/useLeaveEditForm"
 import { useUpdateEvent } from "@/features/events/hooks/useUpdateEvent"
 import { editRefusal } from "@/features/events/lib/editRefusal"
+import { eventImageUrl } from "@/features/events/lib/eventImage"
 import { CatalogState } from "@/features/groups/components/CatalogState"
 
 export const Route = createFileRoute("/_ProtectedPages/akce/$eventId/upravit")({
@@ -95,16 +96,20 @@ function EditEventPage() {
                 maxParticipants: event.maxParticipants,
                 approvalMode: event.approvalMode,
               }}
+              initialImageSrc={event.imageKey ? eventImageUrl(event.imageKey) : null}
               isSubmitting={updateEvent.isPending}
               errorMessage={updateEvent.error?.message}
-              onSubmit={({ activityId: _activity, approvalMode: _approval, ...changes }) =>
-                updateEvent.mutate(changes, {
-                  onSuccess: () => {
-                    toast.success("Změny jsou uložené.")
-                    // the detail and Správa akce read the saved event from the cache
-                    leaveForm()
+              onSubmit={({ activityId: _activity, approvalMode: _approval, ...changes }, image) =>
+                updateEvent.mutate(
+                  { changes, image },
+                  {
+                    onSuccess: () => {
+                      toast.success("Změny jsou uložené.")
+                      // the detail and Správa akce read the saved event from the cache
+                      leaveForm()
+                    },
                   },
-                })
+                )
               }
             />
           ) : (

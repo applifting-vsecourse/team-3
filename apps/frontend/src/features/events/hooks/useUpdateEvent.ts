@@ -2,20 +2,29 @@ import { useMutation, useQueryClient } from "@tanstack/react-query"
 
 import { api } from "@/lib/api-client"
 
+import { applyEventImageChange, type EventImageChange } from "@/features/events/api/eventImageApi"
 import { eventDetailSchema, type EventInput } from "@/features/events/api/eventSchemas"
 import { eventKeys } from "@/features/events/api/eventsQueryOptions"
 
 /** What an edit sends: not the activity nor the way of joining (#41, D-02). */
 export type EventChangesInput = Omit<EventInput, "activityId" | "approvalMode">
 
-/** PATCH /api/events/:id — the detail and the list show the new values at once. */
+type UpdateEventVariables = { changes: EventChangesInput; image?: EventImageChange }
+
+/**
+ * PATCH /api/events/:id, then the image's change (#77) — the detail and the
+ * list show the new values at once. When the image fails, the other changes
+ * are saved already; saving again only repeats them.
+ */
 export function useUpdateEvent(eventId: string, viewerId: string) {
   const queryClient = useQueryClient()
   return useMutation({
-    mutationFn: async (changes: EventChangesInput) =>
-      eventDetailSchema.parse(
+    mutationFn: async ({ changes, image = { kind: "keep" } }: UpdateEventVariables) => {
+      const updated = eventDetailSchema.parse(
         await api.patch(`events/${encodeURIComponent(eventId)}`, { json: changes }).json(),
-      ),
+      )
+      return (await applyEventImageChange(eventId, image)) ?? updated
+    },
     onSuccess: (event) => {
       queryClient.setQueryData(eventKeys.detail(eventId, viewerId), event)
       void queryClient.invalidateQueries({ queryKey: eventKeys.lists() })

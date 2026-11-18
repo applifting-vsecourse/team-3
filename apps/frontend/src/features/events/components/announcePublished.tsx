@@ -8,8 +8,16 @@ import { Button } from "@/components/ui/button"
  * After „Zveřejnit“ the page still opens the new event's detail (Figma D-01); the toast that
  * says so leads on to Moje akce › Pořádám, where the event is now and its requests will
  * wait (#188). A real link, so it opens in a new tab too; long enough to be reached.
+ *
+ * `imageError`: the event is published but its image (#77) didn't upload — a second toast
+ * says why and where to add it.
  */
-export function announcePublished(): void {
+export function announcePublished(imageError?: string | null): void {
+  if (imageError) {
+    toast.error(`Obrázek se nenahrál. ${imageError} Přidat ho můžeš v úpravě akce.`, {
+      duration: 10_000,
+    })
+  }
   const id = toast.success("Akce je zveřejněná.", {
     duration: 10_000,
     action: (

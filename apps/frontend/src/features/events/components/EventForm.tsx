@@ -30,6 +30,7 @@ import { PRAHA_SLUG } from "@/lib/catalog/localityOptions"
 import { cn } from "@/lib/utils"
 
 import { localityOfAddress } from "@/features/events/api/addressSearch"
+import type { EventImageChange } from "@/features/events/api/eventImageApi"
 import {
   EVENT_ADDRESS_MAX_LENGTH,
   EVENT_DESCRIPTION_MAX_LENGTH,
@@ -38,6 +39,7 @@ import {
   type EventInput,
 } from "@/features/events/api/eventSchemas"
 import { AddressCombobox } from "@/features/events/components/AddressCombobox"
+import { EventImageField, type EventImageValue } from "@/features/events/components/EventImageField"
 import { usePragueToday } from "@/features/events/hooks/usePragueToday"
 import { dateToDay, dayToDate } from "@/features/events/lib/dateRange"
 import { formatDay } from "@/features/events/lib/formatEvent"
@@ -89,6 +91,8 @@ const buildSchema = (approvedCount: number) =>
           EVENT_DESCRIPTION_MAX_LENGTH,
           `Popis může mít nejvýš ${EVENT_DESCRIPTION_MAX_LENGTH} znaků`,
         ),
+      /** The event's own image (#77); a refused file never gets here (`onRefuse`). */
+      image: z.custom<EventImageValue>(),
     })
     .refine((values) => values.place !== null, {
       message: "Vyber místo na mapě",
@@ -175,9 +179,12 @@ type EventFormProps = {
   group?: { id: string; name: string }
   /** Prefilled values, e.g. when editing (#41). */
   initialValues?: Partial<EventInput>
+  /** The image the event already has (#77), when editing. */
+  initialImageSrc?: string | null
   isSubmitting: boolean
   errorMessage?: string | null
-  onSubmit: (input: EventInput) => void | Promise<void>
+  /** `image`: what to do with the event's own image after saving it (#77). */
+  onSubmit: (input: EventInput, image: EventImageChange) => void | Promise<void>
 }
 
 /**
@@ -191,6 +198,7 @@ export function EventForm({
   approvedCount = 0,
   group,
   initialValues,
+  initialImageSrc,
   isSubmitting,
   errorMessage,
   onSubmit,
@@ -230,6 +238,7 @@ export function EventForm({
       approvalMode: initialValues?.approvalMode ?? "open",
       visibility: initialValues?.visibility ?? "public",
       description: initialValues?.description ?? "",
+      image: initialImageSrc ? { kind: "uploaded", src: initialImageSrc } : { kind: "none" },
     },
   })
 
@@ -250,21 +259,30 @@ export function EventForm({
         onSubmit={form.handleSubmit((values) => {
           // entered as Prague time, whatever the device's time zone
           const { startsAt, endsAt } = eventTimes(values.day, values.start, values.end)
-          return onSubmit({
-            title: values.title.trim(),
-            description: values.description.trim() || null,
-            activityId: values.activityId,
-            localityId: values.localityId,
-            lat: values.place!.lat,
-            lng: values.place!.lng,
-            address: values.address.trim(),
-            startsAt: startsAt.toISOString(),
-            endsAt: endsAt?.toISOString() ?? null,
-            minParticipants: Number(values.minParticipants),
-            maxParticipants: Number(values.maxParticipants),
-            approvalMode: values.approvalMode,
-            ...(isGroupCreate ? { groupId: group.id, visibility: values.visibility } : {}),
-          })
+          const image: EventImageChange =
+            values.image.kind === "file"
+              ? { kind: "set", file: values.image.file }
+              : values.image.kind === "none" && initialImageSrc
+                ? { kind: "remove" }
+                : { kind: "keep" }
+          return onSubmit(
+            {
+              title: values.title.trim(),
+              description: values.description.trim() || null,
+              activityId: values.activityId,
+              localityId: values.localityId,
+              lat: values.place!.lat,
+              lng: values.place!.lng,
+              address: values.address.trim(),
+              startsAt: startsAt.toISOString(),
+              endsAt: endsAt?.toISOString() ?? null,
+              minParticipants: Number(values.minParticipants),
+              maxParticipants: Number(values.maxParticipants),
+              approvalMode: values.approvalMode,
+              ...(isGroupCreate ? { groupId: group.id, visibility: values.visibility } : {}),
+            },
+            image,
+          )
         })}
         className="flex flex-col gap-6"
       >
@@ -577,6 +595,33 @@ export function EventForm({
                 )}
               />
             ) : null}
+
+            <FormField
+              control={form.control}
+              name="image"
+              render={({ field }) => (
+                // Figma D-01: the last field of „Co a kdy“
+                <FormItem className="order-12 md:order-none">
+                  <FormLabel>Plakát nebo fotka</FormLabel>
+                  <FormControl>
+                    <EventImageField
+                      ref={field.ref}
+                      value={field.value}
+                      onChange={(value) => {
+                        field.onChange(value)
+                        form.clearErrors("image")
+                      }}
+                      onRefuse={(message) => form.setError("image", { message })}
+                    />
+                  </FormControl>
+                  <FormDescription>
+                    Nepovinné. JPEG, PNG nebo WebP, nejvýš 5 MB. Bez vlastního obrázku se u akce
+                    ukáže fotka aktivity.
+                  </FormDescription>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
           </div>
 
           <div
