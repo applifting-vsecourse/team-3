@@ -136,7 +136,8 @@ describe("router", () => {
           cachedUser: { ...user, emailVerified: false },
         })
 
-        // the session is refreshed while the link's outcome is shown
+        // the session was fetched anew before the dialog trusted it: success,
+        // never „not verified“ first
         expect(await screen.findByRole("dialog", { name: "E-mail je ověřený" })).toBeInTheDocument()
         expect(screen.queryByText(/Ověř si e-mail/)).not.toBeInTheDocument()
         expect(authClient.getSession).toHaveBeenCalled()

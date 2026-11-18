@@ -12,7 +12,6 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog"
 import { api } from "@/lib/api-client"
-import { authKeys } from "@/lib/auth-keys"
 
 import { useSession } from "@/features/auth/hooks/useSession"
 import { useSignOut } from "@/features/auth/hooks/useSignOut"
@@ -25,7 +24,7 @@ export function AgeConfirmationDialog() {
   const confirm = useMutation({
     mutationFn: () => api.post("me/confirm-age", { json: { ageConfirmed: true } }).json(),
     onSuccess: async () => {
-      await queryClient.invalidateQueries({ queryKey: authKeys.session() })
+      await queryClient.invalidateQueries()
     },
   })
 

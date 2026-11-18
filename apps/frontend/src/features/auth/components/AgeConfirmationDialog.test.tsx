@@ -1,4 +1,4 @@
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query"
+import { QueryClient, QueryClientProvider, useQuery } from "@tanstack/react-query"
 import { render, screen, waitFor } from "@testing-library/react"
 import userEvent from "@testing-library/user-event"
 import { beforeEach, describe, expect, it, vi } from "vitest"
@@ -62,6 +62,30 @@ describe("age confirmation", () => {
     await userEvent.click(screen.getByRole("button", { name: "Odhlásit se" }))
     expect(state.signOut).toHaveBeenCalledOnce()
     expect(state.post).not.toHaveBeenCalled()
+  })
+
+  it("refreshes a protected page that was blocked before confirmation", async () => {
+    state.user = { ageConfirmedAt: null }
+    const loadEvents = vi
+      .fn()
+      .mockRejectedValueOnce(new Error("AGE_CONFIRMATION_REQUIRED"))
+      .mockResolvedValue("Moje akce jsou načtené")
+    function MyEvents() {
+      const events = useQuery({ queryKey: ["me", "events"], queryFn: loadEvents })
+      return <p>{events.isError ? "Akce se nepodařilo načíst" : events.data}</p>
+    }
+    const client = new QueryClient({ defaultOptions: { queries: { retry: false } } })
+    render(
+      <QueryClientProvider client={client}>
+        <AgeConfirmationDialog />
+        <MyEvents />
+      </QueryClientProvider>,
+    )
+    expect(await screen.findByText("Akce se nepodařilo načíst")).toBeInTheDocument()
+    await userEvent.click(
+      screen.getByRole("button", { name: "Potvrzuji, že mi je alespoň 18 let" }),
+    )
+    expect(await screen.findByText("Moje akce jsou načtené")).toBeInTheDocument()
   })
 
   it("shows a Czech explanation if confirmation fails", async () => {

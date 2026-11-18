@@ -10,6 +10,7 @@
  * It exits with 1 when any expectation fails.
  */
 import { betterAuthCoreConfig } from '@/shared/auth/config/better-auth.config';
+import { SIGN_UP_CONSENT } from '@/shared/auth/domain/consent';
 import { betterAuth } from 'better-auth';
 import { memoryAdapter } from 'better-auth/adapters/memory';
 
@@ -51,9 +52,7 @@ const main = async (): Promise<void> => {
         name: 'Ověření Testovací',
         email: EMAIL,
         password,
-        termsAccepted: true,
-        privacyAcknowledged: true,
-        ageConfirmed: true,
+        ...SIGN_UP_CONSENT,
       } as never,
       asResponse: true,
     });

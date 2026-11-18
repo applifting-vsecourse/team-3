@@ -11,6 +11,8 @@ import {
   Post,
   Req,
   UnauthorizedException,
+  UsePipes,
+  ValidationPipe,
 } from '@nestjs/common';
 import {
   ApiCookieAuth,
@@ -19,6 +21,7 @@ import {
   ApiTags,
 } from '@nestjs/swagger';
 import { Request } from 'express';
+import { ConfirmAgeDto } from './dto/confirm-age.dto';
 
 /** Only the signed-in account can confirm its age; the timestamp is server generated. */
 @ApiTags('account')
@@ -37,28 +40,28 @@ export class AgeConfirmationController {
   @ApiResponse({ status: 201, description: 'Age confirmed' })
   @ApiResponse({ status: 400, description: 'Confirmation is required' })
   @ApiResponse({ status: 401, description: 'Not signed in' })
+  @UsePipes(
+    new ValidationPipe({
+      whitelist: true,
+      transform: true,
+      exceptionFactory: (): BadRequestException =>
+        new BadRequestException({
+          code: 'AGE_CONFIRMATION_REQUIRED',
+          message: 'Potvrď, že ti je alespoň 18 let.',
+        }),
+    }),
+  )
   async confirm(
     @Req() request: Request,
-    @Body() input: unknown,
+    @Body() input: ConfirmAgeDto,
   ): Promise<{ confirmed: true }> {
     const session = await getSessionFromRequest(request, this.auth);
     if (!session) throw new UnauthorizedException();
-    if (
-      !input ||
-      typeof input !== 'object' ||
-      !('ageConfirmed' in input) ||
-      input.ageConfirmed !== true
-    ) {
-      throw new BadRequestException({
-        code: 'AGE_CONFIRMATION_REQUIRED',
-        message: 'Potvrď, že ti je alespoň 18 let.',
-      });
-    }
     // Idempotent: keep the original confirmation time on repeated requests.
     await this.prisma.user.updateMany({
       where: { id: session.user.id, ageConfirmedAt: null },
       data: { ageConfirmedAt: new Date() },
     });
-    return { confirmed: true };
+    return { confirmed: input.ageConfirmed };
   }
 }

@@ -59,7 +59,6 @@ export async function ensureUser(
         name: params.name,
         // the sign-up refuses an account without it (#153), even from the server
         ...SIGN_UP_CONSENT,
-        ...{ ageConfirmed: true },
       },
     });
   }

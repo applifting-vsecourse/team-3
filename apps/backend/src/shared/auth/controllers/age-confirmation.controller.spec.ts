@@ -1,10 +1,15 @@
 import { PrismaService } from '@/core/prisma/prisma.service';
 import { BetterAuth } from '@/shared/auth/providers/better-auth.provider';
 import { getSessionFromRequest } from '@/shared/auth/utils/get-session-from-request';
-import { BadRequestException, UnauthorizedException } from '@nestjs/common';
+import {
+  BadRequestException,
+  UnauthorizedException,
+  ValidationPipe,
+} from '@nestjs/common';
 import { Request } from 'express';
 import { mock, mockDeep } from 'jest-mock-extended';
 import { AgeConfirmationController } from './age-confirmation.controller';
+import { ConfirmAgeDto } from './dto/confirm-age.dto';
 
 jest.mock('@/shared/auth/utils/get-session-from-request', () => ({
   getSessionFromRequest: jest.fn(),
@@ -30,24 +35,30 @@ describe('AgeConfirmationController', () => {
   });
 
   it('requires an explicit boolean confirmation', async () => {
-    getSession.mockResolvedValue({ user: { id: 'u1' } });
+    const pipe = new ValidationPipe({ whitelist: true, transform: true });
     for (const value of [
       null,
       {},
       { ageConfirmed: false },
       { ageConfirmed: 'true' },
+      { ageConfirmed: 1 },
     ]) {
-      await expect(controller.confirm(request, value)).rejects.toThrow(
-        BadRequestException,
-      );
+      await expect(
+        pipe.transform(value, { type: 'body', metatype: ConfirmAgeDto }),
+      ).rejects.toThrow(BadRequestException);
     }
-    expect(prisma.user.updateMany).not.toHaveBeenCalled();
+    await expect(
+      pipe.transform(
+        { ageConfirmed: true, userId: 'other' },
+        { type: 'body', metatype: ConfirmAgeDto },
+      ),
+    ).resolves.toEqual({ ageConfirmed: true });
   });
 
   it('records only the signed-in user once, with a server timestamp', async () => {
     getSession.mockResolvedValue({ user: { id: 'u1' } });
     await expect(
-      controller.confirm(request, { ageConfirmed: true, userId: 'other' }),
+      controller.confirm(request, { ageConfirmed: true }),
     ).resolves.toEqual({ confirmed: true });
     expect(prisma.user.updateMany).toHaveBeenCalledWith({
       where: { id: 'u1', ageConfirmedAt: null },
