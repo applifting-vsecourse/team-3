@@ -4,7 +4,9 @@
 
 Zápis vychází z poznámek týmu. Rozlišuje, odkud věc je: **PO** = řekl nebo odsouhlasil product owner, **tým** = doplnil tým po schůzce. Kritéria označená v issues jako [návrh] jsou návrh týmu, PO je potvrdí nebo změní.
 
-Zápis má čtyři části: co jsme na refinementu probrali, rozhodnutí, jak jsme podle toho změnili backlog a proč, a návrhy týmu na další vylepšení.
+Refinement řešil směr projektu a funkce na další sprinty. Rozpracované věci sprintu 4 jsme neprobírali: upozornění v aplikaci (#86) pokračuje podle plánu sprintu, otázky Q9 (filtr Obsazenost, #305) a Q14 (lokalita a adresa, #303) z planningu zůstávají otevřené.
+
+Nejdřív je, co jsme na refinementu probrali a rozhodli, pak jak se podle toho změnil backlog a proč, nakonec návrhy týmu na vylepšení a úkoly.
 
 ## Ověřit hned (sprint 4)
 
@@ -18,24 +20,24 @@ Zápis má čtyři části: co jsme na refinementu probrali, rozhodnutí, jak js
 
 - **Onboarding (PO):** hezký, líbivý a osobní průvodce po první registraci. U každé aktivity ikonka, stačí za kategorii (kategorie ikonu v katalogu mají). Uživatel vyplní jen základ (lokalita, zájmy), zbytek může dodělat později v profilu. Kolik aktivit jde vybrat, rozhodne assignee. Doplněno do #296.
 - **Přátelé (PO, tým):** základ zůstává ve sprintu 4 (#307): žádost o přátelství, seznam přátel v Můj profil, akce přátel. Návrhy přátel a propojování s dalšími lidmi jsou na další sprinty (#347).
+- **Výzva k hodnocení (PO):** po akci přijde e-mail, že se akce konala, s výzvou k hodnocení. Doplněno do #65, zůstává ve sprintu 4.
 - **Sprint Review 4 (PO):** interaktivní prezentace. Jeden ukazuje na mobilu, obraz se v reálném čase promítá na počítač, druhý zadává. Ukážeme registraci nového uživatele i s onboardingem; tým k tomu připraví příběh (flow). Příprava je samostatné issue, aby šla přidělit: #357.
 
 ## Backlog na další sprinty
 
-| Oblast    | Co                                                                                                                                                                            | Zdroj   | Issue                                |
-| --------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------- | ------------------------------------ |
-| Účet      | Jméno, příjmení a přezdívka. Přezdívku vidí všichni; celé jméno jen organizátor akce, na kterou se uživatel přihlásil, správce skupiny, ve které je, a přátelé (anonymizace). | PO      | #346 (nové)                          |
-| Přátelé   | Ve svém profilu vidět přátele a propojit se s dalšími lidmi.                                                                                                                  | PO, tým | #307 (sprint 4), #347 (nové)         |
-| Akce      | Typ aktivity na kartách a dlaždicích ve výpisu akcí.                                                                                                                          | PO      | #348 (nové)                          |
-|           | Filtry: dva pásy vyřešit intuitivněji, horního pásu (záložky rychlého výběru) si člověk skoro nevšimne. Jak, zatím nevíme; předělat v kódu i ve Figmě.                        | PO      | #349 (nové)                          |
-|           | **Příští sprint:** podobné akce („More events like this“) na detailu akce.                                                                                                    | PO      | #351 (nové)                          |
-|           | **Příští sprint:** oblíbené akce (něco jako bookmark akce).                                                                                                                   | PO      | #80 (doplněné, priorita MVP)         |
-| Hodnocení | Hodnocení v aplikaci můžou být v modálním okně.                                                                                                                               | PO      | #350 (nové), souvisí s #332          |
-|           | Po akci přijde e-mail, že se akce konala, s výzvou k hodnocení.                                                                                                               | PO      | #65 (doplněné, zůstává ve sprintu 4) |
-| Skupiny   | Veřejné a privátní akce: privátní akci vidí jen člen skupiny, veřejně vidět není. To už umí akce „jen pro členy“ (#70, hotové).                                               | PO, tým | #70                                  |
-|           | U skupin chybí filtry, které jsou u akcí, i rychlé filtry (nabíráme / volné místo). Vymyslet, jak se i ve skupinách orientovat podle místa, případně s mapou.                 | PO      | #81 (doplněné)                       |
-|           | Odkaz s pozvánkou do skupiny; kdo přijde přes pozvánku od správce, nemusí čekat na schválení.                                                                                 | PO      | #352 (nové)                          |
-|           | Dát někomu roli správce, moct vyhodit člena skupiny.                                                                                                                          | PO      | #62, #63 (doplněné)                  |
+| Oblast    | Co                                                                                                                                                                            | Zdroj   | Issue                        |
+| --------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------- | ---------------------------- |
+| Účet      | Jméno, příjmení a přezdívka. Přezdívku vidí všichni; celé jméno jen organizátor akce, na kterou se uživatel přihlásil, správce skupiny, ve které je, a přátelé (anonymizace). | PO      | #346 (nové)                  |
+| Přátelé   | Ve svém profilu vidět přátele a propojit se s dalšími lidmi.                                                                                                                  | PO, tým | #307 (sprint 4), #347 (nové) |
+| Akce      | Typ aktivity na kartách a dlaždicích ve výpisu akcí.                                                                                                                          | PO      | #348 (nové)                  |
+|           | Filtry: dva pásy vyřešit intuitivněji, horního pásu (záložky rychlého výběru) si člověk skoro nevšimne. Jak, zatím nevíme; předělat v kódu i ve Figmě.                        | PO      | #349 (nové)                  |
+|           | **Příští sprint:** podobné akce („More events like this“) na detailu akce.                                                                                                    | PO      | #351 (nové)                  |
+|           | **Příští sprint:** oblíbené akce (něco jako bookmark akce).                                                                                                                   | PO      | #80 (doplněné, priorita MVP) |
+| Hodnocení | Hodnocení v aplikaci můžou být v modálním okně.                                                                                                                               | PO      | #350 (nové), souvisí s #332  |
+| Skupiny   | Veřejné a privátní akce: privátní akci vidí jen člen skupiny, veřejně vidět není. To už umí akce „jen pro členy“ (#70, hotové).                                               | PO, tým | #70                          |
+|           | U skupin chybí filtry, které jsou u akcí, i rychlé filtry (nabíráme / volné místo). Vymyslet, jak se i ve skupinách orientovat podle místa, případně s mapou.                 | PO      | #81 (doplněné)               |
+|           | Odkaz s pozvánkou do skupiny; kdo přijde přes pozvánku od správce, nemusí čekat na schválení.                                                                                 | PO      | #352 (nové)                  |
+|           | Dát někomu roli správce, moct vyhodit člena skupiny.                                                                                                                          | PO      | #62, #63 (doplněné)          |
 
 ## Rozšíření (možnost pro případné další sprinty)
 
@@ -49,7 +51,7 @@ Zápis má čtyři části: co jsme na refinementu probrali, rozhodnutí, jak js
 ## Rozhodnutí
 
 - **Přihlášení po ověření (PO):** kliknutí na ověřovací odkaz uživatele rovnou přihlásí. Doplňuje B-011 a #236: bez ověření se uživatel dál nepřihlásí.
-- **E-maily ve spamu (PO):** neřešíme, #302 zavřené jako not planned.
+- **E-maily ve spamu (PO):** neřešíme, #302 zavřené jako not planned. Textovou verzi e-mailů (PR #343) sloučíme jako samostatné zlepšení; SPF, DKIM, DMARC a ověření odesílací adresy (`EMAIL_FROM`) z #302 neřešíme.
 - **Privátní akce skupiny (PO):** privátní = vidí ji jen člen skupiny a veřejně vidět není. To je dnešní akce „jen pro členy“ (#70), nic nového se nestaví: nečlen ji nenajde ve výpisu, na mapě, na úvodní stránce ani na stránce skupiny a na přímý odkaz se dozví jen to, že je pro členy skupiny.
 - **Přátelé (tým, podle PO):** ve sprintu 4 jen základ (#307), propojování a návrhy přátel později (#347).
 - **Monetizace (tým, podle PO):** zatím jen návrh do budoucna. Platba je simulovaná (formulář na číslo karty a animace, že platba proběhla), jak přesně bude fungovat, se vyřeší s plánováním. Paywall by se týkal jen nově zakládaných funkcí, akce jen pro členy, které už skupiny mají, zůstanou.
