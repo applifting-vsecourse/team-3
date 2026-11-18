@@ -1,13 +1,14 @@
 import { SMTPConfig } from '@/core/email/adapters/smtp/interfaces/smtp-config.interface';
-import { EmailService } from '@/core/email/interfaces/email-service.interface';
+import { EmailContent, EmailSender } from '@/core/email/email-sender';
 import { Injectable } from '@nestjs/common';
 import * as nodemailer from 'nodemailer';
 
 @Injectable()
-export class SMTPAdapter implements EmailService {
+export class SMTPAdapter extends EmailSender {
   private readonly transporter: nodemailer.Transporter;
 
   constructor(private readonly config: SMTPConfig) {
+    super();
     this.transporter = nodemailer.createTransport({
       host: config.host,
       port: config.port,
@@ -19,12 +20,17 @@ export class SMTPAdapter implements EmailService {
     });
   }
 
-  async sendEmail(to: string, subject: string, html: string): Promise<void> {
+  protected async sendContent(
+    to: string,
+    subject: string,
+    { html, text }: EmailContent,
+  ): Promise<void> {
     await this.transporter.sendMail({
       from: this.config.from?.trim() || this.config.user,
       to,
       subject,
       html,
+      text,
     });
   }
 }

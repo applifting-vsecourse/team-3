@@ -1,23 +1,29 @@
 import { ResendConfig } from '@/core/email/adapters/resend/interfaces/resend-config.interface';
-import { EmailService } from '@/core/email/interfaces/email-service.interface';
+import { EmailContent, EmailSender } from '@/core/email/email-sender';
 import { Injectable, Logger } from '@nestjs/common';
 import { Resend } from 'resend';
 
 @Injectable()
-export class ResendAdapter implements EmailService {
+export class ResendAdapter extends EmailSender {
   private readonly logger = new Logger(ResendAdapter.name);
   private readonly client: Resend;
 
   constructor(private readonly config: ResendConfig) {
+    super();
     this.client = new Resend(config.apiKey);
   }
 
-  async sendEmail(to: string, subject: string, html: string): Promise<void> {
+  protected async sendContent(
+    to: string,
+    subject: string,
+    { html, text }: EmailContent,
+  ): Promise<void> {
     const { error } = await this.client.emails.send({
       from: this.config.from,
       to,
       subject,
       html,
+      text,
     });
 
     if (error) {
