@@ -39,6 +39,8 @@ export const emailFlowOptions = (
   emailVerification: {
     expiresIn: EMAIL_VERIFICATION_TTL_SECONDS,
     sendOnSignUp: true,
+    // PO 16. 11., #300: registration stays anonymous until the link verifies it.
+    autoSignInAfterVerification: true,
     sendVerificationEmail: async ({ user, url }): Promise<void> => {
       const html = await renderEmail(VerifyEmail, { url });
       await emailProvider.sendEmail(user.email, VERIFY_EMAIL_SUBJECT, html);

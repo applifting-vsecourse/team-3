@@ -1,5 +1,5 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query"
-import { render, screen, waitFor } from "@testing-library/react"
+import { fireEvent, render, screen, waitFor } from "@testing-library/react"
 import userEvent from "@testing-library/user-event"
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest"
 
@@ -110,6 +110,7 @@ const krizikova = {
 }
 
 beforeEach(() => {
+  vi.clearAllMocks()
   // no test talks to the real address service
   answerAddresses()
 })
@@ -121,6 +122,17 @@ afterEach(() => {
 })
 
 describe("EventForm", () => {
+  it("warns about a start before 5 AM without forbidding it", () => {
+    renderForm()
+    const field = screen.getByLabelText("Začátek *")
+    expect(screen.queryByText(/Začátek je mezi půlnocí/)).not.toBeInTheDocument()
+    fireEvent.change(field, { target: { value: "00:00" } })
+    expect(screen.getByRole("status")).toHaveTextContent("Začátek je mezi půlnocí")
+    fireEvent.change(field, { target: { value: "04:59" } })
+    expect(screen.getByRole("status")).toHaveTextContent("Začátek je mezi půlnocí")
+    fireEvent.change(field, { target: { value: "05:00" } })
+    expect(screen.queryByText(/Začátek je mezi půlnocí/)).not.toBeInTheDocument()
+  })
   it("an untouched form can be sent and says, under each field, what is missing", async () => {
     const { onSubmit } = renderForm()
 
@@ -692,6 +704,10 @@ describe("EventForm", () => {
 
       expect(screen.getByRole("combobox", { name: "Aktivita *" })).toBeDisabled()
       expect(screen.getByRole("radio", { name: /Schvaluji přihlášky/ })).toBeDisabled()
+      const card = screen.getByRole("radio", { name: /Schvaluji přihlášky/ }).closest("label")
+      expect(card).toHaveClass("cursor-not-allowed")
+      expect(card).not.toHaveClass("hover:bg-accent")
+      expect(card).not.toHaveClass("cursor-pointer")
       // each disabled control says why, right under it
       expect(screen.getByText("Aktivitu po založení změnit nejde.")).toBeInTheDocument()
       expect(screen.getByText("Způsob přihlašování po založení změnit nejde.")).toBeInTheDocument()

@@ -164,7 +164,7 @@ Každá role umí i všechno, co přihlášený uživatel. Správce skupiny ří
 
 **Jako** účastník proběhlé akce **chci** ohodnotit akci a organizátora, **aby** ostatní věděli, komu a čemu věřit.
 
-- [ ] Večer po akci přijde e-mail (dávkově na konci dne) s výzvou k hodnocení.
+- [x] Večer po akci přijde e-mail s výzvou k hodnocení (#65): denní dávka ve 21:00 v Praze, později skončené akce další večer; přímý odkaz na hodnocení pro účastníka i organizátora, evidence odeslání a obnova po výpadku.
 - [ ] Hodnotit mohu jen akci, na které jsem byl přihlášený.
 - [ ] Akce: 1–5 hvězdiček + nepovinný komentář. Organizátor (osoba nebo skupina): 1–5 hvězdiček.
 - [ ] Organizátor vidí hodnocení a komentáře své akce; průměr je u jeho profilu / u skupiny.

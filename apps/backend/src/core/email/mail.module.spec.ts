@@ -161,6 +161,7 @@ describe('MailModule', () => {
         to: 'recipient@example.com',
         subject: 'Subject',
         html: '<p>Body</p>',
+        text: 'Body',
       });
       expect(inbox).toBeNull();
     },
