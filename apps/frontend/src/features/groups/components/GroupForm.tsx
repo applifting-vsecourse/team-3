@@ -105,6 +105,7 @@ export function GroupForm({
   const typeId = useId()
   const aboutId = useId()
   const whoId = useId()
+  const imageLabelId = useId()
   const form = useForm<FormValues>({
     resolver: zodResolver(schema),
     // useRevealFormErrors focuses instead, after scrolling its own way
@@ -242,7 +243,7 @@ export function GroupForm({
               render={({ field }) => (
                 // Figma D-06: the last field of „O skupině“
                 <FormItem className="order-6 md:order-none">
-                  <FormLabel>Fotka skupiny</FormLabel>
+                  <FormLabel id={imageLabelId}>Fotka skupiny</FormLabel>
                   <FormControl>
                     <ImageField
                       ref={field.ref}
@@ -253,6 +254,7 @@ export function GroupForm({
                       }}
                       onRefuse={(message) => form.setError("image", { message })}
                       addLabel="Přidat fotku skupiny"
+                      labelId={imageLabelId}
                     />
                   </FormControl>
                   <FormDescription>

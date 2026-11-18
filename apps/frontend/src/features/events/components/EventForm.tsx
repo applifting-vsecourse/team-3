@@ -215,6 +215,7 @@ export function EventForm({
   const countLabelId = useId()
   const whatId = useId()
   const whereId = useId()
+  const imageLabelId = useId()
   const [isCalendarOpen, setIsCalendarOpen] = useState(false)
   const today = usePragueToday()
   const isEdit = mode === "edit"
@@ -602,7 +603,7 @@ export function EventForm({
               render={({ field }) => (
                 // Figma D-01: the last field of „Co a kdy“
                 <FormItem className="order-12 md:order-none">
-                  <FormLabel>Plakát nebo fotka</FormLabel>
+                  <FormLabel id={imageLabelId}>Plakát nebo fotka</FormLabel>
                   <FormControl>
                     <ImageField
                       ref={field.ref}
@@ -613,6 +614,7 @@ export function EventForm({
                       }}
                       onRefuse={(message) => form.setError("image", { message })}
                       addLabel="Přidat plakát nebo fotku"
+                      labelId={imageLabelId}
                     />
                   </FormControl>
                   <FormDescription>

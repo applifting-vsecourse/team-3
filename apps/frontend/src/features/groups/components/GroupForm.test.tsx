@@ -250,9 +250,9 @@ describe("the group's own photo (#77)", () => {
   it("is optional: without one the activity's photo shows, and the form says so", () => {
     renderForm()
 
-    expect(screen.getByRole("button", { name: "Fotka skupiny" })).toHaveTextContent(
-      "Přidat fotku skupiny",
-    )
+    expect(
+      screen.getByRole("button", { name: "Přidat fotku skupiny Fotka skupiny" }),
+    ).toHaveTextContent("Přidat fotku skupiny")
     expect(screen.getByText(/Bez vlastní fotky se u skupiny ukáže fotka aktivity/)).toBeVisible()
   })
 
@@ -261,7 +261,7 @@ describe("the group's own photo (#77)", () => {
     const file = new File([new Uint8Array([0x89, 0x50])], "parta.png", { type: "image/png" })
 
     fireEvent.change(fileInput(), { target: { files: [file] } })
-    await screen.findByRole("button", { name: "Fotka skupiny" })
+    await screen.findByRole("button", { name: "Vyměnit obrázek Fotka skupiny" })
     await save()
 
     expect(onSubmit).toHaveBeenCalledWith(expect.anything(), { kind: "set", file })
@@ -285,7 +285,7 @@ describe("the group's own photo (#77)", () => {
     const { onSubmit } = editForm("http://api.test/images/k1")
     expect(document.querySelector('img[src="http://api.test/images/k1"]')).toBeVisible()
 
-    await userEvent.click(screen.getByRole("button", { name: "Odebrat" }))
+    await userEvent.click(screen.getByRole("button", { name: "Odebrat Fotka skupiny" }))
     await save()
 
     expect(onSubmit).toHaveBeenCalledWith(expect.anything(), { kind: "remove" })

@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, type Ref } from "react"
+import { useEffect, useId, useMemo, useRef, type Ref } from "react"
 import { ImagePlus } from "lucide-react"
 
 import { Button } from "@/components/ui/button"
@@ -31,6 +31,8 @@ type ImageFieldProps = {
   onChange: (value: ImageFieldValue) => void
   /** The empty field's button, e.g. „Přidat plakát nebo fotku“ (Figma D-01). */
   addLabel: string
+  /** The id of the field's visible label: each button's name is its own text, then the label's. */
+  labelId: string
   /** A picked file that can't be used: the field keeps what it had and shows why. */
   onRefuse: (message: string) => void
   /** From FormControl, for the visible control. */
@@ -43,6 +45,11 @@ type ImageFieldProps = {
  * Figma Pole/Plakát nebo fotka (D-01, F-20): without an image one wide dashed
  * outline button; with one its preview as the card will show it, „Vyměnit
  * obrázek“ and „Odebrat“. The file input is the kit's, hidden: the button opens it.
+ *
+ * Each button is named by the text it shows and then the field's label
+ * („Vyměnit obrázek Plakát nebo fotka“, DESIGN.md › Accessibility, WCAG 2.5.3):
+ * the label alone would hide what the button does. After a pick, a refusal or
+ * „Odebrat“ the field's button keeps the focus, though the other one replaces it.
  */
 export function ImageField({
   ref,
@@ -50,8 +57,10 @@ export function ImageField({
   onChange,
   onRefuse,
   addLabel,
+  labelId,
   ...control
 }: ImageFieldProps) {
+  const textId = useId()
   const fileRef = useRef<HTMLInputElement>(null)
   const pickRef = useRef<HTMLButtonElement | null>(null)
   const file = value.kind === "file" ? value.file : null
@@ -69,13 +78,16 @@ export function ImageField({
     if (typeof ref === "function") ref(node)
     else if (ref) ref.current = node
   }
+  // the button pressed may be gone after the change: focus the one in its place
+  const refocus = () => requestAnimationFrame(() => pickRef.current?.focus())
+  const named = (id: string) => ({ "aria-labelledby": `${id} ${labelId}` })
 
   const fileInput = (
     <Input
       ref={fileRef}
       type="file"
       accept={IMAGE_ACCEPT}
-      // the button is the control: named by the label, in the tab order
+      // the button is the control, in the tab order
       className="sr-only"
       tabIndex={-1}
       aria-hidden
@@ -87,6 +99,7 @@ export function ImageField({
         const problem = imageProblem(picked)
         if (problem) onRefuse(problem)
         else onChange({ kind: "file", file: picked })
+        refocus()
       }}
     />
   )
@@ -101,9 +114,10 @@ export function ImageField({
           className="h-22 w-full flex-col gap-1 border-dashed bg-card font-normal"
           onClick={() => fileRef.current?.click()}
           {...control}
+          {...named(`${textId}-pick`)}
         >
           <ImagePlus className="size-5 text-muted-foreground" />
-          {addLabel}
+          <span id={`${textId}-pick`}>{addLabel}</span>
         </Button>
         {fileInput}
       </>
@@ -125,19 +139,20 @@ export function ImageField({
           variant="outline"
           onClick={() => fileRef.current?.click()}
           {...control}
+          {...named(`${textId}-replace`)}
         >
-          Vyměnit obrázek
+          <span id={`${textId}-replace`}>Vyměnit obrázek</span>
         </Button>
         <Button
           type="button"
           variant="ghost"
           onClick={() => {
             onChange({ kind: "none" })
-            // the button just pressed goes away: focus the one that takes its place
-            requestAnimationFrame(() => pickRef.current?.focus())
+            refocus()
           }}
+          {...named(`${textId}-remove`)}
         >
-          Odebrat
+          <span id={`${textId}-remove`}>Odebrat</span>
         </Button>
       </div>
       {fileInput}

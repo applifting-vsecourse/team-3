@@ -777,9 +777,10 @@ describe("EventForm", () => {
     it("is optional: without one the activity's photo shows, and the form says so", () => {
       renderForm()
 
-      expect(screen.getByRole("button", { name: "Plakát nebo fotka" })).toHaveTextContent(
-        "Přidat plakát nebo fotku",
-      )
+      // the button's own text first, then the field's label (WCAG 2.5.3)
+      expect(
+        screen.getByRole("button", { name: "Přidat plakát nebo fotku Plakát nebo fotka" }),
+      ).toHaveTextContent("Přidat plakát nebo fotku")
       expect(screen.getByText(/Bez vlastního obrázku se u akce ukáže fotka aktivity/)).toBeVisible()
       expect(fileInput()).toHaveAttribute("accept", "image/jpeg,image/png,image/webp")
     })
@@ -790,9 +791,11 @@ describe("EventForm", () => {
 
       pickFile(file)
 
-      expect(await screen.findByRole("button", { name: "Plakát nebo fotka" })).toHaveTextContent(
-        "Vyměnit obrázek",
-      )
+      const replace = await screen.findByRole("button", {
+        name: "Vyměnit obrázek Plakát nebo fotka",
+      })
+      // the add button is gone: the keyboard stays in the field, on the one in its place
+      await waitFor(() => expect(replace).toHaveFocus())
       expect(document.querySelector('img[src="blob:nahled"]')).toBeInTheDocument()
       await save()
       expect(onSubmit).toHaveBeenCalledWith(expect.anything(), { kind: "set", file })
@@ -815,11 +818,10 @@ describe("EventForm", () => {
       pickFile(file)
 
       expect(await screen.findByText(message)).toBeInTheDocument()
-      expect(screen.getByRole("button", { name: "Plakát nebo fotka" })).toHaveAttribute(
-        "aria-invalid",
-        "true",
-      )
-      expect(screen.queryByRole("button", { name: "Vyměnit obrázek" })).not.toBeInTheDocument()
+      expect(
+        screen.getByRole("button", { name: "Přidat plakát nebo fotku Plakát nebo fotka" }),
+      ).toHaveAttribute("aria-invalid", "true")
+      expect(screen.queryByRole("button", { name: /Vyměnit obrázek/ })).not.toBeInTheDocument()
       await save()
       expect(onSubmit).toHaveBeenCalledWith(expect.anything(), { kind: "keep" })
     })
@@ -832,9 +834,9 @@ describe("EventForm", () => {
       })
       expect(document.querySelector('img[src="http://api.test/images/k1"]')).toBeVisible()
 
-      await userEvent.click(screen.getByRole("button", { name: "Odebrat" }))
+      await userEvent.click(screen.getByRole("button", { name: "Odebrat Plakát nebo fotka" }))
 
-      const add = screen.getByRole("button", { name: "Plakát nebo fotka" })
+      const add = screen.getByRole("button", { name: "Přidat plakát nebo fotku Plakát nebo fotka" })
       expect(add).toHaveTextContent("Přidat plakát nebo fotku")
       await waitFor(() => expect(add).toHaveFocus())
       await save()
