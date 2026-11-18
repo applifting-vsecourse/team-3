@@ -5,6 +5,7 @@ import { toast } from "sonner"
 import { PageBand } from "@/components/PageBand/PageBand"
 import { Seo } from "@/components/Seo"
 import { useCatalog } from "@/hooks/useCatalog"
+import { imageUrl } from "@/lib/image"
 import { FORM, PAGE } from "@/lib/pageLayout"
 import { cn } from "@/lib/utils"
 
@@ -68,16 +69,20 @@ function EditGroupPage() {
                 localityId: group.locality.id,
                 type: group.type,
               }}
+              initialImageSrc={group.imageKey ? imageUrl(group.imageKey) : null}
               submitLabel="Uložit změny"
               isSubmitting={updateGroup.isPending}
               errorMessage={updateGroup.error?.message}
-              onSubmit={(input) =>
-                updateGroup.mutate(input, {
-                  onSuccess: () => {
-                    toast.success("Změny jsou uložené")
-                    openSavedGroup(groupId)
+              onSubmit={(input, image) =>
+                updateGroup.mutate(
+                  { input, image },
+                  {
+                    onSuccess: () => {
+                      toast.success("Změny jsou uložené")
+                      openSavedGroup(groupId)
+                    },
                   },
-                })
+                )
               }
             />
           ) : (

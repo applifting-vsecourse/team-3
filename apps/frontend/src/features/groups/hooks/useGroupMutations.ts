@@ -1,6 +1,7 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query"
 
 import { api } from "@/lib/api-client"
+import { sendImageChange, type ImageChange } from "@/lib/image"
 
 import {
   announcementSchema,
@@ -10,13 +11,30 @@ import {
 } from "@/features/groups/api/groupSchemas"
 import { groupKeys } from "@/features/groups/api/groupsQueryOptions"
 
-/** POST /api/groups; the signed-in founder becomes the group's admin. */
+const groupImagePath = (id: string) => `groups/${encodeURIComponent(id)}/image`
+
+/**
+ * POST /api/groups; the signed-in founder becomes the group's admin. A photo
+ * picked in the form (#77) is uploaded after it: the group exists already
+ * when that fails, so the failure comes back as `imageError`, not as the
+ * form's error — sending the form again would found it twice.
+ */
 export function useCreateGroup() {
   const queryClient = useQueryClient()
   return useMutation({
-    mutationFn: async (input: GroupInput) =>
-      groupDetailSchema.parse(await api.post("groups", { json: input }).json()),
-    onSuccess: (group) =>
+    mutationFn: async ({ input, image }: { input: GroupInput; image?: File | null }) => {
+      const group = groupDetailSchema.parse(await api.post("groups", { json: input }).json())
+      if (!image) return { group, imageError: null }
+      try {
+        const withPhoto = groupDetailSchema.parse(
+          await sendImageChange(groupImagePath(group.id), { kind: "set", file: image }),
+        )
+        return { group: withPhoto, imageError: null }
+      } catch (error) {
+        return { group, imageError: error instanceof Error ? error.message : String(error) }
+      }
+    },
+    onSuccess: ({ group }) =>
       Promise.all([
         queryClient.invalidateQueries({ queryKey: groupKeys.detail(group.id) }),
         queryClient.invalidateQueries({ queryKey: groupKeys.lists() }),
@@ -24,12 +42,26 @@ export function useCreateGroup() {
   })
 }
 
-/** PATCH /api/groups/:id; the API answers 403 to anyone but an admin. */
+/**
+ * PATCH /api/groups/:id, then the photo's change (#77); the API answers 403 to
+ * anyone but an admin. When the photo fails, the other changes are saved already.
+ */
 export function useUpdateGroup(id: string) {
   const queryClient = useQueryClient()
   return useMutation({
-    mutationFn: async (input: GroupInput) =>
-      groupDetailSchema.parse(await api.patch(`groups/${id}`, { json: input }).json()),
+    mutationFn: async ({
+      input,
+      image = { kind: "keep" },
+    }: {
+      input: GroupInput
+      image?: ImageChange
+    }) => {
+      const updated = groupDetailSchema.parse(
+        await api.patch(`groups/${id}`, { json: input }).json(),
+      )
+      const answer = await sendImageChange(groupImagePath(id), image)
+      return answer === null ? updated : groupDetailSchema.parse(answer)
+    },
     onSuccess: (group) =>
       Promise.all([
         queryClient.invalidateQueries({ queryKey: groupKeys.detail(group.id) }),

@@ -6,11 +6,18 @@ import { z } from "zod"
 
 import { ActivityCombobox } from "@/components/CatalogCombobox/ActivityCombobox"
 import { LocalityCombobox } from "@/components/CatalogCombobox/LocalityCombobox"
+import {
+  imageChangeOf,
+  ImageField,
+  initialImageValue,
+  type ImageFieldValue,
+} from "@/components/ImageField/ImageField"
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import { Button } from "@/components/ui/button"
 import {
   Form,
   FormControl,
+  FormDescription,
   FormField,
   FormItem,
   FormLabel,
@@ -21,6 +28,7 @@ import { Input } from "@/components/ui/input"
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
 import { Textarea } from "@/components/ui/textarea"
 import type { Catalog } from "@/lib/catalog/catalogSearch"
+import type { ImageChange } from "@/lib/image"
 import { cn } from "@/lib/utils"
 
 import {
@@ -47,6 +55,8 @@ const schema = z.object({
       GROUP_DESCRIPTION_MAX_LENGTH,
       `Popis může mít nejvýš ${GROUP_DESCRIPTION_MAX_LENGTH} znaků`,
     ),
+  /** The group's own photo (#77); a refused file never gets here (`onRefuse`). */
+  image: z.custom<ImageFieldValue>(),
 })
 
 type FormValues = z.input<typeof schema>
@@ -70,18 +80,22 @@ type GroupFormProps = {
    * empty list didn't find (Figma A-07e).
    */
   initialValues?: Partial<GroupInput>
+  /** The photo the group already has (#77), when editing. */
+  initialImageSrc?: string | null
   submitLabel: string
   /** Under the fields, e.g. „Zakladatel se stane správcem skupiny.“ */
   note?: string
   isSubmitting: boolean
   errorMessage?: string | null
-  onSubmit: (input: GroupInput) => void | Promise<void>
+  /** `image`: what to do with the group's own photo after saving it (#77). */
+  onSubmit: (input: GroupInput, image: ImageChange) => void | Promise<void>
 }
 
 /** Founding (D-06) and editing (D-07 › Upravit skupinu) share one form. */
 export function GroupForm({
   catalog,
   initialValues,
+  initialImageSrc,
   submitLabel,
   note,
   isSubmitting,
@@ -102,6 +116,7 @@ export function GroupForm({
       // a new group is public unless the founder says otherwise (#190)
       type: initialValues?.type ?? "public",
       description: initialValues?.description ?? "",
+      image: initialImageValue(initialImageSrc),
     },
   })
   const formRef = useRevealFormErrors(form, errorMessage)
@@ -112,13 +127,16 @@ export function GroupForm({
         ref={formRef}
         noValidate
         onSubmit={form.handleSubmit((values) =>
-          onSubmit({
-            name: values.name.trim(),
-            description: values.description.trim() || null,
-            activityId: values.activityId,
-            localityId: values.localityId,
-            type: values.type,
-          }),
+          onSubmit(
+            {
+              name: values.name.trim(),
+              description: values.description.trim() || null,
+              activityId: values.activityId,
+              localityId: values.localityId,
+              type: values.type,
+            },
+            imageChangeOf(values.image, Boolean(initialImageSrc)),
+          ),
         )}
         className="flex flex-col gap-5"
       >
@@ -217,6 +235,34 @@ export function GroupForm({
                 </FormItem>
               )}
             />
+
+            <FormField
+              control={form.control}
+              name="image"
+              render={({ field }) => (
+                // Figma D-06: the last field of „O skupině“
+                <FormItem className="order-6 md:order-none">
+                  <FormLabel>Fotka skupiny</FormLabel>
+                  <FormControl>
+                    <ImageField
+                      ref={field.ref}
+                      value={field.value}
+                      onChange={(value) => {
+                        field.onChange(value)
+                        form.clearErrors("image")
+                      }}
+                      onRefuse={(message) => form.setError("image", { message })}
+                      addLabel="Přidat fotku skupiny"
+                    />
+                  </FormControl>
+                  <FormDescription>
+                    Nepovinné. JPEG, PNG nebo WebP, nejvýš 5 MB. Bez vlastní fotky se u skupiny
+                    ukáže fotka aktivity.
+                  </FormDescription>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
           </div>
 
           <div
@@ -271,7 +317,7 @@ export function GroupForm({
             />
 
             {note ? (
-              <p className="order-6 text-sm text-muted-foreground md:order-none">{note}</p>
+              <p className="order-7 text-sm text-muted-foreground md:order-none">{note}</p>
             ) : null}
           </div>
         </div>

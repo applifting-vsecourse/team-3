@@ -25,6 +25,8 @@ export const groupSchema = z.object({
   locality: z.object({ id: z.string(), slug: z.string(), name: z.string() }),
   /** Approved members incl. admins; pending requests are not counted. */
   memberCount: z.number(),
+  // the admins' own photo (#77), at GET /api/images/:key; none = the activity's photo
+  imageKey: z.string().nullish(),
 })
 
 export const groupsSchema = z.array(groupSchema)

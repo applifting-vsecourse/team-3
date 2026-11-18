@@ -1,5 +1,5 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query"
-import { render, screen, waitFor } from "@testing-library/react"
+import { fireEvent, render, screen, waitFor } from "@testing-library/react"
 import userEvent from "@testing-library/user-event"
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest"
 
@@ -179,13 +179,16 @@ describe("GroupForm", () => {
       "Hry › Deskové hry",
     )
     expect(screen.getByRole("combobox", { name: "Lokalita *" })).toHaveTextContent("Praha 7")
-    expect(onSubmit).toHaveBeenCalledWith({
-      name: "Deskovky Letná",
-      description: null,
-      activityId: "a-deskove-hry",
-      localityId: "l-praha-7",
-      type: "public",
-    })
+    expect(onSubmit).toHaveBeenCalledWith(
+      {
+        name: "Deskovky Letná",
+        description: null,
+        activityId: "a-deskove-hry",
+        localityId: "l-praha-7",
+        type: "public",
+      },
+      { kind: "keep" },
+    )
   })
 
   it("editing starts from the group's values and sends every field", async () => {
@@ -203,14 +206,17 @@ describe("GroupForm", () => {
     await userEvent.clear(screen.getByLabelText("Popis"))
     await userEvent.click(screen.getByRole("button", { name: "Uložit změny" }))
 
-    expect(onSubmit).toHaveBeenCalledWith({
-      name: "Deskovky Letná",
-      // an emptied description is no description
-      description: null,
-      activityId: "a-deskove-hry",
-      localityId: "l-praha-7",
-      type: "public",
-    })
+    expect(onSubmit).toHaveBeenCalledWith(
+      {
+        name: "Deskovky Letná",
+        // an emptied description is no description
+        description: null,
+        activityId: "a-deskove-hry",
+        localityId: "l-praha-7",
+        type: "public",
+      },
+      { kind: "keep" },
+    )
   })
 
   it("a name over 80 characters is caught before the server", async () => {
@@ -227,5 +233,61 @@ describe("GroupForm", () => {
 
     expect(screen.getByText("Neznámá aktivita")).toBeInTheDocument()
     expect(screen.getByRole("button", { name: "Založit skupinu" })).toBeDisabled()
+  })
+})
+
+describe("the group's own photo (#77)", () => {
+  const fileInput = () => document.querySelector<HTMLInputElement>('input[type="file"]')!
+  const save = () => userEvent.click(screen.getByRole("button", { name: "Uložit změny" }))
+  const editForm = (initialImageSrc?: string) =>
+    renderForm({ initialValues: existing, initialImageSrc, submitLabel: "Uložit změny" })
+
+  beforeEach(() => {
+    URL.createObjectURL = vi.fn(() => "blob:nahled")
+    URL.revokeObjectURL = vi.fn()
+  })
+
+  it("is optional: without one the activity's photo shows, and the form says so", () => {
+    renderForm()
+
+    expect(screen.getByRole("button", { name: "Fotka skupiny" })).toHaveTextContent(
+      "Přidat fotku skupiny",
+    )
+    expect(screen.getByText(/Bez vlastní fotky se u skupiny ukáže fotka aktivity/)).toBeVisible()
+  })
+
+  it("a picked photo goes with the form", async () => {
+    const { onSubmit } = editForm()
+    const file = new File([new Uint8Array([0x89, 0x50])], "parta.png", { type: "image/png" })
+
+    fireEvent.change(fileInput(), { target: { files: [file] } })
+    await screen.findByRole("button", { name: "Fotka skupiny" })
+    await save()
+
+    expect(onSubmit).toHaveBeenCalledWith(expect.anything(), { kind: "set", file })
+  })
+
+  it("a GIF is refused with the reason", async () => {
+    editForm()
+
+    fireEvent.change(fileInput(), {
+      target: { files: [new File(["GIF89a"], "a.gif", { type: "image/gif" })] },
+    })
+
+    expect(
+      await screen.findByText(
+        "Tenhle soubor nejde použít. Nahraj obrázek ve formátu JPEG, PNG nebo WebP.",
+      ),
+    ).toBeInTheDocument()
+  })
+
+  it("editing shows the photo; „Odebrat“ removes it", async () => {
+    const { onSubmit } = editForm("http://api.test/images/k1")
+    expect(document.querySelector('img[src="http://api.test/images/k1"]')).toBeVisible()
+
+    await userEvent.click(screen.getByRole("button", { name: "Odebrat" }))
+    await save()
+
+    expect(onSubmit).toHaveBeenCalledWith(expect.anything(), { kind: "remove" })
   })
 })
