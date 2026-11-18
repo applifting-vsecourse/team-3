@@ -202,8 +202,14 @@ export function PageBand({
 /**
  * The landing page's logo rising from the band's bottom edge on the left (Figma A-01d, A-01pd ›
  * Motiv loga (vychází zespodu)): the faint dots behind the title, the lime ring's arc under the
- * buttons — the panel takes the right side. From lg, where the panel stands beside the title.
- * Decoration — hidden from assistive tech.
+ * buttons — the panel takes the right side. Decoration — hidden from assistive tech.
+ *
+ * Smaller between lg and xl: the drawing reaches 580 px right of where the content starts (700 px
+ * wide, 120 px of it left of the content), and the column beside the panel is the band's width
+ * less the paddings (80), the panel (480) and the gap (64) — 656 px from xl, but only 400 px at
+ * lg. At full size the ring and the right dot ran under the panel there, cut off by it. Scaled to
+ * 0.68 around the point where the content starts at the buttons' bottom, the drawing reaches
+ * 394 px and stays hung from the buttons the same way.
  *
  * Anchored to the buttons, not to the band's bottom: the panel beside them sets the band's
  * height, so a ring hung from the bottom ran through „Zaregistrovat se“ at some widths, and one
@@ -221,7 +227,7 @@ function HeroMotif() {
       height={930}
       // overflow-visible: the circles go on past the drawing's left edge, the band cuts them at
       // the screen's edge — never a straight cut in the middle of a wide screen
-      className="pointer-events-none absolute top-[calc(100%-505px)] -left-30 -z-10 hidden overflow-visible lg:block"
+      className="pointer-events-none absolute top-[calc(100%-505px)] -left-30 -z-10 hidden origin-[120px_505px] scale-[0.68] overflow-visible lg:block xl:scale-100"
     >
       <circle
         cx="30"

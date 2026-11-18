@@ -133,6 +133,42 @@ describe("PageBand", () => {
     expect(motif).not.toHaveClass("bottom-0")
     expect(motif).toHaveAttribute("aria-hidden", "true")
   })
+
+  it("between lg and xl the landing page's motif is smaller, so it stays beside the panel", async () => {
+    const { container } = await renderWithRouter(
+      <PageBand
+        variant="hero"
+        title="Někde chybí jeden do party."
+        aside={<div>Panel</div>}
+      >
+        <a href="/signup">Zaregistrovat se</a>
+      </PageBand>,
+    )
+    const big = [...container.querySelectorAll("svg")].find(
+      (svg) => svg.getAttribute("width") === "700",
+    )!
+
+    // jsdom has no layout, so the numbers: the drawing reaches 700 − 120 = 580 px into the
+    // content; the column beside the panel is 1024 − 80 − 480 − 64 = 400 px at lg, 656 at xl
+    const reach = Number(big.getAttribute("width")) - 120
+    expect(reach * 0.68).toBeLessThanOrEqual(1024 - 80 - 480 - 64)
+    expect(reach).toBeLessThanOrEqual(1280 - 80 - 480 - 64)
+    // scaled around where the content starts at the buttons' bottom: still hung from them
+    expect(big).toHaveClass(
+      "lg:block",
+      "scale-[0.68]",
+      "xl:scale-100",
+      "origin-[120px_505px]",
+      "top-[calc(100%-505px)]",
+      "-left-30",
+    )
+    // the phone's corner motif until lg: the band always has one
+    expect(
+      [...container.querySelectorAll("[aria-hidden=true]")].some((node) =>
+        node.classList.contains("lg:hidden"),
+      ),
+    ).toBe(true)
+  })
 })
 
 describe("BandTabs", () => {
