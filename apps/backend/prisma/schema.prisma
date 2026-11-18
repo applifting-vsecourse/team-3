@@ -389,6 +389,9 @@ model Event {
   cancelledAt     DateTime?
   /// Topování (B-073): po potvrzení platby = startsAt
   promotedUntil   DateTime?
+  /// Obrázek nahraný organizátorem (#77); bez něj fotka aktivity
+  imageKey        String?         @unique
+  image           EventImage?     @relation(fields: [imageKey], references: [key], onDelete: SetNull)
   createdAt       DateTime        @default(now())
   updatedAt       DateTime        @default(now()) @updatedAt
 
@@ -405,6 +408,25 @@ model Event {
   @@index([organizerUserId])
   @@index([groupId])
   @@map("event")
+}
+
+/// Obrázek akce, který nahrál organizátor (#77): JPEG, PNG nebo WebP, nejvýš 5 MB.
+/// Bajty jsou v databázi, protože staging nemá trvalý disk (kontejner se při
+/// každém nasazení vytvoří znovu) a databáze ano. `key` je náhodné UUID a je
+/// součástí adresy obrázku; nový obrázek = nový klíč, takže adresa jde cachovat
+/// navždy. Výměna nebo odebrání starý řádek smaže.
+model EventImage {
+  key         String   @id @default(uuid())
+  /// `image/jpeg`, `image/png` nebo `image/webp`, podle obsahu souboru, ne podle toho, co poslal prohlížeč
+  contentType String
+  data        Bytes
+  /// v bajtech
+  size        Int
+  createdAt   DateTime @default(now())
+
+  event Event?
+
+  @@map("event_image")
 }
 
 /// Přihláška na akci. Organizátor se může přihlásit na vlastní akci (Q12).
