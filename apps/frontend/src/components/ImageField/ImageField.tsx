@@ -87,10 +87,9 @@ export function ImageField({
       ref={fileRef}
       type="file"
       accept={IMAGE_ACCEPT}
-      // the button is the control, in the tab order
-      className="sr-only"
-      tabIndex={-1}
-      aria-hidden
+      // the button is the control and opens it; `hidden`, not `sr-only`: the kit's `w-full`
+      // beat its 1 px and the page scrolled sideways by the field's offset
+      className="hidden"
       onChange={(event) => {
         const picked = event.target.files?.[0]
         // the same file again must fire a change next time too

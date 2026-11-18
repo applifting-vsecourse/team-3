@@ -783,6 +783,8 @@ describe("EventForm", () => {
       ).toHaveTextContent("Přidat plakát nebo fotku")
       expect(screen.getByText(/Bez vlastního obrázku se u akce ukáže fotka aktivity/)).toBeVisible()
       expect(fileInput()).toHaveAttribute("accept", "image/jpeg,image/png,image/webp")
+      // not sr-only: the kit's w-full made it as wide as the page, which then scrolled sideways
+      expect(fileInput()).toHaveClass("hidden")
     })
 
     it("a picked image shows as a preview and goes with the form", async () => {
