@@ -20,6 +20,7 @@ import {
   UnauthorizedException,
 } from '@nestjs/common';
 import { mock, MockProxy } from 'jest-mock-extended';
+import * as sharp from 'sharp';
 import {
   EventsService,
   GROUP_EVENTS_LIMIT,
@@ -60,6 +61,7 @@ const anEvent = (id: string, approvedCount: number): PublicEvent => ({
     approvedCount,
   ),
   isPromoted: false,
+  imageKey: null,
 });
 
 describe('EventsService', () => {
@@ -2161,5 +2163,172 @@ describe('EventsService messages to the participants (#176)', () => {
       expect(warned).toHaveBeenCalledTimes(2);
       warned.mockRestore();
     });
+  });
+});
+
+describe('EventsService.setEventImage (#77)', () => {
+  // a real 4×4 PNG: the service resizes it with sharp
+  let PNG: Uint8Array;
+  beforeAll(async () => {
+    PNG = new Uint8Array(
+      await sharp({
+        create: { width: 4, height: 4, channels: 3, background: '#ff0000' },
+      })
+        .png()
+        .toBuffer(),
+    );
+  });
+
+  const setup = (
+    detail: EventDetail = aDetail(),
+  ): {
+    repository: MockProxy<EventRepository>;
+    notifications: MockProxy<NotificationService>;
+    service: EventsService;
+  } => {
+    const repository = mock<EventRepository>();
+    repository.findEventDetail.mockResolvedValue(detail);
+    repository.findApprovedParticipants.mockResolvedValue(participants);
+    repository.findParticipationStatus.mockResolvedValue(null);
+    // what the lock reads: by default the same event as the pre-read
+    repository.replaceImage.mockImplementation(async (_id, _image, refuse) => {
+      const refusal = refuse({
+        status: detail.status,
+        startsAt: detail.startsAt,
+      });
+      return refusal ? { ok: false, refusal } : { ok: true };
+    });
+    const notifications = mock<NotificationService>();
+    return {
+      repository,
+      notifications,
+      service: new EventsService(repository, notifications),
+    };
+  };
+
+  it('the organizer uploads a PNG: it is stored as WebP with a small variant, nobody is told', async () => {
+    const { repository, notifications, service } = setup();
+
+    await service.setEventImage('e1', 'u1', PNG, now);
+
+    expect(repository.replaceImage).toHaveBeenCalledWith(
+      'e1',
+      {
+        contentType: 'image/webp',
+        data: expect.any(Uint8Array),
+        small: expect.any(Uint8Array),
+      },
+      expect.any(Function),
+    );
+    expect(notifications.notify).not.toHaveBeenCalled();
+  });
+
+  it('null removes the image, and the activity photo shows again', async () => {
+    const { repository, service } = setup();
+
+    await service.setEventImage('e1', 'u1', null, now);
+
+    expect(repository.replaceImage).toHaveBeenCalledWith(
+      'e1',
+      null,
+      expect.any(Function),
+    );
+  });
+
+  it('anyone but the organizer gets 403 and nothing is stored', async () => {
+    const { repository, service } = setup();
+
+    const error = (await service
+      .setEventImage('e1', 'u9', PNG, now)
+      .catch((e: unknown) => e)) as ForbiddenException;
+
+    expect(error).toBeInstanceOf(ForbiddenException);
+    expect(error.getResponse()).toMatchObject({ code: 'NOT_ORGANIZER' });
+    expect(repository.replaceImage).not.toHaveBeenCalled();
+  });
+
+  it('removing is the organizer’s too', async () => {
+    const { repository, service } = setup();
+
+    await expect(service.setEventImage('e1', 'u9', null, now)).rejects.toThrow(
+      ForbiddenException,
+    );
+    expect(repository.replaceImage).not.toHaveBeenCalled();
+  });
+
+  it("any admin of the event's group may, not a regular member (B-055)", async () => {
+    const admin = setup(groupEventDetail());
+    admin.repository.findActiveGroupRole.mockResolvedValue('admin');
+    await admin.service.setEventImage('e1', 'u9', PNG, now);
+    expect(admin.repository.replaceImage).toHaveBeenCalled();
+
+    const member = setup(groupEventDetail());
+    member.repository.findActiveGroupRole.mockResolvedValue('member');
+    await expect(
+      member.service.setEventImage('e1', 'u9', PNG, now),
+    ).rejects.toThrow(ForbiddenException);
+    expect(member.repository.replaceImage).not.toHaveBeenCalled();
+  });
+
+  it('a file that is not JPEG, PNG or WebP is 400 with a Czech reason', async () => {
+    const { repository, service } = setup();
+    const svg = new TextEncoder().encode('<svg><script/></svg>');
+
+    const error = (await service
+      .setEventImage('e1', 'u1', svg, now)
+      .catch((e: unknown) => e)) as BadRequestException;
+
+    expect(error).toBeInstanceOf(BadRequestException);
+    expect(JSON.stringify(error.getResponse())).toContain(
+      'Nahraj obrázek ve formátu JPEG, PNG nebo WebP.',
+    );
+    expect(repository.replaceImage).not.toHaveBeenCalled();
+  });
+
+  it('no file is 400 „Vyber obrázek.“', async () => {
+    const { service } = setup();
+
+    await expect(
+      service.setEventImage('e1', 'u1', new Uint8Array(), now),
+    ).rejects.toThrow(BadRequestException);
+  });
+
+  it('a started event is 400 and a cancelled one 409, as an edit', async () => {
+    const started = setup(aDetail({ startsAt: now }));
+    await expect(
+      started.service.setEventImage('e1', 'u1', PNG, now),
+    ).rejects.toThrow(BadRequestException);
+    expect(started.repository.replaceImage).not.toHaveBeenCalled();
+
+    const cancelled = setup(aDetail({ status: 'cancelled' }));
+    await expect(
+      cancelled.service.setEventImage('e1', 'u1', PNG, now),
+    ).rejects.toThrow(ConflictException);
+  });
+
+  it('an upload that waited for the lock behind a cancel is 409', async () => {
+    const { repository, service } = setup();
+    repository.replaceImage.mockImplementation(async (_id, _image, refuse) => {
+      const refusal = refuse({
+        status: 'cancelled',
+        startsAt: aDetail().startsAt,
+      });
+      return refusal ? { ok: false, refusal } : { ok: true };
+    });
+
+    await expect(service.setEventImage('e1', 'u1', PNG, now)).rejects.toThrow(
+      ConflictException,
+    );
+  });
+
+  it('a members-only event of a group the user is not in is 403 first', async () => {
+    const { repository, service } = setup(
+      aDetail({ visibility: 'members', group: { id: 'g1', name: 'Skupina' } }),
+    );
+
+    await expect(service.setEventImage('e1', 'u9', PNG, now)).rejects.toThrow(
+      ForbiddenException,
+    );
+    expect(repository.replaceImage).not.toHaveBeenCalled();
   });
 });

@@ -6,6 +6,7 @@ import { EventModule } from './modules/event/event.module';
 import { GeoModule } from './modules/geo/geo.module';
 import { GroupModule } from './modules/group/group.module';
 import { HomeModule } from './modules/home/home.module';
+import { ImageModule } from './modules/image/image.module';
 import { ProfileModule } from './modules/profile/profile.module';
 import { RatingModule } from './modules/rating/rating.module';
 import { SignInProvidersModule } from './modules/sign-in-providers/sign-in-providers.module';
@@ -25,6 +26,7 @@ const imports = [
   GroupModule,
   GeoModule,
   HomeModule,
+  ImageModule,
   ProfileModule,
   RatingModule,
   SimulatedInboxModule,

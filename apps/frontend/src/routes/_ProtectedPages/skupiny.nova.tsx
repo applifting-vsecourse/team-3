@@ -48,13 +48,22 @@ function NewGroupPage() {
               note="Zakladatel se stane správcem skupiny."
               isSubmitting={createGroup.isPending}
               errorMessage={createGroup.error?.message}
-              onSubmit={(input) =>
-                createGroup.mutate(input, {
-                  onSuccess: (group) => {
-                    toast.success("Skupina je založená")
-                    openSavedGroup(group.id)
+              onSubmit={(input, image) =>
+                createGroup.mutate(
+                  { input, image: image.kind === "set" ? image.file : null },
+                  {
+                    onSuccess: ({ group, imageError }) => {
+                      toast.success("Skupina je založená")
+                      if (imageError) {
+                        toast.error(
+                          `Fotka se nenahrála. ${imageError} Přidat ji můžeš v úpravě skupiny.`,
+                          { duration: 10_000 },
+                        )
+                      }
+                      openSavedGroup(group.id)
+                    },
                   },
-                })
+                )
               }
             />
           ) : (

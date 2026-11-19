@@ -284,11 +284,31 @@ export async function deleteSeedContent(
   const kept = await tx.event.count({
     where: { organizerUserId: { in: accountIds }, ...notSeeded },
   });
+  // the images testers uploaded to them (#77): nothing else points at them
+  const imageOwners = [
+    ...(await tx.event.findMany({
+      where: { id: { in: seeded.eventIds } },
+      select: { imageKey: true },
+    })),
+    ...(await tx.group.findMany({
+      where: { id: { in: seeded.groupIds } },
+      select: { imageKey: true },
+    })),
+  ];
   const events = await tx.event.deleteMany({
     where: { id: { in: seeded.eventIds } },
   });
   const groups = await tx.group.deleteMany({
     where: { id: { in: seeded.groupIds } },
+  });
+  await tx.uploadedImage.deleteMany({
+    where: {
+      key: {
+        in: imageOwners.flatMap((owner) =>
+          owner.imageKey ? [owner.imageKey] : [],
+        ),
+      },
+    },
   });
   console.log(
     `Removed the previous seed data: ${events.count} events, ${groups.count} groups. ` +

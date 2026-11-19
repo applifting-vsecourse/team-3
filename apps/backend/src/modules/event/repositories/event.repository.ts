@@ -20,6 +20,7 @@ import {
 } from '@/modules/event/domain/event-message';
 import {
   UpdateDecision,
+  UpdateRefusal,
   UpdateState,
 } from '@/modules/event/domain/event-update';
 import { INTEREST_STATUSES } from '@/modules/event/domain/interest';
@@ -31,6 +32,11 @@ import {
   RequestsState,
 } from '@/modules/event/domain/participation';
 import { summarize } from '@/modules/event/domain/summary';
+import { NewImage } from '@/modules/image/domain/uploaded-image';
+import {
+  createImage,
+  deleteImage,
+} from '@/modules/image/repositories/image.repository';
 import {
   RatingSummary,
   summarizeTotals,
@@ -100,6 +106,7 @@ export const toPublicEvent = (
   maxParticipants: event.maxParticipants,
   capacity: computeCapacity(event, event._count.participations),
   isPromoted: event.promotedUntil !== null && event.promotedUntil > now,
+  imageKey: event.imageKey,
 });
 
 @Injectable()
@@ -569,6 +576,35 @@ export class EventRepository {
       if (!decision.ok) return decision;
       await tx.event.update({ where: { id }, data: decision.data });
       return decision;
+    });
+  }
+
+  /**
+   * Sets the event's own image (#77), or with `null` removes it; the previous
+   * one is deleted, so a replaced image leaves nothing behind. `refuse` is
+   * asked under the event's lock, as an edit is: a cancelled or started event
+   * keeps its image. Null when there is no such event.
+   */
+  async replaceImage(
+    id: string,
+    image: NewImage | null,
+    refuse: (
+      state: Pick<UpdateState, 'status' | 'startsAt'>,
+    ) => UpdateRefusal | null,
+  ): Promise<{ ok: true } | { ok: false; refusal: UpdateRefusal } | null> {
+    return this.prisma.$transaction(async (tx) => {
+      await tx.$executeRaw`SELECT 1 FROM "event" WHERE "id" = ${id} FOR UPDATE`;
+      const event = await tx.event.findUnique({
+        where: { id },
+        select: { status: true, startsAt: true, imageKey: true },
+      });
+      if (!event) return null;
+      const refusal = refuse(event);
+      if (refusal) return { ok: false, refusal };
+      const imageKey = image ? await createImage(tx, image) : null;
+      await tx.event.update({ where: { id }, data: { imageKey } });
+      if (event.imageKey) await deleteImage(tx, event.imageKey);
+      return { ok: true };
     });
   }
 

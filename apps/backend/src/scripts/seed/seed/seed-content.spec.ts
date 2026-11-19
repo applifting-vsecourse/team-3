@@ -206,7 +206,14 @@ describe('seedContent (#181)', () => {
     expect(prisma.group.deleteMany).toHaveBeenCalledWith({
       where: { id: { in: ['seeded-g1'] } },
     });
-    expect(prisma.event.findMany).not.toHaveBeenCalled();
+    // no lookup of older data by its content, only the images of what goes (#77)
+    for (const [query] of prisma.event.findMany.mock.calls) {
+      expect(query).toEqual({
+        where: { id: { in: ['seeded-e1', 'seeded-e2'] } },
+        select: { imageKey: true },
+      });
+    }
+    expect(prisma.uploadedImage.deleteMany).toHaveBeenCalledTimes(1);
     // and the new version remembers what this seed inserted
     const [{ data: events }] = prisma.event.createMany.mock
       .calls[0] as unknown as [{ data: { id: string }[] }];
@@ -388,5 +395,27 @@ describe('deleteSeedContent', () => {
     expect(console.log).toHaveBeenCalledWith(
       expect.stringMatching(/3 events, 1 groups.*Kept 4 events/),
     );
+  });
+});
+
+describe('seedContent: uploaded images of the removed data (#77)', () => {
+  beforeEach(() => {
+    jest.clearAllMocks();
+    jest.spyOn(console, 'log').mockImplementation(() => undefined);
+  });
+
+  it('deletes the images testers uploaded to the seeded events and groups it removes', async () => {
+    const prisma = setup({ before: 1, inTransaction: 1 });
+    prisma.event.findMany.mockResolvedValue([
+      { imageKey: 'k-event' },
+      { imageKey: null },
+    ] as never);
+    prisma.group.findMany.mockResolvedValue([{ imageKey: 'k-group' }] as never);
+
+    await seedContent(prisma, mockDeep<BetterAuth>());
+
+    expect(prisma.uploadedImage.deleteMany).toHaveBeenCalledWith({
+      where: { key: { in: ['k-event', 'k-group'] } },
+    });
   });
 });

@@ -733,4 +733,107 @@ describe('EventRepository – Proběhlé (#61)', () => {
     );
     expect(prisma.rating.groupBy).not.toHaveBeenCalled();
   });
+
+  describe('replaceImage (#77)', () => {
+    const startsAt = new Date('2026-10-25T16:00:00.000Z');
+    const setup = (
+      imageKey: string | null,
+    ): { prisma: ReturnType<typeof mockDeep<PrismaService>> } => {
+      const prisma = mockDeep<PrismaService>();
+      // the transaction client is the same mock
+      prisma.$transaction.mockImplementation(((
+        run: (tx: PrismaService) => Promise<unknown>,
+      ) => run(prisma)) as never);
+      prisma.event.findUnique.mockResolvedValue({
+        status: 'published',
+        startsAt,
+        imageKey,
+      } as never);
+      prisma.uploadedImage.create.mockResolvedValue({ key: 'k-new' } as never);
+      return { prisma };
+    };
+    const png = Uint8Array.from([0x89, 0x50, 0x4e, 0x47]);
+
+    it('locks the event, stores the new image, points the event at it and deletes the old one', async () => {
+      const { prisma } = setup('k-old');
+
+      await expect(
+        new EventRepository(prisma).replaceImage(
+          'e1',
+          { contentType: 'image/webp', data: png, small: png },
+          () => null,
+        ),
+      ).resolves.toEqual({ ok: true });
+
+      expect(prisma.$executeRaw).toHaveBeenCalled();
+      expect(prisma.uploadedImage.create).toHaveBeenCalledWith(
+        expect.objectContaining({
+          data: { contentType: 'image/webp', data: png, size: 4, small: png },
+        }),
+      );
+      expect(prisma.event.update).toHaveBeenCalledWith({
+        where: { id: 'e1' },
+        data: { imageKey: 'k-new' },
+      });
+      expect(prisma.uploadedImage.delete).toHaveBeenCalledWith({
+        where: { key: 'k-old' },
+      });
+    });
+
+    it('null clears the key and deletes the old image', async () => {
+      const { prisma } = setup('k-old');
+
+      await new EventRepository(prisma).replaceImage('e1', null, () => null);
+
+      expect(prisma.uploadedImage.create).not.toHaveBeenCalled();
+      expect(prisma.event.update).toHaveBeenCalledWith({
+        where: { id: 'e1' },
+        data: { imageKey: null },
+      });
+      expect(prisma.uploadedImage.delete).toHaveBeenCalledWith({
+        where: { key: 'k-old' },
+      });
+    });
+
+    it('the first image deletes nothing', async () => {
+      const { prisma } = setup(null);
+
+      await new EventRepository(prisma).replaceImage(
+        'e1',
+        { contentType: 'image/webp', data: png, small: png },
+        () => null,
+      );
+
+      expect(prisma.uploadedImage.delete).not.toHaveBeenCalled();
+    });
+
+    it('a refusal under the lock writes nothing', async () => {
+      const { prisma } = setup('k-old');
+      const refuse = jest.fn().mockReturnValue({ code: 'EVENT_CANCELLED' });
+
+      await expect(
+        new EventRepository(prisma).replaceImage(
+          'e1',
+          { contentType: 'image/webp', data: png, small: png },
+          refuse,
+        ),
+      ).resolves.toEqual({ ok: false, refusal: { code: 'EVENT_CANCELLED' } });
+
+      expect(refuse).toHaveBeenCalledWith(
+        expect.objectContaining({ status: 'published', startsAt }),
+      );
+      expect(prisma.uploadedImage.create).not.toHaveBeenCalled();
+      expect(prisma.event.update).not.toHaveBeenCalled();
+      expect(prisma.uploadedImage.delete).not.toHaveBeenCalled();
+    });
+
+    it('no such event → null', async () => {
+      const { prisma } = setup(null);
+      prisma.event.findUnique.mockResolvedValue(null);
+
+      await expect(
+        new EventRepository(prisma).replaceImage('e1', null, () => null),
+      ).resolves.toBeNull();
+    });
+  });
 });

@@ -36,6 +36,8 @@ export type GroupSummary = {
   locality: { id: string; slug: string; name: string };
   /** Approved members only (status `active`); pending requests don't count. */
   memberCount: number;
+  /** The admins' own photo (#77), served at `/api/images/:key`; null = the activity's photo. */
+  imageKey: string | null;
 };
 
 /**

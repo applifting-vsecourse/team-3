@@ -1,9 +1,9 @@
 import { Link } from "@tanstack/react-router"
 import { Lock, Users } from "lucide-react"
 
-import { activityPhoto } from "@/assets/activity-photos"
 import { ActivityTile } from "@/components/ActivityTile/ActivityTile"
 import { StatusBadge } from "@/components/StatusBadge/StatusBadge"
+import { photoOf } from "@/lib/image"
 
 import type { Group } from "@/features/groups/api/groupSchemas"
 import { GROUP_TYPE_SHORT, groupFacts } from "@/features/groups/lib/formatGroup"
@@ -35,7 +35,8 @@ export function GroupCard({
   titleAs: Title = "h2",
 }: GroupCardProps) {
   const TypeIcon = group.type === "closed" ? Lock : Users
-  const photo = activityPhoto(group.activity.slug)
+  // its own photo (#77), or the activity's
+  const photo = photoOf(group)
   return (
     <Link
       to={linkTo === "manage" ? "/skupiny/$groupId/sprava" : "/skupiny/$groupId"}
