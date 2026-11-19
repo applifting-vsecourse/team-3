@@ -41,11 +41,11 @@ function ResetPasswordPage() {
     reset.mutate(
       { token, newPassword },
       {
-        onSuccess: async () => {
+        onSuccess: () => {
           // the reset signed out every session, including this browser's
           queryClient.setQueryData(authKeys.session(), null)
           toast.success("Heslo je změněné. Přihlas se novým heslem.")
-          await navigate({ to: ROUTES.login, replace: true })
+          void navigate({ to: ROUTES.login, replace: true })
         },
       },
     )

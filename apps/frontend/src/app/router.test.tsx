@@ -239,6 +239,23 @@ describe("router", () => {
         "/zapomenute-heslo",
       )
     })
+
+    it("takes the user to sign-in after saving the new password", async () => {
+      stubApi()
+      vi.mocked(authClient.resetPassword).mockResolvedValueOnce({
+        data: { status: true },
+        error: null,
+      })
+      const app = await renderApp("/reset-password?token=valid-link")
+
+      await userEvent.type(await screen.findByLabelText("Nové heslo"), "nove-heslo-2026")
+      await userEvent.type(screen.getByLabelText("Nové heslo znovu"), "nove-heslo-2026")
+      await userEvent.click(screen.getByRole("button", { name: "Nastavit heslo" }))
+
+      expect(await screen.findByRole("heading", { name: "Přihlášení" })).toBeInTheDocument()
+      expect(app.state.location.pathname).toBe("/login")
+      expect(app.history.length).toBe(1)
+    })
   })
 
   // #198: what Google (through BetterAuth) sends back to the page the sign-in started on
