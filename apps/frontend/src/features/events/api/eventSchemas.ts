@@ -68,6 +68,8 @@ export const eventDetailSchema = publicEventSchema.extend({
   canEdit: z.boolean(),
   /** The superadmin (#308): may deactivate and restore the event. */
   canModerate: z.boolean(),
+  /** Why the superadmin deactivated it; only for the superadmin on a hidden event, null otherwise (#308). */
+  hiddenReason: z.string().nullable(),
 })
 
 export type EventDetail = z.infer<typeof eventDetailSchema>

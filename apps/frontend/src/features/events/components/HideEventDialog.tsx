@@ -25,7 +25,8 @@ export function HideEventDialog({ isPending, onHide }: HideEventDialogProps) {
       label="Důvod deaktivace *"
       placeholder="např. Akce nabízí placené služby, ne společný koníček."
       requiredMessage="Napiš, proč akci deaktivuješ"
-      submit={{ label: "Deaktivovat", variant: "destructive" }}
+      // it can be undone: not the destructive tone of cancelling (review #380)
+      submit={{ label: "Deaktivovat", variant: "default" }}
       isPending={isPending}
       onSubmit={onHide}
     />

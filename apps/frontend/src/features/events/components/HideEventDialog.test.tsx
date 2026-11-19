@@ -29,6 +29,20 @@ describe("HideEventDialog (#308)", () => {
     expect(onHide).not.toHaveBeenCalled()
   })
 
+  it("the confirming button is not destructive: it can be undone (review #380)", async () => {
+    render(
+      <HideEventDialog
+        isPending={false}
+        onHide={() => Promise.resolve()}
+      />,
+    )
+
+    await open()
+
+    const confirm = screen.getAllByRole("button", { name: "Deaktivovat" }).at(-1)!
+    expect(confirm).toHaveAttribute("data-variant", "default")
+  })
+
   it("says it is no cancellation: nobody is e-mailed and it can be restored", async () => {
     render(
       <HideEventDialog

@@ -162,12 +162,27 @@ describe("EventDetailView", () => {
     expect(screen.queryByRole("heading", { name: /Kdo jde/ })).not.toBeInTheDocument()
   })
 
-  it("a deactivated event tells the superadmin it is out of every list (#308)", async () => {
-    await renderWithRouter(<EventDetailView event={anEventDetail({ status: "hidden" })} />)
+  it("a deactivated event tells the superadmin why, and that it is out of every list (#308)", async () => {
+    await renderWithRouter(
+      <EventDetailView
+        event={anEventDetail({ status: "hidden", hiddenReason: "Placené doučování." })}
+      />,
+    )
 
     const notice = screen.getByRole("alert")
     expect(notice).toHaveTextContent("Akce je deaktivovaná")
-    expect(notice).toHaveTextContent("ostatním se na odkazu ukáže, že akce není dostupná")
+    expect(notice).toHaveTextContent("Důvod: Placené doučování.")
+    expect(notice).toHaveTextContent(
+      "Vidíš ji jen ty jako správce HobbyHubu, ostatním se na odkazu ukáže, že akce není dostupná.",
+    )
+    // a state, not an error (review #380)
+    expect(notice).not.toHaveClass("border-destructive")
+  })
+
+  it("without a reason the notice says no „Důvod“", async () => {
+    await renderWithRouter(<EventDetailView event={anEventDetail({ status: "hidden" })} />)
+
+    expect(screen.getByRole("alert")).not.toHaveTextContent("Důvod")
   })
 
   it("a published event has no such notice", async () => {

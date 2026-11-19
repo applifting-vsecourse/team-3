@@ -49,6 +49,7 @@ export const anEventDetail = (overrides: Partial<EventDetail> = {}): EventDetail
   canManage: false,
   canEdit: false,
   canModerate: false,
+  hiddenReason: null,
   ...overrides,
 })
 

@@ -197,13 +197,19 @@ export function EventDetailView({
     />
   )
   // what nobody but the superadmin sees: the event is out of every list (#308)
+  // a state, not an error: info tone (review #380), with the reason it was deactivated
   const hiddenNotice = isHidden ? (
-    <Alert>
+    <Alert variant="info">
       <EyeOff />
       <AlertTitle>Akce je deaktivovaná</AlertTitle>
-      <AlertDescription>
-        Zmizela z výpisu, mapy, úvodní stránky i z Moje akce. Vidíš ji jen ty jako správce, ostatním
-        se na odkazu ukáže, že akce není dostupná.
+      <AlertDescription className="flex flex-col gap-1">
+        {event.hiddenReason ? (
+          <p className="whitespace-pre-line">Důvod: {event.hiddenReason}</p>
+        ) : null}
+        <p>
+          Zmizela z výpisu, mapy, úvodní stránky i z Moje akce. Vidíš ji jen ty jako správce
+          HobbyHubu, ostatním se na odkazu ukáže, že akce není dostupná.
+        </p>
       </AlertDescription>
     </Alert>
   ) : null

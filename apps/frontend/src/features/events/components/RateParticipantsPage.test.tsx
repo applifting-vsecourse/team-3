@@ -78,6 +78,7 @@ const detail = {
   canManage: true,
   canEdit: true,
   canModerate: false,
+  hiddenReason: null,
 }
 
 // GET /api/events/e1/participant-ratings (#66)
