@@ -33,6 +33,10 @@ export const formerMemberEventsWhere = (
  * once: occupancy and „Chybí ještě X“ count approved participations live.
  * The events are locked as joining and deciding requests lock them (#53): an
  * approval of the same request can't overlap and turn it back to approved.
+ * A join running at the same time can't slip in between the lookup and the
+ * lock either: it locks the membership row the caller has just deleted, so
+ * it waits and then finds no membership; or it locked it first, the delete
+ * waited for it, and this lookup sees its place (`EventRepository.join`).
  */
 export async function withdrawFromMembersOnlyEvents(
   tx: Prisma.TransactionClient,

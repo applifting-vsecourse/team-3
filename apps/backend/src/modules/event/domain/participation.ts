@@ -10,7 +10,8 @@ export type ParticipationRefusal =
   | 'EVENT_CANCELLED'
   | 'PARTICIPATION_REFUSED'
   | 'NOT_JOINED'
-  | 'NOT_PENDING';
+  | 'NOT_PENDING'
+  | 'MEMBERS_ONLY';
 
 export type JoinState = {
   eventStatus: 'published' | 'cancelled' | 'hidden' | 'deleted';
@@ -18,6 +19,12 @@ export type JoinState = {
   approvalMode: 'open' | 'approval';
   maxParticipants: number;
   isOrganizer: boolean;
+  /**
+   * A members-only event and the user, not its organizer, has no active
+   * membership in its group – read under the lock, so someone who has just
+   * left can't take a place (#266).
+   */
+  isOutsideGroup: boolean;
   /** The user's participation in this event, if any. */
   existingStatus: ParticipationStatus | null;
   approvedCount: number;
@@ -47,10 +54,12 @@ export type JoinDecision =
  * - not twice, not on a full event, not on a cancelled or started one;
  * - someone the organizer rejected or removed can't come back on their own;
  *   someone who withdrew can;
- * - a request to a full event is refused too, though it takes no place.
+ * - a request to a full event is refused too, though it takes no place;
+ * - a members-only event only for the group's active members (#266).
  * The caller runs it under a lock on the event, so the count is current.
  */
 export function decideJoin(state: JoinState, now: Date): JoinDecision {
+  if (state.isOutsideGroup) return { ok: false, refusal: 'MEMBERS_ONLY' };
   if (state.eventStatus === 'cancelled') {
     return { ok: false, refusal: 'EVENT_CANCELLED' };
   }
