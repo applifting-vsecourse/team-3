@@ -401,6 +401,15 @@ export class EventRepository {
     return count === 1;
   }
 
+  /** Whether the user is the superadmin (`role = admin`, #308). */
+  async isAdmin(userId: string): Promise<boolean> {
+    const user = await this.prisma.user.findUnique({
+      where: { id: userId },
+      select: { role: true },
+    });
+    return user?.role === 'admin';
+  }
+
   async findParticipationStatus(
     eventId: string,
     userId: string,

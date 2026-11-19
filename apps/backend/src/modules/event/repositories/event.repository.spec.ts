@@ -39,6 +39,25 @@ describe('EventRepository', () => {
     });
   });
 
+  describe('isAdmin (#308)', () => {
+    it.each([
+      [{ role: 'admin' }, true],
+      [{ role: 'user' }, false],
+      [null, false],
+    ] as const)('%o → %s', async (user, expected) => {
+      const prisma = mockDeep<PrismaService>();
+      prisma.user.findUnique.mockResolvedValue(user as never);
+
+      await expect(new EventRepository(prisma).isAdmin('u1')).resolves.toBe(
+        expected,
+      );
+      expect(prisma.user.findUnique).toHaveBeenCalledWith({
+        where: { id: 'u1' },
+        select: { role: true },
+      });
+    });
+  });
+
   describe('findApprovedParticipants', () => {
     it('asks only for approved participations and returns just id and name', async () => {
       const prisma = mockDeep<PrismaService>();

@@ -8,6 +8,7 @@ export type ParticipationRefusal =
   | 'ALREADY_JOINED'
   | 'EVENT_STARTED'
   | 'EVENT_CANCELLED'
+  | 'EVENT_UNAVAILABLE'
   | 'PARTICIPATION_REFUSED'
   | 'NOT_JOINED'
   | 'NOT_PENDING';
@@ -44,7 +45,8 @@ export type JoinDecision =
  * Whether a user may join an event, and with what status (B-031):
  * - an event without approval, and the organizer always (Q12), join approved;
  *   with approval the participation waits for the organizer (pending, #53);
- * - not twice, not on a full event, not on a cancelled or started one;
+ * - not twice, not on a full event, not on a cancelled, deactivated (#308)
+ *   or started one;
  * - someone the organizer rejected or removed can't come back on their own;
  *   someone who withdrew can;
  * - a request to a full event is refused too, though it takes no place.
@@ -53,6 +55,10 @@ export type JoinDecision =
 export function decideJoin(state: JoinState, now: Date): JoinDecision {
   if (state.eventStatus === 'cancelled') {
     return { ok: false, refusal: 'EVENT_CANCELLED' };
+  }
+  // deactivated by the superadmin (#308) while the join waited for the lock
+  if (state.eventStatus === 'hidden' || state.eventStatus === 'deleted') {
+    return { ok: false, refusal: 'EVENT_UNAVAILABLE' };
   }
   if (state.startsAt <= now) return { ok: false, refusal: 'EVENT_STARTED' };
   if (

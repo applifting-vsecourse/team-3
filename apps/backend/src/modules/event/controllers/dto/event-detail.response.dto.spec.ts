@@ -36,6 +36,8 @@ const aView = (overrides: Partial<EventDetailView> = {}): EventDetailView => ({
   myParticipation: null,
   viewerSignedIn: false,
   canManage: false,
+  canEdit: false,
+  canModerate: false,
   ...overrides,
 });
 
@@ -81,10 +83,21 @@ describe('EventDetailResponseDto.fromDomain', () => {
     ).toBe('members');
   });
 
-  it('refuses hidden and deleted events, which must have been 404', () => {
-    expect(() =>
-      EventDetailResponseDto.fromDomain(aView({ status: 'hidden' })),
-    ).toThrow();
+  it('says what the superadmin may do (#308)', () => {
+    const dto = EventDetailResponseDto.fromDomain(
+      aView({ canEdit: true, canModerate: true }),
+    );
+    expect(dto.canEdit).toBe(true);
+    expect(dto.canModerate).toBe(true);
+  });
+
+  it('passes a hidden event on: only the superadmin gets it (#308)', () => {
+    expect(
+      EventDetailResponseDto.fromDomain(aView({ status: 'hidden' })).status,
+    ).toBe('hidden');
+  });
+
+  it('refuses a deleted event, which must have been 404', () => {
     expect(() =>
       EventDetailResponseDto.fromDomain(aView({ status: 'deleted' })),
     ).toThrow();
