@@ -15,7 +15,7 @@ Kdo nález opraví, změní ve stejném PR i jeho stav v tomto reportu.
 ## Co ještě chybí
 
 - [ ] Ověřit `BETTER_AUTH_SECRET` a ostatní nastavení na stagingu, ověří Tomáš Klíma (viz [Ke kontrole na stagingu](#ke-kontrole-na-stagingu)).
-- [ ] Před vznikem administrace (B-063) nastavit na stagingu superadmina se silným heslem (viz [Ke kontrole na stagingu](#ke-kontrole-na-stagingu)).
+- [x] Před vznikem administrace (B-063) nastavit na stagingu superadmina se silným heslem (viz [Ke kontrole na stagingu](#ke-kontrole-na-stagingu)). Od #308 je `deploy.yml` předává z GitHub variable `SUPERADMIN_EMAIL` a secretu `SUPERADMIN_PASSWORD`; heslo z `.env.example` seed v produkci odmítne.
 
 ## Jak audit proběhl
 
@@ -134,7 +134,7 @@ Z kódu nejde zjistit a tým nemá přístup do Coolify. Ověří to Tomáš Kl�
 - Po nasazení #236 nemá žádný uživatel s neověřeným e-mailem platnou session (migrace `20261107120000_end_unverified_sessions`). Dotaz musí vrátit 0: `SELECT count(*) FROM "session" s JOIN "user" u ON u."id" = s."userId" WHERE u."emailVerified" = false AND s."expiresAt" > now();`
 - `FRONTEND_URL` a `BACKEND_URL` musí odpovídat skutečným adresám, jinak ochrana z #140 odmítne všechny zápisy.
 
-**Superadmin:** na stagingu není nastavený `SUPERADMIN_EMAIL` ani `SUPERADMIN_PASSWORD`, takže se superadmin nezaložil (seed to hlásí v logu, ověřeno 2. 11.). Výchozí heslo z `.env.example` tam proto nehrozí. Účet superadmina by dnes ani neměl práva navíc, protože administrace (B-063) ještě neexistuje. Než v aplikaci vznikne prostředí a speciální práva pro superadmina, je potřeba ho na stagingu nastavit se silným heslem, které není v repu.
+**Superadmin:** do #308 na stagingu nebyl nastavený `SUPERADMIN_EMAIL` ani `SUPERADMIN_PASSWORD` (`deploy.yml` je nepředával a proměnné v Coolify nastavit nejde), takže se superadmin nezaložil (seed to hlásí v logu, ověřeno 2. 11.). Od #308 je předává `deploy.yml` jako build-args z GitHub variable `SUPERADMIN_EMAIL` a secretu `SUPERADMIN_PASSWORD` (stejně jako `SEED_DEMO_PASSWORD`). Seed bez nich vypíše, co chybí, a pokračuje; heslo z `.env.example` nebo heslo, které neprojde pravidly B-010, v produkci odmítne. Heslo jde z image přečíst, proto jen pro staging. Superadmin má od #308 práva navíc (deaktivace a úprava akcí).
 
 ## Co je v pořádku
 

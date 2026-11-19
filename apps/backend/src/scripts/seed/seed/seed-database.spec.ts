@@ -1,3 +1,5 @@
+import { readFileSync } from 'fs';
+import { join } from 'path';
 import { PrismaService } from '@/core/prisma/prisma.service';
 import { DEMO_PASSWORD } from '@/scripts/seed/data/demo-data';
 import { nameProblem } from '@/shared/auth/domain/name-policy';
@@ -10,8 +12,10 @@ import { seedContent } from './seed-content';
 import {
   demoDataEnabled,
   demoPassword,
+  EXAMPLE_SUPERADMIN_PASSWORD,
   seedDatabase,
   SUPERADMIN_NAME,
+  superadminAccount,
 } from './seed-database';
 
 // Factories, so neither better-auth nor the test data load under Jest.
@@ -21,8 +25,71 @@ jest.mock('./seed-content', () => ({ seedContent: jest.fn() }));
 
 const config = {
   superadminEmail: 'admin@example.com',
-  superadminPassword: 'short',
+  superadminPassword: 'spravce-heslo-2026',
 } as Config;
+
+describe('superadminAccount (#308)', () => {
+  const production = { NODE_ENV: 'production' };
+
+  it('takes the e-mail and password from the config', () => {
+    expect(superadminAccount(config, production)).toEqual({
+      ok: true,
+      email: 'admin@example.com',
+      password: 'spravce-heslo-2026',
+    });
+  });
+
+  it('says which variables are missing instead of failing on undefined', () => {
+    for (const missing of [
+      {},
+      { superadminEmail: 'admin@example.com' },
+      { superadminPassword: 'spravce-heslo-2026' },
+      { superadminEmail: ' ', superadminPassword: 'spravce-heslo-2026' },
+    ]) {
+      const account = superadminAccount(missing, production);
+      expect(account).toEqual({
+        ok: false,
+        problem: expect.stringContaining('SUPERADMIN_PASSWORD'),
+      });
+    }
+  });
+
+  it("in production refuses the password from .env.example, it's in the repo", () => {
+    const example = {
+      superadminEmail: 'admin@example.com',
+      superadminPassword: EXAMPLE_SUPERADMIN_PASSWORD,
+    };
+    expect(superadminAccount(example, production).ok).toBe(false);
+    expect(superadminAccount(example, {}).ok).toBe(true);
+  });
+
+  it('refuses a password the sign-up would refuse (B-010)', () => {
+    const weak = {
+      superadminEmail: 'a@example.com',
+      superadminPassword: 'kratke1',
+    };
+    expect(superadminAccount(weak, {}).ok).toBe(false);
+  });
+
+  it('never puts the password into the reason', () => {
+    const account = superadminAccount(
+      { superadminEmail: 'a@example.com', superadminPassword: 'tajne' },
+      {},
+    );
+    expect(account.ok).toBe(false);
+    expect(JSON.stringify(account)).not.toContain('tajne');
+  });
+
+  it('knows the password that .env.example sets', () => {
+    const example = readFileSync(
+      join(__dirname, '../../../../.env.example'),
+      'utf8',
+    );
+    expect(example).toContain(
+      `SUPERADMIN_PASSWORD=${EXAMPLE_SUPERADMIN_PASSWORD}\n`,
+    );
+  });
+});
 
 describe('demoDataEnabled', () => {
   it('is on outside production unless switched off', () => {
@@ -93,6 +160,16 @@ describe('seedDatabase', () => {
       expect.stringContaining('Superadmin could not be created'),
       expect.any(Error),
     );
+  });
+
+  it('without the superadmin variables skips the superadmin and seeds the rest (#308)', async () => {
+    await seedDatabase(prisma, {} as Config, auth);
+
+    expect(ensureUser).not.toHaveBeenCalled();
+    expect(console.error).toHaveBeenCalledWith(
+      expect.stringContaining('Skipping the superadmin'),
+    );
+    expect(seedContent).toHaveBeenCalledWith(prisma, auth, DEMO_PASSWORD);
   });
 
   it("names the superadmin so that the sign-up's name rule lets it through (#153)", async () => {

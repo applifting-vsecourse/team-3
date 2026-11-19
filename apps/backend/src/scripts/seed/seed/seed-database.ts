@@ -33,11 +33,61 @@ export const demoPassword = (env: NodeJS.ProcessEnv): string | null => {
 };
 
 /**
+ * Heslo superadmina z `apps/backend/.env.example`. Je v repu, takže v produkci
+ * (staging) neplatí: tam musí přijít z GitHub secretu SUPERADMIN_PASSWORD
+ * (deploy.yml → Dockerfile.deploy, #308). Test hlídá, že sedí s .env.example.
+ */
+export const EXAMPLE_SUPERADMIN_PASSWORD = 'adminpassword26';
+
+export type SuperadminAccount =
+  | { ok: true; email: string; password: string }
+  | { ok: false; problem: string };
+
+/**
+ * Účet superadmina, jak ho seed založí, nebo proč ho nezaloží (#308). Na
+ * stagingu dřív SUPERADMIN_EMAIL ani SUPERADMIN_PASSWORD nebyly a seed padal
+ * na `undefined` bez srozumitelné hlášky. Hláška nikdy neobsahuje heslo.
+ */
+export const superadminAccount = (
+  config: Pick<Config, 'superadminEmail' | 'superadminPassword'>,
+  env: NodeJS.ProcessEnv,
+): SuperadminAccount => {
+  const email = config.superadminEmail?.trim();
+  const password = config.superadminPassword;
+  if (!email || !password?.trim()) {
+    return {
+      ok: false,
+      problem:
+        'SUPERADMIN_EMAIL or SUPERADMIN_PASSWORD is not set (on staging: the GitHub variable SUPERADMIN_EMAIL and the secret SUPERADMIN_PASSWORD, passed in by deploy.yml).',
+    };
+  }
+  if (
+    env.NODE_ENV === 'production' &&
+    password === EXAMPLE_SUPERADMIN_PASSWORD
+  ) {
+    return {
+      ok: false,
+      problem:
+        'SUPERADMIN_PASSWORD is the one from .env.example, which is in the repo; production needs its own (the GitHub secret).',
+    };
+  }
+  const problem = passwordProblem(password);
+  if (problem) {
+    return {
+      ok: false,
+      problem: `SUPERADMIN_PASSWORD breaks the password rule (B-010): ${problem}`,
+    };
+  }
+  return { ok: true, email, password };
+};
+
+/**
  * Seed je opakovatelný: lokálně ho spouští každý `pnpm dev`, na stagingu každý start
  * kontejneru. Katalog a účty jen doplní, testovací data vymění jen při nové verzi.
  *
  * 1. Číselník aktivit a lokalit – vždy (aplikace bez něj nefunguje).
- * 2. Superadmin z SUPERADMIN_EMAIL / SUPERADMIN_PASSWORD – když chybí.
+ * 2. Superadmin z SUPERADMIN_EMAIL / SUPERADMIN_PASSWORD – když chybí
+ *    (v produkci ne s heslem z .env.example, superadminAccount).
  * 3. Testovací data: demo účty #47, komunita #150 s akcemi krajských měst,
  *    akce skupin, proběhlé akce a hodnocení #180 a #181 (seed-content.ts).
  *    Mají verzi a při její změně se vymění (#181). V produkci jen se
@@ -56,21 +106,26 @@ export const seedDatabase = async (
   // A failure here (e.g. SUPERADMIN_PASSWORD weaker than the password rule,
   // B-010) is logged and the seed goes on: before, it ended the whole seed,
   // so staging never got its demo data.
-  try {
-    const { created } = await ensureUser(prisma, betterAuth, {
-      email: config.superadminEmail,
-      password: config.superadminPassword,
-      name: SUPERADMIN_NAME,
-      username: 'superadmin',
-      role: 'admin',
-      emailVerified: true,
-    });
-    console.log(created ? 'Superadmin created' : 'Superadmin already exists');
-  } catch (error) {
-    console.error(
-      'Superadmin could not be created — check SUPERADMIN_EMAIL and SUPERADMIN_PASSWORD (min. 10 characters, a letter and a digit). Continuing with the rest of the seed.',
-      error,
-    );
+  const superadmin = superadminAccount(config, process.env);
+  if (!superadmin.ok) {
+    console.error(`Skipping the superadmin: ${superadmin.problem}`);
+  } else {
+    try {
+      const { created } = await ensureUser(prisma, betterAuth, {
+        email: superadmin.email,
+        password: superadmin.password,
+        name: SUPERADMIN_NAME,
+        username: 'superadmin',
+        role: 'admin',
+        emailVerified: true,
+      });
+      console.log(created ? 'Superadmin created' : 'Superadmin already exists');
+    } catch (error) {
+      console.error(
+        'Superadmin could not be created — check SUPERADMIN_EMAIL and SUPERADMIN_PASSWORD (min. 10 characters, a letter and a digit, not a leaked password: production checks Have I Been Pwned). Continuing with the rest of the seed.',
+        error,
+      );
+    }
   }
 
   if (!demoDataEnabled(process.env)) {
