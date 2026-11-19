@@ -266,24 +266,31 @@ describe("router", () => {
 
   // #198: what Google (through BetterAuth) sends back to the page the sign-in started on
   describe("back from Google with an error", () => {
-    it("on /signup: the Czech message offers signing up with the e-mail", async () => {
+    it("on /signup: a cancelled Google sign-up preserves the original destination", async () => {
       stubApi()
-      await renderApp("/signup?error=access_denied")
+      await renderApp("/signup?error=access_denied&from=%2Fakce%2Fukazka")
 
       expect(
         await screen.findByText(
           "Registrace přes Google je zrušená. Zkus to znovu, nebo se zaregistruj e-mailem.",
         ),
       ).toBeInTheDocument()
+      expect(screen.getByRole("link", { name: "Přihlas se" })).toHaveAttribute(
+        "href",
+        "/login?from=%2Fakce%2Fukazka",
+      )
     })
 
-    it("on /login: an error raised before BetterAuth reads the state gets the general sentence", async () => {
-      stubApi()
-      await renderApp("/login?error=state_not_found")
+    it.each(["state_not_found", "invalid_callback_request"])(
+      "on /login: a %s error gets a Czech explanation",
+      async (error) => {
+        stubApi()
+        await renderApp(`/login?error=${error}`)
 
-      expect(
-        await screen.findByText("Přihlášení přes Google se nepovedlo. Zkus to prosím znovu."),
-      ).toBeInTheDocument()
-    })
+        expect(
+          await screen.findByText("Přihlášení přes Google se nepovedlo. Zkus to prosím znovu."),
+        ).toBeInTheDocument()
+      },
+    )
   })
 })
