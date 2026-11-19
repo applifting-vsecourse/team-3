@@ -313,9 +313,15 @@ export class EventsService {
       now,
       { asModerator: true },
     );
-    const participants = canSeeParticipants(viewer)
-      ? await this.eventRepository.findApprovedParticipants(event.id)
-      : null;
+    const [participants, hiddenReason] = await Promise.all([
+      canSeeParticipants(viewer)
+        ? this.eventRepository.findApprovedParticipants(event.id)
+        : null,
+      // only the superadmin gets a deactivated event, and why (review #380)
+      isAdmin && event.status === 'hidden'
+        ? this.eventRepository.findHideReason(event.id)
+        : null,
+    ]);
     // someone who withdrew is simply not in
     const mine = viewer?.participation ?? null;
     const myParticipation = mine === 'withdrawn' ? null : mine;
@@ -327,6 +333,7 @@ export class EventsService {
       canManage: canManageEvent(viewer),
       canEdit: canManageEvent(viewer) || isAdmin,
       canModerate: isAdmin,
+      hiddenReason,
     };
   }
 

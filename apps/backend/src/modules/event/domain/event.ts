@@ -125,6 +125,8 @@ export type EventDetailView = EventDetail & {
   canEdit: boolean;
   /** The superadmin (#308): may deactivate and restore the event. */
   canModerate: boolean;
+  /** Why it was deactivated; only for the superadmin, null for anyone else (#308, review #380). */
+  hiddenReason: string | null;
 };
 
 /** The two sections of a group's page (B-055): Nadcházející and Proběhlé. */

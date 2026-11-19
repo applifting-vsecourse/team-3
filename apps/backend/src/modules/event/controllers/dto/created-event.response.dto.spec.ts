@@ -38,6 +38,7 @@ const created: EventDetailView = {
   canManage: true,
   canEdit: true,
   canModerate: false,
+  hiddenReason: null,
 };
 
 describe('CreatedEventResponseDto', () => {

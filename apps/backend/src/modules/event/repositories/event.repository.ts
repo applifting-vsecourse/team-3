@@ -417,6 +417,24 @@ export class EventRepository {
     return isSuperadmin(user);
   }
 
+  /**
+   * Why the superadmin deactivated the event (#308, review #380): the reason
+   * of its latest deactivation that is not reverted; null without one.
+   */
+  async findHideReason(eventId: string): Promise<string | null> {
+    const action = await this.prisma.moderationAction.findFirst({
+      where: {
+        type: 'hide_event',
+        targetType: 'event',
+        targetId: eventId,
+        revertedAt: null,
+      },
+      orderBy: { createdAt: 'desc' },
+      select: { reason: true },
+    });
+    return action?.reason ?? null;
+  }
+
   async findParticipationStatus(
     eventId: string,
     userId: string,

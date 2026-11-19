@@ -84,6 +84,14 @@ export class EventDetailResponseDto extends PublicEventResponseDto {
   })
   canModerate!: boolean;
 
+  @ApiProperty({
+    type: String,
+    nullable: true,
+    description:
+      'Why the superadmin deactivated the event (#308); only for the superadmin on a hidden event, null for anyone else',
+  })
+  hiddenReason!: string | null;
+
   static fromDomain(event: EventDetailView): EventDetailResponseDto {
     if (event.status === 'deleted') {
       // the service answers 404 for it; this guards the response shape
@@ -102,6 +110,7 @@ export class EventDetailResponseDto extends PublicEventResponseDto {
       canManage: event.canManage,
       canEdit: event.canEdit,
       canModerate: event.canModerate,
+      hiddenReason: event.hiddenReason,
     };
   }
 }

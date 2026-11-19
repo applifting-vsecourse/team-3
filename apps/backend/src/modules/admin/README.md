@@ -10,6 +10,6 @@ Deaktivace skupiny (B-051) zruší i její nadcházející deaktivované akce, s
 
 Obojí běží pod zámkem řádku akce (jako přihlášení nebo úprava), odpovídá 204 a nikomu nic neposílá. Deaktivace není zrušení: zrušení (B-028) posílá e-mail účastníkům a vrátit nejde.
 
-Deaktivovaná akce zmizí ze všech výpisů (`/akce`, mapa, úvodní stránka, Moje akce, profil, skupina, průměry hodnocení): ty berou jen `published` (a Moje akce i `cancelled`). Detail a všechno nad ním je pro každého kromě superadmina 404, i pro organizátora.
+Deaktivovaná akce zmizí ze všech výpisů (`/akce`, mapa, úvodní stránka, Moje akce, profil, skupina, průměry hodnocení): ty berou jen `published` (a Moje akce i `cancelled`). Detail a všechno nad ním je pro každého kromě superadmina 404, i pro organizátora. Superadmin v detailu dostane i důvod deaktivace (`hiddenReason`, poslední nevrácený `hide_event`).
 
 Úprava akce superadminem nemá vlastní endpoint: superadmin smí `PATCH /api/events/:id` a obrázek akce jako organizátor, se stejnými pravidly (ne zrušenou, ne po začátku). Do historie se zatím zapisuje jen deaktivace (typ zásahu pro úpravu chybí, rozhodnutí k #308).

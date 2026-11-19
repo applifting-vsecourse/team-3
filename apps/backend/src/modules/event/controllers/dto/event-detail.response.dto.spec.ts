@@ -38,6 +38,7 @@ const aView = (overrides: Partial<EventDetailView> = {}): EventDetailView => ({
   canManage: false,
   canEdit: false,
   canModerate: false,
+  hiddenReason: null,
   ...overrides,
 });
 

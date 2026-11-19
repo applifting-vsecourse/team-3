@@ -79,6 +79,38 @@ describe('EventRepository', () => {
     });
   });
 
+  describe('findHideReason (#308, review #380)', () => {
+    it("reads the reason of the event's latest deactivation that is not reverted", async () => {
+      const prisma = mockDeep<PrismaService>();
+      prisma.moderationAction.findFirst.mockResolvedValue({
+        reason: 'Podvod',
+      } as never);
+
+      await expect(
+        new EventRepository(prisma).findHideReason('e1'),
+      ).resolves.toBe('Podvod');
+      expect(prisma.moderationAction.findFirst).toHaveBeenCalledWith({
+        where: {
+          type: 'hide_event',
+          targetType: 'event',
+          targetId: 'e1',
+          revertedAt: null,
+        },
+        orderBy: { createdAt: 'desc' },
+        select: { reason: true },
+      });
+    });
+
+    it('null without one', async () => {
+      const prisma = mockDeep<PrismaService>();
+      prisma.moderationAction.findFirst.mockResolvedValue(null);
+
+      await expect(
+        new EventRepository(prisma).findHideReason('e1'),
+      ).resolves.toBeNull();
+    });
+  });
+
   describe('findApprovedParticipants', () => {
     it('asks only for approved participations and returns just id and name', async () => {
       const prisma = mockDeep<PrismaService>();

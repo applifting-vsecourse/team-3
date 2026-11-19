@@ -2379,7 +2379,8 @@ describe('EventsService and the superadmin (#308)', () => {
 
   describe('the detail', () => {
     it('the superadmin sees a deactivated event, may restore and edit it, not manage it', async () => {
-      const { service } = setup(aDetail({ status: 'hidden' }));
+      const { repository, service } = setup(aDetail({ status: 'hidden' }));
+      repository.findHideReason.mockResolvedValue('Podvodná akce.');
 
       await expect(
         service.getEventDetail('e1', 'u-admin', now),
@@ -2388,7 +2389,22 @@ describe('EventsService and the superadmin (#308)', () => {
         canModerate: true,
         canEdit: true,
         canManage: false,
+        // review #380: the banner says why
+        hiddenReason: 'Podvodná akce.',
       });
+      expect(repository.findHideReason).toHaveBeenCalledWith('e1');
+    });
+
+    it('nobody gets a reason for a published event, and only the superadmin asks', async () => {
+      const { repository, service } = setup();
+
+      await expect(
+        service.getEventDetail('e1', 'u-admin', now),
+      ).resolves.toMatchObject({ hiddenReason: null });
+      await expect(
+        service.getEventDetail('e1', 'u1', now),
+      ).resolves.toMatchObject({ hiddenReason: null });
+      expect(repository.findHideReason).not.toHaveBeenCalled();
     });
 
     it.each([
