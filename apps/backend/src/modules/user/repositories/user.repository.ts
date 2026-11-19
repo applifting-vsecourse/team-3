@@ -1,4 +1,13 @@
 import { PrismaService } from '@/core/prisma/prisma.service';
+import type { PublicEvent } from '@/modules/event/domain/event';
+import {
+  publicEventInclude,
+  toPublicEvent,
+} from '@/modules/event/repositories/event.repository';
+import {
+  FRIEND_UPCOMING_TAKE,
+  friendUpcomingEventsWhere,
+} from '@/modules/user/domain/friend-events';
 import {
   finishedEventWhere,
   type PersonalRatingRecord,
@@ -30,6 +39,21 @@ export class UserRepository {
       },
     });
   }
+  /** „Kam jde“ for a friend (#307): the nearest few, as the event cards show them. */
+  async friendUpcomingEvents(
+    personId: string,
+    viewerId: string,
+    now: Date,
+  ): Promise<PublicEvent[]> {
+    const events = await this.prisma.event.findMany({
+      where: friendUpcomingEventsWhere(personId, viewerId, now),
+      include: publicEventInclude,
+      orderBy: [{ startsAt: 'asc' }, { id: 'asc' }],
+      take: FRIEND_UPCOMING_TAKE,
+    });
+    return events.map((event) => toPublicEvent(event, now));
+  }
+
   async details(userId: string, now: Date): Promise<PublicProfileDetails> {
     const finished = finishedEventWhere(now);
     const [received, personal, events] = await Promise.all([

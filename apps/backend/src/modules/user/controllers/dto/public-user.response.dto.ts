@@ -1,9 +1,13 @@
+import { PublicEventResponseDto } from '@/modules/event/controllers/dto/public-event.response.dto';
+import { FRIENDSHIP_STATES } from '@/modules/friendship/controllers/dto/friendship.dto';
+import type { FriendshipState } from '@/modules/friendship/domain/friendship';
 import type { RatingSummary } from '@/modules/rating/domain/rating-summary';
 import type {
   PublicOrganizedEvent,
   PublicReceivedRating,
   PublicUserProfile,
 } from '@/modules/user/domain/public-profile';
+import type { PublicUserView } from '@/modules/user/services/user.service';
 import { ApiProperty } from '@nestjs/swagger';
 
 class PublicPersonDto {
@@ -81,4 +85,28 @@ export class PublicUserResponseDto
   participantRatings!: PublicReceivedRating[];
   @ApiProperty({ type: [PublicOrganizedEventDto] })
   organizedEvents!: PublicOrganizedEvent[];
+  @ApiProperty({
+    enum: FRIENDSHIP_STATES,
+    nullable: true,
+    description:
+      'How the signed-in viewer stands to the person (#307): friends; outgoing = my request waits (also after a silent rejection); incoming = theirs waits for me; none; self. Null for a visitor.',
+  })
+  friendship!: FriendshipState | null;
+  @ApiProperty({
+    type: [PublicEventResponseDto],
+    nullable: true,
+    description:
+      'Kam jde (#307), for a friend only: at most 3 nearest events that are not over, where the person has an approved place or which they organize, only public ones and members-only ones of a group the viewer is a member of. Null for anyone who is not a friend.',
+  })
+  upcomingEvents!: PublicEventResponseDto[] | null;
+
+  static fromView(view: PublicUserView): PublicUserResponseDto {
+    return {
+      ...view,
+      upcomingEvents:
+        view.upcomingEvents?.map((event) =>
+          PublicEventResponseDto.fromDomain(event),
+        ) ?? null,
+    };
+  }
 }
