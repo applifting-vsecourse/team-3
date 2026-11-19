@@ -1,6 +1,7 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query"
 import { createMemoryHistory, createRouter, RouterProvider } from "@tanstack/react-router"
 import { render, screen, within } from "@testing-library/react"
+import userEvent from "@testing-library/user-event"
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest"
 
 import { router } from "@/app/router"
@@ -10,7 +11,7 @@ import type { Session } from "@/features/auth/api/authSessionQueryOptions"
 import { authClient } from "@/features/auth/lib/auth-client"
 
 vi.mock("@/features/auth/lib/auth-client", () => ({
-  authClient: { getSession: vi.fn() },
+  authClient: { getSession: vi.fn(), resetPassword: vi.fn() },
 }))
 
 const user = { id: "u1", email: "user@example.com", name: "Jana Nováková", emailVerified: true }
@@ -201,6 +202,45 @@ describe("router", () => {
       expect(app.state.location.pathname).toBe("/login")
     })
   })
+  describe("opening a password reset link (#345)", () => {
+    it("offers a new link immediately when the e-mail link expired or was used", async () => {
+      stubApi()
+      await renderApp("/reset-password?error=INVALID_TOKEN")
+
+      expect(await screen.findByText(/Odkaz vypršel, už se použil/)).toBeInTheDocument()
+      expect(screen.queryByLabelText("Nové heslo")).not.toBeInTheDocument()
+      expect(screen.getByRole("link", { name: "Poslat nový odkaz" })).toHaveAttribute(
+        "href",
+        "/zapomenute-heslo",
+      )
+    })
+
+    it("offers a new link when an older direct link is rejected on submit", async () => {
+      stubApi()
+      vi.mocked(authClient.resetPassword).mockResolvedValueOnce({
+        data: null,
+        error: {
+          code: "INVALID_TOKEN",
+          message: "Invalid token",
+          status: 400,
+          statusText: "Bad Request",
+        },
+      })
+      await renderApp("/reset-password?token=old-link")
+
+      await userEvent.type(await screen.findByLabelText("Nové heslo"), "nove-heslo-2026")
+      await userEvent.type(screen.getByLabelText("Nové heslo znovu"), "nove-heslo-2026")
+      await userEvent.click(screen.getByRole("button", { name: "Nastavit heslo" }))
+
+      expect(await screen.findByText(/Odkaz vypršel, už se použil/)).toBeInTheDocument()
+      expect(screen.queryByLabelText("Nové heslo")).not.toBeInTheDocument()
+      expect(screen.getByRole("link", { name: "Poslat nový odkaz" })).toHaveAttribute(
+        "href",
+        "/zapomenute-heslo",
+      )
+    })
+  })
+
   // #198: what Google (through BetterAuth) sends back to the page the sign-in started on
   describe("back from Google with an error", () => {
     it("on /signup: the Czech message offers signing up with the e-mail", async () => {

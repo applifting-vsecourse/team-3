@@ -30,9 +30,15 @@ export const emailFlowOptions = (
     // a forgotten password is often reset because the account is at risk:
     // the new password signs out every other session
     revokeSessionsOnPasswordReset: true,
-    sendResetPassword: async ({ user, token }): Promise<void> => {
-      const passwordResetUrl = `${config.frontendUrl}/${config.frontendResetPasswordUrl}?token=${token}`;
-      const html = await renderEmail(ResetPassword, { url: passwordResetUrl });
+    sendResetPassword: async ({ user, url }): Promise<void> => {
+      // BetterAuth checks the link before redirecting to the form. Its
+      // destination comes from our config, regardless of the request body.
+      const link = new URL(url);
+      link.searchParams.set(
+        'callbackURL',
+        `${config.frontendUrl}/${config.frontendResetPasswordUrl}`,
+      );
+      const html = await renderEmail(ResetPassword, { url: link.href });
       await emailProvider.sendEmail(user.email, RESET_PASSWORD_SUBJECT, html);
     },
   },

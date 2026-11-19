@@ -1,4 +1,3 @@
-import { useState } from "react"
 import { useQueryClient } from "@tanstack/react-query"
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router"
 import { toast } from "sonner"
@@ -11,6 +10,7 @@ import { authKeys } from "@/lib/auth-keys"
 
 import { ResetPasswordForm } from "@/features/auth/components/ResetPasswordForm"
 import { useResetPassword } from "@/features/auth/hooks/usePasswordReset"
+import { AuthRequestError } from "@/features/auth/lib/auth-errors"
 
 // The link in the e-mail carries `token`; BetterAuth adds `error` to an
 // expired or invalid one.
@@ -29,24 +29,26 @@ function ResetPasswordPage() {
   const navigate = useNavigate()
   const queryClient = useQueryClient()
   const reset = useResetPassword()
-  const [errorMessage, setErrorMessage] = useState<string | null>(null)
+  const requestError = reset.variables?.token === token ? reset.error : null
+  const isInvalidLink =
+    !token ||
+    Boolean(error) ||
+    (requestError instanceof AuthRequestError &&
+      (requestError.code === "INVALID_TOKEN" || requestError.code === "TOKEN_EXPIRED"))
 
-  const handleSubmit = async (newPassword: string) => {
+  const handleSubmit = (newPassword: string) => {
     if (!token) return
-    setErrorMessage(null)
-    try {
-      await reset.mutateAsync({ token, newPassword })
-      // the reset signed out every session, this browser's too: without this
-      // the login page would still see the cached session and send the user on
-      queryClient.setQueryData(authKeys.session(), null)
-      toast.success("Heslo je změněné. Přihlas se novým heslem.")
-      // replace: the used reset form isn't a page to go back to
-      await navigate({ to: ROUTES.login, replace: true })
-    } catch (resetError) {
-      setErrorMessage(
-        resetError instanceof Error ? resetError.message : "Heslo se nepodařilo změnit",
-      )
-    }
+    reset.mutate(
+      { token, newPassword },
+      {
+        onSuccess: async () => {
+          // the reset signed out every session, including this browser's
+          queryClient.setQueryData(authKeys.session(), null)
+          toast.success("Heslo je změněné. Přihlas se novým heslem.")
+          await navigate({ to: ROUTES.login, replace: true })
+        },
+      },
+    )
   }
 
   const backToRequest = (
@@ -66,12 +68,12 @@ function ResetPasswordPage() {
         description="Zvol si nové heslo k účtu."
         footer={backToRequest}
       >
-        {!token || error ? (
-          <p role="alert">Odkaz je neplatný, nebo už vypršel. Pošli si prosím nový.</p>
+        {isInvalidLink ? (
+          <p role="alert">Odkaz vypršel, už se použil nebo je neplatný. Pošli si nový.</p>
         ) : (
           <ResetPasswordForm
             isLoading={reset.isPending}
-            errorMessage={errorMessage}
+            errorMessage={requestError?.message}
             onSubmit={handleSubmit}
           />
         )}
