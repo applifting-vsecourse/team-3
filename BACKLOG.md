@@ -205,7 +205,7 @@ Staging a CI/CD (F-59, F-60) už v repu jsou (`.github/workflows/ci.yml`, `deplo
 
 **Cíl:** Do aplikace se přihlásí jen uživatel s ověřeným e-mailem (PO 4. 11.), takže na akce i do skupin se vždy hlásí ověřený uživatel. Řeší S-5 (#236).
 
-- BetterAuth: ověřovací odkaz s platností 24 h (`EMAIL_VERIFICATION_TTL_SECONDS`, šablona `verify-email.tsx` už existuje), `requireEmailVerification: true` – neověřený se nepřihlásí (chyba `EMAIL_NOT_VERIFIED`, žádná session), po registraci se session nezakládá. Po kliknutí na odkaz je uživatel ověřený, vrátí se přes `redirect` (B-012) na stránku, odkud registrace vyšla, a v dialogu „E-mail je ověřený“ se přihlásí sám („Přihlásit se“, #197); `autoSignInAfterVerification` se nezapíná.
+- BetterAuth: ověřovací odkaz s platností 24 h (`EMAIL_VERIFICATION_TTL_SECONDS`, šablona `verify-email.tsx` už existuje), `requireEmailVerification: true` – neověřený se nepřihlásí (chyba `EMAIL_NOT_VERIFIED`, žádná session), po registraci se session nezakládá. Po prvním platném ověření odkazem se uživatel rovnou přihlásí (`autoSignInAfterVerification: true`, PO 16. 11., #300). Frontend obnoví session a přes `redirect` (B-012) zachová původní cíl; navazující první přihlášení vede do onboardingu #296. Opětovné otevření už použitého odkazu nevytváří další session; bez session zůstává možnost přihlásit se.
 - Kdo je přihlášený, je ověřený: e-mail se ověřuje při registraci a jinak session nevznikne. Při nasazení se smažou session všech uživatelů s `emailVerified = false` (migrace nebo skript v nasazení), takže neověřená session nezůstane ani z doby před změnou.
 - FE: po registraci i při pokusu o přihlášení s neověřeným e-mailem obrazovka „Ověř si e-mail“ (Figma B-01a, desktop dialog B-01ad) s „Poslat odkaz znovu“ (s limitem) a „Zpět na přihlášení“. Pruh „Ověř si e-mail“ (`VerifyEmailBanner`) a stavy „neověřený“ na detailu akce a ve formuláři akce se odstraní – přihlášený neověřený uživatel nenastane.
 - `VerifiedUserGuard` (vedle `authenticated-user.guard.ts`) zůstává jen jako obrana do hloubky: 403 `EMAIL_NOT_VERIFIED`, když `emailVerified = false`, a dál odmítá zablokovaného uživatele (`blockedAt`). Nové endpointy na něm nestojí – ověření zajišťuje přihlášení. Přihlášení přes Google: e-mail ověřil Google.
@@ -214,7 +214,7 @@ Staging a CI/CD (F-59, F-60) už v repu jsou (`.github/workflows/ci.yml`, `deplo
 **Hotovo, když:**
 
 - [ ] Test guardu: neověřený → 403, zablokovaný → 403, ověřený → projde.
-- [ ] Test přihlášení: neověřený e-mailem a heslem se nepřihlásí a nedostane session, ověřený ano; po ověření odkazem se přihlásí.
+- [ ] Test přihlášení: neověřený e-mailem a heslem se nepřihlásí a nedostane session, ověřený ano; první ověření odkazem vytvoří cookie i session pro ověřený účet.
 - [ ] Test registrace: po registraci uživatel není přihlášený a dostane ověřovací e-mail.
 - [ ] Test nasazení: po smazání neověřených session nemá žádný uživatel s `emailVerified = false` platnou session.
 - [ ] Test FE: po registraci i po odmítnutém přihlášení neověřeného obrazovka „Ověř si e-mail“ s novým odesláním odkazu.
@@ -366,7 +366,7 @@ Doménová logika (čistá funkce + testy): `approvedCount`, `missingToMin = max
 `US-11` · FE · M · závisí na: B-021, B-004
 
 - Stránka `/akce/nova`: povinná a nepovinná pole podle US-11, výběr místa mapou (B-004, režim výběru) + textová adresa, volba způsobu přihlašování (výchozí „Bez schválení“) a viditelnosti s krátkým vysvětlením.
-- Lokalita, adresa a špendlík (#147, PR #295): výběr adresy posune špendlík a doplní lokalitu, umístění špendlíku dohledá adresu a lokalitu, volba lokality umístí špendlík do jejího středu. Lokalita se tak odvodí z místa akce a dá se upravit ručně („Upravit lokalitu bez přesunu špendlíku“). Co lokalita a co adresa znamená, je otevřené (Q14).
+- Lokalita, adresa a špendlík (#147, #303, PR #295): výběr návrhu adresy posune špendlík a doplní lokalitu. Umístění špendlíku dohledá adresu a lokalitu. Ručně zadanou adresu lze nahradit až po potvrzení návrhu. Obecná shoda s městem zachová vybraný obvod. Volba lokality sama ponechá adresu i existující špendlík. Při větší vzdálenosti nabídne přesun špendlíku do středu lokality. Co lokalita a co adresa znamená, je otevřené (Q14).
 - Klientská validace stejná jako na BE, chyby pod polem, tlačítko s pending stavem (DESIGN.md › Forms).
 - Časy začátku a konce (#200): `Input` z kitu, 24hodinový textový vstup. Přijme `9:00`, `09:00`, `9.00`, `900` a `0900`; na blur a před odesláním normalizuje na `09:00`. Neplatný/neúplný čas ponechá viditelný s chybou pod polem. Konec je nepovinný, dřívější konec znamená následující pražský den; porovnání až po normalizaci. Platný začátek 00:00–04:59 ukáže nezakazující upozornění.
 - Po zveřejnění přesměruj na detail a nabídni „Sdílet odkaz“ (kopírování do schránky + Web Share API na mobilu).
@@ -385,7 +385,7 @@ Doménová logika (čistá funkce + testy): `approvedCount`, `missingToMin = max
 - `GET /api/events` bez přihlášení. Parametry: `q` (název), `localityId` nebo `lat,lng,radiusKm` nebo `bbox` (výřez mapy – „Hledat v této oblasti“), `dateFrom`, `dateTo` (rozsah, oba včetně), `activityId[]`, `categoryId[]` (celá kategorie = všechny její aktivity, i nově přidané), `capacity` (obsazenost: `free` = jen akce, které nejsou plné, `missing` = jen akce s `missingToMin > 0`; změna 23. 10. z `missingOnly`), `sort` (`date` výchozí / `distance`), stránkování. `activityId[]` a `categoryId[]` se sčítají (OR).
 - `GET /api/events/facets` – stejné filtry kromě typu aktivity, vrací počty akcí po kategoriích a aktivitách pro výběr typu aktivity. Pokud se nevejde do sprintu, FE počty skryje.
 - Vrací jen `status = published`, `visibility = public`, `startsAt > now` (bez `past`, viz níže). Nevrací soukromé a „jen pro členy“.
-- `past=true` (#61, filtr Proběhlé na `/akce`): místo nadcházejících akce, které proběhly – po `endsAt`, bez konce po konci dne v Praze (#272, `event-over.ts`, stejné pravidlo jako detail, stránka skupiny, profil a hodnocení) – od nejnovější, každá s průměrem hodnocení akce (`rating`). Zrušené nikdy: nekonaly se, vidí je jen ten, koho se týkají (Moje akce, Můj profil › Proběhlé). Kombinuje se s ostatními filtry; FE s ním neposílá rozsah termínu ani obsazenost.
+- `past=true` (#61, filtr Proběhlé na `/akce`): místo nadcházejících akce, které proběhly – po `endsAt`, bez konce po konci dne v Praze (#272, `event-over.ts`, stejné pravidlo jako detail, stránka skupiny, profil a hodnocení) – od nejnovější, každá s průměrem hodnocení akce (`rating`). Zrušené nikdy: nekonaly se, vidí je jen ten, koho se týkají (Moje › Akce › Proběhlé, #367). Kombinuje se s ostatními filtry; FE s ním neposílá rozsah termínu ani obsazenost.
 - Každá položka: aktivita, název, termín, místo (lat/lng + adresa), `missingToMin`, `freeSpots`, `isFull`, organizátor (osoba nebo skupina), `isPromoted`.
 - `GET /api/events/map` – stejné filtry, odlehčené body pro mapu (bez stránkování, limit 500).
 - Stav po #57: `q` hledá v názvu, názvu aktivity a `Activity.keywords` bez diakritiky (všechna slova); `lat`+`lng` je bod pro `distanceKm` a `sort=distance`, `radiusKm` (1–100) okruh kolem něj. Databáze předfiltruje obdélníkem, přesnou vzdálenost, hledání a řazení dělá služba před limitem 200 (jako obsazenost). Stránkování ani `/events/map` zatím nejsou; FE ukáže „Víc než 200 akcí“. Známé omezení: hledání (`q`) databáze neumí, služba prochází jen 2000 nejbližších termínů v lokalitě (u celého Česka v celé ČR, `SCAN_LIMIT`), takže při větším počtu akcí shodu s pozdějším termínem nenajde. Řešením je fulltext v databázi (sloupec bez diakritiky nebo `unaccent`).
@@ -613,9 +613,10 @@ Doménová logika (čistá funkce + testy): `approvedCount`, `missingToMin = max
 - `GET /api/me/events?tab=attending|organizing|past`
   - **Přihlášen:** `approved` + `pending` (i vlastní akce, pokud se na ni organizátor přihlásil)
   - **Pořádám:** moje akce + akce mých skupin (po B-055)
-  - **Proběhlé:** kde jsem byl přihlášen nebo jsem pořádal
+  - **Proběhlé:** akce po skončení, kde jsem měl schválené místo (i zrušené); pořádané akce ne (#367)
 - FE `/moje-akce`: záložky, u akce stav mé účasti a termín, řazeno od nejbližší (proběhlé od nejnovější). Z pořádané akce odkaz na správu.
 - **Jak je to hotové (#304, Figma C-01, C-02, C-01d, C-02d):** sekce „Moje“ s akcemi i skupinami. `/moje/akce` má v pásu záložky Akce / Skupiny s počty, pod pásem čipy Přihlášen / Pořádám (`?tab=prihlasen|poradam`, výchozí podle #188). Obsah čipů je stejný jako dřív v záložkách. `/moje-akce` přesměruje na `/moje/akce` (s `?tab`). „Moje“ v navigaci vede na `/moje`, které otevře Akce, nebo Skupiny, když čekají jen žádosti o členství (`initialMySection`). V navigaci „Moje“, ve spodní liště s ikonou záložky; pod Moje patří i založení, úprava a správa akce a skupiny. V Přihlášen je mezi Potvrzené a Zrušené sekce **Z mých skupin** (`GET /api/me/events?tab=groups`): nadcházející zveřejněné akce aktivních skupin, kde jsem aktivní člen (ne správce), veřejné nebo jen pro členy, na které se ještě můžu přihlásit (nemám místo ani žádost a pořadatel mě nezamítl ani neodebral – `NO_NEW_REQUEST_STATUSES`); pod nadpisem věta, že na ně zatím nejdu, karta má štítek obsazenosti a vede na detail; do počtů se nepočítá. V Moje (Přihlášen, Pořádám, Z mých skupin) ukazuje karta akce skupiny pod názvem skupinu (Figma Karta akce › Skupina); jinde (/akce, úvod, stránka skupiny) zatím ne – to by byla nová story pro PO. Hlavní tlačítko „Založit akci“. Tmavý režim se pro nové obrazovky nekreslí (PO). Původní Moje akce: Figma „Archiv – v6 (do 13. 11.)“.
+- **Proběhlé (#367, Figma C-06, C-06d):** třetí čip Přihlášen / Pořádám / **Proběhlé** (`?tab=probehle`, `GET /api/me/events?tab=past`), od nejnovější, s počtem v čipu. Obsah se přestěhoval z Můj profil (rozhodnuto 18. 11.: profil = kdo jsem a koho znám, Moje = co dělám): karta s „Ohodnotit“, dokud jde akci hodnotit a uživatel ještě nehodnotil, po ohodnocení „tvoje ★ N“ (`myEventStars`), u hodnocení smazaného moderací ani jedno (`myRatingDeleted`, jde jen obnovit), zrušené „Zrušeno · Akce se nekonala“. Po uložení hodnocení se uživatel vrátí, odkud přišel, i po obnovení stránky (historie zůstává); jen když se není kam vrátit (odkaz z e-mailu v nové kartě), skončí na Proběhlé místo formuláře. Výchozí čip (#188) Proběhlé nikdy nevybere a do počtu na záložce Akce se nepočítají. Můj profil od té doby nemá Kam jdu, Pořádám, Proběhlé ani Moje skupiny. Známé omezení: každá záložka vrací nejvýš 200 akcí (`MY_EVENTS_LIMIT`); u Proběhlé, která roste, by po 200 akcích nejstarší zmizely a čip ukázal 200, pak přidat stránkování.
 
 **Hotovo, když:**
 
@@ -673,11 +674,11 @@ Doménová logika (čistá funkce + testy): `approvedCount`, `missingToMin = max
 - Plánovač (`@nestjs/schedule`), každá úloha idempotentní (záznam o odeslání, aby po restartu nepřišel e-mail dvakrát).
 - **Připomínka účastníkům** den před akcí.
 - **Organizátorovi 48 a 24 h před akcí**, kolik lidí chybí do minima, s odkazy Sdílet / Topovat / Zrušit. Při naplněném minimu nepřijde.
-- **Výzva k hodnocení**: dávkově jednou denně večer pro akce, které ten den skončily, všem `approved` (odkaz na hodnocení z B-060). Účastníkům „Ohodnoť akci“, organizátorovi „Ohodnoť účastníky“ (E-01 typy 11 a 12).
+- **Výzva k hodnocení** (#65, sprint 4): denní dávka ve 21:00 v pražském čase, všem `approved` a zakladateli akce (odkaz na hodnocení z B-060). Účastníkům „Ohodnoť akci“, organizátorovi „Ohodnoť účastníky“ (E-01 typy 11 a 12). Akce skončené po večerní dávce nebo bez `endsAt` (konec pražského dne) přijdou na řadu další večer. Výzvy jen k akcím ukončeným od aktivace evidované migrací a za posledních 48 hodin. Neúspěšná odeslání se opakují nejvýše třikrát celkem na příjemce a akci, potvrzená odeslání se evidují v `NotificationLog`. Zrušené, skryté a smazané akce a akce pod minimem se neposílají; příjemci a omezení doručení v `modules/notification/README.md`. Připomínky před akcí a chybějící lidé jsou mimo sprint 4.
 
 **Hotovo, když:**
 
-- [ ] Testy výběru příjemců s fixním „teď“ (fake timers).
+- [x] Testy výběru příjemců výzvy k hodnocení s fixním „teď“ (fake timers), hranic večerní dávky a lhůty hodnocení, změny času, obnovy po výpadku a evidence odeslání (#65). Připomínky před akcí a chybějící lidé zůstávají na později.
 
 ---
 
@@ -706,7 +707,7 @@ Doménová logika (čistá funkce + testy): `approvedCount`, `missingToMin = max
 
 `US-16, US-17` · BE · S · závisí na: B-002, B-003
 
-- `Group`: `name`, `description?`, `imageUrl?`, `activityId` (právě jedna), `localityId` (právě jedna), `type` (`public` / `closed`), `status` (`active` / `inactive`), `deactivatedAt?`.
+- `Group`: `name`, `description?`, `imageKey?` (fotka nahraná jako soubor, #77), `activityId` (právě jedna), `localityId` (právě jedna), `type` (`public` / `closed`), `status` (`active` / `inactive`), `deactivatedAt?`.
 - `GroupMember`: `groupId`, `userId`, `role` (`admin` / `member`), `status` (`pending` / `active` / `blocked`), `message?`. Unikátní dvojice.
 
 ---
@@ -996,7 +997,7 @@ Dokud tým nebo PO nerozhodne jinak, agent použije výchozí volbu.
 | --- | --------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------ |
 | Q1  | Mapa a našeptávač míst (poznámky zmiňují Google Maps)                             | Leaflet + OSM, místo klikem do mapy + textová adresa, lokality z vlastního číselníku                                                                                                                                                                       | Tým          |
 | Q2  | Služba pro odhad lokality z IP                                                    | Offline tabulka z DB-IP Lite (CC BY 4.0) v repu, při chybě a u příliš širokých rozsahů celé Česko (tým 28. 10., #55, #299)                                                                                                                                 | Tým          |
-| Q3  | Nahrávání fotek (profil, skupina, akce)                                           | Akce: organizátor nahraje obrázek jako soubor, bez něj obrázek aktivity (PO 10. 11., #77). Profil a skupina zatím jen URL obrázku                                                                                                                          | PO           |
+| Q3  | Nahrávání fotek (profil, skupina, akce)                                           | Akce a skupina: organizátor nebo správce nahraje obrázek jako soubor, bez něj obrázek aktivity (PO 10. 11., #77; skupina 18. 11.). Profil zatím jen URL obrázku                                                                                            | PO           |
 | Q4  | Podle čeho vybírat akce na úvodní stránce (F-68)                                  | Nejbližší termín v lokalitě, topované první; sekce podle #182, pravidla v docs/ux-audit.md                                                                                                                                                                 | PO           |
 | Q5  | Text obchodních podmínek a zásad ochrany údajů (F-65)                             | Placeholder                                                                                                                                                                                                                                                | PO           |
 | Q6  | Ukázková data – dodá PO reálné skupiny ze sondy? (F-64)                           | Tým vymyslí realistická data                                                                                                                                                                                                                               | PO           |

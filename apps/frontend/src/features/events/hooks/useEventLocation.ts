@@ -46,18 +46,15 @@ export function useEventLocation({
     const exact = suggestion
       ? localityOfAddress({ ...suggestion, ...point }, localities, "", { allowNearest: false })
       : undefined
-    const nearby =
-      selected && distanceKm(point, selected) <= 1 ? selected : nearestTown(point, localities)
-    const locality =
-      exact &&
-      !suggestion?.district &&
-      selected?.parentId === exact.id &&
-      distanceKm(point, selected) <= 1
-        ? selected
-        : (exact ?? nearby)
+    const nearby = exact ? undefined : nearestTown(point, localities)
+    const shouldPreserveSelection =
+      selected &&
+      ((selected.parentId === (exact ?? nearby)?.id && (!exact || !suggestion?.district)) ||
+        (!exact && distanceKm(point, selected) <= 1))
+    const locality = shouldPreserveSelection ? selected : (exact ?? nearby)
     // Unknown points must not erase an existing catalog selection.
     if (locality) setLocality(locality.id)
-    return exact
+    return exact || shouldPreserveSelection
       ? ""
       : locality
         ? `Pro orientaci jsme zvolili lokalitu ${locality.name}. Zkontroluj, jestli odpovídá místu.`

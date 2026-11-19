@@ -40,6 +40,22 @@ Texty jsou česky a tykáním; žádný text nepředpokládá pohlaví organizá
 
 Přes sdílený `EmailService` jako ověřovací e-maily: Resend nebo SMTP, když jsou nastavené klíče (#165), jinak konzole (v produkci se do logu píše jen příjemce a předmět). Simulovaná schránka (#58) drží jen ověřovací e-mail, upozornění v ní nejsou. Centrum upozornění v aplikaci (zvonek) zatím není; přibude s #86 (B-044) ze stejných událostí jako e-maily.
 
-## Omezení
+## Výzva k hodnocení po akci (#65, B-043)
 
-Odesílání běží v paměti procesu: e-mail, který čeká při pádu nebo restartu backendu, se nedoručí a nezkouší se znovu. Fronta s opakováním a plánované e-maily (připomínka, chybí lidé) patří do #65 (B-043).
+`RatingInvitationService` otevírá novou denní dávku ve **21:00 v Europe/Prague**. Plánovač běží každých 15 minut a jednou po startu: mezilehlé běhy opakují neúspěšná odeslání a dohánějí výpadek, neposílají výzvy pro akce z další denní dávky. Akce končící po 21:00 a akce bez `endsAt` (skončí až koncem pražského dne) přijdou na řadu další večer. Letní a zimní čas se řídí pražským kalendářem, ne časovým pásmem serveru.
+
+Používá stejné podmínky jako hodnocení (#66): publikovaná, skončená akce s naplněným minimem a otevřenou lhůtou 14 kalendářních dní. Zrušené, skryté a smazané akce výzvu nedostanou. Při nasazení migrace jednou uloží čas aktivace. Po startu nebo výpadku se zpracují jen akce skončené od aktivace a nejvýš před 48 hodinami. Lhůta pro samotné hodnocení zůstává 14 kalendářních dní; e-mail uvádí její přesný konec.
+
+- Schválení účastníci dostanou E-01 typ 11 „Jak se povedla akce {akce}?“, odkaz `/akce/:id/hodnoceni`. Docházka ani současné členství ve skupině nejsou podmínkou. Výzva se přeskočí, pokud účastník už hodnotil, včetně hodnocení odstraněného moderací.
+- Zakladatel akce (`organizerUserId`, také u akce skupiny) dostane E-01 typ 12 „Ohodnoť účastníky: {akce}“, odkaz `/akce/:id/hodnoceni-ucastniku`. Potřebuje alespoň jednoho schváleného účastníka kromě sebe, jehož hodnocení ještě neexistuje. Organizátor přihlášený na vlastní akci dostane jen tuto variantu.
+- Zablokovaným a smazaným uživatelům se nepíše. Před každým odesláním se znovu načte stav akce, účast a aktuální adresa příjemce.
+
+`NotificationLog` má jedinečný klíč `rating-invitation:<role>:<eventId>:<userId>`. `sentAt = null` znamená čekající odeslání; vyplní se až po úspěšném návratu transportu. Atomický podmíněný zápis přidělí práci jednomu běhu i při více instancích backendu. Rezervace atomicky spotřebuje jeden ze tří pokusů. Chyba transportu uvolní rezervaci pro další pokus, pokud limit ještě nebyl dosažen a nezastaví ostatní příjemce. Po pádu procesu rezervace vyprší za hodinu. Původní záznamy migrace zachová jako odeslané.
+
+Transport a zápis do databáze nemají společnou transakci: pád po přijetí zprávy SMTP/Resend, ale před uložením `sentAt`, může po vypršení rezervace vést k duplicitě. Totéž platí při nejednoznačné chybě transportu nebo při odesílání delším než hodinu. Evidence brání opakování již potvrzených odeslání; neslibuje přesně jedno doručení do schránky. Logy obsahují pouze interní ID, ne e-mailové adresy ani chybové zprávy poskytovatele.
+
+Testy pokrývají příjemce a výběr denní dávky s pevným časem, obě změny času, půlnoc a lhůtu hodnocení, zrušení během dávky, selhání transportu/databáze, souběh běhů a obnovu po restartu. Připomínky den před akcí a upozornění na chybějící lidi zůstávají mimo scope sprintu 4.
+
+## Omezení okamžitých upozornění
+
+Okamžitá upozornění přes `NotificationService.notify` běží v paměti procesu: e-mail, který čeká při pádu nebo restartu backendu, se nedoručí a nezkouší se znovu. Evidence a opakování popsané výše se týkají výzvy k hodnocení; nejsou obecnou frontou pro všechny e-maily.

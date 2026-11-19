@@ -10,23 +10,33 @@ import {
   AttendingEvents,
   MyEventsLoading,
   OrganizingEvents,
+  PastEvents,
 } from "@/features/events/components/MyEvents"
 import {
   useAttendingEvents,
   useMyEventsTab,
   useOrganizingEvents,
+  usePastEvents,
 } from "@/features/events/hooks/useMyEvents"
-import { attendingLine, myEventsSearchSchema, organizingLine } from "@/features/events/lib/myEvents"
+import {
+  attendingLine,
+  myEventsSearchSchema,
+  organizingLine,
+  type MyEventsTabName,
+} from "@/features/events/lib/myEvents"
 
 export const Route = createFileRoute("/_ProtectedPages/moje/akce")({
   component: MyEventsPage,
   validateSearch: myEventsSearchSchema,
 })
 
+const TABS: readonly MyEventsTabName[] = ["prihlasen", "poradam", "probehle"]
+
 /**
- * Moje › Akce (Figma C-01, C-02, C-01d, C-02d; B-035, #44, #304): the chips Přihlášen and
- * Pořádám, as the tabs of Moje akce were. Pořádám has the events of the groups I run too
- * (#70).
+ * Moje › Akce (Figma C-01, C-02, C-06 and their desktops; B-035, #44, #304, #367): the chips
+ * Přihlášen, Pořádám and Proběhlé. Pořádám has the events of the groups I run too (#70);
+ * Proběhlé is the history that used to be on the profile (#367: the profile is who I am and whom
+ * I know, Moje what I do).
  */
 function MyEventsPage() {
   const search = Route.useSearch()
@@ -41,6 +51,8 @@ function MyEventsPage() {
     attending.sections && attending.sections.pending.length + attending.sections.approved.length
   // the upcoming ones, as in Přihlášen (Figma C-02: Nadcházející)
   const organizingCount = organizing.sections?.upcoming.length
+  // all of the history, cancelled events too: the chip counts what it lists (Figma C-06)
+  const pastCount = usePastEvents(viewerId).events?.length
   // ?tab, else Pořádám when requests wait or there is only something to run (#188)
   const tab = useMyEventsTab(search.tab, attending, organizing)
 
@@ -65,7 +77,7 @@ function MyEventsPage() {
         // URL, so it stays whatever the requests do and a reload keeps it.
         onValueChange={(value) =>
           void navigate({
-            search: { tab: value === "poradam" ? "poradam" : "prihlasen" },
+            search: { tab: TABS.find((name) => name === value) ?? "prihlasen" },
             replace: true,
           })
         }
@@ -84,6 +96,12 @@ function MyEventsPage() {
           >
             Pořádám
           </ChipTabsItem>
+          <ChipTabsItem
+            value="probehle"
+            count={pastCount}
+          >
+            Proběhlé
+          </ChipTabsItem>
         </ChipTabs>
         {user && tab === undefined ? (
           <MyEventsLoading />
@@ -94,6 +112,9 @@ function MyEventsPage() {
             </TabsContent>
             <TabsContent value="poradam">
               <OrganizingEvents viewerId={user.id} />
+            </TabsContent>
+            <TabsContent value="probehle">
+              <PastEvents viewerId={user.id} />
             </TabsContent>
           </>
         ) : null}

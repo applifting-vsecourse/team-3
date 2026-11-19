@@ -50,6 +50,29 @@ describe("EventCard", () => {
     expect(screen.getByText("4 z 12 · min. 4")).toBeInTheDocument()
   })
 
+  it("the organizer's own image takes the activity photo's place, with the same grade (#77)", async () => {
+    const { container } = await renderWithRouter(
+      <EventCard event={{ ...withActivity(florbal), imageKey: "k-plakat" }} />,
+    )
+
+    const img = container.querySelector("[data-slot=event-photo] img")!
+    expect(img.getAttribute("src")).toMatch(/\/images\/k-plakat$/)
+    // the row card is 104 px: the browser takes the 480 px variant (#77)
+    expect(img.getAttribute("srcset")).toMatch(/\/images\/k-plakat\/small 480w/)
+    expect(img).toHaveAttribute("sizes", "104px")
+    expect(img).toHaveClass("saturate-86", "contrast-110")
+  })
+
+  it("its own image shows even for an activity without a library photo (#77)", async () => {
+    const { container } = await renderWithRouter(
+      <EventCard event={{ ...withActivity(newActivity), imageKey: "k-plakat" }} />,
+    )
+
+    expect(container.querySelector("[data-slot=event-photo] img")?.getAttribute("src")).toMatch(
+      /\/images\/k-plakat$/,
+    )
+  })
+
   it("an activity without a photo in the library shows its Activity tile", async () => {
     const { container } = await renderWithRouter(<EventCard event={withActivity(newActivity)} />)
 

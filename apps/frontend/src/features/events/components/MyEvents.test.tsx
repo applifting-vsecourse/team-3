@@ -8,7 +8,11 @@ import { api } from "@/lib/api-client"
 import type * as ApiClient from "@/lib/api-client"
 import { renderWithRouter } from "@/test/renderWithRouter"
 
-import { AttendingEvents, OrganizingEvents } from "@/features/events/components/MyEvents"
+import {
+  AttendingEvents,
+  OrganizingEvents,
+  PastEvents,
+} from "@/features/events/components/MyEvents"
 import { aMyEvent } from "@/features/events/test/anEvent"
 
 vi.mock("@/lib/api-client", async (importOriginal) => ({
@@ -287,6 +291,150 @@ describe("OrganizingEvents", () => {
       await screen.findByText(
         "Zatím nepořádáš žádnou akci. Stačí název, místo a čas – parta se sejde.",
       ),
+    ).toBeInTheDocument()
+  })
+})
+
+// the fixture starts Fri 23. 10. 17:30 in Prague without an end: it ended with that day,
+// so it can be rated until Fri 6. 11., 23:59:59.999
+describe("PastEvents (Figma C-06, #367)", () => {
+  beforeEach(() => get.mockReset())
+  const inWindow = new Date("2026-10-24T10:00:00.000Z")
+
+  it("asks for the past tab and lists the events as the API orders them, with how many came", async () => {
+    get.mockReturnValue(
+      asJson([
+        aMyEvent({ id: "e2", title: "Volejbal", approvedCount: 5 }),
+        aMyEvent({ id: "e1", title: "Florbal", approvedCount: 7 }),
+      ]),
+    )
+
+    await renderWithQuery(
+      <PastEvents
+        viewerId="u-jakub"
+        now={inWindow}
+      />,
+    )
+
+    const past = await screen.findByRole("region", { name: "Proběhlé (2)" })
+    const items = within(past).getAllByRole("listitem")
+    expect(
+      items.map((item) => within(item).getByRole("heading", { level: 3 }).textContent),
+    ).toEqual(["Volejbal", "Florbal"])
+    expect(within(items[0]!).getByText("Proběhlo")).toBeInTheDocument()
+    expect(within(items[0]!).getByText("Sešlo se 5 lidí")).toBeInTheDocument()
+    expect(within(items[0]!).getByRole("link", { name: "Volejbal" })).toHaveAttribute(
+      "href",
+      "/akce/e2",
+    )
+    expect(get).toHaveBeenCalledWith("me/events", { searchParams: { tab: "past" } })
+  })
+
+  it("„Ohodnotit“ leads to the rating page while it can be rated (#66), as Figma: no arrow", async () => {
+    get.mockReturnValue(asJson([aMyEvent({ id: "e7", title: "Florbal", approvedCount: 5 })]))
+
+    await renderWithQuery(
+      <PastEvents
+        viewerId="u-jakub"
+        now={inWindow}
+      />,
+    )
+
+    const rate = await screen.findByRole("link", { name: "Ohodnotit akci Florbal" })
+    expect(rate).toHaveAttribute("href", "/akce/e7/hodnoceni")
+    expect(rate).toHaveTextContent(/^Ohodnotit$/)
+  })
+
+  it("once rated: „tvoje ★ N“ (Figma Dáno) and no „Ohodnotit“, though it could be changed", async () => {
+    get.mockReturnValue(asJson([aMyEvent({ title: "Florbal", approvedCount: 5, myEventStars: 4 })]))
+
+    await renderWithQuery(
+      <PastEvents
+        viewerId="u-jakub"
+        now={inWindow}
+      />,
+    )
+
+    expect(await screen.findByText("Sešlo se 5 lidí · tvoje ★ 4")).toBeInTheDocument()
+    expect(screen.queryByRole("link", { name: /Ohodnotit/ })).not.toBeInTheDocument()
+  })
+
+  it.each([
+    ["after the window", { approvedCount: 5 }, "u-jakub", "2026-11-06T23:00:00.000Z"],
+    [
+      "below its minimum: it didn't take place",
+      { approvedCount: 3, missingToMin: 1 },
+      "u-jakub",
+      "2026-10-24T10:00:00.000Z",
+    ],
+    ["the organizer's own event", { approvedCount: 5 }, "u1", "2026-10-24T10:00:00.000Z"],
+    [
+      "a cancelled event",
+      { approvedCount: 5, status: "cancelled" as const },
+      "u-jakub",
+      "2026-10-24T10:00:00.000Z",
+    ],
+  ])("no „Ohodnotit“ %s", async (_case, event, viewerId, now) => {
+    get.mockReturnValue(asJson([aMyEvent({ title: "Florbal", ...event })]))
+
+    await renderWithQuery(
+      <PastEvents
+        viewerId={viewerId}
+        now={new Date(now)}
+      />,
+    )
+
+    expect(await screen.findByRole("link", { name: "Florbal" })).toBeInTheDocument()
+    expect(screen.queryByRole("link", { name: /Ohodnotit/ })).not.toBeInTheDocument()
+  })
+
+  // review #368: the rating page would refuse it (RATING_DELETED), so the card doesn't offer it
+  it("a rating deleted by moderation: neither stars nor „Ohodnotit“, it can only be restored", async () => {
+    get.mockReturnValue(
+      asJson([aMyEvent({ title: "Florbal", approvedCount: 5, myRatingDeleted: true })]),
+    )
+
+    await renderWithQuery(
+      <PastEvents
+        viewerId="u-jakub"
+        now={inWindow}
+      />,
+    )
+
+    expect(await screen.findByText("Sešlo se 5 lidí")).toBeInTheDocument()
+    expect(screen.queryByRole("link", { name: /Ohodnotit/ })).not.toBeInTheDocument()
+  })
+
+  it("a cancelled event says it didn't take place", async () => {
+    get.mockReturnValue(asJson([aMyEvent({ status: "cancelled" })]))
+
+    await renderWithQuery(<PastEvents viewerId="u-jakub" />)
+
+    expect(await screen.findByText("Zrušeno")).toBeInTheDocument()
+    expect(screen.getByText("Akce se nekonala")).toBeInTheDocument()
+  })
+
+  it("with no history says what will be there", async () => {
+    get.mockReturnValue(asJson([]))
+
+    await renderWithQuery(<PastEvents viewerId="u-jakub" />)
+
+    expect(
+      await screen.findByText("Tady uvidíš proběhlé akce, na které máš schválenou účast."),
+    ).toBeInTheDocument()
+    expect(screen.queryByRole("region")).not.toBeInTheDocument()
+  })
+
+  it("on an error offers to try again", async () => {
+    get.mockReturnValueOnce({ json: () => Promise.reject(new Error("offline")) } as never)
+    get.mockReturnValue(asJson([]))
+
+    await renderWithQuery(<PastEvents viewerId="u-jakub" />)
+
+    expect(await screen.findByText("Akce se nepodařilo načíst")).toBeInTheDocument()
+    await userEvent.click(screen.getByRole("button", { name: "Zkusit znovu" }))
+    expect(
+      await screen.findByText("Tady uvidíš proběhlé akce, na které máš schválenou účast."),
     ).toBeInTheDocument()
   })
 })

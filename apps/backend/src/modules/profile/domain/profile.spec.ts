@@ -1,9 +1,4 @@
-import {
-  eventNotOverWhere,
-  eventOverWhere,
-} from '@/modules/event/domain/event-over';
-import { buildMyEventsWhere } from '@/modules/event/repositories/my-events-where';
-import { participationWhere, selfProfile, type ProfileRow } from './profile';
+import { selfProfile, type ProfileRow } from './profile';
 
 export const ownerRow = (): ProfileRow => ({
   id: 'owner',
@@ -51,33 +46,5 @@ describe('private profile projection (#178)', () => {
     expect(selfProfile({ ...ownerRow(), accounts: [] }).hasPassword).toBe(
       false,
     );
-  });
-});
-
-describe('private participation history (#178)', () => {
-  const now = new Date('2026-11-05T12:00:00Z');
-  it('keeps the owner predicate and pending requests and matches the Přihlášen tab of Moje akce', () => {
-    expect(participationWhere('owner', now, false)).toEqual({
-      userId: 'owner',
-      status: { in: ['pending', 'approved'] },
-      event: buildMyEventsWhere('attending', 'owner', now),
-    });
-  });
-  it('keeps an event in progress in Kam jdu until it is over, as Moje akce does (#272)', () => {
-    const where = participationWhere('owner', now, false);
-    expect(where.event).toEqual(buildMyEventsWhere('attending', 'owner', now));
-    expect(JSON.stringify(where)).toContain(
-      JSON.stringify(eventNotOverWhere(now).OR),
-    );
-  });
-  it('history: approved participation of events that are over, cancelled ones too (#272)', () => {
-    expect(participationWhere('other-owner', now, true)).toEqual({
-      userId: 'other-owner',
-      status: 'approved',
-      event: {
-        status: { in: ['published', 'cancelled'] },
-        ...eventOverWhere(now),
-      },
-    });
   });
 });

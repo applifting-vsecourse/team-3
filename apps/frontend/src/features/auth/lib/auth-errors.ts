@@ -26,6 +26,7 @@ const MESSAGES: Record<string, string> = {
   // ours too (#153)
   CONSENT_REQUIRED:
     "K registraci je potřeba souhlas s podmínkami užívání a potvrzení, že bereš na vědomí zpracování osobních údajů.",
+  AGE_CONFIRMATION_REQUIRED: "K registraci musíš potvrdit, že ti je alespoň 18 let.",
   INVALID_NAME: "Jméno může obsahovat jen písmena, mezery, pomlčky, apostrofy a tečky.",
 }
 

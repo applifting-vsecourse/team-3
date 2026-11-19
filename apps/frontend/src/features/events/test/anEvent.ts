@@ -56,5 +56,7 @@ export const aMyEvent = (overrides: Partial<MyEvent> = {}): MyEvent => ({
   status: "published",
   myParticipation: "approved",
   pendingRequests: null,
+  myEventStars: null,
+  myRatingDeleted: false,
   ...overrides,
 })

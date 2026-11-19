@@ -13,6 +13,7 @@ const group: GroupDetail = {
   },
   locality: { id: 'l1', slug: 'praha-2', name: 'Praha 2' },
   memberCount: 3,
+  imageKey: null,
   description: null,
   status: 'active',
   admins: [{ id: 'u1', name: 'Petra Nováková' }],

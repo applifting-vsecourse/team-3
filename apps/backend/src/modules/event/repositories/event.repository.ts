@@ -20,6 +20,7 @@ import {
 } from '@/modules/event/domain/event-message';
 import {
   UpdateDecision,
+  UpdateRefusal,
   UpdateState,
 } from '@/modules/event/domain/event-update';
 import { INTEREST_STATUSES } from '@/modules/event/domain/interest';
@@ -31,6 +32,11 @@ import {
   RequestsState,
 } from '@/modules/event/domain/participation';
 import { summarize } from '@/modules/event/domain/summary';
+import { NewImage } from '@/modules/image/domain/uploaded-image';
+import {
+  createImage,
+  deleteImage,
+} from '@/modules/image/repositories/image.repository';
 import {
   RatingSummary,
   summarizeTotals,
@@ -100,6 +106,18 @@ export const toPublicEvent = (
   maxParticipants: event.maxParticipants,
   capacity: computeCapacity(event, event._count.participations),
   isPromoted: event.promotedUntil !== null && event.promotedUntil > now,
+  imageKey: event.imageKey,
+});
+
+/**
+ * The user's own rating of a past event (#367): the stars while it stands; deleted by moderation,
+ * no stars and the flag – it can only be restored, not given again (RATING_DELETED).
+ */
+const myRating = (
+  rating: { eventStars: number; deletedAt: Date | null } | undefined,
+): Pick<MyEvent, 'myEventStars' | 'myRatingDeleted'> => ({
+  myEventStars: rating && !rating.deletedAt ? rating.eventStars : null,
+  myRatingDeleted: Boolean(rating?.deletedAt),
 });
 
 @Injectable()
@@ -166,9 +184,9 @@ export class EventRepository {
   }
 
   /**
-   * A tab of „Moje akce“ (B-035), soonest first, at most `limit`. Besides the
-   * user's own participation, the organizer's tab loads the waiting requests
-   * to count them.
+   * A tab of „Moje akce“ (B-035), soonest first – Proběhlé the latest first –
+   * at most `limit`. Besides the user's own participation, the organizer's tab
+   * loads the waiting requests to count them.
    */
   async findMyEvents(query: {
     tab: MyEventsTab;
@@ -188,8 +206,16 @@ export class EventRepository {
               : { userId },
           select: { userId: true, status: true },
         },
+        // Proběhlé only (#367): my own rating, a deleted one too – it can't be given again
+        ratings: tab === 'past' && {
+          where: { userId },
+          select: { eventStars: true, deletedAt: true },
+        },
       },
-      orderBy: [{ startsAt: 'asc' }, { id: 'asc' }],
+      orderBy:
+        tab === 'past'
+          ? [{ startsAt: 'desc' }, { id: 'desc' }]
+          : [{ startsAt: 'asc' }, { id: 'asc' }],
       take: query.limit,
     });
     return events.map((event) => {
@@ -208,6 +234,7 @@ export class EventRepository {
                 (participation) => participation.status === 'pending',
               ).length
             : null,
+        ...myRating(event.ratings?.[0]),
       };
     });
   }
@@ -569,6 +596,35 @@ export class EventRepository {
       if (!decision.ok) return decision;
       await tx.event.update({ where: { id }, data: decision.data });
       return decision;
+    });
+  }
+
+  /**
+   * Sets the event's own image (#77), or with `null` removes it; the previous
+   * one is deleted, so a replaced image leaves nothing behind. `refuse` is
+   * asked under the event's lock, as an edit is: a cancelled or started event
+   * keeps its image. Null when there is no such event.
+   */
+  async replaceImage(
+    id: string,
+    image: NewImage | null,
+    refuse: (
+      state: Pick<UpdateState, 'status' | 'startsAt'>,
+    ) => UpdateRefusal | null,
+  ): Promise<{ ok: true } | { ok: false; refusal: UpdateRefusal } | null> {
+    return this.prisma.$transaction(async (tx) => {
+      await tx.$executeRaw`SELECT 1 FROM "event" WHERE "id" = ${id} FOR UPDATE`;
+      const event = await tx.event.findUnique({
+        where: { id },
+        select: { status: true, startsAt: true, imageKey: true },
+      });
+      if (!event) return null;
+      const refusal = refuse(event);
+      if (refusal) return { ok: false, refusal };
+      const imageKey = image ? await createImage(tx, image) : null;
+      await tx.event.update({ where: { id }, data: { imageKey } });
+      if (event.imageKey) await deleteImage(tx, event.imageKey);
+      return { ok: true };
     });
   }
 

@@ -35,6 +35,8 @@ export const publicEventSchema = z.object({
   distanceKm: z.number().nullable(),
   // Proběhlé only (#61): the event's average rating for its past card; null otherwise
   rating: z.object({ average: z.number().nullable(), count: z.number() }).nullish(),
+  // the organizer's own image (#77), at GET /api/images/:key; none = the activity's photo
+  imageKey: z.string().nullish(),
 })
 
 export const publicEventsSchema = z.array(publicEventSchema)
@@ -111,9 +113,10 @@ export const eventParticipantsSchema = z.object({
 /**
  * Tabs of „Moje akce“ in the API (B-035); `organizing` has the events of the
  * groups I run too (#70); `groups` the events of the groups I am a member of
- * where I don't go yet — Z mých skupin (#304). Proběhlé comes with #61.
+ * where I don't go yet — Z mých skupin (#304); `past` the events that are over where I had an
+ * approved place, the latest first — Proběhlé (#367).
  */
-export type MyEventsTab = "attending" | "organizing" | "groups"
+export type MyEventsTab = "attending" | "organizing" | "groups" | "past"
 
 /** GET /api/me/events?tab= — an event with the user's place in it. */
 export const myEventSchema = publicEventSchema.extend({
@@ -121,6 +124,10 @@ export const myEventSchema = publicEventSchema.extend({
   myParticipation: z.enum(["approved", "pending"]).nullable(),
   /** Requests waiting for approval; only under `organizing`. */
   pendingRequests: z.number().nullable(),
+  /** The stars I gave the event (#66); null while I haven't rated it — Proběhlé (#367). */
+  myEventStars: z.number().int().min(1).max(5).nullable(),
+  /** Moderation deleted my rating: it can't be given again, so no „Ohodnotit“ (RATING_DELETED). */
+  myRatingDeleted: z.boolean(),
 })
 
 export const myEventsSchema = z.array(myEventSchema)

@@ -106,6 +106,29 @@ describe("PageBand", () => {
     expect(corner).toHaveClass("md:hidden", "bottom-band-tabs")
   })
 
+  // review #368: an isolated band shut in Moje's floating „Založit akci“, and the cards scrolling
+  // past covered it on a phone; jsdom has no layout, the overlap was checked in the browser
+  it("only the landing page's band is isolated: a section's floating action stays above the cards", async () => {
+    const band = (container: HTMLElement) => container.querySelector(".on-hero")!
+    const section = await renderWithRouter(
+      <PageBand
+        variant="section"
+        title="Moje"
+        action={<a href="/akce/nova">Založit akci</a>}
+      />,
+    )
+    expect(band(section.container)).not.toHaveClass("isolate")
+    section.unmount()
+
+    const hero = await renderWithRouter(
+      <PageBand
+        variant="hero"
+        title="Někde chybí jeden do party."
+      />,
+    )
+    expect(band(hero.container)).toHaveClass("isolate")
+  })
+
   it("the landing page's ring hangs under its buttons, not from the band's edge (#324)", async () => {
     const { container } = await renderWithRouter(
       <PageBand
@@ -132,6 +155,42 @@ describe("PageBand", () => {
     expect(motif).toHaveClass("top-[calc(100%-505px)]", "-z-10", "overflow-visible")
     expect(motif).not.toHaveClass("bottom-0")
     expect(motif).toHaveAttribute("aria-hidden", "true")
+  })
+
+  it("between lg and xl the landing page's motif is smaller, so it stays beside the panel", async () => {
+    const { container } = await renderWithRouter(
+      <PageBand
+        variant="hero"
+        title="Někde chybí jeden do party."
+        aside={<div>Panel</div>}
+      >
+        <a href="/signup">Zaregistrovat se</a>
+      </PageBand>,
+    )
+    const big = [...container.querySelectorAll("svg")].find(
+      (svg) => svg.getAttribute("width") === "700",
+    )!
+
+    // jsdom has no layout, so the numbers: the drawing reaches 700 − 120 = 580 px into the
+    // content; the column beside the panel is 1024 − 80 − 480 − 64 = 400 px at lg, 656 at xl
+    const reach = Number(big.getAttribute("width")) - 120
+    expect(reach * 0.68).toBeLessThanOrEqual(1024 - 80 - 480 - 64)
+    expect(reach).toBeLessThanOrEqual(1280 - 80 - 480 - 64)
+    // scaled around where the content starts at the buttons' bottom: still hung from them
+    expect(big).toHaveClass(
+      "lg:block",
+      "scale-[0.68]",
+      "xl:scale-100",
+      "origin-[120px_505px]",
+      "top-[calc(100%-505px)]",
+      "-left-30",
+    )
+    // the phone's corner motif until lg: the band always has one
+    expect(
+      [...container.querySelectorAll("[aria-hidden=true]")].some((node) =>
+        node.classList.contains("lg:hidden"),
+      ),
+    ).toBe(true)
   })
 })
 

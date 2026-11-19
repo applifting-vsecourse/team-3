@@ -1,17 +1,12 @@
 import { useId, type ReactNode } from "react"
-import { Link, type LinkProps } from "@tanstack/react-router"
+import { Link } from "@tanstack/react-router"
 
 import { ROUTES } from "@/app/routes"
-import { Button } from "@/components/ui/button"
 import { ratingSummaryLabel } from "@/lib/ratingSummary"
 
-import type {
-  ProfileEvent,
-  ProfileRating,
-  RatingSummary,
-} from "@/features/profile/api/profileSchemas"
+import type { ProfileRating, RatingSummary } from "@/features/profile/api/profileSchemas"
 
-/** A section of the overview on /profil (Figma B-05, B-05d): heading, content, the way to the rest. */
+/** A section of /profil (Figma B-05, B-05d): heading, content, how much is left out. */
 export function ProfileSection({
   title,
   children,
@@ -40,7 +35,7 @@ export function ProfileSection({
   )
 }
 
-/** A section heading with its one keyword highlighted: „Kam **jdu**“ (DESIGN.md › Type). */
+/** A section heading with its one keyword highlighted: „Moje **hodnocení**“ (DESIGN.md › Type). */
 export function HighlightedTitle({
   before,
   keyword,
@@ -59,85 +54,13 @@ export function HighlightedTitle({
   )
 }
 
-/** Where the rest of a section lives: Moje akce, or — with no page for it yet — how much is left out. */
-function More({
-  shown,
-  total,
-  link,
-}: {
-  shown: number
-  total: number
-  link?: Pick<LinkProps, "to" | "search">
-}) {
-  if (!shown) return null
-  if (link) {
-    return (
-      <Button
-        asChild
-        variant="outline"
-        className="w-fit"
-      >
-        <Link {...link}>Všechny v Moje akce</Link>
-      </Button>
-    )
-  }
-  // past events get a page with #61, ratings have none yet
-  return total > shown ? (
+/** How much is left out of a list that shows only the latest few (there is no page for all yet). */
+function More({ shown, total }: { shown: number; total: number }) {
+  return shown && total > shown ? (
     <p className="text-sm text-muted-foreground">
       Zobrazeno {shown} z {total}
     </p>
   ) : null
-}
-
-export type ProfileEventSection = "upcoming" | "organizing" | "past"
-
-/**
- * One event of a section as its card. The cards belong to the events feature, which this
- * feature can't import, so the route puts them in (like Moje skupiny).
- */
-export type RenderProfileEvent = (event: ProfileEvent, section: ProfileEventSection) => ReactNode
-
-/** Kam jdu, Pořádám, Proběhlé: the first few events (the API sends at most 3) as row cards. */
-export function EventSection({
-  title,
-  section,
-  events,
-  total,
-  empty,
-  link,
-  renderEvent,
-}: {
-  title: ReactNode
-  section: ProfileEventSection
-  events: ProfileEvent[]
-  total: number
-  empty: ReactNode
-  link?: Pick<LinkProps, "to" | "search">
-  renderEvent: RenderProfileEvent
-}) {
-  return (
-    <ProfileSection
-      title={title}
-      more={
-        <More
-          shown={events.length}
-          total={total}
-          link={link}
-        />
-      }
-    >
-      {!events.length ? (
-        <div className="flex flex-col items-start gap-3 text-sm text-muted-foreground">{empty}</div>
-      ) : (
-        // grid-cols-1 = minmax(0, 1fr): a long title truncates instead of widening the column
-        <ul className="grid grid-cols-1 gap-3">
-          {events.map((event) => (
-            <li key={event.id}>{renderEvent(event, section)}</li>
-          ))}
-        </ul>
-      )}
-    </ProfileSection>
-  )
 }
 
 type RatingGroup = { ratings: ProfileRating[]; summary: RatingSummary }

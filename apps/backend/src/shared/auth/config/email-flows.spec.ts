@@ -52,9 +52,10 @@ describe('emailFlowOptions', () => {
     expect(emailVerification.expiresIn).toBe(EMAIL_VERIFICATION_TTL_SECONDS);
     expect(EMAIL_VERIFICATION_TTL_SECONDS).toBe(86_400);
     expect(emailVerification.sendOnSignUp).toBe(true);
+    expect(emailVerification.autoSignInAfterVerification).toBe(true);
   });
 
-  it('the reset e-mail links to the frontend page with the token, for a limited time', async () => {
+  it('sends a reset link that BetterAuth checks before redirecting to the configured page', async () => {
     const email = mock<EmailService>();
     const { emailAndPassword } = emailFlowOptions(config, email);
 
@@ -65,14 +66,18 @@ describe('emailFlowOptions', () => {
     expect(PASSWORD_RESET_TTL_SECONDS).toBe(3600);
     expect(emailAndPassword.revokeSessionsOnPasswordReset).toBe(true);
     await emailAndPassword.sendResetPassword!(
-      { user, url: 'ignored', token: 't0k3n' },
+      {
+        user,
+        url: 'https://api.example/api/auth/reset-password/t0k3n?callbackURL=https%3A%2F%2Fother.example',
+        token: 't0k3n',
+      },
       undefined,
     );
     expect(email.sendEmail).toHaveBeenCalledWith(
       'jakub@example.com',
       RESET_PASSWORD_SUBJECT,
       expect.stringContaining(
-        'https://hobbyhub.example/reset-password?token=t0k3n',
+        'https://api.example/api/auth/reset-password/t0k3n?callbackURL=https%3A%2F%2Fhobbyhub.example%2Freset-password',
       ),
     );
   });
@@ -113,6 +118,7 @@ describe('withEmailFlows', () => {
     );
     expect(options.emailAndPassword.enabled).toBe(true);
     expect(options.emailVerification.expiresIn).toBe(86_400);
+    expect(options.emailVerification.autoSignInAfterVerification).toBe(true);
     expect(options.user).toBe(core.user);
   });
 

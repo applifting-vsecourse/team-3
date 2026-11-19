@@ -394,6 +394,7 @@ function toRatedEvent(event: PublicEventRow): RatedEvent {
     },
     organizer: event.organizer,
     group: event.group,
+    imageKey: event.imageKey,
     approvedCount: event._count.participations,
     missingToMin: Math.max(
       0,

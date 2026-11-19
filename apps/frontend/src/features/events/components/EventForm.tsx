@@ -7,6 +7,12 @@ import { z } from "zod"
 
 import { ActivityCombobox } from "@/components/CatalogCombobox/ActivityCombobox"
 import { LocalityCombobox } from "@/components/CatalogCombobox/LocalityCombobox"
+import {
+  imageChangeOf,
+  ImageField,
+  initialImageValue,
+  type ImageFieldValue,
+} from "@/components/ImageField/ImageField"
 import { LocationPicker } from "@/components/map/LocationPicker"
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import { Button } from "@/components/ui/button"
@@ -27,8 +33,10 @@ import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
 import { Textarea } from "@/components/ui/textarea"
 import type { Catalog } from "@/lib/catalog/catalogSearch"
 import { PRAHA_SLUG } from "@/lib/catalog/localityOptions"
+import type { ImageChange } from "@/lib/image"
 import { cn } from "@/lib/utils"
 
+import { distanceKm } from "@/features/events/api/addressSearch"
 import {
   EVENT_ADDRESS_MAX_LENGTH,
   EVENT_DESCRIPTION_MAX_LENGTH,
@@ -105,6 +113,8 @@ const buildSchema = (approvedCount: number) =>
           EVENT_DESCRIPTION_MAX_LENGTH,
           `Popis může mít nejvýš ${EVENT_DESCRIPTION_MAX_LENGTH} znaků`,
         ),
+      /** The event's own image (#77); a refused file never gets here (`onRefuse`). */
+      image: z.custom<ImageFieldValue>(),
     })
     .refine((values) => values.place !== null, {
       message: "Vyber místo na mapě",
@@ -198,9 +208,12 @@ type EventFormProps = {
   group?: { id: string; name: string }
   /** Prefilled values, e.g. when editing (#41). */
   initialValues?: Partial<EventInput>
+  /** The image the event already has (#77), when editing. */
+  initialImageSrc?: string | null
   isSubmitting: boolean
   errorMessage?: string | null
-  onSubmit: (input: EventInput) => void | Promise<void>
+  /** `image`: what to do with the event's own image after saving it (#77). */
+  onSubmit: (input: EventInput, image: ImageChange) => void | Promise<void>
 }
 
 /**
@@ -214,6 +227,7 @@ export function EventForm({
   approvedCount = 0,
   group,
   initialValues,
+  initialImageSrc,
   isSubmitting,
   errorMessage,
   onSubmit,
@@ -225,6 +239,7 @@ export function EventForm({
   const countLabelId = useId()
   const whatId = useId()
   const whereId = useId()
+  const imageLabelId = useId()
   const [isCalendarOpen, setIsCalendarOpen] = useState(false)
   const today = usePragueToday()
   const isEdit = mode === "edit"
@@ -253,6 +268,7 @@ export function EventForm({
       approvalMode: initialValues?.approvalMode ?? "open",
       visibility: initialValues?.visibility ?? "public",
       description: initialValues?.description ?? "",
+      image: initialImageValue(initialImageSrc),
     },
   })
 
@@ -271,10 +287,17 @@ export function EventForm({
 
   const localityId = useWatch({ control: form.control, name: "localityId" })
   const place = useWatch({ control: form.control, name: "place" })
-  const mapCenter = catalog.localities.find((l) => l.id === localityId) ??
+  const [didChangeLocality, setDidChangeLocality] = useState(false)
+  const selectedLocality = catalog.localities.find((l) => l.id === localityId)
+  const mapCenter = selectedLocality ??
     // before a locality is picked: the biggest city, as the picker lists it first
     catalog.localities.find((l) => l.slug === PRAHA_SLUG) ??
     catalog.localities[0] ?? { lat: 50.0755, lng: 14.4378 }
+  // The catalog has locality centers, so this is only a distance hint.
+  const suggestedCenter =
+    didChangeLocality && place && selectedLocality && distanceKm(place, selectedLocality) > 2
+      ? selectedLocality
+      : null
 
   const location = useEventLocation({
     localities: catalog.localities,
@@ -305,21 +328,25 @@ export function EventForm({
         onSubmit={form.handleSubmit((values) => {
           // entered as Prague time, whatever the device's time zone
           const { startsAt, endsAt } = eventTimes(values.day, values.start, values.end)
-          return onSubmit({
-            title: values.title.trim(),
-            description: values.description.trim() || null,
-            activityId: values.activityId,
-            localityId: values.localityId,
-            lat: values.place!.lat,
-            lng: values.place!.lng,
-            address: values.address.trim(),
-            startsAt: startsAt.toISOString(),
-            endsAt: endsAt?.toISOString() ?? null,
-            minParticipants: Number(values.minParticipants),
-            maxParticipants: Number(values.maxParticipants),
-            approvalMode: values.approvalMode,
-            ...(isGroupCreate ? { groupId: group.id, visibility: values.visibility } : {}),
-          })
+          const image = imageChangeOf(values.image, Boolean(initialImageSrc))
+          return onSubmit(
+            {
+              title: values.title.trim(),
+              description: values.description.trim() || null,
+              activityId: values.activityId,
+              localityId: values.localityId,
+              lat: values.place!.lat,
+              lng: values.place!.lng,
+              address: values.address.trim(),
+              startsAt: startsAt.toISOString(),
+              endsAt: endsAt?.toISOString() ?? null,
+              minParticipants: Number(values.minParticipants),
+              maxParticipants: Number(values.maxParticipants),
+              approvalMode: values.approvalMode,
+              ...(isGroupCreate ? { groupId: group.id, visibility: values.visibility } : {}),
+            },
+            image,
+          )
         })}
         className="flex flex-col gap-6"
       >
@@ -657,6 +684,35 @@ export function EventForm({
                 )}
               />
             ) : null}
+
+            <FormField
+              control={form.control}
+              name="image"
+              render={({ field }) => (
+                // Figma D-01: the last field of „Co a kdy“
+                <FormItem className="order-12 md:order-none">
+                  <FormLabel id={imageLabelId}>Plakát nebo fotka</FormLabel>
+                  <FormControl>
+                    <ImageField
+                      ref={field.ref}
+                      value={field.value}
+                      onChange={(value) => {
+                        field.onChange(value)
+                        form.clearErrors("image")
+                      }}
+                      onRefuse={(message) => form.setError("image", { message })}
+                      addLabel="Přidat plakát nebo fotku"
+                      labelId={imageLabelId}
+                    />
+                  </FormControl>
+                  <FormDescription>
+                    Nepovinné. JPEG, PNG nebo WebP, nejvýš 5 MB. Bez vlastního obrázku se u akce
+                    ukáže fotka aktivity.
+                  </FormDescription>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
           </div>
 
           <div
@@ -684,11 +740,15 @@ export function EventForm({
                       value={field.value}
                       onChange={(value) => {
                         location.cancelLookup()
+                        setDidChangeLocality(true)
                         field.onChange(value)
                       }}
                       onBlur={field.onBlur}
                     />
                   </FormControl>
+                  <FormDescription>
+                    Obec nebo městská část, podle které se dá akce najít.
+                  </FormDescription>
                   <FormMessage />
                 </FormItem>
               )}
@@ -712,9 +772,10 @@ export function EventForm({
                   </p>
                   <LocationPicker
                     value={field.value}
-                    onChange={(point, source) =>
+                    onChange={(point, source) => {
+                      setDidChangeLocality(false)
                       void location.pickPoint(point, source === "center")
-                    }
+                    }}
                     center={mapCenter}
                     labelledBy={placeLabelId}
                     isInvalid={Boolean(fieldState.error)}
@@ -722,6 +783,27 @@ export function EventForm({
                     // D-01d: the map has the room of its own column on desktop
                     mapClassName="md:h-100"
                   />
+                  {suggestedCenter ? (
+                    <div className="flex flex-wrap items-center gap-2">
+                      <p
+                        className="text-sm text-muted-foreground"
+                        role="status"
+                      >
+                        Špendlík je dál od středu lokality {suggestedCenter.name}.
+                      </p>
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        onClick={() => {
+                          setDidChangeLocality(false)
+                          void location.pickPoint(suggestedCenter)
+                        }}
+                      >
+                        Přesunout do středu lokality
+                      </Button>
+                    </div>
+                  ) : null}
                   <FormMessage id={placeErrorId} />
                 </FormItem>
               )}
@@ -743,7 +825,10 @@ export function EventForm({
                         location.typeAddress(value)
                       }}
                       near={place ?? mapCenter}
-                      onPick={location.pickAddress}
+                      onPick={(suggestion) => {
+                        setDidChangeLocality(false)
+                        location.pickAddress(suggestion)
+                      }}
                     />
                   </FormControl>
                   <FormDescription role="status">{location.notice}</FormDescription>

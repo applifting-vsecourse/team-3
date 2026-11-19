@@ -8,6 +8,7 @@ import { PageBand } from "@/components/PageBand/PageBand"
 import { SubBar } from "@/components/PageBand/SubBar"
 import { PersonRow } from "@/components/PersonRow/PersonRow"
 import { DESKTOP_QUERY, useMediaQuery } from "@/hooks/useMediaQuery"
+import { photoOf } from "@/lib/image"
 import { PAGE } from "@/lib/pageLayout"
 
 import type { GroupDetail } from "@/features/groups/api/groupSchemas"
@@ -75,7 +76,13 @@ export function GroupProfile({
       {isDesktop ? null : <p className="text-body text-on-hero-muted">{line}</p>}
     </PageBand>
   )
-  const photo = <ActivityPhoto slug={group.activity.slug} />
+  // its own photo (#77), or the activity's
+  const photo = (
+    <ActivityPhoto
+      slug={group.activity.slug}
+      photo={photoOf(group)}
+    />
+  )
 
   if (isDesktop) {
     return (

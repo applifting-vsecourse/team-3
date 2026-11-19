@@ -6,6 +6,7 @@ import "@/styles/global.css"
 import { BottomNav } from "@/components/BottomNav/BottomNav"
 import { Toaster } from "@/components/ui/sonner"
 
+import { AgeConfirmationDialog } from "@/features/auth/components/AgeConfirmationDialog"
 import { EmailVerifiedDialog } from "@/features/auth/components/EmailVerifiedDialog"
 import { useSession } from "@/features/auth/hooks/useSession"
 
@@ -31,6 +32,7 @@ function RootComponent() {
       />
       {/* what the link in the verification e-mail did, over any page (#155) */}
       <EmailVerifiedDialog />
+      <AgeConfirmationDialog />
       <Toaster
         richColors
         position="top-right"

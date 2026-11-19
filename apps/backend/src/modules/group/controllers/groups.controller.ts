@@ -1,4 +1,9 @@
 import { GroupsService } from '@/modules/group/services/groups.service';
+import {
+  ImageUpload,
+  uploadedBytes,
+  type UploadedImageFile,
+} from '@/modules/image/controllers/image-upload';
 import { OptionalUser } from '@/shared/auth/decorators/optional-user.decorator';
 import { User } from '@/shared/auth/decorators/user.decorator';
 import { Identity } from '@/shared/auth/domain/identity';
@@ -9,12 +14,15 @@ import { RequestMessageDto } from '@/shared/request-message/dto/request-message.
 import {
   Body,
   Controller,
+  Delete,
   Get,
   HttpCode,
   Param,
   Patch,
   Post,
+  Put,
   Query,
+  UploadedFile,
   UseGuards,
   UsePipes,
   ValidationPipe,
@@ -132,6 +140,64 @@ export class GroupsController {
   ): Promise<GroupDetailResponseDto> {
     const group = await this.groupsService.updateGroup(id, body, user.id);
     return GroupDetailResponseDto.fromDomain(group);
+  }
+
+  @Put(':id/image')
+  @UseGuards(VerifiedUserGuard)
+  @ImageUpload()
+  @ApiCookieAuth()
+  @ApiOperation({
+    summary:
+      "Upload the group's own photo (#77), replacing the previous one; only its admins",
+    description:
+      "JPEG, PNG or WebP by the file's content, at most 5 MB. The group then has `imageKey`; the photo is at GET /api/images/{imageKey}.",
+  })
+  @ApiResponse({ status: 200, type: GroupDetailResponseDto })
+  @ApiResponse({
+    status: 400,
+    description: 'No file, or not JPEG/PNG/WebP (Czech message)',
+  })
+  @ApiResponse({ status: 401, description: 'Not signed in' })
+  @ApiResponse({
+    status: 403,
+    description:
+      'Not an admin of the group, EMAIL_NOT_VERIFIED, or USER_BLOCKED',
+  })
+  @ApiResponse({ status: 404, description: 'No such group' })
+  @ApiResponse({ status: 409, description: 'GROUP_INACTIVE' })
+  async setImage(
+    @Param('id') id: string,
+    @UploadedFile() file: UploadedImageFile | undefined,
+    @User() user: Identity,
+  ): Promise<GroupDetailResponseDto> {
+    return GroupDetailResponseDto.fromDomain(
+      await this.groupsService.setGroupImage(id, user.id, uploadedBytes(file)),
+    );
+  }
+
+  @Delete(':id/image')
+  @UseGuards(VerifiedUserGuard)
+  @ApiCookieAuth()
+  @ApiOperation({
+    summary:
+      "Remove the group's own photo (#77): the activity's photo shows again; only its admins",
+  })
+  @ApiResponse({ status: 200, type: GroupDetailResponseDto })
+  @ApiResponse({ status: 401, description: 'Not signed in' })
+  @ApiResponse({
+    status: 403,
+    description:
+      'Not an admin of the group, EMAIL_NOT_VERIFIED, or USER_BLOCKED',
+  })
+  @ApiResponse({ status: 404, description: 'No such group' })
+  @ApiResponse({ status: 409, description: 'GROUP_INACTIVE' })
+  async removeImage(
+    @Param('id') id: string,
+    @User() user: Identity,
+  ): Promise<GroupDetailResponseDto> {
+    return GroupDetailResponseDto.fromDomain(
+      await this.groupsService.setGroupImage(id, user.id, null),
+    );
   }
 
   @Post(':id/join')

@@ -87,4 +87,15 @@ describe("GroupList", () => {
     await userEvent.click(screen.getByRole("button", { name: "Zkusit znovu" }))
     expect(onRetry).toHaveBeenCalledOnce()
   })
+
+  it("a card shows the group's own photo instead of the activity's (#77)", () => {
+    const { container } = render(
+      <GroupList
+        empty={null}
+        groups={[aGroup({ imageKey: "k-parta" })]}
+      />,
+    )
+
+    expect(container.querySelector("img")?.getAttribute("src")).toMatch(/\/images\/k-parta$/)
+  })
 })

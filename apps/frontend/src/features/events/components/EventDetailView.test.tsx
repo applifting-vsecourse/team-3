@@ -63,6 +63,18 @@ describe("EventDetailView", () => {
     expectValidDescriptionList(screen.getByText("Kdy").closest("dl")!)
   })
 
+  it("the organizer's own image is the detail's photo (#77)", async () => {
+    const { container } = await renderWithRouter(
+      <EventDetailView event={anEventDetail({ imageKey: "k-plakat" })} />,
+    )
+
+    const images = container.querySelectorAll("[data-slot=activity-photo] img")
+    expect(images.length).toBeGreaterThan(0)
+    for (const img of images) {
+      expect(img.getAttribute("src")).toMatch(/\/images\/k-plakat$/)
+    }
+  })
+
   it.each([
     [{ approvedCount: 4, missingToMin: 0, freeSpots: 8 }, "8 volných míst"],
     [{ approvedCount: 11, missingToMin: 0, freeSpots: 1 }, "1 volné místo"],

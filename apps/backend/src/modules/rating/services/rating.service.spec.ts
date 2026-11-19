@@ -46,6 +46,7 @@ const event: RatedEvent = {
   group: null,
   approvedCount: 5,
   missingToMin: 0,
+  imageKey: null,
 };
 
 const snapshot = (

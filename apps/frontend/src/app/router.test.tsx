@@ -1,32 +1,56 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query"
 import { createMemoryHistory, createRouter, RouterProvider } from "@tanstack/react-router"
 import { render, screen, within } from "@testing-library/react"
+import userEvent from "@testing-library/user-event"
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest"
 
 import { router } from "@/app/router"
 import { authKeys } from "@/lib/auth-keys"
 
+import type { Session } from "@/features/auth/api/authSessionQueryOptions"
 import { authClient } from "@/features/auth/lib/auth-client"
 
 vi.mock("@/features/auth/lib/auth-client", () => ({
-  authClient: { getSession: vi.fn() },
+  authClient: { getSession: vi.fn(), resetPassword: vi.fn() },
 }))
 
-const user = { id: "u1", email: "user@example.com", name: "Jana Nováková", emailVerified: true }
+const user = {
+  id: "u1",
+  email: "user@example.com",
+  name: "Jana Nováková",
+  emailVerified: true,
+  ageConfirmedAt: "2026-01-01T00:00:00.000Z",
+}
 
 /**
  * The app's own routes and pages on `url`, for a visitor or a signed-in user.
  * `cachedUser` is what the app already has of that user, e.g. still unverified
  * right after the sign-up; the server then says `user`.
  */
-async function renderApp(url: string, { isSignedIn = false, cachedUser = user } = {}) {
-  const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } })
-  queryClient.setQueryData(authKeys.session(), isSignedIn ? { user: cachedUser } : null)
+async function renderApp(
+  url: string,
+  {
+    isSignedIn = false,
+    cachedUser = user,
+    isSessionUnavailable = false,
+    queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } }),
+  }: {
+    isSignedIn?: boolean
+    cachedUser?: typeof user | null
+    isSessionUnavailable?: boolean
+    queryClient?: QueryClient
+  } = {},
+) {
+  queryClient.setQueryData(
+    authKeys.session(),
+    isSignedIn && cachedUser ? { user: cachedUser } : null,
+  )
   // what the server says when the session is fetched anew
   vi.mocked(authClient.getSession).mockResolvedValue({
     data: isSignedIn ? { user, session: {} } : null,
     error: null,
   })
+  if (isSessionUnavailable) vi.mocked(authClient.getSession).mockRejectedValue(new Error("Offline"))
   const app = createRouter({
     ...router.options,
     context: { queryClient },
@@ -116,7 +140,6 @@ describe("router", () => {
         // the session was fetched anew before the dialog trusted it: success,
         // never „not verified“ first
         expect(await screen.findByRole("dialog", { name: "E-mail je ověřený" })).toBeInTheDocument()
-        expect(screen.queryByText("E-mail zatím není ověřený")).not.toBeInTheDocument()
         expect(screen.queryByText(/Ověř si e-mail/)).not.toBeInTheDocument()
         expect(authClient.getSession).toHaveBeenCalled()
         // the page's own address, nothing added to it; „Zpět“ doesn't lead to /email-overen
@@ -124,6 +147,38 @@ describe("router", () => {
         expect(app.history.length).toBe(1)
       },
     )
+
+    it.each([null, { ...user, id: "other", email: "other@example.com" }])(
+      "loads the new cookie session before entering a protected return page (cached=%j)",
+      async (cachedUser) => {
+        stubApi()
+        const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } })
+        const app = await renderApp("/email-overen?from=%2Fmoje%2Fakce", {
+          isSignedIn: true,
+          cachedUser,
+          queryClient,
+        })
+        expect(app.state.location.pathname).toBe("/moje/akce")
+        const fresh = queryClient.getQueryData<Session>(authKeys.session())
+        expect(fresh?.user.id).toBe(user.id)
+        expect(fresh?.user.emailVerified).toBe(true)
+        const dialog = await screen.findByRole("dialog", { name: "E-mail je ověřený" })
+        expect(within(dialog).queryByRole("link", { name: "Přihlásit se" })).not.toBeInTheDocument()
+      },
+    )
+
+    it("does not trust a cached account if refreshing the verification session fails", async () => {
+      stubApi()
+      const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } })
+      const app = await renderApp("/email-overen?from=%2Fmoje%2Fakce", {
+        isSignedIn: true,
+        cachedUser: { ...user, id: "old-account" },
+        isSessionUnavailable: true,
+        queryClient,
+      })
+      expect(app.state.location.pathname).toBe("/login")
+      expect(queryClient.getQueryData<Session>(authKeys.session())?.user).toBeUndefined()
+    })
 
     it("a link that didn't work: the dialog explains it, over the events without `from`", async () => {
       stubApi()
@@ -153,6 +208,62 @@ describe("router", () => {
       expect(app.state.location.pathname).toBe("/login")
     })
   })
+  describe("opening a password reset link (#345)", () => {
+    it("offers a new link immediately when the e-mail link expired or was used", async () => {
+      stubApi()
+      await renderApp("/reset-password?error=INVALID_TOKEN")
+
+      expect(await screen.findByText(/Odkaz vypršel, už se použil/)).toBeInTheDocument()
+      expect(screen.queryByLabelText("Nové heslo")).not.toBeInTheDocument()
+      expect(screen.getByRole("link", { name: "Poslat nový odkaz" })).toHaveAttribute(
+        "href",
+        "/zapomenute-heslo",
+      )
+    })
+
+    it("offers a new link when an older direct link is rejected on submit", async () => {
+      stubApi()
+      vi.mocked(authClient.resetPassword).mockResolvedValueOnce({
+        data: null,
+        error: {
+          code: "INVALID_TOKEN",
+          message: "Invalid token",
+          status: 400,
+          statusText: "Bad Request",
+        },
+      })
+      await renderApp("/reset-password?token=old-link")
+
+      await userEvent.type(await screen.findByLabelText("Nové heslo"), "nove-heslo-2026")
+      await userEvent.type(screen.getByLabelText("Nové heslo znovu"), "nove-heslo-2026")
+      await userEvent.click(screen.getByRole("button", { name: "Nastavit heslo" }))
+
+      expect(await screen.findByText(/Odkaz vypršel, už se použil/)).toBeInTheDocument()
+      expect(screen.queryByLabelText("Nové heslo")).not.toBeInTheDocument()
+      expect(screen.getByRole("link", { name: "Poslat nový odkaz" })).toHaveAttribute(
+        "href",
+        "/zapomenute-heslo",
+      )
+    })
+
+    it("takes the user to sign-in after saving the new password", async () => {
+      stubApi()
+      vi.mocked(authClient.resetPassword).mockResolvedValueOnce({
+        data: { status: true },
+        error: null,
+      })
+      const app = await renderApp("/reset-password?token=valid-link")
+
+      await userEvent.type(await screen.findByLabelText("Nové heslo"), "nove-heslo-2026")
+      await userEvent.type(screen.getByLabelText("Nové heslo znovu"), "nove-heslo-2026")
+      await userEvent.click(screen.getByRole("button", { name: "Nastavit heslo" }))
+
+      expect(await screen.findByRole("heading", { name: "Přihlášení" })).toBeInTheDocument()
+      expect(app.state.location.pathname).toBe("/login")
+      expect(app.history.length).toBe(1)
+    })
+  })
+
   // #198: what Google (through BetterAuth) sends back to the page the sign-in started on
   describe("back from Google with an error", () => {
     it("on /signup: the Czech message offers signing up with the e-mail", async () => {

@@ -37,9 +37,9 @@ export class MyEventsController {
   @Get()
   @ApiOperation({
     summary:
-      'Moje akce (B-035): upcoming events I attend or organize, soonest first',
+      'Moje akce (B-035): events I attend or organize, upcoming soonest first, past latest first',
     description:
-      'attending: approved places and requests waiting for approval; organizing: events I created and the events of the groups I am an admin of (B-055); groups: published events of the groups I am a member of that I can still ask to join – no place, no request, not rejected or removed (#304). Cancelled events stay with status cancelled under attending and organizing.',
+      'attending: approved places and requests waiting for approval; organizing: events I created and the events of the groups I am an admin of (B-055); groups: published events of the groups I am a member of that I can still ask to join – no place, no request, not rejected or removed (#304); past: events that are over where I had an approved place (#367). Cancelled events stay with status cancelled under attending, organizing and past.',
   })
   @ApiResponse({ status: 200, type: [MyEventResponseDto] })
   @ApiResponse({ status: 400, description: 'Missing or unknown tab' })

@@ -64,6 +64,7 @@ const anEvent = (
     approved,
   ),
   isPromoted: false,
+  imageKey: null,
   distanceKm: null,
   ...extra,
 });
@@ -432,6 +433,7 @@ describe('HomeService', () => {
         activity: anEvent('x', 0).activity,
         locality: anEvent('x', 0).locality,
         memberCount: 3,
+        imageKey: null,
         nextEventAt: new Date('2026-11-05T10:00:00.000Z'),
       },
     ]);

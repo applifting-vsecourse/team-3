@@ -47,6 +47,8 @@ const ratedEventSchema = z.object({
   approvedCount: z.number(),
   // above 0 it didn't take place: the card says „Nekonalo se“ (review #323)
   missingToMin: z.number(),
+  // the organizer's own image (#77) for the card; none = the activity's photo
+  imageKey: z.string().nullish(),
 })
 
 export type RatedEvent = z.infer<typeof ratedEventSchema>

@@ -5,7 +5,7 @@ import { backLabel, previousPath } from "@/components/BackLink/backTarget"
 import { Button } from "@/components/ui/button"
 import { cn } from "@/lib/utils"
 
-export type BackLinkProps = Pick<LinkProps, "to" | "params"> & {
+export type BackLinkProps = Pick<LinkProps, "to" | "params" | "search"> & {
   /** The label when there is no history, e.g. „Všechny akce“ for `to` = the list. */
   fallbackLabel: string
   /**
@@ -25,6 +25,7 @@ export type BackLinkProps = Pick<LinkProps, "to" | "params"> & {
 export function BackLink({
   to,
   params,
+  search,
   fallbackLabel,
   label,
   isIconOnlyOnMobile = false,
@@ -43,6 +44,7 @@ export function BackLink({
       <Link
         to={to}
         params={params}
+        search={search}
         onClick={(e) => {
           if (!canGoBack) return
           e.preventDefault()

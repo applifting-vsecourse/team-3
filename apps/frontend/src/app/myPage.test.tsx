@@ -14,7 +14,13 @@ vi.mock("@/features/auth/lib/auth-client", () => ({
   authClient: { getSession: vi.fn().mockResolvedValue({ data: null, error: null }) },
 }))
 
-const user = { id: "u1", email: "petra@example.com", name: "Petra Nováková", emailVerified: true }
+const user = {
+  id: "u1",
+  email: "petra@example.com",
+  name: "Petra Nováková",
+  emailVerified: true,
+  ageConfirmedAt: "2026-01-01T00:00:00.000Z",
+}
 const json = (body: unknown) =>
   new Response(JSON.stringify(body), { headers: { "content-type": "application/json" } })
 

@@ -26,6 +26,7 @@ import {
   MembershipError,
 } from '@/modules/group/domain/membership';
 import { GroupRepository } from '@/modules/group/repositories/group.repository';
+import { NewImage, prepareImage } from '@/modules/image/domain/uploaded-image';
 import { NotificationService } from '@/modules/notification/services/notification.service';
 import {
   BadRequestException,
@@ -132,6 +133,34 @@ export class GroupsService {
       // in a public group only joining is approved, so nobody is left waiting
       approvePending: group.type === 'closed' && patch.type === 'public',
     });
+    return this.getGroup(id, userId);
+  }
+
+  /**
+   * The group's own photo (#77): sets or, with `null`, removes it, then the
+   * activity's photo shows again. Only an admin of an active group; the file
+   * is checked by its content (JPEG, PNG or WebP, at most 5 MB).
+   */
+  async setGroupImage(
+    id: string,
+    userId: string,
+    file: Uint8Array | null,
+  ): Promise<GroupDetail> {
+    await this.getActiveGroup(id);
+    await this.assertAdmin(
+      id,
+      userId,
+      'Fotku skupiny může změnit jen její správce',
+    );
+    let image: NewImage | null = null;
+    if (file) {
+      const check = await prepareImage(file);
+      if (!check.ok) throw new BadRequestException([check.message]);
+      image = check.image;
+    }
+    const result = await this.groupRepository.replaceImage(id, image);
+    if (!result) throw new NotFoundException('Skupina neexistuje');
+    if (result === 'inactive') throw MEMBERSHIP_ERRORS.GROUP_INACTIVE();
     return this.getGroup(id, userId);
   }
 

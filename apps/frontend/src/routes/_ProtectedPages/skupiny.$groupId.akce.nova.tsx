@@ -63,19 +63,22 @@ function NewGroupEventPage() {
               initialValues={{ activityId: group.activity.id, localityId: group.locality.id }}
               isSubmitting={createEvent.isPending}
               errorMessage={createEvent.error?.message}
-              onSubmit={(input) =>
-                createEvent.mutate(input, {
-                  onSuccess: (event) => {
-                    // the detail as before; the toast leads on to Moje akce › Pořádám (#188)
-                    announcePublished()
-                    // replace: „Zpět“ from the new event goes back to the group, not to an empty form
-                    void navigate({
-                      to: ROUTES.eventDetail,
-                      params: { eventId: event.id },
-                      replace: true,
-                    })
+              onSubmit={(input, image) =>
+                createEvent.mutate(
+                  { input, image: image.kind === "set" ? image.file : null },
+                  {
+                    onSuccess: ({ event, imageError }) => {
+                      // the detail as before; the toast leads on to Moje akce › Pořádám (#188)
+                      announcePublished(imageError)
+                      // replace: „Zpět“ from the new event goes back to the group, not to an empty form
+                      void navigate({
+                        to: ROUTES.eventDetail,
+                        params: { eventId: event.id },
+                        replace: true,
+                      })
+                    },
                   },
-                })
+                )
               }
             />
           ) : (

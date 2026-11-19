@@ -7,6 +7,7 @@ import { Seo } from "@/components/Seo"
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 import { Skeleton } from "@/components/ui/skeleton"
 import { useCatalog } from "@/hooks/useCatalog"
+import { imageUrl } from "@/lib/image"
 import { FORM, PAGE } from "@/lib/pageLayout"
 import { cn } from "@/lib/utils"
 
@@ -95,16 +96,27 @@ function EditEventPage() {
                 maxParticipants: event.maxParticipants,
                 approvalMode: event.approvalMode,
               }}
+              initialImageSrc={event.imageKey ? imageUrl(event.imageKey) : null}
               isSubmitting={updateEvent.isPending}
               errorMessage={updateEvent.error?.message}
-              onSubmit={({ activityId: _activity, approvalMode: _approval, ...changes }) =>
-                updateEvent.mutate(changes, {
-                  onSuccess: () => {
-                    toast.success("Změny jsou uložené.")
-                    // the detail and Správa akce read the saved event from the cache
-                    leaveForm()
+              onSubmit={({ activityId: _activity, approvalMode: _approval, ...changes }, image) =>
+                updateEvent.mutate(
+                  { changes, image },
+                  {
+                    onSuccess: ({ imageError }) => {
+                      if (imageError) {
+                        // the rest is saved; the picked image stays in the form to try again
+                        toast.error(`Změny jsou uložené, obrázek ale ne. ${imageError}`, {
+                          duration: 10_000,
+                        })
+                        return
+                      }
+                      toast.success("Změny jsou uložené.")
+                      // the detail and Správa akce read the saved event from the cache
+                      leaveForm()
+                    },
                   },
-                })
+                )
               }
             />
           ) : (

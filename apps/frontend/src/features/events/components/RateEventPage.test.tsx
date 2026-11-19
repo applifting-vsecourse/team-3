@@ -100,6 +100,16 @@ const renderPage = (onSaved = vi.fn().mockResolvedValue(undefined)) =>
   )
 
 describe("/akce/:id/hodnoceni for a participant (Figma C-03, #66)", () => {
+  it("the event's card shows the organizer's own image (#77)", async () => {
+    answer = { ...fresh, event: { ...event, imageKey: "k-plakat" } }
+    const { container } = await renderPage()
+
+    await screen.findByRole("heading", { name: "Volejbal na Letné" })
+    expect(container.querySelector("[data-slot=event-photo] img")?.getAttribute("src")).toMatch(
+      /\/images\/k-plakat$/,
+    )
+  })
+
   it("shows the band, the event's card, the two questions and the comment", async () => {
     await renderPage()
 
@@ -130,6 +140,15 @@ describe("/akce/:id/hodnoceni for a participant (Figma C-03, #66)", () => {
         "Hodnotit jde 14 dní po akci, tedy do po 2. 11., a do té doby hodnocení změníš.",
       ),
     ).toBeInTheDocument()
+  })
+
+  it("without history (the e-mail's link) the way back leads to Moje › Proběhlé (#367)", async () => {
+    await renderPage()
+
+    expect(screen.getByRole("link", { name: "Proběhlé akce" })).toHaveAttribute(
+      "href",
+      "/moje/akce?tab=probehle",
+    )
   })
 
   it("never asks for the event's detail: a former member of the group doesn't get it", async () => {

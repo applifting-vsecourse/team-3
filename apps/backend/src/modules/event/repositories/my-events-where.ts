@@ -1,6 +1,9 @@
 import { Prisma } from '@/generated/prisma/client';
 import { MyEventsTab } from '@/modules/event/domain/event';
-import { eventNotOverWhere } from '@/modules/event/domain/event-over';
+import {
+  eventNotOverWhere,
+  eventOverWhere,
+} from '@/modules/event/domain/event-over';
 import { NO_NEW_REQUEST_STATUSES } from '@/modules/event/domain/participation';
 
 /**
@@ -17,18 +20,30 @@ import { NO_NEW_REQUEST_STATUSES } from '@/modules/event/domain/participation';
  *   that they can still ask to join: no place, no waiting request, and not
  *   rejected or removed by the organizer (`NO_NEW_REQUEST_STATUSES`, as the
  *   lists of #182).
+ * - `past` (Proběhlé, #367): the events that are over (`eventOverWhere`,
+ *   #272) where the user had an approved place – the same history the profile
+ *   showed until #367. A request never approved isn't history.
  * `attending` and `organizing` list the events that are not over yet (#272),
  * also one going on right now: joining or leaving it is no longer possible
- * (EVENT_STARTED), but it is still where the user goes; past ones are Proběhlé
- * in the profile. They keep cancelled ones with their label. `groups` lists
- * only events that haven't started – one can't join once it runs – and no
- * cancelled ones (there is nothing to go to). Hidden and deleted never.
+ * (EVENT_STARTED), but it is still where the user goes; past ones are `past`.
+ * They keep cancelled ones with their label, and so does `past` („Zrušeno ·
+ * Akce se nekonala“, no rating). `groups` lists only events that haven't
+ * started – one can't join once it runs – and no cancelled ones (there is
+ * nothing to go to). Hidden and deleted never.
  */
 export const buildMyEventsWhere = (
   tab: MyEventsTab,
   userId: string,
   now: Date,
 ): Prisma.EventWhereInput => {
+  if (tab === 'past') {
+    return {
+      AND: [
+        { status: { in: ['published', 'cancelled'] }, ...eventOverWhere(now) },
+        { participations: { some: { userId, status: 'approved' } } },
+      ],
+    };
+  }
   if (tab === 'groups') {
     return {
       AND: [

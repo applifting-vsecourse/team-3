@@ -27,6 +27,7 @@ const input = {
   password: "hobbyhub2026",
   termsAccepted: true,
   privacyAcknowledged: true,
+  ageConfirmed: true,
 }
 
 describe("useSignUp", () => {
@@ -41,6 +42,7 @@ describe("useSignUp", () => {
       password: "hobbyhub2026",
       termsAccepted: true,
       privacyAcknowledged: true,
+      ageConfirmed: true,
       callbackURL: `${window.location.origin}/email-overen?from=%2Fakce%2Fe1`,
     })
   })

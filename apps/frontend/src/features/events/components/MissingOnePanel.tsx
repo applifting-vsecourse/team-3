@@ -3,13 +3,13 @@ import { Link } from "@tanstack/react-router"
 import { RefreshCw } from "lucide-react"
 
 import { ROUTES } from "@/app/routes"
-import { activityPhoto } from "@/assets/activity-photos"
 import { ActivityTile } from "@/components/ActivityTile/ActivityTile"
 import { CapacityBar } from "@/components/CapacityBar/CapacityBar"
 import { DateTile } from "@/components/DateTile/DateTile"
 import { LogoMark } from "@/components/Logo/Logo"
 import { Button } from "@/components/ui/button"
 import { Skeleton } from "@/components/ui/skeleton"
+import { photoOf } from "@/lib/image"
 import { cn } from "@/lib/utils"
 
 import type { PublicEvent } from "@/features/events/api/eventSchemas"
@@ -38,7 +38,7 @@ function PanelLabel({ children }: { children: ReactNode }) {
  * the panel, as on the event card.
  */
 export function MissingOnePanel({ event, now }: { event: PublicEvent; now: Date }) {
-  const photo = activityPhoto(event.activity.slug)
+  const photo = photoOf(event)
   const date = eventDateParts(event.startsAt)
   return (
     <article

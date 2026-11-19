@@ -8,12 +8,18 @@ const invalidOf = (query: Record<string, unknown>): string[] =>
   }).map((error) => error.property);
 
 describe('MyEventsQueryDto', () => {
-  it.each(['attending', 'organizing', 'groups'])('accepts tab=%s', (tab) => {
-    expect(invalidOf({ tab })).toEqual([]);
-  });
+  it.each(['attending', 'organizing', 'groups', 'past'])(
+    'accepts tab=%s',
+    (tab) => {
+      expect(invalidOf({ tab })).toEqual([]);
+    },
+  );
 
-  // `past` (Proběhlé) comes with #61
-  it.each([{}, { tab: 'past' }, { tab: 'poradam' }])('rejects %o', (query) => {
-    expect(invalidOf(query)).toEqual(['tab']);
-  });
+  // the API's names, not the URL's (`probehle`, `poradam`)
+  it.each([{}, { tab: 'probehle' }, { tab: 'poradam' }])(
+    'rejects %o',
+    (query) => {
+      expect(invalidOf(query)).toEqual(['tab']);
+    },
+  );
 });

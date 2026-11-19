@@ -301,9 +301,11 @@ describe("EventForm", () => {
     await userEvent.click(centerButton())
     await waitFor(() => expect(addressField()).toHaveValue("Křižíkova 53/52, Praha 8 – Karlín"))
     await submit()
-    expect(onSubmit).toHaveBeenCalledWith(
-      expect.objectContaining({ lat: 50.11, lng: 14.47, localityId: "l-praha-8" }),
-    )
+    expect(onSubmit.mock.lastCall?.[0]).toMatchObject({
+      lat: 50.11,
+      lng: 14.47,
+      localityId: "l-praha-8",
+    })
   })
 
   it.each([true, false])("asks before replacing manual text; accept=%s", async (shouldAccept) => {
@@ -359,15 +361,24 @@ describe("EventForm", () => {
     })
     await pick("Lokalita *", "Hledat lokalitu", "Ústí nad Orlicí")
     expect(addressField()).toHaveValue("Vlastní místo")
+    const moveToLocality = screen.getByRole("button", { name: "Přesunout do středu lokality" })
+    expect(moveToLocality).toBeVisible()
     await userEvent.click(screen.getByRole("button", { name: "Uložit změny" }))
-    expect(onSubmit).toHaveBeenCalledWith(
-      expect.objectContaining({
-        localityId: "l-usti-nad-orlici",
-        lat: 50.11,
-        lng: 14.47,
-        address: "Vlastní místo",
-      }),
-    )
+    expect(onSubmit.mock.lastCall?.[0]).toMatchObject({
+      localityId: "l-usti-nad-orlici",
+      lat: 50.11,
+      lng: 14.47,
+      address: "Vlastní místo",
+    })
+    await userEvent.click(moveToLocality)
+    await screen.findByText(/Adresu se nepodařilo určit/)
+    await userEvent.click(screen.getByRole("button", { name: "Uložit změny" }))
+    expect(onSubmit.mock.lastCall?.[0]).toMatchObject({
+      localityId: "l-usti-nad-orlici",
+      lat: 49.9739,
+      lng: 16.3936,
+      address: "Vlastní místo",
+    })
   })
 
   it("choosing a locality alone does not satisfy the required map point", async () => {
@@ -988,6 +999,7 @@ describe("EventForm", () => {
           groupId: "g-deskovky",
           visibility: "members",
         }),
+        { kind: "keep" },
       )
     })
 
@@ -1056,7 +1068,118 @@ describe("EventForm", () => {
           maxParticipants: 8,
           minParticipants: 3,
         }),
+        { kind: "keep" },
       )
+    })
+  })
+
+  describe("the event's own image (#77)", () => {
+    const fileInput = () => document.querySelector<HTMLInputElement>('input[type="file"]')!
+    const pickFile = (file: File) => fireEvent.change(fileInput(), { target: { files: [file] } })
+    const png = () =>
+      new File([new Uint8Array([0x89, 0x50, 0x4e, 0x47])], "plakat.png", {
+        type: "image/png",
+      })
+    const existing = {
+      title: "Deskovky po práci",
+      activityId: "a-deskove-hry",
+      localityId: "l-praha-8",
+      lat: 50.11,
+      lng: 14.47,
+      address: "Herna Karlín, Křižíkova 52, Praha 8",
+      startsAt: new Date(Date.now() + 5 * 86_400_000).toISOString(),
+      minParticipants: 3,
+      maxParticipants: 6,
+      approvalMode: "open" as const,
+    }
+    const save = () => userEvent.click(screen.getByRole("button", { name: "Uložit změny" }))
+
+    beforeEach(() => {
+      URL.createObjectURL = vi.fn(() => "blob:nahled")
+      URL.revokeObjectURL = vi.fn()
+    })
+
+    it("is optional: without one the activity's photo shows, and the form says so", () => {
+      renderForm()
+
+      // the button's own text first, then the field's label (WCAG 2.5.3)
+      expect(
+        screen.getByRole("button", { name: "Přidat plakát nebo fotku Plakát nebo fotka" }),
+      ).toHaveTextContent("Přidat plakát nebo fotku")
+      expect(screen.getByText(/Bez vlastního obrázku se u akce ukáže fotka aktivity/)).toBeVisible()
+      expect(fileInput()).toHaveAttribute("accept", "image/jpeg,image/png,image/webp")
+      // not sr-only: the kit's w-full made it as wide as the page, which then scrolled sideways
+      expect(fileInput()).toHaveClass("hidden")
+    })
+
+    it("a picked image shows as a preview and goes with the form", async () => {
+      const { onSubmit } = renderForm({ mode: "edit", initialValues: existing })
+      const file = png()
+
+      pickFile(file)
+
+      const replace = await screen.findByRole("button", {
+        name: "Vyměnit obrázek Plakát nebo fotka",
+      })
+      // the add button is gone: the keyboard stays in the field, on the one in its place
+      await waitFor(() => expect(replace).toHaveFocus())
+      expect(document.querySelector('img[src="blob:nahled"]')).toBeInTheDocument()
+      await save()
+      expect(onSubmit).toHaveBeenCalledWith(expect.anything(), { kind: "set", file })
+    })
+
+    it.each([
+      [
+        "a GIF",
+        new File(["GIF89a"], "animace.gif", { type: "image/gif" }),
+        "Tenhle soubor nejde použít. Nahraj obrázek ve formátu JPEG, PNG nebo WebP.",
+      ],
+      [
+        "an image over 5 MB",
+        new File([new Uint8Array(5 * 1024 * 1024 + 1)], "velka.jpg", { type: "image/jpeg" }),
+        "Obrázek je moc velký. Nahraj nejvýš 5 MB.",
+      ],
+    ])("refuses %s and says why, keeping what it had", async (_name, file, message) => {
+      const { onSubmit } = renderForm({ mode: "edit", initialValues: existing })
+
+      pickFile(file)
+
+      expect(await screen.findByText(message)).toBeInTheDocument()
+      expect(
+        screen.getByRole("button", { name: "Přidat plakát nebo fotku Plakát nebo fotka" }),
+      ).toHaveAttribute("aria-invalid", "true")
+      expect(screen.queryByRole("button", { name: /Vyměnit obrázek/ })).not.toBeInTheDocument()
+      await save()
+      expect(onSubmit).toHaveBeenCalledWith(expect.anything(), { kind: "keep" })
+    })
+
+    it("editing shows the uploaded image; „Odebrat“ removes it and focus stays in the field", async () => {
+      const { onSubmit } = renderForm({
+        mode: "edit",
+        initialValues: existing,
+        initialImageSrc: "http://api.test/images/k1",
+      })
+      expect(document.querySelector('img[src="http://api.test/images/k1"]')).toBeVisible()
+
+      await userEvent.click(screen.getByRole("button", { name: "Odebrat Plakát nebo fotka" }))
+
+      const add = screen.getByRole("button", { name: "Přidat plakát nebo fotku Plakát nebo fotka" })
+      expect(add).toHaveTextContent("Přidat plakát nebo fotku")
+      await waitFor(() => expect(add).toHaveFocus())
+      await save()
+      expect(onSubmit).toHaveBeenCalledWith(expect.anything(), { kind: "remove" })
+    })
+
+    it("editing without touching the image keeps it", async () => {
+      const { onSubmit } = renderForm({
+        mode: "edit",
+        initialValues: existing,
+        initialImageSrc: "http://api.test/images/k1",
+      })
+
+      await save()
+
+      expect(onSubmit).toHaveBeenCalledWith(expect.anything(), { kind: "keep" })
     })
   })
 })

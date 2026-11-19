@@ -42,6 +42,12 @@ jobs:
       - name: Test backend
         run: pnpm backend test
 
+      - name: Test verification link and automatic sign-in
+        run: pnpm backend auth:check-verification-link
+
+      - name: Test email verification and sign-in
+        run: pnpm backend auth:check-email-verification
+
       - name: Test frontend
         run: pnpm frontend test:ci
 

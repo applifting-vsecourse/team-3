@@ -355,6 +355,7 @@ describe('EventRepository.findMyEvents', () => {
   const aRow = (
     participations: { userId: string; status: string }[],
     status = 'published',
+    ratings: { eventStars: number; deletedAt: Date | null }[] = [],
   ): Record<string, unknown> => ({
     id: 'e1',
     title: 'Deskovky',
@@ -378,6 +379,7 @@ describe('EventRepository.findMyEvents', () => {
     group: null,
     _count: { participations: 2 },
     participations,
+    ratings,
   });
 
   it('attending: loads only the user’s own participation and its status', async () => {
@@ -454,6 +456,106 @@ describe('EventRepository.findMyEvents', () => {
 
     expect(event).toMatchObject({ myParticipation: null, pendingRequests: 0 });
   });
+
+  it('past: the latest first, with the user’s place (#367)', async () => {
+    const prisma = mockDeep<PrismaService>();
+    prisma.event.findMany.mockResolvedValue([
+      aRow([{ userId: 'u1', status: 'approved' }], 'cancelled'),
+    ] as never);
+
+    const [event] = await new EventRepository(prisma).findMyEvents({
+      tab: 'past',
+      userId: 'u1',
+      now,
+      limit: 200,
+    });
+
+    expect(event).toMatchObject({
+      status: 'cancelled',
+      myParticipation: 'approved',
+      pendingRequests: null,
+      myEventStars: null,
+      myRatingDeleted: false,
+    });
+    expect(prisma.event.findMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        orderBy: [{ startsAt: 'desc' }, { id: 'desc' }],
+        take: 200,
+      }),
+    );
+  });
+
+  it('past: sends the stars I gave, from my own rating (#367)', async () => {
+    const prisma = mockDeep<PrismaService>();
+    prisma.event.findMany.mockResolvedValue([
+      aRow([{ userId: 'u1', status: 'approved' }], 'published', [
+        { eventStars: 4, deletedAt: null },
+      ]),
+    ] as never);
+
+    const [event] = await new EventRepository(prisma).findMyEvents({
+      tab: 'past',
+      userId: 'u1',
+      now,
+      limit: 200,
+    });
+
+    expect(event).toMatchObject({ myEventStars: 4, myRatingDeleted: false });
+    expect(prisma.event.findMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        include: expect.objectContaining({
+          ratings: {
+            where: { userId: 'u1' },
+            select: { eventStars: true, deletedAt: true },
+          },
+        }),
+      }),
+    );
+  });
+
+  // review #368: the card mustn't offer „Ohodnotit“ the rating page then refuses (RATING_DELETED)
+  it('past: a rating deleted by moderation gives no stars and says it was deleted', async () => {
+    const prisma = mockDeep<PrismaService>();
+    prisma.event.findMany.mockResolvedValue([
+      aRow([{ userId: 'u1', status: 'approved' }], 'published', [
+        { eventStars: 2, deletedAt: new Date('2026-10-25T08:00:00.000Z') },
+      ]),
+    ] as never);
+
+    const [event] = await new EventRepository(prisma).findMyEvents({
+      tab: 'past',
+      userId: 'u1',
+      now,
+      limit: 200,
+    });
+
+    expect(event).toMatchObject({ myEventStars: null, myRatingDeleted: true });
+  });
+
+  it.each(['attending', 'organizing', 'groups'] as const)(
+    '%s loads no ratings: an upcoming event has none (review #368)',
+    async (tab) => {
+      const prisma = mockDeep<PrismaService>();
+      prisma.event.findMany.mockResolvedValue([aRow([])] as never);
+
+      const [event] = await new EventRepository(prisma).findMyEvents({
+        tab,
+        userId: 'u1',
+        now,
+        limit: 200,
+      });
+
+      expect(prisma.event.findMany).toHaveBeenCalledWith(
+        expect.objectContaining({
+          include: expect.objectContaining({ ratings: false }),
+        }),
+      );
+      expect(event).toMatchObject({
+        myEventStars: null,
+        myRatingDeleted: false,
+      });
+    },
+  );
 });
 
 describe('EventRepository.decideRequests (#53)', () => {
@@ -732,5 +834,108 @@ describe('EventRepository – Proběhlé (#61)', () => {
       new Map(),
     );
     expect(prisma.rating.groupBy).not.toHaveBeenCalled();
+  });
+
+  describe('replaceImage (#77)', () => {
+    const startsAt = new Date('2026-10-25T16:00:00.000Z');
+    const setup = (
+      imageKey: string | null,
+    ): { prisma: ReturnType<typeof mockDeep<PrismaService>> } => {
+      const prisma = mockDeep<PrismaService>();
+      // the transaction client is the same mock
+      prisma.$transaction.mockImplementation(((
+        run: (tx: PrismaService) => Promise<unknown>,
+      ) => run(prisma)) as never);
+      prisma.event.findUnique.mockResolvedValue({
+        status: 'published',
+        startsAt,
+        imageKey,
+      } as never);
+      prisma.uploadedImage.create.mockResolvedValue({ key: 'k-new' } as never);
+      return { prisma };
+    };
+    const png = Uint8Array.from([0x89, 0x50, 0x4e, 0x47]);
+
+    it('locks the event, stores the new image, points the event at it and deletes the old one', async () => {
+      const { prisma } = setup('k-old');
+
+      await expect(
+        new EventRepository(prisma).replaceImage(
+          'e1',
+          { contentType: 'image/webp', data: png, small: png },
+          () => null,
+        ),
+      ).resolves.toEqual({ ok: true });
+
+      expect(prisma.$executeRaw).toHaveBeenCalled();
+      expect(prisma.uploadedImage.create).toHaveBeenCalledWith(
+        expect.objectContaining({
+          data: { contentType: 'image/webp', data: png, size: 4, small: png },
+        }),
+      );
+      expect(prisma.event.update).toHaveBeenCalledWith({
+        where: { id: 'e1' },
+        data: { imageKey: 'k-new' },
+      });
+      expect(prisma.uploadedImage.delete).toHaveBeenCalledWith({
+        where: { key: 'k-old' },
+      });
+    });
+
+    it('null clears the key and deletes the old image', async () => {
+      const { prisma } = setup('k-old');
+
+      await new EventRepository(prisma).replaceImage('e1', null, () => null);
+
+      expect(prisma.uploadedImage.create).not.toHaveBeenCalled();
+      expect(prisma.event.update).toHaveBeenCalledWith({
+        where: { id: 'e1' },
+        data: { imageKey: null },
+      });
+      expect(prisma.uploadedImage.delete).toHaveBeenCalledWith({
+        where: { key: 'k-old' },
+      });
+    });
+
+    it('the first image deletes nothing', async () => {
+      const { prisma } = setup(null);
+
+      await new EventRepository(prisma).replaceImage(
+        'e1',
+        { contentType: 'image/webp', data: png, small: png },
+        () => null,
+      );
+
+      expect(prisma.uploadedImage.delete).not.toHaveBeenCalled();
+    });
+
+    it('a refusal under the lock writes nothing', async () => {
+      const { prisma } = setup('k-old');
+      const refuse = jest.fn().mockReturnValue({ code: 'EVENT_CANCELLED' });
+
+      await expect(
+        new EventRepository(prisma).replaceImage(
+          'e1',
+          { contentType: 'image/webp', data: png, small: png },
+          refuse,
+        ),
+      ).resolves.toEqual({ ok: false, refusal: { code: 'EVENT_CANCELLED' } });
+
+      expect(refuse).toHaveBeenCalledWith(
+        expect.objectContaining({ status: 'published', startsAt }),
+      );
+      expect(prisma.uploadedImage.create).not.toHaveBeenCalled();
+      expect(prisma.event.update).not.toHaveBeenCalled();
+      expect(prisma.uploadedImage.delete).not.toHaveBeenCalled();
+    });
+
+    it('no such event → null', async () => {
+      const { prisma } = setup(null);
+      prisma.event.findUnique.mockResolvedValue(null);
+
+      await expect(
+        new EventRepository(prisma).replaceImage('e1', null, () => null),
+      ).resolves.toBeNull();
+    });
   });
 });
