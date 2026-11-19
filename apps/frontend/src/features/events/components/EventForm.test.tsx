@@ -189,12 +189,10 @@ describe("EventForm", () => {
         fireEvent.submit(start.closest("form")!)
         await waitFor(() => expect(onSubmit).toHaveBeenCalledOnce())
         const times = eventTimes(day, "09:00", "10:30")
-        expect(onSubmit).toHaveBeenCalledWith(
-          expect.objectContaining({
-            startsAt: times.startsAt.toISOString(),
-            endsAt: times.endsAt!.toISOString(),
-          }),
-        )
+        expect(onSubmit.mock.lastCall?.[0]).toMatchObject({
+          startsAt: times.startsAt.toISOString(),
+          endsAt: times.endsAt!.toISOString(),
+        })
       },
     )
 
@@ -250,12 +248,10 @@ describe("EventForm", () => {
       fireEvent.submit(start.closest("form")!)
       await waitFor(() => expect(onSubmit).toHaveBeenCalledOnce())
       const times = eventTimes(day, "22:00", "02:00")
-      expect(onSubmit).toHaveBeenCalledWith(
-        expect.objectContaining({
-          startsAt: times.startsAt.toISOString(),
-          endsAt: times.endsAt!.toISOString(),
-        }),
-      )
+      expect(onSubmit.mock.lastCall?.[0]).toMatchObject({
+        startsAt: times.startsAt.toISOString(),
+        endsAt: times.endsAt!.toISOString(),
+      })
     })
 
     it("keeps the end optional, including whitespace pasted into it", async () => {
@@ -263,7 +259,7 @@ describe("EventForm", () => {
       fireEvent.change(end, { target: { value: "  " } })
       fireEvent.submit(start.closest("form")!)
       await waitFor(() => expect(onSubmit).toHaveBeenCalledOnce())
-      expect(onSubmit).toHaveBeenCalledWith(expect.objectContaining({ endsAt: null }))
+      expect(onSubmit.mock.lastCall?.[0]).toMatchObject({ endsAt: null })
     })
 
     it("distinguishes a missing start from invalid input and warns only for a valid early time", async () => {
