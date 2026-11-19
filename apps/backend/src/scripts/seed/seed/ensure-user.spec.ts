@@ -1,4 +1,5 @@
 import { PrismaService } from '@/core/prisma/prisma.service';
+import { SIGN_UP_CONSENT } from '@/shared/auth/domain/consent';
 import { BetterAuth } from '@/shared/auth/providers/better-auth.provider';
 import { DeepMockProxy, mockDeep } from 'jest-mock-extended';
 import {
@@ -276,9 +277,7 @@ describe('ensureUser', () => {
     expect(auth.api.signUpEmail).toHaveBeenCalledWith({
       body: expect.objectContaining({
         email: 'admin@hobbyhub.cz',
-        // the sign-up refuses an account without the consent (#153)
-        termsAccepted: true,
-        privacyAcknowledged: true,
+        ...SIGN_UP_CONSENT,
       }),
     });
     expect(prisma.user.update).toHaveBeenCalledWith({

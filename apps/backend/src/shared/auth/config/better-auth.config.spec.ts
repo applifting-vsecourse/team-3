@@ -20,6 +20,14 @@ const create = hooks?.create?.before as unknown as UserHook;
 const update = hooks?.update?.before as unknown as UserHook;
 
 describe('the name BetterAuth saves (#199)', () => {
+  it('returns the confirmation timestamp but does not accept it from clients', () => {
+    expect(
+      betterAuthCoreConfig.user?.additionalFields?.ageConfirmedAt,
+    ).toMatchObject({
+      type: 'date',
+      input: false,
+    });
+  });
   it('is trimmed for an e-mail sign-up, which also gets the consent time', async () => {
     const result = await create(
       { name: '  Jana Malá  ', email: 'jana@example.com' },
@@ -29,6 +37,7 @@ describe('the name BetterAuth saves (#199)', () => {
     expect(result?.data).toEqual({
       name: 'Jana Malá',
       termsAcceptedAt: expect.any(Date),
+      ageConfirmedAt: expect.any(Date),
     });
   });
 

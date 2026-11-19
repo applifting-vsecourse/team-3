@@ -11,6 +11,7 @@ export type SignUpInput = {
   /** #153: the API refuses a sign-up without both, and notes when it happened. */
   termsAccepted: boolean
   privacyAcknowledged: boolean
+  ageConfirmed: boolean
   /** The page the sign-up started from; the verification link leads back there. */
   from?: string
 }
@@ -25,12 +26,14 @@ export function useSignUp() {
       // an address that has an account already it answers the same way.
       // no username (B-010: name, e-mail, password); the column is optional
       // the client's type knows only BetterAuth's own fields, not our consents
-      const body: SignUpEmailBody & Pick<SignUpInput, "termsAccepted" | "privacyAcknowledged"> = {
+      const body: SignUpEmailBody &
+        Pick<SignUpInput, "termsAccepted" | "privacyAcknowledged" | "ageConfirmed"> = {
         name: input.name,
         email: input.email,
         password: input.password,
         termsAccepted: input.termsAccepted,
         privacyAcknowledged: input.privacyAcknowledged,
+        ageConfirmed: input.ageConfirmed,
         // where the link in the verification e-mail leads back to
         callbackURL: afterVerificationUrl(input.from),
       }

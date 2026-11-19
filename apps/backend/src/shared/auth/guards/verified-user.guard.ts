@@ -45,7 +45,7 @@ export class VerifiedUserGuard implements CanActivate {
 
     const user = await this.prisma.user.findUnique({
       where: { id: session.user.id },
-      select: { emailVerified: true, blockedAt: true },
+      select: { emailVerified: true, blockedAt: true, ageConfirmedAt: true },
     });
     if (!user) {
       throw new UnauthorizedException();
@@ -63,6 +63,12 @@ export class VerifiedUserGuard implements CanActivate {
         // no banner any more (#236): signing in again offers a new link
         message:
           'Nejdřív si ověř e-mail. Odhlas se a znovu se přihlas – nabídneme ti nový odkaz.',
+      });
+    }
+    if (!user.ageConfirmedAt) {
+      throw new ForbiddenException({
+        code: 'AGE_CONFIRMATION_REQUIRED',
+        message: 'Nejdřív potvrď, že ti je alespoň 18 let.',
       });
     }
 

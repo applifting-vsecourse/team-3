@@ -2,7 +2,7 @@ import { PASSWORD_MIN_LENGTH } from '@/shared/auth/domain/password-policy';
 import { createAuthMiddleware } from 'better-auth/api';
 import { username } from 'better-auth/plugins';
 import { BetterAuthOptions } from 'better-auth/types';
-import { requireConsent, stampConsent } from './consent';
+import { requireAdult, requireConsent, stampConsent } from './consent';
 import { rejectInvalidNames, trimSavedName } from './name-policy';
 import { rejectWeakPasswords } from './password-policy';
 
@@ -31,6 +31,7 @@ export const betterAuthCoreConfig: BetterAuthOptions = {
       await rejectInvalidNames(ctx);
       await rejectWeakPasswords(ctx);
       await requireConsent(ctx);
+      await requireAdult(ctx);
     }),
   },
   user: {
@@ -49,6 +50,11 @@ export const betterAuthCoreConfig: BetterAuthOptions = {
         required: false,
         input: false,
       },
+      ageConfirmedAt: {
+        type: 'date',
+        required: false,
+        input: false,
+      },
     },
   },
   // Every account BetterAuth writes: its name without the spaces around
@@ -60,6 +66,9 @@ export const betterAuthCoreConfig: BetterAuthOptions = {
           data: {
             ...(await trimSavedName(user))?.data,
             ...(await stampConsent(user, ctx))?.data,
+            ...(ctx?.path === '/sign-up/email'
+              ? { ageConfirmedAt: new Date() }
+              : {}),
           },
         }),
       },

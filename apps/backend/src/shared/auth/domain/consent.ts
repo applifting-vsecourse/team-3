@@ -1,11 +1,11 @@
 /**
- * #153: what signing up asks for, as sent in the sign-up body — the terms of
- * use accepted and the privacy notice acknowledged. Not columns: the user row
- * keeps only when it happened (`termsAcceptedAt`), and the server sets that.
+ * Confirmations sent by e-mail sign-up. The server records when the user
+ * accepted the terms and confirmed their age on the account.
  */
 export const SIGN_UP_CONSENT = {
   termsAccepted: true,
   privacyAcknowledged: true,
+  ageConfirmed: true,
 } as const;
 
 export const CONSENT_RULE =
