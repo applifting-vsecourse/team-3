@@ -1,12 +1,16 @@
-import { describe, expect, it } from "vitest"
+import { afterEach, describe, expect, it, vi } from "vitest"
 
 import type { Locality } from "@/lib/catalog/catalogSchemas"
 
 import {
   addressSearchUrl,
   localityOfAddress,
+  nearestTown,
+  reverseAddress,
   toAddressSuggestions,
 } from "@/features/events/api/addressSearch"
+
+afterEach(() => vi.unstubAllGlobals())
 
 const feature = (properties: Record<string, string>, [lng, lat] = [14.4, 50.1]) => ({
   type: "Feature",
@@ -180,6 +184,14 @@ describe("localityOfAddress – a village the catalog doesn't have", () => {
     ).toBe(letohrad)
   })
 
+  it("can require the actual municipality instead of silently choosing a nearby town", () => {
+    expect(
+      localityOfAddress({ city: "Dolní Dobrouč", lat: 49.993, lng: 16.497 }, localities, "", {
+        allowNearest: false,
+      }),
+    ).toBeUndefined()
+  })
+
   it("a town of the catalog wins over a nearer one by name", () => {
     expect(
       localityOfAddress(
@@ -209,16 +221,57 @@ describe("localityOfAddress – a village the catalog doesn't have", () => {
   })
 })
 
+describe("nearestTown", () => {
+  const louny: Locality = {
+    id: "louny",
+    slug: "louny",
+    name: "Louny",
+    parentId: null,
+    lat: 50.3573,
+    lng: 13.7969,
+  }
+  it("suggests the nearest town for a field outside Louny", () => {
+    expect(nearestTown({ lat: 50.394403, lng: 13.883629 }, [louny])).toEqual(louny)
+  })
+  it("does not suggest a town more than 20 km away", () => {
+    expect(nearestTown({ lat: 50.0755, lng: 14.4378 }, [louny])).toBeUndefined()
+  })
+})
+
 describe("addressSearchUrl", () => {
   it("asks for addresses in Czechia, near the given point", () => {
     const url = new URL(addressSearchUrl("Letenská 15", { lat: 50.11, lng: 14.47 }))
 
     expect(url.origin + url.pathname).toBe("https://photon.komoot.io/api/")
     expect(url.searchParams.get("q")).toBe("Letenská 15")
+    expect(url.searchParams.get("lang")).toBe("default")
     expect(url.searchParams.get("lat")).toBe("50.1100")
     expect(url.searchParams.get("lon")).toBe("14.4700")
     expect(url.searchParams.get("bbox")).toBe("12.09,48.55,18.86,51.06")
     expect(url.searchParams.get("countrycode")).toBe("CZ")
+  })
+})
+
+describe("reverseAddress", () => {
+  it("looks up the selected point and accepts a nearby Czech address", async () => {
+    const fetchMock = vi.fn().mockResolvedValue(Response.json({ features: [letenska] }))
+    vi.stubGlobal("fetch", fetchMock)
+    const signal = new AbortController().signal
+    const result = await reverseAddress({ lat: 50.0891477, lng: 14.4072071 }, signal)
+    expect(result?.address).toBe("Letenská 525/15, Praha – Malá Strana")
+    const url = new URL(fetchMock.mock.calls[0]![0] as string)
+    expect(url.pathname).toBe("/reverse")
+    expect(url.searchParams.get("lat")).toBe("50.0891477")
+    expect(url.searchParams.get("lon")).toBe("14.4072071")
+    expect(url.searchParams.get("lang")).toBe("default")
+    expect(fetchMock.mock.calls[0]![1]).toEqual({ signal })
+  })
+
+  it("does not fill a distant address", async () => {
+    vi.stubGlobal("fetch", vi.fn().mockResolvedValue(Response.json({ features: [letenska] })))
+    await expect(
+      reverseAddress({ lat: 50.11, lng: 14.47 }, new AbortController().signal),
+    ).resolves.toBeUndefined()
   })
 })
 

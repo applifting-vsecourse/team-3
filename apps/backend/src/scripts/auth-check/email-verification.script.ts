@@ -14,6 +14,7 @@ import {
   emailFlowOptions,
   withEmailFlows,
 } from '@/shared/auth/config/email-flows';
+import { SIGN_UP_CONSENT } from '@/shared/auth/domain/consent';
 import type { Config } from '@/shared/config/config.service';
 import { betterAuth } from 'better-auth';
 import { memoryAdapter } from 'better-auth/adapters/memory';
@@ -65,8 +66,7 @@ const main = async (): Promise<void> => {
         email: EMAIL,
         callbackURL: 'http://localhost:5173/email-overen?from=%2Fakce',
         password,
-        termsAccepted: true,
-        privacyAcknowledged: true,
+        ...SIGN_UP_CONSENT,
       } as never,
       asResponse: true,
     });
@@ -244,8 +244,7 @@ const main = async (): Promise<void> => {
       name: 'Google Test',
       email: 'google-only@example.com',
       password: PASSWORD,
-      termsAccepted: true,
-      privacyAcknowledged: true,
+      ...SIGN_UP_CONSENT,
     } as never,
     asResponse: true,
   });

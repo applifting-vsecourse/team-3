@@ -6,6 +6,7 @@ import {
   withEmailFlows,
 } from '@/shared/auth/config/email-flows';
 import { socialSignInOptions } from '@/shared/auth/config/social-sign-in';
+import { SIGN_UP_CONSENT } from '@/shared/auth/domain/consent';
 import type { Config } from '@/shared/config/config.service';
 import { betterAuth } from 'better-auth';
 import { memoryAdapter } from 'better-auth/adapters/memory';
@@ -68,8 +69,7 @@ async function main(): Promise<void> {
         email,
         password: PASSWORD,
         callbackURL: CALLBACK,
-        termsAccepted: true,
-        privacyAcknowledged: true,
+        ...SIGN_UP_CONSENT,
       } as never,
       asResponse: true,
     });

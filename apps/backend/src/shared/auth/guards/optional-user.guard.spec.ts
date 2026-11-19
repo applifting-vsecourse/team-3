@@ -32,12 +32,21 @@ describe('OptionalUserGuard', () => {
   });
 
   it('puts the session of a signed-in user on the request', async () => {
-    const session = { user: { id: 'u1', name: 'Petra' } };
+    const session = {
+      user: { id: 'u1', name: 'Petra', ageConfirmedAt: new Date() },
+    };
     getSession.mockResolvedValue(session);
     const request: Record<string, unknown> = {};
 
     await expect(guard.canActivate(contextFor(request))).resolves.toBe(true);
     expect(request.session).toBe(session);
+  });
+
+  it('treats an account without age confirmation as a visitor', async () => {
+    getSession.mockResolvedValue({ user: { id: 'u1', ageConfirmedAt: null } });
+    const request: Record<string, unknown> = {};
+    await expect(guard.canActivate(contextFor(request))).resolves.toBe(true);
+    expect(request.session).toBeNull();
   });
 
   it('serves a visitor when the session lookup fails, instead of failing the request', async () => {

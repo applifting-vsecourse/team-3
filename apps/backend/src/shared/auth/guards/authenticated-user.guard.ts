@@ -6,6 +6,7 @@ import { getSessionFromRequest } from '@/shared/auth/utils/get-session-from-requ
 import {
   CanActivate,
   ExecutionContext,
+  ForbiddenException,
   Injectable,
   UnauthorizedException,
 } from '@nestjs/common';
@@ -22,6 +23,13 @@ export class AuthenticatedUserGuard implements CanActivate {
     if (!session) {
       // 401: the caller is not signed in (403 would mean "signed in but not allowed")
       throw new UnauthorizedException();
+    }
+
+    if (!session.user.ageConfirmedAt) {
+      throw new ForbiddenException({
+        code: 'AGE_CONFIRMATION_REQUIRED',
+        message: 'Nejdřív potvrď, že ti je alespoň 18 let.',
+      });
     }
 
     request.session = session;

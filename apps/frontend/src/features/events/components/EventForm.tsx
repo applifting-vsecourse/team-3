@@ -36,7 +36,7 @@ import { PRAHA_SLUG } from "@/lib/catalog/localityOptions"
 import type { ImageChange } from "@/lib/image"
 import { cn } from "@/lib/utils"
 
-import { localityOfAddress } from "@/features/events/api/addressSearch"
+import { distanceKm } from "@/features/events/api/addressSearch"
 import {
   EVENT_ADDRESS_MAX_LENGTH,
   EVENT_DESCRIPTION_MAX_LENGTH,
@@ -45,6 +45,7 @@ import {
   type EventInput,
 } from "@/features/events/api/eventSchemas"
 import { AddressCombobox } from "@/features/events/components/AddressCombobox"
+import { useEventLocation } from "@/features/events/hooks/useEventLocation"
 import { usePragueToday } from "@/features/events/hooks/usePragueToday"
 import { dateToDay, dayToDate } from "@/features/events/lib/dateRange"
 import { formatDay } from "@/features/events/lib/formatEvent"
@@ -252,10 +253,38 @@ export function EventForm({
 
   const localityId = useWatch({ control: form.control, name: "localityId" })
   const place = useWatch({ control: form.control, name: "place" })
-  const mapCenter = catalog.localities.find((l) => l.id === localityId) ??
+  const [didChangeLocality, setDidChangeLocality] = useState(false)
+  const selectedLocality = catalog.localities.find((l) => l.id === localityId)
+  const mapCenter = selectedLocality ??
     // before a locality is picked: the biggest city, as the picker lists it first
     catalog.localities.find((l) => l.slug === PRAHA_SLUG) ??
     catalog.localities[0] ?? { lat: 50.0755, lng: 14.4378 }
+  // The catalog has locality centers, so this is only a distance hint.
+  const suggestedCenter =
+    didChangeLocality && place && selectedLocality && distanceKm(place, selectedLocality) > 2
+      ? selectedLocality
+      : null
+
+  const location = useEventLocation({
+    localities: catalog.localities,
+    initialAddress: initialValues?.address ?? "",
+    getValues: () => form.getValues(),
+    setAddress: (value) =>
+      form.setValue("address", value, {
+        shouldDirty: true,
+        shouldValidate: form.formState.isSubmitted,
+      }),
+    setPlace: (value) =>
+      form.setValue("place", value, {
+        shouldDirty: true,
+        shouldValidate: form.formState.isSubmitted,
+      }),
+    setLocality: (value) =>
+      form.setValue("localityId", value, {
+        shouldDirty: true,
+        shouldValidate: form.formState.isSubmitted,
+      }),
+  })
 
   return (
     <Form {...form}>
@@ -650,10 +679,17 @@ export function EventForm({
                       localities={catalog.localities}
                       ref={field.ref}
                       value={field.value}
-                      onChange={field.onChange}
+                      onChange={(value) => {
+                        location.cancelLookup()
+                        setDidChangeLocality(true)
+                        field.onChange(value)
+                      }}
                       onBlur={field.onBlur}
                     />
                   </FormControl>
+                  <FormDescription>
+                    Obec nebo městská část, podle které se dá akce najít.
+                  </FormDescription>
                   <FormMessage />
                 </FormItem>
               )}
@@ -672,11 +708,15 @@ export function EventForm({
                     Místo na mapě *
                   </p>
                   <p className="text-sm text-muted-foreground">
-                    Klepni do mapy tam, kde se sejdete.
+                    Klepni do mapy tam, kde se sejdete. Nebo mapu posuň a umísti špendlík na křížek
+                    uprostřed.
                   </p>
                   <LocationPicker
                     value={field.value}
-                    onChange={(point) => field.onChange(point)}
+                    onChange={(point, source) => {
+                      setDidChangeLocality(false)
+                      void location.pickPoint(point, source === "center")
+                    }}
                     center={mapCenter}
                     labelledBy={placeLabelId}
                     isInvalid={Boolean(fieldState.error)}
@@ -684,6 +724,27 @@ export function EventForm({
                     // D-01d: the map has the room of its own column on desktop
                     mapClassName="md:h-100"
                   />
+                  {suggestedCenter ? (
+                    <div className="flex flex-wrap items-center gap-2">
+                      <p
+                        className="text-sm text-muted-foreground"
+                        role="status"
+                      >
+                        Špendlík je dál od středu lokality {suggestedCenter.name}.
+                      </p>
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        onClick={() => {
+                          setDidChangeLocality(false)
+                          void location.pickPoint(suggestedCenter)
+                        }}
+                      >
+                        Přesunout do středu lokality
+                      </Button>
+                    </div>
+                  ) : null}
                   <FormMessage id={placeErrorId} />
                 </FormItem>
               )}
@@ -701,29 +762,45 @@ export function EventForm({
                       autoComplete="off"
                       className="h-11"
                       {...field}
+                      onChange={(value) => {
+                        location.typeAddress(value)
+                      }}
                       near={place ?? mapCenter}
-                      // a picked address also moves the pin, and sets the locality
-                      // when the catalog has a more precise one for it
                       onPick={(suggestion) => {
-                        const options = {
-                          shouldDirty: true,
-                          shouldValidate: form.formState.isSubmitted,
-                        }
-                        field.onChange(suggestion.address)
-                        form.setValue(
-                          "place",
-                          { lat: suggestion.lat, lng: suggestion.lng },
-                          options,
-                        )
-                        const locality = localityOfAddress(
-                          suggestion,
-                          catalog.localities,
-                          form.getValues("localityId"),
-                        )
-                        if (locality) form.setValue("localityId", locality.id, options)
+                        setDidChangeLocality(false)
+                        location.pickAddress(suggestion)
                       }}
                     />
                   </FormControl>
+                  <FormDescription role="status">{location.notice}</FormDescription>
+                  {location.pendingAddress ? (
+                    <div
+                      className="flex flex-col gap-2 border-l border-border pl-3"
+                      role="group"
+                      aria-label="Změna adresy podle špendlíku"
+                    >
+                      <p className="text-sm font-medium">Použít adresu podle špendlíku?</p>
+                      <p className="text-sm text-muted-foreground">{location.pendingAddress}</p>
+                      <div className="flex flex-wrap gap-2">
+                        <Button
+                          type="button"
+                          variant="outline"
+                          size="sm"
+                          onClick={location.acceptAddress}
+                        >
+                          Použít adresu
+                        </Button>
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="sm"
+                          onClick={location.keepAddress}
+                        >
+                          Ponechat moji
+                        </Button>
+                      </div>
+                    </div>
+                  ) : null}
                   <FormMessage />
                 </FormItem>
               )}

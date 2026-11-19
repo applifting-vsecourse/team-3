@@ -31,7 +31,13 @@ const signInEmail = vi.mocked(authClient.signIn.email)
 const signUpEmail = vi.mocked(authClient.signUp.email)
 const sendVerificationEmail = vi.mocked(authClient.sendVerificationEmail)
 
-const evaUser = { id: "u5", email: "eva.mala@example.com", name: "Eva Malá", emailVerified: true }
+const evaUser = {
+  id: "u5",
+  email: "eva.mala@example.com",
+  name: "Eva Malá",
+  emailVerified: true,
+  ageConfirmedAt: "2026-01-01T00:00:00.000Z",
+}
 
 /** The app's own routes on `url`, signed out. */
 async function renderApp(url: string) {
@@ -248,6 +254,7 @@ describe("signing in needs a verified e-mail (#236)", () => {
     await userEvent.type(screen.getByLabelText("E-mail"), "jana@example.com")
     await userEvent.type(screen.getByLabelText("Heslo"), "hobbyhub2026")
     await userEvent.type(screen.getByLabelText("Heslo znovu"), "hobbyhub2026")
+    await userEvent.click(screen.getByRole("checkbox", { name: "Je mi alespoň 18 let" }))
     await userEvent.click(screen.getByRole("checkbox", { name: /^Souhlasím s podmínkami užívání/ }))
     await userEvent.click(
       screen.getByRole("checkbox", { name: /^Beru na vědomí zpracování osobních údajů/ }),

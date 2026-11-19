@@ -12,6 +12,8 @@ export type SessionUser = {
   role?: string
   /** B-011: without it the user can't join or create events and groups. */
   emailVerified: boolean
+  /** Null until this account holder has confirmed being at least 18. */
+  ageConfirmedAt?: string | null
 }
 
 export type Session = {
@@ -29,6 +31,7 @@ export const authSessionQueryOptions = () =>
       const user = data.user as typeof data.user & {
         username?: string | null
         role?: string | null
+        ageConfirmedAt?: string | Date | null
       }
 
       return {
@@ -39,6 +42,7 @@ export const authSessionQueryOptions = () =>
           username: user.username ?? "",
           role: user.role ?? undefined,
           emailVerified: Boolean(user.emailVerified),
+          ageConfirmedAt: user.ageConfirmedAt ? String(user.ageConfirmedAt) : null,
         },
       }
     },
