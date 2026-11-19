@@ -1,10 +1,11 @@
-/** #300: real BetterAuth + production email options, no database or real mail. */
+/** Real BetterAuth with HobbyHub options: verification links and Google error returns. */
 import { strict as assert } from 'node:assert';
 import { betterAuthCoreConfig } from '@/shared/auth/config/better-auth.config';
 import {
   emailFlowOptions,
   withEmailFlows,
 } from '@/shared/auth/config/email-flows';
+import { socialSignInOptions } from '@/shared/auth/config/social-sign-in';
 import type { Config } from '@/shared/config/config.service';
 import { betterAuth } from 'better-auth';
 import { memoryAdapter } from 'better-auth/adapters/memory';
@@ -13,6 +14,7 @@ import { signJWT } from 'better-auth/crypto';
 type Row = Record<string, unknown>;
 const SECRET = 'verification-link-test-secret-0123456789012345';
 const PASSWORD = 'hobbyhub2026';
+const FRONTEND = 'http://localhost:5173';
 const CALLBACK = 'http://localhost:5173/email-overen?from=%2Fmoje%2Fakce';
 const check = (label: string, condition: unknown): void => {
   assert(condition, label);
@@ -42,14 +44,19 @@ async function main(): Promise<void> {
   const auth = betterAuth({
     ...withEmailFlows(
       betterAuthCoreConfig,
-      emailFlowOptions({ frontendUrl: 'http://localhost:5173' } as Config, {
+      emailFlowOptions({ frontendUrl: FRONTEND } as Config, {
         sendEmail: async (email, _subject, html) => {
           sent.push({ email, html });
         },
       }),
     ),
+    ...socialSignInOptions({
+      frontendUrl: FRONTEND,
+      googleClientId: 'test.apps.googleusercontent.com',
+      googleClientSecret: 'test-client',
+    }),
     baseURL: 'http://localhost:4050',
-    trustedOrigins: ['http://localhost:5173'],
+    trustedOrigins: [FRONTEND],
     secret: SECRET,
     database: memoryAdapter(db),
     rateLimit: { enabled: false },
@@ -220,7 +227,56 @@ async function main(): Promise<void> {
       changedSession?.user.email === newEmail &&
       changedSession.user.emailVerified,
   );
-  console.log('all verification-link expectations hold');
+  // #198: let BetterAuth generate the OAuth state, then simulate Google's
+  // cancellation. Neither starting the flow nor cancelling it calls Google.
+  const googleReturn = 'http://localhost:4050/api/auth/callback/google';
+  const missingState = await auth.handler(new Request(googleReturn));
+  const fallback = new URL(
+    missingState.headers.get('location') ?? '',
+    FRONTEND,
+  );
+  check(
+    'Google callback without state returns to the Czech frontend sign-in',
+    missingState.status === 302 &&
+      fallback.origin === FRONTEND &&
+      fallback.pathname === '/login' &&
+      fallback.searchParams.get('error') === 'state_not_found',
+  );
+
+  const sessionsBeforeGoogle = db.session.length;
+  for (const page of ['/login', '/signup']) {
+    const from = '/akce/ukazka';
+    const start = await auth.api.signInSocial({
+      body: {
+        provider: 'google',
+        callbackURL: new URL(from, FRONTEND).href,
+        errorCallbackURL: `${FRONTEND}${page}?from=${encodeURIComponent(from)}`,
+        disableRedirect: true,
+      },
+      asResponse: true,
+    });
+    const { url } = (await start.json()) as { url?: string };
+    assert(start.ok && url, 'BetterAuth prepares the Google authorization URL');
+    const state = new URL(url).searchParams.get('state');
+    assert(state, 'BetterAuth provides an OAuth state');
+    const denied = new URL(googleReturn);
+    denied.searchParams.set('state', state);
+    denied.searchParams.set('error', 'access_denied');
+    const returned = await auth.handler(
+      new Request(denied, { headers: cookies(start) }),
+    );
+    const location = new URL(returned.headers.get('location') ?? '', FRONTEND);
+    check(
+      `Google cancellation returns to ${page} with its original destination`,
+      returned.status === 302 &&
+        location.origin === FRONTEND &&
+        location.pathname === page &&
+        location.searchParams.get('from') === from &&
+        location.searchParams.get('error') === 'access_denied' &&
+        db.session.length === sessionsBeforeGoogle,
+    );
+  }
+  console.log('all verification-link and Google return expectations hold');
 }
 void main().catch((error: unknown) => {
   console.error(error instanceof Error ? error.message : error);
