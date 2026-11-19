@@ -1,4 +1,4 @@
-import { useId } from "react"
+import { useId, type ReactNode } from "react"
 import { RefreshCw } from "lucide-react"
 
 import { PersonRow } from "@/components/PersonRow/PersonRow"
@@ -14,10 +14,12 @@ type ManagedParticipantsProps = {
   participants: EventParticipant[] | undefined
   error: Error | undefined
   onRetry: () => void
-  /** Inside a tab the tab names the list: the heading stays for screen readers only. */
-  isHeadingHidden?: boolean
+  /** In a tab on a phone the tab names the list: there the heading is for screen readers only (#371). */
+  isHeadingHiddenOnPhone?: boolean
   /** A cancelled event gets nobody new: an empty list says nobody was in (#183). */
   isCancelled?: boolean
+  /** Under the empty list's sentence: what to do next (the link, „Jak to půjde dál“, #371). */
+  emptyNextStep?: ReactNode
 }
 
 /**
@@ -29,8 +31,9 @@ export function ManagedParticipants({
   participants,
   error,
   onRetry,
-  isHeadingHidden = false,
+  isHeadingHiddenOnPhone = false,
   isCancelled = false,
+  emptyNextStep,
 }: ManagedParticipantsProps) {
   const headingId = useId()
   return (
@@ -40,7 +43,10 @@ export function ManagedParticipants({
     >
       <h2
         id={headingId}
-        className={cn("text-lg font-semibold tracking-tight", isHeadingHidden && "sr-only")}
+        className={cn(
+          "text-lg font-semibold tracking-tight",
+          isHeadingHiddenOnPhone && "max-md:sr-only",
+        )}
       >
         Účastníci{" "}
         {participants ? (
@@ -80,11 +86,18 @@ export function ManagedParticipants({
           ))}
         </div>
       ) : participants.length === 0 ? (
-        <p className="text-muted-foreground">
-          {isCancelled
-            ? "Na akci nikdo nebyl přihlášený."
-            : "Až se někdo přihlásí, uvidíš ho tady."}
-        </p>
+        isCancelled ? (
+          <p className="text-muted-foreground">Na akci nikdo nebyl přihlášený.</p>
+        ) : emptyNextStep ? (
+          <div className="flex flex-col gap-6">
+            <p className="text-muted-foreground">
+              Zatím se nikdo nepřihlásil. Kdo se přihlásí, objeví se tady.
+            </p>
+            {emptyNextStep}
+          </div>
+        ) : (
+          <p className="text-muted-foreground">Až se někdo přihlásí, uvidíš ho tady.</p>
+        )
       ) : (
         <ul className="flex flex-col gap-3">
           {participants.map((participant) => (

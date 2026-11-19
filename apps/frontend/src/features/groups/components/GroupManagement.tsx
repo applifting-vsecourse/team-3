@@ -1,16 +1,16 @@
-import { useRef, useState } from "react"
+import { useRef, useState, type ReactNode } from "react"
 import { useQuery } from "@tanstack/react-query"
 import { Check, RefreshCw, X } from "lucide-react"
 import { toast } from "sonner"
 
+import { ManagementTabs } from "@/components/ManagementTabs/ManagementTabs"
 import { PersonRow } from "@/components/PersonRow/PersonRow"
 import { formatRequestTime } from "@/components/RequestDecision/formatRequestTime"
 import { RejectRequestDialog } from "@/components/RequestDecision/RejectRequestDialog"
-import { TabBar, TabBarItem } from "@/components/TabBar/TabBar"
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 import { Button } from "@/components/ui/button"
 import { Skeleton } from "@/components/ui/skeleton"
-import { Tabs, TabsContent } from "@/components/ui/tabs"
+import { cn } from "@/lib/utils"
 
 import type { GroupMemberEntry } from "@/features/groups/api/groupSchemas"
 import { groupMembersQueryOptions } from "@/features/groups/api/groupsQueryOptions"
@@ -18,17 +18,21 @@ import { useDecideRequest } from "@/features/groups/hooks/useGroupMutations"
 
 type GroupManagementProps = {
   groupId: string
-  /** Mobile (D-07): tabs Žádosti / Členové; desktop (D-07d): both lists at once. */
-  isDesktop: boolean
+  /**
+   * While the admin is alone and nobody asks (Figma D-07d – jen ty, #371): what comes next,
+   * under the members instead of an empty column.
+   */
+  aloneNextStep?: ReactNode
 }
 
 /**
  * Requests and members of a group, for its admins (Figma D-07, D-07d).
  * Any admin approves or rejects a request, with the same steps, texts and
  * confirmation as an event's requests (D-03, #304); removing and blocking
- * members come with #63.
+ * members come with #63. Tabs on a phone, both lists on desktop — one tree,
+ * so an open rejection survives crossing 768 px (#316).
  */
-export function GroupManagement({ groupId, isDesktop }: GroupManagementProps) {
+export function GroupManagement({ groupId, aloneNextStep }: GroupManagementProps) {
   const membersQuery = useQuery(groupMembersQueryOptions(groupId))
 
   if (membersQuery.error) {
@@ -73,57 +77,61 @@ export function GroupManagement({ groupId, isDesktop }: GroupManagementProps) {
   const { requests, members } = membersQuery.data
   const requestsTitle = `Žádosti (${requests.length})`
   const membersTitle = `Členové (${members.length})`
+  const memberSection = (isHeadingHiddenOnPhone: boolean) => (
+    <section
+      aria-labelledby="group-members"
+      className="flex flex-col"
+    >
+      <h2
+        id="group-members"
+        className={cn(
+          "text-lg font-semibold tracking-tight",
+          isHeadingHiddenOnPhone && "max-md:sr-only",
+        )}
+      >
+        {membersTitle}
+      </h2>
+      <MemberList members={members} />
+    </section>
+  )
 
-  if (isDesktop) {
+  // alone and nobody asks: no tabs, the members and what comes next (D-07d – jen ty)
+  if (aloneNextStep && requests.length === 0 && members.length <= 1) {
     return (
-      <div className="flex flex-col gap-6">
-        <section
-          aria-labelledby="group-requests"
-          className="flex flex-col gap-2"
-        >
-          <h2
-            id="group-requests"
-            className="text-lg font-semibold tracking-tight"
-          >
-            {requestsTitle}
-          </h2>
-          <RequestList
-            groupId={groupId}
-            requests={requests}
-          />
-        </section>
-        <section
-          aria-labelledby="group-members"
-          className="flex flex-col"
-        >
-          <h2
-            id="group-members"
-            className="text-lg font-semibold tracking-tight"
-          >
-            {membersTitle}
-          </h2>
-          <MemberList members={members} />
-        </section>
+      <div className="flex flex-col gap-8">
+        {memberSection(false)}
+        {aloneNextStep}
       </div>
     )
   }
 
   return (
-    <Tabs defaultValue="requests">
-      <TabBar>
-        <TabBarItem value="requests">{requestsTitle}</TabBarItem>
-        <TabBarItem value="members">{membersTitle}</TabBarItem>
-      </TabBar>
-      <TabsContent value="requests">
-        <RequestList
-          groupId={groupId}
-          requests={requests}
-        />
-      </TabsContent>
-      <TabsContent value="members">
-        <MemberList members={members} />
-      </TabsContent>
-    </Tabs>
+    <ManagementTabs
+      tabs={[
+        {
+          value: "requests",
+          label: requestsTitle,
+          content: (
+            <section
+              aria-labelledby="group-requests"
+              className="flex flex-col gap-2"
+            >
+              <h2
+                id="group-requests"
+                className="text-lg font-semibold tracking-tight max-md:sr-only"
+              >
+                {requestsTitle}
+              </h2>
+              <RequestList
+                groupId={groupId}
+                requests={requests}
+              />
+            </section>
+          ),
+        },
+        { value: "members", label: membersTitle, content: memberSection(true) },
+      ]}
+    />
   )
 }
 

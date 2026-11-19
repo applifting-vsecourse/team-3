@@ -1,8 +1,10 @@
+import type { ReactNode } from "react"
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query"
-import { screen, waitFor, within } from "@testing-library/react"
+import { act, screen, waitFor, within } from "@testing-library/react"
 import userEvent from "@testing-library/user-event"
-import { beforeEach, describe, expect, it, vi } from "vitest"
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest"
 
+import { DESKTOP_QUERY } from "@/hooks/useMediaQuery"
 import { renderWithRouter } from "@/test/renderWithRouter"
 
 import { GroupManagement } from "@/features/groups/components/GroupManagement"
@@ -48,15 +50,37 @@ const members = {
   ],
 }
 
-const renderManagement = (isDesktop: boolean) =>
+const renderManagement = (aloneNextStep?: ReactNode) =>
   renderWithRouter(
     <QueryClientProvider client={new QueryClient()}>
       <GroupManagement
         groupId="g-florbal"
-        isDesktop={isDesktop}
+        aloneNextStep={aloneNextStep}
       />
     </QueryClientProvider>,
   )
+
+/** A window whose width can cross the desktop breakpoint (768 px) mid-test (#316). */
+function stubResizableWindow(isDesktop: boolean) {
+  const listeners = new Set<() => void>()
+  let isWide = isDesktop
+  vi.stubGlobal("matchMedia", (query: string) => ({
+    get matches() {
+      return query === DESKTOP_QUERY && isWide
+    },
+    media: query,
+    addEventListener: (_: string, listener: () => void) => listeners.add(listener),
+    removeEventListener: (_: string, listener: () => void) => listeners.delete(listener),
+  }))
+  return (isNowDesktop: boolean) => {
+    isWide = isNowDesktop
+    act(() => listeners.forEach((listener) => listener()))
+  }
+}
+
+afterEach(() => {
+  vi.unstubAllGlobals()
+})
 
 beforeEach(() => {
   api.get.mockReset().mockReturnValue({ json: () => Promise.resolve(members) })
@@ -65,7 +89,7 @@ beforeEach(() => {
 
 describe("GroupManagement", () => {
   it("a request shows the applicant's message in quotes under them (D-07, #175)", async () => {
-    await renderManagement(true)
+    await renderManagement()
 
     const requests = await screen.findByRole("region", { name: "Žádosti (2)" })
     const [jakub, petr] = within(requests).getAllByRole("listitem")
@@ -78,7 +102,7 @@ describe("GroupManagement", () => {
   })
 
   it("desktop shows requests and members at once, admins labelled", async () => {
-    await renderManagement(true)
+    await renderManagement()
 
     expect(await screen.findByRole("heading", { name: "Žádosti (2)" })).toBeInTheDocument()
     expect(screen.getByRole("heading", { name: "Členové (2)" })).toBeInTheDocument()
@@ -91,7 +115,7 @@ describe("GroupManagement", () => {
   })
 
   it("mobile puts them in tabs", async () => {
-    await renderManagement(false)
+    await renderManagement()
 
     const requestsTab = await screen.findByRole("tab", { name: "Žádosti (2)" })
     expect(requestsTab).toHaveAttribute("aria-selected", "true")
@@ -102,7 +126,7 @@ describe("GroupManagement", () => {
   })
 
   it("approving is one click (#304: the same as an event's requests)", async () => {
-    await renderManagement(true)
+    await renderManagement()
 
     await userEvent.click(
       await screen.findByRole("button", { name: "Schválit žádost: Jakub Král" }),
@@ -113,7 +137,7 @@ describe("GroupManagement", () => {
   })
 
   it("rejecting asks first and says what the applicant will see (#304, as D-03a)", async () => {
-    await renderManagement(true)
+    await renderManagement()
 
     await userEvent.click(
       await screen.findByRole("button", { name: "Zamítnout žádost: Petr Holub" }),
@@ -131,7 +155,7 @@ describe("GroupManagement", () => {
   })
 
   it("confirming rejects that one request and closes the dialog", async () => {
-    await renderManagement(true)
+    await renderManagement()
 
     await userEvent.click(
       await screen.findByRole("button", { name: "Zamítnout žádost: Petr Holub" }),
@@ -146,7 +170,7 @@ describe("GroupManagement", () => {
 
   it("a rejection that fails keeps the dialog open to try again", async () => {
     api.post.mockRejectedValueOnce(new Error("Žádost už vyřídil jiný správce."))
-    await renderManagement(true)
+    await renderManagement()
 
     await userEvent.click(
       await screen.findByRole("button", { name: "Zamítnout žádost: Petr Holub" }),
@@ -165,7 +189,7 @@ describe("GroupManagement", () => {
     api.post
       .mockReturnValueOnce(new Promise<void>((resolve) => (finishJakub = resolve)))
       .mockReturnValueOnce(new Promise<void>((resolve) => (finishPetr = resolve)))
-    await renderManagement(true)
+    await renderManagement()
 
     await userEvent.click(
       await screen.findByRole("button", { name: "Schválit žádost: Jakub Král" }),
@@ -194,7 +218,7 @@ describe("GroupManagement", () => {
     api.get
       .mockReturnValueOnce({ json: () => Promise.resolve(onlyPetr) })
       .mockReturnValue({ json: () => Promise.resolve({ ...members, requests: [] }) })
-    await renderManagement(true)
+    await renderManagement()
 
     await userEvent.click(
       await screen.findByRole("button", { name: "Zamítnout žádost: Petr Holub" }),
@@ -215,13 +239,13 @@ describe("GroupManagement", () => {
 
   it("no requests: one sentence instead of an empty list", async () => {
     api.get.mockReturnValue({ json: () => Promise.resolve({ ...members, requests: [] }) })
-    await renderManagement(true)
+    await renderManagement()
 
     expect(await screen.findByText("Žádné žádosti o členství teď nečekají.")).toBeInTheDocument()
   })
 
   it("the name of each applicant and member leads to their public profile (#289)", async () => {
-    await renderManagement(true)
+    await renderManagement()
 
     expect(await screen.findByRole("link", { name: "Jakub Král" })).toHaveAttribute(
       "href",
@@ -239,5 +263,38 @@ describe("GroupManagement", () => {
       "href",
       "/uzivatele/u-ondrej",
     )
+  })
+
+  it("an open rejection stays open when the window crosses 768 px, both ways (#316)", async () => {
+    const resize = stubResizableWindow(true)
+    await renderManagement()
+
+    await userEvent.click(
+      await screen.findByRole("button", { name: "Zamítnout žádost: Petr Holub" }),
+    )
+    expect(screen.getByRole("dialog", { name: "Zamítnout žádost?" })).toBeInTheDocument()
+
+    resize(false)
+    expect(screen.getByRole("dialog", { name: "Zamítnout žádost?" })).toBeInTheDocument()
+    resize(true)
+    expect(screen.getByRole("dialog", { name: "Zamítnout žádost?" })).toBeInTheDocument()
+  })
+
+  it("an admin alone with no requests sees the members and what comes next, no tabs (#371)", async () => {
+    api.get.mockReturnValue({
+      json: () => Promise.resolve({ requests: [], members: members.members.slice(0, 1) }),
+    })
+    await renderManagement(<p>Jak to půjde dál</p>)
+
+    expect(await screen.findByRole("heading", { name: "Členové (1)" })).toBeInTheDocument()
+    expect(screen.getByText("Jak to půjde dál")).toBeInTheDocument()
+    expect(screen.queryByRole("tab")).not.toBeInTheDocument()
+  })
+
+  it("with requests, the next step waits for them instead (#371)", async () => {
+    await renderManagement(<p>Jak to půjde dál</p>)
+
+    expect(await screen.findByRole("tab", { name: "Žádosti (2)" })).toBeInTheDocument()
+    expect(screen.queryByText("Jak to půjde dál")).not.toBeInTheDocument()
   })
 })
