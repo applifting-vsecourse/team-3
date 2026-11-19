@@ -843,7 +843,7 @@ Doménová logika (čistá funkce + testy): `approvedCount`, `missingToMin = max
 
 **Hotovo, když:**
 
-- [ ] Test: běžný uživatel na admin API dostane 403.
+- [x] Test: běžný uživatel na admin API dostane 403 (#308).
 
 ---
 

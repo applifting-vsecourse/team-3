@@ -15,7 +15,7 @@ Kdo nález opraví, změní ve stejném PR i jeho stav v tomto reportu.
 ## Co ještě chybí
 
 - [ ] Ověřit `BETTER_AUTH_SECRET` a ostatní nastavení na stagingu, ověří Tomáš Klíma (viz [Ke kontrole na stagingu](#ke-kontrole-na-stagingu)).
-- [x] Před vznikem administrace (B-063) nastavit na stagingu superadmina se silným heslem (viz [Ke kontrole na stagingu](#ke-kontrole-na-stagingu)). Od #308 je `deploy.yml` předává z GitHub variable `SUPERADMIN_EMAIL` a secretu `SUPERADMIN_PASSWORD`; heslo z `.env.example` seed v produkci odmítne.
+- [ ] Před vznikem administrace (B-063) nastavit na stagingu superadmina se silným heslem (viz [Ke kontrole na stagingu](#ke-kontrole-na-stagingu)). `deploy.yml` předává hodnoty od #308; hotovo, až budou nastavené variable a secret a superadmin po nasazení existuje.
 
 ## Jak audit proběhl
 
