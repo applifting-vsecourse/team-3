@@ -61,6 +61,8 @@ type SendEventMessageButtonProps = {
   viewerId: string
   /** Approved participants without the organizer; undefined while they load. */
   recipientCount: number | undefined
+  /** The management's next step makes it the primary button (#371). */
+  variant?: "default" | "outline"
   className?: string
 }
 
@@ -75,6 +77,7 @@ export function SendEventMessageButton({
   eventId,
   viewerId,
   recipientCount,
+  variant = "outline",
   className,
 }: SendEventMessageButtonProps) {
   const [isOpen, setIsOpen] = useState(false)
@@ -98,7 +101,7 @@ export function SendEventMessageButton({
     >
       <DialogTrigger asChild>
         <Button
-          variant="outline"
+          variant={variant}
           size="lg"
           className={cn("h-11", className)}
         >

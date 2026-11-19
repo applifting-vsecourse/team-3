@@ -1,20 +1,20 @@
-import type { ReactNode } from "react"
 import { createFileRoute, Link } from "@tanstack/react-router"
-import { Ban, Pencil, RefreshCw } from "lucide-react"
+import { Ban, Lock, Pencil, RefreshCw, UserCheck } from "lucide-react"
 import { toast } from "sonner"
 
 import { ROUTES } from "@/app/routes"
 import { BackLink } from "@/components/BackLink/BackLink"
 import { CapacityBar } from "@/components/CapacityBar/CapacityBar"
+import { DetailRow } from "@/components/DetailRow/DetailRow"
+import { ManagementSteps } from "@/components/ManagementSteps/ManagementSteps"
+import { ManagementTabs } from "@/components/ManagementTabs/ManagementTabs"
 import { BandActivity } from "@/components/PageBand/BandActivity"
 import { PageBand } from "@/components/PageBand/PageBand"
 import { SubBar } from "@/components/PageBand/SubBar"
 import { Seo } from "@/components/Seo"
-import { TabBar, TabBarItem } from "@/components/TabBar/TabBar"
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 import { Button } from "@/components/ui/button"
 import { Skeleton } from "@/components/ui/skeleton"
-import { Tabs, TabsContent } from "@/components/ui/tabs"
 import { DESKTOP_QUERY, useMediaQuery } from "@/hooks/useMediaQuery"
 import { PAGE } from "@/lib/pageLayout"
 import { cn } from "@/lib/utils"
@@ -22,20 +22,19 @@ import { cn } from "@/lib/utils"
 import { useSession } from "@/features/auth/hooks/useSession"
 import { CancelEventDialog } from "@/features/events/components/CancelEventDialog"
 import { EventCard } from "@/features/events/components/EventCard"
-import { EventFacts } from "@/features/events/components/EventFacts"
 import { ManagedParticipants } from "@/features/events/components/ManagedParticipants"
 import { ManagedRatings } from "@/features/events/components/ManagedRatings"
 import { ManagedRequests } from "@/features/events/components/ManagedRequests"
 import { SendEventMessageButton } from "@/features/events/components/SendEventMessageButton"
-import { ShareEventButton } from "@/features/events/components/ShareEventButton"
+import { eventDetailPath, ShareEventButton } from "@/features/events/components/ShareEventButton"
 import { useCancelEvent } from "@/features/events/hooks/useCancelEvent"
 import { useDecideRequest } from "@/features/events/hooks/useDecideRequest"
 import { useEventDetail } from "@/features/events/hooks/useEventDetail"
 import { useEventParticipants } from "@/features/events/hooks/useEventParticipants"
 import { editRefusal } from "@/features/events/lib/editRefusal"
 import { canWriteToParticipants, messageRecipientCount } from "@/features/events/lib/eventMessages"
-import { formatEventTime } from "@/features/events/lib/formatEvent"
-import { showsRequests } from "@/features/events/lib/manageEvent"
+import { approvalModeLabel, formatEventTime } from "@/features/events/lib/formatEvent"
+import { eventEmptySteps, eventNextStep, showsRequests } from "@/features/events/lib/manageEvent"
 
 export const Route = createFileRoute("/_ProtectedPages/akce/$eventId/sprava")({
   component: ManageEventPage,
@@ -49,7 +48,9 @@ export const Route = createFileRoute("/_ProtectedPages/akce/$eventId/sprava")({
  *
  * Desktop starts with the band, as the detail (A-05d): the activity, the title and one line
  * — when, where, „Pořádáš ty“. A phone has no band (D-03): the bar „Správa akce“ with
- * „Sdílet“, then the event's card with its photo, without the small bar the big one repeats.
+ * „Sdílet“. Then, on both (#371): the event's card with its photo, without the small bar the
+ * big one repeats, and one next step by the event's state — share the link while people are
+ * missing, write to the participants once it happens; an empty list says what comes next.
  */
 function ManageEventPage() {
   const { eventId } = Route.useParams()
@@ -78,13 +79,31 @@ function ManageEventPage() {
     fallbackLabel: "Na akci",
   } as const
   // who is coming: alone in the right column, or next to the requests (#53)
-  const participantList = (isHeadingHidden: boolean) => (
+  const now = new Date()
+  // nothing is shared or written once it's cancelled or has started (#183)
+  const canShare = event?.status === "published" && event.startsAt > now
+  const canWrite = event !== undefined && canWriteToParticipants(event, viewerId)
+  const recipientCount = event
+    ? messageRecipientCount(participants.participants, event.organizer.id)
+    : undefined
+  const nextStep = event ? eventNextStep(event, recipientCount, canWrite, now) : null
+  // who is coming: alone in the right column, or next to the requests (#53)
+  const participantList = (isHeadingHiddenOnPhone: boolean) => (
     <ManagedParticipants
       participants={participants.participants}
       error={participants.error}
       onRetry={participants.retry}
-      isHeadingHidden={isHeadingHidden}
+      isHeadingHiddenOnPhone={isHeadingHiddenOnPhone}
       isCancelled={event?.status === "cancelled"}
+      // nobody yet and no request waiting: the link and what comes next (D-03d – nikdo nejde)
+      emptyNextStep={
+        event && canShare && !participants.requests?.length ? (
+          <ManagementSteps
+            steps={eventEmptySteps(event)}
+            link={{ path: eventDetailPath(event.id), title: event.title, label: "Odkaz na akci" }}
+          />
+        ) : undefined
+      }
     />
   )
 
@@ -111,12 +130,15 @@ function ManageEventPage() {
             back={back}
             label="Správa akce"
             isHeading
+            // not when sharing is the next step's own button (D-03 – nikdo nejde, #371)
             action={
-              <ShareEventButton
-                event={event}
-                label="Sdílet"
-                shouldUseShareSheet
-              />
+              canShare && nextStep?.action !== "share" ? (
+                <ShareEventButton
+                  event={event}
+                  label="Sdílet"
+                  shouldUseShareSheet
+                />
+              ) : undefined
             }
           />
         )
@@ -159,15 +181,18 @@ function ManageEventPage() {
             </AlertTitle>
           </Alert>
         ) : (
-          // D-03d: the event's summary on the left, who is coming on the right
+          // D-03d (#371): the event as others see it and the next step on the left, who is
+          // coming on the right — one tree for a phone and desktop, only CSS rearranges it, so
+          // an open dialog survives crossing 768 px (#316)
           <div className="grid grid-cols-1 items-start gap-8 md:grid-cols-[minmax(0,27.5rem)_minmax(0,1fr)] md:gap-12">
             <section className="flex flex-col gap-5">
-              {isDesktop ? null : (
-                <EventCard
-                  event={event}
-                  hasBar={false}
-                />
-              )}
+              {/* its photo too (#77): a phone's row card, desktop's grid card; the big bar
+                  below makes the card's own one redundant */}
+              <EventCard
+                event={event}
+                variant="responsive"
+                hasBar={false}
+              />
               {event.status === "cancelled" ? (
                 // instead of the capacity: „Chybí ještě 2“ would read as if it still happens
                 <Alert variant="destructive">
@@ -191,19 +216,56 @@ function ManageEventPage() {
                   isFull={event.isFull}
                 />
               )}
-              {isDesktop ? <EventFacts event={event} /> : null}
-              {/* Figma D-03d: Upravit, Sdílet odkaz, Zrušit (ghost); a phone shares from the bar
-                  and has Upravit and Zrušit side by side (D-03) */}
-              <div
-                className={cn(
-                  isDesktop ? "flex flex-wrap items-center gap-3" : "grid grid-cols-2 gap-3",
-                )}
-              >
+              {/* when and where are in the band and on the card (#371) */}
+              <dl className="flex flex-col gap-3 md:gap-4">
+                <DetailRow
+                  icon={UserCheck}
+                  label="Přihlašování"
+                >
+                  {approvalModeLabel(event.approvalMode)}
+                </DetailRow>
+                {event.group ? (
+                  <DetailRow
+                    icon={Lock}
+                    label="Kdo akci vidí"
+                  >
+                    {event.visibility === "members" ? "Jen pro členy skupiny" : "Veřejná"}
+                  </DetailRow>
+                ) : null}
+              </dl>
+              {/* the one primary button, by the event's state (#371) */}
+              {nextStep ? (
+                <div className="flex flex-col gap-3">
+                  <p>{nextStep.text}</p>
+                  {nextStep.action === "share" ? (
+                    <ShareEventButton
+                      event={event}
+                      label="Sdílet odkaz"
+                      variant="default"
+                      // a phone's share sheet; desktop copies the link
+                      shouldUseShareSheet={!isDesktop}
+                      className="h-11 w-full"
+                    />
+                  ) : viewerId ? (
+                    <SendEventMessageButton
+                      eventId={eventId}
+                      viewerId={viewerId}
+                      recipientCount={recipientCount}
+                      variant="default"
+                      className="w-full"
+                    />
+                  ) : null}
+                </div>
+              ) : null}
+              {/* Figma D-03d: Upravit, Sdílet odkaz, Zrušit (ghost) beside each other; a phone
+                  shares from the bar and has Upravit and Zrušit side by side (D-03) */}
+              <div className="grid grid-cols-2 gap-3 md:flex md:flex-wrap md:items-center">
                 {canEdit ? (
                   <Button
                     asChild
                     variant="outline"
                     size="lg"
+                    className="h-11"
                   >
                     <Link
                       to={ROUTES.editEvent}
@@ -214,10 +276,20 @@ function ManageEventPage() {
                     </Link>
                   </Button>
                 ) : null}
-                {isDesktop ? (
+                {/* someone is coming, but sharing comes first: writing stays at hand (#371) */}
+                {viewerId && canWrite && nextStep?.action !== "write" && recipientCount ? (
+                  <SendEventMessageButton
+                    eventId={eventId}
+                    viewerId={viewerId}
+                    recipientCount={recipientCount}
+                    className="col-span-2 md:col-span-1"
+                  />
+                ) : null}
+                {canShare && nextStep?.action !== "share" ? (
                   <ShareEventButton
                     event={event}
                     label="Sdílet odkaz"
+                    className="hidden h-11 md:inline-flex"
                   />
                 ) : null}
                 {canEdit ? (
@@ -237,19 +309,6 @@ function ManageEventPage() {
                   />
                 ) : null}
               </div>
-              {/* Figma D-03d, D-04: „Napsat účastníkům“ under the actions, the whole width;
-                  only the organizer of an event that isn't cancelled (#176) */}
-              {viewerId && canWriteToParticipants(event, viewerId) ? (
-                <SendEventMessageButton
-                  eventId={eventId}
-                  viewerId={viewerId}
-                  recipientCount={messageRecipientCount(
-                    participants.participants,
-                    event.organizer.id,
-                  )}
-                  className="w-full"
-                />
-              ) : null}
               {/* D-05 and what the participants said (B-060, #66) */}
               <ManagedRatings
                 event={event}
@@ -260,39 +319,46 @@ function ManageEventPage() {
             {/* the right column (D-03d): an event with approval adds the requests (#53),
                 unless it's cancelled — then only who was coming, read-only (#183) */}
             {showsRequests(event) ? (
-              <RequestsAndParticipants
-                isDesktop={isDesktop}
-                participants={participants.participants?.length}
-                requests={participants.requests?.length}
-                requestList={(isHeadingHidden) => (
-                  <ManagedRequests
-                    requests={participants.requests}
-                    error={participants.error}
-                    onRetry={participants.retry}
-                    isHeadingHidden={isHeadingHidden}
-                    // showsRequests already hides the requests of a cancelled event; the
-                    // status check stays as a safety net (the API refuses with EVENT_CANCELLED)
-                    canDecide={event.status === "published" && event.startsAt > new Date()}
-                    isFull={event.isFull}
-                    isDeciding={decide.isPending}
-                    onDecide={(request, decision) =>
-                      decide.mutateAsync({ userId: request.id, decision }).then(
-                        () =>
-                          toast.success(
-                            decision === "approve"
-                              ? `Schváleno: ${request.name}`
-                              : `Zamítnuto: ${request.name}`,
-                          ),
-                        // the API's 409 says why, in Czech (e.g. „Akce je plná.“)
-                        (decideError: Error) => {
-                          toast.error(decideError.message)
-                          throw decideError
-                        },
-                      )
-                    }
-                  />
-                )}
-                participantList={participantList}
+              <ManagementTabs
+                tabs={[
+                  {
+                    value: "requests",
+                    label: `Žádosti${tabCount(participants.requests?.length)}`,
+                    content: (
+                      <ManagedRequests
+                        requests={participants.requests}
+                        error={participants.error}
+                        onRetry={participants.retry}
+                        isHeadingHiddenOnPhone
+                        // showsRequests already hides the requests of a cancelled event; the
+                        // status check stays as a safety net (the API refuses with EVENT_CANCELLED)
+                        canDecide={event.status === "published" && event.startsAt > new Date()}
+                        isFull={event.isFull}
+                        isDeciding={decide.isPending}
+                        onDecide={(request, decision) =>
+                          decide.mutateAsync({ userId: request.id, decision }).then(
+                            () =>
+                              toast.success(
+                                decision === "approve"
+                                  ? `Schváleno: ${request.name}`
+                                  : `Zamítnuto: ${request.name}`,
+                              ),
+                            // the API's 409 says why, in Czech (e.g. „Akce je plná.“)
+                            (decideError: Error) => {
+                              toast.error(decideError.message)
+                              throw decideError
+                            },
+                          )
+                        }
+                      />
+                    ),
+                  },
+                  {
+                    value: "participants",
+                    label: `Účastníci${tabCount(participants.participants?.length)}`,
+                    content: participantList(true),
+                  },
+                ]}
               />
             ) : (
               participantList(false)
@@ -304,53 +370,5 @@ function ManageEventPage() {
   )
 }
 
-type RequestsAndParticipantsProps = {
-  isDesktop: boolean
-  /** The counts for the tab labels; undefined while loading. */
-  participants: number | undefined
-  requests: number | undefined
-  requestList: (isHeadingHidden: boolean) => ReactNode
-  participantList: (isHeadingHidden: boolean) => ReactNode
-}
-
-/**
- * An event with approval has two lists (D-03): tabs Žádosti / Účastníci on a
- * phone, both one under the other on desktop — as in the group's management.
- */
-function RequestsAndParticipants({
-  isDesktop,
-  participants,
-  requests,
-  requestList,
-  participantList,
-}: RequestsAndParticipantsProps) {
-  if (isDesktop) {
-    return (
-      <div className="flex flex-col gap-8">
-        {requestList(false)}
-        {participantList(false)}
-      </div>
-    )
-  }
-  const count = (n: number | undefined) => (n === undefined ? "" : ` (${n})`)
-  return (
-    <Tabs defaultValue="requests">
-      <TabBar>
-        <TabBarItem value="requests">Žádosti{count(requests)}</TabBarItem>
-        <TabBarItem value="participants">Účastníci{count(participants)}</TabBarItem>
-      </TabBar>
-      <TabsContent
-        value="requests"
-        className="pt-4"
-      >
-        {requestList(true)}
-      </TabsContent>
-      <TabsContent
-        value="participants"
-        className="pt-4"
-      >
-        {participantList(true)}
-      </TabsContent>
-    </Tabs>
-  )
-}
+/** A tab's count: „ (2)“, nothing while it loads. */
+const tabCount = (n: number | undefined) => (n === undefined ? "" : ` (${n})`)
