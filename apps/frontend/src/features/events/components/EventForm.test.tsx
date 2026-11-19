@@ -1,11 +1,12 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query"
-import { act, fireEvent, render, screen, waitFor } from "@testing-library/react"
+import { act, fireEvent, render, screen, waitFor, within } from "@testing-library/react"
 import userEvent from "@testing-library/user-event"
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest"
 
 import type { Catalog } from "@/lib/catalog/catalogSearch"
 
 import { EventForm } from "@/features/events/components/EventForm"
+import { CLOCK_TIME_ERROR } from "@/features/events/lib/clockTime"
 import { eventTimes, toPragueWallTime } from "@/features/events/lib/pragueTime"
 
 const catalog: Catalog = {
@@ -74,6 +75,31 @@ const renderForm = (props: Partial<Parameters<typeof EventForm>[0]> = {}) => {
 
 const submit = () => userEvent.click(screen.getByRole("button", { name: "Zveřejnit akci" }))
 
+/** All other fields are valid, so tests exercise the time and submitted instants. */
+const renderTimedForm = (mode: "create" | "edit" = "create") => {
+  const day = toPragueWallTime(new Date(Date.now() + 3 * 86_400_000)).split("T")[0]!
+  const result = renderForm({
+    mode,
+    initialValues: {
+      title: "Ranní setkání",
+      activityId: "a-deskove-hry",
+      localityId: "l-praha-8",
+      address: "Herna Karlín",
+      lat: 50.11,
+      lng: 14.47,
+      startsAt: eventTimes(day, "09:00", "").startsAt.toISOString(),
+      minParticipants: 2,
+      maxParticipants: 6,
+    },
+  })
+  return {
+    ...result,
+    day,
+    start: screen.getByLabelText("Začátek *"),
+    end: screen.getByLabelText("Konec"),
+  }
+}
+
 /** Opens a catalog field („Aktivita *“), types into its search and picks the best match. */
 const pick = async (field: string, search: string, query: string) => {
   await userEvent.click(screen.getByRole("combobox", { name: field }))
@@ -131,6 +157,128 @@ afterEach(() => {
 })
 
 describe("EventForm", () => {
+  describe("24-hour time from the kit's Input (#200)", () => {
+    it("keeps typing intact, normalizes on blur and accepts pasted numeric time", async () => {
+      const user = userEvent.setup()
+      const { start, end } = renderTimedForm()
+      expect(start).toHaveAttribute("type", "text")
+      expect(start).toHaveAttribute("inputmode", "numeric")
+      expect(start).toHaveAccessibleDescription("Čas napiš jako 9:00 nebo 0900.")
+
+      await user.clear(start)
+      await user.type(start, "9:00")
+      expect(start).toHaveValue("9:00")
+      await user.tab()
+      expect(start).toHaveValue("09:00")
+
+      await user.click(end)
+      await user.paste("1030")
+      expect(end).toHaveValue("1030")
+      await user.tab()
+      expect(end).toHaveValue("10:30")
+      expect(screen.queryByText(CLOCK_TIME_ERROR)).not.toBeInTheDocument()
+      expect(screen.queryByText("Vyplň název akce")).not.toBeInTheDocument()
+    })
+
+    it.each(["create", "edit"] as const)(
+      "%s normalizes both times on submit even without blur",
+      async (mode) => {
+        const { start, end, day, onSubmit } = renderTimedForm(mode)
+        fireEvent.change(start, { target: { value: "9:00" } })
+        fireEvent.change(end, { target: { value: "1030" } })
+        fireEvent.submit(start.closest("form")!)
+        await waitFor(() => expect(onSubmit).toHaveBeenCalledOnce())
+        const times = eventTimes(day, "09:00", "10:30")
+        expect(onSubmit.mock.lastCall?.[0]).toMatchObject({
+          startsAt: times.startsAt.toISOString(),
+          endsAt: times.endsAt!.toISOString(),
+        })
+      },
+    )
+
+    it.each([
+      ["Začátek *", "25:00"],
+      ["Začátek *", "9:"],
+      ["Konec", "9:99"],
+      ["Konec", "12:00:00"],
+    ])(
+      "keeps invalid %s = %s visible, describes the error and refuses submission",
+      async (label, value) => {
+        const { onSubmit } = renderTimedForm()
+        const field = screen.getByLabelText(label)
+        await userEvent.clear(field)
+        await userEvent.type(field, value)
+        await userEvent.tab()
+        expect(await screen.findByText(CLOCK_TIME_ERROR)).toBeInTheDocument()
+        expect(field).toHaveValue(value)
+        expect(field).toHaveAttribute("aria-invalid", "true")
+        const hint = label === "Začátek *" ? "Čas napiš jako 9:00 nebo 0900." : "Nepovinné"
+        expect(field).toHaveAccessibleDescription(`${hint} ${CLOCK_TIME_ERROR}`)
+        await submit()
+        expect(onSubmit).not.toHaveBeenCalled()
+        expect(screen.queryByText("Termín musí být v budoucnosti")).not.toBeInTheDocument()
+
+        await userEvent.clear(field)
+        await userEvent.type(field, "11:00")
+        await userEvent.tab()
+        await waitFor(() => expect(screen.queryByText(CLOCK_TIME_ERROR)).not.toBeInTheDocument())
+        expect(field).toHaveAttribute("aria-invalid", "false")
+      },
+    )
+
+    it("compares canonical times and clears the end's equality error after correcting the start", async () => {
+      const { start, end, onSubmit } = renderTimedForm()
+      fireEvent.change(start, { target: { value: "9:00" } })
+      fireEvent.change(end, { target: { value: "0900" } })
+      fireEvent.submit(start.closest("form")!)
+      expect(await screen.findByText("Konec musí být jiný než začátek")).toBeInTheDocument()
+      expect(onSubmit).not.toHaveBeenCalled()
+      await userEvent.clear(start)
+      await userEvent.type(start, "8:00")
+      await userEvent.tab()
+      await waitFor(() =>
+        expect(screen.queryByText("Konec musí být jiný než začátek")).not.toBeInTheDocument(),
+      )
+    })
+
+    it("normalizes before deciding that a compact end is on the next Prague day", async () => {
+      const { start, end, day, onSubmit } = renderTimedForm()
+      fireEvent.change(start, { target: { value: "2200" } })
+      fireEvent.change(end, { target: { value: "200" } })
+      fireEvent.submit(start.closest("form")!)
+      await waitFor(() => expect(onSubmit).toHaveBeenCalledOnce())
+      const times = eventTimes(day, "22:00", "02:00")
+      expect(onSubmit.mock.lastCall?.[0]).toMatchObject({
+        startsAt: times.startsAt.toISOString(),
+        endsAt: times.endsAt!.toISOString(),
+      })
+    })
+
+    it("keeps the end optional, including whitespace pasted into it", async () => {
+      const { start, end, onSubmit } = renderTimedForm()
+      fireEvent.change(end, { target: { value: "  " } })
+      fireEvent.submit(start.closest("form")!)
+      await waitFor(() => expect(onSubmit).toHaveBeenCalledOnce())
+      expect(onSubmit.mock.lastCall?.[0]).toMatchObject({ endsAt: null })
+    })
+
+    it("distinguishes a missing start from invalid input and warns only for a valid early time", async () => {
+      const { start, onSubmit } = renderTimedForm()
+      const status = within(start.closest('[data-slot="form-item"]')!).getByRole("status")
+      fireEvent.change(start, { target: { value: "03:99" } })
+      expect(status).toBeEmptyDOMElement()
+      fireEvent.change(start, { target: { value: "300" } })
+      expect(status).toHaveTextContent("Začátek je mezi půlnocí a pátou ráno.")
+      fireEvent.change(start, { target: { value: "5:00" } })
+      expect(status).toBeEmptyDOMElement()
+      fireEvent.change(start, { target: { value: "  " } })
+      fireEvent.submit(start.closest("form")!)
+      expect(await screen.findByText("Vyplň začátek")).toBeInTheDocument()
+      expect(screen.queryByText(CLOCK_TIME_ERROR)).not.toBeInTheDocument()
+      expect(onSubmit).not.toHaveBeenCalled()
+    })
+  })
+
   const centerButton = () => screen.getByRole("button", { name: "Umístit špendlík do středu mapy" })
   const addressField = () => screen.getByLabelText("Adresa *")
   const centerAddress = { ...krizikova, geometry: { type: "Point", coordinates: [14.47, 50.11] } }

@@ -47,6 +47,7 @@ import {
 import { AddressCombobox } from "@/features/events/components/AddressCombobox"
 import { useEventLocation } from "@/features/events/hooks/useEventLocation"
 import { usePragueToday } from "@/features/events/hooks/usePragueToday"
+import { CLOCK_TIME_ERROR, normalizeClockTime } from "@/features/events/lib/clockTime"
 import { dateToDay, dayToDate } from "@/features/events/lib/dateRange"
 import { formatDay } from "@/features/events/lib/formatEvent"
 import { eventTimes, toPragueWallTime } from "@/features/events/lib/pragueTime"
@@ -62,6 +63,21 @@ const count = (name: string) =>
       `${name[0]!.toUpperCase()}${name.slice(1)} musí být aspoň 1`,
     )
     .refine((value) => Number(value) <= EVENT_MAX_PARTICIPANTS, `Nejvýš ${EVENT_MAX_PARTICIPANTS}`)
+
+/** Keep raw text while editing; normalize both fields before comparing times
+ * or converting to Prague instants, including a submit without a blur (#200). */
+const clockTime = (requiredMessage?: string) =>
+  z
+    .string()
+    .trim()
+    .superRefine((value, context) => {
+      if (!value) {
+        if (requiredMessage) context.addIssue({ code: "custom", message: requiredMessage })
+      } else if (normalizeClockTime(value) === null) {
+        context.addIssue({ code: "custom", message: CLOCK_TIME_ERROR })
+      }
+    })
+    .transform((value) => normalizeClockTime(value) ?? "")
 
 /** `approvedCount`: when editing, the maximum can't go below the people already in (#41). */
 const buildSchema = (approvedCount: number) =>
@@ -82,10 +98,10 @@ const buildSchema = (approvedCount: number) =>
         .max(EVENT_ADDRESS_MAX_LENGTH, `Adresa může mít nejvýš ${EVENT_ADDRESS_MAX_LENGTH} znaků`),
       /** A Prague day, `YYYY-MM-DD`. */
       day: z.string().min(1, "Akce potřebuje datum"),
-      /** `HH:mm`, Prague time. */
-      start: z.string().min(1, "Vyplň začátek"),
+      /** A typed 24-hour time, normalized to `HH:mm`, Prague time. */
+      start: clockTime("Vyplň začátek"),
       /** Optional; earlier than the start means the next day. */
-      end: z.string(),
+      end: clockTime(),
       minParticipants: count("minimum"),
       maxParticipants: count("maximum"),
       approvalMode: z.enum(["open", "approval"]),
@@ -107,14 +123,21 @@ const buildSchema = (approvedCount: number) =>
     .refine(
       (values) =>
         !values.day ||
-        !values.start ||
+        normalizeClockTime(values.start) === null ||
         eventTimes(values.day, values.start, "").startsAt > new Date(),
       { message: "Termín musí být v budoucnosti", path: ["start"] },
     )
-    .refine((values) => !values.end || values.end !== values.start, {
-      message: "Konec musí být jiný než začátek",
-      path: ["end"],
-    })
+    .refine(
+      (values) =>
+        !values.end ||
+        normalizeClockTime(values.end) === null ||
+        normalizeClockTime(values.start) === null ||
+        values.end !== values.start,
+      {
+        message: "Konec musí být jiný než začátek",
+        path: ["end"],
+      },
+    )
     .refine((values) => Number(values.maxParticipants) >= Number(values.minParticipants), {
       message: "Maximum nesmí být menší než minimum",
       path: ["maxParticipants"],
@@ -250,6 +273,17 @@ export function EventForm({
   })
 
   const formRef = useRevealFormErrors(form, errorMessage)
+
+  const finishTime = (name: "start" | "end") => {
+    const raw = form.getValues(name)
+    const normalized = normalizeClockTime(raw)
+    if (normalized !== null || !raw.trim()) {
+      form.setValue(name, normalized ?? "", { shouldDirty: true })
+    }
+    // A changed start can resolve the equality error of an already touched end.
+    const end = form.getFieldState("end")
+    void form.trigger(name === "start" && (end.isTouched || end.invalid) ? ["start", "end"] : name)
+  }
 
   const localityId = useWatch({ control: form.control, name: "localityId" })
   const place = useWatch({ control: form.control, name: "place" })
@@ -454,24 +488,41 @@ export function EventForm({
               <FormField
                 control={form.control}
                 name="start"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Začátek *</FormLabel>
-                    <FormControl>
-                      <Input
-                        type="time"
-                        className="h-11"
-                        {...field}
-                      />
-                    </FormControl>
-                    <FormDescription role="status">
-                      {field.value && field.value < "05:00"
-                        ? "Začátek je mezi půlnocí a pátou ráno. Zkontroluj, jestli je čas správný."
-                        : ""}
-                    </FormDescription>
-                    <FormMessage />
-                  </FormItem>
-                )}
+                render={({ field }) => {
+                  const normalized = normalizeClockTime(field.value)
+                  return (
+                    <FormItem>
+                      <FormLabel>Začátek *</FormLabel>
+                      <FormControl>
+                        <Input
+                          type="text"
+                          inputMode="numeric"
+                          autoComplete="off"
+                          spellCheck={false}
+                          placeholder="např. 9:00"
+                          className="h-11"
+                          {...field}
+                          onBlur={() => {
+                            field.onBlur()
+                            finishTime("start")
+                          }}
+                        />
+                      </FormControl>
+                      <FormDescription>
+                        Čas napiš jako 9:00 nebo 0900.
+                        <span
+                          role="status"
+                          className="block"
+                        >
+                          {normalized && normalized < "05:00"
+                            ? "Začátek je mezi půlnocí a pátou ráno. Zkontroluj, jestli je čas správný."
+                            : ""}
+                        </span>
+                      </FormDescription>
+                      <FormMessage />
+                    </FormItem>
+                  )
+                }}
               />
               <FormField
                 control={form.control}
@@ -481,9 +532,17 @@ export function EventForm({
                     <FormLabel>Konec</FormLabel>
                     <FormControl>
                       <Input
-                        type="time"
+                        type="text"
+                        inputMode="numeric"
+                        autoComplete="off"
+                        spellCheck={false}
+                        placeholder="např. 18:30"
                         className="h-11"
                         {...field}
+                        onBlur={() => {
+                          field.onBlur()
+                          finishTime("end")
+                        }}
                       />
                     </FormControl>
                     <FormDescription>Nepovinné</FormDescription>
