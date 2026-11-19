@@ -187,15 +187,22 @@ export class GroupsService {
     return { status: decision.status };
   }
 
-  /** „Odejít ze skupiny“, also withdrawing a pending request. */
-  async leave(groupId: string, userId: string): Promise<void> {
+  /**
+   * „Odejít ze skupiny“, also withdrawing a pending request. The user's places
+   * on the group's upcoming members-only events go with it (#266).
+   */
+  async leave(
+    groupId: string,
+    userId: string,
+    now: Date = new Date(),
+  ): Promise<void> {
     const group = await this.getActiveGroup(groupId, userId);
     const decision = decideLeave(
       group.viewerMembership,
       await this.groupRepository.countActiveAdmins(groupId),
     );
     if (decision.kind === 'error') throw MEMBERSHIP_ERRORS[decision.error]();
-    await this.groupRepository.deleteMembership(groupId, userId);
+    await this.groupRepository.leaveGroup(groupId, userId, now);
   }
 
   /** Requests and members for the management (D-07); only an admin. */
