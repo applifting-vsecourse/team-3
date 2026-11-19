@@ -1,4 +1,4 @@
-import { useId, type ReactNode } from "react"
+import { useId } from "react"
 import { RefreshCw } from "lucide-react"
 
 import { PersonRow } from "@/components/PersonRow/PersonRow"
@@ -18,8 +18,6 @@ type ManagedParticipantsProps = {
   isHeadingHiddenOnPhone?: boolean
   /** A cancelled event gets nobody new: an empty list says nobody was in (#183). */
   isCancelled?: boolean
-  /** Under the empty list's sentence: what to do next (the link, „Jak to půjde dál“, #371). */
-  emptyNextStep?: ReactNode
 }
 
 /**
@@ -33,7 +31,6 @@ export function ManagedParticipants({
   onRetry,
   isHeadingHiddenOnPhone = false,
   isCancelled = false,
-  emptyNextStep,
 }: ManagedParticipantsProps) {
   const headingId = useId()
   return (
@@ -86,18 +83,11 @@ export function ManagedParticipants({
           ))}
         </div>
       ) : participants.length === 0 ? (
-        isCancelled ? (
-          <p className="text-muted-foreground">Na akci nikdo nebyl přihlášený.</p>
-        ) : emptyNextStep ? (
-          <div className="flex flex-col gap-6">
-            <p className="text-muted-foreground">
-              Zatím se nikdo nepřihlásil. Kdo se přihlásí, objeví se tady.
-            </p>
-            {emptyNextStep}
-          </div>
-        ) : (
-          <p className="text-muted-foreground">Až se někdo přihlásí, uvidíš ho tady.</p>
-        )
+        <p className="text-muted-foreground">
+          {isCancelled
+            ? "Na akci nikdo nebyl přihlášený."
+            : "Až se někdo přihlásí, uvidíš ho tady."}
+        </p>
       ) : (
         <ul className="flex flex-col gap-3">
           {participants.map((participant) => (

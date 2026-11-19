@@ -59,7 +59,7 @@ export function eventEmptySteps(
   return [
     "Sdílej odkaz – v chatu party, ve skupině nebo na sítích.",
     event.approvalMode === "approval"
-      ? "Kdo se přihlásí, objeví se tady jako žádost. Schválíš ho, nebo zamítneš."
+      ? "Kdo se přihlásí, objeví se v Žádostech. Schválíš ho, nebo zamítneš."
       : "Kdo se přihlásí, objeví se tady. Akce bez schválení ho počítá hned.",
     `Jakmile se přihlásí ${peopleLabel(event.minParticipants)}, akce se koná – u akce se ukáže „Koná se“.`,
     "Po akci si navzájem dáte hodnocení.",

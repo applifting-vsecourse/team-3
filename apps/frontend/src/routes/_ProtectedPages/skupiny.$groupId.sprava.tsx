@@ -3,6 +3,7 @@ import { createFileRoute, Link } from "@tanstack/react-router"
 import { Pencil } from "lucide-react"
 import { toast } from "sonner"
 
+import { ROUTES } from "@/app/routes"
 import { BackLink } from "@/components/BackLink/BackLink"
 import { ManagementSteps } from "@/components/ManagementSteps/ManagementSteps"
 import { BandActivity } from "@/components/PageBand/BandActivity"
@@ -36,7 +37,8 @@ export const Route = createFileRoute("/_ProtectedPages/skupiny/$groupId/sprava")
 })
 
 /** The group's page, shared to invite people (#371). */
-const groupPath = (groupId: string) => `/skupiny/${encodeURIComponent(groupId)}`
+const groupPath = (groupId: string) =>
+  ROUTES.groupDetail.replace("$groupId", encodeURIComponent(groupId))
 
 /**
  * Figma D-07 (mobile) and D-07d (desktop), the admin's entry from the group
@@ -157,7 +159,7 @@ function ManageGroupPage() {
                 phone (D-07) — the same buttons, moved by CSS alone (#316) */}
             <div className="flex flex-col gap-2 py-4 md:col-start-1 md:row-start-2 md:flex-row md:flex-wrap md:py-0">
               {/* Figma D-07, D-07d: „Napsat členům“ opens D-08 (#194), unless it is the next step */}
-              {viewerId && nextStep?.action !== "write" && group.memberCount > 1 ? (
+              {viewerId && nextStep && nextStep.action !== "write" && group.memberCount > 1 ? (
                 <SendAnnouncementButton
                   groupId={groupId}
                   viewerId={viewerId}
@@ -165,7 +167,9 @@ function ManageGroupPage() {
                   className="w-full md:w-auto"
                 />
               ) : null}
-              {nextStep?.action !== "invite" ? (
+              {/* until the members are here the primary button is unknown: no button appears
+                  only to move away (review #382) */}
+              {nextStep && nextStep.action !== "invite" ? (
                 <ShareLinkButton
                   path={groupPath(groupId)}
                   title={group.name}

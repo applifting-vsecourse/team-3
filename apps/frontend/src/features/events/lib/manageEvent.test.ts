@@ -91,7 +91,7 @@ describe("eventEmptySteps (#371)", () => {
 
   it("speaks of requests at an event with approval", () => {
     expect(eventEmptySteps({ approvalMode: "approval", minParticipants: 5 })[1]).toBe(
-      "Kdo se přihlásí, objeví se tady jako žádost. Schválíš ho, nebo zamítneš.",
+      "Kdo se přihlásí, objeví se v Žádostech. Schválíš ho, nebo zamítneš.",
     )
   })
 })

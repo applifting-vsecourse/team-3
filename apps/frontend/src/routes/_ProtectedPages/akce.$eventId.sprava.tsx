@@ -78,7 +78,6 @@ function ManageEventPage() {
     params: { eventId },
     fallbackLabel: "Na akci",
   } as const
-  // who is coming: alone in the right column, or next to the requests (#53)
   const now = new Date()
   // nothing is shared or written once it's cancelled or has started (#183)
   const canShare = event?.status === "published" && event.startsAt > now
@@ -87,6 +86,19 @@ function ManageEventPage() {
     ? messageRecipientCount(participants.participants, event.organizer.id)
     : undefined
   const nextStep = event ? eventNextStep(event, recipientCount, canWrite, now) : null
+  // until the participants are here, whether sharing becomes the primary button is unknown:
+  // the other share buttons wait, so nothing appears and moves away (review #382)
+  const isNextStepKnown =
+    event !== undefined &&
+    (event.missingToMin > 0 || recipientCount !== undefined || participants.error !== undefined)
+  const canShareAside = canShare && isNextStepKnown && nextStep?.action !== "share"
+  // nobody coming and nothing waiting: the link and what comes next, under the lists — on a
+  // phone too, whichever tab is open (D-03d – nikdo nejde, #371)
+  const isNobodyYet =
+    event !== undefined &&
+    canShare &&
+    participants.participants?.length === 0 &&
+    (!showsRequests(event) || participants.requests?.length === 0)
   // who is coming: alone in the right column, or next to the requests (#53)
   const participantList = (isHeadingHiddenOnPhone: boolean) => (
     <ManagedParticipants
@@ -95,15 +107,6 @@ function ManageEventPage() {
       onRetry={participants.retry}
       isHeadingHiddenOnPhone={isHeadingHiddenOnPhone}
       isCancelled={event?.status === "cancelled"}
-      // nobody yet and no request waiting: the link and what comes next (D-03d – nikdo nejde)
-      emptyNextStep={
-        event && canShare && !participants.requests?.length ? (
-          <ManagementSteps
-            steps={eventEmptySteps(event)}
-            link={{ path: eventDetailPath(event.id), title: event.title, label: "Odkaz na akci" }}
-          />
-        ) : undefined
-      }
     />
   )
 
@@ -132,7 +135,7 @@ function ManageEventPage() {
             isHeading
             // not when sharing is the next step's own button (D-03 – nikdo nejde, #371)
             action={
-              canShare && nextStep?.action !== "share" ? (
+              canShareAside ? (
                 <ShareEventButton
                   event={event}
                   label="Sdílet"
@@ -285,7 +288,7 @@ function ManageEventPage() {
                     className="col-span-2 md:col-span-1"
                   />
                 ) : null}
-                {canShare && nextStep?.action !== "share" ? (
+                {canShareAside ? (
                   <ShareEventButton
                     event={event}
                     label="Sdílet odkaz"
@@ -318,51 +321,63 @@ function ManageEventPage() {
             </section>
             {/* the right column (D-03d): an event with approval adds the requests (#53),
                 unless it's cancelled — then only who was coming, read-only (#183) */}
-            {showsRequests(event) ? (
-              <ManagementTabs
-                tabs={[
-                  {
-                    value: "requests",
-                    label: `Žádosti${tabCount(participants.requests?.length)}`,
-                    content: (
-                      <ManagedRequests
-                        requests={participants.requests}
-                        error={participants.error}
-                        onRetry={participants.retry}
-                        isHeadingHiddenOnPhone
-                        // showsRequests already hides the requests of a cancelled event; the
-                        // status check stays as a safety net (the API refuses with EVENT_CANCELLED)
-                        canDecide={event.status === "published" && event.startsAt > new Date()}
-                        isFull={event.isFull}
-                        isDeciding={decide.isPending}
-                        onDecide={(request, decision) =>
-                          decide.mutateAsync({ userId: request.id, decision }).then(
-                            () =>
-                              toast.success(
-                                decision === "approve"
-                                  ? `Schváleno: ${request.name}`
-                                  : `Zamítnuto: ${request.name}`,
-                              ),
-                            // the API's 409 says why, in Czech (e.g. „Akce je plná.“)
-                            (decideError: Error) => {
-                              toast.error(decideError.message)
-                              throw decideError
-                            },
-                          )
-                        }
-                      />
-                    ),
-                  },
-                  {
-                    value: "participants",
-                    label: `Účastníci${tabCount(participants.participants?.length)}`,
-                    content: participantList(true),
-                  },
-                ]}
-              />
-            ) : (
-              participantList(false)
-            )}
+            <div className="flex flex-col gap-8">
+              {showsRequests(event) ? (
+                <ManagementTabs
+                  tabs={[
+                    {
+                      value: "requests",
+                      label: `Žádosti${tabCount(participants.requests?.length)}`,
+                      content: (
+                        <ManagedRequests
+                          requests={participants.requests}
+                          error={participants.error}
+                          onRetry={participants.retry}
+                          isHeadingHiddenOnPhone
+                          // showsRequests already hides the requests of a cancelled event; the
+                          // status check stays as a safety net (the API refuses with EVENT_CANCELLED)
+                          canDecide={event.status === "published" && event.startsAt > new Date()}
+                          isFull={event.isFull}
+                          isDeciding={decide.isPending}
+                          onDecide={(request, decision) =>
+                            decide.mutateAsync({ userId: request.id, decision }).then(
+                              () =>
+                                toast.success(
+                                  decision === "approve"
+                                    ? `Schváleno: ${request.name}`
+                                    : `Zamítnuto: ${request.name}`,
+                                ),
+                              // the API's 409 says why, in Czech (e.g. „Akce je plná.“)
+                              (decideError: Error) => {
+                                toast.error(decideError.message)
+                                throw decideError
+                              },
+                            )
+                          }
+                        />
+                      ),
+                    },
+                    {
+                      value: "participants",
+                      label: `Účastníci${tabCount(participants.participants?.length)}`,
+                      content: participantList(true),
+                    },
+                  ]}
+                />
+              ) : (
+                participantList(false)
+              )}
+              {isNobodyYet ? (
+                <ManagementSteps
+                  steps={eventEmptySteps(event)}
+                  link={{
+                    path: eventDetailPath(event.id),
+                    title: event.title,
+                    label: "Odkaz na akci",
+                  }}
+                />
+              ) : null}
+            </div>
           </div>
         )}
       </div>

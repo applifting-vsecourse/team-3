@@ -4,7 +4,7 @@ import { groupEmptySteps, groupNextStep } from "./manageGroup"
 
 describe("groupNextStep (#371)", () => {
   it.each([
-    [1, "Čeká 1 žádost o členství. Schval je, nebo zamítni v seznamu Žádosti."],
+    [1, "Čeká 1 žádost o členství. Schval ji, nebo zamítni v seznamu Žádosti."],
     [2, "Čekají 2 žádosti o členství. Schval je, nebo zamítni v seznamu Žádosti."],
     [5, "Čeká 5 žádostí o členství. Schval je, nebo zamítni v seznamu Žádosti."],
   ])("waiting requests come first (%i)", (count, text) => {

@@ -1,29 +1,11 @@
 import { useState } from "react"
-import { act, render, screen } from "@testing-library/react"
+import { render, screen } from "@testing-library/react"
 import userEvent from "@testing-library/user-event"
 import { afterEach, describe, expect, it, vi } from "vitest"
 
-import { DESKTOP_QUERY } from "@/hooks/useMediaQuery"
+import { stubResizableWindow } from "@/test/stubResizableWindow"
 
 import { ManagementTabs } from "./ManagementTabs"
-
-/** A window whose width can cross the desktop breakpoint (768 px) mid-test (#316). */
-function stubResizableWindow(isDesktop: boolean) {
-  const listeners = new Set<() => void>()
-  let isWide = isDesktop
-  vi.stubGlobal("matchMedia", (query: string) => ({
-    get matches() {
-      return query === DESKTOP_QUERY && isWide
-    },
-    media: query,
-    addEventListener: (_: string, listener: () => void) => listeners.add(listener),
-    removeEventListener: (_: string, listener: () => void) => listeners.delete(listener),
-  }))
-  return (isNowDesktop: boolean) => {
-    isWide = isNowDesktop
-    act(() => listeners.forEach((listener) => listener()))
-  }
-}
 
 /** Stands in for an open dialog: state that a remount would lose. */
 function Counter() {
@@ -77,7 +59,7 @@ describe("ManagementTabs (#371, #316)", () => {
     expect(screen.getByRole("button", { name: "Kliknuto 1×" })).toBeInTheDocument()
   })
 
-  it("on desktop no panel is a Tab stop of its own: there are no tabs to show", () => {
+  it("on desktop the panels are plain lists: no tab panels, no Tab stops of their own", () => {
     stubResizableWindow(true)
     render(
       <ManagementTabs
@@ -88,8 +70,34 @@ describe("ManagementTabs (#371, #316)", () => {
       />,
     )
 
-    for (const panel of screen.getAllByRole("tabpanel", { hidden: true })) {
+    expect(screen.queryByRole("tabpanel")).not.toBeInTheDocument()
+    for (const text of ["Žádné žádosti", "Nikdo"]) {
+      const panel = screen.getByText(text).closest("[data-slot=tabs-content]")
       expect(panel).toHaveAttribute("tabindex", "-1")
+      expect(panel).not.toHaveAttribute("aria-labelledby")
     }
+  })
+
+  it("a hidden tab stays mounted, and one list left needs no tabs", () => {
+    render(
+      <ManagementTabs
+        tabs={[
+          {
+            value: "requests",
+            label: "Žádosti (0)",
+            content: <p>Žádné žádosti</p>,
+            isHidden: true,
+          },
+          { value: "members", label: "Členové (1)", content: <p>Tomáš</p> },
+        ]}
+      />,
+    )
+
+    expect(screen.queryByRole("tab")).not.toBeInTheDocument()
+    expect(screen.queryByRole("tabpanel")).not.toBeInTheDocument()
+    expect(screen.getByText("Tomáš")).toBeInTheDocument()
+    expect(screen.getByText("Žádné žádosti").closest("[data-slot=tabs-content]")).toHaveClass(
+      "hidden",
+    )
   })
 })

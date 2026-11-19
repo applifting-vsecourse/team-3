@@ -1,11 +1,11 @@
 import type { ReactNode } from "react"
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query"
-import { act, screen, waitFor, within } from "@testing-library/react"
+import { screen, waitFor, within } from "@testing-library/react"
 import userEvent from "@testing-library/user-event"
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest"
 
-import { DESKTOP_QUERY } from "@/hooks/useMediaQuery"
 import { renderWithRouter } from "@/test/renderWithRouter"
+import { stubResizableWindow } from "@/test/stubResizableWindow"
 
 import { GroupManagement } from "@/features/groups/components/GroupManagement"
 
@@ -59,24 +59,6 @@ const renderManagement = (aloneNextStep?: ReactNode) =>
       />
     </QueryClientProvider>,
   )
-
-/** A window whose width can cross the desktop breakpoint (768 px) mid-test (#316). */
-function stubResizableWindow(isDesktop: boolean) {
-  const listeners = new Set<() => void>()
-  let isWide = isDesktop
-  vi.stubGlobal("matchMedia", (query: string) => ({
-    get matches() {
-      return query === DESKTOP_QUERY && isWide
-    },
-    media: query,
-    addEventListener: (_: string, listener: () => void) => listeners.add(listener),
-    removeEventListener: (_: string, listener: () => void) => listeners.delete(listener),
-  }))
-  return (isNowDesktop: boolean) => {
-    isWide = isNowDesktop
-    act(() => listeners.forEach((listener) => listener()))
-  }
-}
 
 afterEach(() => {
   vi.unstubAllGlobals()
@@ -289,6 +271,29 @@ describe("GroupManagement", () => {
     expect(await screen.findByRole("heading", { name: "Členové (1)" })).toBeInTheDocument()
     expect(screen.getByText("Jak to půjde dál")).toBeInTheDocument()
     expect(screen.queryByRole("tab")).not.toBeInTheDocument()
+  })
+
+  it("rejecting the last request of an admin alone keeps the list: the dialog closes and the focus comes back (#371, review #318)", async () => {
+    const onlyAdmin = members.members.slice(0, 1)
+    api.get.mockReturnValue({
+      json: () => Promise.resolve({ requests: members.requests.slice(1), members: onlyAdmin }),
+    })
+    await renderManagement(<p>Jak to půjde dál</p>)
+
+    await userEvent.click(
+      await screen.findByRole("button", { name: "Zamítnout žádost: Petr Holub" }),
+    )
+    // after the rejection the list comes back empty: the admin is alone now
+    api.get.mockReturnValue({
+      json: () => Promise.resolve({ requests: [], members: onlyAdmin }),
+    })
+    const dialog = screen.getByRole("dialog", { name: "Zamítnout žádost?" })
+    await userEvent.click(within(dialog).getByRole("button", { name: "Zamítnout" }))
+
+    expect(await screen.findByText("Jak to půjde dál")).toBeInTheDocument()
+    await waitFor(() => expect(screen.queryByRole("dialog")).not.toBeInTheDocument())
+    // the requests list stays mounted, so the focus has somewhere to come back to
+    expect(screen.getByRole("region", { name: "Žádosti o členství" })).toHaveFocus()
   })
 
   it("with requests, the next step waits for them instead (#371)", async () => {

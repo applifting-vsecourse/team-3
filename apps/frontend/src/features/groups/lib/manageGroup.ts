@@ -18,7 +18,8 @@ export function groupNextStep(requestCount: number, memberCount: number): GroupN
   if (requestCount > 0) {
     return {
       action: "decide",
-      text: `${waitingRequests(requestCount)} o členství. Schval je, nebo zamítni v seznamu Žádosti.`,
+      // „ji“ for one request, „je“ for more
+      text: `${waitingRequests(requestCount)} o členství. Schval ${requestCount === 1 ? "ji" : "je"}, nebo zamítni v seznamu Žádosti.`,
     }
   }
   if (memberCount <= 1) {
@@ -38,6 +39,6 @@ export function groupEmptySteps(type: GroupType): string[] {
       ? "Neveřejná skupina: každá žádost o členství se objeví tady a schválíš ji."
       : "Kdo se ke skupině přidá, objeví se tady mezi členy.",
     "Akce jen pro členy založíš na stránce skupiny („Založit akci skupiny“).",
-    "„Napsat členům“ pošle zprávu všem najednou.",
+    "Až budou ve skupině další, „Napsat členům“ jim pošle zprávu všem najednou.",
   ]
 }

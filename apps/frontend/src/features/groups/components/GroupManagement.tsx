@@ -74,64 +74,92 @@ export function GroupManagement({ groupId, aloneNextStep }: GroupManagementProps
     )
   }
 
-  const { requests, members } = membersQuery.data
+  return (
+    <GroupLists
+      groupId={groupId}
+      requests={membersQuery.data.requests}
+      members={membersQuery.data.members}
+      aloneNextStep={aloneNextStep}
+    />
+  )
+}
+
+type GroupListsProps = {
+  groupId: string
+  requests: GroupMemberEntry[]
+  members: GroupMemberEntry[]
+  aloneNextStep?: ReactNode
+}
+
+/**
+ * The lists, mounted once the data is here. Both stay mounted whatever the data does: when
+ * the last request is rejected, its dialog closes normally and the focus comes back to the
+ * list (review #318) — the layout never swaps the tree, neither by the window's width (#316)
+ * nor by the data (#371).
+ */
+function GroupLists({ groupId, requests, members, aloneNextStep }: GroupListsProps) {
+  const isAlone = requests.length === 0 && members.length <= 1
+  // alone from the start (D-07d – jen ty): no requests list until one arrives — decided once,
+  // so deciding the last request never hides the list it was in
+  const [hasStartedAlone] = useState(isAlone)
+  const isRequestsHidden = hasStartedAlone && requests.length === 0
   const requestsTitle = `Žádosti (${requests.length})`
   const membersTitle = `Členové (${members.length})`
-  const memberSection = (isHeadingHiddenOnPhone: boolean) => (
-    <section
-      aria-labelledby="group-members"
-      className="flex flex-col"
-    >
-      <h2
-        id="group-members"
-        className={cn(
-          "text-lg font-semibold tracking-tight",
-          isHeadingHiddenOnPhone && "max-md:sr-only",
-        )}
-      >
-        {membersTitle}
-      </h2>
-      <MemberList members={members} />
-    </section>
-  )
-
-  // alone and nobody asks: no tabs, the members and what comes next (D-07d – jen ty)
-  if (aloneNextStep && requests.length === 0 && members.length <= 1) {
-    return (
-      <div className="flex flex-col gap-8">
-        {memberSection(false)}
-        {aloneNextStep}
-      </div>
-    )
-  }
 
   return (
-    <ManagementTabs
-      tabs={[
-        {
-          value: "requests",
-          label: requestsTitle,
-          content: (
-            <section
-              aria-labelledby="group-requests"
-              className="flex flex-col gap-2"
-            >
-              <h2
-                id="group-requests"
-                className="text-lg font-semibold tracking-tight max-md:sr-only"
+    <div className="flex flex-col gap-8">
+      <ManagementTabs
+        defaultValue={hasStartedAlone ? "members" : "requests"}
+        tabs={[
+          {
+            value: "requests",
+            label: requestsTitle,
+            isHidden: isRequestsHidden,
+            content: (
+              <section
+                aria-labelledby="group-requests"
+                className="flex flex-col gap-2"
               >
-                {requestsTitle}
-              </h2>
-              <RequestList
-                groupId={groupId}
-                requests={requests}
-              />
-            </section>
-          ),
-        },
-        { value: "members", label: membersTitle, content: memberSection(true) },
-      ]}
-    />
+                <h2
+                  id="group-requests"
+                  className="text-lg font-semibold tracking-tight max-md:sr-only"
+                >
+                  {requestsTitle}
+                </h2>
+                <RequestList
+                  groupId={groupId}
+                  requests={requests}
+                />
+              </section>
+            ),
+          },
+          {
+            value: "members",
+            label: membersTitle,
+            content: (
+              <section
+                aria-labelledby="group-members"
+                className="flex flex-col"
+              >
+                <h2
+                  id="group-members"
+                  className={cn(
+                    "text-lg font-semibold tracking-tight",
+                    // the tab names it on a phone, unless it is the only list
+                    !isRequestsHidden && "max-md:sr-only",
+                  )}
+                >
+                  {membersTitle}
+                </h2>
+                <MemberList members={members} />
+              </section>
+            ),
+          },
+        ]}
+      />
+      {/* alone and nobody asks: what comes next, under the lists (D-07d – jen ty) */}
+      {isAlone ? aloneNextStep : null}
+    </div>
   )
 }
 
