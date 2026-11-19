@@ -187,7 +187,7 @@ function ManageEventPage() {
           // D-03d (#371): the event as others see it and the next step on the left, who is
           // coming on the right — one tree for a phone and desktop, only CSS rearranges it, so
           // an open dialog survives crossing 768 px (#316)
-          <div className="grid grid-cols-1 items-start gap-8 md:grid-cols-[minmax(0,27.5rem)_minmax(0,1fr)] md:gap-12">
+          <div className="grid grid-cols-1 items-start gap-8 md:grid-cols-[minmax(0,20rem)_minmax(0,1fr)] lg:grid-cols-[minmax(0,27.5rem)_minmax(0,1fr)] lg:gap-12">
             <section className="flex flex-col gap-5">
               {/* its photo too (#77): a phone's row card, desktop's grid card; the big bar
                   below makes the card's own one redundant */}

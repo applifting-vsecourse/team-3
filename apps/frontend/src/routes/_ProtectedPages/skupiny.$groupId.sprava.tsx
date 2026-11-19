@@ -111,7 +111,7 @@ function ManageGroupPage() {
         ) : group ? (
           // D-07d: the group as others see it and the next step on the left, requests and
           // members on the right; a phone stacks them, the group's actions at the bottom (D-07)
-          <div className="grid grid-cols-1 items-start gap-8 md:grid-cols-[minmax(0,27.5rem)_minmax(0,1fr)] md:grid-rows-[auto_1fr] md:gap-x-12 md:gap-y-5">
+          <div className="grid grid-cols-1 items-start gap-8 md:grid-cols-[minmax(0,20rem)_minmax(0,1fr)] md:grid-rows-[auto_1fr] md:gap-y-5 lg:grid-cols-[minmax(0,27.5rem)_minmax(0,1fr)] lg:gap-x-12">
             <section className="flex flex-col gap-5">
               {/* its photo too (#77); its place, type and members are on the card and in the band */}
               <GroupCard group={group} />

@@ -25,8 +25,8 @@ export function ManagementSteps({ steps, link }: ManagementStepsProps) {
   return (
     <div className="flex flex-col gap-6">
       {link ? (
-        <div className="hidden items-end gap-3 md:flex">
-          <div className="flex min-w-0 flex-1 flex-col gap-2">
+        <div className="hidden flex-wrap items-end gap-3 md:flex">
+          <div className="flex min-w-48 flex-1 flex-col gap-2">
             <Label htmlFor={linkId}>{link.label}</Label>
             <Input
               id={linkId}
