@@ -153,9 +153,11 @@ describe("EventForm", () => {
     await userEvent.click(centerButton())
     await waitFor(() => expect(addressField()).toHaveValue("Křižíkova 53/52, Praha 8 – Karlín"))
     await submit()
-    expect(onSubmit).toHaveBeenCalledWith(
-      expect.objectContaining({ lat: 50.11, lng: 14.47, localityId: "l-praha-8" }),
-    )
+    expect(onSubmit.mock.lastCall?.[0]).toMatchObject({
+      lat: 50.11,
+      lng: 14.47,
+      localityId: "l-praha-8",
+    })
   })
 
   it.each([true, false])("asks before replacing manual text; accept=%s", async (shouldAccept) => {
@@ -214,25 +216,21 @@ describe("EventForm", () => {
     const moveToLocality = screen.getByRole("button", { name: "Přesunout do středu lokality" })
     expect(moveToLocality).toBeVisible()
     await userEvent.click(screen.getByRole("button", { name: "Uložit změny" }))
-    expect(onSubmit).toHaveBeenCalledWith(
-      expect.objectContaining({
-        localityId: "l-usti-nad-orlici",
-        lat: 50.11,
-        lng: 14.47,
-        address: "Vlastní místo",
-      }),
-    )
+    expect(onSubmit.mock.lastCall?.[0]).toMatchObject({
+      localityId: "l-usti-nad-orlici",
+      lat: 50.11,
+      lng: 14.47,
+      address: "Vlastní místo",
+    })
     await userEvent.click(moveToLocality)
     await screen.findByText(/Adresu se nepodařilo určit/)
     await userEvent.click(screen.getByRole("button", { name: "Uložit změny" }))
-    expect(onSubmit).toHaveBeenLastCalledWith(
-      expect.objectContaining({
-        localityId: "l-usti-nad-orlici",
-        lat: 49.9739,
-        lng: 16.3936,
-        address: "Vlastní místo",
-      }),
-    )
+    expect(onSubmit.mock.lastCall?.[0]).toMatchObject({
+      localityId: "l-usti-nad-orlici",
+      lat: 49.9739,
+      lng: 16.3936,
+      address: "Vlastní místo",
+    })
   })
 
   it("choosing a locality alone does not satisfy the required map point", async () => {
