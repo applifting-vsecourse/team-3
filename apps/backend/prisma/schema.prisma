@@ -265,20 +265,22 @@ model User {
   blockedReason   String?   @db.Text
   deletedAt       DateTime?
 
-  organizedEvents     Event[]             @relation("EventOrganizer")
-  participations      Participation[]
-  groupMemberships    GroupMember[]
-  ratings             Rating[]
-  reports             Report[]            @relation("ReportReporter")
-  resolvedReports     Report[]            @relation("ReportResolver")
-  moderationActions   ModerationAction[]  @relation("ModerationAdmin")
-  revertedModerations ModerationAction[]  @relation("ModerationReverter")
-  payments            Payment[]           @relation("PaymentPayer")
-  confirmedPayments   Payment[]           @relation("PaymentConfirmer")
-  subscription        Subscription?
-  sentEventMessages   EventMessage[]
-  sentAnnouncements   GroupAnnouncement[]
-  notificationLogs    NotificationLog[]
+  organizedEvents        Event[]             @relation("EventOrganizer")
+  participations         Participation[]
+  groupMemberships       GroupMember[]
+  ratings                Rating[]
+  reports                Report[]            @relation("ReportReporter")
+  resolvedReports        Report[]            @relation("ReportResolver")
+  moderationActions      ModerationAction[]  @relation("ModerationAdmin")
+  revertedModerations    ModerationAction[]  @relation("ModerationReverter")
+  payments               Payment[]           @relation("PaymentPayer")
+  confirmedPayments      Payment[]           @relation("PaymentConfirmer")
+  subscription           Subscription?
+  sentEventMessages      EventMessage[]
+  sentAnnouncements      GroupAnnouncement[]
+  notificationLogs       NotificationLog[]
+  sentFriendRequests     Friendship[]        @relation("FriendshipRequester")
+  receivedFriendRequests Friendship[]        @relation("FriendshipAddressee")
 
   @@unique([email])
   @@unique([username])
@@ -693,6 +695,40 @@ model Subscription {
   updatedAt  DateTime @default(now()) @updatedAt
 
   @@map("subscription")
+}
+
+// ---------------------------------------------------------------------------
+// Přátelé (B-017, #307)
+// ---------------------------------------------------------------------------
+
+/// pending = žádost čeká; accepted = přátelé; rejected = příjemce tiše odmítl
+/// (odesílatel dál vidí „Žádost odeslána“ a může ji zrušit).
+enum FriendshipStatus {
+  pending
+  accepted
+  rejected
+
+  @@map("friendship_status")
+}
+
+/// Jedna žádost o přátelství na dvojici lidí, bez ohledu na to, kdo žádal.
+/// `pairKey` jsou obě ID seřazená a spojená dvojtečkou (`friendshipPairKey`):
+/// unikátní index hlídá dvojici v databázi, i při souběžných žádostech.
+model Friendship {
+  id          String           @id @default(cuid())
+  requesterId String
+  requester   User             @relation("FriendshipRequester", fields: [requesterId], references: [id], onDelete: Cascade)
+  addresseeId String
+  addressee   User             @relation("FriendshipAddressee", fields: [addresseeId], references: [id], onDelete: Cascade)
+  pairKey     String           @unique
+  status      FriendshipStatus @default(pending)
+  acceptedAt  DateTime?
+  createdAt   DateTime         @default(now())
+  updatedAt   DateTime         @default(now()) @updatedAt
+
+  @@index([requesterId])
+  @@index([addresseeId])
+  @@map("friendship")
 }
 
 // ---------------------------------------------------------------------------
