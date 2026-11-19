@@ -91,6 +91,11 @@ export async function prepareImage(
   if (resized === 'unreadable') {
     return { ok: false, message: IMAGE_MESSAGES.wrongType };
   }
+  // noise barely compresses: a 1600 × 4800 WebP of it can outgrow the 5 MB the
+  // database's CHECK keeps, which would end in a 500 (review #366)
+  if (resized.data.length > IMAGE_MAX_BYTES) {
+    return { ok: false, message: IMAGE_MESSAGES.tooLarge };
+  }
   return { ok: true, image: { contentType: 'image/webp', ...resized } };
 }
 
