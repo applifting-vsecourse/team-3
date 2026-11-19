@@ -17,7 +17,7 @@ describe("authErrorMessage", () => {
 
   it("credential errors give everyone the same next steps (#301)", () => {
     expect(authErrorMessage({ code: "INVALID_EMAIL_OR_PASSWORD" }, "x")).toBe(
-      "Nesprávný e-mail nebo heslo. Používáš účet přes Google? Přihlas se přes Google nebo si nastav heslo.",
+      "Nesprávný e-mail nebo heslo. Používáš účet přes Google? Přihlas se přes Google nebo si nastav heslo přes „Zapomenuté heslo“.",
     )
   })
 

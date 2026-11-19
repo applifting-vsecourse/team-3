@@ -151,7 +151,7 @@ describe("signing in needs a verified e-mail (#236)", () => {
 
     expect(
       await screen.findByText(
-        "Nesprávný e-mail nebo heslo. Používáš účet přes Google? Přihlas se přes Google nebo si nastav heslo.",
+        "Nesprávný e-mail nebo heslo. Používáš účet přes Google? Přihlas se přes Google nebo si nastav heslo přes „Zapomenuté heslo“.",
       ),
     ).toBeInTheDocument()
     expect(screen.getByRole("link", { name: "Zapomenuté heslo?" })).toHaveAttribute(
