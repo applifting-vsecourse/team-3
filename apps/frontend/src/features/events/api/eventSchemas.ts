@@ -53,7 +53,8 @@ export const eventDetailSchema = publicEventSchema.extend({
   approvalMode: z.enum(["open", "approval"]),
   /** `private`: through its link only; `members`: only the group's members (B-055). */
   visibility: z.enum(["public", "private", "members"]),
-  status: z.enum(["published", "cancelled"]),
+  /** `hidden`: deactivated by the superadmin (#308); only the superadmin gets it, anyone else a 404. */
+  status: z.enum(["published", "cancelled", "hidden"]),
   cancelReason: z.string().nullable(),
   /** Approved participants, only for those taking part (#174); null for anyone else, who gets only the occupancy. */
   participants: z.array(eventParticipantSchema).nullable(),
@@ -63,6 +64,10 @@ export const eventDetailSchema = publicEventSchema.extend({
   viewerSignedIn: z.boolean(),
   /** The organizer or, for a group's event, any of the group's admins (B-055). */
   canManage: z.boolean(),
+  /** Who may edit it: who manages it, and the superadmin (#308), by the same rules. */
+  canEdit: z.boolean(),
+  /** The superadmin (#308): may deactivate and restore the event. */
+  canModerate: z.boolean(),
 })
 
 export type EventDetail = z.infer<typeof eventDetailSchema>

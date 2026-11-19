@@ -76,6 +76,8 @@ const detail = {
   myParticipation: null,
   viewerSignedIn: true,
   canManage: true,
+  canEdit: true,
+  canModerate: false,
 }
 
 // GET /api/events/e1/participant-ratings (#66)

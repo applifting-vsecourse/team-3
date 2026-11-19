@@ -58,6 +58,8 @@ const event = {
   myParticipation: null,
   viewerSignedIn: true,
   canManage: true,
+  canEdit: true,
+  canModerate: false,
 } satisfies EventDetail
 
 const dayAfter = new Date("2026-11-02T10:00:00.000Z")

@@ -131,7 +131,7 @@ function ManageEventPage() {
         )}
         {isNotFound ? (
           <Alert>
-            <AlertTitle>Akce nenalezena</AlertTitle>
+            <AlertTitle>Akce není dostupná</AlertTitle>
           </Alert>
         ) : error ? (
           <Alert variant="destructive">
