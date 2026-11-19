@@ -133,6 +133,28 @@ describe("signing in needs a verified e-mail (#236)", () => {
     expect(screen.queryByText("Ověř si e-mail")).not.toBeInTheDocument()
   })
 
+  it("an unsuccessful password sign-in offers Google and password setup without identifying the account", async () => {
+    stubApi()
+    signInEmail.mockResolvedValue({
+      data: null,
+      error: { code: "INVALID_EMAIL_OR_PASSWORD", status: 401 },
+    })
+    const { app } = await renderApp("/login")
+
+    await signIn("eva.mala@example.com", "hobbyhub2026")
+
+    expect(
+      await screen.findByText(
+        "Nesprávný e-mail nebo heslo. Používáš účet přes Google? Přihlas se přes Google nebo si nastav heslo.",
+      ),
+    ).toBeInTheDocument()
+    expect(screen.getByRole("link", { name: "Zapomenuté heslo?" })).toHaveAttribute(
+      "href",
+      "/zapomenute-heslo",
+    )
+    expect(app.state.location.pathname).toBe("/login")
+  })
+
   it("an unverified e-mail is refused: „Ověř si e-mail“ with a new link, and back to the form", async () => {
     stubApi()
     signInEmail.mockResolvedValue({
