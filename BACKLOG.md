@@ -319,6 +319,8 @@ Staging a CI/CD (F-59, F-60) už v repu jsou (`.github/workflows/ci.yml`, `deplo
 
 - [ ] Testy: žádost, přijetí, odmítnutí; nepřítel akce neuvidí; soukromá akce se příteli neukáže.
 
+**Jak je to hotové – backend (#307):** model `Friendship` s unikátním `pairKey` (jedna dvojice v databázi), modul `friendship` s pravidly jako čistými funkcemi (`decideRequest`, `decideReject`, `decideRemove`, `friendshipState`) a API `GET /api/friends`, `POST` / `PATCH { status: rejected }` / `DELETE /api/friends/:userId`. Veřejný profil posílá přihlášenému `friendship` a příteli `upcomingEvents` (nejvýš 3, jen akce, které by viděl i sám). Odmítnutí je tiché, zrušit žádost jde i po odmítnutí (18. 11.). Upozornění doplní #86. Podrobnosti v `apps/backend/src/modules/friendship/README.md`.
+
 ---
 
 # Fáze 2 – Akce a objevování
