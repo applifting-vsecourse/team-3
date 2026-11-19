@@ -1,10 +1,12 @@
 import { ConfigModule } from '@applifting-io/nestjs-decorated-config';
 import { Module } from '@nestjs/common';
+import { ScheduleModule } from '@nestjs/schedule';
 import { CatalogModule } from './modules/catalog/catalog.module';
 import { EventModule } from './modules/event/event.module';
 import { GeoModule } from './modules/geo/geo.module';
 import { GroupModule } from './modules/group/group.module';
 import { HomeModule } from './modules/home/home.module';
+import { ImageModule } from './modules/image/image.module';
 import { ProfileModule } from './modules/profile/profile.module';
 import { RatingModule } from './modules/rating/rating.module';
 import { SignInProvidersModule } from './modules/sign-in-providers/sign-in-providers.module';
@@ -15,6 +17,7 @@ import { AuthModule } from './shared/auth/auth.module';
 import { Config } from './shared/config/config.service';
 
 const imports = [
+  ScheduleModule.forRoot(),
   ConfigModule.forRootAsync(Config, { validate: true }),
   AuthModule,
   WelcomeModule,
@@ -23,6 +26,7 @@ const imports = [
   GroupModule,
   GeoModule,
   HomeModule,
+  ImageModule,
   ProfileModule,
   RatingModule,
   SimulatedInboxModule,

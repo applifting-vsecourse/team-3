@@ -24,6 +24,7 @@ const anEvent = (overrides: Partial<MyEvent> = {}): MyEvent => ({
   maxParticipants: 6,
   capacity: { approvedCount: 5, missingToMin: 0, freeSpots: 1, isFull: false },
   isPromoted: false,
+  imageKey: null,
   distanceKm: null,
   status: 'published',
   myParticipation: 'approved',

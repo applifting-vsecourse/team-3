@@ -91,6 +91,7 @@ describe('MyEventRatingResponseDto', () => {
       group: { id: 'g1', name: 'Volejbal Letná' },
       approvedCount: 5,
       missingToMin: 0,
+      imageKey: 'k-plakat',
     };
     expect(
       MyEventRatingResponseDto.fromDomain({

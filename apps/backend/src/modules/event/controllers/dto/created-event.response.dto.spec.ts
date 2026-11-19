@@ -26,6 +26,7 @@ const created: EventDetailView = {
   maxParticipants: 6,
   capacity: computeCapacity({ minParticipants: 3, maxParticipants: 6 }, 0),
   isPromoted: false,
+  imageKey: null,
   description: null,
   approvalMode: 'open',
   visibility: 'public',

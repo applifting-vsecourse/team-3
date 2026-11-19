@@ -205,7 +205,7 @@ Staging a CI/CD (F-59, F-60) už v repu jsou (`.github/workflows/ci.yml`, `deplo
 
 **Cíl:** Do aplikace se přihlásí jen uživatel s ověřeným e-mailem (PO 4. 11.), takže na akce i do skupin se vždy hlásí ověřený uživatel. Řeší S-5 (#236).
 
-- BetterAuth: ověřovací odkaz s platností 24 h (`EMAIL_VERIFICATION_TTL_SECONDS`, šablona `verify-email.tsx` už existuje), `requireEmailVerification: true` – neověřený se nepřihlásí (chyba `EMAIL_NOT_VERIFIED`, žádná session), po registraci se session nezakládá. Po kliknutí na odkaz je uživatel ověřený, vrátí se přes `redirect` (B-012) na stránku, odkud registrace vyšla, a v dialogu „E-mail je ověřený“ se přihlásí sám („Přihlásit se“, #197); `autoSignInAfterVerification` se nezapíná.
+- BetterAuth: ověřovací odkaz s platností 24 h (`EMAIL_VERIFICATION_TTL_SECONDS`, šablona `verify-email.tsx` už existuje), `requireEmailVerification: true` – neověřený se nepřihlásí (chyba `EMAIL_NOT_VERIFIED`, žádná session), po registraci se session nezakládá. Po prvním platném ověření odkazem se uživatel rovnou přihlásí (`autoSignInAfterVerification: true`, PO 16. 11., #300). Frontend obnoví session a přes `redirect` (B-012) zachová původní cíl; navazující první přihlášení vede do onboardingu #296. Opětovné otevření už použitého odkazu nevytváří další session; bez session zůstává možnost přihlásit se.
 - Kdo je přihlášený, je ověřený: e-mail se ověřuje při registraci a jinak session nevznikne. Při nasazení se smažou session všech uživatelů s `emailVerified = false` (migrace nebo skript v nasazení), takže neověřená session nezůstane ani z doby před změnou.
 - FE: po registraci i při pokusu o přihlášení s neověřeným e-mailem obrazovka „Ověř si e-mail“ (Figma B-01a, desktop dialog B-01ad) s „Poslat odkaz znovu“ (s limitem) a „Zpět na přihlášení“. Pruh „Ověř si e-mail“ (`VerifyEmailBanner`) a stavy „neověřený“ na detailu akce a ve formuláři akce se odstraní – přihlášený neověřený uživatel nenastane.
 - `VerifiedUserGuard` (vedle `authenticated-user.guard.ts`) zůstává jen jako obrana do hloubky: 403 `EMAIL_NOT_VERIFIED`, když `emailVerified = false`, a dál odmítá zablokovaného uživatele (`blockedAt`). Nové endpointy na něm nestojí – ověření zajišťuje přihlášení. Přihlášení přes Google: e-mail ověřil Google.
@@ -214,7 +214,7 @@ Staging a CI/CD (F-59, F-60) už v repu jsou (`.github/workflows/ci.yml`, `deplo
 **Hotovo, když:**
 
 - [ ] Test guardu: neověřený → 403, zablokovaný → 403, ověřený → projde.
-- [ ] Test přihlášení: neověřený e-mailem a heslem se nepřihlásí a nedostane session, ověřený ano; po ověření odkazem se přihlásí.
+- [ ] Test přihlášení: neověřený e-mailem a heslem se nepřihlásí a nedostane session, ověřený ano; první ověření odkazem vytvoří cookie i session pro ověřený účet.
 - [ ] Test registrace: po registraci uživatel není přihlášený a dostane ověřovací e-mail.
 - [ ] Test nasazení: po smazání neověřených session nemá žádný uživatel s `emailVerified = false` platnou session.
 - [ ] Test FE: po registraci i po odmítnutém přihlášení neověřeného obrazovka „Ověř si e-mail“ s novým odesláním odkazu.
@@ -673,11 +673,11 @@ Doménová logika (čistá funkce + testy): `approvedCount`, `missingToMin = max
 - Plánovač (`@nestjs/schedule`), každá úloha idempotentní (záznam o odeslání, aby po restartu nepřišel e-mail dvakrát).
 - **Připomínka účastníkům** den před akcí.
 - **Organizátorovi 48 a 24 h před akcí**, kolik lidí chybí do minima, s odkazy Sdílet / Topovat / Zrušit. Při naplněném minimu nepřijde.
-- **Výzva k hodnocení**: dávkově jednou denně večer pro akce, které ten den skončily, všem `approved` (odkaz na hodnocení z B-060). Účastníkům „Ohodnoť akci“, organizátorovi „Ohodnoť účastníky“ (E-01 typy 11 a 12).
+- **Výzva k hodnocení** (#65, sprint 4): denní dávka ve 21:00 v pražském čase, všem `approved` a zakladateli akce (odkaz na hodnocení z B-060). Účastníkům „Ohodnoť akci“, organizátorovi „Ohodnoť účastníky“ (E-01 typy 11 a 12). Akce skončené po večerní dávce nebo bez `endsAt` (konec pražského dne) přijdou na řadu další večer. Výzvy jen k akcím ukončeným od aktivace evidované migrací a za posledních 48 hodin. Neúspěšná odeslání se opakují nejvýše třikrát celkem na příjemce a akci, potvrzená odeslání se evidují v `NotificationLog`. Zrušené, skryté a smazané akce a akce pod minimem se neposílají; příjemci a omezení doručení v `modules/notification/README.md`. Připomínky před akcí a chybějící lidé jsou mimo sprint 4.
 
 **Hotovo, když:**
 
-- [ ] Testy výběru příjemců s fixním „teď“ (fake timers).
+- [x] Testy výběru příjemců výzvy k hodnocení s fixním „teď“ (fake timers), hranic večerní dávky a lhůty hodnocení, změny času, obnovy po výpadku a evidence odeslání (#65). Připomínky před akcí a chybějící lidé zůstávají na později.
 
 ---
 
@@ -706,7 +706,7 @@ Doménová logika (čistá funkce + testy): `approvedCount`, `missingToMin = max
 
 `US-16, US-17` · BE · S · závisí na: B-002, B-003
 
-- `Group`: `name`, `description?`, `imageUrl?`, `activityId` (právě jedna), `localityId` (právě jedna), `type` (`public` / `closed`), `status` (`active` / `inactive`), `deactivatedAt?`.
+- `Group`: `name`, `description?`, `imageKey?` (fotka nahraná jako soubor, #77), `activityId` (právě jedna), `localityId` (právě jedna), `type` (`public` / `closed`), `status` (`active` / `inactive`), `deactivatedAt?`.
 - `GroupMember`: `groupId`, `userId`, `role` (`admin` / `member`), `status` (`pending` / `active` / `blocked`), `message?`. Unikátní dvojice.
 
 ---
@@ -996,7 +996,7 @@ Dokud tým nebo PO nerozhodne jinak, agent použije výchozí volbu.
 | --- | --------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------ |
 | Q1  | Mapa a našeptávač míst (poznámky zmiňují Google Maps)                             | Leaflet + OSM, místo klikem do mapy + textová adresa, lokality z vlastního číselníku                                                                                                                                                                       | Tým          |
 | Q2  | Služba pro odhad lokality z IP                                                    | Offline tabulka z DB-IP Lite (CC BY 4.0) v repu, při chybě a u příliš širokých rozsahů celé Česko (tým 28. 10., #55, #299)                                                                                                                                 | Tým          |
-| Q3  | Nahrávání fotek (profil, skupina, akce)                                           | Akce: organizátor nahraje obrázek jako soubor, bez něj obrázek aktivity (PO 10. 11., #77). Profil a skupina zatím jen URL obrázku                                                                                                                          | PO           |
+| Q3  | Nahrávání fotek (profil, skupina, akce)                                           | Akce a skupina: organizátor nebo správce nahraje obrázek jako soubor, bez něj obrázek aktivity (PO 10. 11., #77; skupina 18. 11.). Profil zatím jen URL obrázku                                                                                            | PO           |
 | Q4  | Podle čeho vybírat akce na úvodní stránce (F-68)                                  | Nejbližší termín v lokalitě, topované první; sekce podle #182, pravidla v docs/ux-audit.md                                                                                                                                                                 | PO           |
 | Q5  | Text obchodních podmínek a zásad ochrany údajů (F-65)                             | Placeholder                                                                                                                                                                                                                                                | PO           |
 | Q6  | Ukázková data – dodá PO reálné skupiny ze sondy? (F-64)                           | Tým vymyslí realistická data                                                                                                                                                                                                                               | PO           |

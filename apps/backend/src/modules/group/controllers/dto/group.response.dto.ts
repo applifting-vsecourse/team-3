@@ -89,6 +89,15 @@ export class GroupResponseDto {
   })
   memberCount!: number;
 
+  @ApiProperty({
+    type: String,
+    nullable: true,
+    format: 'uuid',
+    description:
+      "The admins' own photo (#77), at GET /api/images/{imageKey}; null = show the activity's photo",
+  })
+  imageKey!: string | null;
+
   static fromDomain(group: GroupSummary): GroupResponseDto {
     return {
       id: group.id,
@@ -97,6 +106,7 @@ export class GroupResponseDto {
       activity: group.activity,
       locality: group.locality,
       memberCount: group.memberCount,
+      imageKey: group.imageKey,
     };
   }
 }

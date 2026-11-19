@@ -12,6 +12,7 @@ const aGroup = (name: string, status: 'active' | 'pending'): MyGroup => ({
   },
   locality: { id: 'l', slug: 'l', name: 'L' },
   memberCount: 1,
+  imageKey: null,
   membership: { role: 'member', status },
   pendingRequests: null,
 });

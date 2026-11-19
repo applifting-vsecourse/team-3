@@ -5,6 +5,8 @@ import { activityPhoto } from "@/assets/activity-photos"
 type ActivityPhotoProps = {
   /** The activity's slug: one photo per activity from the library (DESIGN.md › Event card). */
   slug: string
+  /** An image in its place, e.g. the organizer's own one of an event (#77). */
+  photo?: { src: string; srcSet?: string }
   /** Over the photo, e.g. the event's date tile. */
   children?: ReactNode
 }
@@ -15,8 +17,8 @@ type ActivityPhotoProps = {
  * (saturation −14 %, contrast +10 %). Without a photo for the activity, nothing — a big empty
  * box would only fill space. Decoration: the title says what it shows.
  */
-export function ActivityPhoto({ slug, children }: ActivityPhotoProps) {
-  const photo = activityPhoto(slug)
+export function ActivityPhoto({ slug, photo: own, children }: ActivityPhotoProps) {
+  const photo = own ?? activityPhoto(slug)
   if (!photo) return null
   return (
     <div

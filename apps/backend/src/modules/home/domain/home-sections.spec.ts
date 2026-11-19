@@ -57,6 +57,7 @@ const anEvent = (id: string, spec: EventSpec = {}): PublicEvent => {
       spec.approved ?? min,
     ),
     isPromoted: false,
+    imageKey: null,
     distanceKm: null,
   };
 };
@@ -473,6 +474,7 @@ describe('orderRecruitingGroups', () => {
     },
     locality: { id: 'l1', slug: 'praha-3', name: 'Praha 3' },
     memberCount: 5,
+    imageKey: null,
     nextEventAt: new Date(next),
   });
 

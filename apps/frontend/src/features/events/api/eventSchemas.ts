@@ -35,6 +35,8 @@ export const publicEventSchema = z.object({
   distanceKm: z.number().nullable(),
   // Proběhlé only (#61): the event's average rating for its past card; null otherwise
   rating: z.object({ average: z.number().nullable(), count: z.number() }).nullish(),
+  // the organizer's own image (#77), at GET /api/images/:key; none = the activity's photo
+  imageKey: z.string().nullish(),
 })
 
 export const publicEventsSchema = z.array(publicEventSchema)

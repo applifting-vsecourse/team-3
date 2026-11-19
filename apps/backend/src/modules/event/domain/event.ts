@@ -69,6 +69,8 @@ export type PublicEvent = {
   maxParticipants: number;
   capacity: Capacity;
   isPromoted: boolean;
+  /** The organizer's own image (#77), served at `/api/images/:key`; null = the activity's photo. */
+  imageKey: string | null;
   /** From the filters' `point`, null without one (#57). */
   distanceKm: number | null;
   /** Proběhlé only (#61): the event's average rating, for its past card. */

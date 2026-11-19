@@ -120,6 +120,8 @@ export type RatedEvent = {
   approvedCount: number;
   /** How many were missing to its minimum; above 0 it didn't take place (#61, review #323). */
   missingToMin: number;
+  /** The organizer's own image (#77); null = the activity's photo. */
+  imageKey: string | null;
 };
 
 /**

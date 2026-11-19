@@ -1,4 +1,9 @@
 import { EventsService } from '@/modules/event/services/events.service';
+import {
+  ImageUpload,
+  uploadedBytes,
+  type UploadedImageFile,
+} from '@/modules/image/controllers/image-upload';
 import { OptionalUser } from '@/shared/auth/decorators/optional-user.decorator';
 import { User } from '@/shared/auth/decorators/user.decorator';
 import { Identity } from '@/shared/auth/domain/identity';
@@ -16,7 +21,9 @@ import {
   Param,
   Patch,
   Post,
+  Put,
   Query,
+  UploadedFile,
   UseGuards,
   UsePipes,
   ValidationPipe,
@@ -467,6 +474,68 @@ export class EventsController {
               ? null
               : new Date(body.endsAt),
       }),
+    );
+  }
+
+  @Put(':id/image')
+  @UseGuards(VerifiedUserGuard)
+  // guards run first: no file from someone signed out or unverified is read;
+  // whether the user manages the event the service decides after the upload
+  @ImageUpload()
+  @ApiCookieAuth()
+  @ApiOperation({
+    summary:
+      "Upload the event's own image (#77), replacing the previous one; only its organizer, before it starts",
+    description:
+      "JPEG, PNG or WebP by the file's content, at most 5 MB. The detail then has `imageKey`; the image is at GET /api/images/{imageKey}.",
+  })
+  @ApiResponse({ status: 200, type: EventDetailResponseDto })
+  @ApiResponse({
+    status: 400,
+    description:
+      'No file, not JPEG/PNG/WebP, or the event already started (Czech message)',
+  })
+  @ApiResponse({ status: 401, description: 'Not signed in' })
+  @ApiResponse({
+    status: 403,
+    description:
+      'NOT_ORGANIZER, EMAIL_NOT_VERIFIED, USER_BLOCKED, or MEMBERS_ONLY',
+  })
+  @ApiResponse({ status: 404, description: 'No such event for this user' })
+  @ApiResponse({ status: 409, description: 'EVENT_CANCELLED' })
+  async setImage(
+    @Param('id') id: string,
+    @UploadedFile() file: UploadedImageFile | undefined,
+    @User() user: Identity,
+  ): Promise<EventDetailResponseDto> {
+    return EventDetailResponseDto.fromDomain(
+      await this.eventsService.setEventImage(id, user.id, uploadedBytes(file)),
+    );
+  }
+
+  @Delete(':id/image')
+  @UseGuards(VerifiedUserGuard)
+  @ApiCookieAuth()
+  @ApiOperation({
+    summary:
+      "Remove the event's own image (#77): the activity's photo shows again; only its organizer, before it starts",
+  })
+  @ApiResponse({ status: 200, type: EventDetailResponseDto })
+  @ApiResponse({ status: 400, description: 'The event already started' })
+  @ApiResponse({ status: 401, description: 'Not signed in' })
+  @ApiResponse({
+    status: 403,
+    description:
+      'NOT_ORGANIZER, EMAIL_NOT_VERIFIED, USER_BLOCKED, or MEMBERS_ONLY',
+  })
+  @ApiResponse({ status: 404, description: 'No such event for this user' })
+  @ApiResponse({ status: 409, description: 'EVENT_CANCELLED' })
+  async removeImage(
+    @Param('id') id: string,
+    @User() user: Identity,
+  ): Promise<EventDetailResponseDto> {
+    return EventDetailResponseDto.fromDomain(
+      await this.eventsService.setEventImage(id, user.id, null),
     );
   }
 }

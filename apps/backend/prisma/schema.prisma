@@ -389,6 +389,9 @@ model Event {
   cancelledAt     DateTime?
   /// Topování (B-073): po potvrzení platby = startsAt
   promotedUntil   DateTime?
+  /// Obrázek nahraný organizátorem (#77); bez něj fotka aktivity
+  imageKey        String?         @unique
+  image           UploadedImage?  @relation(fields: [imageKey], references: [key], onDelete: SetNull)
   createdAt       DateTime        @default(now())
   updatedAt       DateTime        @default(now()) @updatedAt
 
@@ -405,6 +408,29 @@ model Event {
   @@index([organizerUserId])
   @@index([groupId])
   @@map("event")
+}
+
+/// Obrázek, který nahrál organizátor akce nebo správce skupiny (#77): nahrává se
+/// JPEG, PNG nebo WebP do 5 MB, ukládá se zmenšený na WebP (šířka nejvýš 1600 px) a s
+/// malou variantou pro karty. Bajty jsou v databázi, protože staging nemá trvalý
+/// disk (kontejner se při každém nasazení vytvoří znovu) a databáze ano. `key`
+/// je náhodné UUID a je součástí adresy obrázku; nový obrázek = nový klíč, takže
+/// adresa jde cachovat navždy. Výměna nebo odebrání starý řádek smaže.
+model UploadedImage {
+  key         String   @id @default(uuid())
+  /// `image/jpeg`, `image/png` nebo `image/webp`, podle obsahu souboru, ne podle toho, co poslal prohlížeč
+  contentType String
+  data        Bytes
+  /// v bajtech
+  size        Int
+  /// Malá varianta pro karty (WebP, šířka nejvýš 480 px)
+  small       Bytes
+  createdAt   DateTime @default(now())
+
+  event Event?
+  group Group?
+
+  @@map("uploaded_image")
 }
 
 /// Přihláška na akci. Organizátor se může přihlásit na vlastní akci (Q12).
@@ -445,41 +471,54 @@ model EventMessage {
   @@map("event_message")
 }
 
-/// Záznam o odeslaném plánovaném e-mailu (B-043), aby po restartu nepřišel dvakrát.
+/// Doručení plánovaného e-mailu (B-043); sentAt je null, dokud transport nepotvrdí přijetí.
 /// `key` je deterministický, např. `event-reminder:<eventId>:<userId>`.
 model NotificationLog {
-  id      String   @id @default(cuid())
-  key     String   @unique
-  type    String
-  eventId String?
-  event   Event?   @relation(fields: [eventId], references: [id], onDelete: Cascade)
-  userId  String?
-  user    User?    @relation(fields: [userId], references: [id], onDelete: Cascade)
-  sentAt  DateTime @default(now())
+  id          String    @id @default(cuid())
+  key         String    @unique
+  type        String
+  eventId     String?
+  event       Event?    @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  userId      String?
+  user        User?     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  sentAt      DateTime?
+  claimToken  String?
+  lockedUntil DateTime?
+  attempts    Int       @default(0)
 
   @@index([eventId])
   @@map("notification_log")
+}
+
+/// Datum zapnutí výzev k hodnocení. Platí pro všechny instance i restarty.
+model RatingInvitationSchedule {
+  id          Int      @id
+  activatedAt DateTime
+
+  @@map("rating_invitation_schedule")
 }
 
 // ---------------------------------------------------------------------------
 // Skupiny (B-050)
 // ---------------------------------------------------------------------------
 
-/// Skupina má právě jednu aktivitu a jednu lokalitu. Obrázek jen jako URL (Q3).
+/// Skupina má právě jednu aktivitu a jednu lokalitu. Fotka je nahraný soubor (`imageKey`, #77), bez ní fotka aktivity.
 model Group {
-  id            String      @id @default(cuid())
+  id            String         @id @default(cuid())
   name          String
-  description   String?     @db.Text
-  imageUrl      String?     @db.Text
+  description   String?        @db.Text
+  /// Fotka nahraná správcem (#77); bez ní fotka aktivity
+  imageKey      String?        @unique
+  image         UploadedImage? @relation(fields: [imageKey], references: [key], onDelete: SetNull)
   activityId    String
-  activity      Activity    @relation(fields: [activityId], references: [id], onDelete: Restrict)
+  activity      Activity       @relation(fields: [activityId], references: [id], onDelete: Restrict)
   localityId    String
-  locality      Locality    @relation(fields: [localityId], references: [id], onDelete: Restrict)
+  locality      Locality       @relation(fields: [localityId], references: [id], onDelete: Restrict)
   type          GroupType
-  status        GroupStatus @default(active)
+  status        GroupStatus    @default(active)
   deactivatedAt DateTime?
-  createdAt     DateTime    @default(now())
-  updatedAt     DateTime    @default(now()) @updatedAt
+  createdAt     DateTime       @default(now())
+  updatedAt     DateTime       @default(now()) @updatedAt
 
   members       GroupMember[]
   events        Event[]

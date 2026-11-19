@@ -18,6 +18,7 @@ import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 import { Button } from "@/components/ui/button"
 import { Skeleton } from "@/components/ui/skeleton"
 import { DESKTOP_QUERY, useMediaQuery } from "@/hooks/useMediaQuery"
+import { photoOf } from "@/lib/image"
 import { gatheredLabel, missedMinimumLabel, occupancyInBand, wasHeld } from "@/lib/occupancy"
 import { PAGE } from "@/lib/pageLayout"
 import { cn } from "@/lib/utils"
@@ -227,7 +228,10 @@ export function EventDetailView({
   // without the names (#174) the count and when the names show (Figma A-05, A-05d)
   const date = eventDateParts(event.startsAt)
   const photo = (
-    <ActivityPhoto slug={event.activity.slug}>
+    <ActivityPhoto
+      slug={event.activity.slug}
+      photo={photoOf(event)}
+    >
       <DateTile
         weekday={date.weekday}
         day={date.day}

@@ -1,6 +1,7 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query"
 
 import { api } from "@/lib/api-client"
+import { sendImageChange, type ImageChange } from "@/lib/image"
 
 import { eventDetailSchema, type EventInput } from "@/features/events/api/eventSchemas"
 import { eventKeys } from "@/features/events/api/eventsQueryOptions"
@@ -8,15 +9,35 @@ import { eventKeys } from "@/features/events/api/eventsQueryOptions"
 /** What an edit sends: not the activity nor the way of joining (#41, D-02). */
 export type EventChangesInput = Omit<EventInput, "activityId" | "approvalMode">
 
-/** PATCH /api/events/:id — the detail and the list show the new values at once. */
+type UpdateEventVariables = { changes: EventChangesInput; image?: ImageChange }
+
+/**
+ * PATCH /api/events/:id, then the image's change (#77) — the detail and the
+ * list show the new values at once. When the image fails, the other changes
+ * are saved already: the edit succeeds with `imageError`, so the page says
+ * both, and saving again only repeats them.
+ */
 export function useUpdateEvent(eventId: string, viewerId: string) {
   const queryClient = useQueryClient()
   return useMutation({
-    mutationFn: async (changes: EventChangesInput) =>
-      eventDetailSchema.parse(
+    mutationFn: async ({ changes, image = { kind: "keep" } }: UpdateEventVariables) => {
+      const updated = eventDetailSchema.parse(
         await api.patch(`events/${encodeURIComponent(eventId)}`, { json: changes }).json(),
-      ),
-    onSuccess: (event) => {
+      )
+      try {
+        const answer = await sendImageChange(`events/${encodeURIComponent(eventId)}/image`, image)
+        return {
+          event: answer === null ? updated : eventDetailSchema.parse(answer),
+          imageError: null,
+        }
+      } catch (error) {
+        return {
+          event: updated,
+          imageError: error instanceof Error ? error.message : String(error),
+        }
+      }
+    },
+    onSuccess: ({ event }) => {
       queryClient.setQueryData(eventKeys.detail(eventId, viewerId), event)
       void queryClient.invalidateQueries({ queryKey: eventKeys.lists() })
     },

@@ -39,6 +39,7 @@ const eventRow = {
   },
   organizer: { id: 'u-petra', name: 'Petra Nováková' },
   group: null,
+  imageKey: 'k-plakat',
   _count: { participations: 5 },
 };
 
@@ -67,6 +68,8 @@ const ratedEvent = {
   approvedCount: 5,
   // 5 came, the minimum is 4: it took place
   missingToMin: 0,
+  // the card shows the organizer's own image (#77)
+  imageKey: 'k-plakat',
 };
 
 // the transaction runs on the same mock, so the reads and the write show up there
