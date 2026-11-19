@@ -10,7 +10,7 @@ const MESSAGES: Record<string, string> = {
   EMAIL_ALREADY_VERIFIED: "E-mail už je ověřený.",
   // the same for a wrong e-mail and a wrong password: it doesn't tell which accounts exist
   INVALID_EMAIL_OR_PASSWORD:
-    "Nesprávný e-mail nebo heslo. Používáš účet přes Google? Přihlas se přes Google nebo si nastav heslo.",
+    "Nesprávný e-mail nebo heslo. Používáš účet přes Google? Přihlas se přes Google nebo si nastav heslo přes „Zapomenuté heslo“.",
   INVALID_EMAIL: "Zadej platný e-mail.",
   // #236: only a verified e-mail signs in; the sign-in page shows „Ověř si e-mail“ instead
   EMAIL_NOT_VERIFIED: "Nejdřív si ověř e-mail. Otevři odkaz z e-mailu, nebo si pošli nový.",
