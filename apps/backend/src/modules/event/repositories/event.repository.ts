@@ -41,6 +41,10 @@ import {
   RatingSummary,
   summarizeTotals,
 } from '@/modules/rating/domain/rating-summary';
+import {
+  isSuperadmin,
+  SUPERADMIN_ACCOUNT_SELECT,
+} from '@/shared/auth/domain/superadmin';
 import { requestMessageFor } from '@/shared/request-message/request-message';
 import { Injectable } from '@nestjs/common';
 import { buildGroupEventsWhere } from './group-events-where';
@@ -401,13 +405,16 @@ export class EventRepository {
     return count === 1;
   }
 
-  /** Whether the user is the superadmin (`role = admin`, #308). */
+  /**
+   * Whether the user acts as the superadmin (#308): by the same rule as
+   * `AdminGuard` (review #380), so a blocked admin sees no deactivated event.
+   */
   async isAdmin(userId: string): Promise<boolean> {
     const user = await this.prisma.user.findUnique({
       where: { id: userId },
-      select: { role: true },
+      select: SUPERADMIN_ACCOUNT_SELECT,
     });
-    return user?.role === 'admin';
+    return isSuperadmin(user);
   }
 
   async findParticipationStatus(

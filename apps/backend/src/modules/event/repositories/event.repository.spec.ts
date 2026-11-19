@@ -40,11 +40,32 @@ describe('EventRepository', () => {
   });
 
   describe('isAdmin (#308)', () => {
+    const confirmed = new Date('2026-11-01T10:00:00.000Z');
+
     it.each([
-      [{ role: 'admin' }, true],
-      [{ role: 'user' }, false],
-      [null, false],
-    ] as const)('%o → %s', async (user, expected) => {
+      [
+        'an admin',
+        { role: 'admin', blockedAt: null, ageConfirmedAt: confirmed },
+        true,
+      ],
+      [
+        'a regular user',
+        { role: 'user', blockedAt: null, ageConfirmedAt: confirmed },
+        false,
+      ],
+      // review #380: the same rule as AdminGuard
+      [
+        'a blocked admin',
+        { role: 'admin', blockedAt: new Date(), ageConfirmedAt: confirmed },
+        false,
+      ],
+      [
+        'an admin without the age confirmed',
+        { role: 'admin', blockedAt: null, ageConfirmedAt: null },
+        false,
+      ],
+      ['nobody', null, false],
+    ] as const)('%s → %s', async (_who, user, expected) => {
       const prisma = mockDeep<PrismaService>();
       prisma.user.findUnique.mockResolvedValue(user as never);
 
@@ -53,7 +74,7 @@ describe('EventRepository', () => {
       );
       expect(prisma.user.findUnique).toHaveBeenCalledWith({
         where: { id: 'u1' },
-        select: { role: true },
+        select: { role: true, blockedAt: true, ageConfirmedAt: true },
       });
     });
   });
