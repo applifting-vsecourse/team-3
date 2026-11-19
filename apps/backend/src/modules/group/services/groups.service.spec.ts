@@ -415,6 +415,7 @@ describe('GroupsService', () => {
       expect(repository.updateGroup).not.toHaveBeenCalled();
       expect(repository.findMembers).not.toHaveBeenCalled();
       expect(repository.approveRequest).not.toHaveBeenCalled();
+      expect(repository.deleteMembership).not.toHaveBeenCalled();
       expect(repository.leaveGroup).not.toHaveBeenCalled();
       expect(repository.createMembership).not.toHaveBeenCalled();
     });

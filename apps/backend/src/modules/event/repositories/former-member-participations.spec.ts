@@ -11,7 +11,7 @@ const yesterday = new Date('2026-11-18T17:00:00.000Z');
 
 type EventRow = {
   groupId: string;
-  visibility: 'public' | 'members' | 'link';
+  visibility: 'public' | 'private' | 'members';
   startsAt: Date;
   organizerUserId: string;
   participations: { userId: string; status: string }[];
@@ -69,8 +69,8 @@ describe('formerMemberEventsWhere (#266)', () => {
     ],
     ['a public event of the group stays', { visibility: 'public' }, false],
     [
-      'a link-only event of the group stays',
-      { visibility: 'link' as const },
+      'a private event of the group (link only) stays',
+      { visibility: 'private' as const },
       false,
     ],
     ['a past event stays – history and rating', { startsAt: yesterday }, false],
