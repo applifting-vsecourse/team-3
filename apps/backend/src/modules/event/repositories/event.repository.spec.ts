@@ -355,6 +355,7 @@ describe('EventRepository.findMyEvents', () => {
   const aRow = (
     participations: { userId: string; status: string }[],
     status = 'published',
+    ratings: { eventStars: number; deletedAt: Date | null }[] = [],
   ): Record<string, unknown> => ({
     id: 'e1',
     title: 'Deskovky',
@@ -378,6 +379,7 @@ describe('EventRepository.findMyEvents', () => {
     group: null,
     _count: { participations: 2 },
     participations,
+    ratings,
   });
 
   it('attending: loads only the user’s own participation and its status', async () => {
@@ -454,6 +456,106 @@ describe('EventRepository.findMyEvents', () => {
 
     expect(event).toMatchObject({ myParticipation: null, pendingRequests: 0 });
   });
+
+  it('past: the latest first, with the user’s place (#367)', async () => {
+    const prisma = mockDeep<PrismaService>();
+    prisma.event.findMany.mockResolvedValue([
+      aRow([{ userId: 'u1', status: 'approved' }], 'cancelled'),
+    ] as never);
+
+    const [event] = await new EventRepository(prisma).findMyEvents({
+      tab: 'past',
+      userId: 'u1',
+      now,
+      limit: 200,
+    });
+
+    expect(event).toMatchObject({
+      status: 'cancelled',
+      myParticipation: 'approved',
+      pendingRequests: null,
+      myEventStars: null,
+      myRatingDeleted: false,
+    });
+    expect(prisma.event.findMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        orderBy: [{ startsAt: 'desc' }, { id: 'desc' }],
+        take: 200,
+      }),
+    );
+  });
+
+  it('past: sends the stars I gave, from my own rating (#367)', async () => {
+    const prisma = mockDeep<PrismaService>();
+    prisma.event.findMany.mockResolvedValue([
+      aRow([{ userId: 'u1', status: 'approved' }], 'published', [
+        { eventStars: 4, deletedAt: null },
+      ]),
+    ] as never);
+
+    const [event] = await new EventRepository(prisma).findMyEvents({
+      tab: 'past',
+      userId: 'u1',
+      now,
+      limit: 200,
+    });
+
+    expect(event).toMatchObject({ myEventStars: 4, myRatingDeleted: false });
+    expect(prisma.event.findMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        include: expect.objectContaining({
+          ratings: {
+            where: { userId: 'u1' },
+            select: { eventStars: true, deletedAt: true },
+          },
+        }),
+      }),
+    );
+  });
+
+  // review #368: the card mustn't offer „Ohodnotit“ the rating page then refuses (RATING_DELETED)
+  it('past: a rating deleted by moderation gives no stars and says it was deleted', async () => {
+    const prisma = mockDeep<PrismaService>();
+    prisma.event.findMany.mockResolvedValue([
+      aRow([{ userId: 'u1', status: 'approved' }], 'published', [
+        { eventStars: 2, deletedAt: new Date('2026-10-25T08:00:00.000Z') },
+      ]),
+    ] as never);
+
+    const [event] = await new EventRepository(prisma).findMyEvents({
+      tab: 'past',
+      userId: 'u1',
+      now,
+      limit: 200,
+    });
+
+    expect(event).toMatchObject({ myEventStars: null, myRatingDeleted: true });
+  });
+
+  it.each(['attending', 'organizing', 'groups'] as const)(
+    '%s loads no ratings: an upcoming event has none (review #368)',
+    async (tab) => {
+      const prisma = mockDeep<PrismaService>();
+      prisma.event.findMany.mockResolvedValue([aRow([])] as never);
+
+      const [event] = await new EventRepository(prisma).findMyEvents({
+        tab,
+        userId: 'u1',
+        now,
+        limit: 200,
+      });
+
+      expect(prisma.event.findMany).toHaveBeenCalledWith(
+        expect.objectContaining({
+          include: expect.objectContaining({ ratings: false }),
+        }),
+      );
+      expect(event).toMatchObject({
+        myEventStars: null,
+        myRatingDeleted: false,
+      });
+    },
+  );
 });
 
 describe('EventRepository.decideRequests (#53)', () => {

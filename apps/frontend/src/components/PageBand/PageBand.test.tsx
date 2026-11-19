@@ -106,6 +106,29 @@ describe("PageBand", () => {
     expect(corner).toHaveClass("md:hidden", "bottom-band-tabs")
   })
 
+  // review #368: an isolated band shut in Moje's floating „Založit akci“, and the cards scrolling
+  // past covered it on a phone; jsdom has no layout, the overlap was checked in the browser
+  it("only the landing page's band is isolated: a section's floating action stays above the cards", async () => {
+    const band = (container: HTMLElement) => container.querySelector(".on-hero")!
+    const section = await renderWithRouter(
+      <PageBand
+        variant="section"
+        title="Moje"
+        action={<a href="/akce/nova">Založit akci</a>}
+      />,
+    )
+    expect(band(section.container)).not.toHaveClass("isolate")
+    section.unmount()
+
+    const hero = await renderWithRouter(
+      <PageBand
+        variant="hero"
+        title="Někde chybí jeden do party."
+      />,
+    )
+    expect(band(hero.container)).toHaveClass("isolate")
+  })
+
   it("the landing page's ring hangs under its buttons, not from the band's edge (#324)", async () => {
     const { container } = await renderWithRouter(
       <PageBand

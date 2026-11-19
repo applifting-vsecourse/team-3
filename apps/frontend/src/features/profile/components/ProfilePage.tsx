@@ -1,4 +1,3 @@
-import type { ReactNode } from "react"
 import { useQuery } from "@tanstack/react-query"
 import { Link } from "@tanstack/react-router"
 import { Pencil } from "lucide-react"
@@ -20,29 +19,14 @@ import {
 } from "@/features/profile/api/profileQueryOptions"
 import type { ProfileOverviewData, SelfProfile } from "@/features/profile/api/profileSchemas"
 
-import {
-  EventSection,
-  HighlightedTitle,
-  RatingsSection,
-  type RenderProfileEvent,
-} from "./ProfileOverview"
+import { RatingsSection } from "./ProfileOverview"
 import { ProfileError, ProfileLoading } from "./ProfileState"
 
 /**
- * /profil (Figma B-05, B-05d): one overview of me — who I am in the band, then Kam jdu,
- * Pořádám, Proběhlé, Moje skupiny and Hodnocení. Editing is on /profil/upravit.
+ * /profil (Figma B-05, B-05d): who I am and whom I know — the band, then my ratings. What I do
+ * (my events, my groups, the history) is in Moje (#367). Editing is on /profil/upravit.
  */
-export function ProfilePage({
-  viewerId,
-  groupsContent,
-  renderEvent,
-}: {
-  viewerId: string
-  /** Moje skupiny, from the groups feature (the route puts it in). */
-  groupsContent: ReactNode
-  /** The event cards, from the events feature (the route puts them in). */
-  renderEvent: RenderProfileEvent
-}) {
+export function ProfilePage({ viewerId }: { viewerId: string }) {
   const profile = useQuery(profileQueryOptions(viewerId))
   const overview = useQuery(profileOverviewQueryOptions(viewerId))
   const error = profile.error ?? overview.error
@@ -75,10 +59,15 @@ export function ProfilePage({
             overview={overview.data}
           />
           <div className={cn(PAGE, "gap-12 pb-24")}>
-            <ProfileSections
-              overview={overview.data}
-              groupsContent={groupsContent}
-              renderEvent={renderEvent}
+            <RatingsSection
+              participant={{
+                ratings: overview.data.participantRatings,
+                summary: overview.data.participantSummary,
+              }}
+              organizer={{
+                ratings: overview.data.organizerRatings,
+                summary: overview.data.organizerSummary,
+              }}
             />
           </div>
         </>
@@ -143,97 +132,5 @@ function ProfileBand({
         </ul>
       ) : null}
     </PageBand>
-  )
-}
-
-function ProfileSections({
-  overview,
-  groupsContent,
-  renderEvent,
-}: {
-  overview: ProfileOverviewData
-  groupsContent: ReactNode
-  renderEvent: RenderProfileEvent
-}) {
-  return (
-    <>
-      {/* three columns only where a row card fits in one (the badge and the bar beside it) */}
-      <div className="grid gap-8 xl:grid-cols-3">
-        <EventSection
-          title={
-            <HighlightedTitle
-              before="Kam"
-              keyword="jdu"
-            />
-          }
-          section="upcoming"
-          events={overview.upcoming}
-          total={overview.upcomingTotal}
-          link={{ to: ROUTES.myEvents }}
-          renderEvent={renderEvent}
-          empty={
-            <>
-              <p>Zatím nejdeš na žádnou akci.</p>
-              <Button
-                asChild
-                variant="outline"
-              >
-                <Link to={ROUTES.events}>Projít akce</Link>
-              </Button>
-            </>
-          }
-        />
-        <EventSection
-          title={
-            <HighlightedTitle
-              before="Co"
-              keyword="pořádám"
-            />
-          }
-          section="organizing"
-          events={overview.organizing}
-          total={overview.organizingTotal}
-          link={{ to: ROUTES.myEvents, search: { tab: "poradam" } }}
-          renderEvent={renderEvent}
-          empty={
-            <>
-              <p>Zatím žádnou akci nepořádáš.</p>
-              <Button
-                asChild
-                variant="outline"
-              >
-                <Link
-                  to={ROUTES.myEvents}
-                  search={{ tab: "poradam" }}
-                >
-                  Založit akci v Moje akce
-                </Link>
-              </Button>
-            </>
-          }
-        />
-        <EventSection
-          title={
-            <HighlightedTitle
-              keyword="Proběhlé"
-              after="akce"
-            />
-          }
-          section="past"
-          events={overview.past}
-          total={overview.pastTotal}
-          renderEvent={renderEvent}
-          empty={<p>Tady uvidíš proběhlé akce, na které máš schválenou účast.</p>}
-        />
-      </div>
-      {groupsContent}
-      <RatingsSection
-        participant={{
-          ratings: overview.participantRatings,
-          summary: overview.participantSummary,
-        }}
-        organizer={{ ratings: overview.organizerRatings, summary: overview.organizerSummary }}
-      />
-    </>
   )
 }

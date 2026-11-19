@@ -10,7 +10,7 @@ import { REGIONAL_CITIES } from './regional-data';
 import { stableHash } from './stable-hash';
 
 /**
- * Další proběhlé akce s hodnocením (#181): historie v profilu (#178), proběhlé
+ * Další proběhlé akce s hodnocením (#181): historie v Moje › Proběhlé (#367), proběhlé
  * akce skupin (#70) a filtr Proběhlé (#61). Ručně připravené případy pro profil
  * Petry a Jakuba zůstávají v rating-data.ts.
  *

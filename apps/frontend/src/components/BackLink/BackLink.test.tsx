@@ -35,6 +35,22 @@ describe("BackLink (N9, #187)", () => {
 
     expect(screen.getByRole("link", { name: "Akce" })).toHaveAttribute("href", "/akce")
   })
+
+  it("keeps the search of `to`, e.g. the chip of Moje akce (#367)", async () => {
+    await renderWithRouter(
+      <BackLink
+        to="/moje/akce"
+        search={{ tab: "probehle" }}
+        fallbackLabel="Proběhlé akce"
+      />,
+      { url: "/akce/e1/hodnoceni" },
+    )
+
+    expect(screen.getByRole("link", { name: "Proběhlé akce" })).toHaveAttribute(
+      "href",
+      "/moje/akce?tab=probehle",
+    )
+  })
 })
 
 describe("backLabel", () => {

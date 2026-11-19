@@ -40,7 +40,7 @@ type PastEventCardProps = {
   rating?: PastRating
   /** After how many came, e.g. the event's rating on a public profile: „★ 4,5 (3 hodnocení)“ (#179). */
   detail?: string
-  /** „Ohodnotit →“ for an open rating; the page builds the link (C-03, #66). */
+  /** „Ohodnotit“ for an open rating; the page builds the link (C-03, #66). */
   rateAction?: ReactNode
   titleAs?: "h2" | "h3"
   /**
@@ -51,9 +51,15 @@ type PastEventCardProps = {
   now?: Date
 }
 
+const NO_BREAK_SPACE = " "
+
+/** „tvoje ★ 5“ with no-break spaces: on a phone it wraps whole, never „tvoje ★ / 5“ (#367). */
+const ownStarsLabel = (stars: number): string => ["tvoje", "★", String(stars)].join(NO_BREAK_SPACE)
+
 /**
- * A past event in the profile (#178) and under „Proběhlé“ (#61): the row card with the photo
- * desaturated and the date tile neutral; instead of the bar, how many came and the rating.
+ * A past event in Moje › Proběhlé (#367), on a public profile (#179) and under /akce › Proběhlé
+ * (#61): the row card with the photo desaturated and the date tile neutral; instead of the bar,
+ * how many came and the rating.
  */
 export function PastEventCard({
   event,
@@ -81,7 +87,7 @@ export function PastEventCard({
             missingToMin: event.missingToMin,
           })
         : rating?.kind === "given"
-          ? `${gatheredLabel(event.approvedCount)} · tvoje ★ ${rating.stars}`
+          ? `${gatheredLabel(event.approvedCount)} · ${ownStarsLabel(rating.stars)}`
           : gatheredLabel(event.approvedCount),
     detail,
   ]

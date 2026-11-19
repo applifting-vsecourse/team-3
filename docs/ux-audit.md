@@ -82,7 +82,7 @@ Rozhodnutí PO ze 4. 11. a pravidla týmu:
 - Hodnotit jde jen po skončení akce a do 14 dnů, do té doby jde hodnocení změnit. Hvězdičky 1–5 povinné, komentář nepovinný. Organizátor nehodnotí sám sebe. Smazané superadminem jde jen vrátit, ne dát znovu.
 - **Průměr** se ukazuje od prvního hodnocení i s počtem („★ 4,5 (6 hodnocení)“), bez hodnocení „zatím bez hodnocení“.
 - **Veřejný profil:** hodnocení jako organizátor, průměr jeho akcí, hodnocení jako účastník a historie pořádaných veřejných akcí, u každé počet lidí a průměr hodnocení akce. Akce skupin se počítají skupině a v historii osoby nejsou.
-- **Vstupy:** e-maily „Ohodnoť akci“ a „Ohodnoť účastníky“ (E-01 typy 11 a 12, večer po akci, B-043), karta „Ohodnotit“ v profilu › Proběhlé, tlačítko „Ohodnotit akci“ na detailu proběhlé akce (A-05h, jen schválený účastník). Účastník hodnotí na `/akce/:id/hodnoceni` (C-03), organizátor na `/akce/:id/hodnoceni-ucastniku` (D-05), kam vede „Ohodnotit účastníky“ ze správy akce a e-mail „Ohodnoť účastníky“; organizátora, který přijde na první adresu, stránka přesměruje.
+- **Vstupy:** e-maily „Ohodnoť akci“ a „Ohodnoť účastníky“ (E-01 typy 11 a 12, večer po akci, B-043), karta „Ohodnotit“ v Moje › Akce › Proběhlé (do #367 v profilu; po ohodnocení karta ukáže „tvoje ★ N“ a uživatel se po uložení vrátí, odkud přišel, jinak na Proběhlé), tlačítko „Ohodnotit akci“ na detailu proběhlé akce (A-05h, jen schválený účastník). Účastník hodnotí na `/akce/:id/hodnoceni` (C-03), organizátor na `/akce/:id/hodnoceni-ucastniku` (D-05), kam vede „Ohodnotit účastníky“ ze správy akce a e-mail „Ohodnoť účastníky“; organizátora, který přijde na první adresu, stránka přesměruje.
 - Dávání hodnocení (#66) je ve sprintu 4 (P1); design je hotový.
 
 ## Hlas aplikace
@@ -192,6 +192,6 @@ Každá obrazovka je na mobilu i desktopu, s popisem nad sebou. Platí jen svět
 ## Mimo sprint 3
 
 - Náhled sdíleného odkazu (A-05s) – #102.
-- Záložka „Proběhlé“ v Moje akce – zatím ne, proběhlé jsou ve filtru `/akce` a v profilu.
+- Záložka „Proběhlé“ v Moje akce – zatím ne, proběhlé jsou ve filtru `/akce` a v profilu. Od #367 je to čip Proběhlé v Moje › Akce a z profilu zmizely.
 - Upozornění v aplikaci (zvonek) – mimo MVP, jen e-maily. Od sprintu 4 v MVP (PO 10. 11., #86).
 - Vylepšení z tohoto auditu, která se do sprintu nevejdou, jdou do backlogu (PO 4. 11.: hlavní věci opravit, méně kritické později).

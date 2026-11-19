@@ -1355,6 +1355,8 @@ describe('EventsService.getMyEvents', () => {
         status: 'published' as const,
         myParticipation: 'pending' as const,
         pendingRequests: null,
+        myEventStars: null,
+        myRatingDeleted: false,
       },
     ];
     repository.findMyEvents.mockResolvedValue(events);

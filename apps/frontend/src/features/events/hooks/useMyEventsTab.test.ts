@@ -60,6 +60,22 @@ describe("useMyEventsTab (#188)", () => {
     expect(result.current).toBe("poradam")
   })
 
+  it("Proběhlé only from the URL; without it, never picked (#367)", () => {
+    const { result, rerender } = renderTab({
+      urlTab: "probehle",
+      attending: going,
+      organizing: withRequests,
+    })
+    expect(result.current).toBe("probehle")
+
+    // without the URL's tab, the one picked for the visit: Pořádám with its requests, not history
+    rerender({ attending: going, organizing: withRequests })
+    expect(result.current).toBe("poradam")
+    // nothing to go to, nothing to run: Přihlášen, not the history
+    const fresh = renderTab({ attending: loaded([]), organizing: loaded([]) })
+    expect(fresh.result.current).toBe("prihlasen")
+  })
+
   it("without the URL's tab again (the navigation's „Moje akce“), back to the one picked", () => {
     const { result, rerender } = renderTab({
       urlTab: "prihlasen",

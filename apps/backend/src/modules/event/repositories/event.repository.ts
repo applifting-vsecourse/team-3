@@ -109,6 +109,17 @@ export const toPublicEvent = (
   imageKey: event.imageKey,
 });
 
+/**
+ * The user's own rating of a past event (#367): the stars while it stands; deleted by moderation,
+ * no stars and the flag – it can only be restored, not given again (RATING_DELETED).
+ */
+const myRating = (
+  rating: { eventStars: number; deletedAt: Date | null } | undefined,
+): Pick<MyEvent, 'myEventStars' | 'myRatingDeleted'> => ({
+  myEventStars: rating && !rating.deletedAt ? rating.eventStars : null,
+  myRatingDeleted: Boolean(rating?.deletedAt),
+});
+
 @Injectable()
 export class EventRepository {
   constructor(private readonly prisma: PrismaService) {}
@@ -173,9 +184,9 @@ export class EventRepository {
   }
 
   /**
-   * A tab of „Moje akce“ (B-035), soonest first, at most `limit`. Besides the
-   * user's own participation, the organizer's tab loads the waiting requests
-   * to count them.
+   * A tab of „Moje akce“ (B-035), soonest first – Proběhlé the latest first –
+   * at most `limit`. Besides the user's own participation, the organizer's tab
+   * loads the waiting requests to count them.
    */
   async findMyEvents(query: {
     tab: MyEventsTab;
@@ -195,8 +206,16 @@ export class EventRepository {
               : { userId },
           select: { userId: true, status: true },
         },
+        // Proběhlé only (#367): my own rating, a deleted one too – it can't be given again
+        ratings: tab === 'past' && {
+          where: { userId },
+          select: { eventStars: true, deletedAt: true },
+        },
       },
-      orderBy: [{ startsAt: 'asc' }, { id: 'asc' }],
+      orderBy:
+        tab === 'past'
+          ? [{ startsAt: 'desc' }, { id: 'desc' }]
+          : [{ startsAt: 'asc' }, { id: 'asc' }],
       take: query.limit,
     });
     return events.map((event) => {
@@ -215,6 +234,7 @@ export class EventRepository {
                 (participation) => participation.status === 'pending',
               ).length
             : null,
+        ...myRating(event.ratings?.[0]),
       };
     });
   }

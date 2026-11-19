@@ -54,6 +54,14 @@ export function useGroupsEvents(viewerId: string) {
   return useMyEvents("groups", viewerId)
 }
 
+/**
+ * Proběhlé (Figma C-06, #367): the events that are over where I had a place, the latest first,
+ * as the API sends them — the history that used to be on the profile.
+ */
+export function usePastEvents(viewerId: string) {
+  return useMyEvents("past", viewerId)
+}
+
 type TabData = { events?: MyEvent[]; isPending: boolean }
 
 /**

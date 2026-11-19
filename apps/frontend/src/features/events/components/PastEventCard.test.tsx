@@ -42,27 +42,27 @@ describe("PastEventCard", () => {
       <PastEventCard
         event={{ ...volleyball(), approvedCount: 2, missingToMin: 2 }}
         rating={{ kind: "open" }}
-        rateAction={<a href="/akce/e1/hodnoceni">Ohodnotit →</a>}
+        rateAction={<a href="/akce/e1/hodnoceni">Ohodnotit</a>}
       />,
     )
 
     expect(screen.getByText("Nekonalo se")).toBeInTheDocument()
     expect(screen.getByText("Do minima chyběli 2 lidé")).toBeInTheDocument()
     expect(screen.queryByText("Proběhlo")).not.toBeInTheDocument()
-    expect(screen.queryByText("Ohodnotit →")).not.toBeInTheDocument()
+    expect(screen.queryByText("Ohodnotit")).not.toBeInTheDocument()
   })
 
-  it("open: the page's „Ohodnotit →“ link", async () => {
+  it("open: the page's „Ohodnotit“ link", async () => {
     await renderWithRouter(
       <PastEventCard
         event={volleyball()}
         rating={{ kind: "open" }}
-        rateAction={<a href="/hodnoceni">Ohodnotit →</a>}
+        rateAction={<a href="/hodnoceni">Ohodnotit</a>}
       />,
     )
 
     expect(screen.getByText("Sešlo se 5 lidí")).toBeInTheDocument()
-    expect(screen.getByRole("link", { name: "Ohodnotit →" })).toBeInTheDocument()
+    expect(screen.getByRole("link", { name: "Ohodnotit" })).toBeInTheDocument()
   })
 
   it("opens the event's detail; without it where the detail isn't for everyone (review #315)", async () => {
@@ -111,7 +111,7 @@ describe("PastEventCard", () => {
         event={{ ...volleyball(), status: "cancelled" }}
         // whatever the rating says, a cancelled event has nothing to rate
         rating={{ kind: "open" }}
-        rateAction={<a href="/hodnoceni">Ohodnotit →</a>}
+        rateAction={<a href="/hodnoceni">Ohodnotit</a>}
       />,
     )
 
@@ -119,7 +119,7 @@ describe("PastEventCard", () => {
     expect(screen.getByText("Akce se nekonala")).toBeInTheDocument()
     expect(screen.queryByText(/Sešlo se/)).not.toBeInTheDocument()
     expect(screen.queryByText("Proběhlo")).not.toBeInTheDocument()
-    expect(screen.queryByRole("link", { name: "Ohodnotit →" })).not.toBeInTheDocument()
+    expect(screen.queryByRole("link", { name: "Ohodnotit" })).not.toBeInTheDocument()
   })
 
   it("adds the page's detail after how many came, e.g. the event's rating (#179)", async () => {

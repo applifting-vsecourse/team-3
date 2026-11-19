@@ -133,11 +133,17 @@ export type GroupEvent = PublicEvent & { visibility: 'public' | 'members' };
 export type GroupEvents = { upcoming: GroupEvent[]; past: GroupEvent[] };
 
 /**
- * Tabs of „Moje akce“ (B-035). `past` (Proběhlé) comes with #61; under
- * `organizing` are the events of the groups I'm an admin of too (B-055).
+ * Tabs of „Moje akce“ (B-035). Under `organizing` are the events of the groups
+ * I'm an admin of too (B-055). `groups`: Moje › Akce › Z mých skupin (#304),
+ * events of my groups I don't go to yet. `past`: Moje › Akce › Proběhlé
+ * (#367), the history that used to be on the profile.
  */
-/** `groups`: Moje › Akce › Z mých skupin (#304), events of my groups I don't go to yet. */
-export const MY_EVENTS_TABS = ['attending', 'organizing', 'groups'] as const;
+export const MY_EVENTS_TABS = [
+  'attending',
+  'organizing',
+  'groups',
+  'past',
+] as const;
 export type MyEventsTab = (typeof MY_EVENTS_TABS)[number];
 
 /** An event in „Moje akce“: with the user's own place in it. */
@@ -148,6 +154,16 @@ export type MyEvent = PublicEvent & {
   myParticipation: 'approved' | 'pending' | null;
   /** Requests waiting for the organizer; null under `attending`, which isn't the user's business. */
   pendingRequests: number | null;
+  /**
+   * The stars I gave the event (#66), so Proběhlé shows „tvoje ★ N“ instead of „Ohodnotit“
+   * (#367); null while I haven't rated it, or the rating was deleted by moderation.
+   */
+  myEventStars: number | null;
+  /**
+   * My rating was deleted by moderation: Proběhlé offers no „Ohodnotit“, as it can only be
+   * restored, not given again (RATING_DELETED, #367). False under the other tabs.
+   */
+  myRatingDeleted: boolean;
 };
 
 /** What the organizer fills in when creating an event (B-021). */

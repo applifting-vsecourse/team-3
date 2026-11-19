@@ -87,6 +87,6 @@ export class ProfileService {
 
   async overview(userId: string): Promise<ProfileOverview> {
     await this.owner(userId);
-    return this.repository.overview(userId, new Date());
+    return this.repository.overview(userId);
   }
 }
