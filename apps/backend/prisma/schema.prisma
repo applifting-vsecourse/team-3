@@ -261,6 +261,7 @@ model User {
   // Souhlasy (B-016), blokace superadminem (B-063), smazání účtu (B-080)
   ageConfirmedAt  DateTime?
   termsAcceptedAt DateTime?
+  onboardingCompletedAt DateTime?
   blockedAt       DateTime?
   blockedReason   String?   @db.Text
   deletedAt       DateTime?

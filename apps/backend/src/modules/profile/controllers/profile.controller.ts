@@ -2,11 +2,14 @@ import { ProfileService } from '@/modules/profile/services/profile.service';
 import { User } from '@/shared/auth/decorators/user.decorator';
 import { Identity } from '@/shared/auth/domain/identity';
 import { AuthenticatedUserGuard } from '@/shared/auth/guards/authenticated-user.guard';
+import { VerifiedUserGuard } from '@/shared/auth/guards/verified-user.guard';
 import {
   Body,
   Controller,
   Get,
+  HttpCode,
   Patch,
+  Post,
   UseGuards,
   UsePipes,
   ValidationPipe,
@@ -17,6 +20,10 @@ import {
   ApiResponse,
   ApiTags,
 } from '@nestjs/swagger';
+import {
+  CompleteOnboardingDto,
+  OnboardingResultDto,
+} from './dto/onboarding.dto';
 import {
   ProfileOverviewResponseDto,
   SelfProfileResponseDto,
@@ -57,6 +64,29 @@ export class ProfileController {
     @Body() input: UpdateProfileDto,
   ): Promise<SelfProfileResponseDto> {
     return this.profile.update(user.id, input);
+  }
+
+  @Post('onboarding')
+  @HttpCode(200)
+  @UseGuards(VerifiedUserGuard)
+  @ApiOperation({
+    summary: 'Save the initial locality and interests once (#296)',
+  })
+  @ApiResponse({ status: 200, type: OnboardingResultDto })
+  finishOnboarding(
+    @User() user: Identity,
+    @Body() input: CompleteOnboardingDto,
+  ): Promise<OnboardingResultDto> {
+    return this.profile.finishOnboarding(user.id, input);
+  }
+
+  @Post('onboarding/skip')
+  @HttpCode(200)
+  @UseGuards(VerifiedUserGuard)
+  @ApiOperation({ summary: 'Skip the initial onboarding once (#296)' })
+  @ApiResponse({ status: 200, type: OnboardingResultDto })
+  skipOnboarding(@User() user: Identity): Promise<OnboardingResultDto> {
+    return this.profile.finishOnboarding(user.id);
   }
 
   @Get('overview')

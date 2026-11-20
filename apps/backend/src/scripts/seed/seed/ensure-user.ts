@@ -91,6 +91,7 @@ export async function ensureUser(
       // Demo účty mají souhlasy předem, aby je výzva z B-016 nezastavila uprostřed dema.
       ageConfirmedAt: seededAt,
       termsAcceptedAt: seededAt,
+      onboardingCompletedAt: seededAt,
     },
   });
 

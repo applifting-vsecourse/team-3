@@ -21,6 +21,10 @@ const user = {
   emailVerified: true,
   ageConfirmedAt: "2026-01-01T00:00:00.000Z",
 }
+type TestUser = Omit<typeof user, "ageConfirmedAt"> & {
+  ageConfirmedAt: string | null
+  onboardingCompletedAt?: string | null
+}
 
 /**
  * The app's own routes and pages on `url`, for a visitor or a signed-in user.
@@ -32,11 +36,13 @@ async function renderApp(
   {
     isSignedIn = false,
     cachedUser = user,
+    serverUser = user,
     isSessionUnavailable = false,
     queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } }),
   }: {
     isSignedIn?: boolean
-    cachedUser?: typeof user | null
+    cachedUser?: TestUser | null
+    serverUser?: TestUser
     isSessionUnavailable?: boolean
     queryClient?: QueryClient
   } = {},
@@ -47,7 +53,7 @@ async function renderApp(
   )
   // what the server says when the session is fetched anew
   vi.mocked(authClient.getSession).mockResolvedValue({
-    data: isSignedIn ? { user, session: {} } : null,
+    data: isSignedIn ? { user: serverUser, session: {} } : null,
     error: null,
   })
   if (isSessionUnavailable) vi.mocked(authClient.getSession).mockRejectedValue(new Error("Offline"))
@@ -118,11 +124,48 @@ describe("router", () => {
     expect(document.querySelectorAll("main")).toHaveLength(1)
   })
 
+  it("starts onboarding only after a newly signed-in Google user confirms their age", async () => {
+    stubApi()
+    const pending = { ...user, ageConfirmedAt: null, onboardingCompletedAt: null }
+    const app = await renderApp("/akce", {
+      isSignedIn: true,
+      cachedUser: pending,
+      serverUser: pending,
+    })
+
+    const dialog = await screen.findByRole("dialog", { name: "Potvrď svůj věk" })
+    expect(app.state.location.pathname).toBe("/akce")
+    vi.mocked(authClient.getSession).mockResolvedValue({
+      data: { user: { ...pending, ageConfirmedAt: user.ageConfirmedAt }, session: {} },
+      error: null,
+    })
+    await userEvent.click(
+      within(dialog).getByRole("button", { name: "Potvrzuji, že mi je alespoň 18 let" }),
+    )
+
+    expect(await screen.findByRole("heading", { name: "Kde hledáš akce?" })).toBeInTheDocument()
+    expect(app.state.location.pathname).toBe("/vitej")
+  })
+
   // #155: the result in a dialog over that page, not on an empty page of its own
   describe("the link in the verification e-mail (/email-overen, old links too)", () => {
     // where the sign-up started, as the link carries it: encoded once since #186,
     // twice in links sent before it (still valid for 24 h)
     const fromGroups = "/skupiny?q=volejbal"
+
+    it("starts onboarding after verifying a new account and keeps the return page", async () => {
+      stubApi()
+      const app = await renderApp(`/email-overen?from=${encodeURIComponent(fromGroups)}`, {
+        isSignedIn: true,
+        cachedUser: null,
+        serverUser: { ...user, onboardingCompletedAt: null },
+      })
+
+      expect(await screen.findByRole("heading", { name: "Kde hledáš akce?" })).toBeInTheDocument()
+      expect(app.state.location.pathname).toBe("/vitej")
+      expect(app.state.location.search).toEqual({ from: fromGroups })
+      expect(screen.queryByRole("dialog", { name: "E-mail je ověřený" })).not.toBeInTheDocument()
+    })
 
     it.each([
       ["encoded once", encodeURIComponent(fromGroups)],
