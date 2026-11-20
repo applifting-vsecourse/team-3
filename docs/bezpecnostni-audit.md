@@ -15,7 +15,7 @@ Kdo nález opraví, změní ve stejném PR i jeho stav v tomto reportu.
 ## Co ještě chybí
 
 - [ ] Ověřit `BETTER_AUTH_SECRET` a ostatní nastavení na stagingu, ověří Tomáš Klíma (viz [Ke kontrole na stagingu](#ke-kontrole-na-stagingu)).
-- [ ] Před vznikem administrace (B-063) nastavit na stagingu superadmina se silným heslem (viz [Ke kontrole na stagingu](#ke-kontrole-na-stagingu)). `deploy.yml` předává hodnoty od #308; hotovo, až budou nastavené variable a secret a superadmin po nasazení existuje.
+- [ ] Před vznikem administrace (B-063) nastavit na stagingu superadmina se silným heslem (viz [Ke kontrole na stagingu](#ke-kontrole-na-stagingu)). `deploy.yml` předává od #308 jen `SUPERADMIN_EMAIL`; hotovo, až bude variable nastavená, superadmin po nasazení existuje a nastaví si heslo přes „Zapomenuté heslo“.
 
 ## Jak audit proběhl
 
@@ -134,7 +134,7 @@ Z kódu nejde zjistit a tým nemá přístup do Coolify. Ověří to Tomáš Kl�
 - Po nasazení #236 nemá žádný uživatel s neověřeným e-mailem platnou session (migrace `20261107120000_end_unverified_sessions`). Dotaz musí vrátit 0: `SELECT count(*) FROM "session" s JOIN "user" u ON u."id" = s."userId" WHERE u."emailVerified" = false AND s."expiresAt" > now();`
 - `FRONTEND_URL` a `BACKEND_URL` musí odpovídat skutečným adresám, jinak ochrana z #140 odmítne všechny zápisy.
 
-**Superadmin:** do #308 na stagingu nebyl nastavený `SUPERADMIN_EMAIL` ani `SUPERADMIN_PASSWORD` (`deploy.yml` je nepředával a proměnné v Coolify nastavit nejde), takže se superadmin nezaložil (seed to hlásí v logu, ověřeno 2. 11.). Od #308 je předává `deploy.yml` jako build-args z GitHub variable `SUPERADMIN_EMAIL` a secretu `SUPERADMIN_PASSWORD` (stejně jako `SEED_DEMO_PASSWORD`). Seed bez nich vypíše, co chybí, a pokračuje; heslo z `.env.example` nebo heslo, které neprojde pravidly B-010, v produkci odmítne. Heslo jde z image přečíst, proto jen pro staging. Superadmin má od #308 práva navíc (deaktivace a úprava akcí).
+**Superadmin:** do #308 na stagingu nebyl nastavený `SUPERADMIN_EMAIL` ani `SUPERADMIN_PASSWORD` (`deploy.yml` je nepředával a proměnné v Coolify nastavit nejde), takže se superadmin nezaložil (seed to hlásí v logu, ověřeno 2. 11.). Od #308 předává `deploy.yml` jen GitHub variable `SUPERADMIN_EMAIL` (build-arg). Heslo ani jeho hash v image nejsou (review #380): seed založí účet s ověřeným e-mailem a náhodným heslem, které nikde neuloží ani nezaloguje, a superadmin si heslo nastaví přes „Zapomenuté heslo“. Odkaz dojde jen majiteli schránky, proto to seed udělá jen se skutečným e-mailem (SMTP nebo Resend); se simulovanou schránkou superadmina nezaloží a vypíše proč. Existující účet se stejnou adresou, i běžný, nepovýší a heslo mu nemění; superadminovi heslo nemění ani při dalších startech. Zbývající riziko: kdo ovládne schránku `SUPERADMIN_EMAIL`, ovládne i superadmina, proto adresa jen pro tým, s dvoufázovým ověřením. Superadmin má od #308 práva navíc (deaktivace a úprava akcí).
 
 ## Co je v pořádku
 

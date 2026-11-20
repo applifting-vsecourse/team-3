@@ -38,6 +38,7 @@ export class Config {
   @IsOptional()
   readonly superadminEmail?: string;
 
+  /** Locally only: production never takes it, see superadminAccount (#308, review #380). */
   @Env('SUPERADMIN_PASSWORD')
   @IsOptional()
   readonly superadminPassword?: string;

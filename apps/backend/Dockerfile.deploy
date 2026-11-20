@@ -84,14 +84,13 @@ ENV SEED_DEMO_DATA=true
 # Anyone who can pull this image can read it: use a password for staging only.
 ARG SEED_DEMO_PASSWORD=""
 ENV SEED_DEMO_PASSWORD=$SEED_DEMO_PASSWORD
-# The superadmin (#308): the GitHub variable SUPERADMIN_EMAIL and the secret
-# SUPERADMIN_PASSWORD (deploy.yml). Empty = the seed logs why and skips it;
-# the password from .env.example is refused in production. Like the demo
-# password it can be read from this image: use one for staging only.
+# The superadmin (#308): only the GitHub variable SUPERADMIN_EMAIL
+# (deploy.yml). No password and no hash in this image (review #380): the seed
+# creates the account with a random password it keeps nowhere, and the
+# superadmin sets one with „Zapomenuté heslo“. Only with real e-mail (SMTP);
+# empty, or with the simulated inbox, the seed logs why and skips it.
 ARG SUPERADMIN_EMAIL=""
 ENV SUPERADMIN_EMAIL=$SUPERADMIN_EMAIL
-ARG SUPERADMIN_PASSWORD=""
-ENV SUPERADMIN_PASSWORD=$SUPERADMIN_PASSWORD
 # Google sign-in and real e-mail on staging (#165), from GitHub secrets and
 # variables via build-args in deploy.yml — the course's way: Coolify's own
 # variables are fixed. Empty = off (no Google button; e-mails only logged).

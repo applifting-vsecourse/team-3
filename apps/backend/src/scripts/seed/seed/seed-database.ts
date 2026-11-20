@@ -1,3 +1,5 @@
+import { randomBytes } from 'crypto';
+import { sendsRealEmail } from '@/core/email/simulated-inbox/simulated-inbox-enabled';
 import { PrismaService } from '@/core/prisma/prisma.service';
 import { DEMO_PASSWORD } from '@/scripts/seed/data/demo-data';
 import { passwordProblem } from '@/shared/auth/domain/password-policy';
@@ -32,43 +34,77 @@ export const demoPassword = (env: NodeJS.ProcessEnv): string | null => {
   return passwordProblem(configured) ? null : configured;
 };
 
-/**
- * Heslo superadmina z `apps/backend/.env.example`. Je v repu, takže v produkci
- * (staging) neplatí: tam musí přijít z GitHub secretu SUPERADMIN_PASSWORD
- * (deploy.yml → Dockerfile.deploy, #308). Test hlídá, že sedí s .env.example.
- */
-export const EXAMPLE_SUPERADMIN_PASSWORD = 'adminpassword26';
-
 export type SuperadminAccount =
-  | { ok: true; email: string; password: string }
+  | {
+      ok: true;
+      email: string;
+      password: string;
+      /** Production: a random password nobody knows; set via „Zapomenuté heslo“. */
+      isPasswordRandom: boolean;
+    }
   | { ok: false; problem: string };
 
 /**
- * Účet superadmina, jak ho seed založí, nebo proč ho nezaloží (#308). Na
- * stagingu dřív SUPERADMIN_EMAIL ani SUPERADMIN_PASSWORD nebyly a seed padal
- * na `undefined` bez srozumitelné hlášky. Hláška nikdy neobsahuje heslo.
+ * A password nobody knows, kept nowhere and never logged (#308, review
+ * #380): 256 random bits, plus a letter and a digit for B-010's rule.
+ */
+export const randomSuperadminPassword = (): string =>
+  `${randomBytes(32).toString('base64url')}a1`;
+
+/**
+ * Účet superadmina, jak ho seed založí, nebo proč ho nezaloží (#308).
+ *
+ * Na stagingu (produkce) jen ze SUPERADMIN_EMAIL (GitHub variable) a
+ * s náhodným heslem, které se nikde neuloží; heslo si superadmin nastaví přes
+ * „Zapomenuté heslo“. V image tak není heslo ani jeho hash (review #380).
+ * Odkaz pro nové heslo dokládá vlastnictví adresy jen se skutečným e-mailem
+ * (SMTP nebo Resend), proto bez něj (simulovaná schránka) seed superadmina
+ * nezaloží. Lokálně ze SUPERADMIN_EMAIL a SUPERADMIN_PASSWORD z `.env` jako
+ * dřív. Hláška nikdy neobsahuje heslo.
  */
 export const superadminAccount = (
-  config: Pick<Config, 'superadminEmail' | 'superadminPassword'>,
+  config: Pick<
+    Config,
+    | 'superadminEmail'
+    | 'superadminPassword'
+    | 'resendApiKey'
+    | 'smtpHost'
+    | 'smtpUsername'
+    | 'smtpPassword'
+  >,
   env: NodeJS.ProcessEnv,
+  randomPassword: () => string = randomSuperadminPassword,
 ): SuperadminAccount => {
   const email = config.superadminEmail?.trim();
+  if (env.NODE_ENV === 'production') {
+    if (!email) {
+      return {
+        ok: false,
+        problem:
+          'SUPERADMIN_EMAIL is not set (on staging: the GitHub variable SUPERADMIN_EMAIL, passed in by deploy.yml).',
+      };
+    }
+    if (!sendsRealEmail(config)) {
+      return {
+        ok: false,
+        problem:
+          "e-mails don't really go out (no SMTP nor Resend: the simulated inbox). The superadmin sets the password with „Zapomenuté heslo“, which needs a real e-mail to prove the address is theirs.",
+      };
+    }
+    return {
+      ok: true,
+      email,
+      password: randomPassword(),
+      isPasswordRandom: true,
+    };
+  }
+
   const password = config.superadminPassword;
   if (!email || !password?.trim()) {
     return {
       ok: false,
       problem:
-        'SUPERADMIN_EMAIL or SUPERADMIN_PASSWORD is not set (on staging: the GitHub variable SUPERADMIN_EMAIL and the secret SUPERADMIN_PASSWORD, passed in by deploy.yml).',
-    };
-  }
-  if (
-    env.NODE_ENV === 'production' &&
-    password === EXAMPLE_SUPERADMIN_PASSWORD
-  ) {
-    return {
-      ok: false,
-      problem:
-        'SUPERADMIN_PASSWORD is the one from .env.example, which is in the repo; production needs its own (the GitHub secret).',
+        'SUPERADMIN_EMAIL or SUPERADMIN_PASSWORD is not set (apps/backend/.env).',
     };
   }
   const problem = passwordProblem(password);
@@ -78,7 +114,7 @@ export const superadminAccount = (
       problem: `SUPERADMIN_PASSWORD breaks the password rule (B-010): ${problem}`,
     };
   }
-  return { ok: true, email, password };
+  return { ok: true, email, password, isPasswordRandom: false };
 };
 
 /**
@@ -86,8 +122,10 @@ export const superadminAccount = (
  * kontejneru. Katalog a účty jen doplní, testovací data vymění jen při nové verzi.
  *
  * 1. Číselník aktivit a lokalit – vždy (aplikace bez něj nefunguje).
- * 2. Superadmin z SUPERADMIN_EMAIL / SUPERADMIN_PASSWORD – když chybí
- *    (v produkci ne s heslem z .env.example, superadminAccount).
+ * 2. Superadmin – když chybí. Lokálně ze SUPERADMIN_EMAIL a SUPERADMIN_PASSWORD,
+ *    na stagingu jen ze SUPERADMIN_EMAIL s náhodným heslem, které si nastaví
+ *    přes „Zapomenuté heslo“ (superadminAccount). Existující účet se stejným
+ *    e-mailem nepovýší a heslo mu nemění.
  * 3. Testovací data: demo účty #47, komunita #150 s akcemi krajských měst,
  *    akce skupin, proběhlé akce a hodnocení #180 a #181 (seed-content.ts).
  *    Mají verzi a při její změně se vymění (#181). V produkci jen se
@@ -111,7 +149,8 @@ export const seedDatabase = async (
     console.error(`Skipping the superadmin: ${superadmin.problem}`);
   } else {
     try {
-      const { created } = await ensureUser(prisma, betterAuth, {
+      // an existing account keeps its password and role, the superadmin too
+      const { user, created } = await ensureUser(prisma, betterAuth, {
         email: superadmin.email,
         password: superadmin.password,
         name: SUPERADMIN_NAME,
@@ -119,10 +158,22 @@ export const seedDatabase = async (
         role: 'admin',
         emailVerified: true,
       });
-      console.log(created ? 'Superadmin created' : 'Superadmin already exists');
+      if (user.role !== 'admin') {
+        console.error(
+          `Skipping the superadmin: ${superadmin.email} is an existing regular account; it is not made the superadmin. Use another SUPERADMIN_EMAIL.`,
+        );
+      } else if (created && superadmin.isPasswordRandom) {
+        console.log(
+          `Superadmin created: ${superadmin.email} sets the password with „Zapomenuté heslo“ (the seed keeps none).`,
+        );
+      } else {
+        console.log(
+          created ? 'Superadmin created' : 'Superadmin already exists',
+        );
+      }
     } catch (error) {
       console.error(
-        'Superadmin could not be created — check SUPERADMIN_EMAIL and SUPERADMIN_PASSWORD (min. 10 characters, a letter and a digit, not a leaked password: production checks Have I Been Pwned). Continuing with the rest of the seed.',
+        'Superadmin could not be created — check SUPERADMIN_EMAIL (and SUPERADMIN_PASSWORD locally: min. 10 characters, a letter and a digit). Continuing with the rest of the seed.',
         error,
       );
     }
