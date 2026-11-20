@@ -69,6 +69,7 @@ const REFUSAL_MESSAGES: Record<ParticipationRefusal, string> = {
   PARTICIPATION_REFUSED: 'Na akci se už přihlásit nemůžeš.',
   NOT_JOINED: 'Na akci nemáš místo ani žádost.',
   NOT_PENDING: 'Žádost už není aktuální: mezitím byla vyřízená, nebo stažená.',
+  MEMBERS_ONLY: 'Akce je jen pro členy skupiny.',
 };
 
 const groupInactive = (): ConflictException =>
@@ -77,8 +78,17 @@ const groupInactive = (): ConflictException =>
     message: 'Skupina už není aktivní.',
   });
 
-const refused = (refusal: ParticipationRefusal): ConflictException =>
-  new ConflictException({ code: refusal, message: REFUSAL_MESSAGES[refusal] });
+// MEMBERS_ONLY is the 403 of the detail, here found under the lock (#266)
+const refused = (refusal: ParticipationRefusal): HttpException =>
+  refusal === 'MEMBERS_ONLY'
+    ? new ForbiddenException({
+        code: refusal,
+        message: REFUSAL_MESSAGES[refusal],
+      })
+    : new ConflictException({
+        code: refusal,
+        message: REFUSAL_MESSAGES[refusal],
+      });
 
 const updateRefused = (refusal: UpdateRefusal): HttpException => {
   switch (refusal.code) {

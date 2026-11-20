@@ -236,7 +236,11 @@ export class GroupsController {
   @HttpCode(204)
   @UseGuards(AuthenticatedUserGuard)
   @ApiCookieAuth()
-  @ApiOperation({ summary: 'Leave the group, or withdraw a pending request' })
+  @ApiOperation({
+    summary: 'Leave the group, or withdraw a pending request',
+    description:
+      "Leaving also withdraws the user's places and waiting requests on the group's upcoming members-only events, in the same transaction (#266). Public, private and past events, and the user's own events, stay as they are.",
+  })
   @ApiResponse({ status: 204 })
   @ApiResponse({ status: 401, description: 'Not signed in' })
   @ApiResponse({ status: 404, description: 'No such group, or NOT_MEMBER' })

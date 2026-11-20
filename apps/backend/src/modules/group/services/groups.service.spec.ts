@@ -268,8 +268,12 @@ describe('GroupsService', () => {
       });
       repository.countActiveAdmins.mockResolvedValue(1);
 
-      await service.leave('g1', 'u-jakub');
-      expect(repository.deleteMembership).toHaveBeenCalledWith('g1', 'u-jakub');
+      const now = new Date('2026-11-19T10:00:00.000Z');
+
+      await service.leave('g1', 'u-jakub', now);
+      // with the places on the members-only events, in one transaction (#266)
+      expect(repository.leaveGroup).toHaveBeenCalledWith('g1', 'u-jakub', now);
+      expect(repository.deleteMembership).not.toHaveBeenCalled();
     });
 
     it('the last admin can not leave (409 LAST_ADMIN)', async () => {
@@ -283,7 +287,7 @@ describe('GroupsService', () => {
       await expect(service.leave('g1', 'u-petra')).rejects.toMatchObject({
         response: { code: 'LAST_ADMIN' },
       });
-      expect(repository.deleteMembership).not.toHaveBeenCalled();
+      expect(repository.leaveGroup).not.toHaveBeenCalled();
     });
   });
 
@@ -412,6 +416,7 @@ describe('GroupsService', () => {
       expect(repository.findMembers).not.toHaveBeenCalled();
       expect(repository.approveRequest).not.toHaveBeenCalled();
       expect(repository.deleteMembership).not.toHaveBeenCalled();
+      expect(repository.leaveGroup).not.toHaveBeenCalled();
       expect(repository.createMembership).not.toHaveBeenCalled();
     });
   });
