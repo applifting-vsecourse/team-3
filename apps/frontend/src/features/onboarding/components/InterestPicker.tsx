@@ -1,12 +1,28 @@
 import { useState } from "react"
-import { Check, ChevronDown, Plus, Search } from "lucide-react"
+import { Check, Plus, Search } from "lucide-react"
 
+import { activityPhoto } from "@/assets/activity-photos"
 import { ActivityTile } from "@/components/ActivityTile/ActivityTile"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { searchActivities } from "@/lib/catalog/activitySelection"
-import type { Activity, ActivityCategory } from "@/lib/catalog/catalogSchemas"
+import type { ActivityCategory } from "@/lib/catalog/catalogSchemas"
 import { cn } from "@/lib/utils"
+
+const STARTING_ACTIVITIES = [
+  "volejbal",
+  "turistika",
+  "deskove-hry",
+  "badminton",
+  "beh",
+  "fotografie",
+  "pub-kviz",
+  "cyklistika",
+  "tanec",
+  "komunitni-zahrada",
+  "lezeni",
+  "spolecne-vareni",
+]
 
 type InterestPickerProps = {
   categories: ActivityCategory[]
@@ -22,142 +38,149 @@ export function InterestPicker({
   isDisabled,
 }: InterestPickerProps) {
   const [query, setQuery] = useState("")
-  const [open, setOpen] = useState<string[]>([])
-  const isSearching = query.trim().length > 0
-  const matches = isSearching ? searchActivities(categories, query) : []
-
-  function choice(category: ActivityCategory, activity: Activity, detail?: string) {
-    const isSelected = selected.includes(activity.id)
-    const Icon = isSelected ? Check : Plus
-    return (
-      <button
-        key={activity.id}
-        type="button"
-        disabled={isDisabled}
-        aria-pressed={isSelected}
-        onClick={() => onToggle(activity.id)}
-        className={cn(
-          "flex min-h-12 w-full items-center gap-2 rounded-lg border px-2 py-2 text-left outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:opacity-60 motion-safe:transition-colors motion-safe:duration-150",
-          isSelected
-            ? "border-primary-edge bg-secondary text-secondary-foreground"
-            : "border-control-border bg-card hover:bg-accent",
-        )}
-      >
-        <ActivityTile
-          icon={category.icon}
-          className="size-8"
-          iconClassName="size-5"
-        />
-        <span className="grow text-sm">
-          <span className="font-medium">{activity.name}</span>
-          {detail ? <span className="block text-xs text-muted-foreground">{detail}</span> : null}
-        </span>
-        <Icon
-          key={isSelected ? "selected" : "available"}
-          aria-hidden
-          className={cn(
-            "size-4 shrink-0",
-            isSelected && "motion-safe:duration-200 motion-safe:animate-in motion-safe:zoom-in-50",
-          )}
-        />
-      </button>
-    )
-  }
+  const [categoryId, setCategoryId] = useState("")
+  const [isShowingAll, setIsShowingAll] = useState(false)
+  const isSearching = Boolean(query.trim())
+  const isOverview = !isSearching && !categoryId && !isShowingAll
+  const visibleCategories = categoryId
+    ? categories.filter((category) => category.id === categoryId)
+    : categories
+  const allMatches = visibleCategories.flatMap((category) =>
+    category.activities.map((activity) => ({ category, activity })),
+  )
+  const featured = STARTING_ACTIVITIES.flatMap((slug) =>
+    allMatches.filter(({ activity }) => activity.slug === slug),
+  )
+  const matches = isSearching
+    ? searchActivities(visibleCategories, query)
+    : isOverview && featured.length > 0
+      ? featured
+      : allMatches
 
   return (
-    <div className="space-y-3">
-      <div className="space-y-2">
-        <Label htmlFor="onboarding-activity-search">Hledat aktivitu</Label>
-        <div className="relative">
-          <Search
-            aria-hidden
-            className="pointer-events-none absolute top-1/2 left-3 size-5 -translate-y-1/2 text-muted-foreground"
-          />
-          <Input
-            id="onboarding-activity-search"
-            type="search"
-            placeholder="Třeba volejbal"
-            value={query}
-            onChange={(event) => setQuery(event.target.value)}
-            className="h-11 bg-card pl-10"
-          />
-        </div>
+    <div className="space-y-4">
+      <div className="relative">
+        <Label
+          htmlFor="onboarding-activity-search"
+          className="sr-only"
+        >
+          Hledat aktivitu
+        </Label>
+        <Search
+          aria-hidden
+          className="pointer-events-none absolute top-1/2 left-4 size-5 -translate-y-1/2 text-muted-foreground"
+        />
+        <Input
+          id="onboarding-activity-search"
+          type="search"
+          placeholder="Hledej třeba volejbal nebo běh"
+          value={query}
+          onChange={(event) => setQuery(event.target.value)}
+          className="h-11 rounded-full pl-12"
+        />
       </div>
-      {isSearching ? (
-        matches.length > 0 ? (
-          <div className="grid gap-2 sm:grid-cols-2">
-            {matches.map(({ category, activity, matchedKeyword }) =>
-              choice(category, activity, matchedKeyword ?? category.name),
-            )}
-          </div>
-        ) : (
-          <p
-            role="status"
-            className="text-sm text-muted-foreground"
+      <div
+        role="group"
+        aria-label="Kategorie aktivit"
+        className="flex [scrollbar-width:none] gap-2 overflow-x-auto p-1 sm:flex-wrap"
+      >
+        <button
+          type="button"
+          aria-pressed={!categoryId}
+          onClick={() => setCategoryId("")}
+          className="shrink-0 rounded-full border border-control-border px-3 py-2 text-sm font-medium focus-visible:ring-2 focus-visible:ring-ring aria-pressed:border-hero aria-pressed:bg-hero aria-pressed:text-on-hero"
+        >
+          Vše
+        </button>
+        {categories.map((category) => (
+          <button
+            key={category.id}
+            type="button"
+            aria-pressed={category.id === categoryId}
+            onClick={() => setCategoryId(category.id)}
+            className="flex shrink-0 items-center gap-2 rounded-full border border-control-border px-3 py-2 text-sm font-medium hover:bg-accent focus-visible:ring-2 focus-visible:ring-ring aria-pressed:border-hero aria-pressed:bg-hero aria-pressed:text-on-hero"
           >
-            Žádná aktivita neodpovídá hledání. Zkus jiný výraz.
-          </p>
-        )
-      ) : (
-        <div className="grid gap-2">
-          {categories.map((category) => {
-            const isOpen = open.includes(category.id)
-            const selectedCount = category.activities.filter(({ id }) =>
-              selected.includes(id),
-            ).length
-            const panelId = `onboarding-category-${category.id}`
+            <ActivityTile
+              icon={category.icon}
+              className="size-4 border-0 bg-transparent text-current"
+              iconClassName="size-4"
+            />
+            {category.name}
+          </button>
+        ))}
+      </div>
+      {matches.length > 0 ? (
+        <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 xl:grid-cols-4">
+          {matches.map(({ activity, category }, index) => {
+            const isPicked = selected.includes(activity.id)
+            const photo = activityPhoto(activity.slug)
+            const Icon = isPicked ? Check : Plus
             return (
-              <div
-                key={category.id}
-                className="min-w-0 rounded-2xl border border-card-border bg-card"
+              <button
+                key={activity.id}
+                type="button"
+                aria-pressed={isPicked}
+                disabled={isDisabled}
+                onClick={() => onToggle(activity.id)}
+                className={cn(
+                  "group relative isolate flex aspect-[4/3] min-w-0 items-end overflow-hidden rounded-xl border-2 border-transparent bg-hero p-3 text-left text-white shadow-none outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 motion-safe:transition-transform motion-safe:active:scale-95",
+                  isPicked && "border-primary ring-2 ring-primary-edge",
+                )}
               >
-                <button
-                  type="button"
-                  aria-expanded={isOpen}
-                  aria-controls={panelId}
-                  onClick={() =>
-                    setOpen((current) =>
-                      isOpen
-                        ? current.filter((id) => id !== category.id)
-                        : [...current, category.id],
-                    )
-                  }
-                  className="flex min-h-12 w-full items-center gap-3 rounded-2xl px-3 py-2 text-left font-semibold outline-none hover:bg-accent focus-visible:ring-2 focus-visible:ring-ring"
-                >
+                {photo ? (
+                  <img
+                    src={photo.src}
+                    alt=""
+                    loading={index < 8 ? "eager" : "lazy"}
+                    decoding="async"
+                    className="absolute inset-0 -z-10 size-full object-cover motion-safe:transition-transform motion-safe:duration-300 motion-safe:group-hover:scale-105"
+                  />
+                ) : (
                   <ActivityTile
                     icon={category.icon}
-                    className="size-9"
+                    className="absolute top-3 left-3 -z-10 size-8"
                     iconClassName="size-5"
                   />
-                  <span className="grow">{category.name}</span>
-                  {selectedCount > 0 ? (
-                    <span className="rounded-full bg-secondary px-2 py-0.5 text-xs text-secondary-foreground">
-                      {selectedCount} vybr.
-                    </span>
-                  ) : null}
-                  <ChevronDown
-                    aria-hidden
-                    className={cn(
-                      "size-4 shrink-0 motion-safe:transition-transform",
-                      isOpen && "rotate-180",
-                    )}
-                  />
-                </button>
-                <div
-                  id={panelId}
-                  hidden={!isOpen}
+                )}
+                <span
+                  aria-hidden
+                  className="absolute inset-0 -z-10 bg-linear-to-t from-black via-black/35 to-black/5"
+                />
+                <span className="relative w-full text-sm leading-tight font-semibold wrap-break-word md:text-base">
+                  {activity.name}
+                </span>
+                <span
+                  key={isPicked ? "selected" : "available"}
+                  aria-hidden
+                  className={cn(
+                    "absolute top-2 right-2 grid size-7 place-items-center rounded-full border border-white/70 bg-black/65 text-white",
+                    isPicked &&
+                      "border-primary bg-primary text-primary-foreground motion-safe:duration-200 motion-safe:animate-in motion-safe:zoom-in-50",
+                  )}
                 >
-                  {isOpen ? (
-                    <div className="grid gap-2 px-3 pt-1 pb-3 sm:grid-cols-2">
-                      {category.activities.map((activity) => choice(category, activity))}
-                    </div>
-                  ) : null}
-                </div>
-              </div>
+                  <Icon className="size-4" />
+                </span>
+              </button>
             )
           })}
         </div>
+      ) : (
+        <p
+          role="status"
+          className="rounded-xl border border-card-border bg-card p-4 text-sm text-muted-foreground"
+        >
+          Tady jsem žádnou aktivitu nenašel. Zkus jiný název nebo vyber „Vše“.
+        </p>
       )}
+      {isOverview && featured.length < allMatches.length ? (
+        <button
+          type="button"
+          className="rounded-lg px-3 py-2 text-sm font-semibold underline underline-offset-4 focus-visible:ring-2 focus-visible:ring-ring"
+          onClick={() => setIsShowingAll(true)}
+        >
+          Zobrazit všechny aktivity
+        </button>
+      ) : null}
     </div>
   )
 }

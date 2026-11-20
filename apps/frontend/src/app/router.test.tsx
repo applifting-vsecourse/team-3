@@ -143,7 +143,7 @@ describe("router", () => {
       within(dialog).getByRole("button", { name: "Potvrzuji, že mi je alespoň 18 let" }),
     )
 
-    expect(await screen.findByRole("heading", { name: "Kde hledáš akce?" })).toBeInTheDocument()
+    expect(await screen.findByRole("heading", { name: "Kde se potkáme?" })).toBeInTheDocument()
     expect(app.state.location.pathname).toBe("/vitej")
   })
 
@@ -161,7 +161,7 @@ describe("router", () => {
         serverUser: { ...user, onboardingCompletedAt: null },
       })
 
-      expect(await screen.findByRole("heading", { name: "Kde hledáš akce?" })).toBeInTheDocument()
+      expect(await screen.findByRole("heading", { name: "Kde se potkáme?" })).toBeInTheDocument()
       expect(app.state.location.pathname).toBe("/vitej")
       expect(app.state.location.search).toEqual({ from: fromGroups })
       expect(screen.queryByRole("dialog", { name: "E-mail je ověřený" })).not.toBeInTheDocument()
