@@ -75,6 +75,8 @@ export function ParticipationAction({
   const manage = event.canManage ? <ManageLink eventId={event.id} /> : null
 
   if (event.status === "cancelled") return manage ? <Row>{manage}</Row> : null
+  // the superadmin's view of a deactivated event (#308): nobody joins it, the API says 404
+  if (event.status === "hidden") return null
   if (isEventOver(event, now)) {
     // Figma A-05 · Stavy › Proběhlá akce; an event whose minimum never came didn't take place
     const day = inSentence(formatEventDay(event.startsAt))

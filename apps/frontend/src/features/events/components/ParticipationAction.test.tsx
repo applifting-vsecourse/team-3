@@ -417,6 +417,13 @@ describe("ParticipationAction", () => {
     expect(screen.queryByRole("link")).not.toBeInTheDocument()
   })
 
+  it("a deactivated event, as the superadmin sees it, offers no joining (#308)", async () => {
+    await renderAction({ status: "hidden", canEdit: true, canModerate: true })
+
+    expect(screen.queryByRole("button")).not.toBeInTheDocument()
+    expect(screen.queryByRole("link")).not.toBeInTheDocument()
+  })
+
   it("the organizer still gets to the management page once the event is cancelled", async () => {
     await renderAction({ status: "cancelled", canManage: true }, { viewer: organizer })
 

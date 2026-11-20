@@ -103,7 +103,7 @@ export type EventDetail = PublicEvent & {
   approvalMode: 'open' | 'approval';
   /** `private` = reachable through its link only; `members` = the group's members only. */
   visibility: 'public' | 'private' | 'members';
-  /** `hidden` and `deleted` never leave the service (404). */
+  /** `deleted` never leaves the service (404), `hidden` only to the superadmin (#308). */
   status: 'published' | 'cancelled' | 'hidden' | 'deleted';
   cancelReason: string | null;
 };
@@ -121,6 +121,12 @@ export type EventDetailView = EventDetail & {
   viewerSignedIn: boolean;
   /** Whether the viewer manages the event (B-055, `canManageEvent`). */
   canManage: boolean;
+  /** Whether the viewer may edit it: who manages it, and the superadmin (#308). */
+  canEdit: boolean;
+  /** The superadmin (#308): may deactivate and restore the event. */
+  canModerate: boolean;
+  /** Why it was deactivated; only for the superadmin, null for anyone else (#308, review #380). */
+  hiddenReason: string | null;
 };
 
 /** The two sections of a group's page (B-055): Nadcházející and Proběhlé. */

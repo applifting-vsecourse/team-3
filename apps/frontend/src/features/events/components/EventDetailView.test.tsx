@@ -162,6 +162,35 @@ describe("EventDetailView", () => {
     expect(screen.queryByRole("heading", { name: /Kdo jde/ })).not.toBeInTheDocument()
   })
 
+  it("a deactivated event tells the superadmin why, and that it is out of every list (#308)", async () => {
+    await renderWithRouter(
+      <EventDetailView
+        event={anEventDetail({ status: "hidden", hiddenReason: "Placené doučování." })}
+      />,
+    )
+
+    const notice = screen.getByRole("alert")
+    expect(notice).toHaveTextContent("Akce je deaktivovaná")
+    expect(notice).toHaveTextContent("Důvod: Placené doučování.")
+    expect(notice).toHaveTextContent(
+      "Vidíš ji jen ty jako správce HobbyHubu, ostatním se na odkazu ukáže, že akce není dostupná.",
+    )
+    // a state, not an error (review #380)
+    expect(notice).not.toHaveClass("border-destructive")
+  })
+
+  it("without a reason the notice says no „Důvod“", async () => {
+    await renderWithRouter(<EventDetailView event={anEventDetail({ status: "hidden" })} />)
+
+    expect(screen.getByRole("alert")).not.toHaveTextContent("Důvod")
+  })
+
+  it("a published event has no such notice", async () => {
+    await renderWithRouter(<EventDetailView event={anEventDetail()} />)
+
+    expect(screen.queryByText("Akce je deaktivovaná")).not.toBeInTheDocument()
+  })
+
   it("nobody joined yet: says so to a visitor too, instead of promising names (review #269)", async () => {
     await renderWithRouter(
       <EventDetailView
@@ -385,10 +414,16 @@ describe("EventDetailView", () => {
     expect(screen.getByRole("heading", { level: 1, name: "Detail akce" })).toBeInTheDocument()
   })
 
-  it("renders „not found“ with a way to the list (the 404 detection is in useEventDetail)", async () => {
+  it("renders „not available“ with a way to the list (the 404 detection is in useEventDetail)", async () => {
     await renderWithRouter(<EventDetailView isNotFound />)
 
-    expect(screen.getByRole("heading", { level: 1, name: "Akce nenalezena" })).toBeInTheDocument()
+    // one page for an unknown and a deactivated event (#308)
+    expect(
+      screen.getByRole("heading", { level: 1, name: "Akce není dostupná" }),
+    ).toBeInTheDocument()
+    expect(
+      screen.getByText("Odkaz je neplatný, nebo akce už není k dispozici."),
+    ).toBeInTheDocument()
     expect(screen.getByRole("link", { name: "Prohlédnout akce" })).toHaveAttribute("href", "/akce")
   })
 

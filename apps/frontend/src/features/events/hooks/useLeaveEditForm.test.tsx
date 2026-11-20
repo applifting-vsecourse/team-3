@@ -6,8 +6,8 @@ import { renderWithRouter } from "@/test/renderWithRouter"
 
 import { useLeaveEditForm } from "@/features/events/hooks/useLeaveEditForm"
 
-function SaveButton() {
-  const leaveForm = useLeaveEditForm("e1")
+function SaveButton({ canManage }: { canManage?: boolean }) {
+  const leaveForm = useLeaveEditForm("e1", { canManage })
   return (
     <button
       type="button"
@@ -39,5 +39,15 @@ describe("useLeaveEditForm", () => {
 
     await waitFor(() => expect(router.state.location.pathname).toBe("/akce/e1/sprava"))
     expect(router.history.length).toBe(1)
+  })
+
+  it("the superadmin, who doesn't manage the event, goes to its detail (#308)", async () => {
+    const { router } = await renderWithRouter(<SaveButton canManage={false} />, {
+      url: "/akce/e1/upravit",
+    })
+
+    await userEvent.click(screen.getByRole("button", { name: "Uložit" }))
+
+    await waitFor(() => expect(router.state.location.pathname).toBe("/akce/e1"))
   })
 })

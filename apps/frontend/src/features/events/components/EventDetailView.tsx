@@ -1,6 +1,6 @@
 import type { ReactNode } from "react"
 import { Link } from "@tanstack/react-router"
-import { Ban, RefreshCw } from "lucide-react"
+import { Ban, EyeOff, RefreshCw } from "lucide-react"
 
 import { ROUTES } from "@/app/routes"
 import { ActivityPhoto } from "@/components/ActivityPhoto/ActivityPhoto"
@@ -47,13 +47,13 @@ export const EVENTS_BACK: EventBack = {
 type EventDetailViewProps = {
   event?: EventDetail
   isLoading?: boolean
-  /** Unknown, hidden or deleted (API 404). */
+  /** Unknown, deactivated or deleted (API 404): one page for all, nobody learns a deactivated one exists (#308). */
   isNotFound?: boolean
   error?: Error
   onRetry?: () => void
   /** The join / leave action (B-032): in the panel on desktop, in the bar above the navigation on a phone; the page builds it. */
   participation?: ReactNode
-  /** The organizer's own actions, e.g. „Zrušit akci“ (#52); the page builds them. */
+  /** The organizer's and the superadmin's actions, e.g. „Zrušit akci“ (#52), „Deaktivovat“ (#308); the page builds them. */
   organizerActions?: ReactNode
   /** For tests; the event is over once its end (or, without one, its start) is past it. */
   now?: Date
@@ -133,6 +133,8 @@ export function EventDetailView({
   }
 
   const isCancelled = event.status === "cancelled"
+  // only the superadmin gets a deactivated event (#308); everyone else a 404
+  const isHidden = event.status === "hidden"
   // the minimum is reached, so the event happens (DESIGN.md › Koná se stamp); a past one
   // says „Proběhlo“ instead (Figma A-05h)
   const isOver = isEventOver(event, now)
@@ -194,6 +196,23 @@ export function EventDetailView({
       isFull={event.isFull}
     />
   )
+  // what nobody but the superadmin sees: the event is out of every list (#308)
+  // a state, not an error: info tone (review #380), with the reason it was deactivated
+  const hiddenNotice = isHidden ? (
+    <Alert variant="info">
+      <EyeOff />
+      <AlertTitle>Akce je deaktivovaná</AlertTitle>
+      <AlertDescription className="flex flex-col gap-1">
+        {event.hiddenReason ? (
+          <p className="whitespace-pre-line">Důvod: {event.hiddenReason}</p>
+        ) : null}
+        <p>
+          Zmizela z výpisu, mapy, úvodní stránky i z Moje akce. Vidíš ji jen ty jako správce
+          HobbyHubu, ostatním se na odkazu ukáže, že akce není dostupná.
+        </p>
+      </AlertDescription>
+    </Alert>
+  ) : null
   const facts = <EventFacts event={event} />
   const map = (
     <div className="h-40 overflow-hidden rounded-lg border border-input">
@@ -275,6 +294,7 @@ export function EventDetailView({
               aria-label="Termín, místo a účast"
               className="flex w-100 flex-col gap-4 rounded-2xl border border-card-border bg-card p-6 text-card-foreground [&_[data-slot=participation-note]]:order-last [&>[data-slot=participation]]:contents"
             >
+              {hiddenNotice}
               {capacity}
               {facts}
               {map}
@@ -312,6 +332,7 @@ export function EventDetailView({
           aria-label="Termín, místo a účast"
           className="flex flex-col gap-5"
         >
+          {hiddenNotice}
           {capacity}
           {facts}
           {map}
@@ -402,8 +423,9 @@ function EventOrganizer({ event, group }: { event: EventDetail; group?: ReactNod
 function EventNotFound() {
   return (
     <section className="flex flex-col items-center gap-3 py-16 text-center">
-      <h1 className="text-2xl font-semibold tracking-tight">Akce nenalezena</h1>
-      <p className="text-muted-foreground">Odkaz je neplatný, nebo akce neexistuje.</p>
+      <h1 className="text-2xl font-semibold tracking-tight">Akce není dostupná</h1>
+      {/* the same for an unknown and a deactivated event (#308): nobody learns which */}
+      <p className="text-muted-foreground">Odkaz je neplatný, nebo akce už není k dispozici.</p>
       <Button
         asChild
         className="mt-3"

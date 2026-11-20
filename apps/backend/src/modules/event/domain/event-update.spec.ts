@@ -129,4 +129,13 @@ describe('lifecycleRefusal', () => {
   it('lets a published future event change', () => {
     expect(lifecycleRefusal(aState(), now)).toBeNull();
   });
+
+  it.each(['hidden', 'deleted'] as const)(
+    'a %s event does not change: it is restored first (#308)',
+    (status) => {
+      expect(lifecycleRefusal(aState({ status }), now)).toEqual({
+        code: 'EVENT_HIDDEN',
+      });
+    },
+  );
 });

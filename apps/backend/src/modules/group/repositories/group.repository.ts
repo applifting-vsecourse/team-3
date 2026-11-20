@@ -268,7 +268,10 @@ export class GroupRepository {
   /**
    * Deactivates the group, removes its waiting requests and cancels its
    * upcoming events with a reason (B-051, B-055), in one write. Past events
-   * stay as they are, in the group's history.
+   * stay as they are, in the group's history. Upcoming events the superadmin
+   * deactivated are cancelled too (#308, review #380): restoring one later
+   * would publish an event of an inactive group, and a cancelled event can't
+   * be restored (409 EVENT_NOT_HIDDEN).
    */
   async deactivateGroup(id: string, at: Date): Promise<void> {
     await this.prisma.$transaction([
@@ -280,7 +283,11 @@ export class GroupRepository {
         where: { groupId: id, status: 'pending' },
       }),
       this.prisma.event.updateMany({
-        where: { groupId: id, status: 'published', startsAt: { gt: at } },
+        where: {
+          groupId: id,
+          status: { in: ['published', 'hidden'] },
+          startsAt: { gt: at },
+        },
         data: {
           status: 'cancelled',
           cancelReason: GROUP_INACTIVE_CANCEL_REASON,

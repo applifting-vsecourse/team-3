@@ -37,7 +37,9 @@ function EditEventPage() {
   )
   const { catalog, queries } = useCatalog()
   const updateEvent = useUpdateEvent(eventId, session.user?.id ?? "")
-  const leaveForm = useLeaveEditForm(eventId)
+  // the superadmin edits without managing the event (#308): back to its detail, not Správa akce
+  const isManager = event?.canManage !== false
+  const leaveForm = useLeaveEditForm(eventId, { canManage: isManager })
 
   const refusal = event ? editRefusal(event) : null
 
@@ -47,19 +49,28 @@ function EditEventPage() {
       <PageBand
         title="Upravit akci"
         description={event?.title}
-        back={{
-          to: ROUTES.manageEvent,
-          params: { eventId },
-          fallbackLabel: "Správa akce",
-          label: "Správa akce",
-        }}
+        back={
+          isManager
+            ? {
+                to: ROUTES.manageEvent,
+                params: { eventId },
+                fallbackLabel: "Správa akce",
+                label: "Správa akce",
+              }
+            : {
+                to: ROUTES.eventDetail,
+                params: { eventId },
+                fallbackLabel: "Detail akce",
+                label: "Detail akce",
+              }
+        }
         isCompactOnMobile
       />
       <div className={cn(PAGE, "gap-4")}>
         <div className={FORM}>
           {isNotFound ? (
             <Alert>
-              <AlertTitle>Akce nenalezena</AlertTitle>
+              <AlertTitle>Akce není dostupná</AlertTitle>
             </Alert>
           ) : error ? (
             <Alert variant="destructive">

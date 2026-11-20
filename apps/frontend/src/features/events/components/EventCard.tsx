@@ -24,7 +24,7 @@ import {
 export type EventCardVariant = "row" | "grid" | "responsive"
 
 type EventCardProps = {
-  event: PublicEvent & { status?: "published" | "cancelled" }
+  event: PublicEvent & { status?: "published" | "cancelled" | "hidden" }
   variant?: EventCardVariant
   /** Selected: its pin is highlighted on the map — a 2 px ring that doesn't change its size. */
   isHighlighted?: boolean

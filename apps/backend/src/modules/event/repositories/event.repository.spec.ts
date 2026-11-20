@@ -39,6 +39,78 @@ describe('EventRepository', () => {
     });
   });
 
+  describe('isAdmin (#308)', () => {
+    const confirmed = new Date('2026-11-01T10:00:00.000Z');
+
+    it.each([
+      [
+        'an admin',
+        { role: 'admin', blockedAt: null, ageConfirmedAt: confirmed },
+        true,
+      ],
+      [
+        'a regular user',
+        { role: 'user', blockedAt: null, ageConfirmedAt: confirmed },
+        false,
+      ],
+      // review #380: the same rule as AdminGuard
+      [
+        'a blocked admin',
+        { role: 'admin', blockedAt: new Date(), ageConfirmedAt: confirmed },
+        false,
+      ],
+      [
+        'an admin without the age confirmed',
+        { role: 'admin', blockedAt: null, ageConfirmedAt: null },
+        false,
+      ],
+      ['nobody', null, false],
+    ] as const)('%s → %s', async (_who, user, expected) => {
+      const prisma = mockDeep<PrismaService>();
+      prisma.user.findUnique.mockResolvedValue(user as never);
+
+      await expect(new EventRepository(prisma).isAdmin('u1')).resolves.toBe(
+        expected,
+      );
+      expect(prisma.user.findUnique).toHaveBeenCalledWith({
+        where: { id: 'u1' },
+        select: { role: true, blockedAt: true, ageConfirmedAt: true },
+      });
+    });
+  });
+
+  describe('findHideReason (#308, review #380)', () => {
+    it("reads the reason of the event's latest deactivation that is not reverted", async () => {
+      const prisma = mockDeep<PrismaService>();
+      prisma.moderationAction.findFirst.mockResolvedValue({
+        reason: 'Podvod',
+      } as never);
+
+      await expect(
+        new EventRepository(prisma).findHideReason('e1'),
+      ).resolves.toBe('Podvod');
+      expect(prisma.moderationAction.findFirst).toHaveBeenCalledWith({
+        where: {
+          type: 'hide_event',
+          targetType: 'event',
+          targetId: 'e1',
+          revertedAt: null,
+        },
+        orderBy: { createdAt: 'desc' },
+        select: { reason: true },
+      });
+    });
+
+    it('null without one', async () => {
+      const prisma = mockDeep<PrismaService>();
+      prisma.moderationAction.findFirst.mockResolvedValue(null);
+
+      await expect(
+        new EventRepository(prisma).findHideReason('e1'),
+      ).resolves.toBeNull();
+    });
+  });
+
   describe('findApprovedParticipants', () => {
     it('asks only for approved participations and returns just id and name', async () => {
       const prisma = mockDeep<PrismaService>();

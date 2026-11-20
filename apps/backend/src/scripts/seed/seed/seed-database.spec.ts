@@ -1,6 +1,7 @@
 import { PrismaService } from '@/core/prisma/prisma.service';
 import { DEMO_PASSWORD } from '@/scripts/seed/data/demo-data';
 import { nameProblem } from '@/shared/auth/domain/name-policy';
+import { passwordProblem } from '@/shared/auth/domain/password-policy';
 import { BetterAuth } from '@/shared/auth/providers/better-auth.provider';
 import { Config } from '@/shared/config/config.service';
 import { mock } from 'jest-mock-extended';
@@ -10,8 +11,10 @@ import { seedContent } from './seed-content';
 import {
   demoDataEnabled,
   demoPassword,
+  randomSuperadminPassword,
   seedDatabase,
   SUPERADMIN_NAME,
+  superadminAccount,
 } from './seed-database';
 
 // Factories, so neither better-auth nor the test data load under Jest.
@@ -21,8 +24,133 @@ jest.mock('./seed-content', () => ({ seedContent: jest.fn() }));
 
 const config = {
   superadminEmail: 'admin@example.com',
-  superadminPassword: 'short',
+  superadminPassword: 'spravce-heslo-2026',
 } as Config;
+
+// SMTP set: e-mails really go out (staging since #165)
+const smtp = {
+  smtpHost: 'smtp.gmail.com',
+  smtpUsername: 'hobbyhub@gmail.com',
+  smtpPassword: 'app-password',
+};
+const production = { NODE_ENV: 'production' };
+
+describe('superadminAccount (#308)', () => {
+  describe('locally: SUPERADMIN_EMAIL and SUPERADMIN_PASSWORD from .env, as before', () => {
+    it('takes the e-mail and password from the config', () => {
+      expect(superadminAccount(config, {})).toEqual({
+        ok: true,
+        email: 'admin@example.com',
+        password: 'spravce-heslo-2026',
+        isPasswordRandom: false,
+      });
+    });
+
+    it('says which variables are missing instead of failing on undefined', () => {
+      for (const missing of [
+        {},
+        { superadminEmail: 'admin@example.com' },
+        { superadminPassword: 'spravce-heslo-2026' },
+        { superadminEmail: ' ', superadminPassword: 'spravce-heslo-2026' },
+      ]) {
+        expect(superadminAccount(missing, {})).toEqual({
+          ok: false,
+          problem: expect.stringContaining('SUPERADMIN_PASSWORD'),
+        });
+      }
+    });
+
+    it('refuses a password the sign-up would refuse (B-010)', () => {
+      const weak = {
+        superadminEmail: 'a@example.com',
+        superadminPassword: 'kratke1',
+      };
+      expect(superadminAccount(weak, {}).ok).toBe(false);
+    });
+
+    it('never puts the password into the reason', () => {
+      const account = superadminAccount(
+        { superadminEmail: 'a@example.com', superadminPassword: 'tajne' },
+        {},
+      );
+      expect(account.ok).toBe(false);
+      expect(JSON.stringify(account)).not.toContain('tajne');
+    });
+  });
+
+  describe('staging: only SUPERADMIN_EMAIL, a random password (review #380)', () => {
+    it('with real e-mail: the e-mail and a password nobody knows', () => {
+      expect(
+        superadminAccount(
+          { superadminEmail: ' admin@hobbyhub.cz ', ...smtp },
+          production,
+          () => 'nahodne-heslo-1',
+        ),
+      ).toEqual({
+        ok: true,
+        email: 'admin@hobbyhub.cz',
+        password: 'nahodne-heslo-1',
+        isPasswordRandom: true,
+      });
+    });
+
+    it('never takes SUPERADMIN_PASSWORD, even when it is set', () => {
+      const account = superadminAccount(
+        { ...config, ...smtp },
+        production,
+        () => 'nahodne-heslo-1',
+      );
+      expect(account).toMatchObject({ password: 'nahodne-heslo-1' });
+    });
+
+    it('Resend counts as real e-mail too', () => {
+      expect(
+        superadminAccount(
+          { superadminEmail: 'admin@hobbyhub.cz', resendApiKey: 're_x' },
+          production,
+        ).ok,
+      ).toBe(true);
+    });
+
+    it('without SMTP (the simulated inbox) it is not created, and says why', () => {
+      const account = superadminAccount(
+        { superadminEmail: 'admin@hobbyhub.cz' },
+        production,
+      );
+      expect(account).toEqual({
+        ok: false,
+        problem: expect.stringContaining('simulated inbox'),
+      });
+      // half the SMTP settings send nothing either
+      expect(
+        superadminAccount(
+          { superadminEmail: 'admin@hobbyhub.cz', smtpHost: 'smtp.gmail.com' },
+          production,
+        ).ok,
+      ).toBe(false);
+    });
+
+    it('without SUPERADMIN_EMAIL it names the GitHub variable', () => {
+      expect(superadminAccount({ ...smtp }, production)).toEqual({
+        ok: false,
+        problem: expect.stringContaining('GitHub variable SUPERADMIN_EMAIL'),
+      });
+    });
+  });
+});
+
+describe('randomSuperadminPassword (review #380)', () => {
+  it('passes B-010 and is different every time', () => {
+    const passwords = new Set(
+      Array.from({ length: 20 }, () => randomSuperadminPassword()),
+    );
+    expect(passwords.size).toBe(20);
+    for (const password of passwords) {
+      expect(passwordProblem(password)).toBeNull();
+      expect(password.length).toBeGreaterThanOrEqual(40);
+    }
+  });
+});
 
 describe('demoDataEnabled', () => {
   it('is on outside production unless switched off', () => {
@@ -93,6 +221,16 @@ describe('seedDatabase', () => {
       expect.stringContaining('Superadmin could not be created'),
       expect.any(Error),
     );
+  });
+
+  it('without the superadmin variables skips the superadmin and seeds the rest (#308)', async () => {
+    await seedDatabase(prisma, {} as Config, auth);
+
+    expect(ensureUser).not.toHaveBeenCalled();
+    expect(console.error).toHaveBeenCalledWith(
+      expect.stringContaining('Skipping the superadmin'),
+    );
+    expect(seedContent).toHaveBeenCalledWith(prisma, auth, DEMO_PASSWORD);
   });
 
   it("names the superadmin so that the sign-up's name rule lets it through (#153)", async () => {
@@ -177,6 +315,93 @@ describe('seedDatabase', () => {
       auth,
       'staging-heslo-2026',
     );
+  });
+
+  describe('staging: the superadmin with a random password (review #380)', () => {
+    const stagingConfig = {
+      superadminEmail: 'admin@hobbyhub.cz',
+      ...smtp,
+    } as Config;
+    const inProduction = async (run: () => Promise<void>): Promise<void> => {
+      const nodeEnv = process.env.NODE_ENV;
+      process.env.NODE_ENV = 'production';
+      try {
+        await run();
+      } finally {
+        process.env.NODE_ENV = nodeEnv;
+      }
+    };
+    const logged = (): string =>
+      JSON.stringify([
+        ...jest.mocked(console.log).mock.calls,
+        ...jest.mocked(console.error).mock.calls,
+      ]);
+
+    it('a new superadmin: created as admin with a random password, which is never logged', async () => {
+      jest.mocked(ensureUser).mockResolvedValue({
+        user: { role: 'admin' } as never,
+        created: true,
+      });
+
+      await inProduction(() => seedDatabase(prisma, stagingConfig, auth));
+
+      expect(ensureUser).toHaveBeenCalledWith(
+        prisma,
+        auth,
+        expect.objectContaining({
+          email: 'admin@hobbyhub.cz',
+          role: 'admin',
+          emailVerified: true,
+        }),
+      );
+      const { password } = jest.mocked(ensureUser).mock.calls[0]![2];
+      expect(passwordProblem(password)).toBeNull();
+      expect(logged()).not.toContain(password);
+      expect(console.log).toHaveBeenCalledWith(
+        expect.stringContaining('„Zapomenuté heslo“'),
+      );
+    });
+
+    it('an existing superadmin: kept as it is, its password too', async () => {
+      // ensureUser returns an account with a username untouched (ensure-user.spec)
+      jest.mocked(ensureUser).mockResolvedValue({
+        user: { role: 'admin' } as never,
+        created: false,
+      });
+
+      await inProduction(() => seedDatabase(prisma, stagingConfig, auth));
+
+      expect(console.log).toHaveBeenCalledWith('Superadmin already exists');
+    });
+
+    it('an existing regular account with that e-mail: not made the superadmin, and the log says so', async () => {
+      jest.mocked(ensureUser).mockResolvedValue({
+        user: { role: 'user' } as never,
+        created: false,
+      });
+
+      await inProduction(() => seedDatabase(prisma, stagingConfig, auth));
+
+      expect(console.error).toHaveBeenCalledWith(
+        expect.stringContaining('existing regular account'),
+      );
+    });
+
+    it('without SMTP: no superadmin, and the log says why', async () => {
+      await inProduction(() =>
+        seedDatabase(
+          prisma,
+          { superadminEmail: 'admin@hobbyhub.cz' } as Config,
+          auth,
+        ),
+      );
+
+      expect(ensureUser).not.toHaveBeenCalled();
+      expect(console.error).toHaveBeenCalledWith(
+        expect.stringContaining('Skipping the superadmin'),
+      );
+      expect(logged()).toContain('simulated inbox');
+    });
   });
 
   it('seeds the test data after the catalog: it needs the activities and localities', async () => {

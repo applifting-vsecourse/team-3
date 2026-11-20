@@ -41,6 +41,10 @@ import {
   RatingSummary,
   summarizeTotals,
 } from '@/modules/rating/domain/rating-summary';
+import {
+  isSuperadmin,
+  SUPERADMIN_ACCOUNT_SELECT,
+} from '@/shared/auth/domain/superadmin';
 import { requestMessageFor } from '@/shared/request-message/request-message';
 import { Injectable } from '@nestjs/common';
 import { buildGroupEventsWhere } from './group-events-where';
@@ -399,6 +403,36 @@ export class EventRepository {
       data: { status: 'cancelled', cancelReason: reason, cancelledAt: now },
     });
     return count === 1;
+  }
+
+  /**
+   * Whether the user acts as the superadmin (#308): by the same rule as
+   * `AdminGuard` (review #380), so a blocked admin sees no deactivated event.
+   */
+  async isAdmin(userId: string): Promise<boolean> {
+    const user = await this.prisma.user.findUnique({
+      where: { id: userId },
+      select: SUPERADMIN_ACCOUNT_SELECT,
+    });
+    return isSuperadmin(user);
+  }
+
+  /**
+   * Why the superadmin deactivated the event (#308, review #380): the reason
+   * of its latest deactivation that is not reverted; null without one.
+   */
+  async findHideReason(eventId: string): Promise<string | null> {
+    const action = await this.prisma.moderationAction.findFirst({
+      where: {
+        type: 'hide_event',
+        targetType: 'event',
+        targetId: eventId,
+        revertedAt: null,
+      },
+      orderBy: { createdAt: 'desc' },
+      select: { reason: true },
+    });
+    return action?.reason ?? null;
   }
 
   async findParticipationStatus(

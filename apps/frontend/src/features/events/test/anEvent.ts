@@ -47,6 +47,9 @@ export const anEventDetail = (overrides: Partial<EventDetail> = {}): EventDetail
   myParticipation: null,
   viewerSignedIn: true,
   canManage: false,
+  canEdit: false,
+  canModerate: false,
+  hiddenReason: null,
   ...overrides,
 })
 

@@ -2334,3 +2334,239 @@ describe('EventsService.setEventImage (#77)', () => {
     expect(repository.replaceImage).not.toHaveBeenCalled();
   });
 });
+
+// #308: the superadmin (u-admin) sees every event, edits it as its organizer
+// would and may deactivate it; the organizer is u1, u9 anybody else
+describe('EventsService and the superadmin (#308)', () => {
+  const setup = (
+    detail: EventDetail = aDetail(),
+  ): {
+    repository: MockProxy<EventRepository>;
+    service: EventsService;
+  } => {
+    const repository = mock<EventRepository>();
+    repository.findEventDetail.mockResolvedValue(detail);
+    repository.findApprovedParticipants.mockResolvedValue(participants);
+    repository.findParticipationStatus.mockResolvedValue(null);
+    repository.findActiveGroupRole.mockResolvedValue(null);
+    repository.isAdmin.mockImplementation(async (id) => id === 'u-admin');
+    repository.catalogRefsExist.mockResolvedValue({
+      activity: true,
+      locality: true,
+    });
+    repository.updateEvent.mockImplementation(async (_id, decide) =>
+      decide({
+        status: detail.status,
+        startsAt: detail.startsAt,
+        endsAt: detail.endsAt,
+        approvedCount: 2,
+        minParticipants: 3,
+        maxParticipants: 6,
+      }),
+    );
+    repository.replaceImage.mockImplementation(async (_id, _image, refuse) => {
+      const refusal = refuse({
+        status: detail.status,
+        startsAt: detail.startsAt,
+      });
+      return refusal ? { ok: false, refusal } : { ok: true };
+    });
+    return {
+      repository,
+      service: new EventsService(repository, mock<NotificationService>()),
+    };
+  };
+
+  describe('the detail', () => {
+    it('the superadmin sees a deactivated event, may restore and edit it, not manage it', async () => {
+      const { repository, service } = setup(aDetail({ status: 'hidden' }));
+      repository.findHideReason.mockResolvedValue('Podvodná akce.');
+
+      await expect(
+        service.getEventDetail('e1', 'u-admin', now),
+      ).resolves.toMatchObject({
+        status: 'hidden',
+        canModerate: true,
+        canEdit: true,
+        canManage: false,
+        // review #380: the banner says why
+        hiddenReason: 'Podvodná akce.',
+      });
+      expect(repository.findHideReason).toHaveBeenCalledWith('e1');
+    });
+
+    it('nobody gets a reason for a published event, and only the superadmin asks', async () => {
+      const { repository, service } = setup();
+
+      await expect(
+        service.getEventDetail('e1', 'u-admin', now),
+      ).resolves.toMatchObject({ hiddenReason: null });
+      await expect(
+        service.getEventDetail('e1', 'u1', now),
+      ).resolves.toMatchObject({ hiddenReason: null });
+      expect(repository.findHideReason).not.toHaveBeenCalled();
+    });
+
+    it.each([
+      ['its organizer', 'u1'],
+      ['anybody else', 'u9'],
+      ['a visitor', null],
+    ])('a deactivated event is 404 for %s', async (_who, viewerId) => {
+      const { service } = setup(aDetail({ status: 'hidden' }));
+
+      await expect(service.getEventDetail('e1', viewerId, now)).rejects.toThrow(
+        NotFoundException,
+      );
+    });
+
+    it('the superadmin sees a members-only event outside its group too', async () => {
+      const { service } = setup(
+        aDetail({
+          visibility: 'members',
+          group: { id: 'g1', name: 'Deskovkáři Karlín' },
+        }),
+      );
+
+      await expect(
+        service.getEventDetail('e1', 'u-admin', now),
+      ).resolves.toMatchObject({ id: 'e1', canModerate: true });
+    });
+
+    it('only the superadmin gets canModerate; the organizer canEdit as before', async () => {
+      const { service } = setup();
+
+      await expect(
+        service.getEventDetail('e1', 'u1', now),
+      ).resolves.toMatchObject({
+        canManage: true,
+        canEdit: true,
+        canModerate: false,
+      });
+      await expect(
+        service.getEventDetail('e1', 'u9', now),
+      ).resolves.toMatchObject({
+        canManage: false,
+        canEdit: false,
+        canModerate: false,
+      });
+    });
+
+    it('asks nobody about the role of a visitor', async () => {
+      const { repository, service } = setup();
+
+      await service.getEventDetail('e1', null, now);
+
+      expect(repository.isAdmin).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('editing', () => {
+    it('the superadmin edits the event like its organizer', async () => {
+      const { repository, service } = setup();
+
+      await service.updateEvent('e1', 'u-admin', { title: 'Opraveno' }, now);
+
+      expect(repository.updateEvent).toHaveBeenCalledWith(
+        'e1',
+        expect.any(Function),
+      );
+    });
+
+    it('anybody else still gets 403 NOT_ORGANIZER', async () => {
+      const { repository, service } = setup();
+
+      const error = (await service
+        .updateEvent('e1', 'u9', { title: 'Cizí' }, now)
+        .catch((e: unknown) => e)) as ForbiddenException;
+
+      expect(error).toBeInstanceOf(ForbiddenException);
+      expect(error.getResponse()).toMatchObject({ code: 'NOT_ORGANIZER' });
+      expect(repository.updateEvent).not.toHaveBeenCalled();
+    });
+
+    it('by the same rules: not a started event', async () => {
+      const { repository, service } = setup(
+        aDetail({ startsAt: new Date('2026-10-23T07:00:00.000Z') }),
+      );
+
+      await expect(
+        service.updateEvent('e1', 'u-admin', { title: 'Pozdě' }, now),
+      ).rejects.toThrow(BadRequestException);
+      expect(repository.updateEvent).not.toHaveBeenCalled();
+    });
+
+    it('not a cancelled event', async () => {
+      const { service } = setup(aDetail({ status: 'cancelled' }));
+
+      await expect(
+        service.updateEvent('e1', 'u-admin', { title: 'Pozdě' }, now),
+      ).rejects.toThrow(ConflictException);
+    });
+
+    it('not a deactivated event: 409 EVENT_HIDDEN, restore it first', async () => {
+      const { repository, service } = setup(aDetail({ status: 'hidden' }));
+
+      const error = (await service
+        .updateEvent('e1', 'u-admin', { title: 'Skrytá' }, now)
+        .catch((e: unknown) => e)) as ConflictException;
+
+      expect(error).toBeInstanceOf(ConflictException);
+      expect(error.getResponse()).toMatchObject({ code: 'EVENT_HIDDEN' });
+      expect(repository.updateEvent).not.toHaveBeenCalled();
+    });
+
+    it("the superadmin changes the event's image as part of editing", async () => {
+      const { repository, service } = setup();
+
+      await service.setEventImage('e1', 'u-admin', null, now);
+
+      expect(repository.replaceImage).toHaveBeenCalledWith(
+        'e1',
+        null,
+        expect.any(Function),
+      );
+    });
+  });
+
+  describe('what the superadmin does not get', () => {
+    it('cancelling stays with the organizer', async () => {
+      const { repository, service } = setup();
+
+      await expect(
+        service.cancelEvent('e1', 'u-admin', 'Důvod', now),
+      ).rejects.toThrow(ForbiddenException);
+      expect(repository.cancelEvent).not.toHaveBeenCalled();
+    });
+
+    it('joining a deactivated event is 404, as for anybody', async () => {
+      const { repository, service } = setup(aDetail({ status: 'hidden' }));
+
+      await expect(service.join('e1', 'u-admin', null, now)).rejects.toThrow(
+        NotFoundException,
+      );
+      expect(repository.join).not.toHaveBeenCalled();
+    });
+
+    it('seeing a members-only event lets the superadmin into it no more than anyone', async () => {
+      const { repository, service } = setup(
+        aDetail({
+          visibility: 'members',
+          group: { id: 'g1', name: 'Deskovkáři Karlín' },
+        }),
+      );
+
+      await expect(service.join('e1', 'u-admin', null, now)).rejects.toThrow(
+        ForbiddenException,
+      );
+      expect(repository.join).not.toHaveBeenCalled();
+    });
+
+    it('the messages of a deactivated event are 404 for the superadmin too', async () => {
+      const { service } = setup(aDetail({ status: 'hidden' }));
+
+      await expect(service.getMessages('e1', 'u-admin', now)).rejects.toThrow(
+        NotFoundException,
+      );
+    });
+  });
+});
