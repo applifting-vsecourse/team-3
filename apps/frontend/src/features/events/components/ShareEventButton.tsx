@@ -1,8 +1,5 @@
-import { Share } from "lucide-react"
-import { toast } from "sonner"
-
 import { ROUTES } from "@/app/routes"
-import { Button } from "@/components/ui/button"
+import { ShareLinkButton } from "@/components/ShareLinkButton/ShareLinkButton"
 
 type ShareEventButtonProps = {
   /** The event whose detail is shared — from any page, the management too (review #269). */
@@ -11,7 +8,14 @@ type ShareEventButtonProps = {
   label: string
   /** The phone's own share sheet where there is one; otherwise the link is copied. */
   shouldUseShareSheet?: boolean
+  /** The management's next step makes it the primary button (#371). */
+  variant?: "default" | "outline" | "ghost"
   className?: string
+}
+
+/** The detail's path, shared and copied (A-05, D-03d). */
+export function eventDetailPath(eventId: string): string {
+  return ROUTES.eventDetail.replace("$eventId", encodeURIComponent(eventId))
 }
 
 /**
@@ -23,36 +27,17 @@ export function ShareEventButton({
   event,
   label,
   shouldUseShareSheet = false,
+  variant,
   className,
 }: ShareEventButtonProps) {
-  const share = async () => {
-    const path = ROUTES.eventDetail.replace("$eventId", encodeURIComponent(event.id))
-    const url = new URL(path, window.location.origin).href
-    if (shouldUseShareSheet && typeof navigator.share === "function") {
-      try {
-        await navigator.share({ title: event.title, url })
-      } catch {
-        // dismissing the share sheet is not an error worth a toast
-      }
-      return
-    }
-    try {
-      await navigator.clipboard.writeText(url)
-      toast.success("Odkaz je zkopírovaný.")
-    } catch {
-      toast.error("Odkaz se nepodařilo zkopírovat.")
-    }
-  }
-
   return (
-    <Button
-      variant={shouldUseShareSheet ? "ghost" : "outline"}
-      size={shouldUseShareSheet ? "sm" : "lg"}
+    <ShareLinkButton
+      path={eventDetailPath(event.id)}
+      title={event.title}
+      label={label}
+      shouldUseShareSheet={shouldUseShareSheet}
+      variant={variant}
       className={className}
-      onClick={() => void share()}
-    >
-      <Share />
-      {label}
-    </Button>
+    />
   )
 }

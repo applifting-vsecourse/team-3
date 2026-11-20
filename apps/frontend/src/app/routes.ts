@@ -15,6 +15,7 @@ export const ROUTES = {
   myEvents: "/moje/akce",
   myGroups: "/moje/skupiny",
   groups: "/skupiny",
+  groupDetail: "/skupiny/$groupId",
   profile: "/profil",
   editProfile: "/profil/upravit",
   userProfile: "/uzivatele/$userId",

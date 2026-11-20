@@ -1,9 +1,11 @@
+import type { ReactNode } from "react"
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query"
-import { screen, waitFor, within } from "@testing-library/react"
+import { act, screen, waitFor, within } from "@testing-library/react"
 import userEvent from "@testing-library/user-event"
-import { beforeEach, describe, expect, it, vi } from "vitest"
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest"
 
 import { renderWithRouter } from "@/test/renderWithRouter"
+import { stubResizableWindow } from "@/test/stubResizableWindow"
 
 import { GroupManagement } from "@/features/groups/components/GroupManagement"
 
@@ -48,15 +50,19 @@ const members = {
   ],
 }
 
-const renderManagement = (isDesktop: boolean) =>
+const renderManagement = (aloneNextStep?: ReactNode, client = new QueryClient()) =>
   renderWithRouter(
-    <QueryClientProvider client={new QueryClient()}>
+    <QueryClientProvider client={client}>
       <GroupManagement
         groupId="g-florbal"
-        isDesktop={isDesktop}
+        aloneNextStep={aloneNextStep}
       />
     </QueryClientProvider>,
   )
+
+afterEach(() => {
+  vi.unstubAllGlobals()
+})
 
 beforeEach(() => {
   api.get.mockReset().mockReturnValue({ json: () => Promise.resolve(members) })
@@ -65,7 +71,7 @@ beforeEach(() => {
 
 describe("GroupManagement", () => {
   it("a request shows the applicant's message in quotes under them (D-07, #175)", async () => {
-    await renderManagement(true)
+    await renderManagement()
 
     const requests = await screen.findByRole("region", { name: "Žádosti (2)" })
     const [jakub, petr] = within(requests).getAllByRole("listitem")
@@ -78,7 +84,7 @@ describe("GroupManagement", () => {
   })
 
   it("desktop shows requests and members at once, admins labelled", async () => {
-    await renderManagement(true)
+    await renderManagement()
 
     expect(await screen.findByRole("heading", { name: "Žádosti (2)" })).toBeInTheDocument()
     expect(screen.getByRole("heading", { name: "Členové (2)" })).toBeInTheDocument()
@@ -91,7 +97,7 @@ describe("GroupManagement", () => {
   })
 
   it("mobile puts them in tabs", async () => {
-    await renderManagement(false)
+    await renderManagement()
 
     const requestsTab = await screen.findByRole("tab", { name: "Žádosti (2)" })
     expect(requestsTab).toHaveAttribute("aria-selected", "true")
@@ -102,7 +108,7 @@ describe("GroupManagement", () => {
   })
 
   it("approving is one click (#304: the same as an event's requests)", async () => {
-    await renderManagement(true)
+    await renderManagement()
 
     await userEvent.click(
       await screen.findByRole("button", { name: "Schválit žádost: Jakub Král" }),
@@ -113,7 +119,7 @@ describe("GroupManagement", () => {
   })
 
   it("rejecting asks first and says what the applicant will see (#304, as D-03a)", async () => {
-    await renderManagement(true)
+    await renderManagement()
 
     await userEvent.click(
       await screen.findByRole("button", { name: "Zamítnout žádost: Petr Holub" }),
@@ -131,7 +137,7 @@ describe("GroupManagement", () => {
   })
 
   it("confirming rejects that one request and closes the dialog", async () => {
-    await renderManagement(true)
+    await renderManagement()
 
     await userEvent.click(
       await screen.findByRole("button", { name: "Zamítnout žádost: Petr Holub" }),
@@ -146,7 +152,7 @@ describe("GroupManagement", () => {
 
   it("a rejection that fails keeps the dialog open to try again", async () => {
     api.post.mockRejectedValueOnce(new Error("Žádost už vyřídil jiný správce."))
-    await renderManagement(true)
+    await renderManagement()
 
     await userEvent.click(
       await screen.findByRole("button", { name: "Zamítnout žádost: Petr Holub" }),
@@ -165,7 +171,7 @@ describe("GroupManagement", () => {
     api.post
       .mockReturnValueOnce(new Promise<void>((resolve) => (finishJakub = resolve)))
       .mockReturnValueOnce(new Promise<void>((resolve) => (finishPetr = resolve)))
-    await renderManagement(true)
+    await renderManagement()
 
     await userEvent.click(
       await screen.findByRole("button", { name: "Schválit žádost: Jakub Král" }),
@@ -194,7 +200,7 @@ describe("GroupManagement", () => {
     api.get
       .mockReturnValueOnce({ json: () => Promise.resolve(onlyPetr) })
       .mockReturnValue({ json: () => Promise.resolve({ ...members, requests: [] }) })
-    await renderManagement(true)
+    await renderManagement()
 
     await userEvent.click(
       await screen.findByRole("button", { name: "Zamítnout žádost: Petr Holub" }),
@@ -215,13 +221,13 @@ describe("GroupManagement", () => {
 
   it("no requests: one sentence instead of an empty list", async () => {
     api.get.mockReturnValue({ json: () => Promise.resolve({ ...members, requests: [] }) })
-    await renderManagement(true)
+    await renderManagement()
 
     expect(await screen.findByText("Žádné žádosti o členství teď nečekají.")).toBeInTheDocument()
   })
 
   it("the name of each applicant and member leads to their public profile (#289)", async () => {
-    await renderManagement(true)
+    await renderManagement()
 
     expect(await screen.findByRole("link", { name: "Jakub Král" })).toHaveAttribute(
       "href",
@@ -239,5 +245,87 @@ describe("GroupManagement", () => {
       "href",
       "/uzivatele/u-ondrej",
     )
+  })
+
+  it("an open rejection stays open when the window crosses 768 px, both ways (#316)", async () => {
+    const resize = stubResizableWindow(true)
+    await renderManagement()
+
+    await userEvent.click(
+      await screen.findByRole("button", { name: "Zamítnout žádost: Petr Holub" }),
+    )
+    expect(screen.getByRole("dialog", { name: "Zamítnout žádost?" })).toBeInTheDocument()
+
+    resize(false)
+    expect(screen.getByRole("dialog", { name: "Zamítnout žádost?" })).toBeInTheDocument()
+    resize(true)
+    expect(screen.getByRole("dialog", { name: "Zamítnout žádost?" })).toBeInTheDocument()
+  })
+
+  it("an admin alone with no requests sees the members and what comes next, no tabs (#371)", async () => {
+    api.get.mockReturnValue({
+      json: () => Promise.resolve({ requests: [], members: members.members.slice(0, 1) }),
+    })
+    await renderManagement(<p>Jak to půjde dál</p>)
+
+    expect(await screen.findByRole("heading", { name: "Členové (1)" })).toBeInTheDocument()
+    expect(screen.getByText("Jak to půjde dál")).toBeInTheDocument()
+    expect(screen.queryByRole("tab")).not.toBeInTheDocument()
+  })
+
+  it("rejecting the last request of an admin alone keeps the list: the dialog closes and the focus comes back (#371, review #318)", async () => {
+    const onlyAdmin = members.members.slice(0, 1)
+    api.get.mockReturnValue({
+      json: () => Promise.resolve({ requests: members.requests.slice(1), members: onlyAdmin }),
+    })
+    await renderManagement(<p>Jak to půjde dál</p>)
+
+    await userEvent.click(
+      await screen.findByRole("button", { name: "Zamítnout žádost: Petr Holub" }),
+    )
+    // after the rejection the list comes back empty: the admin is alone now
+    api.get.mockReturnValue({
+      json: () => Promise.resolve({ requests: [], members: onlyAdmin }),
+    })
+    const dialog = screen.getByRole("dialog", { name: "Zamítnout žádost?" })
+    await userEvent.click(within(dialog).getByRole("button", { name: "Zamítnout" }))
+
+    expect(await screen.findByText("Jak to půjde dál")).toBeInTheDocument()
+    await waitFor(() => expect(screen.queryByRole("dialog")).not.toBeInTheDocument())
+    // the requests list stays mounted, so the focus has somewhere to come back to
+    expect(screen.getByRole("region", { name: "Žádosti o členství" })).toHaveFocus()
+  })
+
+  it("a request arriving later to an admin alone stays listed after it is decided (review #382)", async () => {
+    const onlyAdmin = members.members.slice(0, 1)
+    api.get.mockReturnValue({ json: () => Promise.resolve({ requests: [], members: onlyAdmin }) })
+    const client = new QueryClient()
+    await renderManagement(<p>Jak to půjde dál</p>, client)
+    expect(await screen.findByText("Jak to půjde dál")).toBeInTheDocument()
+
+    // back from another tab: the data load again and a request has come in meanwhile
+    api.get.mockReturnValue({
+      json: () => Promise.resolve({ requests: members.requests.slice(1), members: onlyAdmin }),
+    })
+    await act(() => client.invalidateQueries())
+    await userEvent.click(
+      await screen.findByRole("button", { name: "Zamítnout žádost: Petr Holub" }),
+    )
+    api.get.mockReturnValue({ json: () => Promise.resolve({ requests: [], members: onlyAdmin }) })
+    const dialog = screen.getByRole("dialog", { name: "Zamítnout žádost?" })
+    await userEvent.click(within(dialog).getByRole("button", { name: "Zamítnout" }))
+
+    await waitFor(() => expect(screen.queryByRole("dialog")).not.toBeInTheDocument())
+    const list = screen.getByRole("region", { name: "Žádosti o členství" })
+    expect(list).toHaveFocus()
+    // the list it came back to stays on the page
+    expect(list.closest("[data-slot=tabs-content]")).not.toHaveClass("hidden")
+  })
+
+  it("with requests, the next step waits for them instead (#371)", async () => {
+    await renderManagement(<p>Jak to půjde dál</p>)
+
+    expect(await screen.findByRole("tab", { name: "Žádosti (2)" })).toBeInTheDocument()
+    expect(screen.queryByText("Jak to půjde dál")).not.toBeInTheDocument()
   })
 })

@@ -16,8 +16,8 @@ type ManagedRequestsProps = {
   requests: EventRequest[] | undefined
   error: Error | undefined
   onRetry: () => void
-  /** Inside a tab the tab names the list: the heading stays for screen readers only. */
-  isHeadingHidden?: boolean
+  /** In a tab on a phone the tab names the list: there the heading is for screen readers only (#371). */
+  isHeadingHiddenOnPhone?: boolean
   /** False once the event has started: nothing can be decided any more. */
   canDecide: boolean
   /** No place left: approving waits until someone leaves; rejecting still works. */
@@ -42,7 +42,7 @@ export function ManagedRequests({
   requests,
   error,
   onRetry,
-  isHeadingHidden = false,
+  isHeadingHiddenOnPhone = false,
   canDecide,
   isFull,
   isDeciding,
@@ -63,7 +63,10 @@ export function ManagedRequests({
     >
       <h2
         id={headingId}
-        className={cn("text-lg font-semibold tracking-tight", isHeadingHidden && "sr-only")}
+        className={cn(
+          "text-lg font-semibold tracking-tight",
+          isHeadingHiddenOnPhone && "max-md:sr-only",
+        )}
       >
         Žádosti{" "}
         {requests ? (
