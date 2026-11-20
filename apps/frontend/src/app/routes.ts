@@ -17,6 +17,8 @@ export const ROUTES = {
   groups: "/skupiny",
   profile: "/profil",
   editProfile: "/profil/upravit",
+  // „Lidé, které znám“ (#307, Figma B-09): the whole list behind the profile's preview
+  friends: "/profil/pratele",
   userProfile: "/uzivatele/$userId",
   login: "/login",
   signup: "/signup",

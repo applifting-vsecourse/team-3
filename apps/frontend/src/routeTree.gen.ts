@@ -29,6 +29,7 @@ import { Route as ProtectedPagesMojeIndexRouteImport } from './routes/_Protected
 import { Route as ProtectedPagesMojeAkceRouteImport } from './routes/_ProtectedPages/moje.akce'
 import { Route as ProtectedPagesMojeSkupinyRouteImport } from './routes/_ProtectedPages/moje.skupiny'
 import { Route as ProtectedPagesProfilIndexRouteImport } from './routes/_ProtectedPages/profil.index'
+import { Route as ProtectedPagesProfilPrateleRouteImport } from './routes/_ProtectedPages/profil.pratele'
 import { Route as ProtectedPagesProfilUpravitRouteImport } from './routes/_ProtectedPages/profil.upravit'
 import { Route as ProtectedPagesSkupinyNovaRouteImport } from './routes/_ProtectedPages/skupiny.nova'
 import { Route as ProtectedPagesAkceEventIdHodnoceniRouteImport } from './routes/_ProtectedPages/akce.$eventId.hodnoceni'
@@ -140,6 +141,12 @@ const ProtectedPagesProfilIndexRoute =
     path: '/profil/',
     getParentRoute: () => ProtectedPagesRoute,
   } as any)
+const ProtectedPagesProfilPrateleRoute =
+  ProtectedPagesProfilPrateleRouteImport.update({
+    id: '/profil/pratele',
+    path: '/profil/pratele',
+    getParentRoute: () => ProtectedPagesRoute,
+  } as any)
 const ProtectedPagesProfilUpravitRoute =
   ProtectedPagesProfilUpravitRouteImport.update({
     id: '/profil/upravit',
@@ -213,6 +220,7 @@ export interface FileRoutesByFullPath {
   '/akce/nova': typeof ProtectedPagesAkceNovaRoute
   '/moje/akce': typeof ProtectedPagesMojeAkceRoute
   '/moje/skupiny': typeof ProtectedPagesMojeSkupinyRoute
+  '/profil/pratele': typeof ProtectedPagesProfilPrateleRoute
   '/profil/upravit': typeof ProtectedPagesProfilUpravitRoute
   '/skupiny/nova': typeof ProtectedPagesSkupinyNovaRoute
   '/moje/': typeof ProtectedPagesMojeIndexRoute
@@ -243,6 +251,7 @@ export interface FileRoutesByTo {
   '/akce/nova': typeof ProtectedPagesAkceNovaRoute
   '/moje/akce': typeof ProtectedPagesMojeAkceRoute
   '/moje/skupiny': typeof ProtectedPagesMojeSkupinyRoute
+  '/profil/pratele': typeof ProtectedPagesProfilPrateleRoute
   '/profil/upravit': typeof ProtectedPagesProfilUpravitRoute
   '/skupiny/nova': typeof ProtectedPagesSkupinyNovaRoute
   '/moje': typeof ProtectedPagesMojeIndexRoute
@@ -275,6 +284,7 @@ export interface FileRoutesById {
   '/_ProtectedPages/akce/nova': typeof ProtectedPagesAkceNovaRoute
   '/_ProtectedPages/moje/akce': typeof ProtectedPagesMojeAkceRoute
   '/_ProtectedPages/moje/skupiny': typeof ProtectedPagesMojeSkupinyRoute
+  '/_ProtectedPages/profil/pratele': typeof ProtectedPagesProfilPrateleRoute
   '/_ProtectedPages/profil/upravit': typeof ProtectedPagesProfilUpravitRoute
   '/_ProtectedPages/skupiny/nova': typeof ProtectedPagesSkupinyNovaRoute
   '/_ProtectedPages/moje/': typeof ProtectedPagesMojeIndexRoute
@@ -307,6 +317,7 @@ export interface FileRouteTypes {
     | '/akce/nova'
     | '/moje/akce'
     | '/moje/skupiny'
+    | '/profil/pratele'
     | '/profil/upravit'
     | '/skupiny/nova'
     | '/moje/'
@@ -337,6 +348,7 @@ export interface FileRouteTypes {
     | '/akce/nova'
     | '/moje/akce'
     | '/moje/skupiny'
+    | '/profil/pratele'
     | '/profil/upravit'
     | '/skupiny/nova'
     | '/moje'
@@ -368,6 +380,7 @@ export interface FileRouteTypes {
     | '/_ProtectedPages/akce/nova'
     | '/_ProtectedPages/moje/akce'
     | '/_ProtectedPages/moje/skupiny'
+    | '/_ProtectedPages/profil/pratele'
     | '/_ProtectedPages/profil/upravit'
     | '/_ProtectedPages/skupiny/nova'
     | '/_ProtectedPages/moje/'
@@ -541,6 +554,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ProtectedPagesProfilIndexRouteImport
       parentRoute: typeof ProtectedPagesRoute
     }
+    '/_ProtectedPages/profil/pratele': {
+      id: '/_ProtectedPages/profil/pratele'
+      path: '/profil/pratele'
+      fullPath: '/profil/pratele'
+      preLoaderRoute: typeof ProtectedPagesProfilPrateleRouteImport
+      parentRoute: typeof ProtectedPagesRoute
+    }
     '/_ProtectedPages/profil/upravit': {
       id: '/_ProtectedPages/profil/upravit'
       path: '/profil/upravit'
@@ -611,6 +631,7 @@ interface ProtectedPagesRouteChildren {
   ProtectedPagesAkceNovaRoute: typeof ProtectedPagesAkceNovaRoute
   ProtectedPagesMojeAkceRoute: typeof ProtectedPagesMojeAkceRoute
   ProtectedPagesMojeSkupinyRoute: typeof ProtectedPagesMojeSkupinyRoute
+  ProtectedPagesProfilPrateleRoute: typeof ProtectedPagesProfilPrateleRoute
   ProtectedPagesProfilUpravitRoute: typeof ProtectedPagesProfilUpravitRoute
   ProtectedPagesSkupinyNovaRoute: typeof ProtectedPagesSkupinyNovaRoute
   ProtectedPagesMojeIndexRoute: typeof ProtectedPagesMojeIndexRoute
@@ -628,6 +649,7 @@ const ProtectedPagesRouteChildren: ProtectedPagesRouteChildren = {
   ProtectedPagesAkceNovaRoute: ProtectedPagesAkceNovaRoute,
   ProtectedPagesMojeAkceRoute: ProtectedPagesMojeAkceRoute,
   ProtectedPagesMojeSkupinyRoute: ProtectedPagesMojeSkupinyRoute,
+  ProtectedPagesProfilPrateleRoute: ProtectedPagesProfilPrateleRoute,
   ProtectedPagesProfilUpravitRoute: ProtectedPagesProfilUpravitRoute,
   ProtectedPagesSkupinyNovaRoute: ProtectedPagesSkupinyNovaRoute,
   ProtectedPagesMojeIndexRoute: ProtectedPagesMojeIndexRoute,
