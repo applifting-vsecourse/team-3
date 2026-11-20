@@ -13,6 +13,7 @@ const row = (): ProfileRow => ({
   name: 'Jana Nová',
   email: 'jana@example.com',
   emailVerified: true,
+  bio: null,
   blockedAt: null,
   deletedAt: null,
   homeLocality: null,
@@ -29,6 +30,29 @@ describe('ProfileService (#178)', () => {
     repository.save.mockResolvedValue(row());
     repository.localityExists.mockResolvedValue(true);
     repository.interestsExist.mockResolvedValue(true);
+  });
+
+  it('saves the optional bio privately with the initial preferences', async () => {
+    const onboardingCompletedAt = new Date('2026-11-21T12:00:00Z');
+    repository.finishOnboarding.mockResolvedValue({
+      onboardingCompletedAt,
+      homeLocality: { slug: 'brno' },
+      _count: { interests: 3 },
+    });
+
+    await service.finishOnboarding('owner', {
+      homeLocalityId: 'brno',
+      interestIds: ['walking', 'running', 'games'],
+      bio: '  Hledám partu na výlety.  ',
+    });
+
+    expect(repository.finishOnboarding).toHaveBeenCalledWith(
+      'owner',
+      expect.objectContaining({
+        bio: 'Hledám partu na výlety.',
+        bioVisibility: 'nobody',
+      }),
+    );
   });
 
   it('never updates omitted fields and uses only the session owner ID', async () => {

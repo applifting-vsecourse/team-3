@@ -13,6 +13,7 @@ import {
 import { useSession } from "@/features/auth/hooks/useSession"
 import { safeRedirect } from "@/features/auth/lib/redirect"
 import { eventKeys } from "@/features/events/api/eventsQueryOptions"
+import { OnboardingEventPreview } from "@/features/events/components/OnboardingEventPreview"
 import {
   OnboardingWizard,
   type OnboardingResult,
@@ -72,6 +73,13 @@ function OnboardingPage() {
     <OnboardingWizard
       key={viewerId}
       viewerId={viewerId}
+      renderEventPreview={(locality, categoryId) => (
+        <OnboardingEventPreview
+          key={categoryId}
+          locality={locality}
+          categoryId={categoryId}
+        />
+      )}
       onFinish={finish}
     />
   )

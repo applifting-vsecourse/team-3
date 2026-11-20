@@ -6,6 +6,7 @@ export const profileSelect = {
   name: true,
   email: true,
   emailVerified: true,
+  bio: true,
   blockedAt: true,
   deletedAt: true,
   homeLocality: {
@@ -35,6 +36,7 @@ export type SelfProfile = {
   name: string;
   email: string;
   emailVerified: boolean;
+  bio: string | null;
   hasPassword: boolean;
   homeLocality: ProfileRow['homeLocality'];
   interests: { id: string; name: string }[];
@@ -47,6 +49,7 @@ export function selfProfile(row: ProfileRow): SelfProfile {
     name: row.name,
     email: row.email,
     emailVerified: row.emailVerified,
+    bio: row.bio,
     hasPassword: row.accounts.length > 0,
     homeLocality: row.homeLocality,
     interests: row.interests.map(({ activity }) => ({
@@ -81,6 +84,13 @@ export type ProfileOverview = {
 
 export type UpdateProfileInput = {
   name?: string;
+  bio?: string | null;
   homeLocalityId?: string | null;
   interestIds?: string[];
+};
+
+export type OnboardingInput = {
+  homeLocalityId: string;
+  interestIds: string[];
+  bio?: string;
 };

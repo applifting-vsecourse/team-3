@@ -17,6 +17,12 @@ export class UpdateProfileDto {
   @IsString()
   name?: string;
 
+  @ApiPropertyOptional({ type: String, nullable: true, maxLength: 500 })
+  @IsOptional()
+  @IsString()
+  @MaxLength(500)
+  bio?: string | null;
+
   @ApiPropertyOptional({ nullable: true, type: String })
   @IsOptional()
   @IsString()

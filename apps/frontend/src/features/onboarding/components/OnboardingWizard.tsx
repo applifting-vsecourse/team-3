@@ -1,20 +1,23 @@
-import { useEffect, useRef, useState } from "react"
+import { useEffect, useRef, useState, type ReactNode } from "react"
 import { useMutation, useQuery } from "@tanstack/react-query"
-import { ArrowLeft, ArrowRight, LoaderCircle, MapPin, Plus, X } from "lucide-react"
+import { ArrowLeft, ArrowRight, LoaderCircle, MapPin, Plus, Sparkles, X } from "lucide-react"
 import { z } from "zod"
 
 import { activityPhoto } from "@/assets/activity-photos"
 import { Logo } from "@/components/Logo/Logo"
 import { Button } from "@/components/ui/button"
 import { Dialog, DialogContent, DialogDescription, DialogTitle } from "@/components/ui/dialog"
+import { Label } from "@/components/ui/label"
+import { Textarea } from "@/components/ui/textarea"
 import { api } from "@/lib/api-client"
 import { activityTreeQueryOptions, localitiesQueryOptions } from "@/lib/catalog/catalogQueryOptions"
-import type { Activity } from "@/lib/catalog/catalogSchemas"
+import type { Activity, Locality } from "@/lib/catalog/catalogSchemas"
 import { defaultLocalityQueryOptions } from "@/lib/catalog/defaultLocality"
 import { cn } from "@/lib/utils"
 
 import welcomePhoto from "@/features/onboarding/assets/letna.webp"
 
+import { CategoryPicker } from "./CategoryPicker"
 import { InterestPicker } from "./InterestPicker"
 import { LocalityPicker } from "./LocalityPicker"
 
@@ -28,19 +31,27 @@ const resultSchema = z.object({
 type Preferences = {
   homeLocalityId: string
   interestIds: string[]
+  bio?: string
 }
 
 export type OnboardingResult = z.infer<typeof resultSchema>
 
 type OnboardingWizardProps = {
   viewerId: string
+  renderEventPreview?: (locality: Locality, categoryId: string) => ReactNode
   onFinish: (result: OnboardingResult, preferencesSaved: boolean) => Promise<void>
 }
 
-export function OnboardingWizard({ viewerId, onFinish }: OnboardingWizardProps) {
+export function OnboardingWizard({
+  viewerId,
+  onFinish,
+  renderEventPreview,
+}: OnboardingWizardProps) {
   const heading = useRef<HTMLHeadingElement>(null)
   const content = useRef<HTMLDivElement>(null)
-  const [step, setStep] = useState(1)
+  const [step, setStep] = useState<1 | 2 | 3 | 4>(1)
+  const [preferredCategoryIds, setPreferredCategoryIds] = useState<string[]>([])
+  const [bio, setBio] = useState("")
   const [chosenLocality, setChosenLocality] = useState<string>()
   const [selected, setSelected] = useState<string[]>([])
   const [message, setMessage] = useState("")
@@ -58,6 +69,10 @@ export function OnboardingWizard({ viewerId, onFinish }: OnboardingWizardProps) 
     catalog.filter((activity) => activity.id === id),
   )
   const isLocalityStep = step === 1
+  const isCategoryStep = step === 2
+  const isInterestStep = step === 3
+  const isProfileStep = step === 4
+  const hasEnoughInterests = selected.length === MAX_INTERESTS
 
   const finish = useMutation({
     mutationFn: async (input: Preferences | null) =>
@@ -91,10 +106,10 @@ export function OnboardingWizard({ viewerId, onFinish }: OnboardingWizardProps) 
   const goBack = () => {
     finish.reset()
     setMessage("")
-    setStep(1)
+    setStep(step === 4 ? 3 : step === 3 ? 2 : 1)
   }
 
-  const advance = () => {
+  const advance = (action: "next" | "profile" | "without-bio" = "next") => {
     if (!locality) {
       setMessage("Vyber místo ze seznamu a pokračuj.")
       return
@@ -105,16 +120,38 @@ export function OnboardingWizard({ viewerId, onFinish }: OnboardingWizardProps) 
       setStep(2)
       return
     }
-    if (!selected.length) {
-      setMessage("Vyber aspoň jednu aktivitu, která tě baví.")
+    if (isCategoryStep) {
+      setStep(3)
+      return
+    }
+    if (!hasEnoughInterests) {
+      const missing = MAX_INTERESTS - selected.length
+      setMessage(missing === 1 ? "Vyber ještě 1 aktivitu." : `Vyber ještě ${missing} aktivity.`)
       return
     }
     setMessage("")
-    finish.mutate({ homeLocalityId: locality.id, interestIds: selected })
+    if (action === "profile") {
+      setStep(4)
+      return
+    }
+    const about = isProfileStep && action !== "without-bio" ? bio.trim() : ""
+    finish.mutate({
+      homeLocalityId: locality.id,
+      interestIds: selected,
+      ...(about && { bio: about }),
+    })
   }
 
   const isWorking = finish.isPending || isAddingPlace
-  const header = isLocalityStep ? "Kde se potkáme?" : "Co tě baví?"
+  const header = ["Kde se potkáme?", "Co tě láká?", "Co tě baví?", "Řekni nám něco o sobě"][
+    step - 1
+  ]
+  const description = [
+    "Ať ti můžeme ukázat akce kousek od tebe.",
+    "Které okruhy tě zajímají? Dáme jim přednost v nabídce aktivit.",
+    "Vyber 3 aktivity. Podle nich ti ukážeme akce, kam se můžeš přidat.",
+    "Jak nejradši trávíš volno? Co by tě bavilo zkusit? Krátké „O mně“ si můžeš doplnit i později.",
+  ][step - 1]
   return (
     <Dialog open>
       <DialogContent
@@ -138,31 +175,29 @@ export function OnboardingWizard({ viewerId, onFinish }: OnboardingWizardProps) 
                 aria-hidden
                 className="flex gap-1.5"
               >
-                <span className="h-1 w-5 rounded-full bg-primary" />
-                <span
-                  className={cn(
-                    "h-1 w-5 rounded-full",
-                    isLocalityStep ? "bg-on-hero/35" : "bg-primary",
-                  )}
-                />
+                {[1, 2, 3].map((segment) => (
+                  <span
+                    key={segment}
+                    className={cn(
+                      "h-1 w-4 rounded-full",
+                      segment <= step ? "bg-primary" : "bg-on-hero/35",
+                    )}
+                  />
+                ))}
               </div>
-              <span className="text-sm text-on-hero-muted">Krok {step} ze 2</span>
+              <span className="text-sm text-on-hero-muted">
+                {isProfileStep ? "Volitelný profil" : `Krok ${step} ze 3`}
+              </span>
             </div>
           </div>
           {isLocalityStep ? (
-            <div className="relative hidden min-h-0 flex-1 items-end overflow-hidden lg:flex">
+            <div className="hidden min-h-0 flex-1 flex-col justify-center gap-5 px-6 pb-7 lg:flex">
               <img
                 src={welcomePhoto}
                 alt=""
-                className="absolute inset-0 h-full w-full object-cover"
+                className="aspect-[4/3] w-full rounded-xl object-cover"
               />
-              <div
-                aria-hidden
-                className="absolute inset-0 bg-linear-to-b from-hero via-transparent to-hero/75"
-              />
-              <p className="relative p-7 type-feature text-balance">
-                Dobrá parta může být za rohem.
-              </p>
+              <p className="type-feature text-balance">Dobrá parta může být za rohem.</p>
             </div>
           ) : (
             <div className="hidden flex-1 flex-col gap-4 overflow-auto px-7 pb-7 lg:flex">
@@ -175,28 +210,30 @@ export function OnboardingWizard({ viewerId, onFinish }: OnboardingWizardProps) 
                   {locality.name}
                 </span>
               ) : null}
-              <div className="border-t border-on-hero/25 pt-5">
-                <p className="text-lg font-semibold">Tvůj výběr</p>
-                <p
-                  aria-live="polite"
-                  className="mt-1 text-sm text-on-hero-muted"
-                >
-                  Vybráno {selected.length} ze {MAX_INTERESTS}
-                </p>
-                <ul
-                  className="mt-4 space-y-2"
-                  aria-label="Vybrané aktivity"
-                >
-                  {Array.from({ length: MAX_INTERESTS }, (_, index) => (
-                    <ActivitySlot
-                      key={index}
-                      activity={pickedActivities[index]}
-                      isDisabled={isWorking}
-                      onRemove={toggleInterest}
-                    />
-                  ))}
-                </ul>
-              </div>
+              {step >= 3 ? (
+                <div className="border-t border-on-hero/25 pt-5">
+                  <p className="text-lg font-semibold">Tvůj výběr</p>
+                  <p
+                    aria-live="polite"
+                    className="mt-1 text-sm text-on-hero-muted"
+                  >
+                    Vybráno {selected.length} ze {MAX_INTERESTS}
+                  </p>
+                  <ul
+                    className="mt-4 space-y-2"
+                    aria-label="Vybrané aktivity"
+                  >
+                    {Array.from({ length: MAX_INTERESTS }, (_, index) => (
+                      <ActivitySlot
+                        key={index}
+                        activity={pickedActivities[index]}
+                        isDisabled={isWorking}
+                        onRemove={toggleInterest}
+                      />
+                    ))}
+                  </ul>
+                </div>
+              ) : null}
             </div>
           )}
         </aside>
@@ -223,9 +260,7 @@ export function OnboardingWizard({ viewerId, onFinish }: OnboardingWizardProps) 
                   </h1>
                 </DialogTitle>
                 <DialogDescription className="max-w-lg text-sm text-muted-foreground sm:type-intro">
-                  {isLocalityStep
-                    ? "Ať ti můžeme ukázat akce kousek od tebe."
-                    : "Vyber až 3 věci, které si umíš představit ve svém volnu. Najdeme ti akce, kde je můžeš dělat s ostatními."}
+                  {description}
                 </DialogDescription>
               </div>
 
@@ -235,7 +270,7 @@ export function OnboardingWizard({ viewerId, onFinish }: OnboardingWizardProps) 
                     <img
                       src={welcomePhoto}
                       alt=""
-                      className="h-28 w-full rounded-xl object-cover object-[center_56%] sm:h-36 lg:hidden"
+                      className="h-28 w-full rounded-xl object-cover object-[center_32%] sm:h-36 lg:hidden"
                     />
                     <LocalityPicker
                       localities={localities.data}
@@ -256,13 +291,64 @@ export function OnboardingWizard({ viewerId, onFinish }: OnboardingWizardProps) 
                     onRetry={() => void localities.refetch()}
                   />
                 )
+              ) : isProfileStep ? (
+                <div className="max-w-xl space-y-3 rounded-2xl border border-card-border bg-card p-4 sm:p-5">
+                  <div className="flex flex-wrap items-center justify-between gap-2">
+                    <Label htmlFor="onboarding-bio">O mně</Label>
+                    {bio.trim() === "" ? (
+                      <Button
+                        type="button"
+                        variant="outline"
+                        onClick={() =>
+                          setBio(
+                            `Moje zájmy: ${pickedActivities.map(({ name }) => name).join(", ")}. Hledám partu na společné akce!`,
+                          )
+                        }
+                      >
+                        <Sparkles aria-hidden /> Použít moje zájmy
+                      </Button>
+                    ) : null}
+                  </div>
+                  <Textarea
+                    id="onboarding-bio"
+                    rows={5}
+                    maxLength={500}
+                    value={bio}
+                    onChange={(event) => setBio(event.target.value)}
+                    aria-describedby="onboarding-bio-visibility"
+                  />
+                  <div className="flex flex-wrap justify-between gap-2 text-sm text-muted-foreground">
+                    <p id="onboarding-bio-visibility">Tenhle text teď vidíš v profilu jen ty.</p>
+                    <span>{bio.length} / 500</span>
+                  </div>
+                </div>
               ) : categories.length ? (
-                <InterestPicker
-                  categories={categories}
-                  selected={selected}
-                  onToggle={toggleInterest}
-                  isDisabled={isWorking}
-                />
+                isCategoryStep ? (
+                  <CategoryPicker
+                    categories={categories}
+                    selected={preferredCategoryIds}
+                    onToggle={(id) =>
+                      setPreferredCategoryIds((current) =>
+                        current.includes(id)
+                          ? current.filter((item) => item !== id)
+                          : [...current, id],
+                      )
+                    }
+                  />
+                ) : (
+                  <InterestPicker
+                    categories={categories}
+                    preferredCategoryIds={preferredCategoryIds}
+                    renderEventPreview={
+                      locality
+                        ? (categoryId) => renderEventPreview?.(locality, categoryId)
+                        : undefined
+                    }
+                    selected={selected}
+                    onToggle={toggleInterest}
+                    isDisabled={isWorking}
+                  />
+                )
               ) : (
                 <CatalogNotice
                   isPending={activities.isPending}
@@ -274,7 +360,7 @@ export function OnboardingWizard({ viewerId, onFinish }: OnboardingWizardProps) 
           </div>
 
           <footer className="shrink-0 space-y-2 border-t border-card-border bg-card px-4 py-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] sm:px-8">
-            {!isLocalityStep ? (
+            {isInterestStep ? (
               <div className="flex min-h-7 items-center gap-2 lg:hidden">
                 <p
                   aria-live="polite"
@@ -323,26 +409,39 @@ export function OnboardingWizard({ viewerId, onFinish }: OnboardingWizardProps) 
                   Zpět
                 </Button>
               ) : null}
-              <Button
-                type="button"
-                variant="link"
-                className="min-h-11"
-                disabled={isWorking}
-                onClick={() => {
-                  setMessage("")
-                  finish.mutate(null)
-                }}
-              >
-                Teď ne
-              </Button>
+              {isProfileStep ? (
+                <Button
+                  type="button"
+                  variant="link"
+                  className="min-h-11"
+                  disabled={isWorking}
+                  onClick={() => advance("without-bio")}
+                >
+                  Teď ne
+                </Button>
+              ) : isInterestStep ? (
+                <Button
+                  type="button"
+                  variant="outline"
+                  className="min-h-11"
+                  disabled={isWorking}
+                  onClick={() => advance("profile")}
+                >
+                  Doplnit profil
+                </Button>
+              ) : null}
               <Button
                 type="button"
                 size="lg"
-                className={cn("ml-auto min-h-11", !isLocalityStep && "max-sm:w-full")}
+                className={cn("ml-auto min-h-11", isInterestStep && "max-sm:w-full")}
                 disabled={isWorking}
-                onClick={advance}
+                onClick={() => advance()}
               >
-                {isLocalityStep ? "Pokračovat" : "Uložit a ukázat akce"}
+                {isLocalityStep
+                  ? "Pokračovat"
+                  : isCategoryStep
+                    ? "Ukázat aktivity"
+                    : "Uložit a ukázat akce"}
                 {finish.isPending ? (
                   <LoaderCircle
                     aria-hidden
@@ -353,6 +452,16 @@ export function OnboardingWizard({ viewerId, onFinish }: OnboardingWizardProps) 
                 )}
               </Button>
             </div>
+            {!isProfileStep ? (
+              <button
+                type="button"
+                disabled={isWorking}
+                onClick={() => finish.mutate(null)}
+                className="block rounded py-1 text-xs text-muted-foreground underline-offset-4 hover:underline focus-visible:ring-2 focus-visible:ring-ring"
+              >
+                Přeskočit průvodce
+              </button>
+            ) : null}
           </footer>
         </div>
       </DialogContent>

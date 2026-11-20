@@ -1,6 +1,7 @@
 import { Prisma } from '@/generated/prisma/client';
 import {
   selfProfile,
+  type OnboardingInput,
   type ProfileOverview,
   type ProfileRow,
   type SelfProfile,
@@ -50,6 +51,7 @@ export class ProfileService {
       data.name = trimName(input.name);
     }
     Object.assign(data, await this.preferences(input));
+    if (input.bio !== undefined) data.bio = input.bio?.trim() || null;
     if (Object.keys(data).length === 0)
       throw new BadRequestException('Vyber aspoň jeden údaj ke změně.');
     data.updatedAt = new Date();
@@ -58,16 +60,19 @@ export class ProfileService {
 
   async finishOnboarding(
     userId: string,
-    input?: { homeLocalityId: string; interestIds: string[] },
+    input?: OnboardingInput,
   ): Promise<{
     onboardingCompletedAt: Date;
     localitySlug: string | null;
     hasInterests: boolean;
   }> {
-    const saved = await this.repository.finishOnboarding(
-      userId,
-      input ? await this.preferences(input) : {},
-    );
+    const preferences = input ? await this.preferences(input) : {};
+    const bio = input?.bio?.trim();
+    if (bio) {
+      preferences.bio = bio;
+      preferences.bioVisibility = 'nobody';
+    }
+    const saved = await this.repository.finishOnboarding(userId, preferences);
     if (!saved?.onboardingCompletedAt) throw new UnauthorizedException();
     return {
       onboardingCompletedAt: saved.onboardingCompletedAt,

@@ -9,12 +9,14 @@ import { Button } from "@/components/ui/button"
 import {
   Form,
   FormControl,
+  FormDescription,
   FormField,
   FormItem,
   FormLabel,
   FormMessage,
 } from "@/components/ui/form"
 import { Input } from "@/components/ui/input"
+import { Textarea } from "@/components/ui/textarea"
 import { apiErrorCode } from "@/lib/api-client"
 import { activityTreeQueryOptions, localitiesQueryOptions } from "@/lib/catalog/catalogQueryOptions"
 
@@ -54,6 +56,7 @@ export function ProfileForm({
     resolver: zodResolver(profileInputSchema),
     defaultValues: {
       name: profile.name,
+      bio: profile.bio ?? "",
       homeLocalityId: profile.homeLocality?.id ?? null,
       interestIds: profile.interests.map((activity) => activity.id),
     },
@@ -74,9 +77,13 @@ export function ProfileForm({
   const allActivities = categories.flatMap((category) => category.activities)
   const submit = form.handleSubmit(async (values) => {
     try {
-      const saved = await save.mutateAsync(values)
+      const { bio, ...settings } = values
+      const saved = await save.mutateAsync(
+        form.getFieldState("bio").isDirty ? { ...settings, bio } : settings,
+      )
       form.reset({
         name: saved.name,
+        bio: saved.bio ?? "",
         homeLocalityId: saved.homeLocality?.id ?? null,
         interestIds: saved.interests.map((activity) => activity.id),
       })
@@ -191,6 +198,25 @@ export function ProfileForm({
               ) : (
                 <p className="text-sm text-muted-foreground">Vyber aktivity, které tě zajímají.</p>
               )}
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+        <FormField
+          control={form.control}
+          name="bio"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>O mně</FormLabel>
+              <FormDescription>Tenhle text teď vidíš jen ty.</FormDescription>
+              <FormControl>
+                <Textarea
+                  {...field}
+                  value={field.value ?? ""}
+                  maxLength={500}
+                  rows={4}
+                />
+              </FormControl>
               <FormMessage />
             </FormItem>
           )}

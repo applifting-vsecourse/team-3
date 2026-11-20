@@ -9,12 +9,14 @@ export const profileSchema = z.object({
   email: z.string(),
   emailVerified: z.boolean(),
   hasPassword: z.boolean(),
+  bio: z.string().nullish(),
   homeLocality: localitySchema.nullable(),
   interests: z.array(z.object({ id: z.string(), name: z.string() })),
 })
 export type SelfProfile = z.infer<typeof profileSchema>
 export const profileInputSchema = z.object({
   name: nameSchema,
+  bio: z.string().max(500, "Napiš nejvýš 500 znaků.").nullable().optional(),
   homeLocalityId: z.string().nullable(),
   interestIds: z.array(z.string()).max(50, "Vyber nejvýš 50 zájmů."),
 })

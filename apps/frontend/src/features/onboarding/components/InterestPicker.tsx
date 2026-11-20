@@ -1,4 +1,4 @@
-import { useState } from "react"
+import { useState, type ReactNode } from "react"
 import { Check, Plus, Search } from "lucide-react"
 
 import { activityPhoto } from "@/assets/activity-photos"
@@ -26,6 +26,8 @@ const STARTING_ACTIVITIES = [
 
 type InterestPickerProps = {
   categories: ActivityCategory[]
+  preferredCategoryIds: string[]
+  renderEventPreview?: (categoryId: string) => ReactNode
   selected: string[]
   onToggle: (id: string) => void
   isDisabled: boolean
@@ -33,18 +35,24 @@ type InterestPickerProps = {
 
 export function InterestPicker({
   categories,
+  preferredCategoryIds,
+  renderEventPreview,
   selected,
   onToggle,
   isDisabled,
 }: InterestPickerProps) {
   const [query, setQuery] = useState("")
-  const [categoryId, setCategoryId] = useState("")
+  const [categoryId, setCategoryId] = useState(preferredCategoryIds[0] ?? "")
   const [isShowingAll, setIsShowingAll] = useState(false)
   const isSearching = Boolean(query.trim())
   const isOverview = !isSearching && !categoryId && !isShowingAll
   const visibleCategories = categoryId
     ? categories.filter((category) => category.id === categoryId)
     : categories
+  const orderedCategories = [
+    ...categories.filter(({ id }) => preferredCategoryIds.includes(id)),
+    ...categories.filter(({ id }) => !preferredCategoryIds.includes(id)),
+  ]
   const allMatches = visibleCategories.flatMap((category) =>
     category.activities.map((activity) => ({ category, activity })),
   )
@@ -52,7 +60,7 @@ export function InterestPicker({
     allMatches.filter(({ activity }) => activity.slug === slug),
   )
   const matches = isSearching
-    ? searchActivities(visibleCategories, query)
+    ? searchActivities(categories, query)
     : isOverview && featured.length > 0
       ? featured
       : allMatches
@@ -86,18 +94,24 @@ export function InterestPicker({
       >
         <button
           type="button"
-          aria-pressed={!categoryId}
-          onClick={() => setCategoryId("")}
+          aria-pressed={!categoryId && !isSearching}
+          onClick={() => {
+            setQuery("")
+            setCategoryId("")
+          }}
           className="shrink-0 rounded-full border border-control-border px-3 py-2 text-sm font-medium focus-visible:ring-2 focus-visible:ring-ring aria-pressed:border-hero aria-pressed:bg-hero aria-pressed:text-on-hero"
         >
           Vše
         </button>
-        {categories.map((category) => (
+        {orderedCategories.map((category) => (
           <button
             key={category.id}
             type="button"
-            aria-pressed={category.id === categoryId}
-            onClick={() => setCategoryId(category.id)}
+            aria-pressed={category.id === categoryId && !isSearching}
+            onClick={() => {
+              setQuery("")
+              setCategoryId(category.id)
+            }}
             className="flex shrink-0 items-center gap-2 rounded-full border border-control-border px-3 py-2 text-sm font-medium hover:bg-accent focus-visible:ring-2 focus-visible:ring-ring aria-pressed:border-hero aria-pressed:bg-hero aria-pressed:text-on-hero"
           >
             <ActivityTile
@@ -109,8 +123,12 @@ export function InterestPicker({
           </button>
         ))}
       </div>
+      {!isSearching && categoryId ? renderEventPreview?.(categoryId) : null}
       {matches.length > 0 ? (
-        <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 xl:grid-cols-4">
+        <div
+          key={isSearching ? "search" : categoryId}
+          className="grid grid-cols-2 gap-3 sm:grid-cols-3 xl:grid-cols-4"
+        >
           {matches.map(({ activity, category }, index) => {
             const isPicked = selected.includes(activity.id)
             const photo = activityPhoto(activity.slug)
@@ -122,8 +140,16 @@ export function InterestPicker({
                 aria-pressed={isPicked}
                 disabled={isDisabled}
                 onClick={() => onToggle(activity.id)}
+                style={
+                  !isSearching && index < 12
+                    ? { animationDelay: `${Math.min(index, 7) * 30}ms` }
+                    : undefined
+                }
                 className={cn(
                   "group relative isolate flex aspect-[4/3] min-w-0 items-end overflow-hidden rounded-xl border-2 border-transparent bg-hero p-3 text-left text-white shadow-none outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 motion-safe:transition-transform motion-safe:active:scale-95",
+                  !isSearching &&
+                    index < 12 &&
+                    "motion-safe:duration-300 motion-safe:animate-in motion-safe:fade-in motion-safe:fill-mode-both motion-safe:slide-in-from-bottom-3",
                   isPicked && "border-primary ring-2 ring-primary-edge",
                 )}
               >

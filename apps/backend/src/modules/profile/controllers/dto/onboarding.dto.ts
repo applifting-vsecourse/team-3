@@ -1,10 +1,11 @@
-import { ApiProperty } from '@nestjs/swagger';
+import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import {
   ArrayMaxSize,
   ArrayMinSize,
   ArrayUnique,
   IsArray,
   IsNotEmpty,
+  IsOptional,
   IsString,
   MaxLength,
 } from 'class-validator';
@@ -16,15 +17,21 @@ export class CompleteOnboardingDto {
   @MaxLength(100)
   homeLocalityId!: string;
 
-  @ApiProperty({ type: [String], minItems: 1, maxItems: 3 })
+  @ApiProperty({ type: [String], minItems: 3, maxItems: 3 })
   @IsArray()
-  @ArrayMinSize(1)
+  @ArrayMinSize(3)
   @ArrayMaxSize(3)
   @ArrayUnique()
   @IsString({ each: true })
   @IsNotEmpty({ each: true })
   @MaxLength(100, { each: true })
   interestIds!: string[];
+
+  @ApiPropertyOptional({ type: String, maxLength: 500 })
+  @IsOptional()
+  @IsString()
+  @MaxLength(500)
+  bio?: string;
 }
 
 export class OnboardingResultDto {

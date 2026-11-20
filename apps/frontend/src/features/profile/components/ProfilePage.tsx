@@ -59,6 +59,20 @@ export function ProfilePage({ viewerId }: { viewerId: string }) {
             overview={overview.data}
           />
           <div className={cn(PAGE, "gap-12 pb-24")}>
+            {profile.data.bio ? (
+              <section
+                aria-labelledby="profile-about"
+                className="space-y-2"
+              >
+                <h2
+                  id="profile-about"
+                  className="type-feature"
+                >
+                  O mně
+                </h2>
+                <p className="max-w-2xl break-words whitespace-pre-wrap">{profile.data.bio}</p>
+              </section>
+            ) : null}
             <RatingsSection
               participant={{
                 ratings: overview.data.participantRatings,
