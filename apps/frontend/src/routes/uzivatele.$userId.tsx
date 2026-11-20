@@ -64,10 +64,11 @@ function PublicUserPage() {
             ) : null
           }
           renderUpcomingEvent={(event) => (
-            // Figma B-07f: the occupancy on the card, not the viewer's place
+            // Figma B-07f, B-07fd: the row card (Foto řádek) in its column, also on desktop — the
+            // occupancy on it, not the viewer's place
             <EventCard
               event={event}
-              variant="responsive"
+              variant="row"
               isGroupShown
               titleAs="h3"
             />
