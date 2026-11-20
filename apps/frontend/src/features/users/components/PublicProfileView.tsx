@@ -14,6 +14,7 @@ import {
   type PublicOrganizedEvent,
   type PublicProfile,
   type PublicSummary,
+  type PublicUpcomingEvent,
 } from "@/features/users/api/publicProfile"
 
 const date = (value: Date) =>
@@ -25,7 +26,9 @@ const BACK = { to: ROUTES.events, fallbackLabel: "Všechny akce" } as const
 /**
  * /uzivatele/:userId (#179): who someone is in the band — name, ratings, interests — and
  * below in two columns on desktop (DESIGN.md › Layout) the ratings as a participant, and as
- * an organizer with the past events they organised.
+ * an organizer with the past events they organised. Friends (#307, Figma B-07f, B-07g): the
+ * friendship's block tops the first column, „Kam jde“ the second — on a phone that is the
+ * block under the band and Kam jde before the organised events, as in Figma.
  */
 export function PublicProfileView({
   profile,
@@ -34,6 +37,8 @@ export function PublicProfileView({
   error,
   onRetry,
   renderOrganizedEvent,
+  friendshipAction,
+  renderUpcomingEvent,
 }: {
   profile?: PublicProfile
   isLoading?: boolean
@@ -42,6 +47,10 @@ export function PublicProfileView({
   onRetry: () => void
   /** A past organised event as its card, from the events feature (the route puts it in). */
   renderOrganizedEvent: (event: PublicOrganizedEvent) => ReactNode
+  /** The friendship's block by the viewer's relation (Figma B-07 · Stavy), from the friends feature. */
+  friendshipAction?: ReactNode
+  /** An event of Kam jde as its card, from the events feature. */
+  renderUpcomingEvent: (event: PublicUpcomingEvent) => ReactNode
 }) {
   if (isNotFound) {
     return (
@@ -111,65 +120,72 @@ export function PublicProfileView({
       </PageBand>
       {/* two columns on desktop, so no half of the screen stays empty (DESIGN.md › Layout) */}
       <div className={cn(PAGE, "grid grid-cols-1 gap-12 lg:grid-cols-2 lg:gap-16")}>
-        <section
-          className="flex min-w-0 flex-col gap-4"
-          aria-labelledby="participant-ratings"
-        >
-          <h2
-            id="participant-ratings"
-            className="type-feature"
-          >
-            Jako <span className="highlight-keyword">účastník</span>
-          </h2>
-          <Summary value={profile.participantSummary} />
-          {profile.participantRatings.length ? (
-            <ul className="flex flex-col divide-y divide-border">
-              {profile.participantRatings.map((rating) => (
-                <li
-                  key={rating.id}
-                  className="flex flex-col gap-2 py-4 first:pt-0"
-                >
-                  {rating.author ? (
-                    <PersonRow
-                      name={rating.author.name}
-                      userId={rating.author.id}
-                    />
-                  ) : (
-                    <p className="text-sm text-muted-foreground">Organizátor</p>
-                  )}
-                  <p
-                    className="text-sm"
-                    aria-label={`${rating.stars} z 5 hvězdiček`}
-                  >
-                    <span aria-hidden="true">
-                      {"★".repeat(rating.stars)}
-                      {"☆".repeat(5 - rating.stars)}
-                    </span>
-                    <span className="ml-2 text-muted-foreground">{date(rating.createdAt)}</span>
-                  </p>
-                  {rating.comment ? (
-                    <p className="break-words whitespace-pre-line">{rating.comment}</p>
-                  ) : null}
-                  <Link
-                    className="w-fit text-sm underline underline-offset-4"
-                    to={ROUTES.eventDetail}
-                    params={{ eventId: rating.event.id }}
-                  >
-                    {rating.event.title}
-                  </Link>
-                </li>
-              ))}
-            </ul>
-          ) : profile.participantSummary.count === 0 ? (
-            <p className="text-muted-foreground">Zatím žádné hodnocení od organizátorů.</p>
-          ) : null}
-          {profile.participantSummary.count > profile.participantRatings.length ? (
-            <p className="text-sm text-muted-foreground">
-              Další hodnocení jsou z neveřejných akcí, počítají se jen do průměru.
-            </p>
-          ) : null}
-        </section>
         <div className="flex min-w-0 flex-col gap-12">
+          {friendshipAction ? <div className="lg:max-w-105">{friendshipAction}</div> : null}
+          <section
+            className="flex min-w-0 flex-col gap-4"
+            aria-labelledby="participant-ratings"
+          >
+            <h2
+              id="participant-ratings"
+              className="type-feature"
+            >
+              Jako <span className="highlight-keyword">účastník</span>
+            </h2>
+            <Summary value={profile.participantSummary} />
+            {profile.participantRatings.length ? (
+              <ul className="flex flex-col divide-y divide-border">
+                {profile.participantRatings.map((rating) => (
+                  <li
+                    key={rating.id}
+                    className="flex flex-col gap-2 py-4 first:pt-0"
+                  >
+                    {rating.author ? (
+                      <PersonRow
+                        name={rating.author.name}
+                        userId={rating.author.id}
+                      />
+                    ) : (
+                      <p className="text-sm text-muted-foreground">Organizátor</p>
+                    )}
+                    <p
+                      className="text-sm"
+                      aria-label={`${rating.stars} z 5 hvězdiček`}
+                    >
+                      <span aria-hidden="true">
+                        {"★".repeat(rating.stars)}
+                        {"☆".repeat(5 - rating.stars)}
+                      </span>
+                      <span className="ml-2 text-muted-foreground">{date(rating.createdAt)}</span>
+                    </p>
+                    {rating.comment ? (
+                      <p className="break-words whitespace-pre-line">{rating.comment}</p>
+                    ) : null}
+                    <Link
+                      className="w-fit text-sm underline underline-offset-4"
+                      to={ROUTES.eventDetail}
+                      params={{ eventId: rating.event.id }}
+                    >
+                      {rating.event.title}
+                    </Link>
+                  </li>
+                ))}
+              </ul>
+            ) : profile.participantSummary.count === 0 ? (
+              <p className="text-muted-foreground">Zatím žádné hodnocení od organizátorů.</p>
+            ) : null}
+            {profile.participantSummary.count > profile.participantRatings.length ? (
+              <p className="text-sm text-muted-foreground">
+                Další hodnocení jsou z neveřejných akcí, počítají se jen do průměru.
+              </p>
+            ) : null}
+          </section>
+        </div>
+        <div className="flex min-w-0 flex-col gap-12">
+          <UpcomingEvents
+            profile={profile}
+            renderUpcomingEvent={renderUpcomingEvent}
+          />
           <section
             className="flex flex-col gap-4"
             aria-labelledby="organizer-ratings"
@@ -220,6 +236,52 @@ export function PublicProfileView({
         </div>
       </div>
     </>
+  )
+}
+
+/**
+ * „Kam jde“ (#307, Figma B-07f, B-07g): for a friend the nearest few events the API lets the
+ * viewer see — never a private one, nor one of someone else's group; for anyone else, a visitor
+ * too, one line instead. Not on one's own profile: one's own events are in Moje.
+ */
+function UpcomingEvents({
+  profile,
+  renderUpcomingEvent,
+}: {
+  profile: PublicProfile
+  renderUpcomingEvent: (event: PublicUpcomingEvent) => ReactNode
+}) {
+  if (profile.friendship === "self") return null
+  const events = profile.friendship === "friends" ? (profile.upcomingEvents ?? []) : null
+  return (
+    <section
+      className="flex flex-col gap-4"
+      aria-labelledby="upcoming-events"
+    >
+      <h2
+        id="upcoming-events"
+        className="type-feature"
+      >
+        Kam <span className="highlight-keyword">jde</span>
+      </h2>
+      {events === null ? (
+        <p className="text-muted-foreground">Kam chodí, vidí jen přátelé.</p>
+      ) : events.length === 0 ? (
+        <p className="text-muted-foreground">Zatím nemá žádné nadcházející akce.</p>
+      ) : (
+        <>
+          {/* grid-cols-1 = minmax(0, 1fr): a long title truncates instead of widening the column */}
+          <ul className="grid grid-cols-1 gap-3">
+            {events.map((event) => (
+              <li key={event.id}>{renderUpcomingEvent(event)}</li>
+            ))}
+          </ul>
+          <p className="text-sm text-muted-foreground">
+            Jen nadcházející akce, které jsou přístupné i tobě.
+          </p>
+        </>
+      )}
+    </section>
   )
 }
 
