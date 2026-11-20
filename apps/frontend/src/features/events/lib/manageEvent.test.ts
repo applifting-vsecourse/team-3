@@ -81,7 +81,7 @@ describe("peopleLabel", () => {
 
 describe("eventEmptySteps (#371)", () => {
   it("follows the event's own rules", () => {
-    expect(eventEmptySteps({ approvalMode: "open", minParticipants: 3 })).toEqual([
+    expect(eventEmptySteps({ approvalMode: "open", missingToMin: 3, approvedCount: 0 })).toEqual([
       "Sdílej odkaz – v chatu party, ve skupině nebo na sítích.",
       "Kdo se přihlásí, objeví se tady. Akce bez schválení ho počítá hned.",
       "Jakmile se přihlásí 3 lidé, akce se koná – u akce se ukáže „Koná se“.",
@@ -89,9 +89,18 @@ describe("eventEmptySteps (#371)", () => {
     ])
   })
 
-  it("speaks of requests at an event with approval", () => {
-    expect(eventEmptySteps({ approvalMode: "approval", minParticipants: 5 })[1]).toBe(
-      "Kdo se přihlásí, objeví se v Žádostech. Schválíš ho, nebo zamítneš.",
+  it("counts who is still missing when the organizer has a place (Q12, review #382)", () => {
+    expect(eventEmptySteps({ approvalMode: "open", missingToMin: 2, approvedCount: 1 })[2]).toBe(
+      "Jakmile se přihlásí ještě 2 lidé, akce se koná – u akce se ukáže „Koná se“.",
     )
+    expect(eventEmptySteps({ approvalMode: "open", missingToMin: 0, approvedCount: 1 })[2]).toBe(
+      "Minimum je splněné, akce se koná – u akce je „Koná se“.",
+    )
+  })
+
+  it("speaks of requests at an event with approval", () => {
+    expect(
+      eventEmptySteps({ approvalMode: "approval", missingToMin: 5, approvedCount: 0 })[1],
+    ).toBe("Kdo se přihlásí, objeví se v Žádostech. Schválíš ho, nebo zamítneš.")
   })
 })

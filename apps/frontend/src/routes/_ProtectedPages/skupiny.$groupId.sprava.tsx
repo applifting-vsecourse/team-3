@@ -66,6 +66,8 @@ function ManageGroupPage() {
   const isManaging = group !== undefined && group.status !== "inactive" && isAdmin
   // the same query as the lists below: one request, shared from the cache
   const membersQuery = useQuery({ ...groupMembersQueryOptions(groupId), enabled: isManaging })
+  // one source for who is in: the members list, the group's count until it loads (review #382)
+  const memberCount = membersQuery.data?.members.length ?? group?.memberCount ?? 0
   const nextStep = membersQuery.data
     ? groupNextStep(membersQuery.data.requests.length, membersQuery.data.members.length)
     : null
@@ -132,7 +134,7 @@ function ManageGroupPage() {
                     <SendAnnouncementButton
                       groupId={groupId}
                       viewerId={viewerId}
-                      memberCount={group.memberCount}
+                      memberCount={memberCount}
                       variant="default"
                       className="w-full"
                     />
@@ -159,11 +161,11 @@ function ManageGroupPage() {
                 phone (D-07) — the same buttons, moved by CSS alone (#316) */}
             <div className="flex flex-col gap-2 py-4 md:col-start-1 md:row-start-2 md:flex-row md:flex-wrap md:py-0">
               {/* Figma D-07, D-07d: „Napsat členům“ opens D-08 (#194), unless it is the next step */}
-              {viewerId && nextStep && nextStep.action !== "write" && group.memberCount > 1 ? (
+              {viewerId && nextStep && nextStep.action !== "write" && memberCount > 1 ? (
                 <SendAnnouncementButton
                   groupId={groupId}
                   viewerId={viewerId}
-                  memberCount={group.memberCount}
+                  memberCount={memberCount}
                   className="w-full md:w-auto"
                 />
               ) : null}

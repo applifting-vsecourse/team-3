@@ -54,14 +54,19 @@ export function peopleLabel(count: number): string {
  * the steps of this event, from its own rules — how people join, its minimum, the rating after.
  */
 export function eventEmptySteps(
-  event: Pick<EventDetail, "approvalMode" | "minParticipants">,
+  event: Pick<EventDetail, "approvalMode" | "missingToMin" | "approvedCount">,
 ): string[] {
+  // the organizer may already have a place (Q12): count who is still missing (review #382)
+  const toMinimum =
+    event.missingToMin <= 0
+      ? "Minimum je splněné, akce se koná – u akce je „Koná se“."
+      : `Jakmile se přihlásí ${event.approvedCount > 0 ? "ještě " : ""}${peopleLabel(event.missingToMin)}, akce se koná – u akce se ukáže „Koná se“.`
   return [
     "Sdílej odkaz – v chatu party, ve skupině nebo na sítích.",
     event.approvalMode === "approval"
       ? "Kdo se přihlásí, objeví se v Žádostech. Schválíš ho, nebo zamítneš."
       : "Kdo se přihlásí, objeví se tady. Akce bez schválení ho počítá hned.",
-    `Jakmile se přihlásí ${peopleLabel(event.minParticipants)}, akce se koná – u akce se ukáže „Koná se“.`,
+    toMinimum,
     "Po akci si navzájem dáte hodnocení.",
   ]
 }

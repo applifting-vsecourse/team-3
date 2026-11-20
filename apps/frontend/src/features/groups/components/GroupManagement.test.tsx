@@ -1,6 +1,6 @@
 import type { ReactNode } from "react"
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query"
-import { screen, waitFor, within } from "@testing-library/react"
+import { act, screen, waitFor, within } from "@testing-library/react"
 import userEvent from "@testing-library/user-event"
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest"
 
@@ -50,9 +50,9 @@ const members = {
   ],
 }
 
-const renderManagement = (aloneNextStep?: ReactNode) =>
+const renderManagement = (aloneNextStep?: ReactNode, client = new QueryClient()) =>
   renderWithRouter(
-    <QueryClientProvider client={new QueryClient()}>
+    <QueryClientProvider client={client}>
       <GroupManagement
         groupId="g-florbal"
         aloneNextStep={aloneNextStep}
@@ -294,6 +294,32 @@ describe("GroupManagement", () => {
     await waitFor(() => expect(screen.queryByRole("dialog")).not.toBeInTheDocument())
     // the requests list stays mounted, so the focus has somewhere to come back to
     expect(screen.getByRole("region", { name: "Žádosti o členství" })).toHaveFocus()
+  })
+
+  it("a request arriving later to an admin alone stays listed after it is decided (review #382)", async () => {
+    const onlyAdmin = members.members.slice(0, 1)
+    api.get.mockReturnValue({ json: () => Promise.resolve({ requests: [], members: onlyAdmin }) })
+    const client = new QueryClient()
+    await renderManagement(<p>Jak to půjde dál</p>, client)
+    expect(await screen.findByText("Jak to půjde dál")).toBeInTheDocument()
+
+    // back from another tab: the data load again and a request has come in meanwhile
+    api.get.mockReturnValue({
+      json: () => Promise.resolve({ requests: members.requests.slice(1), members: onlyAdmin }),
+    })
+    await act(() => client.invalidateQueries())
+    await userEvent.click(
+      await screen.findByRole("button", { name: "Zamítnout žádost: Petr Holub" }),
+    )
+    api.get.mockReturnValue({ json: () => Promise.resolve({ requests: [], members: onlyAdmin }) })
+    const dialog = screen.getByRole("dialog", { name: "Zamítnout žádost?" })
+    await userEvent.click(within(dialog).getByRole("button", { name: "Zamítnout" }))
+
+    await waitFor(() => expect(screen.queryByRole("dialog")).not.toBeInTheDocument())
+    const list = screen.getByRole("region", { name: "Žádosti o členství" })
+    expect(list).toHaveFocus()
+    // the list it came back to stays on the page
+    expect(list.closest("[data-slot=tabs-content]")).not.toHaveClass("hidden")
   })
 
   it("with requests, the next step waits for them instead (#371)", async () => {

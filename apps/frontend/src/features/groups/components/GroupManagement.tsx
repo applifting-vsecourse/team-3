@@ -99,10 +99,13 @@ type GroupListsProps = {
  */
 function GroupLists({ groupId, requests, members, aloneNextStep }: GroupListsProps) {
   const isAlone = requests.length === 0 && members.length <= 1
-  // alone from the start (D-07d – jen ty): no requests list until one arrives — decided once,
-  // so deciding the last request never hides the list it was in
+  // alone from the start (D-07d – jen ty): no requests list until one arrives. Once requests
+  // have shown, the list stays, so deciding the last one never hides the list the focus
+  // comes back to (review #318, #382) — also when one arrived later (a refetch on focus)
   const [hasStartedAlone] = useState(isAlone)
-  const isRequestsHidden = hasStartedAlone && requests.length === 0
+  const [hasSeenRequests, setHasSeenRequests] = useState(requests.length > 0)
+  if (requests.length > 0 && !hasSeenRequests) setHasSeenRequests(true)
+  const isRequestsHidden = hasStartedAlone && !hasSeenRequests
   const requestsTitle = `Žádosti (${requests.length})`
   const membersTitle = `Členové (${members.length})`
 

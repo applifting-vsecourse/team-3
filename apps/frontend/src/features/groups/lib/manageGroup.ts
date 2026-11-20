@@ -38,7 +38,7 @@ export function groupEmptySteps(type: GroupType): string[] {
     type === "closed"
       ? "Neveřejná skupina: každá žádost o členství se objeví tady a schválíš ji."
       : "Kdo se ke skupině přidá, objeví se tady mezi členy.",
-    "Akce jen pro členy založíš na stránce skupiny („Založit akci skupiny“).",
+    "Akci skupiny založíš na stránce skupiny („Založit akci skupiny“).",
     "Až budou ve skupině další, „Napsat členům“ jim pošle zprávu všem najednou.",
   ]
 }

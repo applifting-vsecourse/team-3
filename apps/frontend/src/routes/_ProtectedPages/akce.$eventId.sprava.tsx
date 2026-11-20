@@ -97,7 +97,8 @@ function ManageEventPage() {
   const isNobodyYet =
     event !== undefined &&
     canShare &&
-    participants.participants?.length === 0 &&
+    // the organizer may have a place at their own event (Q12): nobody else counts here
+    recipientCount === 0 &&
     (!showsRequests(event) || participants.requests?.length === 0)
   // who is coming: alone in the right column, or next to the requests (#53)
   const participantList = (isHeadingHiddenOnPhone: boolean) => (
@@ -316,7 +317,7 @@ function ManageEventPage() {
               <ManagedRatings
                 event={event}
                 viewerId={viewerId ?? null}
-                now={new Date()}
+                now={now}
               />
             </section>
             {/* the right column (D-03d): an event with approval adds the requests (#53),
@@ -336,7 +337,7 @@ function ManageEventPage() {
                           isHeadingHiddenOnPhone
                           // showsRequests already hides the requests of a cancelled event; the
                           // status check stays as a safety net (the API refuses with EVENT_CANCELLED)
-                          canDecide={event.status === "published" && event.startsAt > new Date()}
+                          canDecide={event.status === "published" && event.startsAt > now}
                           isFull={event.isFull}
                           isDeciding={decide.isPending}
                           onDecide={(request, decision) =>
