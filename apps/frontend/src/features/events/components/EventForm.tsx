@@ -36,7 +36,7 @@ import { PRAHA_SLUG } from "@/lib/catalog/localityOptions"
 import type { ImageChange } from "@/lib/image"
 import { cn } from "@/lib/utils"
 
-import { localityOfAddress } from "@/features/events/api/addressSearch"
+import { distanceKm } from "@/features/events/api/addressSearch"
 import {
   EVENT_ADDRESS_MAX_LENGTH,
   EVENT_DESCRIPTION_MAX_LENGTH,
@@ -45,7 +45,9 @@ import {
   type EventInput,
 } from "@/features/events/api/eventSchemas"
 import { AddressCombobox } from "@/features/events/components/AddressCombobox"
+import { useEventLocation } from "@/features/events/hooks/useEventLocation"
 import { usePragueToday } from "@/features/events/hooks/usePragueToday"
+import { CLOCK_TIME_ERROR, normalizeClockTime } from "@/features/events/lib/clockTime"
 import { dateToDay, dayToDate } from "@/features/events/lib/dateRange"
 import { formatDay } from "@/features/events/lib/formatEvent"
 import { eventTimes, toPragueWallTime } from "@/features/events/lib/pragueTime"
@@ -61,6 +63,21 @@ const count = (name: string) =>
       `${name[0]!.toUpperCase()}${name.slice(1)} musí být aspoň 1`,
     )
     .refine((value) => Number(value) <= EVENT_MAX_PARTICIPANTS, `Nejvýš ${EVENT_MAX_PARTICIPANTS}`)
+
+/** Keep raw text while editing; normalize both fields before comparing times
+ * or converting to Prague instants, including a submit without a blur (#200). */
+const clockTime = (requiredMessage?: string) =>
+  z
+    .string()
+    .trim()
+    .superRefine((value, context) => {
+      if (!value) {
+        if (requiredMessage) context.addIssue({ code: "custom", message: requiredMessage })
+      } else if (normalizeClockTime(value) === null) {
+        context.addIssue({ code: "custom", message: CLOCK_TIME_ERROR })
+      }
+    })
+    .transform((value) => normalizeClockTime(value) ?? "")
 
 /** `approvedCount`: when editing, the maximum can't go below the people already in (#41). */
 const buildSchema = (approvedCount: number) =>
@@ -81,10 +98,10 @@ const buildSchema = (approvedCount: number) =>
         .max(EVENT_ADDRESS_MAX_LENGTH, `Adresa může mít nejvýš ${EVENT_ADDRESS_MAX_LENGTH} znaků`),
       /** A Prague day, `YYYY-MM-DD`. */
       day: z.string().min(1, "Akce potřebuje datum"),
-      /** `HH:mm`, Prague time. */
-      start: z.string().min(1, "Vyplň začátek"),
+      /** A typed 24-hour time, normalized to `HH:mm`, Prague time. */
+      start: clockTime("Vyplň začátek"),
       /** Optional; earlier than the start means the next day. */
-      end: z.string(),
+      end: clockTime(),
       minParticipants: count("minimum"),
       maxParticipants: count("maximum"),
       approvalMode: z.enum(["open", "approval"]),
@@ -106,14 +123,21 @@ const buildSchema = (approvedCount: number) =>
     .refine(
       (values) =>
         !values.day ||
-        !values.start ||
+        normalizeClockTime(values.start) === null ||
         eventTimes(values.day, values.start, "").startsAt > new Date(),
       { message: "Termín musí být v budoucnosti", path: ["start"] },
     )
-    .refine((values) => !values.end || values.end !== values.start, {
-      message: "Konec musí být jiný než začátek",
-      path: ["end"],
-    })
+    .refine(
+      (values) =>
+        !values.end ||
+        normalizeClockTime(values.end) === null ||
+        normalizeClockTime(values.start) === null ||
+        values.end !== values.start,
+      {
+        message: "Konec musí být jiný než začátek",
+        path: ["end"],
+      },
+    )
     .refine((values) => Number(values.maxParticipants) >= Number(values.minParticipants), {
       message: "Maximum nesmí být menší než minimum",
       path: ["maxParticipants"],
@@ -250,12 +274,51 @@ export function EventForm({
 
   const formRef = useRevealFormErrors(form, errorMessage)
 
+  const finishTime = (name: "start" | "end") => {
+    const raw = form.getValues(name)
+    const normalized = normalizeClockTime(raw)
+    if (normalized !== null || !raw.trim()) {
+      form.setValue(name, normalized ?? "", { shouldDirty: true })
+    }
+    // A changed start can resolve the equality error of an already touched end.
+    const end = form.getFieldState("end")
+    void form.trigger(name === "start" && (end.isTouched || end.invalid) ? ["start", "end"] : name)
+  }
+
   const localityId = useWatch({ control: form.control, name: "localityId" })
   const place = useWatch({ control: form.control, name: "place" })
-  const mapCenter = catalog.localities.find((l) => l.id === localityId) ??
+  const [didChangeLocality, setDidChangeLocality] = useState(false)
+  const selectedLocality = catalog.localities.find((l) => l.id === localityId)
+  const mapCenter = selectedLocality ??
     // before a locality is picked: the biggest city, as the picker lists it first
     catalog.localities.find((l) => l.slug === PRAHA_SLUG) ??
     catalog.localities[0] ?? { lat: 50.0755, lng: 14.4378 }
+  // The catalog has locality centers, so this is only a distance hint.
+  const suggestedCenter =
+    didChangeLocality && place && selectedLocality && distanceKm(place, selectedLocality) > 2
+      ? selectedLocality
+      : null
+
+  const location = useEventLocation({
+    localities: catalog.localities,
+    initialAddress: initialValues?.address ?? "",
+    getValues: () => form.getValues(),
+    setAddress: (value) =>
+      form.setValue("address", value, {
+        shouldDirty: true,
+        shouldValidate: form.formState.isSubmitted,
+      }),
+    setPlace: (value) =>
+      form.setValue("place", value, {
+        shouldDirty: true,
+        shouldValidate: form.formState.isSubmitted,
+      }),
+    setLocality: (value) =>
+      form.setValue("localityId", value, {
+        shouldDirty: true,
+        shouldValidate: form.formState.isSubmitted,
+      }),
+  })
 
   return (
     <Form {...form}>
@@ -425,24 +488,41 @@ export function EventForm({
               <FormField
                 control={form.control}
                 name="start"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Začátek *</FormLabel>
-                    <FormControl>
-                      <Input
-                        type="time"
-                        className="h-11"
-                        {...field}
-                      />
-                    </FormControl>
-                    <FormDescription role="status">
-                      {field.value && field.value < "05:00"
-                        ? "Začátek je mezi půlnocí a pátou ráno. Zkontroluj, jestli je čas správný."
-                        : ""}
-                    </FormDescription>
-                    <FormMessage />
-                  </FormItem>
-                )}
+                render={({ field }) => {
+                  const normalized = normalizeClockTime(field.value)
+                  return (
+                    <FormItem>
+                      <FormLabel>Začátek *</FormLabel>
+                      <FormControl>
+                        <Input
+                          type="text"
+                          inputMode="numeric"
+                          autoComplete="off"
+                          spellCheck={false}
+                          placeholder="např. 9:00"
+                          className="h-11"
+                          {...field}
+                          onBlur={() => {
+                            field.onBlur()
+                            finishTime("start")
+                          }}
+                        />
+                      </FormControl>
+                      <FormDescription>
+                        Čas napiš jako 9:00 nebo 0900.
+                        <span
+                          role="status"
+                          className="block"
+                        >
+                          {normalized && normalized < "05:00"
+                            ? "Začátek je mezi půlnocí a pátou ráno. Zkontroluj, jestli je čas správný."
+                            : ""}
+                        </span>
+                      </FormDescription>
+                      <FormMessage />
+                    </FormItem>
+                  )
+                }}
               />
               <FormField
                 control={form.control}
@@ -452,9 +532,17 @@ export function EventForm({
                     <FormLabel>Konec</FormLabel>
                     <FormControl>
                       <Input
-                        type="time"
+                        type="text"
+                        inputMode="numeric"
+                        autoComplete="off"
+                        spellCheck={false}
+                        placeholder="např. 18:30"
                         className="h-11"
                         {...field}
+                        onBlur={() => {
+                          field.onBlur()
+                          finishTime("end")
+                        }}
                       />
                     </FormControl>
                     <FormDescription>Nepovinné</FormDescription>
@@ -650,10 +738,17 @@ export function EventForm({
                       localities={catalog.localities}
                       ref={field.ref}
                       value={field.value}
-                      onChange={field.onChange}
+                      onChange={(value) => {
+                        location.cancelLookup()
+                        setDidChangeLocality(true)
+                        field.onChange(value)
+                      }}
                       onBlur={field.onBlur}
                     />
                   </FormControl>
+                  <FormDescription>
+                    Obec nebo městská část, podle které se dá akce najít.
+                  </FormDescription>
                   <FormMessage />
                 </FormItem>
               )}
@@ -672,11 +767,15 @@ export function EventForm({
                     Místo na mapě *
                   </p>
                   <p className="text-sm text-muted-foreground">
-                    Klepni do mapy tam, kde se sejdete.
+                    Klepni do mapy tam, kde se sejdete. Nebo mapu posuň a umísti špendlík na křížek
+                    uprostřed.
                   </p>
                   <LocationPicker
                     value={field.value}
-                    onChange={(point) => field.onChange(point)}
+                    onChange={(point, source) => {
+                      setDidChangeLocality(false)
+                      void location.pickPoint(point, source === "center")
+                    }}
                     center={mapCenter}
                     labelledBy={placeLabelId}
                     isInvalid={Boolean(fieldState.error)}
@@ -684,6 +783,27 @@ export function EventForm({
                     // D-01d: the map has the room of its own column on desktop
                     mapClassName="md:h-100"
                   />
+                  {suggestedCenter ? (
+                    <div className="flex flex-wrap items-center gap-2">
+                      <p
+                        className="text-sm text-muted-foreground"
+                        role="status"
+                      >
+                        Špendlík je dál od středu lokality {suggestedCenter.name}.
+                      </p>
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        onClick={() => {
+                          setDidChangeLocality(false)
+                          void location.pickPoint(suggestedCenter)
+                        }}
+                      >
+                        Přesunout do středu lokality
+                      </Button>
+                    </div>
+                  ) : null}
                   <FormMessage id={placeErrorId} />
                 </FormItem>
               )}
@@ -701,29 +821,45 @@ export function EventForm({
                       autoComplete="off"
                       className="h-11"
                       {...field}
+                      onChange={(value) => {
+                        location.typeAddress(value)
+                      }}
                       near={place ?? mapCenter}
-                      // a picked address also moves the pin, and sets the locality
-                      // when the catalog has a more precise one for it
                       onPick={(suggestion) => {
-                        const options = {
-                          shouldDirty: true,
-                          shouldValidate: form.formState.isSubmitted,
-                        }
-                        field.onChange(suggestion.address)
-                        form.setValue(
-                          "place",
-                          { lat: suggestion.lat, lng: suggestion.lng },
-                          options,
-                        )
-                        const locality = localityOfAddress(
-                          suggestion,
-                          catalog.localities,
-                          form.getValues("localityId"),
-                        )
-                        if (locality) form.setValue("localityId", locality.id, options)
+                        setDidChangeLocality(false)
+                        location.pickAddress(suggestion)
                       }}
                     />
                   </FormControl>
+                  <FormDescription role="status">{location.notice}</FormDescription>
+                  {location.pendingAddress ? (
+                    <div
+                      className="flex flex-col gap-2 border-l border-border pl-3"
+                      role="group"
+                      aria-label="Změna adresy podle špendlíku"
+                    >
+                      <p className="text-sm font-medium">Použít adresu podle špendlíku?</p>
+                      <p className="text-sm text-muted-foreground">{location.pendingAddress}</p>
+                      <div className="flex flex-wrap gap-2">
+                        <Button
+                          type="button"
+                          variant="outline"
+                          size="sm"
+                          onClick={location.acceptAddress}
+                        >
+                          Použít adresu
+                        </Button>
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="sm"
+                          onClick={location.keepAddress}
+                        >
+                          Ponechat moji
+                        </Button>
+                      </div>
+                    </div>
+                  ) : null}
                   <FormMessage />
                 </FormItem>
               )}

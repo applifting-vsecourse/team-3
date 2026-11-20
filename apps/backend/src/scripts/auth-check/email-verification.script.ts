@@ -14,6 +14,7 @@ import {
   emailFlowOptions,
   withEmailFlows,
 } from '@/shared/auth/config/email-flows';
+import { SIGN_UP_CONSENT } from '@/shared/auth/domain/consent';
 import type { Config } from '@/shared/config/config.service';
 import { betterAuth } from 'better-auth';
 import { memoryAdapter } from 'better-auth/adapters/memory';
@@ -36,7 +37,7 @@ const main = async (): Promise<void> => {
   const flows = emailFlowOptions(
     {
       frontendUrl: 'http://localhost:5173',
-      frontendResetPasswordUrl: 'nove-heslo',
+      frontendResetPasswordUrl: 'reset-password',
     } as Config,
     {
       sendEmail: async (email, _subject, html) => {
@@ -65,8 +66,7 @@ const main = async (): Promise<void> => {
         email: EMAIL,
         callbackURL: 'http://localhost:5173/email-overen?from=%2Fakce',
         password,
-        termsAccepted: true,
-        privacyAcknowledged: true,
+        ...SIGN_UP_CONSENT,
       } as never,
       asResponse: true,
     });
@@ -244,8 +244,7 @@ const main = async (): Promise<void> => {
       name: 'Google Test',
       email: 'google-only@example.com',
       password: PASSWORD,
-      termsAccepted: true,
-      privacyAcknowledged: true,
+      ...SIGN_UP_CONSENT,
     } as never,
     asResponse: true,
   });
@@ -259,23 +258,50 @@ const main = async (): Promise<void> => {
     { status: googleSignup.status },
   );
 
-  const reset = await auth.api.requestPasswordReset({
-    body: {
-      email: 'google-only@example.com',
-      redirectTo: 'http://localhost:5173/nove-heslo',
-    },
-    asResponse: true,
-  });
-  const resetMail = sent
-    .filter((mail) => mail.email === 'google-only@example.com')
-    .slice(-1)[0];
-  const resetHref = resetMail?.html.match(
-    /href="([^"\s]*\/nove-heslo\?[^"\s]+)"/,
-  )?.[1];
-  if (!resetHref) throw new Error('Password reset e-mail has no usable link');
-  const resetToken = new URL(resetHref.replace(/&amp;/g, '&')).searchParams.get(
-    'token',
-  )!;
+  const requestResetLink = async (email: string): Promise<URL> => {
+    const previousCount = sent.length;
+    const reset = await auth.api.requestPasswordReset({
+      body: { email },
+      asResponse: true,
+    });
+    const resetMail = sent[previousCount];
+    const resetHref = resetMail?.html.match(
+      /href="([^"\s]*\/reset-password\/[^"\s]+)"/,
+    )?.[1];
+    if (
+      reset.status !== 200 ||
+      sent.length !== previousCount + 1 ||
+      resetMail?.email !== email ||
+      !resetHref
+    ) {
+      throw new Error('Password reset e-mail has no usable link');
+    }
+    return new URL(resetHref.replace(/&amp;/g, '&'));
+  };
+  const openResetLink = async (link: URL): Promise<URL> => {
+    const response = await auth.handler(new Request(link));
+    const location = new URL(response.headers.get('location') ?? '', link);
+    if (
+      response.status !== 302 ||
+      location.origin !== 'http://localhost:5173' ||
+      location.pathname !== '/reset-password'
+    ) {
+      throw new Error('Password reset link did not open the configured page');
+    }
+    return location;
+  };
+  const tokenFromLink = async (link: URL): Promise<string> => {
+    const location = await openResetLink(link);
+    const token = location.searchParams.get('token');
+    if (!token || location.searchParams.has('error')) {
+      throw new Error('Valid password reset link did not open the form');
+    }
+    return token;
+  };
+
+  const resetToken = await tokenFromLink(
+    await requestResetLink('google-only@example.com'),
+  );
   const changed = await auth.api.resetPassword({
     body: { token: resetToken, newPassword: PASSWORD },
     asResponse: true,
@@ -286,11 +312,60 @@ const main = async (): Promise<void> => {
   });
   expect(
     'Google-only account can set a password through reset and then sign in',
-    reset.status === 200 &&
-      changed.status === 200 &&
+    changed.status === 200 &&
       afterReset.status === 200 &&
       Boolean(afterReset.headers.get('set-cookie')),
-    { reset: reset.status, changed: changed.status, signIn: afterReset.status },
+    { changed: changed.status, signIn: afterReset.status },
+  );
+
+  const credentialLink = await requestResetLink(EMAIL);
+  const credentialToken = await tokenFromLink(credentialLink);
+  const newPassword = 'nove-heslo-2026';
+  const changedCredential = await auth.api.resetPassword({
+    body: { token: credentialToken, newPassword },
+    asResponse: true,
+  });
+  const remainingSessions = db.session.filter(
+    (session) => session.userId === existingUser.id,
+  ).length;
+  const oldSignIn = await signIn(PASSWORD);
+  const newSignIn = await signIn(newPassword);
+  expect(
+    'e-mail account reset revokes past sessions and allows only the new password',
+    changedCredential.status === 200 &&
+      remainingSessions === 0 &&
+      oldSignIn.status === 401 &&
+      newSignIn.status === 200 &&
+      Boolean(newSignIn.headers.get('set-cookie')),
+    {
+      oldSignIn: oldSignIn.status,
+      newSignIn: newSignIn.status,
+      remainingSessions,
+    },
+  );
+
+  const usedLocation = await openResetLink(credentialLink);
+  expect(
+    'used reset link redirects to the error page before asking for a password',
+    usedLocation.searchParams.get('error') === 'INVALID_TOKEN' &&
+      !usedLocation.searchParams.has('token'),
+    { error: usedLocation.searchParams.get('error') },
+  );
+
+  const expiringLink = await requestResetLink(EMAIL);
+  const expiringToken = await tokenFromLink(expiringLink);
+  const verificationRow = db.verification.find(
+    (row) => row.identifier === `reset-password:${expiringToken}`,
+  );
+  if (!verificationRow)
+    throw new Error('Reset verification row was not created');
+  verificationRow.expiresAt = new Date(Date.now() - 1000);
+  const expiredResetLocation = await openResetLink(expiringLink);
+  expect(
+    'expired reset link redirects to the error page before asking for a password',
+    expiredResetLocation.searchParams.get('error') === 'INVALID_TOKEN' &&
+      !expiredResetLocation.searchParams.has('token'),
+    { error: expiredResetLocation.searchParams.get('error') },
   );
 
   if (failures.length > 0) {

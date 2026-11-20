@@ -187,7 +187,11 @@ describe('SimulatedInboxService', () => {
     const user = { id: eva.id, name: eva.name, email: eva.email } as never;
 
     await flows.emailAndPassword.sendResetPassword!(
-      { user, url: 'ignored', token: 'reset-t0k3n' },
+      {
+        user,
+        url: 'https://api.example/api/auth/reset-password/reset-t0k3n?callbackURL=',
+        token: 'reset-t0k3n',
+      },
       undefined,
     );
     await flows.emailVerification.sendVerificationEmail!(

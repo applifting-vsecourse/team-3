@@ -45,6 +45,7 @@ const renderForm = async () => {
   return { onSubmit }
 }
 
+const adult = () => screen.getByRole("checkbox", { name: "Je mi alespoň 18 let" })
 const terms = () => screen.getByRole("checkbox", { name: /^Souhlasím s podmínkami užívání/ })
 const privacy = () =>
   screen.getByRole("checkbox", { name: /^Beru na vědomí zpracování osobních údajů/ })
@@ -63,6 +64,7 @@ const fill = async ({
   await userEvent.type(screen.getByLabelText("Heslo"), password)
   await userEvent.type(screen.getByLabelText("Heslo znovu"), repeated)
   if (hasConsents) {
+    await userEvent.click(adult())
     await userEvent.click(terms())
     await userEvent.click(privacy())
   }
@@ -204,6 +206,18 @@ describe("SignUpForm (B-010, #153)", () => {
     ).not.toBeInTheDocument()
     expect(privacy()).toHaveAttribute("aria-invalid", "true")
     expect(onSubmit).not.toHaveBeenCalled()
+  })
+
+  it("refuses registration until age confirmation is checked", async () => {
+    const { onSubmit } = await renderForm()
+    await fill()
+    await userEvent.click(adult())
+    await submit()
+    expect(await screen.findByText("Potvrď, že ti je alespoň 18 let")).toBeInTheDocument()
+    expect(onSubmit).not.toHaveBeenCalled()
+    await userEvent.click(adult())
+    await submit()
+    expect(onSubmit).toHaveBeenCalledWith(expect.objectContaining({ ageConfirmed: true }))
   })
 
   it("a name with characters that don't belong in it is refused, saying which", async () => {
@@ -382,6 +396,7 @@ describe("SignUpForm (B-010, #153)", () => {
       password: "hobbyhub2026",
       termsAccepted: true,
       privacyAcknowledged: true,
+      ageConfirmed: true,
     })
   })
 

@@ -39,6 +39,7 @@ const schema = z
     privacyAcknowledged: z
       .boolean()
       .refine(Boolean, "Potvrď, že bereš na vědomí zpracování osobních údajů"),
+    ageConfirmed: z.boolean().refine(Boolean, "Potvrď, že ti je alespoň 18 let"),
   })
   // runs even while other fields are wrong, so the mismatch shows straight away
   .refine((values) => values.password === values.passwordConfirmation, {
@@ -58,6 +59,7 @@ const defaultValues: FormValues = {
   passwordConfirmation: "",
   termsAccepted: false,
   privacyAcknowledged: false,
+  ageConfirmed: false,
 }
 
 type SignUpFormProps = {
@@ -187,6 +189,12 @@ export function SignUpForm({ isLoading, errorMessage, onSubmit }: SignUpFormProp
         <div className="space-y-3 pt-2">
           <ConsentField
             control={form.control}
+            name="ageConfirmed"
+          >
+            Je mi alespoň 18 let
+          </ConsentField>
+          <ConsentField
+            control={form.control}
             name="termsAccepted"
           >
             Souhlasím s <LegalLink to={ROUTES.terms}>podmínkami užívání</LegalLink>
@@ -215,7 +223,7 @@ export function SignUpForm({ isLoading, errorMessage, onSubmit }: SignUpFormProp
 
 type ConsentFieldProps = {
   control: Control<FormValues>
-  name: "termsAccepted" | "privacyAcknowledged"
+  name: "termsAccepted" | "privacyAcknowledged" | "ageConfirmed"
   children: ReactNode
 }
 

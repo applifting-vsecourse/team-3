@@ -9,7 +9,8 @@ const MESSAGES: Record<string, string> = {
   PASSWORD_TOO_LONG: "Heslo je příliš dlouhé.",
   EMAIL_ALREADY_VERIFIED: "E-mail už je ověřený.",
   // the same for a wrong e-mail and a wrong password: it doesn't tell which accounts exist
-  INVALID_EMAIL_OR_PASSWORD: "Nesprávný e-mail nebo heslo.",
+  INVALID_EMAIL_OR_PASSWORD:
+    "Nesprávný e-mail nebo heslo. Používáš účet přes Google? Přihlas se přes Google nebo si nastav heslo přes „Zapomenuté heslo“.",
   INVALID_EMAIL: "Zadej platný e-mail.",
   // #236: only a verified e-mail signs in; the sign-in page shows „Ověř si e-mail“ instead
   EMAIL_NOT_VERIFIED: "Nejdřív si ověř e-mail. Otevři odkaz z e-mailu, nebo si pošli nový.",
@@ -26,6 +27,7 @@ const MESSAGES: Record<string, string> = {
   // ours too (#153)
   CONSENT_REQUIRED:
     "K registraci je potřeba souhlas s podmínkami užívání a potvrzení, že bereš na vědomí zpracování osobních údajů.",
+  AGE_CONFIRMATION_REQUIRED: "K registraci musíš potvrdit, že ti je alespoň 18 let.",
   INVALID_NAME: "Jméno může obsahovat jen písmena, mezery, pomlčky, apostrofy a tečky.",
 }
 

@@ -1,6 +1,7 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query"
 import { createMemoryHistory, createRouter, RouterProvider } from "@tanstack/react-router"
 import { render, screen, within } from "@testing-library/react"
+import userEvent from "@testing-library/user-event"
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest"
 
 import { router } from "@/app/router"
@@ -10,10 +11,16 @@ import type { Session } from "@/features/auth/api/authSessionQueryOptions"
 import { authClient } from "@/features/auth/lib/auth-client"
 
 vi.mock("@/features/auth/lib/auth-client", () => ({
-  authClient: { getSession: vi.fn() },
+  authClient: { getSession: vi.fn(), resetPassword: vi.fn() },
 }))
 
-const user = { id: "u1", email: "user@example.com", name: "Jana Nováková", emailVerified: true }
+const user = {
+  id: "u1",
+  email: "user@example.com",
+  name: "Jana Nováková",
+  emailVerified: true,
+  ageConfirmedAt: "2026-01-01T00:00:00.000Z",
+}
 
 /**
  * The app's own routes and pages on `url`, for a visitor or a signed-in user.
@@ -201,26 +208,89 @@ describe("router", () => {
       expect(app.state.location.pathname).toBe("/login")
     })
   })
+  describe("opening a password reset link (#345)", () => {
+    it("offers a new link immediately when the e-mail link expired or was used", async () => {
+      stubApi()
+      await renderApp("/reset-password?error=INVALID_TOKEN")
+
+      expect(await screen.findByText(/Odkaz vypršel, už se použil/)).toBeInTheDocument()
+      expect(screen.queryByLabelText("Nové heslo")).not.toBeInTheDocument()
+      expect(screen.getByRole("link", { name: "Poslat nový odkaz" })).toHaveAttribute(
+        "href",
+        "/zapomenute-heslo",
+      )
+    })
+
+    it("offers a new link when an older direct link is rejected on submit", async () => {
+      stubApi()
+      vi.mocked(authClient.resetPassword).mockResolvedValueOnce({
+        data: null,
+        error: {
+          code: "INVALID_TOKEN",
+          message: "Invalid token",
+          status: 400,
+          statusText: "Bad Request",
+        },
+      })
+      await renderApp("/reset-password?token=old-link")
+
+      await userEvent.type(await screen.findByLabelText("Nové heslo"), "nove-heslo-2026")
+      await userEvent.type(screen.getByLabelText("Nové heslo znovu"), "nove-heslo-2026")
+      await userEvent.click(screen.getByRole("button", { name: "Nastavit heslo" }))
+
+      expect(await screen.findByText(/Odkaz vypršel, už se použil/)).toBeInTheDocument()
+      expect(screen.queryByLabelText("Nové heslo")).not.toBeInTheDocument()
+      expect(screen.getByRole("link", { name: "Poslat nový odkaz" })).toHaveAttribute(
+        "href",
+        "/zapomenute-heslo",
+      )
+    })
+
+    it("takes the user to sign-in after saving the new password", async () => {
+      stubApi()
+      vi.mocked(authClient.resetPassword).mockResolvedValueOnce({
+        data: { status: true },
+        error: null,
+      })
+      const app = await renderApp("/reset-password?token=valid-link")
+
+      await userEvent.type(await screen.findByLabelText("Nové heslo"), "nove-heslo-2026")
+      await userEvent.type(screen.getByLabelText("Nové heslo znovu"), "nove-heslo-2026")
+      await userEvent.click(screen.getByRole("button", { name: "Nastavit heslo" }))
+
+      expect(await screen.findByRole("heading", { name: "Přihlášení" })).toBeInTheDocument()
+      expect(app.state.location.pathname).toBe("/login")
+      expect(app.history.length).toBe(1)
+    })
+  })
+
   // #198: what Google (through BetterAuth) sends back to the page the sign-in started on
   describe("back from Google with an error", () => {
-    it("on /signup: the Czech message offers signing up with the e-mail", async () => {
+    it("on /signup: a cancelled Google sign-up preserves the original destination", async () => {
       stubApi()
-      await renderApp("/signup?error=access_denied")
+      await renderApp("/signup?error=access_denied&from=%2Fakce%2Fukazka")
 
       expect(
         await screen.findByText(
           "Registrace přes Google je zrušená. Zkus to znovu, nebo se zaregistruj e-mailem.",
         ),
       ).toBeInTheDocument()
+      expect(screen.getByRole("link", { name: "Přihlas se" })).toHaveAttribute(
+        "href",
+        "/login?from=%2Fakce%2Fukazka",
+      )
     })
 
-    it("on /login: an error raised before BetterAuth reads the state gets the general sentence", async () => {
-      stubApi()
-      await renderApp("/login?error=state_not_found")
+    it.each(["state_not_found", "invalid_callback_request"])(
+      "on /login: a %s error gets a Czech explanation",
+      async (error) => {
+        stubApi()
+        await renderApp(`/login?error=${error}`)
 
-      expect(
-        await screen.findByText("Přihlášení přes Google se nepovedlo. Zkus to prosím znovu."),
-      ).toBeInTheDocument()
-    })
+        expect(
+          await screen.findByText("Přihlášení přes Google se nepovedlo. Zkus to prosím znovu."),
+        ).toBeInTheDocument()
+      },
+    )
   })
 })
