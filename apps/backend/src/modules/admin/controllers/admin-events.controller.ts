@@ -9,6 +9,8 @@ import {
   Param,
   Post,
   UseGuards,
+  UsePipes,
+  ValidationPipe,
 } from '@nestjs/common';
 import {
   ApiCookieAuth,
@@ -29,6 +31,15 @@ import { HideEventDto } from './dto/hide-event.dto';
 @ApiResponse({ status: 401, description: 'Not signed in' })
 @ApiResponse({ status: 403, description: 'NOT_ADMIN: not the superadmin' })
 @UseGuards(AdminGuard)
+// as every controller: there is no global pipe, without this the body went
+// unvalidated and untrimmed (review #380)
+@UsePipes(
+  new ValidationPipe({
+    whitelist: true,
+    forbidNonWhitelisted: true,
+    transform: true,
+  }),
+)
 @Controller('admin/events')
 export class AdminEventsController {
   constructor(private readonly moderation: EventModerationService) {}

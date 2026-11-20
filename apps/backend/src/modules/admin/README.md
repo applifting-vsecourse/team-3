@@ -3,7 +3,7 @@
 První nástřel superadmina: část B-063 bez fronty nahlášení (B-062). Superadmin je uživatel s `role = admin` (zakládá ho seed, viz README v kořeni repa).
 
 - `AdminGuard` (`shared/auth/guards/admin.guard.ts`) chrání všechny `/api/admin/*`: bez session 401, kdokoli jiný než superadmin (i zablokovaný superadmin) 403 `NOT_ADMIN`; jako `VerifiedUserGuard` (#107) 403 `AGE_CONFIRMATION_REQUIRED`, dokud nepotvrdí věk. Roli i věk čte z databáze, ne ze session.
-- `POST /api/admin/events/:id/hide` `{ reason }`: deaktivace akce (`status = hidden`). Jen zveřejněná akce, i proběhlá; zrušená ne (409 `EVENT_CANCELLED`), deaktivovaná podruhé ne (409 `EVENT_ALREADY_HIDDEN`). Důvod je povinný (max. 500 znaků) a zapíše se do historie: `ModerationAction` typu `hide_event`.
+- `POST /api/admin/events/:id/hide` `{ reason }`: deaktivace akce (`status = hidden`). Jen zveřejněná akce, i proběhlá; zrušená ne (409 `EVENT_CANCELLED`), deaktivovaná podruhé ne (409 `EVENT_ALREADY_HIDDEN`). Důvod je povinný: server ho ořízne a samé mezery odmítne (400 `Napiš důvod deaktivace.`, ve službě kód `REASON_REQUIRED`), max. 500 znaků se počítá po oříznutí (`REASON_TOO_LONG`), do historie (`ModerationAction` typu `hide_event`) jde oříznutý (review #380).
 - `POST /api/admin/events/:id/unhide`: obnovení, akce je zase `published` a u jejího `hide_event` se vyplní `revertedAt` a `revertedById`. Jen deaktivovaná akce (jinak 409 `EVENT_NOT_HIDDEN`).
 
 Deaktivace skupiny (B-051) zruší i její nadcházející deaktivované akce, stejně jako zveřejněné a se stejným důvodem; zrušenou akci obnovit nejde (409 `EVENT_NOT_HIDDEN`), takže obnovení nikdy nezveřejní akci neaktivní skupiny (review #380).

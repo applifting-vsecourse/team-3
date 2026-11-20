@@ -28,3 +28,25 @@ export function decideUnhide(status: ModeratedStatus): ModerationDecision {
     ? { ok: true }
     : { ok: false, refusal: 'EVENT_NOT_HIDDEN' };
 }
+
+/** The longest reason the history keeps (B-063, the same as cancelling). */
+export const MODERATION_REASON_MAX_LENGTH = 500;
+
+/** Why a reason was refused; the API answers 400 with the code. */
+export type ReasonRefusal = 'REASON_REQUIRED' | 'REASON_TOO_LONG';
+
+/**
+ * The reason as the history keeps it (#308, review #380): trimmed, then
+ * required (blanks are no reason) and at most 500 characters. The DTO checks
+ * the same; this keeps a blank reason out of `ModerationAction` whoever calls.
+ */
+export function moderationReason(
+  raw: string,
+): { ok: true; reason: string } | { ok: false; refusal: ReasonRefusal } {
+  const reason = raw.trim();
+  if (!reason) return { ok: false, refusal: 'REASON_REQUIRED' };
+  if (reason.length > MODERATION_REASON_MAX_LENGTH) {
+    return { ok: false, refusal: 'REASON_TOO_LONG' };
+  }
+  return { ok: true, reason };
+}

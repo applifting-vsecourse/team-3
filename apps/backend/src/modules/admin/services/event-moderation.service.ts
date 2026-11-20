@@ -2,10 +2,13 @@ import {
   decideHide,
   decideUnhide,
   ModerationDecision,
+  moderationReason,
   ModerationRefusal,
+  ReasonRefusal,
 } from '@/modules/admin/domain/event-moderation';
 import { EventModerationRepository } from '@/modules/admin/repositories/event-moderation.repository';
 import {
+  BadRequestException,
   ConflictException,
   Injectable,
   NotFoundException,
@@ -15,6 +18,11 @@ const REFUSAL_MESSAGES: Record<ModerationRefusal, string> = {
   EVENT_CANCELLED: 'Zrušenou akci deaktivovat nejde.',
   EVENT_ALREADY_HIDDEN: 'Akce už je deaktivovaná.',
   EVENT_NOT_HIDDEN: 'Akce není deaktivovaná.',
+};
+
+const REASON_MESSAGES: Record<ReasonRefusal, string> = {
+  REASON_REQUIRED: 'Napiš důvod deaktivace.',
+  REASON_TOO_LONG: 'Důvod může mít nejvýš 500 znaků.',
 };
 
 const answer = (decision: ModerationDecision | null): void => {
@@ -43,8 +51,21 @@ export class EventModerationService {
     adminId: string,
     reason: string,
   ): Promise<void> {
+    // trimmed and checked here too (review #380): a blank reason never reaches the history
+    const checked = moderationReason(reason);
+    if (!checked.ok) {
+      throw new BadRequestException({
+        code: checked.refusal,
+        message: REASON_MESSAGES[checked.refusal],
+      });
+    }
     answer(
-      await this.repository.hideEvent(eventId, adminId, reason, decideHide),
+      await this.repository.hideEvent(
+        eventId,
+        adminId,
+        checked.reason,
+        decideHide,
+      ),
     );
   }
 
