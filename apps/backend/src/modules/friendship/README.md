@@ -4,7 +4,7 @@ Uživatel se spojí s lidmi, které zná, a u přítele vidí, kam jde. Schvále
 
 ## Model
 
-`Friendship` (`friendship`): jedna žádost na dvojici lidí, bez ohledu na to, kdo žádal. `pairKey` jsou obě ID seřazená a spojená dvojtečkou (`friendshipPairKey`); unikátní index na něm hlídá dvojici v databázi, i když oba požádají ve stejnou chvíli. Stavy `pending` (žádost čeká), `accepted` (přátelé, `acceptedAt`), `rejected` (příjemce tiše odmítl). Při smazání účtu se záznam smaže.
+`Friendship` (`friendship`): jedna žádost na dvojici lidí, bez ohledu na to, kdo žádal. `pairKey` jsou obě ID seřazená a spojená dvojtečkou (`friendshipPairKey`); unikátní index na něm hlídá dvojici v databázi, i když oba požádají ve stejnou chvíli. Stavy `pending` (žádost čeká), `accepted` (přátelé, `acceptedAt`), `rejected` (příjemce tiše odmítl). Účet se v aplikaci maže jen nastavením `deletedAt`, takže záznam zůstane; smazané a zablokované účty se v seznamech nezobrazují, jejich profil vrací 404 a nová žádost na ně `USER_NOT_FOUND`. Kaskáda v databázi (`onDelete: Cascade`) platí jen pro skutečné smazání řádku uživatele.
 
 ## Pravidla
 

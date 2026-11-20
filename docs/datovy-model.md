@@ -91,7 +91,7 @@ erDiagram
 
 ### Přátelé (#307)
 
-`Friendship` drží jednu žádost na dvojici lidí, bez ohledu na to, kdo žádal: `requesterId`, `addresseeId`, `status` (`pending` / `accepted` / `rejected`), `acceptedAt`. Dvojici hlídá databáze: `pairKey` jsou obě ID seřazená a spojená dvojtečkou, s unikátním indexem (spolehlivější než unikátní index nad `LEAST`/`GREATEST`, který Prisma ve schématu neumí zapsat). `rejected` je tiché odmítnutí: odesílatel dál vidí odeslanou žádost a může ji zrušit, pak jde poslat znovu. Při smazání účtu se záznam smaže. Pravidla a API v [`modules/friendship/README.md`](../apps/backend/src/modules/friendship/README.md).
+`Friendship` drží jednu žádost na dvojici lidí, bez ohledu na to, kdo žádal: `requesterId`, `addresseeId`, `status` (`pending` / `accepted` / `rejected`), `acceptedAt`. Dvojici hlídá databáze: `pairKey` jsou obě ID seřazená a spojená dvojtečkou, s unikátním indexem (spolehlivější než unikátní index nad `LEAST`/`GREATEST`, který Prisma ve schématu neumí zapsat). `rejected` je tiché odmítnutí: odesílatel dál vidí odeslanou žádost a může ji zrušit, pak jde poslat znovu. Účet se maže jen nastavením `deletedAt`, takže záznam zůstane; smazané a zablokované účty se v seznamech přátel nezobrazují (kaskáda `onDelete: Cascade` platí jen pro skutečné smazání řádku). Pravidla a API v [`modules/friendship/README.md`](../apps/backend/src/modules/friendship/README.md).
 
 ## Akce a skupiny
 
