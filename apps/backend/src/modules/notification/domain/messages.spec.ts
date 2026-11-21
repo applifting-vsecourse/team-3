@@ -18,6 +18,7 @@ const event: NotifiedEvent = {
   approvedCount: 3,
   maxParticipants: 6,
   organizerId: 'u1',
+  emailOnJoin: false,
 };
 
 const context = (overrides: Partial<MessageContext> = {}): MessageContext => ({

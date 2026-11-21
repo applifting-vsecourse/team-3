@@ -66,6 +66,8 @@ export const composeEventInApp = (
         'request_received',
         `${name} se chce zúčastnit akce ${title}.`,
       );
+    case 'participant-joined':
+      return about('participant_joined', `${name} jde na akci ${title}.`);
     case 'participant-left':
       return about('participant_left', `${name} už na akci ${title} nejde.`);
     case 'request-decided':

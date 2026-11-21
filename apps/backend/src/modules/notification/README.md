@@ -10,19 +10,20 @@ this.notifications.notify({ type: 'event-cancelled', eventId });
 
 ## Kdo co dostane
 
-| Druh (`type`)        | Příjemci                                                  | Vyvolá ho                                                          |
-| -------------------- | --------------------------------------------------------- | ------------------------------------------------------------------ |
-| `request-decided`    | žadatelé, kterým organizátor žádost schválil/zamítl       | `EventsService.decideRequests`                                     |
-| `event-changed`      | schválení a čekající účastníci, ne organizátor            | `EventsService.updateEvent` (jen když se změnil termín nebo místo) |
-| `event-cancelled`    | schválení a čekající účastníci, ne organizátor; s důvodem | `EventsService.cancelEvent`                                        |
-| `request-received`   | organizátor; se zprávou žadatele (#175)                   | `EventsService.join` (žádost čeká na schválení)                    |
-| `participant-left`   | organizátor                                               | `EventsService.leave` (odhlásil se schválený účastník)             |
-| `group-announcement` | všichni aktivní členové skupiny, správci i autor          | `GroupsService.sendAnnouncement` (#194)                            |
-| `event-message`      | schválení účastníci, ne organizátor                       | `EventsService.sendMessage` (#176)                                 |
-| `group-join-request` | aktivní správci skupiny, ne žadatel; se zprávou žadatele | `GroupsService.join` (žádost do uzavřené skupiny, #86) |
-| `group-request-decided` | žadatel, kterému správce žádost o vstup schválil/zamítl | `GroupsService.approveRequest`, `rejectRequest` (#86) |
-| `friend-request`     | ten, koho žádám o přátelství (i při opakované žádosti)    | `FriendshipService.request` (#307, #86)                            |
-| `friend-accepted`    | ten, kdo o přátelství požádal                             | `FriendshipService.request` (přijetí, #307, #86)                   |
+| Druh (`type`)           | Příjemci                                                  | Vyvolá ho                                                          |
+| ----------------------- | --------------------------------------------------------- | ------------------------------------------------------------------ |
+| `request-decided`       | žadatelé, kterým organizátor žádost schválil/zamítl       | `EventsService.decideRequests`                                     |
+| `event-changed`         | schválení a čekající účastníci, ne organizátor            | `EventsService.updateEvent` (jen když se změnil termín nebo místo) |
+| `event-cancelled`       | schválení a čekající účastníci, ne organizátor; s důvodem | `EventsService.cancelEvent`                                        |
+| `request-received`      | organizátor; se zprávou žadatele (#175)                   | `EventsService.join` (žádost čeká na schválení)                    |
+| `participant-joined` | organizátor: v centru vždy, e-mailem jen když si u akce zapnul `emailOnJoin` | `EventsService.join` (místo hned, akce bez schvalování, #86) |
+| `participant-left`      | organizátor                                               | `EventsService.leave` (odhlásil se schválený účastník)             |
+| `group-announcement`    | všichni aktivní členové skupiny, správci i autor          | `GroupsService.sendAnnouncement` (#194)                            |
+| `event-message`         | schválení účastníci, ne organizátor                       | `EventsService.sendMessage` (#176)                                 |
+| `group-join-request`    | aktivní správci skupiny, ne žadatel; se zprávou žadatele  | `GroupsService.join` (žádost do uzavřené skupiny, #86)             |
+| `group-request-decided` | žadatel, kterému správce žádost o vstup schválil/zamítl   | `GroupsService.approveRequest`, `rejectRequest` (#86)              |
+| `friend-request`        | ten, koho žádám o přátelství (i při opakované žádosti)    | `FriendshipService.request` (#307, #86)                            |
+| `friend-accepted`       | ten, kdo o přátelství požádal                             | `FriendshipService.request` (přijetí, #307, #86)                   |
 
 Oznámení skupiny není o akci: e-mail má předmět „{skupina}: {předmět}“, nadpis a text jsou slova správce (odstavce podle prázdných řádků) a tlačítko „Stránka skupiny“ (Figma E-01, typ 8).
 

@@ -162,8 +162,13 @@ export class NotificationService {
     if (!event) return null;
     const { recipients, person } = await this.audienceOf(notification, event);
     if (recipients.length === 0) return null;
+    // a sign-up to an open event is e-mailed only to an organizer who asked for it (#86)
+    const emailed =
+      notification.type === 'participant-joined' && !event.emailOnJoin
+        ? []
+        : recipients;
     return {
-      recipients,
+      recipients: emailed,
       message: composeMessage(notification, {
         event,
         person,
@@ -340,6 +345,7 @@ export class NotificationService {
           person: null,
         };
       case 'request-received':
+      case 'participant-joined':
       case 'participant-left': {
         const personId =
           notification.type === 'request-received'

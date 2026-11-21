@@ -155,6 +155,27 @@ export const composeMessage = (
           action: { label: 'Zobrazit akci', url: page },
         },
       };
+    case 'participant-joined':
+      return {
+        subject: `Nová přihláška: ${event.title}`,
+        email: {
+          preview: `${name} jde na akci ${title}.`,
+          heading: 'Nová přihláška',
+          paragraphs: [`${name} jde na akci ${title}.`],
+          details: [
+            termin,
+            {
+              label: 'Přihlášených',
+              value: `${event.approvedCount} z ${event.maxParticipants}`,
+            },
+          ],
+          quote: null,
+          action: {
+            label: 'Spravovat akci',
+            url: eventUrl(frontendUrl, event.id, '/sprava'),
+          },
+        },
+      };
     case 'participant-left':
       return {
         subject: `Odhlášení z akce: ${event.title}`,

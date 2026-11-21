@@ -138,6 +138,7 @@ erDiagram
         event_level level "beginner / advanced / all"
         string equipment
         approval_mode approvalMode "open / approval"
+        boolean emailOnJoin "e-mail organizátorovi ke každé přihlášce (#86)"
         event_visibility visibility "public / private / members"
         string organizerUserId FK
         string groupId FK

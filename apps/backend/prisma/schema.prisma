@@ -382,6 +382,9 @@ model Event {
   level           EventLevel?
   equipment       String?
   approvalMode    ApprovalMode    @default(open)
+  /// Organizátor chce e-mail ke každé přihlášce na akci bez schvalování (#86);
+  /// upozornění v centru dostane vždy, žádosti o účast chodí e-mailem vždy.
+  emailOnJoin     Boolean         @default(false)
   visibility      EventVisibility @default(public)
   organizerUserId String
   organizer       User            @relation("EventOrganizer", fields: [organizerUserId], references: [id], onDelete: Restrict)

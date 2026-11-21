@@ -28,6 +28,7 @@ const event: NotifiedEvent = {
   approvedCount: 3,
   maxParticipants: 6,
   organizerId: 'u1',
+  emailOnJoin: false,
 };
 const jana = { name: 'Jana Nováková' };
 const when = {
@@ -46,6 +47,11 @@ describe('composeEventInApp', () => {
       },
       'request_received',
       'Jana Nováková se chce zúčastnit akce „Deskovky ve středu“.',
+    ],
+    [
+      { type: 'participant-joined', eventId: 'e1', participantId: 'u2' },
+      'participant_joined',
+      'Jana Nováková jde na akci „Deskovky ve středu“.',
     ],
     [
       { type: 'participant-left', eventId: 'e1', participantId: 'u2' },
@@ -100,6 +106,7 @@ describe('composeEventInApp', () => {
         message: 'Ahoj',
       },
       { type: 'participant-left', eventId: 'e1', participantId: 'u2' },
+      { type: 'participant-joined', eventId: 'e1', participantId: 'u2' },
       {
         type: 'request-decided',
         eventId: 'e1',

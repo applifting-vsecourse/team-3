@@ -180,6 +180,8 @@ export type NewEvent = {
   minParticipants: number;
   maxParticipants: number;
   approvalMode: 'open' | 'approval';
+  /** An e-mail to the organizer for each sign-up to an open event (#86). */
+  emailOnJoin: boolean;
   /** A group's event (B-055); null for a person's own. */
   groupId: string | null;
   /** `members` only for a group's event. */

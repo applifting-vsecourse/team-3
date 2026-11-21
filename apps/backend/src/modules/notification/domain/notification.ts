@@ -13,6 +13,8 @@ export type NotifiedEvent = {
   approvedCount: number;
   maxParticipants: number;
   organizerId: string;
+  /** The organizer wants an e-mail for each sign-up to the open event (#86). */
+  emailOnJoin: boolean;
 };
 
 /** What the e-mail of a group announcement needs to know of it (#194). */
@@ -75,6 +77,8 @@ export type Notification =
   | { type: 'event-changed'; eventId: string; change: EventChange }
   /** Everyone with a place or a request hears the event is cancelled, and why. */
   | { type: 'event-cancelled'; eventId: string }
+  /** The organizer hears somebody took a place in an open event (#86): in the centre always, by e-mail when they asked for it. */
+  | { type: 'participant-joined'; eventId: string; participantId: string }
   /** The organizer hears a participant gave up their place. */
   | { type: 'participant-left'; eventId: string; participantId: string }
   /** Every active member of the group hears what its admin announced (#194). */

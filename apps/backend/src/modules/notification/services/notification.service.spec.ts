@@ -30,6 +30,7 @@ const event: NotifiedEvent = {
   approvedCount: 3,
   maxParticipants: 6,
   organizerId: 'u1',
+  emailOnJoin: false,
 };
 
 const organizer: Recipient = {
@@ -614,6 +615,55 @@ describe('NotificationService.deliver: the centre (#86)', () => {
       type: 'friend-accepted',
       fromId: 'u1',
       toId: 'u2',
+    });
+
+    expect(repository.createInApp).not.toHaveBeenCalled();
+    expect(email.sendEmail).not.toHaveBeenCalled();
+  });
+
+  it('a sign-up to an open event: the organizer in the centre, no e-mail unless asked for', async () => {
+    const { repository, email, service } = setup();
+    repository.findRecipients.mockResolvedValue([organizer]);
+
+    await service.deliver({
+      type: 'participant-joined',
+      eventId: 'e1',
+      participantId: 'u2',
+    });
+
+    expect(repository.createInApp).toHaveBeenCalledWith(['u1'], {
+      type: 'participant_joined',
+      targetType: 'event',
+      targetId: 'e1',
+      text: 'Jana Nováková jde na akci „Deskovky ve středu“.',
+    });
+    expect(email.sendEmail).not.toHaveBeenCalled();
+  });
+
+  it('a sign-up to an open event is e-mailed to an organizer who asked for it', async () => {
+    const { repository, email, service } = setup();
+    repository.findEvent.mockResolvedValue({ ...event, emailOnJoin: true });
+    repository.findRecipients.mockResolvedValue([organizer]);
+
+    await service.deliver({
+      type: 'participant-joined',
+      eventId: 'e1',
+      participantId: 'u2',
+    });
+
+    expect(sentTo(email)).toEqual([organizer.email]);
+    expect(email.sendEmail.mock.calls[0]![1]).toBe(
+      'Nová přihláška: Deskovky ve středu',
+    );
+  });
+
+  it('the organizer signing up to their own event tells nobody', async () => {
+    const { repository, email, service } = setup();
+
+    await service.deliver({
+      type: 'participant-joined',
+      eventId: 'e1',
+      participantId: 'u1',
     });
 
     expect(repository.createInApp).not.toHaveBeenCalled();

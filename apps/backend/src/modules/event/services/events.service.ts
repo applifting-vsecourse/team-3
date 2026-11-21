@@ -655,13 +655,19 @@ export class EventsService {
     );
     if (!decision) throw new NotFoundException('Akce neexistuje.');
     if (!decision.ok) throw refused(decision.refusal);
-    // a request waits for the organizer, who hears of it (#177); joining at once has nobody to tell
+    // a request waits for the organizer, who hears of it (#177); a place at once too (#86)
     if (decision.status === 'pending') {
       this.notifications.notify({
         type: 'request-received',
         eventId,
         applicantId: userId,
         message,
+      });
+    } else {
+      this.notifications.notify({
+        type: 'participant-joined',
+        eventId,
+        participantId: userId,
       });
     }
     return this.getEventDetail(eventId, userId, now);

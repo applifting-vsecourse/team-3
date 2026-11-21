@@ -30,6 +30,7 @@ export class NotificationRepository {
         cancelReason: true,
         maxParticipants: true,
         organizerUserId: true,
+        emailOnJoin: true,
         _count: {
           select: { participations: { where: { status: 'approved' } } },
         },

@@ -703,6 +703,7 @@ describe('EventsService.createEvent', () => {
     minParticipants: 3,
     maxParticipants: 6,
     approvalMode: 'open',
+    emailOnJoin: false,
     groupId: null,
     visibility: 'public',
     ...overrides,
@@ -1758,7 +1759,7 @@ describe('EventsService notifications (#177)', () => {
       });
     });
 
-    it('joining at once has nobody to tell', async () => {
+    it('joining at once tells the organizer of the new participant (#86)', async () => {
       const { repository, notifications, service } = setup();
       repository.join.mockImplementation(async (_e, _u, _m, decide) =>
         decide(joinState('open')),
@@ -1766,7 +1767,11 @@ describe('EventsService notifications (#177)', () => {
 
       await service.join('e1', 'u9', null, now);
 
-      expect(notifications.notify).not.toHaveBeenCalled();
+      expect(notifications.notify).toHaveBeenCalledWith({
+        type: 'participant-joined',
+        eventId: 'e1',
+        participantId: 'u9',
+      });
     });
 
     it('a refused request says nothing', async () => {
@@ -1863,6 +1868,7 @@ describe('EventsService notifications (#177)', () => {
       approvedCount: 2,
       maxParticipants: 6,
       organizerId: 'u1',
+      emailOnJoin: false,
     });
     notificationRepository.findAudience.mockResolvedValue([
       { id: 'u2', name: 'Jana', email: 'jana@example.com' },
