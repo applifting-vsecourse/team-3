@@ -1,3 +1,4 @@
+import { byCzechName } from '@/shared/text/czech-order';
 import { Prisma } from '@/generated/prisma/client';
 import type { RatingSummary } from '@/modules/rating/domain/rating-summary';
 
@@ -49,10 +50,13 @@ export function selfProfile(row: ProfileRow): SelfProfile {
     emailVerified: row.emailVerified,
     hasPassword: row.accounts.length > 0,
     homeLocality: row.homeLocality,
-    interests: row.interests.map(({ activity }) => ({
-      id: activity.id,
-      name: activity.name,
-    })),
+    // in Czech order, not the database's (#370)
+    interests: byCzechName(
+      row.interests.map(({ activity }) => ({
+        id: activity.id,
+        name: activity.name,
+      })),
+    ),
   };
 }
 export type ProfileRating = {

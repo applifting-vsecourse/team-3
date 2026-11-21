@@ -14,6 +14,7 @@ import {
   Membership,
   MembershipStatus,
   MyGroup,
+  orderGroupsByName,
   RecruitingGroup,
 } from '@/modules/group/domain/group';
 import {
@@ -95,14 +96,26 @@ export class GroupRepository {
     filters: GroupFilters;
     limit: number;
   }): Promise<GroupSummary[]> {
-    const groups = await this.prisma.group.findMany({
+    // Czech order (#370): the database's collation puts Š after Z, so the names
+    // are ordered here and only the first `limit` are loaded whole
+    const candidates = await this.prisma.group.findMany({
       where: buildActiveGroupsWhere(query.filters),
-      include: summaryInclude,
-      // id breaks ties so the cut-off at `limit` is stable
-      orderBy: [{ name: 'asc' }, { id: 'asc' }],
-      take: query.limit,
+      select: { id: true, name: true },
     });
-    return groups.map(toSummary);
+    const ids = orderGroupsByName(candidates)
+      .slice(0, query.limit)
+      .map(({ id }) => id);
+    if (!ids.length) return [];
+    const groups = await this.prisma.group.findMany({
+      where: { id: { in: ids } },
+      include: summaryInclude,
+    });
+    const byId = new Map(groups.map((group) => [group.id, group]));
+    // a group deleted between the two queries drops out
+    return ids.flatMap((id) => {
+      const group = byId.get(id);
+      return group ? [toSummary(group)] : [];
+    });
   }
 
   /**

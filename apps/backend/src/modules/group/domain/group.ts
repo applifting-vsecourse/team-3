@@ -1,3 +1,4 @@
+import { compareCzech } from '@/shared/text/czech-order';
 export const GROUP_TYPES = ['public', 'closed'] as const;
 /** `public`: anyone joins at once; `closed`: membership is requested and an admin approves it (#46). */
 export type GroupType = (typeof GROUP_TYPES)[number];
@@ -81,5 +82,18 @@ export const sortMyGroups = (groups: MyGroup[]): MyGroup[] =>
     (a, b) =>
       Number(b.membership.status === 'pending') -
         Number(a.membership.status === 'pending') ||
-      a.name.localeCompare(b.name, 'cs'),
+      compareCzech(a.name, b.name),
+  );
+
+/**
+ * /skupiny (#370): by name in Czech order (Š between S and T), the id breaking
+ * ties, so the cut-off at the list's limit takes the groups in the order shown.
+ */
+export const orderGroupsByName = <T extends { id: string; name: string }>(
+  groups: readonly T[],
+): T[] =>
+  [...groups].sort(
+    (a, b) =>
+      compareCzech(a.name, b.name) ||
+      (a.id < b.id ? -1 : a.id > b.id ? 1 : 0),
   );

@@ -1,3 +1,4 @@
+import { byCzechName } from '@/shared/text/czech-order';
 import type { Prisma } from '@/generated/prisma/client';
 import { eventOverWhere, isEventOver } from '@/modules/event/domain/event-over';
 import {
@@ -121,10 +122,13 @@ export function publicProfile(
   return {
     id: user.id,
     name: user.name,
-    interests: user.interests.map(({ activity }) => ({
-      id: activity.id,
-      name: activity.name,
-    })),
+    // in Czech order, not the database's (#370)
+    interests: byCzechName(
+      user.interests.map(({ activity }) => ({
+        id: activity.id,
+        name: activity.name,
+      })),
+    ),
     participantSummary: participantRatingSummary(received),
     organizerSummary: organizerRatingSummary(personal),
     eventSummary: summarizeStars(personal.map((row) => row.eventStars)),

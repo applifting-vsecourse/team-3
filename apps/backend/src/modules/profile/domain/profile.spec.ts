@@ -48,3 +48,17 @@ describe('private profile projection (#178)', () => {
     );
   });
 });
+
+describe('interests in Czech order (#370)', () => {
+  it('Š between S and T, not after Z as the database has it', () => {
+    const interests = ['Tenis', 'Šachy', 'Zumba', 'Squash'].map((name) => ({
+      activity: { id: name, name },
+    }));
+
+    expect(
+      selfProfile({ ...ownerRow(), interests }).interests.map(
+        ({ name }) => name,
+      ),
+    ).toEqual(['Squash', 'Šachy', 'Tenis', 'Zumba']);
+  });
+});
