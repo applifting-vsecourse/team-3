@@ -31,6 +31,32 @@ describe("EventCard", () => {
     expect(container.querySelector("[data-slot=capacity-track]")).toHaveClass("h-1.5")
   })
 
+  it.each(["row", "responsive"] as const)(
+    "%s leaves room for a long badge and moves the bar to the next line when needed",
+    async (variant) => {
+      const longTitle = "DruhéSetkáníDobrovolníkůZKampusuProÚklidOkolí"
+      const { container } = await renderWithRouter(
+        <EventCard
+          event={{ ...withActivity(florbal), title: longTitle }}
+          variant={variant}
+          status={{ kind: "pending" }}
+        />,
+      )
+
+      expect(screen.getByRole("heading", { name: longTitle })).toHaveClass("wrap-anywhere")
+      const badge = screen.getByText("Čeká na schválení")
+      expect(badge).toHaveClass("max-w-full", "whitespace-normal")
+      const track = container.querySelector("[data-slot=capacity-track]")
+      expect(track?.parentElement).toHaveClass("min-w-[min(4rem,100%)]")
+      expect(track?.parentElement?.parentElement).toBe(badge.parentElement)
+      expect(badge.parentElement).toHaveClass("flex-wrap")
+      expect(screen.getByText("17:30 · Kavárna Pražírna · Praha 8")).toHaveClass(
+        "min-w-0",
+        "line-clamp-2",
+      )
+    },
+  )
+
   // Figma Karta akce/Foto
   it("grid: the big date tile with the time, place · district, the numbers and the bar", async () => {
     const { container } = await renderWithRouter(
