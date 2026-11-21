@@ -12,4 +12,12 @@ describe("NotFound", () => {
     expect(screen.getByRole("link", { name: "Procházet akce" })).toHaveAttribute("href", "/akce")
     expect(screen.getByRole("link", { name: "Na úvod" })).toHaveAttribute("href", "/")
   })
+
+  // #370: starts with the band like every page (DESIGN.md › Layout)
+  it("puts the title and its line in the band", async () => {
+    await renderWithRouter(<NotFound />)
+
+    const band = screen.getByRole("heading", { level: 1 }).closest(".border-hero")
+    expect(band).toHaveTextContent("Odkaz je neplatný, nebo stránka už neexistuje.")
+  })
 })
