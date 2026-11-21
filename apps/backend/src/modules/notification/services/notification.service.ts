@@ -5,16 +5,19 @@ import {
   composeAnnouncementInApp,
   composeEventInApp,
   composeEventMessageInApp,
+  composeFriendInApp,
   InAppMessage,
 } from '@/modules/notification/domain/in-app';
 import {
   composeAnnouncement,
   ComposedMessage,
   composeEventMessage,
+  composeFriendMessage,
   composeMessage,
 } from '@/modules/notification/domain/messages';
 import {
   EventNotification,
+  FriendNotification,
   Notification,
   NotifiedEvent,
   Recipient,
@@ -44,6 +47,9 @@ const aboutOf = (notification: Notification): string => {
       return `oznámení ${notification.announcementId}`;
     case 'event-message':
       return `akce ${notification.eventId}, zpráva ${notification.messageId}`;
+    case 'friend-request':
+    case 'friend-accepted':
+      return `uživatel ${notification.fromId} → ${notification.toId}`;
     default:
       return `akce ${notification.eventId}`;
   }
@@ -116,7 +122,10 @@ export class NotificationService {
           ? await this.prepareAnnouncement(notification.announcementId)
           : notification.type === 'event-message'
             ? await this.prepareEventMessage(notification.messageId)
-            : await this.prepareEventNotification(notification);
+            : notification.type === 'friend-request' ||
+                notification.type === 'friend-accepted'
+              ? await this.prepareFriendNotification(notification)
+              : await this.prepareEventNotification(notification);
       if (!prepared) return;
       // the centre first: it doesn't wait for the mail provider
       await this.store(notification, prepared);
@@ -198,6 +207,32 @@ export class NotificationService {
       recipients,
       message: composeEventMessage(message, this.config.frontendUrl),
       inApp: composeEventMessageInApp(message),
+      inAppRecipientIds: recipients.map(({ id }) => id),
+    };
+  }
+
+  /**
+   * Friends (#307, #86): the one asked hears of a request, the one who asked
+   * of the acceptance; the e-mail names the other person. Null when either
+   * of them can't be written to or named (blocked, deleted, gone).
+   */
+  private async prepareFriendNotification(
+    notification: FriendNotification,
+  ): Promise<Prepared | null> {
+    const [recipients, name] = await Promise.all([
+      this.repository.findRecipients([notification.toId]),
+      this.repository.findPersonName(notification.fromId),
+    ]);
+    if (recipients.length === 0 || name === null) return null;
+    const person = { id: notification.fromId, name };
+    return {
+      recipients,
+      message: composeFriendMessage(
+        notification,
+        person,
+        this.config.frontendUrl,
+      ),
+      inApp: composeFriendInApp(notification, person),
       inAppRecipientIds: recipients.map(({ id }) => id),
     };
   }

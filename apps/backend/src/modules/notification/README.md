@@ -19,6 +19,8 @@ this.notifications.notify({ type: 'event-cancelled', eventId });
 | `participant-left`   | organizátor                                               | `EventsService.leave` (odhlásil se schválený účastník)             |
 | `group-announcement` | všichni aktivní členové skupiny, správci i autor          | `GroupsService.sendAnnouncement` (#194)                            |
 | `event-message`      | schválení účastníci, ne organizátor                       | `EventsService.sendMessage` (#176)                                 |
+| `friend-request` | ten, koho žádám o přátelství (i při opakované žádosti) | `FriendshipService.request` (#307, #86) |
+| `friend-accepted` | ten, kdo o přátelství požádal | `FriendshipService.request` (přijetí, #307, #86) |
 
 Oznámení skupiny není o akci: e-mail má předmět „{skupina}: {předmět}“, nadpis a text jsou slova správce (odstavce podle prázdných řádků) a tlačítko „Stránka skupiny“ (Figma E-01, typ 8).
 
@@ -46,12 +48,12 @@ Každá událost výše zapíše před odesláním e-mailů i upozornění do ce
 
 API (jen přihlášený, vždy jen vlastní upozornění: dotazy jsou omezené na uživatele ze session, cizí id vrátí 404 `NOTIFICATION_NOT_FOUND`, stejně jako neexistující):
 
-| Endpoint                              | Co vrátí                                                                       |
-| ------------------------------------- | ------------------------------------------------------------------------------ |
+| Endpoint                              | Co vrátí                                                                                                 |
+| ------------------------------------- | -------------------------------------------------------------------------------------------------------- |
 | `GET /api/notifications`              | 50 nejnovějších (`id`, `type`, `text`, `path`, `createdAt`, `readAt`) a `unreadCount` všech nepřečtených |
-| `GET /api/notifications/unread-count` | `{ count }` pro číslo u zvonku                                                 |
-| `POST /api/notifications/:id/read`    | 204; přečtené už jednou zůstane se svým časem                                  |
-| `POST /api/notifications/read-all`    | `{ marked }`, kolik jich bylo nepřečtených                                     |
+| `GET /api/notifications/unread-count` | `{ count }` pro číslo u zvonku                                                                           |
+| `POST /api/notifications/:id/read`    | 204; přečtené už jednou zůstane se svým časem                                                            |
+| `POST /api/notifications/read-all`    | `{ marked }`, kolik jich bylo nepřečtených                                                               |
 
 Nový druh do centra: přidej hodnotu do `notification_type` (migrace) a `InAppType`, text do `domain/in-app.ts` a cestu do `notificationPath`.
 

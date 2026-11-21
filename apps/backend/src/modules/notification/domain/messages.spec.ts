@@ -1,6 +1,7 @@
 import {
   composeAnnouncement,
   composeEventMessage,
+  composeFriendMessage,
   composeMessage,
   MessageContext,
 } from './messages';
@@ -394,6 +395,36 @@ describe('composeMessage', () => {
       expect(composed.email.preview).toBe(
         'Sraz v 17:50 u vchodu. Vezmi si sálovky. Míče mám.',
       );
+    });
+  });
+});
+
+describe('composeFriendMessage (#307, #86)', () => {
+  const petr = { id: 'u7', name: 'Petr Malý' };
+
+  it('a request leads to the requests waiting for the user', () => {
+    const message = composeFriendMessage(
+      { type: 'friend-request', fromId: 'u7', toId: 'u1' },
+      petr,
+      'https://hobbyhub.example/',
+    );
+    expect(message.subject).toBe('Žádost o přátelství: Petr Malý');
+    expect(message.email.action).toEqual({
+      label: 'Zobrazit žádost',
+      url: 'https://hobbyhub.example/profil/pratele?tab=zadosti',
+    });
+  });
+
+  it('an acceptance leads to the new friend’s profile', () => {
+    const message = composeFriendMessage(
+      { type: 'friend-accepted', fromId: 'u7', toId: 'u1' },
+      petr,
+      'https://hobbyhub.example/',
+    );
+    expect(message.subject).toBe('Jste přátelé: Petr Malý');
+    expect(message.email.action).toEqual({
+      label: 'Zobrazit profil',
+      url: 'https://hobbyhub.example/uzivatele/u7',
     });
   });
 });

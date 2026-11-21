@@ -3,6 +3,7 @@ import { formatRange } from './format-when';
 import {
   EventChange,
   EventNotification,
+  FriendNotification,
   NotifiedAnnouncement,
   NotifiedEvent,
   NotifiedEventMessage,
@@ -241,3 +242,52 @@ export const composeEventMessage = (
     },
   },
 });
+
+/**
+ * Friends (#307, #86): a request leads to the requests waiting for the
+ * user, an acceptance to the new friend's profile. The first line is the
+ * upozornění in the centre, word for word.
+ */
+export const composeFriendMessage = (
+  notification: FriendNotification,
+  person: { id: string; name: string },
+  frontendUrl: string,
+): ComposedMessage =>
+  notification.type === 'friend-request'
+    ? {
+        subject: `Žádost o přátelství: ${person.name}`,
+        email: {
+          preview: `${person.name} ti posílá žádost o přátelství.`,
+          heading: 'Nová žádost o přátelství',
+          paragraphs: [
+            `${person.name} ti posílá žádost o přátelství.`,
+            'Když ji přijmeš, uvidíte navzájem, na které akce jdete.',
+          ],
+          details: [],
+          quote: null,
+          action: {
+            label: 'Zobrazit žádost',
+            url: new URL('/profil/pratele?tab=zadosti', frontendUrl).toString(),
+          },
+        },
+      }
+    : {
+        subject: `Jste přátelé: ${person.name}`,
+        email: {
+          preview: `${person.name} a ty jste teď přátelé.`,
+          heading: 'Jste přátelé',
+          paragraphs: [
+            `${person.name} a ty jste teď přátelé.`,
+            'Na profilu teď uvidíš, na které akce jde.',
+          ],
+          details: [],
+          quote: null,
+          action: {
+            label: 'Zobrazit profil',
+            url: new URL(
+              `/uzivatele/${encodeURIComponent(person.id)}`,
+              frontendUrl,
+            ).toString(),
+          },
+        },
+      };

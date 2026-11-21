@@ -80,7 +80,17 @@ export type Notification =
   /** Every active member of the group hears what its admin announced (#194). */
   | { type: 'group-announcement'; announcementId: string }
   /** Every approved participant hears what the organizer wrote them (#176). */
-  | { type: 'event-message'; eventId: string; messageId: string };
+  | { type: 'event-message'; eventId: string; messageId: string }
+  /** Somebody asks to be friends (#307, #86); a request sent again too. */
+  | { type: 'friend-request'; fromId: string; toId: string }
+  /** The one asked accepted: `fromId` accepted the request of `toId`. */
+  | { type: 'friend-accepted'; fromId: string; toId: string };
+
+/** What friends hear about each other (#307, #86). */
+export type FriendNotification = Extract<
+  Notification,
+  { type: 'friend-request' } | { type: 'friend-accepted' }
+>;
 
 /**
  * The notifications about something that happened to an event: not the
@@ -89,7 +99,9 @@ export type Notification =
  */
 export type EventNotification = Exclude<
   Notification,
-  { type: 'group-announcement' } | { type: 'event-message' }
+  | { type: 'group-announcement' }
+  | { type: 'event-message' }
+  | FriendNotification
 >;
 
 export type NotificationType = Notification['type'];

@@ -1,6 +1,7 @@
 import { whatChanged } from './messages';
 import {
   EventNotification,
+  FriendNotification,
   NotifiedAnnouncement,
   NotifiedEvent,
   NotifiedEventMessage,
@@ -104,6 +105,28 @@ export const composeAnnouncementInApp = (
   targetId: announcement.group.id,
   text: `Nové oznámení ve skupině ${quoted(announcement.group.name)}: ${announcement.subject}`,
 });
+
+/**
+ * Friends (#307): a request names who asks, an acceptance who accepted;
+ * both point at that person (`friend_request` leads to the requests).
+ */
+export const composeFriendInApp = (
+  notification: FriendNotification,
+  person: { id: string; name: string },
+): InAppMessage =>
+  notification.type === 'friend-request'
+    ? {
+        type: 'friend_request',
+        targetType: 'user',
+        targetId: person.id,
+        text: `${person.name} ti posílá žádost o přátelství.`,
+      }
+    : {
+        type: 'friend_accepted',
+        targetType: 'user',
+        targetId: person.id,
+        text: `${person.name} a ty jste teď přátelé.`,
+      };
 
 /**
  * Where a click on the upozornění leads, in the frontend. The organizer's

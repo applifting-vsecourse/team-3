@@ -2,10 +2,11 @@ import {
   composeAnnouncementInApp,
   composeEventInApp,
   composeEventMessageInApp,
+  composeFriendInApp,
   InAppType,
   notificationPath,
 } from './in-app';
-import { composeMessage } from './messages';
+import { composeFriendMessage, composeMessage } from './messages';
 import { EventNotification, NotifiedEvent } from './notification';
 
 const event: NotifiedEvent = {
@@ -164,6 +165,48 @@ describe('composeEventMessageInApp and composeAnnouncementInApp', () => {
       targetId: 'g1',
       text: 'Nové oznámení ve skupině „Volejbal Pankrác“: Turnaj v sobotu',
     });
+  });
+});
+
+describe('composeFriendInApp (#307)', () => {
+  const petr = { id: 'u7', name: 'Petr Malý' };
+
+  it('a request names who asks and is the e-mail’s first line', () => {
+    const notification = {
+      type: 'friend-request',
+      fromId: 'u7',
+      toId: 'u1',
+    } as const;
+    const inApp = composeFriendInApp(notification, petr);
+    expect(inApp).toEqual({
+      type: 'friend_request',
+      targetType: 'user',
+      targetId: 'u7',
+      text: 'Petr Malý ti posílá žádost o přátelství.',
+    });
+    expect(
+      composeFriendMessage(notification, petr, 'https://hobbyhub.example/')
+        .email.preview,
+    ).toBe(inApp.text);
+  });
+
+  it('an acceptance names who accepted and is the e-mail’s first line', () => {
+    const notification = {
+      type: 'friend-accepted',
+      fromId: 'u7',
+      toId: 'u1',
+    } as const;
+    const inApp = composeFriendInApp(notification, petr);
+    expect(inApp).toEqual({
+      type: 'friend_accepted',
+      targetType: 'user',
+      targetId: 'u7',
+      text: 'Petr Malý a ty jste teď přátelé.',
+    });
+    expect(
+      composeFriendMessage(notification, petr, 'https://hobbyhub.example/')
+        .email.preview,
+    ).toBe(inApp.text);
   });
 });
 

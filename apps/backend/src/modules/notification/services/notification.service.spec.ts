@@ -527,6 +527,42 @@ describe('NotificationService.deliver: the centre (#86)', () => {
     });
   });
 
+  it('a friend request: the one asked, by e-mail and in the centre, naming who asks', async () => {
+    const { repository, email, service } = setup();
+    repository.findRecipients.mockResolvedValue([jana]);
+    repository.findPersonName.mockResolvedValue('Petra');
+
+    await service.deliver({ type: 'friend-request', fromId: 'u1', toId: 'u2' });
+
+    expect(repository.findRecipients).toHaveBeenCalledWith(['u2']);
+    expect(repository.findPersonName).toHaveBeenCalledWith('u1');
+    expect(repository.findEvent).not.toHaveBeenCalled();
+    expect(repository.createInApp).toHaveBeenCalledWith(['u2'], {
+      type: 'friend_request',
+      targetType: 'user',
+      targetId: 'u1',
+      text: 'Petra ti posílá žádost o přátelství.',
+    });
+    expect(sentTo(email)).toEqual([jana.email]);
+    expect(email.sendEmail.mock.calls[0]![1]).toBe(
+      'Žádost o přátelství: Petra',
+    );
+  });
+
+  it('a friend who can’t be written to (blocked, deleted) gets nothing', async () => {
+    const { repository, email, service } = setup();
+    repository.findRecipients.mockResolvedValue([]);
+
+    await service.deliver({
+      type: 'friend-accepted',
+      fromId: 'u1',
+      toId: 'u2',
+    });
+
+    expect(repository.createInApp).not.toHaveBeenCalled();
+    expect(email.sendEmail).not.toHaveBeenCalled();
+  });
+
   it('nobody to tell writes nothing', async () => {
     const { repository, service } = setup();
 

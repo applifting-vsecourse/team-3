@@ -11,6 +11,7 @@ import {
   type FriendshipState,
 } from '@/modules/friendship/domain/friendship';
 import { FriendshipRepository } from '@/modules/friendship/repositories/friendship.repository';
+import { NotificationService } from '@/modules/notification/services/notification.service';
 import {
   BadRequestException,
   ConflictException,
@@ -59,12 +60,16 @@ const userNotFound = (): HttpException =>
  * asking at once), the action is decided once more from a fresh read. Each answers with how the
  * viewer stands to the other afterwards, for the profile's button.
  *
- * Notifications (#86): a new request and an accepted one are where the upozornění will be sent;
- * a rejection and a removal stay silent (decided 18. 11.).
+ * Notifications (#86): a new request (also one sent again) tells the other, an acceptance tells
+ * the one who asked, in the centre and by e-mail; a rejection and a removal stay silent
+ * (decided 18. 11.).
  */
 @Injectable()
 export class FriendshipService {
-  constructor(private readonly repository: FriendshipRepository) {}
+  constructor(
+    private readonly repository: FriendshipRepository,
+    private readonly notifications: NotificationService,
+  ) {}
 
   /** „Přidat do přátel“: a request, or accepting the other's (one row per pair). */
   async request(
@@ -84,8 +89,16 @@ export class FriendshipService {
           : decision.action === 'accept'
             ? await this.repository.accept(viewerId, otherId, now)
             : await this.repository.resend(viewerId, otherId, now);
-      // #86: upozornění – a request (create, resend) to the other, an acceptance to them
-      if (done) return decision.action === 'accept' ? 'friends' : 'outgoing';
+      if (done) {
+        // only the write that happened tells the other, after it is written (#86)
+        this.notifications.notify({
+          type:
+            decision.action === 'accept' ? 'friend-accepted' : 'friend-request',
+          fromId: viewerId,
+          toId: otherId,
+        });
+        return decision.action === 'accept' ? 'friends' : 'outgoing';
+      }
     }
     // the state kept changing under us: answer with where it is now
     return this.state(viewerId, otherId);
