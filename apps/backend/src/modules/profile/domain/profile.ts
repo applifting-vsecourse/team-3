@@ -70,7 +70,7 @@ export type ProfileRating = {
 /**
  * How many ratings per role the profile overview loads; all of them are counted
  * in `…Summary.count`. The profile shows the latest three (Figma B-05) and the
- * rest on „Zobrazit všechna“ (#370), so a list there ends somewhere.
+ * rest on „Zobrazit další“ (#370), so a list there ends somewhere.
  */
 export const PROFILE_OVERVIEW_TAKE = 50;
 /**

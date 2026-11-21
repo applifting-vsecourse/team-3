@@ -55,7 +55,7 @@ export function HighlightedTitle({
   )
 }
 
-/** The latest few of a role's ratings, the rest on „Zobrazit všechna“ (#370). */
+/** The latest few of a role's ratings, the rest on „Zobrazit další“ (#370). */
 const PREVIEW_COUNT = 3
 
 /** How much the API left out of a list: past its limit (PROFILE_OVERVIEW_TAKE), none are loaded. */
