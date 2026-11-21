@@ -90,9 +90,10 @@ export function PastEventCard({
   ]
     .flat()
     .filter((part): part is string => Boolean(part))
-    // each part whole, the line breaks only between them: „Sešli se 4 lidé · tvoje ★ 5“, never
-    // „Sešli se / 4 lidé“ or „tvoje ★ / 5“ (#367, #370)
-    .map((part) => part.replaceAll(" ", NO_BREAK_SPACE))
+    // a number stays with its words, so the line never breaks „Sešli se / 4 lidé“ or
+    // „tvoje ★ / 5“ (#367, #370); the other spaces may break, or „Do minima chybělo 10 lidí“
+    // would run out of a 320 px card (review #395)
+    .map((part) => part.replace(/(?<=[\d★]) | (?=[\d★(])/g, NO_BREAK_SPACE))
     .join(" · ")
 
   return (
