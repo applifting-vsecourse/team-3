@@ -27,14 +27,7 @@ type AuthLayoutProps = {
  * would be noise. The title and the line sit in the band on desktop; a phone
  * starts with the title on the page (Figma B-03).
  */
-export function AuthLayout({
-  title,
-  description,
-  children,
-  footer,
-  aside,
-  back,
-}: AuthLayoutProps) {
+export function AuthLayout({ title, description, children, footer, aside, back }: AuthLayoutProps) {
   return (
     <>
       <Header userMenu={null} />

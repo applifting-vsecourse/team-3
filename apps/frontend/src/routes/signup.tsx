@@ -75,7 +75,7 @@ function SignUpPage() {
         <Seo title="Ověř si e-mail" />
         <AuthLayout
           aside={<UpcomingEvents />}
-        back={authBackLink(from)}
+          back={authBackLink(from)}
           title="Ověř si e-mail"
           // the same for an address that already has an account: it doesn't tell which do
           description={`Odkaz k ověření jsme poslali na ${signedUp.email}. Jestli už tu účet máš, rovnou se přihlas.`}

@@ -308,7 +308,9 @@ describe("/akce/:id/hodnoceni for a participant (Figma C-03, #66)", () => {
     )
     await renderPage()
 
-    expect(await screen.findByRole("heading", { level: 3, name: "Volejbal na Letné" })).toBeInTheDocument()
+    expect(
+      await screen.findByRole("heading", { level: 3, name: "Volejbal na Letné" }),
+    ).toBeInTheDocument()
     expect(screen.getByText(/^Volejbal na Letné · Po 19\. 10\. · /)).toBeInTheDocument()
     expect(screen.getByText("Tuhle akci hodnotit nemůžeš")).toBeInTheDocument()
   })

@@ -80,7 +80,7 @@ function LoginPage() {
         <Seo title="Ověř si e-mail" />
         <AuthLayout
           aside={<UpcomingEvents />}
-        back={authBackLink(from)}
+          back={authBackLink(from)}
           title="Ověř si e-mail"
           description={`E-mail ${unverified.email} zatím není ověřený a bez toho se přihlásit nejde.`}
           footer={
