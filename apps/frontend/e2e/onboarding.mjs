@@ -911,11 +911,25 @@ try {
         await keyboard(/^Brno(?:$|\s)/)
         await dialogTitle("Co tě baví?")
         const card = findControl("Volejbal")
+        await until(
+          `(() => {
+            const element = ${card};
+            return Boolean(element && element.closest(".hh-wizard-stage").getAnimations({ subtree: true })
+              .every((animation) => animation.playState !== "running"));
+          })()`,
+          "The activity gallery did not settle",
+        )
         const center = await safeCenter(card)
-        await send("Input.dispatchMouseEvent", { ...center, type: "mouseMoved" })
+        if (await evaluate('matchMedia("(hover: hover)").matches')) {
+          await send("Input.dispatchMouseEvent", { ...center, type: "mouseMoved" })
+        } else {
+          // Headless Chromium can report no hover-capable pointer at a desktop viewport.
+          // The same zoom is exposed through visible keyboard focus.
+          await evaluate(`(${card}).focus({ preventScroll: true })`)
+        }
         await until(
           `parseFloat(getComputedStyle((${card}).querySelector("img")).scale) > 1.03`,
-          "Card photo did not react to pointer hover after the entrance animation",
+          "Card photo did not react to hover or visible focus after the entrance animation",
         )
         await click("Volejbal")
         await assertPressed("Volejbal")
