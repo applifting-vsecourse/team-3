@@ -138,6 +138,8 @@ try {
   const calls = new Map()
   const skippedRemoteRequests = new Set()
   let failNextSave = false
+  let skipFailures = 0
+  let skipFailureStatus = 503
   let messageId = 0
 
   socket.addEventListener("message", ({ data }) => {
@@ -159,23 +161,29 @@ try {
       const { requestId, request } = reply.params
       const url = new URL(request.url)
       if (url.origin === new URL(api).origin) {
-        if (
+        const isSaveFailure =
           request.method === "POST" &&
           failNextSave &&
           url.pathname.endsWith("/me/profile/onboarding")
-        ) {
-          failNextSave = false
+        const isSkipFailure =
+          request.method === "POST" &&
+          skipFailures > 0 &&
+          url.pathname.endsWith("/me/profile/onboarding/skip")
+        if (isSaveFailure || isSkipFailure) {
+          if (isSaveFailure) failNextSave = false
+          if (isSkipFailure) skipFailures--
+          const responseCode = isSkipFailure ? skipFailureStatus : 503
+          const message =
+            responseCode === 403 ? "Požadavek nepřišel z HobbyHubu." : "Simulated retryable error"
           void send("Fetch.fulfillRequest", {
             requestId,
-            responseCode: 503,
+            responseCode,
             responseHeaders: [
               { name: "Content-Type", value: "application/json" },
               { name: "Access-Control-Allow-Origin", value: origin },
               { name: "Access-Control-Allow-Credentials", value: "true" },
             ],
-            body: Buffer.from(JSON.stringify({ message: "Simulated retryable error" })).toString(
-              "base64",
-            ),
+            body: Buffer.from(JSON.stringify({ message })).toString("base64"),
           }).catch((error) => errors.push(error.message))
         } else {
           void send("Fetch.continueRequest", { requestId }).catch((error) =>
@@ -634,6 +642,7 @@ try {
     patterns: [
       { urlPattern: "https://photon.komoot.io/api/*" },
       { urlPattern: `${api}/me/profile/onboarding` },
+      { urlPattern: `${api}/me/profile/onboarding/skip` },
     ],
   })
 
@@ -1081,6 +1090,82 @@ try {
         )
       },
     )
+
+    await scenario("390 px / exit from the optional profile", async () => {
+      await device("phone")
+      const login = await register("profile-exit", "/akce")
+      await tap(/^Brno(?:$|\s)/)
+      await dialogTitle("Co tě baví?")
+      await chooseActivities(tap, activityNames)
+      await tap("Povědět něco o sobě")
+      await dialogTitle("Představ se partě")
+      await input(nameField, "Jana Testovací")
+      await input(bioField, "Rozepsaný text zůstane jen v průvodci.")
+      const attempts = () =>
+        network.filter(
+          ({ method, pathname }) =>
+            method === "POST" && pathname.endsWith("/me/profile/onboarding/skip"),
+        ).length
+      const before = attempts()
+      await tap("Zavřít průvodce")
+      await dialogTitle("Odejít z průvodce?")
+      skipFailures = 1
+      skipFailureStatus = 403
+      await tap("Odejít bez uložení")
+      await until(
+        'document.querySelector("[role=alert]")?.innerText.includes("Požadavek nepřišel z HobbyHubu.")',
+        "A refused request should show the backend reason",
+      )
+      check(attempts() === before + 1, "Skip should retry only transient errors")
+
+      skipFailures = 2
+      skipFailureStatus = 503
+      await tap("Odejít bez uložení")
+      await until(
+        'document.querySelector("[role=alert]")?.innerText.includes("Průvodce se nepodařilo přeskočit")',
+        "A persistent error should leave the exit dialog open and explain the failed action",
+      )
+      check(attempts() === before + 3, "Skip should retry once after a service error")
+      await dialogTitle("Odejít z průvodce?")
+      const pending = await request("auth/get-session")
+      check(
+        pending.body?.user?.onboardingCompletedAt === null,
+        "A failed skip marked onboarding complete",
+      )
+      await tap("Zůstat v průvodci")
+      await dialogTitle("Představ se partě")
+      check(
+        (await suggestion()) === "Rozepsaný text zůstane jen v průvodci.",
+        "Cancelling the failed exit lost the draft",
+      )
+      await tap("Zavřít průvodce")
+      await dialogTitle("Odejít z průvodce?")
+      skipFailures = 1
+      await tap("Odejít bez uložení")
+      await until(
+        'location.pathname === "/akce" && !document.querySelector("[role=dialog]")',
+        "A successful automatic retry should exit to the events page",
+      )
+      check(attempts() === before + 5, "A single failure should recover with one automatic retry")
+      const profile = await request("me/profile")
+      check(profile.status === 200, "The signed-in profile could not be read after exiting")
+      check(profile.body.name === "Testovací Účet", "Exiting saved the edited name")
+      check(profile.body.bio === null, "Exiting saved the bio draft")
+      check(profile.body.homeLocality === null, "Exiting saved the picked locality")
+      check(profile.body.interests.length === 0, "Exiting saved the picked interests")
+      check(profile.body.photoVersion === null, "Exiting added a photo")
+      const finished = await request("auth/get-session")
+      check(finished.body?.user?.onboardingCompletedAt, "The explicit skip was not persisted")
+      await request("auth/sign-out", { body: {} })
+      const signedIn = await request("auth/sign-in/email", { body: login })
+      check(signedIn.status === 200, "Sign-in failed after skipping")
+      await navigate(`${origin}/akce`)
+      await until('location.pathname === "/akce" && Boolean(document.querySelector("h1"))')
+      check(
+        !(await evaluate('Boolean(document.querySelector("#onboarding-locality"))')),
+        "The wizard reopened after skipping it from the profile",
+      )
+    })
 
     await scenario(
       "API / profile photo ownership, atomic completion, invalid uploads and concurrent retry",

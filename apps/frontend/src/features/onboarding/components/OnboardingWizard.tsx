@@ -8,13 +8,14 @@ import {
   type ReactNode,
 } from "react"
 import { useMutation, useQuery } from "@tanstack/react-query"
+import { NetworkError, TimeoutError } from "ky"
 import { ArrowLeft, MapPin, X } from "lucide-react"
 import { z } from "zod"
 
 import { Logo } from "@/components/Logo/Logo"
 import { Button } from "@/components/ui/button"
 import { Dialog, DialogContent, DialogDescription, DialogTitle } from "@/components/ui/dialog"
-import { api } from "@/lib/api-client"
+import { api, HTTPError } from "@/lib/api-client"
 import { activityTreeQueryOptions, localitiesQueryOptions } from "@/lib/catalog/catalogQueryOptions"
 import type { Activity, ActivityCategory, Locality } from "@/lib/catalog/catalogSchemas"
 import { defaultLocalityQueryOptions } from "@/lib/catalog/defaultLocality"
@@ -120,7 +121,16 @@ export function OnboardingWizard({
           ? api.post("me/profile/onboarding/profile", { body: input })
           : input
             ? api.post("me/profile/onboarding", { json: input })
-            : api.post("me/profile/onboarding/skip")
+            : api.post("me/profile/onboarding/skip", {
+                json: {},
+                // The backend returns the existing completion marker on repeat.
+                retry: {
+                  limit: 1,
+                  methods: ["post"],
+                  statusCodes: [408, 500, 502, 503, 504],
+                  retryOnTimeout: true,
+                },
+              })
       return resultSchema.parse(await request.json())
     },
     onSuccess: (result, input) => onFinish(result, input !== null),
@@ -203,6 +213,16 @@ export function OnboardingWizard({
   }
 
   const errorMessage = finish.isError ? "Nastavení se nepodařilo uložit. Zkus to znovu." : undefined
+  let exitError: string | undefined
+  if (finish.isError) {
+    const error = finish.error
+    exitError =
+      error instanceof NetworkError ||
+      error instanceof TimeoutError ||
+      (error instanceof HTTPError && error.response.status < 500)
+        ? error.message
+        : "Průvodce se nepodařilo přeskočit. Zkus to znovu."
+  }
 
   return (
     <>
@@ -394,7 +414,7 @@ export function OnboardingWizard({
       ) : flow.overlay === "exit" ? (
         <OnboardingExit
           isSaving={finish.isPending}
-          error={errorMessage}
+          error={exitError}
           onStay={dismissOverlay}
           onLeave={() => submit("exit")}
           onRestoreFocus={restoreFocus}

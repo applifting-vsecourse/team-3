@@ -219,7 +219,7 @@ export function OnboardingExit({
             disabled={isSaving}
             onClick={onLeave}
           >
-            Odejít bez uložení
+            {isSaving ? "Odcházím…" : "Odejít bez uložení"}
           </Button>
         </div>
       </DialogContent>
