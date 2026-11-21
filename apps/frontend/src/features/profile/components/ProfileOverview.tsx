@@ -1,7 +1,8 @@
-import { useId, type ReactNode } from "react"
+import { useId, useState, type ReactNode } from "react"
 import { Link } from "@tanstack/react-router"
 
 import { ROUTES } from "@/app/routes"
+import { Button } from "@/components/ui/button"
 import { ratingSummaryLabel } from "@/lib/ratingSummary"
 
 import type { ProfileRating, RatingSummary } from "@/features/profile/api/profileSchemas"
@@ -54,7 +55,10 @@ export function HighlightedTitle({
   )
 }
 
-/** How much is left out of a list that shows only the latest few (there is no page for all yet). */
+/** The latest few of a role's ratings, the rest on „Zobrazit všechna“ (#370). */
+const PREVIEW_COUNT = 3
+
+/** How much the API left out of a list: past its limit (PROFILE_OVERVIEW_TAKE), none are loaded. */
 function More({ shown, total }: { shown: number; total: number }) {
   return shown && total > shown ? (
     <p className="text-sm text-muted-foreground">
@@ -98,6 +102,9 @@ export function RatingsSection({
 
 function RatingList({ title, ratings, summary }: RatingGroup & { title: string }) {
   const headingId = useId()
+  const listId = useId()
+  const [isExpanded, setIsExpanded] = useState(false)
+  const shown = isExpanded ? ratings : ratings.slice(0, PREVIEW_COUNT)
   return (
     <section
       aria-labelledby={headingId}
@@ -113,8 +120,11 @@ function RatingList({ title, ratings, summary }: RatingGroup & { title: string }
         <p className="text-sm text-muted-foreground">{ratingSummaryLabel(summary)}</p>
       </div>
       {ratings.length ? (
-        <ul className="divide-y divide-border">
-          {ratings.map((rating) => (
+        <ul
+          id={listId}
+          className="divide-y divide-border"
+        >
+          {shown.map((rating) => (
             <li
               key={rating.id}
               className="flex flex-col gap-1 py-3 first:pt-0"
@@ -136,10 +146,23 @@ function RatingList({ title, ratings, summary }: RatingGroup & { title: string }
           ))}
         </ul>
       ) : null}
-      <More
-        shown={ratings.length}
-        total={summary.count}
-      />
+      {ratings.length > shown.length ? (
+        <Button
+          variant="outline"
+          size="sm"
+          className="w-fit"
+          aria-expanded={false}
+          aria-controls={listId}
+          onClick={() => setIsExpanded(true)}
+        >
+          Zobrazit všechna ({summary.count})
+        </Button>
+      ) : (
+        <More
+          shown={ratings.length}
+          total={summary.count}
+        />
+      )}
     </section>
   )
 }

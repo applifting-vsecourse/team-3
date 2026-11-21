@@ -145,6 +145,33 @@ describe("/profil overview (#178, #367, Figma B-05)", () => {
     expect(within(asParticipant).getByText("Zobrazeno 1 z 6")).toBeInTheDocument()
   })
 
+  // #370: „Zobrazeno 3 z 7“ had no way to the rest
+  it("shows the latest three ratings and the rest on „Zobrazit všechna“", async () => {
+    const rating = (n: number) => ({
+      id: `r${n}`,
+      stars: 4,
+      comment: null,
+      createdAt: new Date("2026-10-30T10:00:00Z"),
+      event: { id: `e${n}`, title: `Akce ${n}` },
+      author: { id: "org", name: "Petr" },
+    })
+    respond({
+      ...empty,
+      participantRatings: [1, 2, 3, 4, 5].map(rating),
+      participantSummary: { average: 4, count: 5 },
+    })
+    await show()
+
+    const asParticipant = await screen.findByRole("region", { name: "Jako účastník" })
+    expect(within(asParticipant).getAllByRole("listitem")).toHaveLength(3)
+    await userEvent
+      .setup()
+      .click(within(asParticipant).getByRole("button", { name: "Zobrazit všechna (5)" }))
+    expect(within(asParticipant).getAllByRole("listitem")).toHaveLength(5)
+    expect(within(asParticipant).queryByRole("button")).not.toBeInTheDocument()
+    expect(within(asParticipant).queryByText(/Zobrazeno/)).not.toBeInTheDocument()
+  })
+
   it("explains a failed load and loads again on retry", async () => {
     respond(new Error("offline"))
     await show()

@@ -64,10 +64,11 @@ export type ProfileRating = {
   author: { id: string; name: string };
 };
 /**
- * How many ratings per role the profile overview loads (Figma B-05 shows a
- * slice); all of them are counted in `…Summary.count`.
+ * How many ratings per role the profile overview loads; all of them are counted
+ * in `…Summary.count`. The profile shows the latest three (Figma B-05) and the
+ * rest on „Zobrazit všechna“ (#370), so a list there ends somewhere.
  */
-export const PROFILE_OVERVIEW_TAKE = 3;
+export const PROFILE_OVERVIEW_TAKE = 50;
 /**
  * The profile's overview: the ratings. Events are in Moje (#367: the profile
  * is who I am and whom I know, Moje what I do): `GET /api/me/events`.
