@@ -107,6 +107,7 @@ export function SignUpForm({ isLoading, errorMessage, onSubmit }: SignUpFormProp
               <FormLabel>Jméno *</FormLabel>
               <FormControl>
                 <Input
+                  aria-required
                   autoComplete="name"
                   className="h-11"
                   {...field}
@@ -128,6 +129,7 @@ export function SignUpForm({ isLoading, errorMessage, onSubmit }: SignUpFormProp
                 <Input
                   type="email"
                   placeholder="např. jana@example.com"
+                  aria-required
                   autoComplete="email"
                   className="h-11"
                   {...field}
@@ -150,6 +152,7 @@ export function SignUpForm({ isLoading, errorMessage, onSubmit }: SignUpFormProp
               <FormControl>
                 <Input
                   type="password"
+                  aria-required
                   autoComplete="new-password"
                   className="h-11"
                   {...field}
@@ -176,6 +179,7 @@ export function SignUpForm({ isLoading, errorMessage, onSubmit }: SignUpFormProp
               <FormControl>
                 <Input
                   type="password"
+                  aria-required
                   autoComplete="new-password"
                   className="h-11"
                   {...field}

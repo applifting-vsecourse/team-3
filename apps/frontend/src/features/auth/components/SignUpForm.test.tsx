@@ -406,6 +406,8 @@ describe("SignUpForm (B-010, #153)", () => {
 
     for (const label of ["Jméno *", "E-mail *", "Heslo *", "Heslo znovu *"]) {
       expect(screen.getByLabelText(label)).toHaveClass("h-11")
+      // the „ *“ is for the eye, a screen reader hears „povinné“ (review #395)
+      expect(screen.getByLabelText(label)).toHaveAttribute("aria-required", "true")
     }
     expect(screen.getByRole("button", { name: "Zaregistrovat se" })).toHaveClass("h-11")
   })
