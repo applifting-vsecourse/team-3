@@ -146,23 +146,26 @@ function RatingList({ title, ratings, summary }: RatingGroup & { title: string }
           ))}
         </ul>
       ) : null}
-      {ratings.length > shown.length ? (
+      {/* a toggle, so the focus stays on it; it promises only what it shows: the API sends
+          the latest PROFILE_OVERVIEW_TAKE, the count says how many more there are (review #395) */}
+      {ratings.length > PREVIEW_COUNT ? (
         <Button
           variant="outline"
-          size="sm"
-          className="w-fit"
-          aria-expanded={false}
+          size="lg"
+          className="w-fit px-4"
+          aria-expanded={isExpanded}
           aria-controls={listId}
-          onClick={() => setIsExpanded(true)}
+          onClick={() => setIsExpanded((isOpen) => !isOpen)}
         >
-          Zobrazit všechna ({summary.count})
+          {isExpanded ? "Zobrazit méně" : `Zobrazit další (${ratings.length - PREVIEW_COUNT})`}
         </Button>
-      ) : (
+      ) : null}
+      {isExpanded || ratings.length <= PREVIEW_COUNT ? (
         <More
           shown={ratings.length}
           total={summary.count}
         />
-      )}
+      ) : null}
     </section>
   )
 }
