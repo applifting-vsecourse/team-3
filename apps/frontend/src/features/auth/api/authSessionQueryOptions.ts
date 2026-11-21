@@ -14,7 +14,11 @@ export type SessionUser = {
   emailVerified: boolean
   /** Null until this account holder has confirmed being at least 18. */
   ageConfirmedAt?: string | null
+  onboardingCompletedAt?: string | null
 }
+
+export const needsOnboarding = (user?: SessionUser | null) =>
+  Boolean(user?.emailVerified && user.ageConfirmedAt && user.onboardingCompletedAt === null)
 
 export type Session = {
   user: SessionUser
@@ -32,6 +36,7 @@ export const authSessionQueryOptions = () =>
         username?: string | null
         role?: string | null
         ageConfirmedAt?: string | Date | null
+        onboardingCompletedAt?: string | Date | null
       }
 
       return {
@@ -43,6 +48,9 @@ export const authSessionQueryOptions = () =>
           role: user.role ?? undefined,
           emailVerified: Boolean(user.emailVerified),
           ageConfirmedAt: user.ageConfirmedAt ? String(user.ageConfirmedAt) : null,
+          onboardingCompletedAt: user.onboardingCompletedAt
+            ? String(user.onboardingCompletedAt)
+            : user.onboardingCompletedAt,
         },
       }
     },

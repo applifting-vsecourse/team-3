@@ -15,7 +15,7 @@ const isAppPath = (path: string) =>
   path.startsWith("/") && !path.startsWith("//") && !/[\\\p{Cc}]/u.test(path)
 
 // Signed in, these pages send you on to `from`: pointing at them would loop.
-const isAuthPage = (path: string) => /^\/(login|signup)(?:[/?#]|$)/.test(path)
+const isAuthPage = (path: string) => /^\/(login|signup|vitej)(?:[/?#]|$)/.test(path)
 
 /**
  * Before #186 `from` was encoded twice, so after the router's decoding it

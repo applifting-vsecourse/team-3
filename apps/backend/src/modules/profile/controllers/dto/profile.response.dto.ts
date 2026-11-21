@@ -22,6 +22,10 @@ export class SelfProfileResponseDto implements SelfProfile {
   @ApiProperty() email!: string;
   @ApiProperty() emailVerified!: boolean;
   @ApiProperty() hasPassword!: boolean;
+  @ApiProperty({ type: String, nullable: true })
+  bio!: string | null;
+  @ApiProperty({ type: String, nullable: true, format: 'uuid' })
+  photoVersion!: string | null;
   @ApiProperty({ type: LocalityResponseDto, nullable: true })
   homeLocality!: SelfProfile['homeLocality'];
   @ApiProperty({ type: [NamedProfileEntityDto] })
