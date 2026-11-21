@@ -20,7 +20,8 @@ describe("EventCard", () => {
     const { container } = await renderWithRouter(<EventCard event={withActivity(florbal)} />)
 
     const photo = container.querySelector<HTMLElement>("[data-slot=event-photo]")!
-    expect(photo).toHaveAttribute("aria-hidden", "true")
+    // the date tile is decoration, the <time> says it (the activity on the photo is read, #348)
+    expect(within(photo).getByText("23").closest("[aria-hidden]")).not.toBeNull()
     expect(photo.querySelector("img")?.getAttribute("src")).toMatch(/florbal-480\.webp/)
     // one colour grade for the whole library (Figma: saturation −14 %, contrast +10 %)
     expect(photo.querySelector("img")).toHaveClass("saturate-86", "contrast-110")
