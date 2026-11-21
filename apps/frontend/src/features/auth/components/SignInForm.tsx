@@ -57,7 +57,7 @@ export function SignInForm({ defaultEmail, isLoading, errorMessage, onSubmit }: 
           name="email"
           render={({ field }) => (
             <FormItem>
-              <FormLabel>E-mail</FormLabel>
+              <FormLabel>E-mail *</FormLabel>
               <FormControl>
                 <Input
                   type="email"
@@ -77,7 +77,7 @@ export function SignInForm({ defaultEmail, isLoading, errorMessage, onSubmit }: 
           name="password"
           render={({ field }) => (
             <FormItem>
-              <FormLabel>Heslo</FormLabel>
+              <FormLabel>Heslo *</FormLabel>
               <FormControl>
                 <Input
                   type="password"

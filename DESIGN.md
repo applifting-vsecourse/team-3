@@ -96,6 +96,7 @@ Use the scale only: `1, 2, 3, 4, 5, 6, 8, 12, 16` (Tailwind units — 4px…64px
 ## Forms
 
 - Every input has a visible `<label>`. Placeholders are examples, never labels.
+- *_A required field ends its label with „ *“*_ („Název akce *“, „E-mail *“): the event, group, sign-in and sign-up forms (#370, Figma B-01, B-03), even where every field is required, so the four forms read the same. The short account forms (forgotten and new password, changing the password or the e-mail) ask only for what they need and stay unmarked.
 - A password field keeps the browser's own „show password“ eye (Edge) clear of the text — `global.css` gives `::-ms-reveal` a gap (#298). The app adds no eye of its own.
 - Validation runs client-side _and_ server-side. The client message appears under the field.
 - After a failed submit the form scrolls to the first invalid field (in reading order on screen) and focuses it; a server error scrolls to the form's `Alert` (`role="alert"`). Use `useRevealFormErrors(form, errorMessage)` from `@/hooks/useRevealFormErrors` in every form whose top can be off screen (#291).

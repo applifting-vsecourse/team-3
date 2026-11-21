@@ -104,7 +104,7 @@ export function SignUpForm({ isLoading, errorMessage, onSubmit }: SignUpFormProp
           name="name"
           render={({ field }) => (
             <FormItem>
-              <FormLabel>Jméno</FormLabel>
+              <FormLabel>Jméno *</FormLabel>
               <FormControl>
                 <Input
                   autoComplete="name"
@@ -123,7 +123,7 @@ export function SignUpForm({ isLoading, errorMessage, onSubmit }: SignUpFormProp
           name="email"
           render={({ field }) => (
             <FormItem>
-              <FormLabel>E-mail</FormLabel>
+              <FormLabel>E-mail *</FormLabel>
               <FormControl>
                 <Input
                   type="email"
@@ -146,7 +146,7 @@ export function SignUpForm({ isLoading, errorMessage, onSubmit }: SignUpFormProp
           rules={{ deps: "passwordConfirmation" }}
           render={({ field }) => (
             <FormItem>
-              <FormLabel>Heslo</FormLabel>
+              <FormLabel>Heslo *</FormLabel>
               <FormControl>
                 <Input
                   type="password"
@@ -172,7 +172,7 @@ export function SignUpForm({ isLoading, errorMessage, onSubmit }: SignUpFormProp
           name="passwordConfirmation"
           render={({ field }) => (
             <FormItem>
-              <FormLabel>Heslo znovu</FormLabel>
+              <FormLabel>Heslo znovu *</FormLabel>
               <FormControl>
                 <Input
                   type="password"
