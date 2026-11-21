@@ -38,7 +38,22 @@ Texty jsou česky a tykáním; žádný text nepředpokládá pohlaví organizá
 
 ## Kam e-maily jdou
 
-Přes sdílený `EmailService` jako ověřovací e-maily: Resend nebo SMTP, když jsou nastavené klíče (#165), jinak konzole (v produkci se do logu píše jen příjemce a předmět). Simulovaná schránka (#58) drží jen ověřovací e-mail, upozornění v ní nejsou. Centrum upozornění v aplikaci (zvonek) zatím není; přibude s #86 (B-044) ze stejných událostí jako e-maily.
+Přes sdílený `EmailService` jako ověřovací e-maily: Resend nebo SMTP, když jsou nastavené klíče (#165), jinak konzole (v produkci se do logu píše jen příjemce a předmět). Simulovaná schránka (#58) drží jen ověřovací e-mail, upozornění v ní nejsou. Centrum upozornění v aplikaci (zvonek) popisuje sekce níže.
+
+## Centrum upozornění v aplikaci (#86, B-044)
+
+Každá událost výše zapíše před odesláním e-mailů i upozornění do centra (tabulka `notification`): stejným příjemcům, s jednou výjimkou: oznámení skupiny do centra nedostane jeho autor, pro něj to není novinka (e-mail dostane dál). Krátká zpráva je první řádek e-mailu (náhled), skládá ji `domain/in-app.ts`; proklik podle druhu určí `notificationPath` (správa akce pro organizátora, detail akce, stránka nebo správa skupiny, žádosti o přátelství, profil). Zpráva se ukládá hotová, pozdější přejmenování akce ji nezmění. Když se zápis do centra nepovede, zaloguje se a e-maily odejdou dál. Druhy, texty a otevřené otázky: [`docs/navrh-upozorneni.md`](../../../../../docs/navrh-upozorneni.md).
+
+API (jen přihlášený, vždy jen vlastní upozornění: dotazy jsou omezené na uživatele ze session, cizí id vrátí 404 `NOTIFICATION_NOT_FOUND`, stejně jako neexistující):
+
+| Endpoint                              | Co vrátí                                                                       |
+| ------------------------------------- | ------------------------------------------------------------------------------ |
+| `GET /api/notifications`              | 50 nejnovějších (`id`, `type`, `text`, `path`, `createdAt`, `readAt`) a `unreadCount` všech nepřečtených |
+| `GET /api/notifications/unread-count` | `{ count }` pro číslo u zvonku                                                 |
+| `POST /api/notifications/:id/read`    | 204; přečtené už jednou zůstane se svým časem                                  |
+| `POST /api/notifications/read-all`    | `{ marked }`, kolik jich bylo nepřečtených                                     |
+
+Nový druh do centra: přidej hodnotu do `notification_type` (migrace) a `InAppType`, text do `domain/in-app.ts` a cestu do `notificationPath`.
 
 ## Výzva k hodnocení po akci (#65, B-043)
 
