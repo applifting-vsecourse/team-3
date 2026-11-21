@@ -101,7 +101,7 @@ Wireframy zvonek ani centrum nemají: stránka C ve Figmě uvádí, že „zvone
 
 ## Otevřené otázky (tým, případně PO)
 
-- **Q1 Přihláška na akci bez schvalování (rozhodnuto 21. 11.):** organizátor dostane upozornění v centru na každou přihlášku vždy. E-mail ke každé přihlášce si zvolí při zakládání akce (`Event.emailOnJoin`, výchozí vypnuto). Zadání #86 v „Mimo rozsah“ vylučuje nastavení upozornění; tohle je volba u jedné akce, potvrdí ji PO při akceptaci.
+- **Q1 Přihláška na akci bez schvalování (rozhodnuto 21. 11.):** organizátor dostane upozornění v centru na každou přihlášku vždy. E-mail ke každé přihlášce si zvolí při zakládání akce a změní v její úpravě (`Event.emailOnJoin`, výchozí vypnuto; úprava schválena 22. 11.). Zadání #86 v „Mimo rozsah“ vylučuje nastavení upozornění; tohle je volba u jedné akce, potvrdí ji PO při akceptaci.
 - **Q2 Nová akce skupiny (rozhodnuto 21. 11.):** upozornění i e-mail členům řeší #362, ne #86.
 - **Q3 Text uložený při vzniku:** když organizátor akci později přejmenuje, staré upozornění ukáže původní název. Návrh týmu: nevadí, upozornění je záznam o tom, co se stalo, a proklik vede na aktuální detail.
 - **Q4 Plánované e-maily v centru:** připomínka den před akcí a výzva k hodnocení jen e-mailem (návrh), nebo i v centru?

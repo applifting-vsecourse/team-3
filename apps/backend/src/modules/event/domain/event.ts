@@ -101,6 +101,8 @@ export type EventManagementView = {
 export type EventDetail = PublicEvent & {
   description: string | null;
   approvalMode: 'open' | 'approval';
+  /** The organizer's e-mail for each sign-up to an open event (#86); the API shows it only to who manages it. */
+  emailOnJoin: boolean;
   /** `private` = reachable through its link only; `members` = the group's members only. */
   visibility: 'public' | 'private' | 'members';
   /** `hidden` and `deleted` never leave the service (404). */
@@ -202,5 +204,6 @@ export type EventChanges = Partial<
     | 'endsAt'
     | 'minParticipants'
     | 'maxParticipants'
+    | 'emailOnJoin'
   >
 >;

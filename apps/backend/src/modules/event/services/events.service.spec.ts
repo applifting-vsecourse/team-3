@@ -422,6 +422,7 @@ const aDetail = (overrides: Partial<EventDetail> = {}): EventDetail => ({
   ...anEvent('e1', 2),
   description: 'Hrajeme Carcassonne a Azul, hry půjčíme.',
   approvalMode: 'open',
+  emailOnJoin: false,
   visibility: 'public',
   status: 'published',
   cancelReason: null,
