@@ -44,3 +44,20 @@ export const safeRedirect = (from: string | undefined, fallback: string): string
   const path = fromLegacyEncoding(from)
   return isAppPath(path) && !isAuthPage(path) ? path : fallback
 }
+
+// The pages of signing in and its side steps: coming back to one of them after signing in
+// makes no sense, so a link to sign in from there passes on their own `from` (#370).
+const isAccountPage = (path: string) =>
+  /^\/(login|signup|zapomenute-heslo|reset-password|email-overen)(?:[/?#]|$)/.test(path)
+
+/**
+ * `from` for „Přihlásit se“ and „Registrovat“ in the header and the bottom navigation
+ * (#370, B-012): this page with its search (an event, a group, /akce with its filters), so
+ * signing in comes back here. On the sign-in pages themselves their own `from`, if any —
+ * never `/login?from=/login`.
+ */
+export const authLinkFrom = (location: ParsedLocation): string | undefined => {
+  if (!isAccountPage(location.pathname)) return redirectFrom(location)
+  const { from } = location.search as { from?: unknown }
+  return typeof from === "string" ? from : undefined
+}

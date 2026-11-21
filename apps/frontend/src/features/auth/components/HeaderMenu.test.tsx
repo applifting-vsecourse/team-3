@@ -45,4 +45,26 @@ describe("HeaderMenu", () => {
     const button = screen.getByRole("button", { name: /Petra Nováková/ })
     expect(button.getAttribute("aria-label")?.startsWith(button.textContent.trim())).toBe(true)
   })
+
+  // #370: signing in from the header comes back to the page, as „Přihlásit se na akci“ does
+  it("signing in or up from the header comes back to this page", async () => {
+    const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } })
+    queryClient.setQueryData(authKeys.session(), null)
+    await renderWithRouter(
+      <QueryClientProvider client={queryClient}>
+        <HeaderMenu />
+      </QueryClientProvider>,
+      { url: "/akce?lokalita=praha-8" },
+    )
+
+    const from = `from=${encodeURIComponent("/akce?lokalita=praha-8")}`
+    expect(screen.getByRole("link", { name: "Přihlásit se" })).toHaveAttribute(
+      "href",
+      `/login?${from}`,
+    )
+    expect(screen.getByRole("link", { name: "Registrovat" })).toHaveAttribute(
+      "href",
+      `/signup?${from}`,
+    )
+  })
 })
