@@ -1,5 +1,6 @@
 import type { ReactNode } from "react"
 
+import type { BackLinkProps } from "@/components/BackLink/BackLink"
 import { Header } from "@/components/Header/Header"
 import { PageBand } from "@/components/PageBand/PageBand"
 import { cn } from "@/lib/utils"
@@ -15,6 +16,8 @@ type AuthLayoutProps = {
    * `components/` doesn't import from `features/`.
    */
   aside?: ReactNode
+  /** Back to where the user came from — the event, the group, the list (#370, N9). */
+  back?: Omit<BackLinkProps, "isIconOnlyOnMobile">
 }
 
 /**
@@ -24,7 +27,14 @@ type AuthLayoutProps = {
  * would be noise. The title and the line sit in the band on desktop; a phone
  * starts with the title on the page (Figma B-03).
  */
-export function AuthLayout({ title, description, children, footer, aside }: AuthLayoutProps) {
+export function AuthLayout({
+  title,
+  description,
+  children,
+  footer,
+  aside,
+  back,
+}: AuthLayoutProps) {
   return (
     <>
       <Header userMenu={null} />
@@ -32,6 +42,7 @@ export function AuthLayout({ title, description, children, footer, aside }: Auth
         <PageBand
           title={title}
           description={description}
+          back={back}
           isPlainOnMobile
         />
         <div

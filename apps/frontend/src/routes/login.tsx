@@ -18,7 +18,7 @@ import {
   EMAIL_NOT_VERIFIED,
   googleSignInErrorMessage,
 } from "@/features/auth/lib/auth-errors"
-import { safeRedirect } from "@/features/auth/lib/redirect"
+import { authBackLink, safeRedirect } from "@/features/auth/lib/redirect"
 import { NearestEvents } from "@/features/events/components/NearestEvents"
 
 // `from`: the page to come back to, e.g. the event (B-012); `error`: why
@@ -80,6 +80,7 @@ function LoginPage() {
         <Seo title="Ověř si e-mail" />
         <AuthLayout
           aside={<NearestEvents />}
+        back={authBackLink(from)}
           title="Ověř si e-mail"
           description={`E-mail ${unverified.email} zatím není ověřený a bez toho se přihlásit nejde.`}
           footer={
@@ -107,6 +108,7 @@ function LoginPage() {
       <Seo title="Přihlášení" />
       <AuthLayout
         aside={<NearestEvents />}
+        back={authBackLink(from)}
         title="Přihlášení"
         description={from ? "Po přihlášení tě vrátíme zpátky." : "Vítej zpátky v HobbyHubu."}
         footer={

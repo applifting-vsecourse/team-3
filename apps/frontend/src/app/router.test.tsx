@@ -264,6 +264,33 @@ describe("router", () => {
     })
   })
 
+  // #370: the sign-in pages have a way back, to the page signing in returns to
+  describe("back link on sign-in and sign-up", () => {
+    it.each([
+      ["/login?from=%2Fakce%2Fukazka", "Detail akce", "/akce/ukazka"],
+      ["/signup?from=%2Fskupiny", "Skupiny", "/skupiny"],
+      ["/login", "Úvod", "/"],
+    ])("%s opened from a link: „%s“ leads to %s", async (url, label, href) => {
+      stubApi()
+      await renderApp(url)
+
+      const main = await screen.findByRole("main")
+      expect(within(main).getByRole("link", { name: label })).toHaveAttribute("href", href)
+    })
+
+    it("with history goes back to the page it came from, filters included", async () => {
+      stubApi()
+      const app = await renderApp("/akce?lokalita=praha-8")
+      await app.navigate({ to: "/login", search: { from: "/akce?lokalita=praha-8" } })
+
+      await screen.findByRole("heading", { name: "Přihlášení" })
+      // this test's router doesn't remember the pages (app/router.ts does), so „Zpět“ here
+      await userEvent.click(within(screen.getByRole("main")).getByRole("link", { name: "Zpět" }))
+
+      expect(app.state.location.href).toBe("/akce?lokalita=praha-8")
+    })
+  })
+
   // #198: what Google (through BetterAuth) sends back to the page the sign-in started on
   describe("back from Google with an error", () => {
     it("on /signup: a cancelled Google sign-up preserves the original destination", async () => {

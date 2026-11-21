@@ -1,5 +1,8 @@
 import type { ParsedLocation } from "@tanstack/react-router"
 
+import { ROUTES } from "@/app/routes"
+import { backLabel } from "@/components/BackLink/backTarget"
+
 /**
  * The `from` that leads back to this page after signing in (B-012): the raw
  * href, search included (`/akce?lokalita=praha-8`). Not encoded here — the
@@ -60,4 +63,14 @@ export const authLinkFrom = (location: ParsedLocation): string | undefined => {
   if (!isAccountPage(location.pathname)) return redirectFrom(location)
   const { from } = location.search as { from?: unknown }
   return typeof from === "string" ? from : undefined
+}
+
+/**
+ * The back link of the sign-in and sign-up pages (#370, N9): with history it goes back and
+ * names the page; opened from a link it leads to `from` — the page signing in returns to —
+ * or to the landing page.
+ */
+export const authBackLink = (from: string | undefined) => {
+  const href = safeRedirect(from, ROUTES.home)
+  return { href, fallbackLabel: backLabel(href.split(/[?#]/)[0]) ?? "Zpět" }
 }
