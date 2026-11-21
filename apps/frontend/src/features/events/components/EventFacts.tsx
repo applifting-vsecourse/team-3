@@ -25,7 +25,16 @@ export function EventFacts({ event }: { event: EventDetail }) {
         icon={MapPin}
         label="Kde"
       >
-        {event.address}
+        {event.isLocationApproximate ? (
+          <>
+            {event.locality.name}
+            <span className="block text-sm text-muted-foreground">
+              Přibližná poloha. Místo srazu není ověřené.
+            </span>
+          </>
+        ) : (
+          event.address
+        )}
       </DetailRow>
       <DetailRow
         icon={UserCheck}

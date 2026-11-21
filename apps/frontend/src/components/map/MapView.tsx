@@ -69,6 +69,7 @@ type MapViewProps = {
    */
   isStatic?: boolean
   label?: string
+  notice?: string
   className?: string
 }
 
@@ -117,6 +118,7 @@ export function MapView({
   topInset = 0,
   isStatic = false,
   label = "Mapa akcí",
+  notice,
   className,
 }: MapViewProps) {
   // the move belongs to the view it followed: a new search, or the map fitting itself to
@@ -175,6 +177,11 @@ export function MapView({
           isClustered={isClustered}
         />
       </MapContainer>
+      {notice ? (
+        <p className="pointer-events-none absolute bottom-6 left-2 z-[500] max-w-[calc(100%-4rem)] rounded-lg border border-card-border bg-card px-2.5 py-1.5 text-xs text-card-foreground shadow-sm">
+          {notice}
+        </p>
+      ) : null}
       {onAreaSearch && movedArea ? (
         <AreaSearchButton
           topInset={topInset}

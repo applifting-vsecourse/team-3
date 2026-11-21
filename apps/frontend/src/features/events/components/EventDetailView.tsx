@@ -30,9 +30,9 @@ import { toPin } from "@/features/events/components/EventsMap"
 import { ShareEventButton } from "@/features/events/components/ShareEventButton"
 import {
   eventDateParts,
+  eventPlaceLabel,
   formatEventStart,
   isEventOver,
-  placeName,
 } from "@/features/events/lib/formatEvent"
 
 export type EventBack = Omit<BackLinkProps, "isIconOnlyOnMobile">
@@ -140,7 +140,7 @@ export function EventDetailView({
   // Figma A-05d, A-05c: „Ne 25. 10. · 18:00 · Tělocvična ZŠ Na Pankráci · Praha 4 · do minima chybí 1“
   const line = [
     formatEventStart(event.startsAt),
-    placeName(event.address),
+    eventPlaceLabel(event),
     event.locality.name,
     isCancelled ? "akce je zrušená" : isOver ? null : occupancyInBand(event),
   ]
@@ -199,17 +199,21 @@ export function EventDetailView({
     <div className="h-40 overflow-hidden rounded-lg border border-input">
       <MapView
         isStatic
-        label="Místo akce na mapě"
+        label={event.isLocationApproximate ? "Přibližná poloha akce" : "Místo akce na mapě"}
         center={{ lat: event.lat, lng: event.lng }}
-        pins={[
-          {
-            // the pin says the state as on the list's map: lime while people are missing
-            // (Figma A-05d); a cancelled event no longer misses anyone
-            ...toPin(event),
-            ...(isCancelled ? { variant: "default" as const } : {}),
-            label: placeName(event.address),
-          },
-        ]}
+        pins={
+          event.isLocationApproximate
+            ? []
+            : [
+                {
+                  // the pin says the state as on the list's map: lime while people are missing
+                  // (Figma A-05d); a cancelled event no longer misses anyone
+                  ...toPin(event),
+                  ...(isCancelled ? { variant: "default" as const } : {}),
+                  label: eventPlaceLabel(event),
+                },
+              ]
+        }
       />
     </div>
   )

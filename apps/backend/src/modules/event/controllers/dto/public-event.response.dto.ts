@@ -88,6 +88,12 @@ export class PublicEventResponseDto {
   @ApiProperty({ example: 14.4508 })
   lng!: number;
 
+  @ApiProperty({
+    description:
+      'Coordinates represent the locality, without a verified meeting point',
+  })
+  isLocationApproximate!: boolean;
+
   @ApiProperty({ type: EventActivityDto })
   activity!: EventActivityDto;
 
@@ -169,6 +175,7 @@ export class PublicEventResponseDto {
       address: event.address,
       lat: event.lat,
       lng: event.lng,
+      isLocationApproximate: event.isLocationApproximate ?? false,
       // the keywords are for the search only
       activity: {
         id: event.activity.id,

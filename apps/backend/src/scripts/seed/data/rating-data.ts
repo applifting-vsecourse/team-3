@@ -233,6 +233,7 @@ export const resolvePastStartsAt = (
  */
 export type PastEventSource = Omit<PastEvent, 'localitySlug'> & {
   localitySlug: string;
+  isLocationApproximate?: boolean;
   /** Akce skupiny: klíč skupiny z dat. */
   groupKey?: string;
   visibility?: 'public' | 'members';
@@ -265,6 +266,7 @@ export const toPastEventRow = (
     localitySlug: event.localitySlug,
     lat: event.lat,
     lng: event.lng,
+    isLocationApproximate: event.isLocationApproximate,
     minParticipants: event.minParticipants,
     maxParticipants: event.maxParticipants,
     organizerKey: event.organizerKey,

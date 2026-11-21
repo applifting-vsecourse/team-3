@@ -1,4 +1,4 @@
-import { fireEvent, render } from "@testing-library/react"
+import { fireEvent, render, screen } from "@testing-library/react"
 import { describe, expect, it, vi } from "vitest"
 
 import { EventsMap } from "@/features/events/components/EventsMap"
@@ -29,6 +29,25 @@ describe("EventsMap selection (#56)", () => {
 
     fireEvent.click(pin)
     expect(onSelect).toHaveBeenCalledWith("e1")
+  })
+
+  it("places pins only for events with a meeting point and mentions the other events", () => {
+    const onSelect = vi.fn()
+    const { container } = render(
+      <EventsMap
+        events={[...events, anEvent({ id: "approximate", isLocationApproximate: true })]}
+        onSelect={onSelect}
+        center={praha}
+        onAreaSearch={vi.fn()}
+      />,
+    )
+    expect(screen.getByText("Akce s přibližnou polohou najdeš v seznamu.")).toBeVisible()
+    const pins = container.querySelectorAll(".leaflet-marker-icon")
+    expect(pins).toHaveLength(1)
+    const pin = pins.item(0)
+    if (!pin) throw new Error("Missing pin")
+    fireEvent.click(pin)
+    expect(onSelect).toHaveBeenCalledExactlyOnceWith("e1")
   })
 
   it("a second tap on the selected pin unselects it", () => {
