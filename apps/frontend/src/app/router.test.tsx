@@ -294,6 +294,41 @@ describe("router", () => {
 
       expect(app.state.location.href).toBe("/akce?lokalita=praha-8")
     })
+
+    // review #395: from the landing page there is nothing to come back to, so the welcome stays
+    it.each([
+      ["/login?from=%2F", "Vítej zpátky v HobbyHubu."],
+      ["/login?from=%2Fakce", "Po přihlášení tě vrátíme zpátky."],
+    ])("%s says „%s“", async (url, line) => {
+      stubApi()
+      await renderApp(url)
+
+      expect(await screen.findByText(line)).toBeInTheDocument()
+    })
+  })
+
+  // #370: the header's „Přihlásit se“ comes back to the page, filters included
+  it("on a page of the app the header's „Přihlásit se“ carries the page as `from`", async () => {
+    stubApi()
+    await renderApp("/skupiny")
+
+    await screen.findByRole("heading", { level: 1 })
+    expect(screen.getByRole("banner").querySelector('a[href^="/login"]')).toHaveAttribute(
+      "href",
+      `/login?from=${encodeURIComponent("/skupiny")}`,
+    )
+  })
+
+  // review #395: signing in from a page that doesn't exist would end on it again
+  it("on the 404 the header's „Přihlásit se“ carries no `from`", async () => {
+    stubApi()
+    await renderApp("/tohle-neexistuje")
+
+    await screen.findByRole("heading", { name: "Stránka nenalezena" })
+    expect(screen.getByRole("banner").querySelector('a[href^="/login"]')).toHaveAttribute(
+      "href",
+      "/login",
+    )
   })
 
   // #198: what Google (through BetterAuth) sends back to the page the sign-in started on

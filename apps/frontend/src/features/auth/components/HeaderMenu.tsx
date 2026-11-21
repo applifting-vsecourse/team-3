@@ -1,4 +1,4 @@
-import { Link, useLocation } from "@tanstack/react-router"
+import { Link } from "@tanstack/react-router"
 import { LogOut, UserRound } from "lucide-react"
 
 import { ROUTES } from "@/app/routes"
@@ -15,9 +15,9 @@ import {
 import { initials } from "@/lib/initials"
 import { cn } from "@/lib/utils"
 
+import { useAuthLinkFrom } from "@/features/auth/hooks/useAuthLinkFrom"
 import { useSession } from "@/features/auth/hooks/useSession"
 import { useSignOut } from "@/features/auth/hooks/useSignOut"
-import { authLinkFrom } from "@/features/auth/lib/redirect"
 
 export function HeaderMenu({
   isSignInOnMobile = false,
@@ -28,7 +28,7 @@ export function HeaderMenu({
   const { user } = useSession()
   const signOut = useSignOut()
   // signing in or up from the header comes back to this page (#370)
-  const from = useLocation({ select: authLinkFrom })
+  const from = useAuthLinkFrom()
 
   // On mobile, signing in lives in the bottom navigation (but on the landing page, A-01).
   // The header sits on the band (Figma Header/App desktop): cream ghost and outline buttons.

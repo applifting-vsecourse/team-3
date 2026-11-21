@@ -8,6 +8,11 @@ import { renderWithRouter } from "@/test/renderWithRouter"
 
 import { HeaderMenu } from "@/features/auth/components/HeaderMenu"
 
+// which page signing in returns to is the hook's (tested with the app's routes in router.test.tsx)
+vi.mock("@/features/auth/hooks/useAuthLinkFrom", () => ({
+  useAuthLinkFrom: () => "/akce?lokalita=praha-8",
+}))
+
 vi.mock("@/features/auth/lib/auth-client", () => ({
   authClient: { getSession: vi.fn().mockResolvedValue({ data: null, error: null }) },
 }))
@@ -54,7 +59,6 @@ describe("HeaderMenu", () => {
       <QueryClientProvider client={queryClient}>
         <HeaderMenu />
       </QueryClientProvider>,
-      { url: "/akce?lokalita=praha-8" },
     )
 
     const from = `from=${encodeURIComponent("/akce?lokalita=praha-8")}`

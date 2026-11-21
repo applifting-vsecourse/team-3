@@ -1,5 +1,5 @@
 import type { QueryClient } from "@tanstack/react-query"
-import { createRootRouteWithContext, Outlet, useLocation } from "@tanstack/react-router"
+import { createRootRouteWithContext, Outlet } from "@tanstack/react-router"
 
 import "@/styles/global.css"
 
@@ -8,8 +8,8 @@ import { Toaster } from "@/components/ui/sonner"
 
 import { AgeConfirmationDialog } from "@/features/auth/components/AgeConfirmationDialog"
 import { EmailVerifiedDialog } from "@/features/auth/components/EmailVerifiedDialog"
+import { useAuthLinkFrom } from "@/features/auth/hooks/useAuthLinkFrom"
 import { useSession } from "@/features/auth/hooks/useSession"
-import { authLinkFrom } from "@/features/auth/lib/redirect"
 
 export const Route = createRootRouteWithContext<{
   queryClient: QueryClient
@@ -19,7 +19,7 @@ export const Route = createRootRouteWithContext<{
 
 function RootComponent() {
   const { user, isPending } = useSession()
-  const signInFrom = useLocation({ select: authLinkFrom })
+  const signInFrom = useAuthLinkFrom()
 
   return (
     <>
