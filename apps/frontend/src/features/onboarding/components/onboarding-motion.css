@@ -1,0 +1,106 @@
+@keyframes hh-wizard-arrive {
+  from {
+    opacity: 0;
+    translate: 0 14px;
+    scale: 0.975;
+  }
+  to {
+    opacity: 1;
+    translate: 0 0;
+    scale: 1;
+  }
+}
+
+@keyframes hh-wizard-pick {
+  0% {
+    scale: 0.55;
+    rotate: -16deg;
+  }
+  62% {
+    scale: 1.17;
+    rotate: 7deg;
+  }
+  100% {
+    scale: 1;
+    rotate: 0deg;
+  }
+}
+
+@keyframes hh-wizard-photo {
+  from {
+    opacity: 0.25;
+    scale: 1.08;
+  }
+  to {
+    opacity: 1;
+    scale: 1;
+  }
+}
+
+@keyframes hh-wizard-ticket {
+  from {
+    opacity: 0;
+    translate: 0 20px;
+    scale: 0.92;
+  }
+  to {
+    opacity: 1;
+    translate: 0 0;
+    scale: 1;
+  }
+}
+
+@keyframes hh-wizard-flight {
+  0% {
+    translate: 0 0;
+    scale: 1;
+    opacity: 0.98;
+  }
+  72% {
+    opacity: 1;
+  }
+  100% {
+    translate: var(--travel-x) var(--travel-y);
+    scale: 0.55;
+    opacity: 0;
+  }
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .hh-wizard-stage {
+    animation: hh-wizard-arrive 270ms cubic-bezier(0.2, 0.85, 0.3, 1) both;
+  }
+
+  .hh-wizard-card:not(:focus-visible) .hh-wizard-card-image {
+    animation: hh-wizard-arrive 340ms cubic-bezier(0.2, 0.85, 0.3, 1)
+      var(--card-entrance-delay, 0ms) backwards;
+  }
+
+  .hh-wizard-card-image {
+    transition: scale 420ms cubic-bezier(0.2, 0.8, 0.2, 1);
+  }
+
+  .hh-wizard-card:is(:hover, :focus-visible) .hh-wizard-card-image {
+    scale: 1.08;
+  }
+
+  .hh-wizard-card:active .hh-wizard-card-image {
+    scale: 0.99;
+  }
+
+  .hh-wizard-picked {
+    animation: hh-wizard-pick 360ms cubic-bezier(0.22, 0.6, 0.35, 1) both;
+  }
+
+  .hh-wizard-photo {
+    animation: hh-wizard-photo 360ms ease-out both;
+  }
+
+  .hh-wizard-ticket {
+    animation: hh-wizard-ticket 360ms cubic-bezier(0.16, 1, 0.3, 1) var(--ticket-delay, 0ms) both;
+  }
+
+  .hh-wizard-flight {
+    animation: hh-wizard-flight 410ms cubic-bezier(0.18, 0.79, 0.32, 1) both;
+  }
+}

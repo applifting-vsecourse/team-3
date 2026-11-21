@@ -1,0 +1,160 @@
+import { describe, expect, it } from "vitest"
+
+import type { Locality } from "@/lib/catalog/catalogSchemas"
+
+import {
+  INTEREST_GOAL,
+  moveOnboarding,
+  reviewOnboarding,
+  startOnboarding,
+  type OnboardingCommand,
+  type OnboardingFlow,
+} from "./onboardingFlow"
+
+const prague: Locality = {
+  id: "praha",
+  name: "Praha",
+  slug: "praha",
+  parentId: null,
+  lat: 50.087,
+  lng: 14.422,
+}
+const district: Locality = {
+  ...prague,
+  id: "praha-8",
+  name: "Praha 8",
+  slug: "praha-8",
+  parentId: "praha",
+}
+
+const take = (interestId: string): OnboardingCommand => ({ type: "toggle", interestId })
+const place = (locality: Locality): OnboardingCommand => ({ type: "pick-place", locality })
+
+function follow(...commands: OnboardingCommand[]) {
+  return commands.reduce(moveOnboarding, startOnboarding("Jana Nová"))
+}
+function withThree() {
+  return follow(place(prague), take("hike"), take("hockey"), take("chess"))
+}
+
+describe("V4 onboarding transitions", () => {
+  it("uses the clicked locality and moves directly from locality to interests", () => {
+    const result = follow(place(district))
+    expect(result.stage).toBe("interests")
+    expect(result.locality).toBe(district)
+    expect(result.overlay).toBeNull()
+    expect(result.interestIds).toEqual([])
+  })
+
+  it("opening a category preserves locality and does not count as an interest", () => {
+    const result = follow(place(prague), { type: "browse", categoryId: "outdoor" }, take("hike"), {
+      type: "browse",
+      categoryId: "games",
+    })
+    expect(result.categoryId).toBe("games")
+    expect(result.locality).toBe(prague)
+    expect(result.interestIds).toEqual(["hike"])
+  })
+
+  it("preserves the current selection when going back and selecting a district", () => {
+    const result = follow(
+      place(prague),
+      { type: "browse", categoryId: "outdoor" },
+      take("hike"),
+      { type: "back" },
+      place(district),
+    )
+    expect(result.locality?.id).toBe("praha-8")
+    expect(result.interestIds).toEqual(["hike"])
+    expect(result.categoryId).toBe("outdoor")
+  })
+
+  it("does not accept delayed place updates after moving to the next stage", () => {
+    const result = follow(place(district), place(prague))
+    expect(result.locality).toBe(district)
+  })
+
+  it("opens the decision exactly at the third distinct choice", () => {
+    const first = follow(place(prague), take("hike"))
+    const second = moveOnboarding(first, take("hockey"))
+    const third = moveOnboarding(second, take("chess"))
+    expect(first.overlay).toBeNull()
+    expect(second.overlay).toBeNull()
+    expect(third.overlay).toBe("decision")
+    expect(third.interestIds).toHaveLength(INTEREST_GOAL)
+    expect([first, second, third].map(reviewOnboarding)).toEqual([false, false, true])
+  })
+
+  it("never counts two taps on the same card as two selections", () => {
+    const result = follow(place(prague), take("hike"), take("hike"), take("hockey"), take("chess"))
+    expect(result.interestIds).toEqual(["hockey", "chess"])
+    expect(result.overlay).toBeNull()
+  })
+
+  it("rejects toggles and category changes while the decision owns focus", () => {
+    const state = withThree()
+    expect(moveOnboarding(state, take("tennis"))).toBe(state)
+    expect(moveOnboarding(state, take("hike"))).toBe(state)
+    expect(moveOnboarding(state, { type: "browse", categoryId: "running" })).toBe(state)
+    expect(moveOnboarding(state, { type: "exit" })).toBe(state)
+  })
+
+  it("dismisses the decision while keeping three selections and lets the user reopen it", () => {
+    const original = withThree()
+    const dismissed = moveOnboarding(original, { type: "dismiss" })
+    expect(dismissed.stage).toBe("interests")
+    expect(dismissed.overlay).toBeNull()
+    expect(dismissed.interestIds).toBe(original.interestIds)
+    expect(moveOnboarding(dismissed, { type: "review" }).overlay).toBe("decision")
+  })
+
+  it("reopens when a ticket is removed and a replacement third choice is added", () => {
+    const dismissed = moveOnboarding(withThree(), { type: "dismiss" })
+    const removed = moveOnboarding(dismissed, take("hockey"))
+    const result = moveOnboarding(removed, take("tennis"))
+    expect(removed.interestIds).toEqual(["hike", "chess"])
+    expect(removed.overlay).toBeNull()
+    expect(result.interestIds).toEqual(["hike", "chess", "tennis"])
+    expect(result.overlay).toBe("decision")
+  })
+
+  it("caps the selection while the closed decision can be reopened", () => {
+    const dismissed = moveOnboarding(withThree(), { type: "dismiss" })
+    expect(moveOnboarding(dismissed, take("tennis"))).toBe(dismissed)
+  })
+
+  it("requires the decision to start editing optional profile fields", () => {
+    const state = moveOnboarding(withThree(), { type: "dismiss" })
+    expect(moveOnboarding(state, { type: "profile" })).toBe(state)
+    expect(moveOnboarding(state, { type: "edit-name", name: "Nové jméno" })).toBe(state)
+    expect(moveOnboarding(state, { type: "edit-bio", bio: "Rozpracovaný text" })).toBe(state)
+  })
+
+  it("preserves profile drafts across Back and reopening the decision", () => {
+    const original = withThree()
+    const commands: OnboardingCommand[] = [
+      { type: "profile" },
+      { type: "edit-name", name: "Jana P." },
+      { type: "edit-bio", bio: "Potkáme se na výletě." },
+      { type: "back" },
+      { type: "review" },
+      { type: "profile" },
+    ]
+    const result = commands.reduce(moveOnboarding, original)
+    expect(result.stage).toBe("profile")
+    expect(result.overlay).toBeNull()
+    expect(result.name).toBe("Jana P.")
+    expect(result.bio).toBe("Potkáme se na výletě.")
+    expect(result.interestIds).toEqual(original.interestIds)
+  })
+
+  it.each<OnboardingFlow>([
+    startOnboarding("Jana"),
+    follow(place(prague), take("hike")),
+    moveOnboarding(withThree(), { type: "profile" }),
+  ])("backs out of exit confirmation without mutating the draft in $stage", (state) => {
+    const exiting = moveOnboarding(state, { type: "exit" })
+    expect(exiting.overlay).toBe("exit")
+    expect(moveOnboarding(exiting, { type: "back" })).toEqual(state)
+  })
+})

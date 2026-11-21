@@ -27,11 +27,16 @@ export class CompleteOnboardingDto {
   @MaxLength(100, { each: true })
   interestIds!: string[];
 
-  @ApiPropertyOptional({ type: String, maxLength: 500 })
+  @ApiPropertyOptional({ type: String, nullable: true, maxLength: 500 })
   @IsOptional()
   @IsString()
   @MaxLength(500)
-  bio?: string;
+  bio?: string | null;
+
+  @ApiPropertyOptional({ type: String, nullable: true })
+  @IsOptional()
+  @IsString()
+  displayName?: string | null;
 }
 
 export class OnboardingResultDto {
@@ -43,4 +48,7 @@ export class OnboardingResultDto {
 
   @ApiProperty()
   hasInterests!: boolean;
+
+  @ApiProperty()
+  displayName!: string;
 }

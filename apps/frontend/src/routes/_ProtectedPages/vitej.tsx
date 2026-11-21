@@ -46,13 +46,13 @@ function OnboardingPage() {
   const viewerId = user.id
 
   const finish = async (
-    { onboardingCompletedAt, localitySlug, hasInterests }: OnboardingResult,
+    { onboardingCompletedAt, localitySlug, hasInterests, displayName }: OnboardingResult,
     hasSubmittedPreferences: boolean,
   ) => {
     const current = queryClient.getQueryData<Session>(authKeys.session())
     if (current?.user.id !== viewerId) return
     queryClient.setQueryData<Session>(authKeys.session(), () => ({
-      user: { ...current.user, onboardingCompletedAt },
+      user: { ...current.user, name: displayName ?? current.user.name, onboardingCompletedAt },
     }))
     void queryClient.invalidateQueries({ queryKey: defaultLocalityQueryOptions(viewerId).queryKey })
     void queryClient.invalidateQueries({ queryKey: profileKeys.self(viewerId) })
@@ -73,6 +73,7 @@ function OnboardingPage() {
     <OnboardingWizard
       key={viewerId}
       viewerId={viewerId}
+      displayName={user.name}
       renderEventPreview={(locality, categoryId) => (
         <OnboardingEventPreview
           key={categoryId}

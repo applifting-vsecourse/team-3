@@ -11,6 +11,7 @@ import { Injectable } from '@nestjs/common';
 
 const onboardingSelect = {
   onboardingCompletedAt: true,
+  name: true,
   homeLocality: { select: { slug: true } },
   _count: { select: { interests: true } },
 } satisfies Prisma.UserSelect;

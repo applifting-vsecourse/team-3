@@ -42,13 +42,7 @@ export class ProfileService {
       });
     const data: Prisma.UserUpdateInput = {};
     if (input.name !== undefined) {
-      const problem = nameProblem(input.name);
-      if (problem)
-        throw new BadRequestException({
-          code: 'INVALID_NAME',
-          message: problem,
-        });
-      data.name = trimName(input.name);
+      data.name = this.validName(input.name);
     }
     Object.assign(data, await this.preferences(input));
     if (input.bio !== undefined) data.bio = input.bio?.trim() || null;
@@ -65,8 +59,12 @@ export class ProfileService {
     onboardingCompletedAt: Date;
     localitySlug: string | null;
     hasInterests: boolean;
+    displayName: string;
   }> {
     const preferences = input ? await this.preferences(input) : {};
+    if (typeof input?.displayName === 'string') {
+      preferences.name = this.validName(input.displayName);
+    }
     const bio = input?.bio?.trim();
     if (bio) {
       preferences.bio = bio;
@@ -78,7 +76,18 @@ export class ProfileService {
       onboardingCompletedAt: saved.onboardingCompletedAt,
       localitySlug: saved.homeLocality?.slug ?? null,
       hasInterests: saved._count.interests > 0,
+      displayName: saved.name,
     };
+  }
+
+  private validName(name: string): string {
+    const problem = nameProblem(name);
+    if (problem)
+      throw new BadRequestException({
+        code: 'INVALID_NAME',
+        message: problem,
+      });
+    return trimName(name);
   }
 
   private async preferences(

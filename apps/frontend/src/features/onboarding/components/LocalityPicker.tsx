@@ -1,64 +1,65 @@
-import { useEffect, useRef, useState } from "react"
+import { useEffect, useMemo, useRef, useState, type KeyboardEvent } from "react"
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
-import { Check, MapPin, Search } from "lucide-react"
+import { ArrowUpRight, ChevronRight, LoaderCircle, MapPin, Search } from "lucide-react"
 
+import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { catalogKeys } from "@/lib/catalog/catalogQueryOptions"
 import type { Locality } from "@/lib/catalog/catalogSchemas"
-import { addPlaceAsLocality, placeSuggestionsQueryOptions } from "@/lib/catalog/placeSearch"
-import { foldText, matchRank } from "@/lib/catalog/textSearch"
+import {
+  addPlaceAsLocality,
+  PLACE_SEARCH_MIN_LENGTH,
+  placeSuggestionsQueryOptions,
+} from "@/lib/catalog/placeSearch"
+import { foldText } from "@/lib/catalog/textSearch"
 import { cn } from "@/lib/utils"
 
-const SUGGESTED_CITIES = ["praha", "brno", "ostrava", "plzen", "olomouc", "liberec"]
+import {
+  browseLocalities,
+  enterChoice,
+  findCatalogLocalities,
+  listOnlineLocalities,
+  type LocalityChoice,
+} from "@/features/onboarding/lib/localityChoices"
 
 type LocalityPickerProps = {
   localities: Locality[]
-  picked?: Locality
-  isGuess: boolean
-  isInvalid: boolean
-  onPick: (id: string) => void
+  confirmed: Locality | null
+  suggested?: Locality | null
+  isDisabled?: boolean
+  onPick: (locality: Locality) => void
   onPendingChange: (isPending: boolean) => void
 }
 
 export function LocalityPicker({
   localities,
-  picked,
-  isGuess,
-  isInvalid,
+  confirmed,
+  suggested,
+  isDisabled,
   onPick,
   onPendingChange,
 }: LocalityPickerProps) {
   const [query, setQuery] = useState("")
   const [debounced, setDebounced] = useState("")
+  const [expandedQuery, setExpandedQuery] = useState("")
+  const [activationHint, setActivationHint] = useState("")
+  const list = useRef<HTMLUListElement>(null)
   const input = useRef<HTMLInputElement>(null)
+  const pendingPick = useRef(false)
   const queryClient = useQueryClient()
   const needle = foldText(query)
-  const matches = needle
-    ? localities
-        .flatMap((locality) => {
-          const rank = matchRank(foldText(locality.name), needle)
-          return rank === undefined ? [] : [{ locality, rank }]
-        })
-        .sort(
-          (a, b) =>
-            a.rank - b.rank ||
-            a.locality.name.localeCompare(b.locality.name, "cs", { numeric: true }),
-        )
-        .slice(0, 8)
-        .map(({ locality }) => locality)
-    : SUGGESTED_CITIES.flatMap((slug) => localities.filter((locality) => locality.slug === slug))
-  const onlineQuery = needle && matches.length === 0 ? query : ""
-  const places = useQuery(placeSuggestionsQueryOptions(debounced === onlineQuery ? debounced : ""))
+  const localResults = useMemo(() => findCatalogLocalities(localities, query), [localities, query])
+  const canSearchMaps = needle.length >= PLACE_SEARCH_MIN_LENGTH
+  const isExpanded = expandedQuery === needle
+  const remoteTerm = canSearchMaps && (localResults.length === 0 || isExpanded) ? query.trim() : ""
+  const isCurrent = remoteTerm === debounced
+  const places = useQuery(placeSuggestionsQueryOptions(isCurrent ? debounced : ""))
 
   useEffect(() => {
-    const timer = setTimeout(() => setDebounced(onlineQuery), 300)
+    const timer = setTimeout(() => setDebounced(remoteTerm), 275)
     return () => clearTimeout(timer)
-  }, [onlineQuery])
-
-  useEffect(() => {
-    if (isInvalid) input.current?.focus()
-  }, [isInvalid])
+  }, [remoteTerm])
 
   const add = useMutation({
     mutationFn: addPlaceAsLocality,
@@ -66,32 +67,86 @@ export function LocalityPicker({
       queryClient.setQueryData<Locality[]>(catalogKeys.localities(), (current) =>
         current?.some(({ id }) => id === locality.id) ? current : [...(current ?? []), locality],
       )
-      onPick(locality.id)
-      setQuery("")
+      onPick(locality)
     },
-    onSettled: () => onPendingChange(false),
+    onSettled: () => {
+      pendingPick.current = false
+      onPendingChange(false)
+    },
   })
+  const remoteResults =
+    remoteTerm && isCurrent && !places.isPlaceholderData
+      ? listOnlineLocalities(places.data ?? [], query)
+      : []
+  const extraResults = remoteResults.filter((result) => {
+    if (!("onlinePlace" in result)) return true
+    const place = result.onlinePlace
+    return !localResults.some(
+      (candidate) =>
+        "locality" in candidate &&
+        foldText(candidate.name) === foldText(place.name) &&
+        Math.abs(candidate.locality.lat - place.lat) < 0.03 &&
+        Math.abs(candidate.locality.lng - place.lng) < 0.045,
+    )
+  })
+  const choices = needle
+    ? [...localResults, ...extraResults]
+    : browseLocalities(localities, confirmed, suggested)
+  const isSearching = Boolean(remoteTerm && (!isCurrent || places.isFetching))
+  const isBusy = isDisabled === true || add.isPending
+
+  function choose(choice: LocalityChoice) {
+    if (isBusy || pendingPick.current) return
+    setActivationHint("")
+    if ("locality" in choice) {
+      onPick(choice.locality)
+    } else {
+      pendingPick.current = true
+      onPendingChange(true)
+      add.mutate(choice.onlinePlace)
+    }
+  }
+
+  function keyboardSearch(event: KeyboardEvent<HTMLInputElement>) {
+    if (event.nativeEvent.isComposing || isBusy) return
+    if (event.key === "ArrowDown") {
+      event.preventDefault()
+      list.current?.querySelector("button")?.focus()
+    }
+    if (event.key === "Enter") {
+      event.preventDefault()
+      const choice = needle && enterChoice(choices)
+      if (choice) choose(choice)
+      else setActivationHint("Vyber místo z nabídky pod vyhledáváním.")
+    }
+  }
+
+  function keyboardResults(event: KeyboardEvent<HTMLButtonElement>) {
+    if (!["ArrowDown", "ArrowUp", "Home", "End"].includes(event.key)) return
+    const buttons = Array.from(
+      list.current?.querySelectorAll<HTMLButtonElement>("button:not(:disabled)") ?? [],
+    )
+    const current = buttons.indexOf(document.activeElement as HTMLButtonElement)
+    const target =
+      event.key === "Home"
+        ? 0
+        : event.key === "End"
+          ? buttons.length - 1
+          : current + (event.key === "ArrowDown" ? 1 : -1)
+    event.preventDefault()
+    if (target === -1) input.current?.focus()
+    else buttons[target]?.focus()
+  }
 
   return (
     <div className="space-y-4">
-      {picked ? (
-        <div className="flex items-center gap-3 rounded-xl border border-tile-border bg-secondary p-4 text-secondary-foreground">
-          <MapPin
-            aria-hidden
-            className="size-5 shrink-0"
-          />
-          <div className="min-w-0 flex-1">
-            <p className="font-semibold wrap-break-word">{picked.name}</p>
-            <p className="text-sm">{isGuess ? "Odhad podle připojení" : "Vybraná lokalita"}</p>
-          </div>
-          <Check
-            aria-hidden
-            className="size-5 shrink-0"
-          />
-        </div>
-      ) : null}
       <div className="space-y-2">
-        <Label htmlFor="onboarding-locality">Město, obec nebo městská část</Label>
+        <Label
+          htmlFor="onboarding-locality"
+          className="font-semibold"
+        >
+          Město, obec nebo městská část
+        </Label>
         <div className="relative">
           <Search
             aria-hidden
@@ -100,107 +155,132 @@ export function LocalityPicker({
           <Input
             id="onboarding-locality"
             ref={input}
-            aria-invalid={isInvalid}
-            aria-describedby={isInvalid ? "onboarding-locality-error" : undefined}
             type="search"
+            autoComplete="off"
+            placeholder="Zkus Praha 8 nebo Břeclav"
             value={query}
-            onChange={(event) => setQuery(event.target.value)}
-            placeholder="Třeba Praha 8 nebo Brno"
-            className="h-12 rounded-full pl-12"
+            disabled={isBusy}
+            aria-controls="onboarding-place-results"
+            onKeyDown={keyboardSearch}
+            onChange={(event) => {
+              setQuery(event.target.value)
+              setExpandedQuery("")
+              setActivationHint("")
+              add.reset()
+            }}
+            className="h-13 rounded-xl bg-card pl-12 text-base"
           />
         </div>
-        {isInvalid ? (
+      </div>
+      <div>
+        <h2
+          className="mb-2 text-sm font-semibold"
+          id="onboarding-place-list-title"
+        >
+          {needle ? "Nalezená místa" : "Vyber místo"}
+        </h2>
+        <ul
+          id="onboarding-place-results"
+          ref={list}
+          aria-labelledby="onboarding-place-list-title"
+          className={cn("grid gap-2 sm:grid-cols-2", !needle && "min-[360px]:grid-cols-2")}
+        >
+          {choices.map((choice) => (
+            <li
+              key={choice.key}
+              className="min-w-0"
+            >
+              <Button
+                type="button"
+                variant="outline"
+                aria-label={[choice.name, choice.detail].filter(Boolean).join(" ")}
+                disabled={isBusy}
+                onClick={() => choose(choice)}
+                onKeyDown={keyboardResults}
+                className="min-h-12 w-full justify-start gap-3 border-card-border bg-card px-3 text-left whitespace-normal"
+              >
+                <MapPin
+                  aria-hidden
+                  className="size-4 shrink-0 text-secondary-foreground"
+                />
+                <span className="min-w-0 flex-1">
+                  <span className="block font-semibold wrap-break-word">{choice.name}</span>
+                  {choice.detail ? (
+                    <span className="block text-xs text-muted-foreground">{choice.detail}</span>
+                  ) : null}
+                </span>
+                {choice.detail === "Odhad podle připojení" || choice.detail === "Poslední výběr" ? (
+                  <ArrowUpRight
+                    aria-hidden
+                    className="size-4"
+                  />
+                ) : (
+                  <ChevronRight
+                    aria-hidden
+                    className="size-4"
+                  />
+                )}
+              </Button>
+            </li>
+          ))}
+        </ul>
+        {add.isPending || isSearching ? (
           <p
-            id="onboarding-locality-error"
-            role="alert"
-            className="text-sm text-destructive"
+            role="status"
+            className="mt-3 flex items-center gap-2 text-sm text-muted-foreground"
           >
-            Vyber místo ze seznamu a pokračuj.
+            <LoaderCircle
+              aria-hidden
+              className="size-4 motion-safe:animate-spin"
+            />
+            {add.isPending ? "Ukládám vybrané místo…" : "Hledám místo…"}
+          </p>
+        ) : needle && choices.length === 0 ? (
+          <p
+            role="status"
+            className="mt-3 text-sm text-muted-foreground"
+          >
+            {places.isError ? "Hledání se nepodařilo." : "Zkus napsat celý název města nebo obce."}
+          </p>
+        ) : activationHint ? (
+          <p
+            role="status"
+            className="mt-3 text-sm text-muted-foreground"
+          >
+            {activationHint}
+          </p>
+        ) : null}
+        {remoteTerm && isCurrent && places.isError ? (
+          <Button
+            type="button"
+            variant="link"
+            className="min-h-11 px-0"
+            onClick={() => void places.refetch()}
+          >
+            Zkusit hledat znovu
+          </Button>
+        ) : canSearchMaps &&
+          localResults.length > 0 &&
+          !isExpanded &&
+          !localResults.some(({ isExact }) => isExact) ? (
+          <Button
+            type="button"
+            variant="link"
+            className="min-h-11 px-0"
+            onClick={() => setExpandedQuery(needle)}
+          >
+            Hledat další místa
+          </Button>
+        ) : null}
+        {add.isError ? (
+          <p
+            role="alert"
+            className="mt-3 text-sm text-destructive"
+          >
+            {add.error.message}
           </p>
         ) : null}
       </div>
-      <div
-        role="group"
-        aria-label={needle ? "Výsledky hledání" : "Rychlý výběr měst"}
-        className="grid grid-cols-2 gap-2"
-      >
-        {matches.map((locality) => (
-          <button
-            key={locality.id}
-            type="button"
-            aria-pressed={locality.id === picked?.id}
-            onClick={() => {
-              onPick(locality.id)
-              if (!needle) return
-              input.current?.focus()
-              setQuery("")
-            }}
-            className={cn(
-              "flex min-h-11 items-center gap-2 rounded-lg border border-control-border bg-card px-3 py-2 text-left text-sm font-medium hover:bg-accent focus-visible:ring-2 focus-visible:ring-ring",
-              locality.id === picked?.id &&
-                "border-tile-border bg-secondary text-secondary-foreground",
-            )}
-          >
-            <MapPin
-              aria-hidden
-              className="size-4 shrink-0"
-            />
-            <span className="min-w-0 wrap-break-word">{locality.name}</span>
-          </button>
-        ))}
-      </div>
-      {onlineQuery && needle.length >= 2 ? (
-        <div className="space-y-2">
-          {places.isFetching || debounced !== onlineQuery ? (
-            <p
-              role="status"
-              className="text-sm text-muted-foreground"
-            >
-              Hledám další místa…
-            </p>
-          ) : null}
-          {places.data?.map((place) => (
-            <button
-              key={place.key}
-              type="button"
-              disabled={add.isPending}
-              onClick={() => {
-                onPendingChange(true)
-                add.mutate(place)
-              }}
-              className="flex min-h-11 w-full flex-col rounded-lg border border-control-border bg-card px-3 py-2 text-left text-sm hover:bg-accent focus-visible:ring-2 focus-visible:ring-ring"
-            >
-              <span className="font-semibold">{place.name}</span>
-              {place.area ? <span className="text-muted-foreground">{place.area}</span> : null}
-            </button>
-          ))}
-          {places.isError ||
-          (places.isSuccess && !places.isFetching && places.data.length === 0) ? (
-            <p
-              role="status"
-              className="text-sm text-muted-foreground"
-            >
-              Zkus celý název obce nebo vyber místo v okolí.
-            </p>
-          ) : null}
-          {add.isPending ? (
-            <p
-              role="status"
-              className="text-sm text-muted-foreground"
-            >
-              Ukládám místo…
-            </p>
-          ) : null}
-          {add.isError ? (
-            <p
-              role="alert"
-              className="text-sm text-destructive"
-            >
-              {add.error.message}
-            </p>
-          ) : null}
-        </div>
-      ) : null}
     </div>
   )
 }

@@ -1,72 +1,69 @@
-import { useState, type ReactNode } from "react"
-import { Check, Plus, Search } from "lucide-react"
+import { useRef, useState, type MouseEvent, type ReactNode } from "react"
+import { Compass, Search } from "lucide-react"
 
-import { activityPhoto } from "@/assets/activity-photos"
-import { ActivityTile } from "@/components/ActivityTile/ActivityTile"
+import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { searchActivities } from "@/lib/catalog/activitySelection"
-import type { ActivityCategory } from "@/lib/catalog/catalogSchemas"
-import { cn } from "@/lib/utils"
+import type { Activity, ActivityCategory } from "@/lib/catalog/catalogSchemas"
 
-const STARTING_ACTIVITIES = [
-  "volejbal",
-  "turistika",
-  "deskove-hry",
-  "badminton",
-  "beh",
-  "fotografie",
-  "pub-kviz",
-  "cyklistika",
-  "tanec",
-  "komunitni-zahrada",
-  "lezeni",
-  "spolecne-vareni",
-]
+import { coverForCategory, DISCOVERY_PHOTOS } from "@/features/onboarding/lib/activityScenes"
+
+import { OnboardingCard } from "./OnboardingCard"
 
 type InterestPickerProps = {
   categories: ActivityCategory[]
-  preferredCategoryIds: string[]
-  renderEventPreview?: (categoryId: string) => ReactNode
+  categoryId: string
   selected: string[]
-  onToggle: (id: string) => void
-  isDisabled: boolean
+  isDisabled?: boolean
+  onBrowse: (id: string) => void
+  onToggle: (activity: Activity, target: HTMLButtonElement) => void
+  renderEventPreview?: (categoryId: string) => ReactNode
 }
 
 export function InterestPicker({
   categories,
-  preferredCategoryIds,
-  renderEventPreview,
+  categoryId,
   selected,
-  onToggle,
   isDisabled,
+  onBrowse,
+  onToggle,
+  renderEventPreview,
 }: InterestPickerProps) {
   const [query, setQuery] = useState("")
-  const [categoryId, setCategoryId] = useState(preferredCategoryIds[0] ?? "")
   const [isShowingAll, setIsShowingAll] = useState(false)
+  const shelf = useRef<HTMLDivElement>(null)
+  const active = categories.find(({ id }) => id === categoryId)
   const isSearching = Boolean(query.trim())
-  const isOverview = !isSearching && !categoryId && !isShowingAll
-  const visibleCategories = categoryId
-    ? categories.filter((category) => category.id === categoryId)
-    : categories
-  const orderedCategories = [
-    ...categories.filter(({ id }) => preferredCategoryIds.includes(id)),
-    ...categories.filter(({ id }) => !preferredCategoryIds.includes(id)),
-  ]
-  const allMatches = visibleCategories.flatMap((category) =>
-    category.activities.map((activity) => ({ category, activity })),
+  const isFocused = Boolean(active) || isSearching || isShowingAll
+  const allActivities = (active ? [active] : categories).flatMap((category) =>
+    category.activities.map((activity) => ({ activity, category })),
   )
-  const featured = STARTING_ACTIVITIES.flatMap((slug) =>
-    allMatches.filter(({ activity }) => activity.slug === slug),
+  const firstChoices = DISCOVERY_PHOTOS.flatMap((slug) =>
+    allActivities.filter(({ activity }) => activity.slug === slug),
   )
-  const matches = isSearching
+  const choices = isSearching
     ? searchActivities(categories, query)
-    : isOverview && featured.length > 0
-      ? featured
-      : allMatches
+    : active || isShowingAll || firstChoices.length === 0
+      ? allActivities
+      : firstChoices
+
+  function browse(id: string, event: MouseEvent<HTMLButtonElement>) {
+    setQuery("")
+    setIsShowingAll(id === "")
+    onBrowse(id)
+    const button = event.currentTarget
+    requestAnimationFrame(() => {
+      if (!shelf.current?.contains(button)) return
+      const { left, right } = shelf.current.getBoundingClientRect()
+      const item = button.getBoundingClientRect()
+      if (item.left < left) shelf.current.scrollLeft += item.left - left - 6
+      if (item.right > right) shelf.current.scrollLeft += item.right - right + 6
+    })
+  }
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-5">
       <div className="relative">
         <Label
           htmlFor="onboarding-activity-search"
@@ -81,132 +78,126 @@ export function InterestPicker({
         <Input
           id="onboarding-activity-search"
           type="search"
-          placeholder="Hledej třeba volejbal nebo běh"
+          placeholder="Najdi třeba volejbal, deskovky nebo běh"
           value={query}
           onChange={(event) => setQuery(event.target.value)}
-          className="h-11 rounded-full pl-12"
+          className="h-12 rounded-xl bg-card pl-12 text-base"
         />
       </div>
-      <div
-        role="group"
-        aria-label="Kategorie aktivit"
-        className="flex [scrollbar-width:none] gap-2 overflow-x-auto p-1 sm:flex-wrap"
+
+      <section
+        aria-labelledby="onboarding-shelf-heading"
+        className="space-y-2"
       >
-        <button
-          type="button"
-          aria-pressed={!categoryId && !isSearching}
-          onClick={() => {
-            setQuery("")
-            setCategoryId("")
-          }}
-          className="shrink-0 rounded-full border border-control-border px-3 py-2 text-sm font-medium focus-visible:ring-2 focus-visible:ring-ring aria-pressed:border-hero aria-pressed:bg-hero aria-pressed:text-on-hero"
-        >
-          Vše
-        </button>
-        {orderedCategories.map((category) => (
-          <button
-            key={category.id}
-            type="button"
-            aria-pressed={category.id === categoryId && !isSearching}
-            onClick={() => {
-              setQuery("")
-              setCategoryId(category.id)
-            }}
-            className="flex shrink-0 items-center gap-2 rounded-full border border-control-border px-3 py-2 text-sm font-medium hover:bg-accent focus-visible:ring-2 focus-visible:ring-ring aria-pressed:border-hero aria-pressed:bg-hero aria-pressed:text-on-hero"
+        <div className="flex flex-wrap items-center justify-between gap-2">
+          <h2
+            id="onboarding-shelf-heading"
+            className="font-semibold"
           >
-            <ActivityTile
-              icon={category.icon}
-              className="size-4 border-0 bg-transparent text-current"
-              iconClassName="size-4"
-            />
-            {category.name}
-          </button>
-        ))}
-      </div>
-      {!isSearching && categoryId ? renderEventPreview?.(categoryId) : null}
-      {matches.length > 0 ? (
-        <div
-          key={isSearching ? "search" : categoryId}
-          className="grid grid-cols-2 gap-3 sm:grid-cols-3 xl:grid-cols-4"
-        >
-          {matches.map(({ activity, category }, index) => {
-            const isPicked = selected.includes(activity.id)
-            const photo = activityPhoto(activity.slug)
-            const Icon = isPicked ? Check : Plus
-            return (
-              <button
-                key={activity.id}
-                type="button"
-                aria-pressed={isPicked}
-                disabled={isDisabled}
-                onClick={() => onToggle(activity.id)}
-                style={
-                  !isSearching && index < 12
-                    ? { animationDelay: `${Math.min(index, 7) * 30}ms` }
-                    : undefined
-                }
-                className={cn(
-                  "group relative isolate flex aspect-[4/3] min-w-0 items-end overflow-hidden rounded-xl border-2 border-transparent bg-hero p-3 text-left text-white shadow-none outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 motion-safe:transition-transform motion-safe:active:scale-95",
-                  !isSearching &&
-                    index < 12 &&
-                    "motion-safe:duration-300 motion-safe:animate-in motion-safe:fade-in motion-safe:fill-mode-both motion-safe:slide-in-from-bottom-3",
-                  isPicked && "border-primary ring-2 ring-primary-edge",
-                )}
-              >
-                {photo ? (
-                  <img
-                    src={photo.src}
-                    alt=""
-                    loading={index < 8 ? "eager" : "lazy"}
-                    decoding="async"
-                    className="absolute inset-0 -z-10 size-full object-cover motion-safe:transition-transform motion-safe:duration-300 motion-safe:group-hover:scale-105"
-                  />
-                ) : (
-                  <ActivityTile
-                    icon={category.icon}
-                    className="absolute top-3 left-3 -z-10 size-8"
-                    iconClassName="size-5"
-                  />
-                )}
-                <span
-                  aria-hidden
-                  className="absolute inset-0 -z-10 bg-linear-to-t from-black via-black/35 to-black/5"
-                />
-                <span className="relative w-full text-sm leading-tight font-semibold wrap-break-word md:text-base">
-                  {activity.name}
-                </span>
-                <span
-                  key={isPicked ? "selected" : "available"}
-                  aria-hidden
-                  className={cn(
-                    "absolute top-2 right-2 grid size-7 place-items-center rounded-full border border-white/70 bg-black/65 text-white",
-                    isPicked &&
-                      "border-primary bg-primary text-primary-foreground motion-safe:duration-200 motion-safe:animate-in motion-safe:zoom-in-50",
-                  )}
-                >
-                  <Icon className="size-4" />
-                </span>
-              </button>
-            )
-          })}
+            Co tě láká?
+          </h2>
+          {!isFocused ? (
+            <Button
+              type="button"
+              variant="link"
+              className="min-h-11"
+              onClick={(event) => browse("", event)}
+            >
+              Všechny aktivity
+            </Button>
+          ) : null}
         </div>
-      ) : (
-        <p
-          role="status"
-          className="rounded-xl border border-card-border bg-card p-4 text-sm text-muted-foreground"
+        <div
+          ref={shelf}
+          className={
+            isFocused
+              ? "flex [scrollbar-width:none] gap-2 overflow-x-auto p-1"
+              : "grid grid-cols-2 gap-3 p-1 sm:grid-cols-3 xl:grid-cols-4"
+          }
         >
-          Tady jsem žádnou aktivitu nenašel. Zkus jiný název nebo vyber „Vše“.
-        </p>
-      )}
-      {isOverview && featured.length < allMatches.length ? (
-        <button
-          type="button"
-          className="rounded-lg px-3 py-2 text-sm font-semibold underline underline-offset-4 focus-visible:ring-2 focus-visible:ring-ring"
-          onClick={() => setIsShowingAll(true)}
-        >
-          Zobrazit všechny aktivity
-        </button>
-      ) : null}
+          {isFocused ? (
+            <Button
+              type="button"
+              variant={categoryId || isSearching ? "outline" : "secondary"}
+              aria-pressed={!categoryId && !isSearching}
+              className="min-h-12 bg-card"
+              onClick={(event) => browse("", event)}
+            >
+              <Compass aria-hidden /> Všechny aktivity
+            </Button>
+          ) : null}
+          {categories.map((category, index) => (
+            <OnboardingCard
+              key={category.id}
+              name={category.name}
+              photoSlug={coverForCategory(category)}
+              icon={category.icon}
+              kind="category"
+              isCompact={isFocused}
+              isSelected={!isSearching && category.id === categoryId}
+              order={index}
+              onSelect={(event) => browse(category.id, event)}
+            />
+          ))}
+        </div>
+      </section>
+
+      <section
+        aria-labelledby="onboarding-results-heading"
+        className="space-y-3"
+      >
+        <div className="flex flex-wrap items-center justify-between gap-2">
+          <h2
+            id="onboarding-results-heading"
+            className="type-card-heading"
+          >
+            {isSearching ? "Výsledky hledání" : (active?.name ?? "Aktivity napříč okruhy")}
+          </h2>
+          {isSearching || active || isShowingAll ? (
+            <span
+              role="status"
+              className="text-sm text-muted-foreground"
+            >
+              {choices.length}{" "}
+              {choices.length === 1
+                ? "aktivita"
+                : choices.length > 1 && choices.length < 5
+                  ? "aktivity"
+                  : "aktivit"}
+            </span>
+          ) : null}
+        </div>
+        {!isSearching && active ? renderEventPreview?.(active.id) : null}
+
+        {choices.length > 0 ? (
+          <div
+            key={isSearching ? "search" : categoryId}
+            className="grid grid-cols-2 gap-3 p-1 sm:grid-cols-3 xl:grid-cols-4"
+          >
+            {choices.map(({ activity, category }, index) => (
+              <OnboardingCard
+                key={activity.id}
+                name={activity.name}
+                photoSlug={activity.slug}
+                icon={category.icon}
+                kind="activity"
+                interestId={activity.id}
+                isSelected={selected.includes(activity.id)}
+                isDisabled={isDisabled}
+                order={isSearching ? 0 : index}
+                onSelect={(event) => onToggle(activity, event.currentTarget)}
+              />
+            ))}
+          </div>
+        ) : (
+          <p
+            role="status"
+            className="rounded-xl border border-card-border bg-card p-4 text-sm text-muted-foreground"
+          >
+            Tohle hledání nic nenašlo. Zkus název jedné aktivity nebo otevři celý seznam.
+          </p>
+        )}
+      </section>
     </div>
   )
 }

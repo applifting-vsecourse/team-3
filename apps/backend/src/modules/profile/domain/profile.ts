@@ -92,5 +92,6 @@ export type UpdateProfileInput = {
 export type OnboardingInput = {
   homeLocalityId: string;
   interestIds: string[];
-  bio?: string;
+  bio?: string | null;
+  displayName?: string | null;
 };
