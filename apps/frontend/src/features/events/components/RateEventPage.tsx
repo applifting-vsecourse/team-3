@@ -92,7 +92,11 @@ export function RateEventPage({ eventId, viewerId, onSaved }: RateEventPageProps
         isCompactOnMobile
       />
       <div className={cn(PAGE, "gap-6 pb-24")}>
-        {query.error ? (
+        {/* a 403 waits for the event's detail, so its card doesn't jump in above the notice
+            once it loads (review #395) */}
+        {isNotParticipant && detail.isPending ? (
+          <RateEventLoading />
+        ) : query.error ? (
           <RateEventError
             error={query.error}
             event={shownEvent}
