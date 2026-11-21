@@ -6,6 +6,7 @@ import { useForm } from "react-hook-form"
 import { toast } from "sonner"
 import { z } from "zod"
 
+import { Alert, AlertDescription } from "@/components/ui/alert"
 import { Button } from "@/components/ui/button"
 import {
   Dialog,
@@ -28,6 +29,7 @@ import {
 } from "@/components/ui/form"
 import { Input } from "@/components/ui/input"
 import { Textarea } from "@/components/ui/textarea"
+import { apiValidationMessages } from "@/lib/api-client"
 import { cn } from "@/lib/utils"
 
 import {
@@ -66,25 +68,23 @@ type SendEventMessageButtonProps = {
   className?: string
 }
 
-/**
- * The API's validation messages (400, `message: string[]`) for the field they are about, so they
- * show under it, not in a toast (review #280, #281). The DTO words them per field („Napiš
- * předmět“, „Text může mít nejvýš 2000 znaků“), so the field is in the words.
- */
-function fieldErrorsOf(error: unknown): Partial<Record<keyof FormInput, string>> {
-  if (typeof error !== "object" || error === null) return {}
-  const { response, data } = error as { response?: { status?: number }; data?: unknown }
-  if (response?.status !== 400 || typeof data !== "object" || data === null) return {}
-  const raw = (data as { message?: unknown }).message
-  const messages = (Array.isArray(raw) ? raw : [raw]).filter(
-    (message): message is string => typeof message === "string",
-  )
+// Which field a validation message of the API is about: the DTO words them per field
+// („Napiš předmět“, „Předmět může mít…“, „Napiš text zprávy“, „Text může mít…“, review #395).
+// One it doesn't recognise still shows, in the dialog's Alert.
+const FIELD_OF_MESSAGE: [RegExp, keyof FormInput][] = [
+  [/předmět/i, "subject"],
+  [/text/i, "body"],
+]
+
+const fieldErrorsOf = (error: unknown) => {
   const errors: Partial<Record<keyof FormInput, string>> = {}
-  for (const message of messages) {
-    const field = /předmět/i.test(message) ? "subject" : /text/i.test(message) ? "body" : undefined
+  const rest: string[] = []
+  for (const message of apiValidationMessages(error)) {
+    const field = FIELD_OF_MESSAGE.find(([words]) => words.test(message))?.[1]
     if (field && !errors[field]) errors[field] = message
+    else if (!field) rest.push(message)
   }
-  return errors
+  return { errors, rest }
 }
 
 /**
@@ -145,14 +145,14 @@ export function SendEventMessageButton({
                 await send.mutateAsync(values)
               } catch (error) {
                 // the text stays in the dialog to try again
-                const fieldErrors = Object.entries(fieldErrorsOf(error)) as [
-                  keyof FormInput,
-                  string,
-                ][]
+                const { errors, rest } = fieldErrorsOf(error)
+                const fieldErrors = Object.entries(errors) as [keyof FormInput, string][]
                 fieldErrors.forEach(([field, message], i) =>
                   form.setError(field, { message }, { shouldFocus: i === 0 }),
                 )
-                if (!fieldErrors.length) setRefusal((error as Error).message)
+                if (!fieldErrors.length || rest.length) {
+                  setRefusal(rest.length ? rest.join(", ") : (error as Error).message)
+                }
                 return
               }
               toast.success("Zpráva je odeslaná")
@@ -207,12 +207,9 @@ export function SendEventMessageButton({
               )}
             />
             {refusal ? (
-              <p
-                role="alert"
-                className="text-sm text-destructive"
-              >
-                {refusal}
-              </p>
+              <Alert variant="destructive">
+                <AlertDescription>{refusal}</AlertDescription>
+              </Alert>
             ) : null}
             <DialogFooter className="flex-row justify-end">
               <DialogClose asChild>

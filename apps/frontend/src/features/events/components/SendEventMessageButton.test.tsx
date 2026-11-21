@@ -9,7 +9,11 @@ const { api, toast } = vi.hoisted(() => ({
   api: { get: vi.fn(), post: vi.fn() },
   toast: { success: vi.fn(), error: vi.fn() },
 }))
-vi.mock("@/lib/api-client", () => ({ api }))
+vi.mock("@/lib/api-client", () => ({
+  api,
+  // the real one needs ky's HTTPError; here the rejection carries its messages itself
+  apiValidationMessages: (error: unknown) => (error as { validation?: string[] }).validation ?? [],
+}))
 vi.mock("sonner", () => ({ toast }))
 
 const sent = {
@@ -150,8 +154,7 @@ describe("SendEventMessageButton (#176)", () => {
       json: () =>
         Promise.reject(
           Object.assign(new Error("Napiš předmět, Text může mít nejvýš 2000 znaků"), {
-            response: { status: 400 },
-            data: { message: ["Napiš předmět", "Text může mít nejvýš 2000 znaků"] },
+            validation: ["Napiš předmět", "Text může mít nejvýš 2000 znaků"],
           }),
         ),
     })
