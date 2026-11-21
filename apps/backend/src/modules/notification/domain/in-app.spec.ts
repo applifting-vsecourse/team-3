@@ -3,11 +3,20 @@ import {
   composeEventInApp,
   composeEventMessageInApp,
   composeFriendInApp,
+  composeGroupRequestInApp,
   InAppType,
   notificationPath,
 } from './in-app';
-import { composeFriendMessage, composeMessage } from './messages';
-import { EventNotification, NotifiedEvent } from './notification';
+import {
+  composeFriendMessage,
+  composeGroupRequestMessage,
+  composeMessage,
+} from './messages';
+import {
+  EventNotification,
+  GroupRequestNotification,
+  NotifiedEvent,
+} from './notification';
 
 const event: NotifiedEvent = {
   id: 'e1',
@@ -166,6 +175,61 @@ describe('composeEventMessageInApp and composeAnnouncementInApp', () => {
       text: 'Nové oznámení ve skupině „Volejbal Pankrác“: Turnaj v sobotu',
     });
   });
+});
+
+describe('composeGroupRequestInApp (#86)', () => {
+  const group = { id: 'g1', name: 'Volejbal Pankrác' };
+
+  it.each<[GroupRequestNotification, string, string]>([
+    [
+      {
+        type: 'group-join-request',
+        groupId: 'g1',
+        applicantId: 'u2',
+        message: null,
+      },
+      'group_join_request',
+      'Jana Nováková chce do skupiny „Volejbal Pankrác“.',
+    ],
+    [
+      {
+        type: 'group-request-decided',
+        groupId: 'g1',
+        userId: 'u2',
+        outcome: 'approved',
+      },
+      'group_request_approved',
+      'Tvoje žádost o vstup do skupiny „Volejbal Pankrác“ byla schválena.',
+    ],
+    [
+      {
+        type: 'group-request-decided',
+        groupId: 'g1',
+        userId: 'u2',
+        outcome: 'rejected',
+      },
+      'group_request_rejected',
+      'Tvoje žádost o vstup do skupiny „Volejbal Pankrác“ nebyla přijata.',
+    ],
+  ])(
+    '%j says one line about the group, the e-mail’s first',
+    (notification, type, text) => {
+      expect(composeGroupRequestInApp(notification, group, jana)).toEqual({
+        type,
+        targetType: 'group',
+        targetId: 'g1',
+        text,
+      });
+      expect(
+        composeGroupRequestMessage(
+          notification,
+          group,
+          jana,
+          'https://hobbyhub.example/',
+        ).email.preview,
+      ).toBe(text);
+    },
+  );
 });
 
 describe('composeFriendInApp (#307)', () => {

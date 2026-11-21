@@ -4,9 +4,11 @@ import {
   EventChange,
   EventNotification,
   FriendNotification,
+  GroupRequestNotification,
   NotifiedAnnouncement,
   NotifiedEvent,
   NotifiedEventMessage,
+  NotifiedGroup,
 } from './notification';
 
 /** What the e-mail needs besides the notification itself. */
@@ -291,3 +293,68 @@ export const composeFriendMessage = (
           },
         },
       };
+
+/**
+ * A request to join a group (#86): the admins get it with the applicant's
+ * message and a link to the group's management, the applicant the decision
+ * with a link to the group. The first line is the upozornění, word for word.
+ */
+export const composeGroupRequestMessage = (
+  notification: GroupRequestNotification,
+  group: NotifiedGroup,
+  person: { name: string } | null,
+  frontendUrl: string,
+): ComposedMessage => {
+  const name = quoted(group.name);
+  const groupUrl = (tail = ''): string =>
+    new URL(
+      `/skupiny/${encodeURIComponent(group.id)}${tail}`,
+      frontendUrl,
+    ).toString();
+  if (notification.type === 'group-join-request') {
+    const who = person?.name ?? 'Někdo';
+    return {
+      subject: `Nová žádost o vstup: ${group.name}`,
+      email: {
+        preview: `${who} chce do skupiny ${name}.`,
+        heading: 'Nová žádost o vstup do skupiny',
+        paragraphs: [
+          `${who} chce do skupiny ${name}. Žádost čeká na rozhodnutí správců.`,
+        ],
+        details: [],
+        quote: notification.message
+          ? { label: 'Zpráva k žádosti', text: notification.message }
+          : null,
+        action: { label: 'Vyřídit žádost', url: groupUrl('/sprava') },
+      },
+    };
+  }
+  return notification.outcome === 'approved'
+    ? {
+        subject: `Jsi ve skupině: ${group.name}`,
+        email: {
+          preview: `Tvoje žádost o vstup do skupiny ${name} byla schválena.`,
+          heading: 'Jsi ve skupině',
+          paragraphs: [
+            `Tvoje žádost o vstup do skupiny ${name} byla schválena.`,
+            'Teď uvidíš i akce, které jsou jen pro členy.',
+          ],
+          details: [],
+          quote: null,
+          action: { label: 'Stránka skupiny', url: groupUrl() },
+        },
+      }
+    : {
+        subject: `Žádost o vstup nebyla přijata: ${group.name}`,
+        email: {
+          preview: `Tvoje žádost o vstup do skupiny ${name} nebyla přijata.`,
+          heading: 'Žádost nebyla přijata',
+          paragraphs: [
+            `Tvoje žádost o vstup do skupiny ${name} nebyla přijata.`,
+          ],
+          details: [],
+          quote: null,
+          action: { label: 'Stránka skupiny', url: groupUrl() },
+        },
+      };
+};

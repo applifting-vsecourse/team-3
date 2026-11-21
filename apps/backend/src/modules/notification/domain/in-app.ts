@@ -2,9 +2,11 @@ import { whatChanged } from './messages';
 import {
   EventNotification,
   FriendNotification,
+  GroupRequestNotification,
   NotifiedAnnouncement,
   NotifiedEvent,
   NotifiedEventMessage,
+  NotifiedGroup,
 } from './notification';
 
 /**
@@ -105,6 +107,36 @@ export const composeAnnouncementInApp = (
   targetId: announcement.group.id,
   text: `Nové oznámení ve skupině ${quoted(announcement.group.name)}: ${announcement.subject}`,
 });
+
+/** A request to join a group (#86): to its admins, and the decision to the applicant. */
+export const composeGroupRequestInApp = (
+  notification: GroupRequestNotification,
+  group: NotifiedGroup,
+  person: { name: string } | null,
+): InAppMessage => {
+  const name = quoted(group.name);
+  const about = (type: InAppType, text: string): InAppMessage => ({
+    type,
+    targetType: 'group',
+    targetId: group.id,
+    text,
+  });
+  if (notification.type === 'group-join-request') {
+    return about(
+      'group_join_request',
+      `${person?.name ?? 'Někdo'} chce do skupiny ${name}.`,
+    );
+  }
+  return notification.outcome === 'approved'
+    ? about(
+        'group_request_approved',
+        `Tvoje žádost o vstup do skupiny ${name} byla schválena.`,
+      )
+    : about(
+        'group_request_rejected',
+        `Tvoje žádost o vstup do skupiny ${name} nebyla přijata.`,
+      );
+};
 
 /**
  * Friends (#307): a request names who asks, an acceptance who accepted;

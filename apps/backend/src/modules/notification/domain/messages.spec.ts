@@ -2,6 +2,7 @@ import {
   composeAnnouncement,
   composeEventMessage,
   composeFriendMessage,
+  composeGroupRequestMessage,
   composeMessage,
   MessageContext,
 } from './messages';
@@ -426,5 +427,66 @@ describe('composeFriendMessage (#307, #86)', () => {
       label: 'Zobrazit profil',
       url: 'https://hobbyhub.example/uzivatele/u7',
     });
+  });
+});
+
+describe('composeGroupRequestMessage (#86)', () => {
+  const group = { id: 'g1', name: 'Volejbal Pankrác' };
+
+  it('the admins get the request with its message and a link to the management', () => {
+    const message = composeGroupRequestMessage(
+      {
+        type: 'group-join-request',
+        groupId: 'g1',
+        applicantId: 'u2',
+        message: 'Hraju dva roky.',
+      },
+      group,
+      { name: 'Jana' },
+      'https://hobbyhub.example/',
+    );
+    expect(message.subject).toBe('Nová žádost o vstup: Volejbal Pankrác');
+    expect(message.email.quote).toEqual({
+      label: 'Zpráva k žádosti',
+      text: 'Hraju dva roky.',
+    });
+    expect(message.email.action).toEqual({
+      label: 'Vyřídit žádost',
+      url: 'https://hobbyhub.example/skupiny/g1/sprava',
+    });
+  });
+
+  it('the applicant gets the decision with a link to the group', () => {
+    const approved = composeGroupRequestMessage(
+      {
+        type: 'group-request-decided',
+        groupId: 'g1',
+        userId: 'u2',
+        outcome: 'approved',
+      },
+      group,
+      null,
+      'https://hobbyhub.example/',
+    );
+    const rejected = composeGroupRequestMessage(
+      {
+        type: 'group-request-decided',
+        groupId: 'g1',
+        userId: 'u2',
+        outcome: 'rejected',
+      },
+      group,
+      null,
+      'https://hobbyhub.example/',
+    );
+    expect(approved.subject).toBe('Jsi ve skupině: Volejbal Pankrác');
+    expect(rejected.subject).toBe(
+      'Žádost o vstup nebyla přijata: Volejbal Pankrác',
+    );
+    for (const message of [approved, rejected]) {
+      expect(message.email.action.url).toBe(
+        'https://hobbyhub.example/skupiny/g1',
+      );
+    }
   });
 });

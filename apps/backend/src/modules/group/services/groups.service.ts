@@ -183,6 +183,15 @@ export class GroupsService {
         decision.status,
         message,
       );
+      // a request waits for the admins, who hear of it (#86); joining at once has nobody to tell
+      if (decision.status === 'pending') {
+        this.notifications.notify({
+          type: 'group-join-request',
+          groupId,
+          applicantId: userId,
+          message,
+        });
+      }
     }
     return { status: decision.status };
   }
@@ -217,6 +226,12 @@ export class GroupsService {
   ): Promise<void> {
     await this.assertPendingRequest(groupId, adminId, userId);
     await this.groupRepository.approveRequest(groupId, userId);
+    this.notifications.notify({
+      type: 'group-request-decided',
+      groupId,
+      userId,
+      outcome: 'approved',
+    });
   }
 
   /** Any admin rejects a pending request; it is removed, so the user can ask again. */
@@ -227,6 +242,12 @@ export class GroupsService {
   ): Promise<void> {
     await this.assertPendingRequest(groupId, adminId, userId);
     await this.groupRepository.deleteMembership(groupId, userId);
+    this.notifications.notify({
+      type: 'group-request-decided',
+      groupId,
+      userId,
+      outcome: 'rejected',
+    });
   }
 
   /**

@@ -527,6 +527,63 @@ describe('NotificationService.deliver: the centre (#86)', () => {
     });
   });
 
+  it('a request to join a group: its active admins, never the applicant', async () => {
+    const { repository, email, service } = setup();
+    repository.findGroup.mockResolvedValue({ id: 'g1', name: 'Florbal' });
+    repository.findGroupAdmins.mockResolvedValue([organizer, jana]);
+
+    await service.deliver({
+      type: 'group-join-request',
+      groupId: 'g1',
+      applicantId: 'u2',
+      message: null,
+    });
+
+    expect(repository.findGroupAdmins).toHaveBeenCalledWith('g1');
+    expect(repository.createInApp).toHaveBeenCalledWith(['u1'], {
+      type: 'group_join_request',
+      targetType: 'group',
+      targetId: 'g1',
+      text: 'Jana Nováková chce do skupiny „Florbal“.',
+    });
+    expect(sentTo(email)).toEqual([organizer.email]);
+  });
+
+  it('a decided request to join: the applicant', async () => {
+    const { repository, email, service } = setup();
+    repository.findGroup.mockResolvedValue({ id: 'g1', name: 'Florbal' });
+    repository.findRecipients.mockResolvedValue([jana]);
+
+    await service.deliver({
+      type: 'group-request-decided',
+      groupId: 'g1',
+      userId: 'u2',
+      outcome: 'rejected',
+    });
+
+    expect(repository.findRecipients).toHaveBeenCalledWith(['u2']);
+    expect(repository.createInApp).toHaveBeenCalledWith(
+      ['u2'],
+      expect.objectContaining({ type: 'group_request_rejected' }),
+    );
+    expect(sentTo(email)).toEqual([jana.email]);
+  });
+
+  it('a group that is gone tells nobody', async () => {
+    const { repository, email, service } = setup();
+    repository.findGroup.mockResolvedValue(null);
+
+    await service.deliver({
+      type: 'group-request-decided',
+      groupId: 'g1',
+      userId: 'u2',
+      outcome: 'approved',
+    });
+
+    expect(repository.createInApp).not.toHaveBeenCalled();
+    expect(email.sendEmail).not.toHaveBeenCalled();
+  });
+
   it('a friend request: the one asked, by e-mail and in the centre, naming who asks', async () => {
     const { repository, email, service } = setup();
     repository.findRecipients.mockResolvedValue([jana]);

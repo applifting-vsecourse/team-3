@@ -4,6 +4,7 @@ import {
   NotifiedAnnouncement,
   NotifiedEvent,
   NotifiedEventMessage,
+  NotifiedGroup,
   Recipient,
 } from '@/modules/notification/domain/notification';
 import { Injectable } from '@nestjs/common';
@@ -150,6 +151,24 @@ export class NotificationRepository {
       orderBy: { id: 'asc' },
     });
     return participations.map((participation) => participation.user);
+  }
+
+  /** What the e-mails about a request to join say of the group (#86); null when it is gone. */
+  async findGroup(groupId: string): Promise<NotifiedGroup | null> {
+    return this.prisma.group.findUnique({
+      where: { id: groupId },
+      select: { id: true, name: true },
+    });
+  }
+
+  /** The group's active admins, who decide requests to join (#86). */
+  async findGroupAdmins(groupId: string): Promise<Recipient[]> {
+    const admins = await this.prisma.groupMember.findMany({
+      where: { groupId, role: 'admin', status: 'active', user: deliverable },
+      select: { user: { select: recipientSelect } },
+      orderBy: { id: 'asc' },
+    });
+    return admins.map((admin) => admin.user);
   }
 
   /** One upozornění in the centre (#86) for each of these users, all at once. */

@@ -6,6 +6,7 @@ import {
   composeEventInApp,
   composeEventMessageInApp,
   composeFriendInApp,
+  composeGroupRequestInApp,
   InAppMessage,
 } from '@/modules/notification/domain/in-app';
 import {
@@ -13,11 +14,13 @@ import {
   ComposedMessage,
   composeEventMessage,
   composeFriendMessage,
+  composeGroupRequestMessage,
   composeMessage,
 } from '@/modules/notification/domain/messages';
 import {
   EventNotification,
   FriendNotification,
+  GroupRequestNotification,
   Notification,
   NotifiedEvent,
   Recipient,
@@ -47,6 +50,10 @@ const aboutOf = (notification: Notification): string => {
       return `oznámení ${notification.announcementId}`;
     case 'event-message':
       return `akce ${notification.eventId}, zpráva ${notification.messageId}`;
+    case 'group-join-request':
+      return `skupina ${notification.groupId}, žadatel ${notification.applicantId}`;
+    case 'group-request-decided':
+      return `skupina ${notification.groupId}, žadatel ${notification.userId}`;
     case 'friend-request':
     case 'friend-accepted':
       return `uživatel ${notification.fromId} → ${notification.toId}`;
@@ -125,7 +132,10 @@ export class NotificationService {
             : notification.type === 'friend-request' ||
                 notification.type === 'friend-accepted'
               ? await this.prepareFriendNotification(notification)
-              : await this.prepareEventNotification(notification);
+              : notification.type === 'group-join-request' ||
+                  notification.type === 'group-request-decided'
+                ? await this.prepareGroupRequest(notification)
+                : await this.prepareEventNotification(notification);
       if (!prepared) return;
       // the centre first: it doesn't wait for the mail provider
       await this.store(notification, prepared);
@@ -207,6 +217,42 @@ export class NotificationService {
       recipients,
       message: composeEventMessage(message, this.config.frontendUrl),
       inApp: composeEventMessageInApp(message),
+      inAppRecipientIds: recipients.map(({ id }) => id),
+    };
+  }
+
+  /**
+   * A request to join a group (#86): every active admin hears of it (the
+   * applicant is never one), the applicant of the decision. Null when the
+   * group is gone or there is nobody to tell.
+   */
+  private async prepareGroupRequest(
+    notification: GroupRequestNotification,
+  ): Promise<Prepared | null> {
+    const group = await this.repository.findGroup(notification.groupId);
+    if (!group) return null;
+    let recipients: Recipient[];
+    let person: { name: string } | null = null;
+    if (notification.type === 'group-join-request') {
+      const [admins, name] = await Promise.all([
+        this.repository.findGroupAdmins(group.id),
+        this.repository.findPersonName(notification.applicantId),
+      ]);
+      recipients = admins.filter(({ id }) => id !== notification.applicantId);
+      person = name ? { name } : null;
+    } else {
+      recipients = await this.repository.findRecipients([notification.userId]);
+    }
+    if (recipients.length === 0) return null;
+    return {
+      recipients,
+      message: composeGroupRequestMessage(
+        notification,
+        group,
+        person,
+        this.config.frontendUrl,
+      ),
+      inApp: composeGroupRequestInApp(notification, group, person),
       inAppRecipientIds: recipients.map(({ id }) => id),
     };
   }
