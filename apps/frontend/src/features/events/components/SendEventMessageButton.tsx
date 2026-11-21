@@ -67,6 +67,27 @@ type SendEventMessageButtonProps = {
 }
 
 /**
+ * The API's validation messages (400, `message: string[]`) for the field they are about, so they
+ * show under it, not in a toast (review #280, #281). The DTO words them per field („Napiš
+ * předmět“, „Text může mít nejvýš 2000 znaků“), so the field is in the words.
+ */
+function fieldErrorsOf(error: unknown): Partial<Record<keyof FormInput, string>> {
+  if (typeof error !== "object" || error === null) return {}
+  const { response, data } = error as { response?: { status?: number }; data?: unknown }
+  if (response?.status !== 400 || typeof data !== "object" || data === null) return {}
+  const raw = (data as { message?: unknown }).message
+  const messages = (Array.isArray(raw) ? raw : [raw]).filter(
+    (message): message is string => typeof message === "string",
+  )
+  const errors: Partial<Record<keyof FormInput, string>> = {}
+  for (const message of messages) {
+    const field = /předmět/i.test(message) ? "subject" : /text/i.test(message) ? "body" : undefined
+    if (field && !errors[field]) errors[field] = message
+  }
+  return errors
+}
+
+/**
  * „Napsat účastníkům“ in the event's management (#176, Figma D-04, D-04d):
  * subject and text, every approved participant gets it by e-mail and sees it
  * on the event's detail. Under the text, what is left of today's limit. Like
@@ -90,13 +111,19 @@ export function SendEventMessageButton({
     resolver: zodResolver(schema),
     defaultValues: { subject: "", body: "" },
   })
+  // a refusal not about one field (the daily limit, a cancelled event): in the dialog, which
+  // keeps the text to try again (DESIGN.md › Forms)
+  const [refusal, setRefusal] = useState<string | null>(null)
 
   return (
     <Dialog
       open={isOpen}
       onOpenChange={(isNowOpen) => {
         setIsOpen(isNowOpen)
-        if (!isNowOpen) form.reset()
+        if (!isNowOpen) {
+          form.reset()
+          setRefusal(null)
+        }
       }}
     >
       <DialogTrigger asChild>
@@ -113,11 +140,19 @@ export function SendEventMessageButton({
           <form
             noValidate
             onSubmit={form.handleSubmit(async (values) => {
+              setRefusal(null)
               try {
                 await send.mutateAsync(values)
               } catch (error) {
                 // the text stays in the dialog to try again
-                toast.error((error as Error).message)
+                const fieldErrors = Object.entries(fieldErrorsOf(error)) as [
+                  keyof FormInput,
+                  string,
+                ][]
+                fieldErrors.forEach(([field, message], i) =>
+                  form.setError(field, { message }, { shouldFocus: i === 0 }),
+                )
+                if (!fieldErrors.length) setRefusal((error as Error).message)
                 return
               }
               toast.success("Zpráva je odeslaná")
@@ -171,6 +206,14 @@ export function SendEventMessageButton({
                 </FormItem>
               )}
             />
+            {refusal ? (
+              <p
+                role="alert"
+                className="text-sm text-destructive"
+              >
+                {refusal}
+              </p>
+            ) : null}
             <DialogFooter className="flex-row justify-end">
               <DialogClose asChild>
                 <Button

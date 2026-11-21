@@ -134,14 +134,40 @@ describe("SendEventMessageButton (#176)", () => {
     await userEvent.type(within(dialog).getByLabelText("Text"), "U vchodu.")
     await userEvent.click(within(dialog).getByRole("button", { name: "Odeslat" }))
 
-    await waitFor(() =>
-      expect(toast.error).toHaveBeenCalledWith(
-        "Dnes už k akci další zprávu poslat nemůžeš. Zkus to zítra.",
-      ),
+    // in the dialog, not a toast that disappears (#281)
+    expect(await within(dialog).findByRole("alert")).toHaveTextContent(
+      "Dnes už k akci další zprávu poslat nemůžeš. Zkus to zítra.",
     )
+    expect(toast.error).not.toHaveBeenCalled()
     expect(screen.getByRole("dialog")).toBeInTheDocument()
     expect(within(dialog).getByLabelText("Text")).toHaveValue("U vchodu.")
     expect(invalidate).toHaveBeenCalledWith({ queryKey: ["events", "detail", "e17", "u-petra"] })
+  })
+
+  // #281 (review #280): the API's validation shows at the field, as the client's does
+  it("the server's validation messages show under their fields", async () => {
+    api.post.mockReturnValue({
+      json: () =>
+        Promise.reject(
+          Object.assign(new Error("Napiš předmět, Text může mít nejvýš 2000 znaků"), {
+            response: { status: 400 },
+            data: { message: ["Napiš předmět", "Text může mít nejvýš 2000 znaků"] },
+          }),
+        ),
+    })
+    renderButton()
+    const dialog = await openDialog()
+
+    // passes the client's rules, the server refuses (e.g. only spaces count after trimming)
+    await userEvent.type(within(dialog).getByLabelText("Předmět"), "Sraz")
+    await userEvent.type(within(dialog).getByLabelText("Text"), "U vchodu.")
+    await userEvent.click(within(dialog).getByRole("button", { name: "Odeslat" }))
+
+    expect(await within(dialog).findByText("Napiš předmět")).toBeInTheDocument()
+    expect(within(dialog).getByText("Text může mít nejvýš 2000 znaků")).toBeInTheDocument()
+    expect(within(dialog).getByLabelText("Předmět")).toHaveAttribute("aria-invalid", "true")
+    expect(within(dialog).queryByRole("alert")).toBeNull()
+    expect(toast.error).not.toHaveBeenCalled()
   })
 
   it("with today's limit used up, it says so under the text and „Odeslat“ is off", async () => {
