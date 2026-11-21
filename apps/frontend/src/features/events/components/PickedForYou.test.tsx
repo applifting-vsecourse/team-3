@@ -19,9 +19,7 @@ describe("PickedForYou", () => {
   // (flex-none) widened the page to 918 px instead of scrolling sideways
   it("the strip may shrink and scrolls sideways instead of widening the page", async () => {
     await renderWithRouter(
-      <PickedForYou
-        picks={[pick("chybis", "Tady chybíš"), pick("vikend", "Tento víkend")]}
-      />,
+      <PickedForYou picks={[pick("chybis", "Tady chybíš"), pick("vikend", "Tento víkend")]} />,
     )
 
     const strip = screen.getByRole("tablist", { name: "Rychlé výběry" })
