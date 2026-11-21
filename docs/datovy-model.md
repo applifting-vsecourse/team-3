@@ -21,6 +21,7 @@ Schéma vzniklo v rámci #47 (testovací data), protože bez něj nešla data na
 | `EventMessage`      | `event_message`      | Zpráva organizátora účastníkům (limit 10 za den)                                                                         | B-042               | ne       |
 | `GroupAnnouncement` | `group_announcement` | Oznámení správce členům skupiny (limit 10 za den na skupinu)                                                             | #194                | ne       |
 | `Friendship`        | `friendship`         | Přátelství: jedna žádost na dvojici lidí a její stav (viz [Přátelé](#přátelé-307))                                       | B-017, #307         | ne       |
+| `Notification`      | `notification`       | Upozornění v centru (zvonek), nepřečtené mají `readAt` prázdné (viz [Upozornění](#upozornění-86))                        | B-044, #86          | ne       |
 | `NotificationLog`   | `notification_log`   | Záznam o odeslaném plánovaném e-mailu, aby nepřišel dvakrát                                                              | B-043               | ne       |
 | `Rating`            | `rating`             | Hodnocení akce a organizátora od účastníka                                                                               | B-060               | ne       |
 | `ParticipantRating` | `participant_rating` | Hodnocení účastníka organizátorem akce                                                                                   | B-060, #180         | ne       |
@@ -92,6 +93,10 @@ erDiagram
 ### Přátelé (#307)
 
 `Friendship` drží jednu žádost na dvojici lidí, bez ohledu na to, kdo žádal: `requesterId`, `addresseeId`, `status` (`pending` / `accepted` / `rejected`), `acceptedAt`. Dvojici hlídá databáze: `pairKey` jsou obě ID seřazená a spojená dvojtečkou, s unikátním indexem (spolehlivější než unikátní index nad `LEAST`/`GREATEST`, který Prisma ve schématu neumí zapsat). `rejected` je tiché odmítnutí: odesílatel dál vidí odeslanou žádost a může ji zrušit, pak jde poslat znovu. Účet se maže jen nastavením `deletedAt`, takže záznam zůstane; smazané a zablokované účty se v seznamech přátel nezobrazují (kaskáda `onDelete: Cascade` platí jen pro skutečné smazání řádku). Pravidla a API v [`modules/friendship/README.md`](../apps/backend/src/modules/friendship/README.md).
+
+### Upozornění (#86)
+
+`Notification` je jedno upozornění v centru pro jednoho příjemce (`userId`): `type` (`notification_type`, druhy v [`navrh-upozorneni.md`](navrh-upozorneni.md)), `text` (hotová krátká zpráva uložená při vzniku, pozdější přejmenování akce ji nemění), `targetType` (`event` / `group` / `user`) a `targetId` bez cizího klíče jako u `Report` (existenci cíle ověří detail při prokliku), `createdAt` a `readAt`: nepřečtené = `null`. Indexy `(userId, createdAt)` pro seznam a `(userId, readAt)` pro počet nepřečtených. Vzniká ze stejné události jako e-mail (#177), pravidla a API v [`modules/notification/README.md`](../apps/backend/src/modules/notification/README.md).
 
 ## Akce a skupiny
 
@@ -289,24 +294,8 @@ Všechny tabulky kromě `user_interest` a číselníků mají navíc `createdAt`
 
 Podle planningu sprintu 4 (`docs/zapis-planning-sprint4.md`). Jen návrh týmu, tvar doladí issues a refinement 16. 11.; do schématu přijde s migrací v daném issue.
 
-```mermaid
-erDiagram
-    User ||--o{ Notification : "příjemce"
-
-    Notification {
-        string id PK
-        string userId FK "příjemce"
-        notification_type type "druh události (B-044)"
-        string targetType "event / group / user"
-        string targetId "kam vede proklik"
-        string text "krátká zpráva"
-        datetime readAt
-    }
-```
-
 | Co                       | Návrh                                                                                                                                                                                                           | Úkol        |
 | ------------------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------- |
-| `Notification`           | Upozornění v centru (zvonek, počet nepřečtených = `readAt` je `null`). Zapisuje se ze stejné doménové události jako e-mail                                                                                      | B-044, #86  |
 | Onboarding               | `User` dostane `onboardingCompletedAt` (datetime): `null` = průvodce `/vitej` se ještě má nabídnout. Nastaví se po dokončení i po „Teď ne“, aby se průvodce znovu nenabízel ani na jiném zařízení               | B-013, #296 |
 | Úprava akce superadminem | `ModerationActionType` nemá typ pro úpravu akce: doplnit `edit_event` (migrace), nebo zapisovat jen deaktivaci. Deaktivace už model má: `Event.status = hidden` a zásah `hide_event`                            | B-063, #308 |
 | Lokalita a adresa        | Zůstávají dvě nezávislé hodnoty: `localityId` (číselník, filtr a výpis) a `address` (text) s `lat` / `lng`. Formulář lokalitu odvodí z místa a jde upravit ručně (PR #295); co která znamená, rozhodne PO (Q14) | B-022, #303 |
