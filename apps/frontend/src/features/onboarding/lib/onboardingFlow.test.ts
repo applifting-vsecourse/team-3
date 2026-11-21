@@ -31,7 +31,7 @@ const take = (interestId: string): OnboardingCommand => ({ type: "toggle", inter
 const place = (locality: Locality): OnboardingCommand => ({ type: "pick-place", locality })
 
 function follow(...commands: OnboardingCommand[]) {
-  return commands.reduce(moveOnboarding, startOnboarding("Jana Nová"))
+  return commands.reduce(moveOnboarding, startOnboarding())
 }
 function withThree() {
   return follow(place(prague), take("hike"), take("hockey"), take("chess"))
@@ -126,16 +126,12 @@ describe("V4 onboarding transitions", () => {
   it("requires the decision to start editing optional profile fields", () => {
     const state = moveOnboarding(withThree(), { type: "dismiss" })
     expect(moveOnboarding(state, { type: "profile" })).toBe(state)
-    expect(moveOnboarding(state, { type: "edit-name", name: "Nové jméno" })).toBe(state)
-    expect(moveOnboarding(state, { type: "edit-bio", bio: "Rozpracovaný text" })).toBe(state)
   })
 
-  it("preserves profile drafts across Back and reopening the decision", () => {
+  it("preserves picks across Back and reopening the profile", () => {
     const original = withThree()
     const commands: OnboardingCommand[] = [
       { type: "profile" },
-      { type: "edit-name", name: "Jana P." },
-      { type: "edit-bio", bio: "Potkáme se na výletě." },
       { type: "back" },
       { type: "review" },
       { type: "profile" },
@@ -143,13 +139,11 @@ describe("V4 onboarding transitions", () => {
     const result = commands.reduce(moveOnboarding, original)
     expect(result.stage).toBe("profile")
     expect(result.overlay).toBeNull()
-    expect(result.name).toBe("Jana P.")
-    expect(result.bio).toBe("Potkáme se na výletě.")
     expect(result.interestIds).toEqual(original.interestIds)
   })
 
   it.each<OnboardingFlow>([
-    startOnboarding("Jana"),
+    startOnboarding(),
     follow(place(prague), take("hike")),
     moveOnboarding(withThree(), { type: "profile" }),
   ])("backs out of exit confirmation without mutating the draft in $stage", (state) => {

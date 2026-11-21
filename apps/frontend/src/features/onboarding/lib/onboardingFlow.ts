@@ -10,8 +10,6 @@ export type OnboardingFlow = {
   locality: Locality | null
   interestIds: string[]
   categoryId: string
-  name: string
-  bio: string
   overlay: Overlay | null
 }
 
@@ -24,17 +22,13 @@ export type OnboardingCommand =
   | { type: "back" }
   | { type: "exit" }
   | { type: "dismiss" }
-  | { type: "edit-name"; name: string }
-  | { type: "edit-bio"; bio: string }
 
-export function startOnboarding(name: string): OnboardingFlow {
+export function startOnboarding(): OnboardingFlow {
   return {
     stage: "locality",
     locality: null,
     interestIds: [],
     categoryId: "",
-    name,
-    bio: "",
     overlay: null,
   }
 }
@@ -93,11 +87,5 @@ export function moveOnboarding(state: OnboardingFlow, command: OnboardingCommand
 
     case "dismiss":
       return state.overlay ? { ...state, overlay: null } : state
-
-    case "edit-name":
-      return state.stage === "profile" ? { ...state, name: command.name } : state
-
-    case "edit-bio":
-      return state.stage === "profile" ? { ...state, bio: command.bio } : state
   }
 }

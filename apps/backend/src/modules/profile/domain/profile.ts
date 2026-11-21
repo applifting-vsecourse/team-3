@@ -7,6 +7,7 @@ export const profileSelect = {
   email: true,
   emailVerified: true,
   bio: true,
+  profilePhoto: { select: { version: true } },
   blockedAt: true,
   deletedAt: true,
   homeLocality: {
@@ -37,6 +38,7 @@ export type SelfProfile = {
   email: string;
   emailVerified: boolean;
   bio: string | null;
+  photoVersion: string | null;
   hasPassword: boolean;
   homeLocality: ProfileRow['homeLocality'];
   interests: { id: string; name: string }[];
@@ -50,6 +52,7 @@ export function selfProfile(row: ProfileRow): SelfProfile {
     email: row.email,
     emailVerified: row.emailVerified,
     bio: row.bio,
+    photoVersion: row.profilePhoto?.version ?? null,
     hasPassword: row.accounts.length > 0,
     homeLocality: row.homeLocality,
     interests: row.interests.map(({ activity }) => ({

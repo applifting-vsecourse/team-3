@@ -19,7 +19,6 @@ import { activityTreeQueryOptions, localitiesQueryOptions } from "@/lib/catalog/
 import type { Activity, ActivityCategory, Locality } from "@/lib/catalog/catalogSchemas"
 import { defaultLocalityQueryOptions } from "@/lib/catalog/defaultLocality"
 import { cn } from "@/lib/utils"
-import { nameProblem } from "@/lib/validation/name"
 
 import { resolveActivities } from "@/features/onboarding/lib/activityScenes"
 import {
@@ -34,7 +33,6 @@ import { InterestTray } from "./InterestTray"
 import { LocalityPicker } from "./LocalityPicker"
 import { OnboardingArtwork } from "./OnboardingArtwork"
 import { OnboardingDecision, OnboardingExit } from "./OnboardingDecision"
-import { OnboardingProfile } from "./OnboardingProfile"
 import { photoFlight, SelectionFlight, type PhotoFlight } from "./SelectionFlight"
 
 import "./onboarding-motion.css"
@@ -49,15 +47,24 @@ const resultSchema = z.object({
 type Preferences = {
   homeLocalityId: string
   interestIds: string[]
-  bio?: string
-  displayName?: string
 }
 
 export type OnboardingResult = z.infer<typeof resultSchema>
 
+type FinishInput = Preferences | FormData | null
+export type OnboardingProfileContext = {
+  locality: Locality
+  interestIds: string[]
+  categories: ActivityCategory[]
+  localities: Locality[]
+  onBack: () => void
+  onSkip: () => Promise<void>
+  onSave: (profile: FormData) => Promise<void>
+}
+
 type OnboardingWizardProps = {
   viewerId: string
-  displayName: string
+  renderProfile: (context: OnboardingProfileContext) => ReactNode
   renderEventPreview?: (locality: Locality, categoryId: string) => ReactNode
   onFinish: (result: OnboardingResult, hasSubmittedPreferences: boolean) => Promise<void>
 }
@@ -74,21 +81,20 @@ const STAGE_COPY = {
     hint: "Vyber tři aktivity, na které máš chuť.",
   },
   profile: {
-    title: "Co by o tobě měla parta vědět?",
-    hint: "Pár vět do profilu. Napiš je po svém nebo si vyber úvod.",
+    title: "Představ se partě",
+    hint: "Přidej svoji fotku, uprav jméno nebo napiš pár vět o sobě. K profilu se můžeš kdykoli vrátit.",
   },
 }
 
 export function OnboardingWizard({
   viewerId,
-  displayName,
   onFinish,
   renderEventPreview,
+  renderProfile,
 }: OnboardingWizardProps) {
-  const [flow, dispatch] = useReducer(moveOnboarding, displayName, startOnboarding)
+  const [flow, dispatch] = useReducer(moveOnboarding, undefined, startOnboarding)
   const [flight, setFlight] = useState<PhotoFlight>()
   const [isSavingPlace, setIsSavingPlace] = useState(false)
-  const [nameError, setNameError] = useState<string>()
   const heading = useRef<HTMLHeadingElement>(null)
   const content = useRef<HTMLDivElement>(null)
   const dialogContent = useRef<HTMLDivElement>(null)
@@ -108,14 +114,15 @@ export function OnboardingWizard({
   const isInterestStep = flow.stage === "interests"
 
   const finish = useMutation({
-    mutationFn: async (input: Preferences | null) =>
-      resultSchema.parse(
-        await (
-          input
+    mutationFn: async (input: FinishInput) => {
+      const request =
+        input instanceof FormData
+          ? api.post("me/profile/onboarding/profile", { body: input })
+          : input
             ? api.post("me/profile/onboarding", { json: input })
             : api.post("me/profile/onboarding/skip")
-        ).json(),
-      ),
+      return resultSchema.parse(await request.json())
+    },
     onSuccess: (result, input) => onFinish(result, input !== null),
     onSettled: () => {
       requestPending.current = false
@@ -130,35 +137,22 @@ export function OnboardingWizard({
     heading.current?.focus({ preventScroll: true })
   }, [flow.stage])
 
-  function submit(mode: "preferences" | "profile" | "exit") {
-    if (requestPending.current) return
-
-    if (mode === "exit") {
-      requestPending.current = true
-      finish.mutate(null)
-      return
-    }
-
+  function preferences(): Preferences | undefined {
     if (!reviewOnboarding(flow) || !flow.locality || picked.length !== INTEREST_GOAL) return
-    const input: Preferences = { homeLocalityId: flow.locality.id, interestIds: flow.interestIds }
-    if (mode === "profile") {
-      const nextName = flow.name.trim()
-      if (nextName !== displayName.trim()) {
-        const problem = nameProblem(flow.name)
-        if (problem) {
-          setNameError(problem)
-          dialogContent.current
-            ?.querySelector<HTMLInputElement>("#onboarding-display-name")
-            ?.focus()
-          return
-        }
-        input.displayName = nextName
-      }
-      if (flow.bio.trim()) input.bio = flow.bio.trim()
-    }
+    return { homeLocalityId: flow.locality.id, interestIds: flow.interestIds }
+  }
 
+  function submit(mode: "preferences" | "exit") {
+    const input = mode === "exit" ? null : preferences()
+    if (requestPending.current || input === undefined) return
     requestPending.current = true
     finish.mutate(input)
+  }
+
+  async function submitProfile(input: FinishInput | undefined) {
+    if (requestPending.current || input === undefined) return
+    requestPending.current = true
+    await finish.mutateAsync(input)
   }
 
   function chooseInterest(activity: Activity, target?: HTMLButtonElement) {
@@ -216,6 +210,7 @@ export function OnboardingWizard({
         <DialogContent
           ref={dialogContent}
           showCloseButton={false}
+          overlayClassName="hh-wizard-overlay"
           onOpenAutoFocus={(event) => {
             event.preventDefault()
             heading.current?.focus({ preventScroll: true })
@@ -350,25 +345,18 @@ export function OnboardingWizard({
                         onRetry={() => void activities.refetch()}
                       />
                     )
-                  ) : (
-                    <OnboardingProfile
-                      initialName={displayName}
-                      name={flow.name}
-                      bio={flow.bio}
-                      interests={picked}
-                      isSaving={finish.isPending}
-                      nameError={nameError}
-                      error={errorMessage}
-                      onEditName={(name) => {
-                        setNameError(undefined)
-                        dispatch({ type: "edit-name", name })
-                      }}
-                      onEditBio={(bio) => dispatch({ type: "edit-bio", bio })}
+                  ) : flow.locality && localities.data ? (
+                    <ProfileStep
+                      render={renderProfile}
+                      locality={flow.locality}
+                      interestIds={flow.interestIds}
+                      categories={categories}
+                      localities={localities.data}
                       onBack={goBack}
-                      onSkip={() => submit("preferences")}
-                      onSave={() => submit("profile")}
+                      onSkip={() => submitProfile(preferences())}
+                      onSave={submitProfile}
                     />
-                  )}
+                  ) : null}
                 </div>
               </div>
               {isInterestStep ? (
@@ -419,6 +407,13 @@ export function OnboardingWizard({
       />
     </>
   )
+}
+
+function ProfileStep({
+  render,
+  ...context
+}: OnboardingProfileContext & { render: OnboardingWizardProps["renderProfile"] }) {
+  return render(context)
 }
 
 function OnboardingProgress({ stage }: { stage: keyof typeof STAGE_COPY }) {

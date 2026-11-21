@@ -1,11 +1,13 @@
-import { useRef, useState, type MouseEvent, type ReactNode } from "react"
-import { Compass, Search } from "lucide-react"
+import { useLayoutEffect, useRef, useState, type ReactNode } from "react"
+import { ChevronDown, Compass, Search } from "lucide-react"
 
+import { activityPhoto } from "@/assets/activity-photos"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { searchActivities } from "@/lib/catalog/activitySelection"
 import type { Activity, ActivityCategory } from "@/lib/catalog/catalogSchemas"
+import { cn } from "@/lib/utils"
 
 import { coverForCategory, DISCOVERY_PHOTOS } from "@/features/onboarding/lib/activityScenes"
 
@@ -32,10 +34,16 @@ export function InterestPicker({
 }: InterestPickerProps) {
   const [query, setQuery] = useState("")
   const [isShowingAll, setIsShowingAll] = useState(false)
-  const shelf = useRef<HTMLDivElement>(null)
+  const [isCategoryMenuOpen, setCategoryMenuOpen] = useState(false)
+  const [browseRevision, setBrowseRevision] = useState(0)
+  const shelfStart = useRef<HTMLDivElement>(null)
+  const switcher = useRef<HTMLButtonElement>(null)
+  const search = useRef<HTMLInputElement>(null)
   const active = categories.find(({ id }) => id === categoryId)
   const isSearching = Boolean(query.trim())
   const isFocused = Boolean(active) || isSearching || isShowingAll
+  const isCategoryGridShown = !isFocused || isCategoryMenuOpen
+  const cover = active && activityPhoto(coverForCategory(active))
   const allActivities = (active ? [active] : categories).flatMap((category) =>
     category.activities.map((activity) => ({ activity, category })),
   )
@@ -48,18 +56,18 @@ export function InterestPicker({
       ? allActivities
       : firstChoices
 
-  function browse(id: string, event: MouseEvent<HTMLButtonElement>) {
+  useLayoutEffect(() => {
+    if (browseRevision === 0) return
+    shelfStart.current?.scrollIntoView?.({ block: "start", behavior: "instant" })
+    switcher.current?.focus({ preventScroll: true })
+  }, [browseRevision])
+
+  function browse(id: string) {
     setQuery("")
     setIsShowingAll(id === "")
+    setCategoryMenuOpen(false)
+    setBrowseRevision((current) => current + 1)
     onBrowse(id)
-    const button = event.currentTarget
-    requestAnimationFrame(() => {
-      if (!shelf.current?.contains(button)) return
-      const { left, right } = shelf.current.getBoundingClientRect()
-      const item = button.getBoundingClientRect()
-      if (item.left < left) shelf.current.scrollLeft += item.left - left - 6
-      if (item.right > right) shelf.current.scrollLeft += item.right - right + 6
-    })
   }
 
   return (
@@ -77,6 +85,7 @@ export function InterestPicker({
         />
         <Input
           id="onboarding-activity-search"
+          ref={search}
           type="search"
           placeholder="Najdi třeba volejbal, deskovky nebo běh"
           value={query}
@@ -85,60 +94,109 @@ export function InterestPicker({
         />
       </div>
 
+      <div
+        aria-hidden
+        ref={shelfStart}
+        className="!mb-0 h-0"
+      />
       <section
-        aria-labelledby="onboarding-shelf-heading"
-        className="space-y-2"
+        aria-label="Okruhy aktivit"
+        className={cn("relative z-10 space-y-2", isFocused && "sticky -top-px bg-background py-2")}
       >
-        <div className="flex flex-wrap items-center justify-between gap-2">
-          <h2
-            id="onboarding-shelf-heading"
-            className="font-semibold"
-          >
-            Co tě láká?
-          </h2>
-          {!isFocused ? (
-            <Button
-              type="button"
-              variant="link"
-              className="min-h-11"
-              onClick={(event) => browse("", event)}
-            >
-              Všechny aktivity
-            </Button>
-          ) : null}
+        <div className="flex flex-wrap items-center justify-between gap-x-2 gap-y-1">
+          {isFocused ? (
+            <>
+              <Button
+                ref={switcher}
+                type="button"
+                variant="outline"
+                aria-expanded={isCategoryMenuOpen}
+                aria-controls="onboarding-category-choices"
+                className="min-h-11 justify-between rounded-full bg-card"
+                onClick={() => setCategoryMenuOpen((isOpen) => !isOpen)}
+              >
+                <Compass aria-hidden />
+                Změnit okruh
+                <ChevronDown
+                  aria-hidden
+                  className={cn(
+                    "transition-transform motion-reduce:transition-none",
+                    isCategoryMenuOpen && "rotate-180",
+                  )}
+                />
+              </Button>
+              <Button
+                type="button"
+                variant="ghost"
+                className="min-h-11 rounded-full px-3"
+                onClick={() => {
+                  if (isSearching) setQuery("")
+                  setCategoryMenuOpen(false)
+                  search.current?.focus()
+                }}
+              >
+                {isSearching ? (
+                  "Zrušit hledání"
+                ) : (
+                  <>
+                    <Search aria-hidden /> Hledat
+                  </>
+                )}
+              </Button>
+            </>
+          ) : (
+            <>
+              <h2 className="font-semibold">Prozkoumej okruhy</h2>
+              <Button
+                type="button"
+                variant="link"
+                className="min-h-11 px-1"
+                onClick={() => browse("")}
+              >
+                Všechny aktivity
+              </Button>
+            </>
+          )}
         </div>
         <div
-          ref={shelf}
-          className={
-            isFocused
-              ? "flex [scrollbar-width:none] gap-2 overflow-x-auto p-1"
-              : "grid grid-cols-2 gap-3 p-1 sm:grid-cols-3 xl:grid-cols-4"
-          }
+          id="onboarding-category-choices"
+          hidden={!isCategoryGridShown}
         >
-          {isFocused ? (
-            <Button
-              type="button"
-              variant={categoryId || isSearching ? "outline" : "secondary"}
-              aria-pressed={!categoryId && !isSearching}
-              className="min-h-12 bg-card"
-              onClick={(event) => browse("", event)}
+          {isCategoryGridShown ? (
+            <div
+              className={cn(
+                "space-y-3",
+                isCategoryMenuOpen &&
+                  "hh-wizard-category-reveal max-h-[min(53dvh,32rem)] overflow-y-auto overscroll-contain rounded-2xl border border-tile-border bg-card p-2.5 sm:p-3",
+              )}
             >
-              <Compass aria-hidden /> Všechny aktivity
-            </Button>
+              {isFocused ? (
+                <Button
+                  type="button"
+                  variant={!categoryId && !isSearching ? "secondary" : "outline"}
+                  aria-pressed={!categoryId && !isSearching}
+                  className="min-h-11"
+                  onClick={() => browse("")}
+                >
+                  Všechny aktivity
+                </Button>
+              ) : null}
+              <div className="grid grid-cols-2 gap-3 p-1 sm:grid-cols-3 xl:grid-cols-4">
+                {categories.map((category, index) => (
+                  <OnboardingCard
+                    key={category.id}
+                    name={category.name}
+                    photoSlug={coverForCategory(category)}
+                    icon={category.icon}
+                    kind="category"
+                    isSelected={!isSearching && category.id === categoryId}
+                    order={index}
+                    onSelect={() => browse(category.id)}
+                  />
+                ))}
+              </div>
+            </div>
           ) : null}
-          {categories.map((category, index) => (
-            <OnboardingCard
-              key={category.id}
-              name={category.name}
-              photoSlug={coverForCategory(category)}
-              icon={category.icon}
-              kind="category"
-              isCompact={isFocused}
-              isSelected={!isSearching && category.id === categoryId}
-              order={index}
-              onSelect={(event) => browse(category.id, event)}
-            />
-          ))}
         </div>
       </section>
 
@@ -146,7 +204,28 @@ export function InterestPicker({
         aria-labelledby="onboarding-results-heading"
         className="space-y-3"
       >
-        <div className="flex flex-wrap items-center justify-between gap-2">
+        <div
+          key={isSearching ? "title-search" : `title-${categoryId}`}
+          className={cn(
+            "relative isolate flex flex-wrap items-end justify-between gap-2 overflow-hidden",
+            active &&
+              !isSearching &&
+              "hh-wizard-category-reveal min-h-27 rounded-2xl bg-hero px-4 pt-10 pb-3 text-on-hero",
+          )}
+        >
+          {!isSearching && cover ? (
+            <>
+              <img
+                src={cover.src}
+                alt=""
+                className="hh-wizard-category-cover absolute inset-0 -z-20 size-full object-cover"
+              />
+              <div
+                aria-hidden
+                className="absolute inset-0 -z-10 bg-linear-to-t from-hero via-hero/70 to-hero/15"
+              />
+            </>
+          ) : null}
           <h2
             id="onboarding-results-heading"
             className="type-card-heading"
@@ -156,7 +235,10 @@ export function InterestPicker({
           {isSearching || active || isShowingAll ? (
             <span
               role="status"
-              className="text-sm text-muted-foreground"
+              className={cn(
+                "text-sm",
+                active && !isSearching ? "text-on-hero" : "text-muted-foreground",
+              )}
             >
               {choices.length}{" "}
               {choices.length === 1
@@ -171,7 +253,7 @@ export function InterestPicker({
 
         {choices.length > 0 ? (
           <div
-            key={isSearching ? "search" : categoryId}
+            key={isSearching ? "cards-search" : `cards-${categoryId}`}
             className="grid grid-cols-2 gap-3 p-1 sm:grid-cols-3 xl:grid-cols-4"
           >
             {choices.map(({ activity, category }, index) => (

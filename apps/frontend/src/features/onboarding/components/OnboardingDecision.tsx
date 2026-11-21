@@ -37,6 +37,7 @@ export function OnboardingDecision({
     >
       <DialogContent
         showCloseButton={false}
+        overlayClassName="hh-wizard-overlay hh-wizard-overlay-raised"
         onOpenAutoFocus={(event) => {
           event.preventDefault()
           title.current?.focus({ preventScroll: true })
@@ -52,7 +53,7 @@ export function OnboardingDecision({
         className="max-h-[calc(100dvh-1.5rem)] w-[calc(100%-1.5rem)] max-w-xl gap-0 overflow-y-auto rounded-2xl border-card-border p-0 motion-reduce:animate-none"
       >
         <div className="space-y-4 bg-hero p-5 text-on-hero sm:p-6">
-          <div className="grid size-10 place-items-center rounded-full bg-primary text-primary-foreground">
+          <div className="hh-wizard-picked grid size-10 place-items-center rounded-full bg-primary text-primary-foreground">
             <Check
               aria-hidden
               className="size-6"
@@ -105,7 +106,7 @@ export function OnboardingDecision({
           <div className="space-y-1">
             <p className="font-semibold">Chceš nám o sobě ještě něco povědět?</p>
             <p className="text-sm text-muted-foreground">
-              Můžeš si dopsat krátké představení, nebo se rovnou podívat, co se chystá.
+              Přidej fotku a pár slov o sobě, nebo se rovnou podívej, co se chystá.
             </p>
           </div>
           {error ? (
@@ -172,6 +173,7 @@ export function OnboardingExit({
     >
       <DialogContent
         showCloseButton={false}
+        overlayClassName="hh-wizard-overlay hh-wizard-overlay-raised"
         onEscapeKeyDown={(event) => {
           if (isSaving) event.preventDefault()
         }}

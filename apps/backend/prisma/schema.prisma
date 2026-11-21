@@ -252,6 +252,7 @@ model User {
   homeLocalityId String?
   homeLocality   Locality?      @relation(fields: [homeLocalityId], references: [id], onDelete: SetNull)
   interests      UserInterest[]
+  profilePhoto   ProfilePhoto?
 
   // Viditelnost údajů v profilu (B-014)
   photoVisibility      ProfileVisibility @default(everyone)
@@ -286,6 +287,16 @@ model User {
   @@unique([email])
   @@unique([username])
   @@map("user")
+}
+
+/// Fotka nahraná uživatelem. Dostupná jen ve vlastním profilu; URL od přihlašovacího poskytovatele zůstává v User.image.
+model ProfilePhoto {
+  userId  String @id
+  user    User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  version String @db.Uuid
+  data    Bytes
+
+  @@map("profile_photo")
 }
 
 // ---------------------------------------------------------------------------

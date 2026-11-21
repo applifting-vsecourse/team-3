@@ -6,6 +6,8 @@ import { tmpdir } from "node:os"
 import { basename, delimiter, join } from "node:path"
 import { setTimeout as sleep } from "node:timers/promises"
 
+import { exerciseOnboardingProfileContract } from "./onboarding-profile.mjs"
+
 const origin = process.env.HH_FRONTEND ?? "http://127.0.0.1:39396"
 const api = process.env.HH_BACKEND ?? "http://127.0.0.1:40396/api"
 function findChromium() {
@@ -68,7 +70,7 @@ if (mode.includes("--preflight")) {
 
 const chromePath = findChromium()
 const browserProfile = await mkdtemp(join(tmpdir(), "hh296-v4-profile-"))
-const evidence = await mkdtemp(join(tmpdir(), "hh296-v4-evidence-"))
+const evidence = await mkdtemp(join(tmpdir(), "hh296-v5-evidence-"))
 const browser = spawn(
   chromePath,
   [
@@ -469,8 +471,8 @@ try {
     )
     const token = randomUUID().slice(0, 10)
     const credentials = {
-      email: `onboarding-v4-${tag}-${token}@example.test`,
-      password: `HobbyHub QA V4 ${tag} ${token}!2026`,
+      email: `onboarding-v5-${tag}-${token}@example.test`,
+      password: `HobbyHub QA V5 ${tag} ${token}!2026`,
     }
     const signup = await request("auth/sign-up/email", {
       body: {
@@ -564,8 +566,64 @@ try {
   }
 
   const activityNames = ["Volejbal", "Turistika", "Deskové hry"]
-  const suggestion = () =>
-    evaluate(textExpr('document.querySelector("#onboarding-bio-suggestion")'))
+  const bioField = 'textarea[name="bio"]'
+  const nameField = 'input[name="name"]'
+  const suggestion = () => evaluate(`document.querySelector(${quote(bioField)})?.value`)
+
+  const makeProfilePhoto = async (name, background) => {
+    const base64 = await evaluate(`(() => {
+      const canvas = document.createElement("canvas")
+      canvas.width = 96
+      canvas.height = 72
+      const context = canvas.getContext("2d")
+      context.fillStyle = ${quote(background)}
+      context.fillRect(0, 0, 96, 72)
+      context.fillStyle = "#ffffff"
+      context.fillRect(16, 16, 32, 32)
+      return canvas.toDataURL("image/png").split(",")[1]
+    })()`)
+    const path = join(browserProfile, name)
+    await writeFile(path, Buffer.from(base64, "base64"))
+    return path
+  }
+
+  const pickPhoto = async (path) => {
+    const { root } = await send("DOM.getDocument")
+    const { nodeId } = await send("DOM.querySelector", {
+      nodeId: root.nodeId,
+      selector: 'input[type="file"][aria-label="Soubor profilové fotky"]',
+    })
+    check(nodeId !== 0, "Profile photo input was not rendered")
+    await send("DOM.setFileInputFiles", { nodeId, files: [path] })
+    await until(`document.body.innerText.includes(${quote(basename(path))})`)
+  }
+
+  const verifyProfilePhoto = async (version, credentials = "include") =>
+    evaluate(`
+    fetch(${quote(api)} + "/me/profile/photo/" + ${quote(version)}, { credentials: ${quote(credentials)} })
+      .then(async (response) => ({
+        status: response.status,
+        mimeType: response.headers.get("Content-Type"),
+        cacheControl: response.headers.get("Cache-Control"),
+        size: (await response.blob()).size,
+      }))
+  `)
+
+  async function openCategory(activate, name) {
+    const switcher = "Změnit okruh"
+    const grid = "#onboarding-category-choices"
+    const control = findControl(switcher)
+    if (await evaluate(`Boolean(${control}) && document.querySelector(${quote(grid)}).hidden`)) {
+      await activate(switcher)
+    }
+    await activate(name)
+    const selector = findControl(switcher)
+    await until(`(${selector})?.getAttribute("aria-expanded") === "false"`)
+    check(
+      (await evaluate(`document.querySelector(${quote(grid)}).hidden`)) === true,
+      "Category choices covered the new results after selecting a category",
+    )
+  }
   const customBio = "Hledám partu na deskovky i výlety. Zvládnu donést svačinu."
 
   await send("Page.enable")
@@ -622,7 +680,7 @@ try {
     if (results.some(({ status }) => status === "fail") || errors.length) process.exitCode = 1
   } else {
     await scenario(
-      "390 px / touch • direct city, reliable district search, modal focus, activity edit, bio browse and privacy",
+      "390 px / touch • direct city, category switching, biography drafts, and private profile photo",
       async () => {
         await device("phone")
         const login = await register("touch", "/skupiny")
@@ -648,24 +706,41 @@ try {
         await screenshot("02-mobile-categories")
 
         await recordMotion()
-        await tap(/^Týmové sporty(?:$|\s)/)
+        await openCategory(tap, /^Týmové sporty(?:$|\s)/)
         await until(
           `Boolean(${findControl("Volejbal")})`,
           "The category did not reveal its activity cards",
         )
-        await expectMotion("hh-wizard-arrive")
+        await expectMotion("hh-wizard-category-reveal")
+        await expectMotion("hh-wizard-cover")
+        check(
+          await evaluate('document.querySelectorAll("#onboarding-results-heading").length === 1'),
+          "The category transition left a stale heading in the chooser",
+        )
         await screenshot("03-mobile-category")
         await tap("Volejbal")
         await assertPressed("Volejbal")
         await expectMotion("hh-wizard-flight")
-        const all = /^Všechny aktivity(?:$|\s)/
-        if (await evaluate(`Boolean(${findControl(all)})`)) await tap(all)
+        await openCategory(tap, /^Outdoor(?:$|\s)/)
+        await until(`!Boolean(${findControl("Volejbal")})`)
         await tap(/^Turistika(?:$|\s)/i)
         await assertPressed("Turistika")
+        await openCategory(tap, /^Hry(?:$|\s)/)
         await tap(/^Deskové hry(?:$|\s)/)
         await dialogTitle("Máš vybráno!")
         await focusedInsideDialog()
         await expectMotion("hh-wizard-ticket")
+        const backdrops = await evaluate(`[...document.querySelectorAll(".hh-wizard-overlay")]
+          .filter((layer) => layer.dataset.state === "open")
+          .map((layer) => {
+            const style = getComputedStyle(layer)
+            return { color: style.backgroundColor, blur: style.backdropFilter }
+          })`)
+        check(backdrops.length === 2, "Expected both onboarding modal layers to be open")
+        check(
+          backdrops[0].color !== backdrops[1].color && backdrops[1].blur !== "none",
+          "The selection dialog failed to dim the underlying chooser",
+        )
         await assertFit("completion phone")
         await screenshot("04-mobile-completion")
 
@@ -682,80 +757,72 @@ try {
         await tap("Deskové hry")
         await dialogTitle("Máš vybráno!")
         await tap("Povědět něco o sobě")
-        await dialogTitle("Co by o tobě měla parta vědět?")
+        await dialogTitle("Představ se partě")
         await assertFit("bio phone")
         await screenshot("05-mobile-bio")
 
-        const beforeBrowsing = await until(
-          `Boolean(${textExpr('document.querySelector("#onboarding-bio-suggestion")')})`,
-        )
-        check(beforeBrowsing, "No visible bio suggestion")
-        const draftBefore = await evaluate('document.querySelector("#onboarding-bio").value')
-        const first = await suggestion()
-        const variants = new Set([first])
-        const count = await evaluate(
-          `Number(document.querySelector("#onboarding-bio-catalog-count")?.textContent.split("/").at(-1))`,
-        )
-        check(
-          Number.isInteger(count) && count >= 50,
-          "The suggestion catalog has fewer than 50 entries",
-        )
-        for (let index = 1; index <= count; index++) {
-          const before = await suggestion()
-          await tap("Další návrh")
-          await until(
-            `${textExpr('document.querySelector("#onboarding-bio-suggestion")')} !== ${quote(before)}`,
-          )
+        const carouselControls = await evaluate(`Boolean(
+          document.querySelector("#onboarding-bio-catalog-count") ||
+          ${findControl("Další návrh")} ||
+          ${findControl("Předchozí návrh")}
+        )`)
+        check(!carouselControls, "Profile still shows the pagination UI")
+        check((await suggestion()) === "", "The optional bio should start empty")
+        const variants = new Set()
+        let first
+        for (let index = 0; index < 60; index++) {
+          await tap("Navrhnout text")
           const next = await suggestion()
-          check(
-            next.length <= 500 && next.length > 15,
-            `Variant ${index + 1} has an invalid length`,
-          )
-          if (next === first) break
+          if (index === 0) first = next
+          check(next.length <= 500 && next.length > 15, `Draft ${index + 1} has an invalid length`)
           check(!variants.has(next), `Repeated bio variant at position ${index + 1}`)
           variants.add(next)
         }
-        check(
-          variants.size === count,
-          `Expected ${count} distinct biographies, saw ${variants.size}`,
-        )
-        check((await suggestion()) === first, "The last biography should wrap back to the first")
+        await tap("Navrhnout text")
+        check((await suggestion()) === first, "The last draft should wrap back to the first")
         console.log(`  ${variants.size} distinct suggestions through touch events`)
-        check(
-          (await evaluate('document.querySelector("#onboarding-bio").value')) === draftBefore,
-          "Browsing rewrote the bio",
-        )
-        const shown = await suggestion()
-        await tap("Předchozí návrh")
-        const previous = await suggestion()
-        check(previous !== shown, "Previous suggestion did not change the preview")
-        await tap("Použít tento text")
-        await until(
-          `document.querySelector("#onboarding-bio")?.value.trim() === ${quote(previous)}`,
-        )
-        await input("#onboarding-bio", customBio)
-        await tap("Další návrh")
-        check(
-          (await evaluate('document.querySelector("#onboarding-bio").value')) === customBio,
-          "Browsing changed an edited draft",
-        )
-        await tap("Použít tento text")
-        await until('document.querySelector("#onboarding-bio").value.length > 0')
-        check(
-          (await evaluate('document.querySelector("#onboarding-bio").value')) === customBio,
-          "Applying a suggestion silently overwrote a draft",
-        )
-        await tap("Ponechat rozepsané")
-        check(
-          (await evaluate('document.querySelector("#onboarding-bio").value')) === customBio,
-          "Cancelling replacement changed the draft",
-        )
 
-        const nameInput = `[id="onboarding-display-name"], [id="onboarding-name"], input[name="name"]`
-        const hasNameInput = await evaluate(`Boolean(document.querySelector(${quote(nameInput)}))`)
-        check(hasNameInput, "Optional display name input was not found")
+        await input(bioField, customBio)
+        await tap("Navrhnout text")
+        check((await suggestion()) === customBio, "Suggesting silently overwrote the owner's draft")
+        await tap("Ponechat rozepsané")
+        check((await suggestion()) === customBio, "Cancelling replacement changed the draft")
+
         const name = "Martin Testovací"
-        await input(nameInput, name)
+        await input(nameField, name)
+        const corruptPhoto = join(browserProfile, "portrait-corrupt.png")
+        await writeFile(corruptPhoto, "not an image")
+        await pickPhoto(corruptPhoto)
+        await tap("Uložit a ukázat akce")
+        await until('document.querySelector("[role=alert]")?.innerText.includes("formátu JPEG")')
+        const refused = await request("me/profile")
+        const session = await request("auth/get-session")
+        check(
+          refused.body?.name === "Testovací Účet" &&
+            refused.body?.bio === null &&
+            refused.body?.homeLocality === null &&
+            refused.body?.interests?.length === 0 &&
+            refused.body?.photoVersion === null &&
+            session.body?.user?.onboardingCompletedAt === null,
+          "A refused upload saved part of the onboarding",
+        )
+        check((await suggestion()) === customBio, "Retry lost the draft")
+
+        const photoPath = await makeProfilePhoto("portrait-original.png", "#31543d")
+        await pickPhoto(photoPath)
+        await until(`Boolean(document.querySelector('img[src^="blob:"]'))`)
+        await tap("Zpět")
+        await dialogTitle("Co tě baví?")
+        await tap("Pokračovat s výběrem")
+        await dialogTitle("Máš vybráno!")
+        await tap("Povědět něco o sobě")
+        await dialogTitle("Představ se partě")
+        check((await suggestion()) === customBio, "Returning from the picker lost the draft bio")
+        check(
+          (await evaluate(`document.querySelector(${quote(nameField)})?.value`)) === name,
+          "Returning from the picker lost the edited name",
+        )
+        await until('document.body.innerText.includes("portrait-original.png")')
         await tap("Uložit a ukázat akce")
         const profile = await saveResult({
           city: "praha-8",
@@ -763,17 +830,63 @@ try {
           bio: customBio,
           interestNames: activityNames,
         })
+        check(Boolean(profile.photoVersion), "Private profile is missing the uploaded photo")
+        const photo = await verifyProfilePhoto(profile.photoVersion)
+        check(
+          photo.status === 200 &&
+            photo.mimeType === "image/webp" &&
+            photo.cacheControl === "private, no-store" &&
+            photo.size > 0,
+          "Owner read of the new photo was missing WebP bytes or no-store headers",
+        )
+        check(
+          (await verifyProfilePhoto(profile.photoVersion, "omit")).status === 401,
+          "Signed-out visitor could fetch the owner's photo",
+        )
+        check(
+          (await request(`images/${profile.photoVersion}`, { credentials: "omit" })).status === 404,
+          "Signed-out image CDN exposes the owner photo",
+        )
         const namedPublic = await request(`users/${encodeURIComponent(profile.id)}`, {
           credentials: "omit",
         })
         check(
-          namedPublic.status === 200 && !JSON.stringify(namedPublic.body).includes(customBio),
+          namedPublic.status === 200 &&
+            !JSON.stringify(namedPublic.body).includes(customBio) &&
+            !JSON.stringify(namedPublic.body).includes(profile.photoVersion),
           "Private bio leaked in the public profile",
         )
         await navigate(`${origin}/profil`)
         await until(
           `document.body?.innerText.includes(${quote(customBio)})`,
           "Private profile does not show the saved bio",
+        )
+        await until(
+          `[...document.images].some((img) => img.src.endsWith(${quote(profile.photoVersion)}) && img.naturalWidth > 0)`,
+        )
+        await navigate(`${origin}/profil/upravit`)
+        await until(`Boolean(${findControl("Vyměnit fotku")})`)
+        const replacementPath = await makeProfilePhoto("portrait-replacement.png", "#cf5b22")
+        await pickPhoto(replacementPath)
+        await tap("Uložit změny")
+        await until('document.body.innerText.includes("Profil je uložený.")')
+        const replaced = (await request("me/profile")).body
+        check(
+          replaced.photoVersion && replaced.photoVersion !== profile.photoVersion,
+          "Photo replacement reused the old version",
+        )
+        check(
+          (await verifyProfilePhoto(profile.photoVersion)).status === 404,
+          "An obsolete photo version remained available",
+        )
+        await tap("Odebrat fotku")
+        await tap("Uložit změny")
+        await until('document.body.innerText.includes("Profil je uložený.")')
+        const removed = (await request("me/profile")).body
+        check(removed.photoVersion === null, "Removing a photo kept an active version")
+        check(
+          (await verifyProfilePhoto(replaced.photoVersion)).status === 404,
+          "Removed photo was still readable",
         )
         await request("auth/sign-out", { body: {} })
         const again = await request("auth/sign-in/email", { body: login })
@@ -852,13 +965,10 @@ try {
 
         await tabTo("Povědět něco o sobě")
         await key("Enter", "Enter", 13)
-        await dialogTitle("Co by o tobě měla parta vědět?")
-        await keyboard("Použít tento text")
-        check(
-          await evaluate('document.querySelector("#onboarding-bio")?.value.length > 15'),
-          "Cannot accept a suggestion with keyboard",
-        )
-        await input("#onboarding-display-name", "Jméno Jen Rozepsané")
+        await dialogTitle("Představ se partě")
+        await keyboard("Navrhnout text")
+        check((await suggestion()).length > 15, "Cannot accept a suggestion with keyboard")
+        await input(nameField, "Jméno Jen Rozepsané")
         await keyboard("Teď ne")
         check(
           await evaluate("window.__hhMotion.length === 0"),
@@ -969,6 +1079,20 @@ try {
           !(await evaluate('Boolean(document.querySelector("#onboarding-locality"))')),
           "Onboarding returned after exit",
         )
+      },
+    )
+
+    await scenario(
+      "API / profile photo ownership, atomic completion, invalid uploads and concurrent retry",
+      async () => {
+        await device("desktop", "reduce")
+        await exerciseOnboardingProfileContract({
+          api,
+          evaluate,
+          register,
+          request,
+          verifyProfilePhoto,
+        })
       },
     )
 

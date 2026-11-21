@@ -1,4 +1,6 @@
+import { randomUUID } from 'node:crypto';
 import { Prisma } from '@/generated/prisma/client';
+import { prepareImage } from '@/modules/image/domain/uploaded-image';
 import {
   selfProfile,
   type OnboardingInput,
@@ -13,6 +15,7 @@ import {
   BadRequestException,
   ForbiddenException,
   Injectable,
+  NotFoundException,
   UnauthorizedException,
 } from '@nestjs/common';
 
@@ -33,6 +36,7 @@ export class ProfileService {
   async update(
     userId: string,
     input: UpdateProfileInput,
+    photo?: { bytes?: Uint8Array; remove?: boolean },
   ): Promise<SelfProfile> {
     const row = await this.owner(userId);
     if (row.blockedAt)
@@ -46,15 +50,32 @@ export class ProfileService {
     }
     Object.assign(data, await this.preferences(input));
     if (input.bio !== undefined) data.bio = input.bio?.trim() || null;
-    if (Object.keys(data).length === 0)
+    if (photo?.bytes && photo.remove) {
+      throw new BadRequestException({
+        code: 'INVALID_PHOTO',
+        message: 'Vyber, jestli fotku vyměníš, nebo odebereš.',
+      });
+    }
+    if (photo?.bytes) data.profilePhoto = await this.photoUpdate(photo.bytes);
+    if (Object.keys(data).length === 0 && !photo?.remove)
       throw new BadRequestException('Vyber aspoň jeden údaj ke změně.');
     data.updatedAt = new Date();
-    return selfProfile(await this.repository.save(userId, data));
+    const saved = photo?.remove
+      ? await this.repository.saveWithoutPhoto(userId, data)
+      : await this.repository.save(userId, data);
+    return selfProfile(saved);
+  }
+
+  async getPhoto(userId: string, version: string): Promise<Uint8Array> {
+    const photo = await this.repository.getPhoto(userId, version);
+    if (!photo) throw new NotFoundException('Fotka profilu neexistuje.');
+    return photo.data;
   }
 
   async finishOnboarding(
     userId: string,
     input?: OnboardingInput,
+    photo?: Uint8Array,
   ): Promise<{
     onboardingCompletedAt: Date;
     localitySlug: string | null;
@@ -70,6 +91,7 @@ export class ProfileService {
       preferences.bio = bio;
       preferences.bioVisibility = 'nobody';
     }
+    if (photo) preferences.profilePhoto = await this.photoUpdate(photo);
     const saved = await this.repository.finishOnboarding(userId, preferences);
     if (!saved?.onboardingCompletedAt) throw new UnauthorizedException();
     return {
@@ -78,6 +100,23 @@ export class ProfileService {
       hasInterests: saved._count.interests > 0,
       displayName: saved.name,
     };
+  }
+
+  private async photoUpdate(
+    bytes: Uint8Array,
+  ): Promise<Prisma.ProfilePhotoUpdateOneWithoutUserNestedInput> {
+    const result = await prepareImage(bytes);
+    if (!result.ok) {
+      throw new BadRequestException({
+        code: 'INVALID_PHOTO',
+        message: result.message,
+      });
+    }
+    const photo = {
+      version: randomUUID(),
+      data: new Uint8Array(result.image.small),
+    };
+    return { upsert: { create: photo, update: photo } };
   }
 
   private validName(name: string): string {

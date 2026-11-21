@@ -10,6 +10,7 @@ export const profileSchema = z.object({
   emailVerified: z.boolean(),
   hasPassword: z.boolean(),
   bio: z.string().nullish(),
+  photoVersion: z.uuid().nullish(),
   homeLocality: localitySchema.nullable(),
   interests: z.array(z.object({ id: z.string(), name: z.string() })),
 })

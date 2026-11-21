@@ -15,6 +15,7 @@ const row = (): ProfileRow => ({
   email: 'jana@example.com',
   emailVerified: true,
   bio: null,
+  profilePhoto: null,
   blockedAt: null,
   deletedAt: null,
   homeLocality: null,
