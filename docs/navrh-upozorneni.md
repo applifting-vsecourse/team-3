@@ -1,6 +1,6 @@
 # HobbyHub – upozornění v aplikaci (návrh na refinement 16. 11. 2026)
 
-**Issue:** #86 (F-40, B-044) · **Navazuje na:** #177 (e-maily k účasti a akci), #307 (přátelé) · **Stav:** návrh týmu; na refinementu 16. 11. se neprobíral, otázky rozhodne tým, případně je písemně položí PO
+**Issue:** #86 (F-40, B-044) · **Navazuje na:** #177 (e-maily k účasti a akci), #307 (přátelé) · **Stav:** návrh týmu, Q1 a Q2 rozhodl tým 21. 11.; seznam a texty potvrdí PO při akceptaci #86
 
 Planning sprintu 4 (`zapis-planning-sprint4.md`): notifikační centrum v aplikaci i e-maily, zpráva v centru je krátká („Na tvou akci se přihlásil…“) a vede na detail. Tým měl na refinement připravit seznam událostí a jejich texty. Tady je.
 
@@ -28,11 +28,11 @@ Seznam událostí a texty se na refinementu neschvalovaly. Otázky Q1–Q5 níž
 
 ### Organizátor akce
 
-| #   | Událost                                    | Text v centru                              | Proklik     | E-mail                     |
-| --- | ------------------------------------------ | ------------------------------------------ | ----------- | -------------------------- |
-| 1   | Nová žádost o účast (akce se schvalováním) | `{jméno} se chce zúčastnit akce „{akce}“.` | správa akce | ano, „Nová žádost o účast“ |
-| 2   | Nová přihláška (akce bez schvalování)      | `{jméno} jde na akci „{akce}“.` (Q1)       | správa akce | ne, viz Q1                 |
-| 3   | Účastník se odhlásil                       | `{jméno} už na akci „{akce}“ nejde.`       | správa akce | ano, „Odhlášení z akce“    |
+| #   | Událost                                    | Text v centru                              | Proklik     | E-mail                                       |
+| --- | ------------------------------------------ | ------------------------------------------ | ----------- | -------------------------------------------- |
+| 1   | Nová žádost o účast (akce se schvalováním) | `{jméno} se chce zúčastnit akce „{akce}“.` | správa akce | ano, „Nová žádost o účast“                   |
+| 2   | Nová přihláška (akce bez schvalování)      | `{jméno} jde na akci „{akce}“.`            | správa akce | jen když si ho organizátor zapne u akce (Q1) |
+| 3   | Účastník se odhlásil                       | `{jméno} už na akci „{akce}“ nejde.`       | správa akce | ano, „Odhlášení z akce“                      |
 
 ### Účastník akce (přihlášený nebo s žádostí)
 
@@ -50,7 +50,7 @@ Seznam událostí a texty se na refinementu neschvalovaly. Otázky Q1–Q5 níž
 | --- | ------------------------------------ | --------------- | ---------------------------------------------------------------------------------- | --------------- | ----------------- |
 | 9   | Žádost o vstup do uzavřené skupiny   | správci skupiny | `{jméno} chce do skupiny „{skupina}“.`                                             | správa skupiny  | **nový**          |
 | 10  | Žádost o vstup schválena / zamítnuta | žadatel         | `Tvoje žádost o vstup do skupiny „{skupina}“ byla schválena.` / `…nebyla přijata.` | stránka skupiny | **nový**          |
-| 11  | Nová akce skupiny                    | aktivní členové | `Ve skupině „{skupina}“ je nová akce „{akce}“.`                                    | detail akce     | **nový** (Q2)     |
+| 11  | Nová akce skupiny                    | aktivní členové | `Ve skupině „{skupina}“ je nová akce „{akce}“.`                                    | detail akce     | v #362 (Q2)       |
 | 12  | Oznámení správce (#194)              | aktivní členové | `Nové oznámení ve skupině „{skupina}“: {předmět}`                                  | stránka skupiny | ano, text správce |
 
 Řádek 10 v zadání #86 není, doplňujeme ho jako protějšek řádků 4 a 5: kdo o vstup požádal, má se dozvědět, jak to dopadlo.
@@ -101,14 +101,13 @@ Wireframy zvonek ani centrum nemají: stránka C ve Figmě uvádí, že „zvone
 
 ## Otevřené otázky (tým, případně PO)
 
-- **Q1 Přihláška na akci bez schvalování:** má organizátor dostat upozornění na každou přihlášku? Návrh týmu: ano v centru, e-mail ne, aby organizátor oblíbené akce nedostával desítky e-mailů. Zadání #86 přitom říká, že ke stejným událostem chodí e-mail.
-- **Q2 Nová akce skupiny e-mailem:** upozornění v centru ano. Posílat i e-mail všem členům? Návrh týmu: ano, je to hlavní důvod, proč člověk ve skupině je.
+- **Q1 Přihláška na akci bez schvalování (rozhodnuto 21. 11.):** organizátor dostane upozornění v centru na každou přihlášku vždy. E-mail ke každé přihlášce si zvolí při zakládání akce (`Event.emailOnJoin`, výchozí vypnuto). Zadání #86 v „Mimo rozsah“ vylučuje nastavení upozornění; tohle je volba u jedné akce, potvrdí ji PO při akceptaci.
+- **Q2 Nová akce skupiny (rozhodnuto 21. 11.):** upozornění i e-mail členům řeší #362, ne #86.
 - **Q3 Text uložený při vzniku:** když organizátor akci později přejmenuje, staré upozornění ukáže původní název. Návrh týmu: nevadí, upozornění je záznam o tom, co se stalo, a proklik vede na aktuální detail.
 - **Q4 Plánované e-maily v centru:** připomínka den před akcí a výzva k hodnocení jen e-mailem (návrh), nebo i v centru?
 - **Q5 Wireframe:** stačí popis výše, nebo doplnit zvonek a centrum do Figmy před implementací UI?
 
 ## Postup
 
-- **Teď (nezávisí na otázkách):** tabulka `Notification` s migrací, API (seznam, počet nepřečtených, označit přečtené, označit vše), zápis upozornění z událostí, které už posílají e-mail (řádky 1, 3–8, 12), zvonek a centrum.
-- **Po rozhodnutí Q1 a Q2:** nové události (řádek 2 a skupiny v řádcích 9–11) včetně e-mailů.
-- **S přáteli (#307, sprint 4):** řádky 13 a 14.
+- **Backend (hotový):** tabulka `Notification` s migrací, API (seznam, počet nepřečtených, označit přečtené, označit vše), zápis upozornění a e-mailů pro řádky 1–10, 12–14.
+- **UI:** nejdřív návrh ve Figmě (zvonek v hlavičce, panel, stránka `/upozorneni`, přepínač e-mailu ve formuláři akce), po schválení kód. Řádek 11 přinese #362.
