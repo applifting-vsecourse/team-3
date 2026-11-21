@@ -20,6 +20,7 @@ Schéma vzniklo v rámci #47 (testovací data), protože bez něj nešla data na
 | `GroupMember`       | `group_member`       | Členství a role ve skupině                                                                                               | B-050               | ano      |
 | `EventMessage`      | `event_message`      | Zpráva organizátora účastníkům (limit 10 za den)                                                                         | B-042               | ne       |
 | `GroupAnnouncement` | `group_announcement` | Oznámení správce členům skupiny (limit 10 za den na skupinu)                                                             | #194                | ne       |
+| `Friendship`        | `friendship`         | Přátelství: jedna žádost na dvojici lidí a její stav (viz [Přátelé](#přátelé-307))                                       | B-017, #307         | ne       |
 | `NotificationLog`   | `notification_log`   | Záznam o odeslaném plánovaném e-mailu, aby nepřišel dvakrát                                                              | B-043               | ne       |
 | `Rating`            | `rating`             | Hodnocení akce a organizátora od účastníka                                                                               | B-060               | ne       |
 | `ParticipantRating` | `participant_rating` | Hodnocení účastníka organizátorem akce                                                                                   | B-060, #180         | ne       |
@@ -87,6 +88,10 @@ erDiagram
         float lng
     }
 ```
+
+### Přátelé (#307)
+
+`Friendship` drží jednu žádost na dvojici lidí, bez ohledu na to, kdo žádal: `requesterId`, `addresseeId`, `status` (`pending` / `accepted` / `rejected`), `acceptedAt`. Dvojici hlídá databáze: `pairKey` jsou obě ID seřazená a spojená dvojtečkou, s unikátním indexem (spolehlivější než unikátní index nad `LEAST`/`GREATEST`, který Prisma ve schématu neumí zapsat). `rejected` je tiché odmítnutí: odesílatel dál vidí odeslanou žádost a může ji zrušit, pak jde poslat znovu. Účet se maže jen nastavením `deletedAt`, takže záznam zůstane; smazané a zablokované účty se v seznamech přátel nezobrazují (kaskáda `onDelete: Cascade` platí jen pro skutečné smazání řádku). Pravidla a API v [`modules/friendship/README.md`](../apps/backend/src/modules/friendship/README.md).
 
 ## Akce a skupiny
 
@@ -287,8 +292,6 @@ Podle planningu sprintu 4 (`docs/zapis-planning-sprint4.md`). Jen návrh týmu, 
 ```mermaid
 erDiagram
     User ||--o{ Notification : "příjemce"
-    User ||--o{ Friendship : "požádal"
-    User ||--o{ Friendship : "přijímá"
 
     Notification {
         string id PK
@@ -299,19 +302,11 @@ erDiagram
         string text "krátká zpráva"
         datetime readAt
     }
-    Friendship {
-        string id PK
-        string requesterId FK
-        string addresseeId FK
-        friendship_status status "pending / accepted / rejected"
-        datetime acceptedAt
-    }
 ```
 
 | Co                       | Návrh                                                                                                                                                                                                           | Úkol        |
 | ------------------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------- |
 | `Notification`           | Upozornění v centru (zvonek, počet nepřečtených = `readAt` je `null`). Zapisuje se ze stejné doménové události jako e-mail                                                                                      | B-044, #86  |
-| `Friendship`             | Jedna žádost na dvojici uživatelů (unikátní dvojice bez ohledu na pořadí hlídá aplikace), přátelé = `accepted`                                                                                                  | B-017, #307 |
 | Onboarding               | `User` dostane `onboardingCompletedAt` (datetime): `null` = průvodce `/vitej` se ještě má nabídnout. Nastaví se po dokončení i po „Teď ne“, aby se průvodce znovu nenabízel ani na jiném zařízení               | B-013, #296 |
 | Úprava akce superadminem | `ModerationActionType` nemá typ pro úpravu akce: doplnit `edit_event` (migrace), nebo zapisovat jen deaktivaci. Deaktivace už model má: `Event.status = hidden` a zásah `hide_event`                            | B-063, #308 |
 | Lokalita a adresa        | Zůstávají dvě nezávislé hodnoty: `localityId` (číselník, filtr a výpis) a `address` (text) s `lat` / `lng`. Formulář lokalitu odvodí z místa a jde upravit ručně (PR #295); co která znamená, rozhodne PO (Q14) | B-022, #303 |
@@ -326,6 +321,7 @@ Databáze vynucuje cizí klíče, unikátnost a enumy, k tomu `CHECK` na hvězdi
 - **Hodnocení účastníka (`ParticipantRating`, #180):** jen organizátor akce, jen `approved` účastníka, jen po skončení akce (`endsAt`, když chybí, `startsAt`) a do 14 kalendářních dní od něj v pražském čase (#66, review #313), ne zrušené, ne akce pod minimem (`EVENT_NOT_HELD`, #314) a ne sám sebe; hodnocení smazané superadminem jde jen vrátit, ne dát znovu (#66). Čistá funkce `decideParticipantRating` v [`modules/rating/domain/participant-rating.ts`](../apps/backend/src/modules/rating/domain/participant-rating.ts). Jedno na účastníka a akci a hvězdičky 1–5 hlídá databáze. Nepovinný komentář (PO 4. 11.) je na veřejném profilu hodnoceného, proto jde nahlásit (`participant_rating` v `report_target_type`); max. `RATING_COMMENT_MAX_LENGTH` (500) znaků, stejně jako u `Rating`, hlídá aplikace (#66) i databáze (`VarChar(500)` v obou tabulkách, review #313).
 - **Průměrné hodnocení v profilu (#178, #179):** jako organizátor z `Rating.organizerStars`, jako účastník z `ParticipantRating.stars`; zaokrouhlené na jedno desetinné místo, vždy s počtem, bez hodnocení `null`. Smazaná hodnocení se nepočítají, akce skupin se osobě jako organizátorovi nepočítají. Čisté funkce v [`modules/rating/domain/rating-summary.ts`](../apps/backend/src/modules/rating/domain/rating-summary.ts).
 - **Poslední správce skupiny** se nemůže vzdát role ani odejít (B-054).
+- **Přátelé (#307):** ne sám sobě, ne zablokovanému ani smazanému účtu; vzájemná žádost je přijetí; odmítnout jde jen žádost, která čeká na mě, zrušit jen vlastní žádost (i odmítnutou) nebo přátelství. Čisté funkce v [`modules/friendship/domain/friendship.ts`](../apps/backend/src/modules/friendship/domain/friendship.ts). Jednu dvojici hlídá databáze (`pairKey`).
 - **Akce se fyzicky nemaže** (Q11): zrušení = `status = cancelled` (e-mail účastníkům, nejde vrátit), zásah superadmina = `hidden` (deaktivace, jde vrátit) / `deleted`. Skupina se jen deaktivuje (B-051).
 - **Nahlášení** odkazuje na cíl přes `targetType` + `targetId` bez cizího klíče, existenci cíle ověřuje backend.
 

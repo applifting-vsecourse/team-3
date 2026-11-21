@@ -1,6 +1,8 @@
 # Veřejný profil (#179)
 
-`GET /api/users/:userId` je veřejný a vždy vrací stejnou omezenou projekci, bez ohledu na přihlášení návštěvníka. Neexistující, zablokovaný nebo smazaný účet má shodnou odpověď 404.
+`GET /api/users/:userId` je veřejný a vrací stejnou omezenou projekci každému návštěvníkovi. Neexistující, zablokovaný nebo smazaný účet má shodnou odpověď 404.
+
+**Přátelé (#307):** přihlášenému navíc pošle `friendship`, jeho vztah k profilu (`friends` / `outgoing` / `incoming` / `none` / `self`, pravidla v modulu [`friendship`](../friendship/README.md)); nepřihlášenému `null`. Jen příteli pošle `upcomingEvents`, „Kam jde“: nejvýš 3 nejbližší akce, které ještě neskončily, kam má člověk schválené místo nebo které pořádá, a jen ty, které by návštěvník viděl i sám: veřejné a akce jen pro členy aktivní skupiny, kde je aktivním členem; soukromé (jen přes odkaz) nikdy, zrušené ani skryté nikdy (`friendUpcomingEventsWhere` v [`domain/friend-events.ts`](domain/friend-events.ts)). Ostatním `null` a dotaz na akce se vůbec nespustí. Akce mají tvar karet z `GET /api/events`.
 
 Odpověď obsahuje jméno, zájmy, přijatá hodnocení účastníka, průměr organizátora a jeho akcí s počty a historii osobně pořádaných veřejných proběhlých akcí s jejich hodnocením a `approvedCount` (počet schválených účastí, nikoliv potvrzená docházka). Neobsahuje e-mail, domovskou lokalitu, profilovou viditelnost, auth účty, historii účasti ani členství skupin.
 

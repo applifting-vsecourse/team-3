@@ -1,3 +1,4 @@
+import type { ReactNode } from "react"
 import { useQuery } from "@tanstack/react-query"
 import { Link } from "@tanstack/react-router"
 import { Pencil } from "lucide-react"
@@ -23,10 +24,18 @@ import { RatingsSection } from "./ProfileOverview"
 import { ProfileError, ProfileLoading } from "./ProfileState"
 
 /**
- * /profil (Figma B-05, B-05d): who I am and whom I know — the band, then my ratings. What I do
- * (my events, my groups, the history) is in Moje (#367). Editing is on /profil/upravit.
+ * /profil (Figma B-05, B-05d): who I am and whom I know — the band, then the people I know
+ * (#307) and my ratings. What I do (my events, my groups, the history) is in Moje (#367).
+ * Editing is on /profil/upravit.
  */
-export function ProfilePage({ viewerId }: { viewerId: string }) {
+export function ProfilePage({
+  viewerId,
+  peopleContent,
+}: {
+  viewerId: string
+  /** „Lidé, které znám“, from the friends feature (the route puts it in, #307). */
+  peopleContent?: ReactNode
+}) {
   const profile = useQuery(profileQueryOptions(viewerId))
   const overview = useQuery(profileOverviewQueryOptions(viewerId))
   const error = profile.error ?? overview.error
@@ -73,6 +82,7 @@ export function ProfilePage({ viewerId }: { viewerId: string }) {
                 <p className="max-w-2xl break-words whitespace-pre-wrap">{profile.data.bio}</p>
               </section>
             ) : null}
+            {peopleContent}
             <RatingsSection
               participant={{
                 ratings: overview.data.participantRatings,
