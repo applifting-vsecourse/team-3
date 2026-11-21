@@ -14,12 +14,12 @@ import { eventsQueryOptions } from "@/features/events/api/eventsQueryOptions"
 import { EventCard } from "@/features/events/components/EventCard"
 import { EventCardSkeleton } from "@/features/events/components/EventList"
 
-const NEAREST_COUNT = 3
+const UPCOMING_COUNT = 3
 
 // the whole public list, soonest first, like /akce without filters
 const NO_FILTERS = { activityIds: [], categoryIds: [] }
 
-type NearestEventsProps = {
+type UpcomingEventsProps = {
   /**
    * The landing page's locality (useLocality, #55): only its events (a city
    * includes its districts), changeable with the locality chip. Without it,
@@ -31,11 +31,11 @@ type NearestEventsProps = {
 }
 
 /**
- * „Nejbližší akce“: the three soonest public events. Next to the sign-in and
+ * „Nadcházející akce“ (#370: not „Nejbližší“, which reads as nearest to me): the three soonest public events. Next to the sign-in and
  * sign-up forms on desktop (Figma B-01d, B-03d), what the account is for,
  * and on the landing page (A-01, A-01d). A card opens the event's detail.
  */
-export function NearestEvents({ locality: shown, footer }: NearestEventsProps) {
+export function UpcomingEvents({ locality: shown, footer }: UpcomingEventsProps) {
   const headingId = useId()
   const localitySlug = shown?.slug
   const localitiesQuery = useQuery({
@@ -49,7 +49,7 @@ export function NearestEvents({ locality: shown, footer }: NearestEventsProps) {
       ? undefined
       : resolveFilters(localitySlug, localitiesQuery.data, locality)
   const eventsQuery = useQuery(eventsQueryOptions(filters))
-  const events = filters ? eventsQuery.data?.slice(0, NEAREST_COUNT) : undefined
+  const events = filters ? eventsQuery.data?.slice(0, UPCOMING_COUNT) : undefined
   const error = localitiesQuery.error ?? eventsQuery.error
 
   return (
@@ -62,7 +62,7 @@ export function NearestEvents({ locality: shown, footer }: NearestEventsProps) {
           id={headingId}
           className="text-lg font-semibold tracking-tight"
         >
-          Nejbližší akce
+          Nadcházející akce
         </h2>
         {shown && localitySlug && localitiesQuery.data ? (
           <LocalityFilter
@@ -108,7 +108,7 @@ export function NearestEvents({ locality: shown, footer }: NearestEventsProps) {
           aria-busy
           aria-label="Načítám akce"
         >
-          {Array.from({ length: NEAREST_COUNT }, (_, i) => (
+          {Array.from({ length: UPCOMING_COUNT }, (_, i) => (
             <EventCardSkeleton key={i} />
           ))}
         </div>

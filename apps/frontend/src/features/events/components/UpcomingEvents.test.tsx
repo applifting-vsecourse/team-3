@@ -7,7 +7,7 @@ import { api } from "@/lib/api-client"
 import type * as ApiClient from "@/lib/api-client"
 import { renderWithRouter } from "@/test/renderWithRouter"
 
-import { NearestEvents } from "@/features/events/components/NearestEvents"
+import { UpcomingEvents } from "@/features/events/components/UpcomingEvents"
 import { anEvent } from "@/features/events/test/anEvent"
 
 vi.mock("@/lib/api-client", async (importOriginal) => ({
@@ -23,7 +23,7 @@ const asJson = (body: unknown) =>
 const renderNearest = ({ localitySlug }: { localitySlug?: string | null } = {}) =>
   renderWithRouter(
     <QueryClientProvider client={new QueryClient({ defaultOptions: { queries: { retry: 0 } } })}>
-      <NearestEvents
+      <UpcomingEvents
         // null: the landing page's default locality is still loading
         locality={
           localitySlug === undefined
@@ -40,7 +40,7 @@ const renderNearest = ({ localitySlug }: { localitySlug?: string | null } = {}) 
     </QueryClientProvider>,
   )
 
-describe("NearestEvents", () => {
+describe("UpcomingEvents", () => {
   beforeEach(() => get.mockReset())
 
   it("shows the three soonest events, each a link to its detail", async () => {

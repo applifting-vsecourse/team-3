@@ -63,7 +63,7 @@ Tokens under `color/_archiv/*` in Figma belong to archived screens only — do n
 - **A detail's action panel is the one bordered section** (Figma: Panel akce A-05d, Panel skupiny A-08d). On desktop the facts and the main action sit on the right in a `rounded-2xl border border-card-border bg-card p-6` panel; on a phone there is no panel, the facts follow the title and the main action sits in a bar above the bottom navigation (`sticky bottom-16`, Figma: Lišta s akcí). It holds no cards.
 - **Every page keeps the app chrome.** The header is present on every route, including login and sign-up.
 - Forbidden by default: the centred-hero-plus-three-feature-cards layout, carousels, and any section whose only purpose is to look full.
-- **No big empty areas on desktop** (PO). Use the width for real content: a form gets two columns (D-01d „Co a kdy“ | „Kde“, D-06d), sign-in and sign-up show the nearest events next to the form, the public profile has two columns, event grids have three columns.
+- **No big empty areas on desktop** (PO). Use the width for real content: a form gets two columns (D-01d „Co a kdy“ | „Kde“, D-06d), sign-in and sign-up show the upcoming events next to the form („Nadcházející akce“, #370), the public profile has two columns, event grids have three columns.
 
 ## Spacing
 
