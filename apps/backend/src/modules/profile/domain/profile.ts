@@ -1,6 +1,6 @@
-import { byCzechName } from '@/shared/text/czech-order';
 import { Prisma } from '@/generated/prisma/client';
 import type { RatingSummary } from '@/modules/rating/domain/rating-summary';
+import { byCzechName } from '@/shared/text/czech-order';
 
 export const profileSelect = {
   id: true,

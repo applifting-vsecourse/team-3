@@ -27,9 +27,10 @@ describe('Czech order (#370)', () => {
   });
 
   it('a vowel with a mark sorts as the vowel: „Bě“ before „Br“', () => {
-    expect(
-      names(['Brněnští volejbalisti', 'Běžci od Boleváku']),
-    ).toEqual(['Běžci od Boleváku', 'Brněnští volejbalisti']);
+    expect(names(['Brněnští volejbalisti', 'Běžci od Boleváku'])).toEqual([
+      'Běžci od Boleváku',
+      'Brněnští volejbalisti',
+    ]);
   });
 
   it('„Ch“ is a letter of its own, after H', () => {

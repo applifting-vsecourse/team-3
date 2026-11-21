@@ -1,4 +1,3 @@
-import { byCzechName } from '@/shared/text/czech-order';
 import type { Prisma } from '@/generated/prisma/client';
 import { eventOverWhere, isEventOver } from '@/modules/event/domain/event-over';
 import {
@@ -7,6 +6,7 @@ import {
   summarizeStars,
   type RatingSummary,
 } from '@/modules/rating/domain/rating-summary';
+import { byCzechName } from '@/shared/text/czech-order';
 
 export type PublicPerson = { id: string; name: string };
 export type PublicUserRecord = PublicPerson & {

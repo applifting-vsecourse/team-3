@@ -1,4 +1,5 @@
 import { compareCzech } from '@/shared/text/czech-order';
+
 export const GROUP_TYPES = ['public', 'closed'] as const;
 /** `public`: anyone joins at once; `closed`: membership is requested and an admin approves it (#46). */
 export type GroupType = (typeof GROUP_TYPES)[number];
@@ -94,6 +95,5 @@ export const orderGroupsByName = <T extends { id: string; name: string }>(
 ): T[] =>
   [...groups].sort(
     (a, b) =>
-      compareCzech(a.name, b.name) ||
-      (a.id < b.id ? -1 : a.id > b.id ? 1 : 0),
+      compareCzech(a.name, b.name) || (a.id < b.id ? -1 : a.id > b.id ? 1 : 0),
   );
