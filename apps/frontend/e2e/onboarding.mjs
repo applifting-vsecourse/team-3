@@ -268,12 +268,12 @@ try {
     body: document.body?.innerText?.slice(0, 450),
   })`)
 
-  const until = async (expression, detail) => {
+  const until = async (expression, detail, accepts = Boolean) => {
     const deadline = Date.now() + 8000
     do {
       try {
         const answer = await evaluate(expression)
-        if (answer) return answer
+        if (accepts(answer)) return answer
       } catch (error) {
         if (!/context|navigat|null.*reading/i.test(error.message)) throw error
       }
@@ -870,8 +870,11 @@ try {
           `document.body?.innerText.includes(${quote(customBio)})`,
           "Private profile does not show the saved bio",
         )
+        const expectedPhotoUrl = `${api}/me/profile/photo/${encodeURIComponent(profile.photoVersion)}`
         await until(
-          `[...document.images].some((img) => img.src.endsWith(${quote(profile.photoVersion)}) && img.naturalWidth > 0)`,
+          "[...document.images].filter((img) => img.naturalWidth > 0).map((img) => img.src)",
+          "The saved photo did not render in the private profile",
+          (urls) => urls.includes(expectedPhotoUrl),
         )
         await navigate(`${origin}/profil/upravit`)
         await until(`Boolean(${findControl("Vyměnit fotku")})`)
