@@ -13,7 +13,11 @@ import { photoOf } from "@/lib/image"
 import { cn } from "@/lib/utils"
 
 import type { PublicEvent } from "@/features/events/api/eventSchemas"
-import { eventDateParts, formatEventStart, placeName } from "@/features/events/lib/formatEvent"
+import {
+  eventDateParts,
+  eventPlaceLabel,
+  formatEventStart,
+} from "@/features/events/lib/formatEvent"
 import { missingNowLabel, missingNowSentence, startsIn } from "@/features/events/lib/homeCopy"
 
 /** The panel's surface in the band (Figma Panel/Teď chybí jeden): a card with the `on-hero-muted` edge. */
@@ -96,7 +100,7 @@ export function MissingOnePanel({ event, now }: { event: PublicEvent; now: Date 
           {formatEventStart(event.startsAt)}
         </time>
         <p className="text-sm text-muted-foreground">
-          {placeName(event.address)} · {event.locality.name}
+          {eventPlaceLabel(event)} · {event.locality.name}
         </p>
         <p className="text-body">{missingNowSentence(event)}</p>
         <CapacityBar

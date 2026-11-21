@@ -1,4 +1,5 @@
 import { nameProblem } from '@/shared/auth/domain/name-policy';
+import { distanceKm } from '@/shared/geo/distance';
 import {
   communityEventPlans,
   communityEvents,
@@ -154,8 +155,8 @@ describe('community data', () => {
   it('places every event near its town', () => {
     for (const event of communityEvents) {
       const town = coordinates.get(event.localitySlug)!;
-      expect(Math.abs(event.lat - town.lat)).toBeLessThan(0.02);
-      expect(Math.abs(event.lng - town.lng)).toBeLessThan(0.03);
+      // A verified venue can sit in an outer district of a regional city.
+      expect(distanceKm(event, town)).toBeLessThan(8);
     }
   });
 
@@ -250,6 +251,12 @@ describe('community data', () => {
         e.activitySlug === 'atletika' && e.localitySlug === 'usti-nad-orlici',
     );
     expect(race?.title).toMatch(/atletické závody/);
+    expect(race).toMatchObject({
+      address: 'Atletický stadion TJ Jiskra, Zborovská 213, Ústí nad Orlicí',
+      lat: 49.97835,
+      lng: 16.389769,
+      isLocationApproximate: false,
+    });
   });
 
   it('places the table tennis event at the published address of the gym', () => {
@@ -259,7 +266,30 @@ describe('community data', () => {
       address: 'Tělocvična gymnázia, T. G. Masaryka 106, Ústí nad Orlicí',
       lat: 49.971691,
       lng: 16.396996,
+      isLocationApproximate: false,
     });
+  });
+
+  it('uses the published arrival point for Peklák', () => {
+    const event = communityEvents.find(({ key }) => key === 'k-peklak');
+    expect(event).toMatchObject({
+      address: 'Ski areál Peklák, Pod Jelenicí 653, Česká Třebová',
+      lat: 49.9091,
+      lng: 16.4318,
+      isLocationApproximate: false,
+    });
+  });
+
+  it('labels every other generated position approximate and uses its catalog locality', () => {
+    const approximate = communityEvents.filter(
+      ({ isLocationApproximate }) => isLocationApproximate,
+    );
+    expect(approximate.length).toBeGreaterThan(290);
+    for (const event of approximate) {
+      const position = coordinates.get(event.localitySlug);
+      expect(position).toBeDefined();
+      expect([event.lat, event.lng]).toEqual([position?.lat, position?.lng]);
+    }
   });
 
   it('keeps titles free of weekdays and occupancy states, texts free of placeholders', () => {

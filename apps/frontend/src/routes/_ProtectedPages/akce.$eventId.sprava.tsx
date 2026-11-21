@@ -124,7 +124,9 @@ function ManageEventPage() {
             // Figma D-03d: „St 28. 10. · 18:00–22:00 · Klubovna Holešovice, … · Pořádáš ty“
             description={[
               formatEventTime(event.startsAt, event.endsAt),
-              event.address,
+              event.isLocationApproximate
+                ? `Přibližná poloha · ${event.locality.name}`
+                : event.address,
               // a group's admin manages it for the group (B-055)
               event.group ? `Akce skupiny ${event.group.name}` : "Pořádáš ty",
             ].join(" · ")}

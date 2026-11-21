@@ -1,8 +1,8 @@
 import {
   communityEventPlans,
   isPrague,
-  nearTown,
   rankCandidates,
+  resolveSeedVenue,
 } from './community-data';
 import { allGroups, groupRecipes } from './group-events-data';
 import { pastEvents, PastEventSource } from './rating-data';
@@ -183,9 +183,8 @@ const buildPastEvents = (): PastEventSource[] => {
         daysAgo,
         time: plan.time,
         durationMinutes: plan.durationMinutes,
-        address: plan.address,
         localitySlug: plan.localitySlug,
-        ...nearTown(plan.localitySlug, plan.key),
+        ...resolveSeedVenue(plan.localitySlug, plan.address),
         minParticipants: plan.min,
         maxParticipants: plan.max,
         organizerKey: plan.organizerKey,
@@ -222,9 +221,8 @@ const buildPastEvents = (): PastEventSource[] => {
         daysAgo,
         time: recipe.time,
         durationMinutes: recipe.durationMinutes,
-        address: recipe.address,
         localitySlug: group.localitySlug,
-        ...nearTown(group.localitySlug, key),
+        ...resolveSeedVenue(group.localitySlug, recipe.address),
         minParticipants: recipe.min,
         maxParticipants: recipe.max,
         organizerKey,

@@ -63,6 +63,16 @@ describe("EventDetailView", () => {
     expectValidDescriptionList(screen.getByText("Kdy").closest("dl")!)
   })
 
+  it("shows the locality without a street or a pin when the meeting point is approximate", async () => {
+    const event = anEventDetail({ isLocationApproximate: true })
+    await renderWithRouter(<EventDetailView event={event} />)
+
+    expect(screen.getByText("Přibližná poloha. Místo srazu není ověřené.")).toBeVisible()
+    expect(screen.queryByText(event.address)).not.toBeInTheDocument()
+    const map = screen.getByRole("region", { name: "Přibližná poloha akce" })
+    expect(map.querySelector(".leaflet-marker-icon")).toBeNull()
+  })
+
   it("the organizer's own image is the detail's photo (#77)", async () => {
     const { container } = await renderWithRouter(
       <EventDetailView event={anEventDetail({ imageKey: "k-plakat" })} />,

@@ -12,8 +12,8 @@ import { EventPhoto } from "@/features/events/components/EventPhoto"
 import {
   capacityStatus,
   eventDateParts,
+  eventPlaceLabel,
   formatEventStart,
-  placeName,
 } from "@/features/events/lib/formatEvent"
 
 /**
@@ -90,7 +90,7 @@ export function EventCard({
 }: EventCardProps) {
   const isCancelled = event.status === "cancelled"
   const { time } = eventDateParts(event.startsAt)
-  const place = placeName(event.address)
+  const place = eventPlaceLabel(event)
   const cardNumbers = numbers ?? (isCancelled ? occupancyCount(event) : occupancyBesideBadge(event))
   const distance =
     distanceKm === null || distanceKm === undefined

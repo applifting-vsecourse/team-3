@@ -2,7 +2,7 @@ import {
   CommunityEvent,
   communityEvents,
   communityGroups,
-  nearTown,
+  resolveSeedVenue,
 } from './community-data';
 import { DemoEvent, demoEvents, demoGroups, pragueDate } from './demo-data';
 import { EventSource, GroupSource, toEventRow } from './demo-rows';
@@ -628,9 +628,8 @@ const buildGroupEvents = (): GroupEvent[] => {
         activitySlug: group.activitySlug as GroupEvent['activitySlug'],
         schedule,
         durationMinutes: recipe.durationMinutes,
-        address: recipe.address,
         localitySlug: group.localitySlug,
-        ...nearTown(group.localitySlug, key),
+        ...resolveSeedVenue(group.localitySlug, recipe.address),
         minParticipants: recipe.min,
         maxParticipants: recipe.max,
         price: recipe.price,

@@ -48,6 +48,7 @@ export type CommunityEvent = Omit<
   'localitySlug' | 'scenario' | 'demoCase' | 'schedule'
 > & {
   localitySlug: string;
+  isLocationApproximate?: boolean;
   schedule: { daysFromNow: number; time: string };
 };
 
@@ -939,8 +940,6 @@ export type CommunityEventPlan = {
   activitySlug: DemoActivitySlug;
   localitySlug: string;
   address: string;
-  /** Doložený bod místa konání, pokud ho známe. */
-  venueCoordinates?: Pick<DemoEvent, 'lat' | 'lng'>;
   /** Za kolik dní po seedu, místní čas. */
   days: number;
   time: string;
@@ -1992,8 +1991,6 @@ const handWrittenEventPlans: CommunityEventPlan[] = [
     activitySlug: 'stolni-tenis',
     localitySlug: 'usti-nad-orlici',
     address: 'Tělocvična gymnázia, T. G. Masaryka 106, Ústí nad Orlicí',
-    // GPS areálu z kontaktů školy: https://old.gymuo.cz/stranka%3Dkontakty/
-    venueCoordinates: { lat: 49.971691, lng: 16.396996 },
     days: 19,
     time: '18:00',
     durationMinutes: 120,
@@ -2013,7 +2010,7 @@ const handWrittenEventPlans: CommunityEventPlan[] = [
       'Kruhový trénink do kopce pod sjezdovkou, ať jsou nohy na zimu připravené. Pro lyžaře a snowboardisty od dvanácti let. Zdarma.',
     activitySlug: 'zimni-sporty',
     localitySlug: 'ceska-trebova',
-    address: 'Skicentrum Peklák, Česká Třebová',
+    address: 'Ski areál Peklák, Pod Jelenicí 653, Česká Třebová',
     days: 26,
     time: '10:00',
     durationMinutes: 120,
@@ -3006,20 +3003,74 @@ const townCoordinates = new Map<string, { lat: number; lng: number }>(
   ]),
 );
 
-/** Souřadnice místa akce: střed města z katalogu ± do ~1 km, stabilně podle klíče. */
-export const nearTown = (
+/** Exact catalog matches keep a verified venue consistent across fixture types. */
+const verifiedVenues = [
+  {
+    localitySlug: 'usti-nad-orlici',
+    // https://old.gymuo.cz/stranka%3Dkontakty/
+    address: 'Tělocvična gymnázia, T. G. Masaryka 106, Ústí nad Orlicí',
+    aliases: [],
+    lat: 49.971691,
+    lng: 16.396996,
+  },
+  {
+    localitySlug: 'ceska-trebova',
+    // https://peklak.cz/kontakty/
+    address: 'Ski areál Peklák, Pod Jelenicí 653, Česká Třebová',
+    aliases: ['Skicentrum Peklák, Česká Třebová'],
+    lat: 49.9091,
+    lng: 16.4318,
+  },
+  {
+    localitySlug: 'usti-nad-orlici',
+    // https://www.vychodni-cechy.info/usti-nad-orlici/10_1676_sportovni-areal/
+    address: 'Atletický stadion TJ Jiskra, Zborovská 213, Ústí nad Orlicí',
+    aliases: [
+      'Atletický stadion TJ Jiskra, Ústí nad Orlicí',
+      'Atletický stadion, Ústí nad Orlicí',
+    ],
+    lat: 49.97835,
+    lng: 16.389769,
+  },
+  {
+    localitySlug: 'brno',
+    // https://arenavodova.starez.cz/kontakty
+    address: 'STAREZ ARÉNA VODOVA, Vodova 336/108, Brno',
+    aliases: ['Sportovní hala Vodova, Brno'],
+    lat: 49.227583,
+    lng: 16.583861,
+  },
+];
+
+/**
+ * An unverified fixture can participate in locality and distance filters.
+ * Its coordinates describe the locality. The detail and map can distinguish
+ * it from a meeting point supplied by an organizer or verified for the seed.
+ */
+export function resolveSeedVenue(
   localitySlug: string,
-  key: string,
-): { lat: number; lng: number } => {
-  const town = townCoordinates.get(localitySlug);
-  if (!town) return { lat: 0, lng: 0 }; // spec to odhalí: lokalita mimo katalog
-  const h = stableHash(key);
-  const round = (value: number): number => Math.round(value * 10_000) / 10_000;
-  return {
-    lat: round(town.lat + ((h % 1000) / 1000 - 0.5) * 0.016),
-    lng: round(town.lng + ((Math.floor(h / 1000) % 1000) / 1000 - 0.5) * 0.024),
-  };
-};
+  address: string,
+): Pick<DemoEvent, 'address' | 'lat' | 'lng'> & {
+  isLocationApproximate: boolean;
+} {
+  const venue = verifiedVenues.find(
+    (entry) =>
+      entry.localitySlug === localitySlug &&
+      (entry.address === address || entry.aliases.includes(address)),
+  );
+  if (venue) {
+    return {
+      address: venue.address,
+      lat: venue.lat,
+      lng: venue.lng,
+      isLocationApproximate: false,
+    };
+  }
+
+  const locality = townCoordinates.get(localitySlug);
+  if (!locality) throw new Error(`Unknown event locality ${localitySlug}`);
+  return { address, ...locality, isLocationApproximate: true };
+}
 
 const buildEvents = (plans: CommunityEventPlan[]): CommunityEvent[] => {
   // kdo má který den (dny od seedu) už akci – nikdo nemá dvě akce v jeden den
@@ -3056,9 +3107,8 @@ const buildEvents = (plans: CommunityEventPlan[]): CommunityEvent[] => {
       activitySlug: plan.activitySlug,
       schedule: { daysFromNow: plan.days, time: plan.time },
       durationMinutes: plan.durationMinutes,
-      address: plan.address,
       localitySlug: plan.localitySlug,
-      ...(plan.venueCoordinates ?? nearTown(plan.localitySlug, plan.key)),
+      ...resolveSeedVenue(plan.localitySlug, plan.address),
       minParticipants: plan.min,
       maxParticipants: plan.max,
       price: plan.price,
