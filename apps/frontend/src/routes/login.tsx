@@ -110,7 +110,12 @@ function LoginPage() {
         aside={<UpcomingEvents />}
         back={authBackLink(from)}
         title="Přihlášení"
-        description={from ? "Po přihlášení tě vrátíme zpátky." : "Vítej zpátky v HobbyHubu."}
+        // from the landing page there is nothing to promise: the welcome (review #395)
+        description={
+          from && from !== ROUTES.home
+            ? "Po přihlášení tě vrátíme zpátky."
+            : "Vítej zpátky v HobbyHubu."
+        }
         footer={
           <>
             Nemáš účet?{" "}
