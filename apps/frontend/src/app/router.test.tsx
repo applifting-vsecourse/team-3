@@ -270,6 +270,11 @@ describe("router", () => {
       ["/login?from=%2Fakce%2Fukazka", "Detail akce", "/akce/ukazka"],
       ["/signup?from=%2Fskupiny", "Skupiny", "/skupiny"],
       ["/login", "Úvod", "/"],
+      // a protected page would only lead back here (review #395)
+      ["/login?from=%2Fmoje%2Fakce", "Úvod", "/"],
+      ["/login?from=%2Fakce%2Fukazka%2Fhodnoceni", "Úvod", "/"],
+      ["/login?from=%2Fakce%2Fnova", "Úvod", "/"],
+      ["/login?from=%2Fuzivatele%2Fu1", "Zpět", "/uzivatele/u1"],
     ])("%s opened from a link: „%s“ leads to %s", async (url, label, href) => {
       stubApi()
       await renderApp(url)

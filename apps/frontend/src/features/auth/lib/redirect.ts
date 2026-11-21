@@ -65,12 +65,22 @@ export const authLinkFrom = (location: ParsedLocation): string | undefined => {
   return typeof from === "string" ? from : undefined
 }
 
+// The pages a visitor may open: the landing page, the lists, an event, a group, a profile —
+// not „nova“, which is a form behind sign-in.
+const isPublicPage = (pathname: string) =>
+  /^\/(?:akce|skupiny)?\/?$/.test(pathname) ||
+  /^\/(?:akce|skupiny)\/(?!nova\/?$)[^/]+\/?$/.test(pathname) ||
+  /^\/uzivatele\/[^/]+\/?$/.test(pathname)
+
 /**
  * The back link of the sign-in and sign-up pages (#370, N9): with history it goes back and
  * names the page; opened from a link it leads to `from` — the page signing in returns to —
- * or to the landing page.
+ * when a visitor can open it, else to the landing page. A protected `from` (Moje akce, a
+ * rating from an e-mail) would only send them back to the sign-in (review #395).
  */
 export const authBackLink = (from: string | undefined) => {
-  const href = safeRedirect(from, ROUTES.home)
+  const target = safeRedirect(from, ROUTES.home)
+  const pathname = target.split(/[?#]/)[0] ?? ROUTES.home
+  const href = isPublicPage(pathname) ? target : ROUTES.home
   return { href, fallbackLabel: backLabel(href.split(/[?#]/)[0]) ?? "Zpět" }
 }
