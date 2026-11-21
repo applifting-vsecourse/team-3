@@ -5,6 +5,8 @@ import { beforeEach, describe, expect, it, vi } from "vitest"
 
 import { renderWithRouter } from "@/test/renderWithRouter"
 
+import { anEventDetail } from "@/features/events/test/anEvent"
+
 import { RateEventPage } from "./RateEventPage"
 
 const { api, toast, FakeHTTPError } = vi.hoisted(() => {
@@ -71,16 +73,19 @@ const given = {
 }
 
 let answer: unknown = fresh
+// GET /api/events/e1: the public detail, or a refusal (a members-only event, a deleted one)
+let detailAnswer: unknown = new FakeHTTPError(404, { message: "Akce nenalezena." })
 
 beforeEach(() => {
   answer = fresh
+  detailAnswer = new FakeHTTPError(404, { message: "Akce nenalezena." })
   api.get.mockReset()
   api.put.mockReset()
   toast.success.mockReset()
   toast.error.mockReset()
   api.get.mockImplementation((path: string) => {
-    if (path !== "events/e1/rating") throw new Error(`unexpected ${path}`)
-    const current = answer
+    if (path !== "events/e1/rating" && path !== "events/e1") throw new Error(`unexpected ${path}`)
+    const current = path === "events/e1" ? detailAnswer : answer
     if (current instanceof Error) return { json: () => Promise.reject(current) }
     return asJson(current)
   })
@@ -279,6 +284,33 @@ describe("/akce/:id/hodnoceni for a participant (Figma C-03, #66)", () => {
       ),
     ).toBeInTheDocument()
     expect(screen.queryByRole("button", { name: /hodnocení|změny/ })).not.toBeInTheDocument()
+  })
+
+  // #370: the 403 alone didn't say which event it was
+  it("someone who wasn't there sees the event's card and its name in the band", async () => {
+    answer = new FakeHTTPError(403, {
+      code: "NOT_PARTICIPANT",
+      message: "Hodnotit může jen ten, kdo byl na akci přihlášený.",
+    })
+    detailAnswer = JSON.parse(
+      JSON.stringify(
+        anEventDetail({
+          id: "e1",
+          title: event.title,
+          startsAt: new Date(event.startsAt),
+          endsAt: new Date(event.endsAt),
+          address: event.address,
+          locality: event.locality,
+          approvedCount: 5,
+          participants: null,
+        }),
+      ),
+    )
+    await renderPage()
+
+    expect(await screen.findByRole("heading", { level: 3, name: "Volejbal na Letné" })).toBeInTheDocument()
+    expect(screen.getByText(/^Volejbal na Letné · Po 19\. 10\. · /)).toBeInTheDocument()
+    expect(screen.getByText("Tuhle akci hodnotit nemůžeš")).toBeInTheDocument()
   })
 
   it("someone who wasn't there (403) is told so in the API's words", async () => {
