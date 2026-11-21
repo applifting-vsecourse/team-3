@@ -49,7 +49,7 @@ const changeDetails = (
 };
 
 // the verb agrees with the first noun: „změnil termín“, but „změnilo místo“
-const whatChanged = (change: EventChange): string =>
+export const whatChanged = (change: EventChange): string =>
   change.when && change.place
     ? 'se změnil termín i místo'
     : change.when

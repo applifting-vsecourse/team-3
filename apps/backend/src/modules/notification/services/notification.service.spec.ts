@@ -427,6 +427,130 @@ describe('NotificationService.deliver', () => {
   });
 });
 
+describe('NotificationService.deliver: the centre (#86)', () => {
+  afterEach(() => jest.restoreAllMocks());
+
+  it('writes one upozornění for each person the e-mail goes to, before the mails', async () => {
+    const { repository, email, service } = setup();
+    repository.findRecipients.mockResolvedValue([jana, tomas]);
+    const order: string[] = [];
+    repository.createInApp.mockImplementation(async () => {
+      order.push('centre');
+    });
+    email.sendEmail.mockImplementation(async () => {
+      order.push('mail');
+    });
+
+    await service.deliver({
+      type: 'request-decided',
+      eventId: 'e1',
+      userIds: ['u2', 'u3'],
+      outcome: 'approved',
+    });
+
+    expect(repository.createInApp).toHaveBeenCalledTimes(1);
+    expect(repository.createInApp).toHaveBeenCalledWith(['u2', 'u3'], {
+      type: 'request_approved',
+      targetType: 'event',
+      targetId: 'e1',
+      text: 'Tvoje žádost o účast na akci „Deskovky ve středu“ byla schválena.',
+    });
+    expect(order).toEqual(['centre', 'mail', 'mail']);
+  });
+
+  it('the organizer hears of a request with the applicant’s name', async () => {
+    const { repository, service } = setup();
+    repository.findRecipients.mockResolvedValue([organizer]);
+
+    await service.deliver({
+      type: 'request-received',
+      eventId: 'e1',
+      applicantId: 'u2',
+      message: null,
+    });
+
+    expect(repository.createInApp).toHaveBeenCalledWith(['u1'], {
+      type: 'request_received',
+      targetType: 'event',
+      targetId: 'e1',
+      text: 'Jana Nováková se chce zúčastnit akce „Deskovky ve středu“.',
+    });
+  });
+
+  it('a group announcement: every member but its author, who still gets the e-mail', async () => {
+    const { repository, email, service } = setup();
+    repository.findAnnouncement.mockResolvedValue({
+      id: 'an1',
+      subject: 'Přes svátky se nehraje',
+      body: 'Pauza do 6. 1.',
+      senderId: 'u1',
+      group: { id: 'g1', name: 'Florbal Podvinný mlýn' },
+    });
+    repository.findActiveMembers.mockResolvedValue([organizer, jana, tomas]);
+
+    await service.deliver({
+      type: 'group-announcement',
+      announcementId: 'an1',
+    });
+
+    expect(repository.createInApp).toHaveBeenCalledWith(['u2', 'u3'], {
+      type: 'group_announcement',
+      targetType: 'group',
+      targetId: 'g1',
+      text: 'Nové oznámení ve skupině „Florbal Podvinný mlýn“: Přes svátky se nehraje',
+    });
+    expect(sentTo(email)).toEqual([organizer.email, jana.email, tomas.email]);
+  });
+
+  it('the organizer’s message: the approved participants it is sent to', async () => {
+    const { repository, service } = setup();
+    repository.findEventMessage.mockResolvedValue({
+      id: 'm1',
+      subject: 'Sraz u vchodu',
+      body: 'Sraz v 17:50 u vchodu.',
+      senderId: 'u1',
+      event: { id: 'e1', title: 'Deskovky ve středu' },
+    });
+    repository.findApprovedParticipants.mockResolvedValue([jana]);
+
+    await service.deliver({
+      type: 'event-message',
+      eventId: 'e1',
+      messageId: 'm1',
+    });
+
+    expect(repository.createInApp).toHaveBeenCalledWith(['u2'], {
+      type: 'event_message',
+      targetType: 'event',
+      targetId: 'e1',
+      text: 'Nová zpráva k akci „Deskovky ve středu“: Sraz u vchodu',
+    });
+  });
+
+  it('nobody to tell writes nothing', async () => {
+    const { repository, service } = setup();
+
+    await service.deliver({ type: 'event-cancelled', eventId: 'e1' });
+
+    expect(repository.createInApp).not.toHaveBeenCalled();
+  });
+
+  it('a centre that can’t be written is logged and the e-mails still go', async () => {
+    const error = jest.spyOn(Logger.prototype, 'error').mockImplementation();
+    const { repository, email, service } = setup();
+    repository.findAudience.mockResolvedValue([jana]);
+    repository.createInApp.mockRejectedValue(new Error('db down'));
+
+    await expect(
+      service.deliver({ type: 'event-cancelled', eventId: 'e1' }),
+    ).resolves.toBeUndefined();
+
+    expect(sentTo(email)).toEqual([jana.email]);
+    expect(error).toHaveBeenCalledTimes(1);
+    expect(String(error.mock.calls[0]![0])).toContain('centra');
+  });
+});
+
 describe('NotificationService.notify', () => {
   const flush = (): Promise<void> =>
     new Promise((resolve) => setImmediate(resolve));

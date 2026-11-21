@@ -1,4 +1,5 @@
 import { PrismaService } from '@/core/prisma/prisma.service';
+import { InAppMessage } from '@/modules/notification/domain/in-app';
 import {
   NotifiedAnnouncement,
   NotifiedEvent,
@@ -149,5 +150,13 @@ export class NotificationRepository {
       orderBy: { id: 'asc' },
     });
     return participations.map((participation) => participation.user);
+  }
+
+  /** One upozornění in the centre (#86) for each of these users, all at once. */
+  async createInApp(userIds: string[], message: InAppMessage): Promise<void> {
+    if (userIds.length === 0) return;
+    await this.prisma.notification.createMany({
+      data: userIds.map((userId) => ({ userId, ...message })),
+    });
   }
 }

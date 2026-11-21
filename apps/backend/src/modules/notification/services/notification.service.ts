@@ -2,6 +2,12 @@ import { EmailService } from '@/core/email/interfaces/email-service.interface';
 import { renderEmail } from '@/core/email/render';
 import { EventNotificationEmail } from '@/core/email/templates/event-notification';
 import {
+  composeAnnouncementInApp,
+  composeEventInApp,
+  composeEventMessageInApp,
+  InAppMessage,
+} from '@/modules/notification/domain/in-app';
+import {
   composeAnnouncement,
   ComposedMessage,
   composeEventMessage,
@@ -20,8 +26,16 @@ import { Inject, Injectable, Logger } from '@nestjs/common';
 /** Who gets the notification, and who it is about. */
 type Audience = { recipients: Recipient[]; person: { name: string } | null };
 
-/** The e-mail and who it goes to. */
-type Prepared = { recipients: Recipient[]; message: ComposedMessage };
+/**
+ * The e-mail and who it goes to, and the upozornění in the centre (#86) and
+ * who gets that: the same people, except where the e-mail goes to its author too.
+ */
+type Prepared = {
+  recipients: Recipient[];
+  message: ComposedMessage;
+  inApp: InAppMessage;
+  inAppRecipientIds: string[];
+};
 
 /** What a log line names: ids only, never an address. */
 const aboutOf = (notification: Notification): string => {
@@ -66,11 +80,12 @@ const describeError = (error: unknown): string => {
 };
 
 /**
- * E-mails about events (#177, B-040, B-041). The one thing a service needs:
- * `notify(...)` after the change is written. It returns at once and never
- * throws; the mails go out afterwards, and a mail that can't be sent is
- * logged and skipped, so it never breaks what the user did or the mails to
- * the others.
+ * E-mails about events (#177, B-040, B-041) and the upozornění in the centre
+ * (#86) from the same events. The one thing a service needs: `notify(...)`
+ * after the change is written. It returns at once and never throws; the
+ * upozornění are written and the mails go out afterwards, and what can't be
+ * written or sent is logged and skipped, so it never breaks what the user did
+ * or what the others get.
  */
 @Injectable()
 export class NotificationService {
@@ -90,8 +105,9 @@ export class NotificationService {
   }
 
   /**
-   * Looks up who gets the notification and sends each of them the e-mail.
-   * Never rejects. Public so a test (or a job) can wait for the result.
+   * Looks up who gets the notification, writes their upozornění in the
+   * centre and sends each of them the e-mail. Never rejects. Public so a
+   * test (or a job) can wait for the result.
    */
   async deliver(notification: Notification): Promise<void> {
     try {
@@ -101,7 +117,10 @@ export class NotificationService {
           : notification.type === 'event-message'
             ? await this.prepareEventMessage(notification.messageId)
             : await this.prepareEventNotification(notification);
-      if (!prepared || prepared.recipients.length === 0) return;
+      if (!prepared) return;
+      // the centre first: it doesn't wait for the mail provider
+      await this.store(notification, prepared);
+      if (prepared.recipients.length === 0) return;
 
       const { recipients, message } = prepared;
       const html = await renderEmail(EventNotificationEmail, message.email);
@@ -131,24 +150,33 @@ export class NotificationService {
         person,
         frontendUrl: this.config.frontendUrl,
       }),
+      inApp: composeEventInApp(notification, event, person),
+      inAppRecipientIds: recipients.map(({ id }) => id),
     };
   }
 
   /**
    * A group announcement (#194) goes to every active member of the group,
    * admins and its author included: Figma D-08 promises it to all of them,
-   * and the author's copy shows what the members got. Null when it is gone.
+   * and the author's copy shows what the members got. The upozornění in the
+   * centre doesn't go to the author: it is news only to the others. Null
+   * when it is gone.
    */
   private async prepareAnnouncement(
     announcementId: string,
   ): Promise<Prepared | null> {
     const announcement = await this.repository.findAnnouncement(announcementId);
     if (!announcement) return null;
+    const recipients = await this.repository.findActiveMembers(
+      announcement.group.id,
+    );
     return {
-      recipients: await this.repository.findActiveMembers(
-        announcement.group.id,
-      ),
+      recipients,
       message: composeAnnouncement(announcement, this.config.frontendUrl),
+      inApp: composeAnnouncementInApp(announcement),
+      inAppRecipientIds: recipients
+        .map(({ id }) => id)
+        .filter((id) => id !== announcement.senderId),
     };
   }
 
@@ -162,13 +190,30 @@ export class NotificationService {
   ): Promise<Prepared | null> {
     const message = await this.repository.findEventMessage(messageId);
     if (!message) return null;
+    const recipients = await this.repository.findApprovedParticipants(
+      message.event.id,
+      message.senderId,
+    );
     return {
-      recipients: await this.repository.findApprovedParticipants(
-        message.event.id,
-        message.senderId,
-      ),
+      recipients,
       message: composeEventMessage(message, this.config.frontendUrl),
+      inApp: composeEventMessageInApp(message),
+      inAppRecipientIds: recipients.map(({ id }) => id),
     };
+  }
+
+  /** Writes the upozornění in the centre (#86); a failure is logged, the e-mails still go. */
+  private async store(
+    notification: Notification,
+    { inApp, inAppRecipientIds }: Prepared,
+  ): Promise<void> {
+    try {
+      await this.repository.createInApp(inAppRecipientIds, inApp);
+    } catch (error) {
+      this.logger.error(
+        `Upozornění ${notification.type} (${aboutOf(notification)}) se nepodařilo uložit do centra: ${describeError(error)}`,
+      );
+    }
   }
 
   private async send(
