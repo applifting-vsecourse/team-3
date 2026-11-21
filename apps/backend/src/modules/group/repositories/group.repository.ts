@@ -97,7 +97,10 @@ export class GroupRepository {
     limit: number;
   }): Promise<GroupSummary[]> {
     // Czech order (#370): the database's collation puts Š after Z, so the names
-    // are ordered here and only the first `limit` are loaded whole
+    // are ordered here and only the first `limit` are loaded whole. The first
+    // query reads every matching group's id and name: fine for hundreds of
+    // groups. If it ever isn't, give `Group.name` the ICU collation
+    // `cs-CZ-x-icu` in a migration and go back to one query with orderBy + take.
     const candidates = await this.prisma.group.findMany({
       where: buildActiveGroupsWhere(query.filters),
       select: { id: true, name: true },
