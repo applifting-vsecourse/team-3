@@ -84,6 +84,30 @@ describe("/profil overview (#178, #367, Figma B-05)", () => {
     ])
   })
 
+  it("the people I know come first, before my ratings (#307)", async () => {
+    respond(empty)
+    await renderWithRouter(
+      <QueryClientProvider
+        client={new QueryClient({ defaultOptions: { queries: { retry: false } } })}
+      >
+        <ProfilePage
+          viewerId="owner"
+          peopleContent={
+            <section aria-label="Lidé, které znám">
+              <h2>Lidé, které znám</h2>
+            </section>
+          }
+        />
+      </QueryClientProvider>,
+    )
+
+    await screen.findByRole("heading", { level: 1, name: "Jana Nová" })
+    expect(screen.getAllByRole("heading", { level: 2 }).map((h) => h.textContent)).toEqual([
+      "Lidé, které znám",
+      "Moje hodnocení",
+    ])
+  })
+
   it("says there is no rating yet", async () => {
     respond(empty)
     await show()

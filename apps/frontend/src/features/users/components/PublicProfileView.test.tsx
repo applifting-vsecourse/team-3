@@ -4,7 +4,11 @@ import { describe, expect, it, vi } from "vitest"
 
 import { renderWithRouter } from "@/test/renderWithRouter"
 
-import type { PublicOrganizedEvent, PublicProfile } from "@/features/users/api/publicProfile"
+import type {
+  PublicOrganizedEvent,
+  PublicProfile,
+  PublicUpcomingEvent,
+} from "@/features/users/api/publicProfile"
 
 import { PublicProfileView } from "./PublicProfileView"
 
@@ -18,6 +22,8 @@ const profile = (changes: Partial<PublicProfile> = {}): PublicProfile => ({
   eventSummary: empty,
   participantRatings: [],
   organizedEvents: [],
+  friendship: null,
+  upcomingEvents: null,
   ...changes,
 })
 
@@ -28,6 +34,9 @@ const card = (event: PublicOrganizedEvent) => (
   </a>
 )
 
+// the events feature's EventCard, whose badges EventCard.test.tsx checks
+const upcomingCard = (event: PublicUpcomingEvent) => <a href={`/akce/${event.id}`}>{event.title}</a>
+
 describe("public profile", () => {
   it("shows only public identity, interests and empty ratings; hides absent organized-event history", async () => {
     await renderWithRouter(
@@ -35,6 +44,7 @@ describe("public profile", () => {
         profile={profile()}
         onRetry={vi.fn()}
         renderOrganizedEvent={card}
+        renderUpcomingEvent={upcomingCard}
       />,
     )
     const name = screen.getByRole("heading", { level: 1, name: "Jana Svobodová" })
@@ -47,7 +57,7 @@ describe("public profile", () => {
     ).toBeInTheDocument()
     // two columns on desktop (DESIGN.md › Layout), each heading with one keyword
     const participant = screen.getByRole("heading", { level: 2, name: "Jako účastník" })
-    expect(participant.closest("section")?.parentElement).toHaveClass("lg:grid-cols-2")
+    expect(participant.closest('[class~="lg:grid-cols-2"]')).not.toBeNull()
     expect(participant.querySelector(".highlight-keyword")).toHaveTextContent("účastník")
     expect(screen.getByText("Zatím žádné hodnocení od organizátorů.")).toBeInTheDocument()
     expect(screen.queryByRole("heading", { name: "Pořádané akce" })).not.toBeInTheDocument()
@@ -58,6 +68,7 @@ describe("public profile", () => {
       <PublicProfileView
         onRetry={vi.fn()}
         renderOrganizedEvent={card}
+        renderUpcomingEvent={upcomingCard}
         profile={profile({
           participantSummary: { average: 4.5, count: 2 },
           organizerSummary: { average: 3.5, count: 1 },
@@ -127,6 +138,7 @@ describe("public profile", () => {
         isLoading
         onRetry={retry}
         renderOrganizedEvent={card}
+        renderUpcomingEvent={upcomingCard}
       />,
     )
     expect(screen.getByRole("status")).toHaveTextContent("Načítání profilu")
@@ -135,6 +147,7 @@ describe("public profile", () => {
         isNotFound
         onRetry={retry}
         renderOrganizedEvent={card}
+        renderUpcomingEvent={upcomingCard}
       />,
     )
     expect(screen.getByRole("heading", { name: "Profil nenalezen" })).toBeInTheDocument()
@@ -144,11 +157,108 @@ describe("public profile", () => {
         error={new Error("offline")}
         onRetry={retry}
         renderOrganizedEvent={card}
+        renderUpcomingEvent={upcomingCard}
       />,
     )
     expect(screen.getByRole("alert")).toBeInTheDocument()
     expect(screen.queryByText("Jana Svobodová")).not.toBeInTheDocument()
     await userEvent.click(screen.getByRole("button", { name: "Zkusit znovu" }))
     expect(retry).toHaveBeenCalledOnce()
+  })
+})
+
+const anUpcomingEvent = (id: string, title: string): PublicUpcomingEvent => ({
+  id,
+  title,
+  startsAt: new Date("2026-11-25T17:00:00Z"),
+  endsAt: null,
+  address: "Sportovní hala Prosek, Praha 9",
+  lat: 50.1,
+  lng: 14.5,
+  activity: {
+    id: "a1",
+    slug: "florbal",
+    name: "Florbal",
+    category: { id: "c1", slug: "tymove-sporty", name: "Týmové sporty", icon: "ball" },
+  },
+  locality: { id: "l1", slug: "praha-9", name: "Praha 9" },
+  organizer: { id: "org", name: "Tomáš" },
+  group: null,
+  minParticipants: 6,
+  maxParticipants: 12,
+  approvedCount: 5,
+  missingToMin: 1,
+  freeSpots: 7,
+  isFull: false,
+  isPromoted: false,
+  summary: null,
+  distanceKm: null,
+})
+
+describe("friends on the public profile (#307, Figma B-07f, B-07g)", () => {
+  const show = (changes: Partial<PublicProfile>) =>
+    renderWithRouter(
+      <PublicProfileView
+        profile={profile(changes)}
+        onRetry={vi.fn()}
+        renderOrganizedEvent={card}
+        renderUpcomingEvent={upcomingCard}
+        friendshipAction={<button type="button">Přidat do přátel</button>}
+      />,
+    )
+  const upcoming = () => screen.getByRole("region", { name: "Kam jde" })
+
+  it("a friend sees Kam jde: the events the API sent, and that they are only those open to them", async () => {
+    await show({
+      friendship: "friends",
+      upcomingEvents: [anUpcomingEvent("e1", "Florbal – trénink"), anUpcomingEvent("e2", "Běh")],
+    })
+
+    expect(Array.from(upcoming().querySelectorAll("li"), (item) => item.textContent)).toEqual([
+      "Florbal – trénink",
+      "Běh",
+    ])
+    expect(
+      screen.getByText("Jen nadcházející akce, které jsou přístupné i tobě."),
+    ).toBeInTheDocument()
+    expect(upcoming().querySelector(".highlight-keyword")).toHaveTextContent("jde")
+  })
+
+  it("a friend going nowhere yet", async () => {
+    await show({ friendship: "friends", upcomingEvents: [] })
+
+    expect(screen.getByText("Zatím nemá žádné nadcházející akce.")).toBeInTheDocument()
+  })
+
+  it.each([
+    ["a visitor", null],
+    ["no friend", "none"],
+    ["my request waits", "outgoing"],
+    ["their request waits", "incoming"],
+  ] as const)("%s: only that friends see where they go", async (_case, friendship) => {
+    await show({ friendship })
+
+    expect(screen.getByText("Kam chodí, vidí jen přátelé.")).toBeInTheDocument()
+    expect(upcoming().querySelector("li")).toBeNull()
+  })
+
+  it("on one's own profile no Kam jde: one's events are in Moje", async () => {
+    await show({ friendship: "self" })
+
+    expect(screen.queryByRole("region", { name: "Kam jde" })).not.toBeInTheDocument()
+  })
+
+  it("the friendship's block tops the first column, Kam jde the second (Figma B-07fd)", async () => {
+    await show({ friendship: "none" })
+
+    const block = screen.getByRole("button", { name: "Přidat do přátel" })
+    const participant = screen.getByRole("heading", { level: 2, name: "Jako účastník" })
+    expect(
+      block.compareDocumentPosition(participant) & Node.DOCUMENT_POSITION_FOLLOWING,
+    ).toBeTruthy()
+    const organizer = screen.getByRole("heading", { level: 2, name: "Jako organizátor" })
+    expect(
+      upcoming().compareDocumentPosition(organizer) & Node.DOCUMENT_POSITION_FOLLOWING,
+    ).toBeTruthy()
   })
 })

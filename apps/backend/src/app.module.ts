@@ -3,6 +3,7 @@ import { Module } from '@nestjs/common';
 import { ScheduleModule } from '@nestjs/schedule';
 import { CatalogModule } from './modules/catalog/catalog.module';
 import { EventModule } from './modules/event/event.module';
+import { FriendshipModule } from './modules/friendship/friendship.module';
 import { GeoModule } from './modules/geo/geo.module';
 import { GroupModule } from './modules/group/group.module';
 import { HomeModule } from './modules/home/home.module';
@@ -23,6 +24,7 @@ const imports = [
   WelcomeModule,
   CatalogModule,
   EventModule,
+  FriendshipModule,
   GroupModule,
   GeoModule,
   HomeModule,
