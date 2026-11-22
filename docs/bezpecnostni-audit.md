@@ -41,7 +41,7 @@ Zranitelnost zápisu mimo paměť v dekodéru Brotli (závažnost high). Proces,
 | `Dockerfile*`          | `24-alpine` | `24.22.2-alpine` |
 | `engines`              | `>=24`      | `^24.22.1`       |
 
-Na `node:24.22.2-alpine` jsme přešli, protože to byla v době opravy nejnovější verze řady 24 a obsahuje opravu z 24.22.1. Frontendový image navíc přešel z `nginx:1.27-alpine` na `nginx:1.30-alpine`.
+Na `node:24.22.2-alpine` jsme přešli, protože to byla v době opravy nejnovější verze řady 24 a obsahuje opravu z 24.22.1. Frontendový image navíc přešel z `nginx:1.27-alpine` na `nginx:1.30-alpine` (později na `nginxinc/nginx-unprivileged:1.30-alpine`, viz N-13).
 
 **Ověření na stagingu:** backend od #234 po startu vypíše do logu verzi Node a commit. Na stagingu je v logu `Node v24.22.2, commit 3fe174c` (ověřeno 4. 11. v Dozzle). Další důkazy:
 
@@ -87,7 +87,7 @@ Stav: **opraveno** = sloučeno do `main`, **částečně** = opravená jen čás
 | N-10 | Každý přihlášený vidí jména účastníků akcí a může je hromadně stáhnout                                                                         | nízká     | částečně v #222, zbytek #224 | Jména účastníků v detailu akce už vidí jen organizátor, schválený účastník a u akce skupiny její aktivní členové; navazuje na #94 |
 | N-11 | Přes registraci a kontrolu uživatelského jména lze zjistit, zda účet existuje                                                                  | nízká     | přijaté                      | Kompromis kvůli UX; limit přihlášení hromadné zkoušení zpomaluje                                                                  |
 | N-12 | `ci.yml` a `deploy.yml` nemají `permissions` (`codeql.yml` je má), akce nejsou připnuté na commit; `COOLIFY_TOKEN` je dostupný celému jobu     | nízká     | opraveno v #401              | `permissions: contents: read`, akce na SHA, token jen v kroku nasazení                                                            |
-| N-13 | Frontendový kontejner běží jako root, nasazuje se jen tag `latest`                                                                             | nízká     | opraveno v #401              | `nginx-unprivileged` na portu 80, image i s tagem commitu                                                                         |
+| N-13 | Frontendový kontejner běží jako root, nasazuje se jen tag `latest`                                                                             | nízká     | opraveno v #401              | `nginx-unprivileged` na portu 80, tag commitu; viz [Zbývá u N-13](#zbývá-u-n-13)                                                  |
 
 **CSP u N-4:** frontend omezuje skripty na vlastní doménu a zakazuje vložení do rámce. Obrázky, styly a spojení záměrně neomezuje kvůli mapě, stylům Leafletu a hledání adres. Backend omezuje jen rámce, aby fungoval Swagger.
 
@@ -122,6 +122,18 @@ Přidat lokalitu teď může jen ověřený uživatel a nejvýš 20krát za hodi
 ### Zbývá u N-9
 
 Tým se rozhodl dokumentaci API na stagingu ponechat, proto ji `apps/backend/Dockerfile.deploy` zapíná řádkem `API_DOCS=true`. Před skutečnou produkcí je potřeba ho smazat, stejně jako `SIMULATED_INBOX=true` a `SEED_DEMO_DATA=true`.
+
+### Zbývá u N-13
+
+- **Port 80 bez roota:** nginx dál poslouchá na portu 80, protože na něj směruje Coolify a tým jeho nastavení měnit nemůže.
+  - Neprivilegovaný proces může port 80 použít jen díky tomu, že Docker 20.10+ to v síťovém namespace kontejneru povolí (`net.ipv4.ip_unprivileged_port_start=0`).
+  - Se `network_mode: host` nebo se starším runtime by nginx nenaběhl. V logu frontendu by bylo `bind() to 0.0.0.0:80 failed (13: Permission denied)`.
+  - Po prvním nasazení proto zkontrolovat log frontendu a odpověď stagingu. Kdyby to selhalo, vrátit commit se změnou `apps/frontend/Dockerfile.deploy` z #401, workflow můžou zůstat.
+- **Image v registru přibývají:** každý push na `main` přidá dva image s tagem commitu a nikdo je nemaže.
+  - Image backendu obsahuje klíče z build-args (viz [Klíče na stagingu](#zbývá-u-n-2-a-n-3)).
+  - Přepsaný `latest` starý image z registru nesmazal ani dřív, dokud neproběhl úklid registru. Tag commitu ho jen pojmenuje.
+  - Proto zůstává pravidlo: na stagingu jen klíče pro staging, po úniku je zneplatnit. Hodnota v image tím ztratí cenu.
+  - Úklid starých tagů zatím nikdo neřeší.
 
 ## Ke kontrole na stagingu
 
