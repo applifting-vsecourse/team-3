@@ -16,12 +16,20 @@ const state = (overrides: Partial<JoinState> = {}): JoinState => ({
   approvalMode: 'open',
   maxParticipants: 6,
   isOrganizer: false,
+  isOutsideGroup: false,
   existingStatus: null,
   approvedCount: 2,
   ...overrides,
 });
 
 describe('decideJoin', () => {
+  it('a members-only event outside the group, found under the lock, refuses MEMBERS_ONLY (#266)', () => {
+    expect(decideJoin(state({ isOutsideGroup: true }), now)).toEqual({
+      ok: false,
+      refusal: 'MEMBERS_ONLY',
+    });
+  });
+
   it('an event without approval: joined at once', () => {
     expect(decideJoin(state(), now)).toEqual({ ok: true, status: 'approved' });
   });

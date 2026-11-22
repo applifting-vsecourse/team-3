@@ -1,4 +1,4 @@
-import { useState, type ComponentProps } from "react"
+import { useId, useState, type ComponentProps } from "react"
 import { Link } from "@tanstack/react-router"
 import { Info, Loader2, LogOut, Plus, X } from "lucide-react"
 import { toast } from "sonner"
@@ -47,6 +47,7 @@ export function GroupMembershipAction({
   const join = useJoinGroup(group.id)
   const leave = useLeaveGroup(group.id)
   const membership = group.viewerMembership
+  const leaveNoteId = useId()
 
   if (group.status !== "active") return <InactiveGroupNotice />
   if (!hasMembershipAction(group)) return null
@@ -105,11 +106,20 @@ export function GroupMembershipAction({
           size="lg"
           className="h-11 w-full"
           disabled={leave.isPending}
+          aria-describedby={leaveNoteId}
           onClick={() => leave.mutate(undefined, { onError: showError })}
         >
           {leave.isPending ? <Loader2 className="animate-spin" /> : <LogOut />}
           Odejít ze skupiny
         </Button>
+        {/* the places go with the membership (#266) */}
+        <p
+          id={leaveNoteId}
+          className="text-sm text-muted-foreground"
+        >
+          Odchodem se odhlásíš i z nadcházejících akcí skupiny jen pro členy a zruší se tvoje
+          čekající žádosti na ně.
+        </p>
       </div>
     )
   }

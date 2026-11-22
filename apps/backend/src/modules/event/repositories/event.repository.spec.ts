@@ -1,5 +1,6 @@
 import { PrismaService } from '@/core/prisma/prisma.service';
 import { MY_EVENTS_TABS } from '@/modules/event/domain/event';
+import { decideJoin } from '@/modules/event/domain/participation';
 import { mockDeep } from 'jest-mock-extended';
 import { EventRepository } from './event.repository';
 import { buildPublicEventsWhere } from './public-events-where';
@@ -226,6 +227,73 @@ describe('EventRepository.join', () => {
         create: expect.objectContaining({ status: 'approved' }),
       }),
     );
+  });
+
+  describe('a members-only event (#266)', () => {
+    const membersOnly = (
+      prisma: ReturnType<typeof mockDeep<PrismaService>>,
+      membership: { status: string }[],
+      organizerUserId = 'u1',
+    ): void => {
+      prisma.event.findUnique.mockResolvedValueOnce({
+        visibility: 'members',
+        groupId: 'g1',
+        organizerUserId,
+      } as never);
+      prisma.$queryRaw.mockResolvedValue(membership as never);
+    };
+
+    it('locks the membership before the event, in the order leaving the group takes them', async () => {
+      const { prisma } = setup(2);
+      membersOnly(prisma, [{ status: 'active' }]);
+      const decide = jest
+        .fn()
+        .mockReturnValue({ ok: true, status: 'approved' });
+
+      await new EventRepository(prisma).join('e1', 'u9', null, decide);
+
+      const membershipAt = prisma.$queryRaw.mock.invocationCallOrder[0]!;
+      const eventLockAt = prisma.$executeRaw.mock.invocationCallOrder[0]!;
+      expect(membershipAt).toBeLessThan(eventLockAt);
+      expect(decide).toHaveBeenCalledWith(
+        expect.objectContaining({ isOutsideGroup: false }),
+      );
+      expect(prisma.participation.upsert).toHaveBeenCalled();
+    });
+
+    it.each([
+      ['left meanwhile: no row', []],
+      ['a request still waiting', [{ status: 'pending' }]],
+      ['blocked', [{ status: 'blocked' }]],
+    ])(
+      '%s – outside the group, so the real rules refuse and nothing is written',
+      async (_case, membership) => {
+        const { prisma } = setup(2);
+        membersOnly(prisma, membership);
+
+        await expect(
+          new EventRepository(prisma).join('e1', 'u9', null, (state) =>
+            decideJoin(state, new Date('2026-10-24T08:00:00.000Z')),
+          ),
+        ).resolves.toEqual({ ok: false, refusal: 'MEMBERS_ONLY' });
+        expect(prisma.participation.upsert).not.toHaveBeenCalled();
+      },
+    );
+
+    it('the organizer needs no membership: nothing is locked for it', async () => {
+      const { prisma } = setup(2);
+      membersOnly(prisma, [], 'u9');
+      const decide = jest
+        .fn()
+        .mockReturnValue({ ok: true, status: 'approved' });
+
+      await new EventRepository(prisma).join('e1', 'u9', null, decide);
+
+      expect(prisma.$queryRaw).not.toHaveBeenCalled();
+      expect(decide).toHaveBeenCalledWith(
+        expect.objectContaining({ isOutsideGroup: false }),
+      );
+    });
   });
 
   it('writes nothing when the rules refuse', async () => {
