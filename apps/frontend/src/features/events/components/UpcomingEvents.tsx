@@ -13,6 +13,7 @@ import type { EventFilters } from "@/features/events/api/eventSchemas"
 import { eventsQueryOptions } from "@/features/events/api/eventsQueryOptions"
 import { EventCard } from "@/features/events/components/EventCard"
 import { EventCardSkeleton } from "@/features/events/components/EventList"
+import { HomeEventGrid } from "@/features/events/components/HomeEventGrid"
 
 const UPCOMING_COUNT = 3
 
@@ -30,7 +31,8 @@ type UpcomingEventsProps = {
   footer?: ReactNode
   /**
    * `column`: row cards under each other, beside a form (sign-in, sign-up). `grid`: the page's
-   * width, three cards side by side from md, a column of rows on a phone (the 404, #348).
+   * width as on the landing page (`HomeEventGrid`: a column per card from md, a single one a
+   * row over the width), a column of rows on a phone (the 404, #370).
    */
   layout?: "column" | "grid"
 }
@@ -113,30 +115,34 @@ export function UpcomingEvents({
         </Alert>
       ) : !events ? (
         <div
-          className="flex flex-col gap-3"
-          aria-busy
-          aria-label="Načítám akce"
-        >
-          {Array.from({ length: UPCOMING_COUNT }, (_, i) => (
-            <EventCardSkeleton key={i} />
-          ))}
-        </div>
-      ) : events.length === 0 ? (
-        <p className="text-sm text-muted-foreground">Teď nejsou žádné nadcházející akce.</p>
-      ) : (
-        <ul
+          // the grid's skeleton is a grid too, so nothing jumps once the events come (review #397)
           className={
             layout === "grid"
               ? "grid grid-cols-1 gap-3 md:grid-cols-3 md:gap-6"
               : "flex flex-col gap-3"
           }
+          aria-busy
+          aria-label="Načítám akce"
         >
+          {Array.from({ length: UPCOMING_COUNT }, (_, i) => (
+            <EventCardSkeleton
+              key={i}
+              variant={layout === "grid" ? "responsive" : "row"}
+            />
+          ))}
+        </div>
+      ) : events.length === 0 ? (
+        <p className="text-sm text-muted-foreground">Teď nejsou žádné nadcházející akce.</p>
+      ) : layout === "grid" ? (
+        // as many columns as events, never an empty one (DESIGN.md › Layout, review #397)
+        <HomeEventGrid events={events} />
+      ) : (
+        <ul className="flex flex-col gap-3">
           {events.map((event) => (
             <li key={event.id}>
               <EventCard
                 event={event}
                 titleAs="h3"
-                variant={layout === "grid" ? "responsive" : "row"}
               />
             </li>
           ))}

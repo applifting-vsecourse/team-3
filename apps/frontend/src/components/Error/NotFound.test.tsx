@@ -21,7 +21,7 @@ describe("NotFound", () => {
     expect(band).toHaveTextContent("Odkaz je neplatný, nebo stránka už neexistuje.")
   })
 
-  // #348: the ways on sit in the band, the upcoming events under it over the page's width
+  // #370: the ways on sit in the band, the upcoming events under it over the page's width
   it("puts the ways on in the band and what it gets under it", async () => {
     await renderWithRouter(<NotFound more={<p>Nadcházející akce</p>} />)
 
