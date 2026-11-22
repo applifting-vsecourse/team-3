@@ -20,6 +20,134 @@ const row = (): ProfileRow => ({
   accounts: [],
 });
 
+describe('ProfileService.finishOnboarding (#296)', () => {
+  const repository = mock<ProfileRepository>();
+  const service = new ProfileService(repository);
+  const onboardingCompletedAt = new Date('2026-11-21T12:00:00Z');
+  const localPreferences = {
+    homeLocalityId: 'brno',
+    interestIds: ['walking', 'running', 'games'],
+  };
+  const saved = {
+    onboardingCompletedAt,
+    homeLocality: { slug: 'brno' },
+    _count: { interests: 3 },
+  };
+  const nestedPreferences = {
+    homeLocality: { connect: { id: 'brno' } },
+    interests: {
+      deleteMany: {},
+      create: [
+        { activity: { connect: { id: 'walking' } } },
+        { activity: { connect: { id: 'running' } } },
+        { activity: { connect: { id: 'games' } } },
+      ],
+    },
+  };
+
+  beforeEach(() => {
+    jest.clearAllMocks();
+    repository.localityExists.mockResolvedValue(true);
+    repository.interestsExist.mockResolvedValue(true);
+    repository.finishOnboarding.mockResolvedValue(saved);
+  });
+
+  it('saves the initial locality and interests in one request', async () => {
+    await expect(
+      service.finishOnboarding('owner', localPreferences),
+    ).resolves.toEqual({
+      onboardingCompletedAt,
+      localitySlug: 'brno',
+      hasInterests: true,
+    });
+    expect(repository.finishOnboarding).toHaveBeenCalledTimes(1);
+    expect(repository.finishOnboarding).toHaveBeenCalledWith(
+      'owner',
+      nestedPreferences,
+    );
+    expect(repository.save).not.toHaveBeenCalled();
+  });
+
+  it('returns the previously saved values if the write had already completed', async () => {
+    await expect(
+      service.finishOnboarding('owner', {
+        homeLocalityId: 'plzen',
+        interestIds: ['swimming', 'tennis', 'joga'],
+      }),
+    ).resolves.toEqual({
+      onboardingCompletedAt,
+      localitySlug: 'brno',
+      hasInterests: true,
+    });
+  });
+
+  it('marks a skip without rewriting any preferences or validating a catalog', async () => {
+    repository.finishOnboarding.mockResolvedValue({
+      ...saved,
+      homeLocality: null,
+      _count: { interests: 0 },
+    });
+
+    await expect(service.finishOnboarding('owner')).resolves.toEqual({
+      onboardingCompletedAt,
+      localitySlug: null,
+      hasInterests: false,
+    });
+    expect(repository.finishOnboarding).toHaveBeenCalledWith('owner', {});
+    expect(repository.localityExists).not.toHaveBeenCalled();
+    expect(repository.interestsExist).not.toHaveBeenCalled();
+  });
+
+  it('preserves earlier preferences and the finish time when a completed account skips', async () => {
+    await expect(service.finishOnboarding('owner')).resolves.toEqual({
+      onboardingCompletedAt,
+      localitySlug: 'brno',
+      hasInterests: true,
+    });
+    expect(repository.finishOnboarding).toHaveBeenCalledWith('owner', {});
+  });
+
+  it.each([
+    { label: 'missing account', value: null },
+    {
+      label: 'missing completion marker',
+      value: { ...saved, onboardingCompletedAt: null },
+    },
+  ])(
+    'denies a finish when the repository returns $label',
+    async ({ value }) => {
+      repository.finishOnboarding.mockResolvedValue(value);
+
+      await expect(
+        service.finishOnboarding('owner', localPreferences),
+      ).rejects.toBeInstanceOf(UnauthorizedException);
+    },
+  );
+
+  it('rejects an unknown locality without attempting to finish', async () => {
+    repository.localityExists.mockResolvedValue(false);
+
+    await expect(
+      service.finishOnboarding('owner', localPreferences),
+    ).rejects.toMatchObject({
+      response: { code: 'UNKNOWN_LOCALITY' },
+    });
+    expect(repository.finishOnboarding).not.toHaveBeenCalled();
+    expect(repository.interestsExist).not.toHaveBeenCalled();
+  });
+
+  it('rejects an unknown activity without replacing interests or completing onboarding', async () => {
+    repository.interestsExist.mockResolvedValue(false);
+
+    await expect(
+      service.finishOnboarding('owner', localPreferences),
+    ).rejects.toMatchObject({
+      response: { code: 'UNKNOWN_ACTIVITY' },
+    });
+    expect(repository.finishOnboarding).not.toHaveBeenCalled();
+  });
+});
+
 describe('ProfileService (#178)', () => {
   const repository = mock<ProfileRepository>();
   const service = new ProfileService(repository);

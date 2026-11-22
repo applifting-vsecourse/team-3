@@ -55,6 +55,11 @@ export const betterAuthCoreConfig: BetterAuthOptions = {
         required: false,
         input: false,
       },
+      onboardingCompletedAt: {
+        type: 'date',
+        required: false,
+        input: false,
+      },
     },
   },
   // Every account BetterAuth writes: its name without the spaces around
