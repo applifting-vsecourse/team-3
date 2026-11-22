@@ -30,7 +30,9 @@ export function Header({ userMenu, isSignedIn = false, screenAction, notificatio
       <div className="mx-auto flex h-14 w-full max-w-7xl items-center gap-4 px-4 md:h-18 md:gap-8 md:px-10">
         <HeaderLogo />
         <HeaderNav isSignedIn={isSignedIn} />
-        <div className="ml-auto flex items-center gap-2">
+        {/* under 360 px the bell, the magnifier and the avatar stand closer, so 320 px keeps
+            its 16 px edges with room to spare (review #398) */}
+        <div className="ml-auto flex items-center gap-2 max-[359px]:gap-1">
           {notifications}
           {screenAction ? <div className="md:hidden">{screenAction}</div> : null}
           {userMenu}

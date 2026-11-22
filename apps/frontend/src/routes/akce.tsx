@@ -226,10 +226,12 @@ function EventsPage() {
               setIsSearchOpened(false)
               if (search.q !== undefined) setSearch({ q: undefined })
             }}
-            className="h-10 gap-1.5 px-2"
+            // under 380 px only the magnifier: with the bell (#86) the label needs 369 px, at 320 px
+            // the page scrolled sideways (review #398); the word stays the button's name
+            className="h-10 gap-1.5 px-2 max-[379px]:w-10"
           >
             <Search />
-            Hledat
+            <span className="max-[379px]:sr-only">Hledat</span>
           </Button>
         }
       />
