@@ -37,7 +37,7 @@ function withThree() {
   return follow(place(prague), take("hike"), take("hockey"), take("chess"))
 }
 
-describe("V4 onboarding transitions", () => {
+describe("onboarding transitions", () => {
   it("uses the clicked locality and moves directly from locality to interests", () => {
     const result = follow(place(district))
     expect(result.stage).toBe("interests")
@@ -74,15 +74,16 @@ describe("V4 onboarding transitions", () => {
     expect(result.locality).toBe(district)
   })
 
-  it("opens the decision exactly at the third distinct choice", () => {
-    const first = follow(place(prague), take("hike"))
+  it("allows confirmation with one to three interests and only opens it on request", () => {
+    const empty = follow(place(prague))
+    const first = moveOnboarding(empty, take("hike"))
     const second = moveOnboarding(first, take("hockey"))
     const third = moveOnboarding(second, take("chess"))
-    expect(first.overlay).toBeNull()
-    expect(second.overlay).toBeNull()
-    expect(third.overlay).toBe("decision")
+    expect(moveOnboarding(empty, { type: "review" })).toBe(empty)
+    expect([first, second, third].map(reviewOnboarding)).toEqual([true, true, true])
+    expect([first, second, third].map((state) => state.overlay)).toEqual([null, null, null])
     expect(third.interestIds).toHaveLength(INTEREST_GOAL)
-    expect([first, second, third].map(reviewOnboarding)).toEqual([false, false, true])
+    expect(moveOnboarding(first, { type: "review" }).overlay).toBe("decision")
   })
 
   it("never counts two taps on the same card as two selections", () => {
@@ -92,7 +93,7 @@ describe("V4 onboarding transitions", () => {
   })
 
   it("rejects toggles and category changes while the decision owns focus", () => {
-    const state = withThree()
+    const state = moveOnboarding(withThree(), { type: "review" })
     expect(moveOnboarding(state, take("tennis"))).toBe(state)
     expect(moveOnboarding(state, take("hike"))).toBe(state)
     expect(moveOnboarding(state, { type: "browse", categoryId: "running" })).toBe(state)
@@ -100,7 +101,7 @@ describe("V4 onboarding transitions", () => {
   })
 
   it("dismisses the decision while keeping three selections and lets the user reopen it", () => {
-    const original = withThree()
+    const original = moveOnboarding(withThree(), { type: "review" })
     const dismissed = moveOnboarding(original, { type: "dismiss" })
     expect(dismissed.stage).toBe("interests")
     expect(dismissed.overlay).toBeNull()
@@ -108,14 +109,14 @@ describe("V4 onboarding transitions", () => {
     expect(moveOnboarding(dismissed, { type: "review" }).overlay).toBe("decision")
   })
 
-  it("reopens when a ticket is removed and a replacement third choice is added", () => {
+  it("lets the user confirm again after replacing an interest", () => {
     const dismissed = moveOnboarding(withThree(), { type: "dismiss" })
     const removed = moveOnboarding(dismissed, take("hockey"))
     const result = moveOnboarding(removed, take("tennis"))
     expect(removed.interestIds).toEqual(["hike", "chess"])
     expect(removed.overlay).toBeNull()
     expect(result.interestIds).toEqual(["hike", "chess", "tennis"])
-    expect(result.overlay).toBe("decision")
+    expect(moveOnboarding(result, { type: "review" }).overlay).toBe("decision")
   })
 
   it("caps the selection while the closed decision can be reopened", () => {
@@ -123,29 +124,10 @@ describe("V4 onboarding transitions", () => {
     expect(moveOnboarding(dismissed, take("tennis"))).toBe(dismissed)
   })
 
-  it("requires the decision to start editing optional profile fields", () => {
-    const state = moveOnboarding(withThree(), { type: "dismiss" })
-    expect(moveOnboarding(state, { type: "profile" })).toBe(state)
-  })
-
-  it("preserves picks across Back and reopening the profile", () => {
-    const original = withThree()
-    const commands: OnboardingCommand[] = [
-      { type: "profile" },
-      { type: "back" },
-      { type: "review" },
-      { type: "profile" },
-    ]
-    const result = commands.reduce(moveOnboarding, original)
-    expect(result.stage).toBe("profile")
-    expect(result.overlay).toBeNull()
-    expect(result.interestIds).toEqual(original.interestIds)
-  })
-
   it.each<OnboardingFlow>([
     startOnboarding(),
     follow(place(prague), take("hike")),
-    moveOnboarding(withThree(), { type: "profile" }),
+    withThree(),
   ])("backs out of exit confirmation without mutating the draft in $stage", (state) => {
     const exiting = moveOnboarding(state, { type: "exit" })
     expect(exiting.overlay).toBe("exit")

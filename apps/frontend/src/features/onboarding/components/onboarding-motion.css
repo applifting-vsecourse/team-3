@@ -106,11 +106,11 @@
 }
 
 .hh-wizard-overlay {
-  background: rgb(9 25 18 / 72%);
+  background: color-mix(in srgb, var(--hero) 72%, transparent);
 }
 
 .hh-wizard-overlay-raised {
-  background: rgb(6 19 13 / 81%);
+  background: color-mix(in srgb, var(--foreground) 81%, transparent);
   backdrop-filter: blur(5px);
 }
 

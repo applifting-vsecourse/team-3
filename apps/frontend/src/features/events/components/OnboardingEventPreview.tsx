@@ -43,7 +43,7 @@ export function OnboardingEventPreview({
         />
       )}
       <div className="min-w-0">
-        <p className="text-xs font-medium">Už teď v okolí</p>
+        <p className="text-xs font-medium">Do 25 km od vybraného místa</p>
         <p className="font-semibold wrap-break-word">{event.title}</p>
         <p className="text-xs">
           <time dateTime={event.startsAt.toISOString()}>{formatEventStart(event.startsAt)}</time> ·{" "}

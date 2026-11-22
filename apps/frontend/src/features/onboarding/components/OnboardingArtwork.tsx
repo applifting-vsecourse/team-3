@@ -45,7 +45,7 @@ export function OnboardingArtwork({
         <div className="absolute inset-[12%] rounded-full border border-primary/25" />
         <div className="absolute inset-[22%] rounded-full border border-primary/15" />
         {left ? (
-          <div className="absolute top-[22%] left-[9%] h-[63%] w-[35%] -rotate-9 overflow-hidden rounded-lg border-2 border-on-hero/60 shadow-lg md:top-[23%] md:left-[6%] md:h-[52%] md:w-[43%]">
+          <div className="absolute top-[22%] left-[9%] h-[63%] w-[35%] -rotate-9 overflow-hidden rounded-lg border-2 border-on-hero/60 md:top-[23%] md:left-[6%] md:h-[52%] md:w-[43%]">
             <img
               key={left}
               src={left}
@@ -55,7 +55,7 @@ export function OnboardingArtwork({
           </div>
         ) : null}
         {right ? (
-          <div className="absolute top-[21%] right-[8%] h-[63%] w-[35%] rotate-10 overflow-hidden rounded-lg border-2 border-on-hero/60 shadow-lg md:top-[31%] md:right-[6%] md:h-[51%] md:w-[42%]">
+          <div className="absolute top-[21%] right-[8%] h-[63%] w-[35%] rotate-10 overflow-hidden rounded-lg border-2 border-on-hero/60 md:top-[31%] md:right-[6%] md:h-[51%] md:w-[42%]">
             <img
               key={right}
               src={right}
@@ -65,7 +65,7 @@ export function OnboardingArtwork({
           </div>
         ) : null}
         {center ? (
-          <div className="absolute top-[9%] left-[28%] h-[78%] w-[44%] -rotate-2 overflow-hidden rounded-xl border-2 border-on-hero bg-hero shadow-xl md:top-[13%] md:left-[21%] md:h-[70%] md:w-[58%]">
+          <div className="absolute top-[9%] left-[28%] h-[78%] w-[44%] -rotate-2 overflow-hidden rounded-xl border-2 border-on-hero bg-hero md:top-[13%] md:left-[21%] md:h-[70%] md:w-[58%]">
             <img
               key={center}
               src={center}

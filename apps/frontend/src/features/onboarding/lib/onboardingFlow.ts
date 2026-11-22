@@ -2,7 +2,7 @@ import type { Locality } from "@/lib/catalog/catalogSchemas"
 
 export const INTEREST_GOAL = 3
 
-type Stage = "locality" | "interests" | "profile"
+type Stage = "locality" | "interests"
 type Overlay = "decision" | "exit"
 
 export type OnboardingFlow = {
@@ -18,7 +18,6 @@ export type OnboardingCommand =
   | { type: "browse"; categoryId: string }
   | { type: "toggle"; interestId: string }
   | { type: "review" }
-  | { type: "profile" }
   | { type: "back" }
   | { type: "exit" }
   | { type: "dismiss" }
@@ -34,7 +33,7 @@ export function startOnboarding(): OnboardingFlow {
 }
 
 export function reviewOnboarding(state: OnboardingFlow) {
-  return Boolean(state.locality && state.interestIds.length === INTEREST_GOAL)
+  return Boolean(state.locality && state.interestIds.length > 0)
 }
 
 export function moveOnboarding(state: OnboardingFlow, command: OnboardingCommand): OnboardingFlow {
@@ -58,27 +57,16 @@ export function moveOnboarding(state: OnboardingFlow, command: OnboardingCommand
         }
       }
       if (state.interestIds.length >= INTEREST_GOAL) return state
-      const interestIds = [...state.interestIds, command.interestId]
-      return {
-        ...state,
-        interestIds,
-        overlay: interestIds.length === INTEREST_GOAL ? "decision" : null,
-      }
+      return { ...state, interestIds: [...state.interestIds, command.interestId] }
     }
 
     case "review":
-      return state.stage === "interests" && reviewOnboarding(state)
+      return state.stage === "interests" && !state.overlay && reviewOnboarding(state)
         ? { ...state, overlay: "decision" }
-        : state
-
-    case "profile":
-      return state.stage === "interests" && state.overlay === "decision" && reviewOnboarding(state)
-        ? { ...state, stage: "profile", overlay: null }
         : state
 
     case "back":
       if (state.overlay) return { ...state, overlay: null }
-      if (state.stage === "profile") return { ...state, stage: "interests" }
       if (state.stage === "interests") return { ...state, stage: "locality" }
       return state
 

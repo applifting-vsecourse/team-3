@@ -197,7 +197,7 @@ export function LocalityPicker({
                 disabled={isBusy}
                 onClick={() => choose(choice)}
                 onKeyDown={keyboardResults}
-                className="min-h-12 w-full justify-start gap-3 border-card-border bg-card px-3 text-left whitespace-normal"
+                className="h-auto min-h-12 w-full justify-start gap-3 border-card-border bg-card px-3 py-2 text-left whitespace-normal"
               >
                 <MapPin
                   aria-hidden

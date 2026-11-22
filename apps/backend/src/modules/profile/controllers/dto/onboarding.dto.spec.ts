@@ -20,8 +20,6 @@ describe(CompleteOnboardingDto.name, () => {
     { label: 'null', interestIds: null, rule: 'isArray' },
     { label: 'scalar', interestIds: 'walking', rule: 'isArray' },
     { label: 'empty list', interestIds: [], rule: 'arrayMinSize' },
-    { label: 'one activity', interestIds: ['a'], rule: 'arrayMinSize' },
-    { label: 'two activities', interestIds: ['a', 'b'], rule: 'arrayMinSize' },
     {
       label: 'four activities',
       interestIds: ['a', 'b', 'c', 'd'],
@@ -65,20 +63,13 @@ describe(CompleteOnboardingDto.name, () => {
     ).toHaveProperty(rule);
   });
 
-  it.each([
-    { label: 'no profile fields', profile: {} },
-    { label: 'an empty bio', profile: { bio: '' } },
-    {
-      label: 'a null bio and display name',
-      profile: { bio: null, displayName: null },
-    },
-    {
-      label: 'a name and a bio',
-      profile: { displayName: 'Jana Nová', bio: 'Baví mě výlety.' },
-    },
-    { label: 'a 500-character bio', profile: { bio: 'ž'.repeat(500) } },
-  ])('accepts three distinct activities and $label', async ({ profile }) => {
-    expect(await check({ ...preferences, ...profile })).toEqual([]);
+  it.each([1, 2, 3])('accepts %i distinct activities', async (count) => {
+    expect(
+      await check({
+        ...preferences,
+        interestIds: preferences.interestIds.slice(0, count),
+      }),
+    ).toEqual([]);
   });
 
   it('accepts the maximum length for each ID', async () => {
@@ -91,11 +82,7 @@ describe(CompleteOnboardingDto.name, () => {
   });
 
   it.each([
-    { field: 'bio', value: 42, rule: 'isString' },
-    { field: 'bio', value: {}, rule: 'isString' },
-    { field: 'bio', value: 'ž'.repeat(501), rule: 'maxLength' },
-    { field: 'displayName', value: 42, rule: 'isString' },
-    { field: 'displayName', value: ['Jana Nová'], rule: 'isString' },
+    { field: 'bio', value: 'Text', rule: 'whitelistValidation' },
     { field: 'userId', value: 'another-account', rule: 'whitelistValidation' },
     { field: 'bioVisibility', value: 'everyone', rule: 'whitelistValidation' },
     {

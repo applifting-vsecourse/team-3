@@ -3,7 +3,6 @@ import {
   ArrayMaxSize,
   ArrayUnique,
   IsArray,
-  IsBoolean,
   IsOptional,
   IsString,
   MaxLength,
@@ -18,12 +17,6 @@ export class UpdateProfileDto {
   @IsString()
   name?: string;
 
-  @ApiPropertyOptional({ type: String, nullable: true, maxLength: 500 })
-  @IsOptional()
-  @IsString()
-  @MaxLength(500)
-  bio?: string | null;
-
   @ApiPropertyOptional({ nullable: true, type: String })
   @IsOptional()
   @IsString()
@@ -37,11 +30,4 @@ export class UpdateProfileDto {
   @ArrayUnique()
   @IsString({ each: true })
   interestIds?: string[];
-}
-
-export class UpdateProfileWithPhotoDto extends UpdateProfileDto {
-  @ApiPropertyOptional()
-  @ValidateIf((_object, value) => value !== undefined)
-  @IsBoolean()
-  removePhoto?: boolean;
 }

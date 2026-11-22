@@ -11,7 +11,6 @@ import { Injectable } from '@nestjs/common';
 
 const onboardingSelect = {
   onboardingCompletedAt: true,
-  name: true,
   homeLocality: { select: { slug: true } },
   _count: { select: { interests: true } },
 } satisfies Prisma.UserSelect;
@@ -33,32 +32,6 @@ export class ProfileRepository {
       where: { id: userId, deletedAt: null, blockedAt: null },
       data,
       select: profileSelect,
-    });
-  }
-
-  async saveWithoutPhoto(
-    userId: string,
-    data: Prisma.UserUpdateInput,
-  ): Promise<ProfileRow> {
-    return this.prisma.$transaction(async (tx) => {
-      // Lock the same user row as a concurrent upload before touching the photo.
-      const profile = await tx.user.update({
-        where: { id: userId, deletedAt: null, blockedAt: null },
-        data,
-        select: profileSelect,
-      });
-      await tx.profilePhoto.deleteMany({ where: { userId } });
-      return { ...profile, profilePhoto: null };
-    });
-  }
-
-  getPhoto(
-    userId: string,
-    version: string,
-  ): Promise<{ data: Uint8Array } | null> {
-    return this.prisma.profilePhoto.findUnique({
-      where: { userId, version, user: { deletedAt: null } },
-      select: { data: true },
     });
   }
 

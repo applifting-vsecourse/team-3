@@ -1,5 +1,5 @@
 import { useRef, type CSSProperties } from "react"
-import { ArrowRight, Check, Heart, Pencil } from "lucide-react"
+import { ArrowRight, Check, Heart } from "lucide-react"
 
 import { activityPhoto } from "@/assets/activity-photos"
 import { Button } from "@/components/ui/button"
@@ -12,7 +12,6 @@ type DecisionProps = {
   isSaving: boolean
   error?: string
   onSave: () => void
-  onProfile: () => void
   onClose: () => void
   onRestoreFocus: () => void
 }
@@ -23,7 +22,6 @@ export function OnboardingDecision({
   isSaving,
   error,
   onSave,
-  onProfile,
   onClose,
   onRestoreFocus,
 }: DecisionProps) {
@@ -61,7 +59,7 @@ export function OnboardingDecision({
           </div>
           <DialogTitle
             asChild
-            className="font-heading text-3xl font-bold"
+            className="type-title focus:outline-none"
           >
             <h2
               ref={title}
@@ -74,7 +72,7 @@ export function OnboardingDecision({
             Ukážeme ti akce v okolí podle toho, co tě baví. Vybrané místo je {locality.name}.
           </DialogDescription>
           <ul
-            aria-label="Tvoje tři zájmy"
+            aria-label="Tvoje zájmy"
             className="grid grid-cols-3 gap-2"
           >
             {interests.map((interest, index) => {
@@ -103,12 +101,9 @@ export function OnboardingDecision({
           </ul>
         </div>
         <div className="space-y-4 bg-card p-5 sm:p-6">
-          <div className="space-y-1">
-            <p className="font-semibold">Chceš nám o sobě ještě něco povědět?</p>
-            <p className="text-sm text-muted-foreground">
-              Přidej fotku a pár slov o sobě, nebo se rovnou podívej, co se chystá.
-            </p>
-          </div>
+          <p className="text-sm text-muted-foreground">
+            Lokalitu a zájmy můžeš kdykoli změnit v Můj profil.
+          </p>
           {error ? (
             <p
               role="alert"
@@ -117,25 +112,14 @@ export function OnboardingDecision({
               {error}
             </p>
           ) : null}
-          <div className="grid gap-2 sm:grid-cols-2">
-            <Button
-              type="button"
-              variant="outline"
-              className="min-h-11 whitespace-normal"
-              disabled={isSaving}
-              onClick={onProfile}
-            >
-              <Pencil aria-hidden /> Povědět něco o sobě
-            </Button>
-            <Button
-              type="button"
-              className="min-h-11"
-              disabled={isSaving}
-              onClick={onSave}
-            >
-              {isSaving ? "Ukládám…" : "Ukázat akce"} <ArrowRight aria-hidden />
-            </Button>
-          </div>
+          <Button
+            type="button"
+            className="min-h-11 whitespace-normal"
+            disabled={isSaving}
+            onClick={onSave}
+          >
+            {isSaving ? "Ukládám…" : "Uložit a ukázat akce"} <ArrowRight aria-hidden />
+          </Button>
           <Button
             type="button"
             variant="link"

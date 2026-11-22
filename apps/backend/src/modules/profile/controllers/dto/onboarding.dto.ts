@@ -1,15 +1,13 @@
-import { ApiProperty, ApiPropertyOptional, OmitType } from '@nestjs/swagger';
+import { ApiProperty } from '@nestjs/swagger';
 import {
   ArrayMaxSize,
   ArrayMinSize,
   ArrayUnique,
   IsArray,
   IsNotEmpty,
-  IsOptional,
   IsString,
   MaxLength,
 } from 'class-validator';
-import { UpdateProfileDto } from './update-profile.dto';
 
 export class CompleteOnboardingDto {
   @ApiProperty()
@@ -18,42 +16,10 @@ export class CompleteOnboardingDto {
   @MaxLength(100)
   homeLocalityId!: string;
 
-  @ApiProperty({ type: [String], minItems: 3, maxItems: 3 })
+  @ApiProperty({ type: [String], minItems: 1, maxItems: 3 })
   @IsArray()
-  @ArrayMinSize(3)
+  @ArrayMinSize(1)
   @ArrayMaxSize(3)
-  @ArrayUnique()
-  @IsString({ each: true })
-  @IsNotEmpty({ each: true })
-  @MaxLength(100, { each: true })
-  interestIds!: string[];
-
-  @ApiPropertyOptional({ type: String, nullable: true, maxLength: 500 })
-  @IsOptional()
-  @IsString()
-  @MaxLength(500)
-  bio?: string | null;
-
-  @ApiPropertyOptional({ type: String, nullable: true })
-  @IsOptional()
-  @IsString()
-  displayName?: string | null;
-}
-
-export class OnboardingProfileDto extends OmitType(UpdateProfileDto, [
-  'homeLocalityId',
-  'interestIds',
-] as const) {
-  @ApiProperty()
-  @IsString()
-  @IsNotEmpty()
-  @MaxLength(100)
-  homeLocalityId!: string;
-
-  @ApiProperty({ type: [String], minItems: 3, maxItems: 50 })
-  @IsArray()
-  @ArrayMinSize(3)
-  @ArrayMaxSize(50)
   @ArrayUnique()
   @IsString({ each: true })
   @IsNotEmpty({ each: true })
@@ -70,7 +36,4 @@ export class OnboardingResultDto {
 
   @ApiProperty()
   hasInterests!: boolean;
-
-  @ApiProperty()
-  displayName!: string;
 }
