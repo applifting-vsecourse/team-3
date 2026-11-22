@@ -68,6 +68,7 @@ export class GroupsController {
   constructor(private readonly groupsService: GroupsService) {}
 
   @Get()
+  @UseGuards(PublicReadThrottlerGuard)
   @ApiOperation({
     summary: 'Active public and closed groups, by name, at most 200',
   })

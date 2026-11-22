@@ -3,9 +3,8 @@ import { join } from 'node:path';
 import { LocalityThrottlerGuard } from '@/modules/catalog/controllers/locality-throttler.guard';
 import { EventsController } from '@/modules/event/controllers/events.controller';
 import { GroupsController } from '@/modules/group/controllers/groups.controller';
-import { AuthenticatedUserGuard } from '@/shared/auth/guards/authenticated-user.guard';
+import { HomeController } from '@/modules/home/controllers/home.controller';
 import { OptionalUserGuard } from '@/shared/auth/guards/optional-user.guard';
-import { VerifiedUserGuard } from '@/shared/auth/guards/verified-user.guard';
 import { RequestMethod, Type } from '@nestjs/common';
 import {
   CONTROLLER_WATERMARK,
@@ -62,12 +61,28 @@ const WRITES = [
   RequestMethod.PATCH,
   RequestMethod.DELETE,
 ];
-const AUTH_GUARDS: unknown[] = [AuthenticatedUserGuard, VerifiedUserGuard];
+/**
+ * Public reads with nothing about people: the catalog and the default
+ * locality, images, which sign-in providers are on, the welcome page and the
+ * health check.
+ */
+const NO_PEOPLE = [
+  'CatalogController.listActivities',
+  'CatalogController.searchLocalities',
+  'GeoController.defaultLocality',
+  'ImagesController.small',
+  'ImagesController.image',
+  'SignInProvidersController.get',
+  'WelcomeController.getWelcomeMessage',
+  'WelcomeController.getHealth',
+];
+
 const USER_THROTTLERS: unknown[] = [
   WriteThrottlerGuard,
   CreateThrottlerGuard,
   LocalityThrottlerGuard,
 ];
+const THROTTLERS: unknown[] = [...USER_THROTTLERS, PublicReadThrottlerGuard];
 
 const guardsOf = (controller: Type, handler: string): unknown[] => [
   ...((Reflect.getMetadata(GUARDS_METADATA, controller) as unknown[]) ?? []),
@@ -77,21 +92,37 @@ const guardsOf = (controller: Type, handler: string): unknown[] => [
   ) as unknown[]) ?? []),
 ];
 
-const writeRoutes = CONTROLLERS.flatMap((controller) =>
-  Object.getOwnPropertyNames(controller.prototype)
-    .filter((handler) =>
-      WRITES.includes(
-        Reflect.getMetadata(
-          METHOD_METADATA,
-          controller.prototype[handler] as object,
-        ) as RequestMethod,
-      ),
-    )
-    .map((handler) => ({
-      route: `${controller.name}.${handler}`,
-      guards: guardsOf(controller, handler),
-    })),
-).filter(({ route }) => !UNLIMITED.includes(route));
+const routes = CONTROLLERS.flatMap((controller) =>
+  Object.getOwnPropertyNames(controller.prototype).flatMap((handler) => {
+    const method = Reflect.getMetadata(
+      METHOD_METADATA,
+      controller.prototype[handler] as object,
+    ) as RequestMethod | undefined;
+    return method === undefined
+      ? []
+      : [
+          {
+            route: `${controller.name}.${handler}`,
+            method,
+            guards: guardsOf(controller, handler),
+          },
+        ];
+  }),
+);
+
+const writeRoutes = routes.filter(
+  ({ route, method }) => WRITES.includes(method) && !UNLIMITED.includes(route),
+);
+
+const publicReads = routes.filter(
+  ({ route, method, guards }) =>
+    method === RequestMethod.GET &&
+    // public: no guard but the optional session and limits
+    guards.every(
+      (guard) => guard === OptionalUserGuard || THROTTLERS.includes(guard),
+    ) &&
+    !NO_PEOPLE.includes(route),
+);
 
 describe('rate limits on the API', () => {
   it('finds the controllers and their writes', () => {
@@ -105,11 +136,22 @@ describe('rate limits on the API', () => {
       const throttler = guards.findIndex((guard) =>
         USER_THROTTLERS.includes(guard),
       );
-      const auth = guards.findIndex((guard) => AUTH_GUARDS.includes(guard));
+      // any guard before it that isn't a limit: the one that sets the session
+      // (AuthenticatedUserGuard, VerifiedUserGuard, an admin's guard…)
+      const sessionGuard = guards.findIndex(
+        (guard) => !THROTTLERS.includes(guard),
+      );
 
       expect(throttler).toBeGreaterThan(-1);
-      expect(auth).toBeGreaterThan(-1);
-      expect(auth).toBeLessThan(throttler);
+      expect(sessionGuard).toBeGreaterThan(-1);
+      expect(sessionGuard).toBeLessThan(throttler);
+    },
+  );
+
+  it.each(publicReads)(
+    '$route is public and limited per IP (N-10)',
+    ({ guards }) => {
+      expect(guards).toContain(PublicReadThrottlerGuard);
     },
   );
 
@@ -123,7 +165,12 @@ describe('rate limits on the API', () => {
   });
 
   it('the public reads with organisers and admins are limited per IP (N-10)', () => {
+    expect(publicReads.length).toBeGreaterThanOrEqual(7);
     expect(guardsOf(EventsController, 'list')).toEqual([
+      PublicReadThrottlerGuard,
+    ]);
+    expect(guardsOf(HomeController, 'events')).toEqual([
+      OptionalUserGuard,
       PublicReadThrottlerGuard,
     ]);
     expect(guardsOf(EventsController, 'detail')).toEqual([

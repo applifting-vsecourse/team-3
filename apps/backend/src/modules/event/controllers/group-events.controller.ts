@@ -2,6 +2,7 @@ import { EventsService } from '@/modules/event/services/events.service';
 import { OptionalUser } from '@/shared/auth/decorators/optional-user.decorator';
 import { Identity } from '@/shared/auth/domain/identity';
 import { OptionalUserGuard } from '@/shared/auth/guards/optional-user.guard';
+import { PublicReadThrottlerGuard } from '@/shared/rate-limit/rate-limit.guards';
 import { Controller, Get, Param, UseGuards } from '@nestjs/common';
 import { ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger';
 import { GroupEventsResponseDto } from './dto/group-events.response.dto';
@@ -13,7 +14,7 @@ export class GroupEventsController {
   constructor(private readonly eventsService: EventsService) {}
 
   @Get()
-  @UseGuards(OptionalUserGuard)
+  @UseGuards(OptionalUserGuard, PublicReadThrottlerGuard)
   @ApiOperation({
     summary:
       "A group's upcoming and past events for its page (B-055), at most 50 each",
