@@ -252,6 +252,16 @@ describe('community data', () => {
     expect(race?.title).toMatch(/atletické závody/);
   });
 
+  it('places the table tennis event at the published address of the gym', () => {
+    const event = communityEvents.find(({ key }) => key === 'k-pingpong-uo');
+    expect(event).toMatchObject({
+      localitySlug: 'usti-nad-orlici',
+      address: 'Tělocvična gymnázia, T. G. Masaryka 106, Ústí nad Orlicí',
+      lat: 49.971691,
+      lng: 16.396996,
+    });
+  });
+
   it('keeps titles free of weekdays and occupancy states, texts free of placeholders', () => {
     const weekdays =
       /pondělí|úter[ýk]|střed[auy]|čtvrtek|pátek|sobot|neděl|víkend/i;

@@ -939,6 +939,8 @@ export type CommunityEventPlan = {
   activitySlug: DemoActivitySlug;
   localitySlug: string;
   address: string;
+  /** Doložený bod místa konání, pokud ho známe. */
+  venueCoordinates?: Pick<DemoEvent, 'lat' | 'lng'>;
   /** Za kolik dní po seedu, místní čas. */
   days: number;
   time: string;
@@ -1989,7 +1991,9 @@ const handWrittenEventPlans: CommunityEventPlan[] = [
       'Dva stoly, hrajeme na čas a střídáme se. Pro začátečníky i ty, kdo hráli kdysi v oddíle. Pronájem 40 Kč na osobu.',
     activitySlug: 'stolni-tenis',
     localitySlug: 'usti-nad-orlici',
-    address: 'Tělocvična gymnázia, Heranova 1424, Ústí nad Orlicí',
+    address: 'Tělocvična gymnázia, T. G. Masaryka 106, Ústí nad Orlicí',
+    // GPS areálu z kontaktů školy: https://old.gymuo.cz/stranka%3Dkontakty/
+    venueCoordinates: { lat: 49.971691, lng: 16.396996 },
     days: 19,
     time: '18:00',
     durationMinutes: 120,
@@ -3054,7 +3058,7 @@ const buildEvents = (plans: CommunityEventPlan[]): CommunityEvent[] => {
       durationMinutes: plan.durationMinutes,
       address: plan.address,
       localitySlug: plan.localitySlug,
-      ...nearTown(plan.localitySlug, plan.key),
+      ...(plan.venueCoordinates ?? nearTown(plan.localitySlug, plan.key)),
       minParticipants: plan.min,
       maxParticipants: plan.max,
       price: plan.price,
