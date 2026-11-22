@@ -1,113 +1,59 @@
-# HobbyHub – upozornění v aplikaci (návrh na refinement 16. 11. 2026)
+# HobbyHub – upozornění v aplikaci (#86)
 
-**Issue:** #86 (F-40, B-044) · **Navazuje na:** #177 (e-maily k účasti a akci), #307 (přátelé) · **Stav:** návrh týmu, Q1 a Q2 rozhodl tým 21. 11.; seznam a texty potvrdí PO při akceptaci #86
+**Issue:** #86 (F-40, B-044) · **PR:** #398 · **Navazuje na:** #177 (e-maily k účasti a akci), #307 (přátelé) · **Stav:** postaveno podle rozhodnutí týmu (21. a 22. 11. 2026); seznam událostí a texty potvrdí PO při akceptaci #86
 
-Planning sprintu 4 (`zapis-planning-sprint4.md`): notifikační centrum v aplikaci i e-maily, zpráva v centru je krátká („Na tvou akci se přihlásil…“) a vede na detail. Tým měl na refinement připravit seznam událostí a jejich texty. Tady je.
-
-## Co z refinementu 16. 11. se upozornění týká
-
-Seznam událostí a texty se na refinementu neschvalovaly. Otázky Q1–Q5 níže proto rozhodne tým, nebo je písemně položí PO. Do té doby platí návrh týmu. Z refinementu se upozornění týká:
-
-- **Přátelé** (#307) zůstávají ve sprintu 4. Řádky 13 a 14 proto patří do #86 a přibudou, jakmile bude v #307 hotová žádost o přátelství.
-- **Jméno a přezdívka** (backlog): přezdívku uvidí všichni, celé jméno jen organizátor akce, správce skupiny a přátelé. Až to přijde, `{jméno}` v upozornění bude to, co smí vidět adresát. Upozornění dnes chodí jen organizátorům, správcům a dotčeným uživatelům, takže se texty měnit nebudou, jen zdroj jména.
-- **Výzva k hodnocení** po akci přijde e-mailem (#65), viz Q4.
-- **Skupiny** dostanou pozvánku odkazem, předání role správce a vyhození člena (backlog). Upozornění k nim jsou mimo #86 a přibudou s nimi.
+Planning sprintu 4 (`zapis-planning-sprint4.md`): notifikační centrum v aplikaci i e-maily, zpráva v centru je krátká („Na tvou akci se přihlásil…“) a vede na detail. Refinement 16. 11. upozornění neprobíral, otázky proto rozhodl tým a PO je potvrdí při akceptaci. Tento dokument popisuje, co je postavené.
 
 ## Jak upozornění funguje
 
-- **Jedna událost, dva kanály.** Upozornění v centru i e-mail vznikají ze stejné události, ze které dnes posílá e-maily #177 (`NotificationService.notify`). Text v centru odpovídá prvnímu řádku e-mailu (náhledu), aby si uživatel obojí spojil.
-- **Krátká zpráva:** kdo, co a u které akce nebo skupiny. Čas („před 5 min“, „včera“) ukazuje centrum vedle zprávy, v textu není.
-- **Klepnutí vede na detail** (akce, správa akce, skupina, profil) a upozornění označí jako přečtené. „Označit vše jako přečtené“ přečte všechna najednou. Samotné otevření centra nic neoznačí.
-- **Autor události upozornění nedostane.** Organizátor, který akci zrušil, se o zrušení nedozví, správce, který napsal oznámení, ho nedostane sám sobě.
+- **Jedna událost, dva kanály.** Upozornění v centru i e-mail vznikají ze stejné události (`NotificationService.notify`). Text v centru je první řádek e-mailu (náhled), aby si uživatel obojí spojil.
+- **Krátká zpráva:** kdo, co a u které akce nebo skupiny. Čas („teď“, „před 5 min“, „před 2 h“, „včera“, „pá 20. 11.“) ukazuje centrum pod zprávou.
+- **Klepnutí vede na detail** (správa akce, detail akce, stránka nebo správa skupiny, žádosti o přátelství, profil) a upozornění označí jako přečtené, i když ho uživatel otevře v nové záložce. „Označit vše jako přečtené“ přečte všechna najednou. Samotné otevření centra nic neoznačí.
+- **Autor události upozornění nedostane.** Organizátor, který akci zrušil, se o zrušení nedozví; správce, který napsal oznámení, ho do centra nedostane (e-mail ano, jako dosud).
 - **Texty se neliší podle pohlaví** (stejně jako e-maily v #177): „už na akci nejde“, ne „se odhlásil/a“.
-- **Vidí je jen adresát.** API vrací jen upozornění přihlášeného uživatele, cizí upozornění nejde přečíst ani označit (backend, testy).
+- **Vidí je jen adresát.** API vrací jen upozornění přihlášeného uživatele, cizí upozornění nejde přečíst ani označit (404), nepřihlášený dostane 401.
+- **Text se ukládá hotový.** Když organizátor akci později přejmenuje, starší upozornění ukáže původní název; proklik vede na aktuální detail.
 
 ## Seznam událostí a texty
 
-`{jméno}` = zobrazované jméno uživatele, `„{akce}“` a `„{skupina}“` = název v uvozovkách. Sloupec **E-mail** říká, jestli e-mail ke stejné události už chodí.
+`{jméno}` je zobrazované jméno uživatele, `„{akce}“` a `„{skupina}“` jsou názvy v uvozovkách.
 
-### Organizátor akce
+| Událost                                | Komu                         | Upozornění v centru                                                                       | Proklik              | Předmět e-mailu                                                  |
+| -------------------------------------- | ---------------------------- | ----------------------------------------------------------------------------------------- | -------------------- | ---------------------------------------------------------------- |
+| Žádost o účast na akci se schvalováním | organizátor                  | `{jméno} se chce zúčastnit akce „{akce}“.`                                                | správa akce          | Nová žádost o účast: {akce}                                      |
+| Přihláška na akci bez schvalování      | organizátor                  | `{jméno} jde na akci „{akce}“.`                                                           | správa akce          | Nová přihláška: {akce} – jen když si ho organizátor u akce zapne |
+| Odhlášení z akce                       | organizátor                  | `{jméno} už na akci „{akce}“ nejde.`                                                      | správa akce          | Odhlášení z akce: {akce}                                         |
+| Žádost o účast schválena               | žadatel                      | `Tvoje žádost o účast na akci „{akce}“ byla schválena.`                                   | detail akce          | Máš místo na akci: {akce}                                        |
+| Žádost o účast zamítnuta               | žadatel                      | `Tvoje žádost o účast na akci „{akce}“ nebyla přijata.`                                   | detail akce          | Žádost o účast nebyla přijata: {akce}                            |
+| Změna termínu nebo místa               | přihlášení a čekající        | `U akce „{akce}“ se změnil termín.` / `…se změnilo místo.` / `…se změnil termín i místo.` | detail akce          | Změna u akce: {akce}                                             |
+| Zrušení akce                           | přihlášení a čekající        | `Akce „{akce}“ byla zrušena.`                                                             | detail akce          | Akce zrušena: {akce}                                             |
+| Zpráva organizátora (#176)             | přihlášení                   | `Nová zpráva k akci „{akce}“: {předmět}`                                                  | detail akce          | {akce}: {předmět}                                                |
+| Žádost o vstup do uzavřené skupiny     | aktivní správci skupiny      | `{jméno} chce do skupiny „{skupina}“.`                                                    | správa skupiny       | Nová žádost o vstup: {skupina}                                   |
+| Žádost o vstup schválena               | žadatel                      | `Tvoje žádost o vstup do skupiny „{skupina}“ byla schválena.`                             | stránka skupiny      | Jsi ve skupině: {skupina}                                        |
+| Žádost o vstup zamítnuta               | žadatel                      | `Tvoje žádost o vstup do skupiny „{skupina}“ nebyla přijata.`                             | stránka skupiny      | Žádost o vstup nebyla přijata: {skupina}                         |
+| Oznámení správce (#194)                | aktivní členové kromě autora | `Nové oznámení ve skupině „{skupina}“: {předmět}`                                         | stránka skupiny      | {skupina}: {předmět}                                             |
+| Žádost o přátelství (i opakovaná)      | ten, koho žádám              | `{jméno} ti posílá žádost o přátelství.`                                                  | žádosti o přátelství | Žádost o přátelství: {jméno}                                     |
+| Přijetí přátelství                     | ten, kdo žádal               | `{jméno} a ty jste teď přátelé.`                                                          | profil {jméno}       | Jste přátelé: {jméno}                                            |
 
-| #   | Událost                                    | Text v centru                              | Proklik     | E-mail                                       |
-| --- | ------------------------------------------ | ------------------------------------------ | ----------- | -------------------------------------------- |
-| 1   | Nová žádost o účast (akce se schvalováním) | `{jméno} se chce zúčastnit akce „{akce}“.` | správa akce | ano, „Nová žádost o účast“                   |
-| 2   | Nová přihláška (akce bez schvalování)      | `{jméno} jde na akci „{akce}“.`            | správa akce | jen když si ho organizátor zapne u akce (Q1) |
-| 3   | Účastník se odhlásil                       | `{jméno} už na akci „{akce}“ nejde.`       | správa akce | ano, „Odhlášení z akce“                      |
+Výsledek žádosti o vstup do skupiny v zadání #86 není, je to protějšek schválení a zamítnutí přihlášky na akci. Odmítnutí a odebrání z přátel zůstávají tichá (#307).
 
-### Účastník akce (přihlášený nebo s žádostí)
+**Mimo #86:** upozornění na novou akci skupiny (#362), na obdržené hodnocení (#364). Plánované e-maily (výzva k hodnocení #65) chodí jen e-mailem, do centra nepatří. Odebrání účastníka organizátorem (`removed`) neoznamuje ani e-mail. Podle zadání mimo rozsah: push notifikace, obecné nastavení upozornění, akce v okolí (#74).
 
-| #   | Událost                       | Text v centru                                                                             | Proklik     | E-mail                       |
-| --- | ----------------------------- | ----------------------------------------------------------------------------------------- | ----------- | ---------------------------- |
-| 4   | Žádost schválena              | `Tvoje žádost o účast na akci „{akce}“ byla schválena.`                                   | detail akce | ano, „Máš místo“             |
-| 5   | Žádost zamítnuta              | `Tvoje žádost o účast na akci „{akce}“ nebyla přijata.`                                   | detail akce | ano, „Žádost nebyla přijata“ |
-| 6   | Změna termínu nebo místa      | `U akce „{akce}“ se změnil termín.` / `…se změnilo místo.` / `…se změnil termín i místo.` | detail akce | ano, „Akce se změnila“       |
-| 7   | Zrušení akce                  | `Akce „{akce}“ byla zrušena.`                                                             | detail akce | ano, „Akce byla zrušena“     |
-| 8   | Zpráva od organizátora (#176) | `Nová zpráva k akci „{akce}“: {předmět}`                                                  | detail akce | ano, text organizátora       |
+## Rozhodnutí týmu, která potvrdí PO
 
-### Skupiny
+- **E-mail ke každé přihlášce (21. a 22. 11.):** u akce bez schvalování dostane organizátor upozornění v centru vždy; e-mail ke každé přihlášce si zvolí ve formuláři akce při založení i v úpravě („Posílat mi e-mail ke každé přihlášce“, `Event.emailOnJoin`, výchozí vypnuto). Volbu vidí a mění jen organizátor, protože e-mail chodí jemu; spolusprávce skupiny ji ve formuláři nemá. Zadání #86 v „Mimo rozsah“ vylučuje nastavení upozornění; tohle je volba u jedné akce, aby organizátor oblíbené akce nedostával desítky e-mailů.
+- **Nová akce skupiny (21. 11.):** řeší #362, ne #86.
 
-| #   | Událost                              | Komu            | Text v centru                                                                      | Proklik         | E-mail            |
-| --- | ------------------------------------ | --------------- | ---------------------------------------------------------------------------------- | --------------- | ----------------- |
-| 9   | Žádost o vstup do uzavřené skupiny   | správci skupiny | `{jméno} chce do skupiny „{skupina}“.`                                             | správa skupiny  | **nový**          |
-| 10  | Žádost o vstup schválena / zamítnuta | žadatel         | `Tvoje žádost o vstup do skupiny „{skupina}“ byla schválena.` / `…nebyla přijata.` | stránka skupiny | **nový**          |
-| 11  | Nová akce skupiny                    | aktivní členové | `Ve skupině „{skupina}“ je nová akce „{akce}“.`                                    | detail akce     | v #362 (Q2)       |
-| 12  | Oznámení správce (#194)              | aktivní členové | `Nové oznámení ve skupině „{skupina}“: {předmět}`                                  | stránka skupiny | ano, text správce |
+## Chování centra (Figma C-07, C-07a, C-07b, C-07d)
 
-Řádek 10 v zadání #86 není, doplňujeme ho jako protějšek řádků 4 a 5: kdo o vstup požádal, má se dozvědět, jak to dopadlo.
-
-### Přátelé (až s #307)
-
-| #   | Událost             | Komu    | Text v centru                            | Proklik              | E-mail   |
-| --- | ------------------- | ------- | ---------------------------------------- | -------------------- | -------- |
-| 13  | Žádost o přátelství | adresát | `{jméno} ti posílá žádost o přátelství.` | žádosti o přátelství | **nový** |
-| 14  | Žádost přijata      | žadatel | `{jméno} a ty jste teď přátelé.`         | profil {jméno}       | **nový** |
-
-Zamítnutou žádost o přátelství neoznamujeme, stejně jako to dělají jiné sociální sítě.
-
-### Co do centra nedáváme
-
-- **Plánované e-maily** (připomínka den před akcí, „akci chybí lidé“, výzva k hodnocení #65): zůstávají jen e-mailem. Do centra by přibyly nejdřív s #65, pokud o to PO stojí (Q4).
-- **Odebrání účastníka organizátorem** (`removed`): dnes nechodí ani e-mail, nechává se mimo rozsah #86.
-- Mimo rozsah podle zadání: push notifikace, nastavení, která upozornění chci, upozornění na akce v okolí (#74).
-
-## Chování centra
-
-- **Zvonek** v hlavičce na desktopu i na mobilu, s počtem nepřečtených, nad 9 ukazuje „9+“. Bez nepřečtených je zvonek bez čísla.
-- **Desktop:** klepnutí otevře panel pod zvonkem. **Mobil:** samostatná stránka `/upozorneni` se zpětnou šipkou.
-- **Seznam** od nejnovějších, posledních 50 upozornění. Nepřečtená jsou odlišená tečkou a tučným textem (barva sama nestačí, DESIGN.md). Prázdný stav: „Zatím tu nic není. Až se u tvých akcí nebo skupin něco stane, dáme ti vědět.“
+- **Zvonek** v hlavičce přihlášeného uživatele, na desktopu před avatarem, na mobilu před akcí obrazovky. Počet nepřečtených v limetkovém odznaku, nad 9 „9+“, bez nepřečtených jen zvonek. Mobilní stránky s lištou Header/Sub (detail, správa, formuláře) hlavičku nemají, zvonek tam není.
+- **Desktop:** zvonek otevře panel pod sebou (400 px). **Mobil:** zvonek vede na stránku `/upozorneni`.
+- **Seznam** od nejnovějších, posledních 50 upozornění. Nepřečtená mají tečku a tučný text (barva sama nestačí, DESIGN.md). Prázdný stav: „Zatím tu nic není. Až se u tvých akcí, skupin nebo přátel něco stane, dáme ti vědět.“
 - **Obnovení:** počet nepřečtených se načte při otevření stránky, při návratu do okna a jednou za minutu. Živé spojení (WebSocket) v MVP neděláme.
-- **Proklik na smazaný nebo skrytý cíl** (akce skrytá superadminem, deaktivovaná skupina) vede na detail, který ukáže svou obvyklou chybovou stránku. Upozornění samo nezmizí.
+- **Proklik na smazaný nebo skrytý cíl** (akce skrytá superadminem, deaktivovaná skupina) vede na detail, který ukáže svou obvyklou chybovou stránku.
+
+Design je ve Figmě HobbyHub-design: sekce „Upozornění (#86) – schváleno 22. 11.“ na stránce Účet, komponenty Zvonek a Upozornění/Řádek v Design systemu.
 
 ## Datový model
 
-Podle návrhu v `datovy-model.md` › Návrh pro sprint 4, doplněný o čas vzniku a indexy:
-
-| Sloupec      | Typ                        | Poznámka                                                              |
-| ------------ | -------------------------- | --------------------------------------------------------------------- |
-| `id`         | string                     |                                                                       |
-| `userId`     | FK → `User`                | příjemce; smazáním uživatele se smažou i jeho upozornění              |
-| `type`       | `notification_type`        | druh události z tabulek výše                                          |
-| `targetType` | `event` / `group` / `user` | kam vede proklik                                                      |
-| `targetId`   | string                     | bez cizího klíče, stejně jako `Report`; cíl ověří detail při prokliku |
-| `text`       | string                     | hotová krátká zpráva, uložená při vzniku (Q3)                         |
-| `createdAt`  | datetime                   | řazení a „před 5 min“                                                 |
-| `readAt`     | datetime, nullable         | nepřečtené = `null`                                                   |
-
-Indexy `(userId, createdAt)` pro seznam a `(userId, readAt)` pro počet nepřečtených.
-
-## Wireframy
-
-Wireframy zvonek ani centrum nemají: stránka C ve Figmě uvádí, že „zvonek… přijde po schválení MVP“, a komponenty `Header/Mobile` a `Header/Desktop` ho neobsahují. Návrh proto popisuje chování slovy. Zbývá rozhodnout, jestli stačí tento popis a design podle DESIGN.md, nebo se wireframe zvonku a centra nejdřív doplní do Figmy (Q5).
-
-## Otevřené otázky (tým, případně PO)
-
-- **Q1 Přihláška na akci bez schvalování (rozhodnuto 21. 11.):** organizátor dostane upozornění v centru na každou přihlášku vždy. E-mail ke každé přihlášce si zvolí při zakládání akce a změní v její úpravě (`Event.emailOnJoin`, výchozí vypnuto; úprava schválena 22. 11.). Zadání #86 v „Mimo rozsah“ vylučuje nastavení upozornění; tohle je volba u jedné akce, potvrdí ji PO při akceptaci.
-- **Q2 Nová akce skupiny (rozhodnuto 21. 11.):** upozornění i e-mail členům řeší #362, ne #86.
-- **Q3 Text uložený při vzniku:** když organizátor akci později přejmenuje, staré upozornění ukáže původní název. Návrh týmu: nevadí, upozornění je záznam o tom, co se stalo, a proklik vede na aktuální detail.
-- **Q4 Plánované e-maily v centru:** připomínka den před akcí a výzva k hodnocení jen e-mailem (návrh), nebo i v centru?
-- **Q5 Wireframe:** stačí popis výše, nebo doplnit zvonek a centrum do Figmy před implementací UI?
-
-## Postup
-
-- **Backend (hotový):** tabulka `Notification` s migrací, API (seznam, počet nepřečtených, označit přečtené, označit vše), zápis upozornění a e-mailů pro řádky 1–10, 12–14.
-- **UI:** nejdřív návrh ve Figmě (zvonek v hlavičce, panel, stránka `/upozorneni`, přepínač e-mailu ve formuláři akce), po schválení kód. Řádek 11 přinese #362.
+Tabulka `notification` (podrobně v [`datovy-model.md`](datovy-model.md) › Upozornění): příjemce `userId`, druh `type` (`notification_type`), hotová zpráva `text`, cíl prokliku `targetType` + `targetId` bez cizího klíče, `createdAt` a `readAt` (nepřečtené = `null`). Indexy `(userId, createdAt)` pro seznam a `(userId, readAt)` pro počet nepřečtených. API a pravidla v [`modules/notification/README.md`](../apps/backend/src/modules/notification/README.md).
