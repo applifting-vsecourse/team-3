@@ -28,6 +28,11 @@ type UpcomingEventsProps = {
   locality?: LocalityState
   /** Under the list, e.g. a link to all events. */
   footer?: ReactNode
+  /**
+   * `column`: row cards under each other, beside a form (sign-in, sign-up). `grid`: the page's
+   * width, three cards side by side from md, a column of rows on a phone (the 404, #348).
+   */
+  layout?: "column" | "grid"
 }
 
 /**
@@ -35,7 +40,11 @@ type UpcomingEventsProps = {
  * sign-up forms on desktop (Figma B-01d, B-03d), what the account is for,
  * and on the landing page (A-01, A-01d). A card opens the event's detail.
  */
-export function UpcomingEvents({ locality: shown, footer }: UpcomingEventsProps) {
+export function UpcomingEvents({
+  locality: shown,
+  footer,
+  layout = "column",
+}: UpcomingEventsProps) {
   const headingId = useId()
   const localitySlug = shown?.slug
   const localitiesQuery = useQuery({
@@ -115,12 +124,19 @@ export function UpcomingEvents({ locality: shown, footer }: UpcomingEventsProps)
       ) : events.length === 0 ? (
         <p className="text-sm text-muted-foreground">Teď nejsou žádné nadcházející akce.</p>
       ) : (
-        <ul className="flex flex-col gap-3">
+        <ul
+          className={
+            layout === "grid"
+              ? "grid grid-cols-1 gap-3 md:grid-cols-3 md:gap-6"
+              : "flex flex-col gap-3"
+          }
+        >
           {events.map((event) => (
             <li key={event.id}>
               <EventCard
                 event={event}
                 titleAs="h3"
+                variant={layout === "grid" ? "responsive" : "row"}
               />
             </li>
           ))}
