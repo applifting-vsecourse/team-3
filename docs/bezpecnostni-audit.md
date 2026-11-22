@@ -9,7 +9,7 @@ Kdo nález opraví, změní ve stejném PR i jeho stav v tomto reportu.
 - **Node.js:** aplikace běžela na `node:24-alpine` bez pevné verze, takže nebylo jisté, zda obsahuje opravu CVE-2026-111497 (Brotli). Verze je teď pevně 24.22.2 (#196) a na stagingu je ověřená z logu backendu.
 - **Balíčky:** `pnpm audit` hlásil 10 critical a 55 high. Po aktualizaci (#196) a vynucení `js-yaml` přes override (#283) je 0 critical a 0 high, zbývá 4 moderate a 1 low.
 - **Kód:** nezávislá analýza nenašla žádný kritický nález, přístup k cizím datům (IDOR) ani SQL injection. Našla 1 vysoký, 4 střední a 8 nízkých nálezů. Vysoký nález (CSRF) je opravený v #140. Ze čtyř středních jsou N-3 a N-4 opravené, u N-2 a N-5 zbývá část popsaná níže. Z nízkých jsou N-6 a N-9 opravené v #240.
-- **Dřívější nálezy:** S-1, S-2, S-4 a S-5 jsou opravené, S-3 má issue (#226).
+- **Dřívější nálezy:** všech pět (S-1 až S-5) je opravených.
 - **Průběžná kontrola:** přibyl Dependabot a CodeQL (#196).
 
 ## Co ještě chybí
@@ -153,7 +153,7 @@ Nálezy S-1 až S-5 pocházejí z nočního testování před Sprint Review 2. J
 | --- | ----------------------------------------------------- | --------- | ------------------------------------------- |
 | S-1 | Neplatné datum při založení a úpravě akce vracelo 500 | nízká     | Opraveno v #137                             |
 | S-2 | `GET /api/events?dateTo=9999-12-31` vrací 500         | nízká     | Opraveno v #237; na stagingu ověřeno 4. 11. |
-| S-3 | Souběh při vyřizování žádostí o členství ve skupině   | nízká     | Otevřený, #226; viz níže                    |
+| S-3 | Souběh při vyřizování žádostí o členství ve skupině   | nízká     | Opraveno v #400; viz níže                   |
 | S-4 | Zápisy do API z aplikací jiných týmů (CSRF)           | vysoká    | Opraveno v #140; stejný nález jako N-1      |
 | S-5 | Do skupiny se jde přidat i bez ověřeného e-mailu      | nízká     | Opraveno v #236; viz níže                   |
 
@@ -161,12 +161,12 @@ Nálezy S-1 až S-5 pocházejí z nočního testování před Sprint Review 2. J
 
 **S-5:** založení skupiny ověřený e-mail vyžaduje, žádost o členství a vstup do skupiny jen přihlášení. V #46 to tak bylo zvoleno záměrně, Figma A-08 ale stav „neověřený e-mail“ má. Tým 3. 11. rozhodl, že před podáním žádosti o členství musí být e-mail ověřený, PO 4. 11. pravidlo rozšířil: přihlásit se jde jen s ověřeným e-mailem. Opraveno v #236: BetterAuth neověřený e-mail nepřihlásí (403 `EMAIL_NOT_VERIFIED`) a po registraci session nezakládá, migrace ukončila session neověřených uživatelů a `POST /api/groups/:id/join` má navíc `VerifiedUserGuard` pro session, která by přesto zůstala. Odchod ze skupiny a stažení žádosti ověření nepotřebují.
 
-**S-3** je chyba ve skupinách, ne bezpečnostní díra: data neunikají. Odhalilo ji noční testování. Čtením kódu jsme ověřili, že tam pořád je, znovu jsme ji nevyvolávali:
+**S-3** je chyba ve skupinách, ne bezpečnostní díra: data neunikají. Odhalilo ji noční testování:
 
 - **Schválení a zamítnutí naráz:** service ověří, že žádost čeká, ale samotný zápis v `group.repository.ts` stav už nekontroluje. Když jeden správce žádost schválí a druhý ji skoro naráz zamítne, může se smazat člověk, kterého ten první právě schválil.
 - **Dvě rychlá kliknutí na „Přidat se“:** druhý zápis narazí na unikátní klíč člena skupiny a skončí chybou 500.
 
-Oprava: podmínit zápis stavem žádosti a kolizi vrátit jako běžnou chybu místo 500.
+Opraveno v #400 (issue #226): schválení i zamítnutí zapíše jen žádost, která pořád čeká (podmínka na stav přímo v zápisu). Kdo přijde pozdě, dostane 409 `NOT_PENDING` a nikoho nesmaže. Druhé „Přidat se“ narazí na unikátní klíč bez chyby (`ON CONFLICT DO NOTHING`) a skončí stejně jako první.
 
 ## Průběžná kontrola
 
