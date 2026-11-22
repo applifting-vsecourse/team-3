@@ -2,6 +2,7 @@ import { NotificationCenterService } from '@/modules/notification/services/notif
 import { User } from '@/shared/auth/decorators/user.decorator';
 import { Identity } from '@/shared/auth/domain/identity';
 import { AuthenticatedUserGuard } from '@/shared/auth/guards/authenticated-user.guard';
+import { WriteThrottlerGuard } from '@/shared/rate-limit/rate-limit.guards';
 import {
   Controller,
   Get,
@@ -53,6 +54,7 @@ export class NotificationsController {
 
   // before :id/read, so „read-all“ is never taken for an id
   @Post('read-all')
+  @UseGuards(WriteThrottlerGuard)
   @HttpCode(200)
   @ApiOperation({ summary: 'Označit vše jako přečtené' })
   @ApiResponse({ status: 200, type: MarkAllReadResponseDto })
@@ -62,6 +64,7 @@ export class NotificationsController {
   }
 
   @Post(':id/read')
+  @UseGuards(WriteThrottlerGuard)
   @HttpCode(204)
   @ApiOperation({
     summary: 'Mark one as read (opening it); one already read stays as it was',

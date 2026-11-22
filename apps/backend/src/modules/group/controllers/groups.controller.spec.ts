@@ -6,6 +6,7 @@ import {
 } from '@/shared/auth/guards/verified-user.guard';
 import { BetterAuth } from '@/shared/auth/providers/better-auth.provider';
 import { getSessionFromRequest } from '@/shared/auth/utils/get-session-from-request';
+import { WriteThrottlerGuard } from '@/shared/rate-limit/rate-limit.guards';
 import { ExecutionContext, ForbiddenException } from '@nestjs/common';
 import { GUARDS_METADATA } from '@nestjs/common/constants';
 import { mock, mockDeep } from 'jest-mock-extended';
@@ -42,13 +43,16 @@ const aRequest = (): ExecutionContext =>
 // session made before signing in needed a verified e-mail.
 describe('GroupsController: who may join a group', () => {
   it('joining (or asking to join) needs a verified e-mail', () => {
-    expect(guardsOf('join')).toEqual([VerifiedUserGuard]);
+    expect(guardsOf('join')).toEqual([VerifiedUserGuard, WriteThrottlerGuard]);
     // Swagger says so
     expect(forbiddenDescription('join')).toContain(EMAIL_NOT_VERIFIED);
   });
 
   it('leaving a group or withdrawing a request needs only a session', () => {
-    expect(guardsOf('leave')).toEqual([AuthenticatedUserGuard]);
+    expect(guardsOf('leave')).toEqual([
+      AuthenticatedUserGuard,
+      WriteThrottlerGuard,
+    ]);
   });
 
   it('an unverified session asking to join gets 403 EMAIL_NOT_VERIFIED', async () => {

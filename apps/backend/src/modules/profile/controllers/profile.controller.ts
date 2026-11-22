@@ -2,6 +2,7 @@ import { ProfileService } from '@/modules/profile/services/profile.service';
 import { User } from '@/shared/auth/decorators/user.decorator';
 import { Identity } from '@/shared/auth/domain/identity';
 import { AuthenticatedUserGuard } from '@/shared/auth/guards/authenticated-user.guard';
+import { WriteThrottlerGuard } from '@/shared/rate-limit/rate-limit.guards';
 import {
   Body,
   Controller,
@@ -48,6 +49,7 @@ export class ProfileController {
   }
 
   @Patch()
+  @UseGuards(WriteThrottlerGuard)
   @ApiResponse({ status: 200, type: SelfProfileResponseDto })
   @ApiOperation({
     summary: 'Update my name, home locality and interests (#178)',

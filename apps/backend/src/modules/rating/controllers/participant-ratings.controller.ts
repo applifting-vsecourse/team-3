@@ -4,6 +4,7 @@ import { User } from '@/shared/auth/decorators/user.decorator';
 import { Identity } from '@/shared/auth/domain/identity';
 import { AuthenticatedUserGuard } from '@/shared/auth/guards/authenticated-user.guard';
 import { VerifiedUserGuard } from '@/shared/auth/guards/verified-user.guard';
+import { WriteThrottlerGuard } from '@/shared/rate-limit/rate-limit.guards';
 import {
   Body,
   Controller,
@@ -65,7 +66,7 @@ export class ParticipantRatingsController {
   }
 
   @Put(':id/participant-ratings')
-  @UseGuards(VerifiedUserGuard)
+  @UseGuards(VerifiedUserGuard, WriteThrottlerGuard)
   @ApiCookieAuth()
   @ApiOperation({
     summary: `Rate participants, one or all at once, or change their ratings (B-060, #66); within ${RATING_WINDOW_DAYS} calendar days (Prague) of the end`,
