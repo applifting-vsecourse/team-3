@@ -2,6 +2,7 @@ import { Link } from "@tanstack/react-router"
 import { Users } from "lucide-react"
 
 import { ROUTES } from "@/app/routes"
+import { ActivityLine } from "@/components/ActivityTag/ActivityLine"
 import { CapacityBar } from "@/components/CapacityBar/CapacityBar"
 import { StatusBadge, type BadgeStatus } from "@/components/StatusBadge/StatusBadge"
 import { occupancyBesideBadge, occupancyCount } from "@/lib/occupancy"
@@ -130,6 +131,8 @@ export function EventCard({
           }[variant]
         }
       >
+        {/* above the title, as the detail's band has it (#348) */}
+        <ActivityLine activity={event.activity} />
         <Title
           className={cn(
             "line-clamp-2",

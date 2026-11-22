@@ -163,4 +163,14 @@ describe("PastEventCard", () => {
     // „Do minima“ breaks like any words, the number stays with the words around it
     expect(attendance.textContent).toBe("Do minima chybělo 10 lidí")
   })
+
+  // #348: as on the event card
+  it("shows the activity above the title", async () => {
+    const event = anEvent()
+    await renderWithRouter(<PastEventCard event={event} />)
+
+    expect(screen.getByText("Aktivita:").parentElement).toHaveTextContent(
+      `Aktivita: ${event.activity.name}`,
+    )
+  })
 })

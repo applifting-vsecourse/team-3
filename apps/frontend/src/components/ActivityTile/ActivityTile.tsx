@@ -51,3 +51,14 @@ export function ActivityTile({ icon, className, iconClassName }: ActivityTilePro
     </div>
   )
 }
+
+/** The category's icon alone, without the tile (the activity line on a card, #348). Decoration. */
+export function CategoryIcon({ icon, className }: { icon: string; className?: string }) {
+  const Icon = ICONS[icon]
+  return Icon ? (
+    <Icon
+      aria-hidden
+      className={className}
+    />
+  ) : null
+}
