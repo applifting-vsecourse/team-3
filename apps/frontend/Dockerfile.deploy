@@ -23,11 +23,16 @@ ENV VITE_BETTER_AUTH_URL=$VITE_BETTER_AUTH_URL
 RUN pnpm --filter frontend build
 
 
-FROM nginx:1.30-alpine
+# The same nginx, but it runs as the nginx user (uid 101), not root: a hole in
+# nginx then gives an attacker no root inside the container.
+FROM nginxinc/nginx-unprivileged:1.30-alpine
 
 COPY --from=builder /app/apps/frontend/build /usr/share/nginx/html
 
 COPY apps/frontend/nginx.conf /etc/nginx/conf.d/default.conf
 COPY apps/frontend/nginx-security-headers.conf /etc/nginx/security-headers.conf
 
+# Still port 80, not the image's 8080: Coolify routes to 80 and the team cannot
+# change its settings. A non-root process may bind it because Docker (20.10+)
+# opens ports below 1024 inside the container's own network namespace.
 EXPOSE 80
