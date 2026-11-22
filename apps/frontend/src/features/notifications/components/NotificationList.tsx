@@ -69,17 +69,18 @@ export function NotificationList({ viewerId, onNavigate }: NotificationListProps
         />
         <p className="text-lg font-semibold">Zatím tu nic není</p>
         <p className="max-w-75 text-sm text-muted-foreground">
-          Až se u tvých akcí, skupin nebo přátel něco stane, dáme ti vědět tady i e-mailem.
+          Až se u tvých akcí, skupin nebo přátel něco stane, dáme ti vědět.
         </p>
       </div>
     )
   }
 
   const open = (event: MouseEvent<HTMLAnchorElement>, item: AppNotification) => {
-    // a new tab or window keeps the browser's own handling; it is marked when it is seen
+    // opened, so read — in a new tab or window too (review #398)
+    if (!item.readAt) markRead.mutate(item.id)
+    // a new tab or window keeps the browser's own handling
     if (event.metaKey || event.ctrlKey || event.shiftKey || event.button !== 0) return
     event.preventDefault()
-    if (!item.readAt) markRead.mutate(item.id)
     onNavigate?.()
     void router.navigate({ href: item.path })
   }
@@ -96,7 +97,11 @@ export function NotificationList({ viewerId, onNavigate }: NotificationListProps
             <a
               href={item.path}
               onClick={(event) => open(event, item)}
-              className="flex gap-3 rounded-md py-3 outline-none hover:bg-accent focus-visible:ring-2 focus-visible:ring-ring"
+              // the middle button opens a new tab without a click event
+              onAuxClick={(event) => {
+                if (event.button === 1 && !item.readAt) markRead.mutate(item.id)
+              }}
+              className="-mx-2 flex gap-3 rounded-md px-2 py-3 outline-none hover:bg-accent focus-visible:ring-2 focus-visible:ring-ring"
             >
               <span
                 className={cn(

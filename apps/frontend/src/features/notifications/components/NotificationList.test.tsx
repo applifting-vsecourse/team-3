@@ -78,6 +78,24 @@ describe("NotificationList (#86, Figma C-07)", () => {
     await waitFor(() => expect(router.state.location.pathname).toBe("/akce/e1/sprava"))
   })
 
+  it("opened in a new tab it is read too, and the browser keeps the link (review #398)", async () => {
+    api.get.mockReturnValue(asJson({ items, unreadCount: 1 }))
+    const { router } = await show()
+    const link = await screen.findByRole("link", { name: /Jana Nováková/ })
+    // one user: the held Ctrl carries over to the click
+    const user = userEvent.setup()
+
+    await user.keyboard("{Control>}")
+    await user.click(link)
+    await user.keyboard("{/Control}")
+    expect(api.post).toHaveBeenCalledWith("notifications/n2/read")
+    expect(router.state.location.pathname).toBe("/")
+
+    api.post.mockClear()
+    await user.pointer({ keys: "[MouseMiddle]", target: link })
+    expect(api.post).toHaveBeenCalledWith("notifications/n2/read")
+  })
+
   it("a read one isn't marked again", async () => {
     api.get.mockReturnValue(asJson({ items, unreadCount: 1 }))
     const { router } = await show()
@@ -95,9 +113,7 @@ describe("NotificationList (#86, Figma C-07)", () => {
 
     expect(await screen.findByText("Zatím tu nic není")).toBeInTheDocument()
     expect(
-      screen.getByText(
-        "Až se u tvých akcí, skupin nebo přátel něco stane, dáme ti vědět tady i e-mailem.",
-      ),
+      screen.getByText("Až se u tvých akcí, skupin nebo přátel něco stane, dáme ti vědět."),
     ).toBeInTheDocument()
   })
 
