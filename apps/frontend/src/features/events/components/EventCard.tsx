@@ -134,7 +134,7 @@ export function EventCard({
       >
         <Title
           className={cn(
-            "line-clamp-2",
+            "line-clamp-2 wrap-anywhere",
             {
               row: "type-row-title",
               grid: "type-card-title",
@@ -180,7 +180,9 @@ export function EventCard({
               variant === "responsive" && "md:hidden",
             )}
           >
-            <span className="truncate">{rowLine}</span>
+            <span className={distance ? "truncate" : "line-clamp-2 min-w-0 wrap-anywhere"}>
+              {rowLine}
+            </span>
             {distance ? <Distance km={distance} /> : null}
           </p>
         )}
@@ -205,13 +207,16 @@ export function EventCard({
         <div
           className={
             {
-              row: "flex items-center gap-2 pt-1",
+              row: "flex flex-wrap items-center gap-x-2 gap-y-1.5 pt-1",
               grid: "mt-auto flex flex-wrap items-center gap-2 pt-2",
-              responsive: "flex items-center gap-2 pt-1 md:mt-auto md:flex-wrap md:pt-2",
+              responsive: "flex flex-wrap items-center gap-2 pt-1 md:mt-auto md:pt-2",
             }[variant]
           }
         >
-          <StatusBadge status={status ?? capacityStatus(event)} />
+          <StatusBadge
+            status={status ?? capacityStatus(event)}
+            className="h-auto min-h-6 max-w-full py-0.5 leading-tight wrap-anywhere whitespace-normal"
+          />
           {/* the row card draws the numbers only as the bar, so a screen reader still gets them
               (a past event says who came in its line) */}
           {variant === "row" && (status?.kind === "past" || status?.kind === "not-held") ? null : (
@@ -251,9 +256,9 @@ export function EventCard({
               isFull={event.isFull}
               className={
                 {
-                  row: "min-w-16 flex-1",
+                  row: "min-w-[min(4rem,100%)] flex-1",
                   grid: "basis-full",
-                  responsive: "min-w-16 flex-1 md:basis-full",
+                  responsive: "min-w-[min(4rem,100%)] flex-1 md:basis-full",
                 }[variant]
               }
             />
