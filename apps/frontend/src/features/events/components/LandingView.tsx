@@ -4,8 +4,8 @@ import { Link, type LinkProps } from "@tanstack/react-router"
 
 import { ROUTES } from "@/app/routes"
 import { HomeSection } from "@/components/HomeSection/HomeSection"
+import { BandButton } from "@/components/PageBand/BandButton"
 import { PageBand } from "@/components/PageBand/PageBand"
-import { Button } from "@/components/ui/button"
 import { Skeleton } from "@/components/ui/skeleton"
 import type { LocalityState } from "@/hooks/useLocality"
 import { localitiesQueryOptions } from "@/lib/catalog/catalogQueryOptions"
@@ -160,24 +160,20 @@ export function LandingView({
         }
       >
         <div className="flex flex-wrap gap-3">
-          <Button
-            asChild
-            className="h-11 px-5 text-base font-semibold"
-          >
+          <BandButton asChild>
             <Link to={ROUTES.events}>Prohlédnout akce</Link>
-          </Button>
+          </BandButton>
           {isSignedIn === undefined ? null : (
-            <Button
+            <BandButton
               asChild
               variant="outline"
-              className="h-11 border-on-hero px-5 text-base font-semibold"
             >
               {isVisitor ? (
                 <Link to={ROUTES.signup}>Zaregistrovat se</Link>
               ) : (
                 <Link to={ROUTES.myEvents}>Moje akce</Link>
               )}
-            </Button>
+            </BandButton>
           )}
         </div>
       </PageBand>

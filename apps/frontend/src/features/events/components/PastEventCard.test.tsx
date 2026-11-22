@@ -169,8 +169,12 @@ describe("PastEventCard", () => {
     const event = anEvent()
     await renderWithRouter(<PastEventCard event={event} />)
 
-    expect(screen.getByText("Aktivita:").parentElement).toHaveTextContent(
-      `Aktivita: ${event.activity.name}`,
+    const line = screen.getByText("Aktivita:").parentElement!
+    expect(line).toHaveTextContent(`Aktivita: ${event.activity.name}`)
+    // first on screen, right after the heading in the DOM (review #397)
+    expect(line).toHaveClass("order-first")
+    expect(screen.getByRole("heading", { name: event.title }).compareDocumentPosition(line)).toBe(
+      Node.DOCUMENT_POSITION_FOLLOWING,
     )
   })
 })

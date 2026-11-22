@@ -150,8 +150,8 @@ export function EventCard({
             {event.title}
           </Link>
         </Title>
-        {/* above the title on screen, as the detail's band has it (#348); after it in the DOM,
-            so a screen reader moving by headings hears the activity with the title */}
+        {/* above the title on screen, as the detail's band has it (#348); right after it in the
+            DOM, so a screen reader hears the title first and the activity next (review #397) */}
         <ActivityLine
           activity={event.activity}
           className="order-first"

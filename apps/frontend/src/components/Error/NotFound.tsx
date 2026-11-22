@@ -2,8 +2,8 @@ import type { ReactNode } from "react"
 import { Link } from "@tanstack/react-router"
 
 import { ROUTES } from "@/app/routes"
+import { BandButton } from "@/components/PageBand/BandButton"
 import { PageBand } from "@/components/PageBand/PageBand"
-import { Button } from "@/components/ui/button"
 import { PAGE } from "@/lib/pageLayout"
 
 /**
@@ -20,20 +20,15 @@ export function NotFound({ more }: { more?: ReactNode } = {}) {
         description="Odkaz je neplatný, nebo stránka už neexistuje."
       >
         <div className="flex flex-wrap gap-3 pt-1">
-          <Button
-            asChild
-            className="h-11 px-5 text-base font-semibold"
-          >
+          <BandButton asChild>
             <Link to={ROUTES.events}>Procházet akce</Link>
-          </Button>
-          <Button
+          </BandButton>
+          <BandButton
             asChild
             variant="outline"
-            // as the landing page's band: `on-hero` gives the hover, the outline is the band's
-            className="h-11 border-on-hero px-5 text-base font-semibold"
           >
             <Link to={ROUTES.home}>Na úvod</Link>
-          </Button>
+          </BandButton>
         </div>
       </PageBand>
       {more ? <div className={PAGE}>{more}</div> : null}

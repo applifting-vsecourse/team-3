@@ -2,12 +2,14 @@ import { useId, type ReactNode } from "react"
 import { useQuery } from "@tanstack/react-query"
 import { MapPin, RefreshCw } from "lucide-react"
 
+import { homeGridColumns } from "@/components/HomeSection/HomeSection"
 import { LocalityFilter } from "@/components/LocalityFilter/LocalityFilter"
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 import { Button } from "@/components/ui/button"
 import { localityDefault, type LocalityState } from "@/hooks/useLocality"
 import { localitiesQueryOptions } from "@/lib/catalog/catalogQueryOptions"
 import { ALL_LOCALITIES_SLUG } from "@/lib/catalog/localityOptions"
+import { cn } from "@/lib/utils"
 
 import type { EventFilters } from "@/features/events/api/eventSchemas"
 import { eventsQueryOptions } from "@/features/events/api/eventsQueryOptions"
@@ -115,10 +117,11 @@ export function UpcomingEvents({
         </Alert>
       ) : !events ? (
         <div
-          // the grid's skeleton is a grid too, so nothing jumps once the events come (review #397)
+          // the grid's skeleton is the grid of a full list; with fewer events it narrows to their
+          // columns, which can't be known before they come (review #397)
           className={
             layout === "grid"
-              ? "grid grid-cols-1 gap-3 md:grid-cols-3 md:gap-6"
+              ? cn("grid grid-cols-1 gap-3 md:gap-6", homeGridColumns(UPCOMING_COUNT))
               : "flex flex-col gap-3"
           }
           aria-busy

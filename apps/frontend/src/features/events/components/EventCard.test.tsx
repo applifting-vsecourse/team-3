@@ -225,8 +225,7 @@ describe("EventCard", () => {
       const line = screen.getByText("Aktivita:").parentElement!
       expect(line).toHaveTextContent("Aktivita: Florbal")
       expect(line.querySelector("svg")).toHaveAttribute("aria-hidden")
-      // first on screen, after the heading in the DOM: moving by headings, the activity is heard
-      // with the title (review #397)
+      // first on screen, right after the heading in the DOM: the title is heard first (review #397)
       expect(line).toHaveClass("order-first")
       expect(screen.getByRole("heading").compareDocumentPosition(line)).toBe(
         Node.DOCUMENT_POSITION_FOLLOWING,

@@ -38,7 +38,6 @@ type ActivityTileProps = {
  * `tile-border` — the fill alone is 1.2:1 against the card (DESIGN.md › Colour).
  */
 export function ActivityTile({ icon, className, iconClassName }: ActivityTileProps) {
-  const Icon = ICONS[icon]
   return (
     <div
       aria-hidden
@@ -47,12 +46,15 @@ export function ActivityTile({ icon, className, iconClassName }: ActivityTilePro
         className,
       )}
     >
-      {Icon ? <Icon className={iconClassName} /> : null}
+      <CategoryIcon
+        icon={icon}
+        className={iconClassName}
+      />
     </div>
   )
 }
 
-/** The category's icon alone, without the tile (the activity line on a card, #348). Decoration. */
+/** The category's icon alone (the activity line on a card, #348), and inside the tile. Decoration. */
 export function CategoryIcon({ icon, className }: { icon: string; className?: string }) {
   const Icon = ICONS[icon]
   return Icon ? (
