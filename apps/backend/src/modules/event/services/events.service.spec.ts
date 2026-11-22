@@ -996,6 +996,7 @@ describe('EventsService participation', () => {
         approvalMode: 'open',
         maxParticipants: 6,
         isOrganizer: false,
+        isOutsideGroup: false,
         existingStatus: null,
         approvedCount: 2,
       }),
@@ -1025,6 +1026,21 @@ describe('EventsService participation', () => {
     expect(error.getResponse()).toEqual({
       code: 'EVENT_FULL',
       message: 'Akce je plná.',
+    });
+  });
+
+  it('left the group in another tab while joining: the check under the lock is 403 MEMBERS_ONLY (#266)', async () => {
+    const { repository, service } = setup();
+    repository.join.mockResolvedValue({ ok: false, refusal: 'MEMBERS_ONLY' });
+
+    const error = (await service
+      .join('e1', 'u9', null, now)
+      .catch((e: unknown) => e)) as ForbiddenException;
+
+    expect(error).toBeInstanceOf(ForbiddenException);
+    expect(error.getResponse()).toEqual({
+      code: 'MEMBERS_ONLY',
+      message: 'Akce je jen pro členy skupiny.',
     });
   });
 
@@ -1571,6 +1587,7 @@ describe('EventsService notifications (#177)', () => {
     approvalMode,
     maxParticipants: 6,
     isOrganizer: false,
+    isOutsideGroup: false,
     existingStatus: null,
     approvedCount: 2,
   });

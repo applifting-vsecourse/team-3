@@ -30,6 +30,57 @@ describe('GroupRepository', () => {
     });
   });
 
+  describe('leaveGroup (#266)', () => {
+    it("removes the membership and withdraws the places on the group's members-only events in one transaction", async () => {
+      const prisma = mockDeep<PrismaService>();
+      const at = new Date('2026-11-19T10:00:00.000Z');
+      let inTransaction = false;
+      // the transaction client is the same mock
+      prisma.$transaction.mockImplementation((async (
+        run: (tx: PrismaService) => Promise<unknown>,
+      ) => {
+        inTransaction = true;
+        try {
+          return await run(prisma);
+        } finally {
+          inTransaction = false;
+        }
+      }) as never);
+      const written: string[] = [];
+      prisma.groupMember.delete.mockImplementation((() => {
+        if (inTransaction) written.push('membership');
+      }) as never);
+      prisma.event.findMany.mockResolvedValue([
+        { id: 'e1', status: 'published' },
+      ] as never);
+      prisma.participation.findMany.mockResolvedValue([
+        { eventId: 'e1' },
+      ] as never);
+      prisma.participation.updateMany.mockImplementation((() => {
+        if (inTransaction) written.push('participations');
+      }) as never);
+
+      // the events whose organizers hear of the freed place (#398)
+      await expect(
+        new GroupRepository(prisma).leaveGroup('g1', 'u-jakub', at),
+      ).resolves.toEqual(['e1']);
+
+      expect(prisma.$transaction).toHaveBeenCalledTimes(1);
+      expect(written).toEqual(['membership', 'participations']);
+      expect(prisma.groupMember.delete).toHaveBeenCalledWith({
+        where: { groupId_userId: { groupId: 'g1', userId: 'u-jakub' } },
+      });
+      expect(prisma.participation.updateMany).toHaveBeenCalledWith({
+        where: {
+          userId: 'u-jakub',
+          eventId: { in: ['e1'] },
+          status: { in: ['approved', 'pending'] },
+        },
+        data: { status: 'withdrawn', approvedAt: null },
+      });
+    });
+  });
+
   describe('createMembership (#175)', () => {
     it('a request keeps its message', async () => {
       const prisma = mockDeep<PrismaService>();
