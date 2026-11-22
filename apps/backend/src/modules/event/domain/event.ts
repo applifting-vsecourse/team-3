@@ -53,7 +53,6 @@ export type PublicEvent = {
   address: string;
   lat: number;
   lng: number;
-  isLocationApproximate?: boolean;
   activity: {
     id: string;
     slug: string;

@@ -370,8 +370,6 @@ model Event {
   lat             Float
   lng             Float
   address         String
-  /// The coordinates identify the locality, without a verified meeting point.
-  isLocationApproximate Boolean @default(false)
   localityId      String
   locality        Locality        @relation(fields: [localityId], references: [id], onDelete: Restrict)
   minParticipants Int

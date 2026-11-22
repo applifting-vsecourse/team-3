@@ -8,7 +8,6 @@ export const publicEventSchema = z.object({
   address: z.string(),
   lat: z.number(),
   lng: z.number(),
-  isLocationApproximate: z.boolean().optional(),
   activity: z.object({
     id: z.string(),
     slug: z.string(),

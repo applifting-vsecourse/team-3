@@ -83,7 +83,6 @@ export const toPublicEvent = (
   address: event.address,
   lat: event.lat,
   lng: event.lng,
-  isLocationApproximate: event.isLocationApproximate,
   activity: {
     id: event.activity.id,
     slug: event.activity.slug,
@@ -587,9 +586,6 @@ export class EventRepository {
           endsAt: true,
           minParticipants: true,
           maxParticipants: true,
-          lat: true,
-          lng: true,
-          isLocationApproximate: true,
         },
       });
       if (!event) return null;
@@ -598,17 +594,7 @@ export class EventRepository {
       });
       const decision = decide({ ...event, approvedCount });
       if (!decision.ok) return decision;
-      const { lat, lng } = decision.data;
-      const hasMovedVenue =
-        (lat !== undefined && lat !== event.lat) ||
-        (lng !== undefined && lng !== event.lng);
-      await tx.event.update({
-        where: { id },
-        data:
-          event.isLocationApproximate && hasMovedVenue
-            ? { ...decision.data, isLocationApproximate: false }
-            : decision.data,
-      });
+      await tx.event.update({ where: { id }, data: decision.data });
       return decision;
     });
   }

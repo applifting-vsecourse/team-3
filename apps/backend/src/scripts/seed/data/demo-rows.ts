@@ -24,7 +24,6 @@ export type EventSource = Omit<
   localitySlug: string;
   /** Akce skupiny (#181, group-events-data.ts): klíč skupiny z dat. */
   groupKey?: string;
-  isLocationApproximate?: boolean;
 };
 
 export type DemoGroupRow = {
@@ -53,7 +52,6 @@ export type DemoEventRow = {
   endsAt: Date;
   lat: number;
   lng: number;
-  isLocationApproximate?: boolean;
   address: string;
   localitySlug: string;
   minParticipants: number;
@@ -108,7 +106,6 @@ export const toEventRow = (event: EventSource, now: Date): DemoEventRow => {
     endsAt: new Date(startsAt.getTime() + event.durationMinutes * MINUTE_IN_MS),
     lat: event.lat,
     lng: event.lng,
-    isLocationApproximate: event.isLocationApproximate,
     address: event.address,
     localitySlug: event.localitySlug,
     minParticipants: event.minParticipants,

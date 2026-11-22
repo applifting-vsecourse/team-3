@@ -205,9 +205,6 @@ export const approvalModeLabel = (mode: "open" | "approval"): string =>
  */
 export const placeName = (address: string): string => address.split(",")[0]?.trim() ?? address
 
-export const eventPlaceLabel = (event: Pick<PublicEvent, "address" | "isLocationApproximate">) =>
-  event.isLocationApproximate ? "Přibližná poloha" : placeName(event.address)
-
 export function capacityStatus(event: PublicEvent): CapacityStatus {
   if (event.isFull) return { kind: "full" }
   if (event.missingToMin > 0) return { kind: "missing", missing: event.missingToMin }
@@ -220,7 +217,7 @@ export function capacityStatus(event: PublicEvent): CapacityStatus {
  */
 export const groupEventTail = (event: GroupEvent): string | undefined =>
   event.visibility === "members"
-    ? `${eventPlaceLabel(event)} · ${event.locality.name} · jen pro členy`
+    ? `${placeName(event.address)} · ${event.locality.name} · jen pro členy`
     : undefined
 
 /**

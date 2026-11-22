@@ -302,9 +302,6 @@ describe('EventRepository.updateEvent', () => {
     endsAt: null,
     minParticipants: 3,
     maxParticipants: 6,
-    lat: 50,
-    lng: 14,
-    isLocationApproximate: true,
   };
   const setup = (): ReturnType<typeof mockDeep<PrismaService>> => {
     const prisma = mockDeep<PrismaService>();
@@ -334,32 +331,6 @@ describe('EventRepository.updateEvent', () => {
     expect(prisma.event.update).toHaveBeenCalledWith({
       where: { id: 'e1' },
       data: { maxParticipants: 8, endsAt },
-    });
-  });
-
-  it('keeps the approximation when an edit resends the same coordinates', async () => {
-    const prisma = setup();
-    const data = { lat: stored.lat, lng: stored.lng, title: 'Upravený název' };
-    await new EventRepository(prisma).updateEvent('e1', () => ({
-      ok: true,
-      data,
-    }));
-    expect(prisma.event.update).toHaveBeenCalledWith({
-      where: { id: 'e1' },
-      data,
-    });
-  });
-
-  it('uses a new meeting point when the organizer moves the pin', async () => {
-    const prisma = setup();
-    const data = { lat: 50.1, lng: 14.2 };
-    await new EventRepository(prisma).updateEvent('e1', () => ({
-      ok: true,
-      data,
-    }));
-    expect(prisma.event.update).toHaveBeenCalledWith({
-      where: { id: 'e1' },
-      data: { ...data, isLocationApproximate: false },
     });
   });
 

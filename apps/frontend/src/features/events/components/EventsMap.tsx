@@ -69,12 +69,9 @@ export function EventsMap({
   isPast = false,
   className,
 }: EventsMapProps) {
-  const mapped = events.filter((event) => !event.isLocationApproximate)
-  const hasApproximateLocations = mapped.length < events.length
   return (
     <MapView
-      pins={mapped.map(isPast ? toPastPin : toPin)}
-      notice={hasApproximateLocations ? "Akce s přibližnou polohou najdeš v seznamu." : undefined}
+      pins={events.map(isPast ? toPastPin : toPin)}
       highlightedId={highlightedId}
       selectedId={selectedId}
       center={center}

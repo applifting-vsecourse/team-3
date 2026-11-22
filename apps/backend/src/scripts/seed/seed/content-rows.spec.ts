@@ -67,35 +67,6 @@ describe('buildContentRows', () => {
     expect(new Set(ids).size).toBe(ids.length);
   });
 
-  it('persists venue precision from all three generated event sources', () => {
-    const { events } = build();
-    const approximateBySource = [
-      communityEvents,
-      groupEvents,
-      generatedPastEvents,
-    ].map(
-      (source) =>
-        source.filter(({ isLocationApproximate }) => isLocationApproximate)
-          .length,
-    );
-    expect(approximateBySource.every((count) => count > 0)).toBe(true);
-    expect(
-      events.filter(({ isLocationApproximate }) => isLocationApproximate),
-    ).toHaveLength(approximateBySource.reduce((sum, count) => sum + count, 0));
-    const atVodova = events.filter(
-      ({ address }) => address === 'STAREZ ARÉNA VODOVA, Vodova 336/108, Brno',
-    );
-    expect(atVodova.length).toBeGreaterThan(1);
-    expect(
-      atVodova.every(
-        ({ lat, lng, isLocationApproximate }) =>
-          lat === 49.227583 &&
-          lng === 16.583861 &&
-          isLocationApproximate === false,
-      ),
-    ).toBe(true);
-  });
-
   it("puts the groups' announcements in their groups, dated before the seed (#194)", () => {
     const rows = build();
     const groupIds = new Set(rows.groups.map((group) => group.id));

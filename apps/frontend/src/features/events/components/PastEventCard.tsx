@@ -8,10 +8,10 @@ import { gatheredLabel, missedMinimumLabel, wasHeld } from "@/lib/occupancy"
 import type { PublicEvent } from "@/features/events/api/eventSchemas"
 import { EventPhoto } from "@/features/events/components/EventPhoto"
 import {
-  eventPlaceLabel,
   formatEventDay,
   formatEventStart,
   isEventOver,
+  placeName,
 } from "@/features/events/lib/formatEvent"
 
 /**
@@ -75,7 +75,7 @@ export function PastEventCard({
   // over and below its minimum: „Nekonalo se“ and why, as its detail says (#61); nothing to
   // rate either. Before it ends it may still fill up (review #322)
   const isNotHeld = !isCancelled && !wasHeld(event) && isEventOver(event, now)
-  const line = [formatEventDay(event.startsAt), eventPlaceLabel(event), event.locality.name].join(
+  const line = [formatEventDay(event.startsAt), placeName(event.address), event.locality.name].join(
     " · ",
   )
   const attendance = [
