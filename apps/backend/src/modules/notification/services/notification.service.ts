@@ -2,13 +2,25 @@ import { EmailService } from '@/core/email/interfaces/email-service.interface';
 import { renderEmail } from '@/core/email/render';
 import { EventNotificationEmail } from '@/core/email/templates/event-notification';
 import {
+  composeAnnouncementInApp,
+  composeEventInApp,
+  composeEventMessageInApp,
+  composeFriendInApp,
+  composeGroupRequestInApp,
+  InAppMessage,
+} from '@/modules/notification/domain/in-app';
+import {
   composeAnnouncement,
   ComposedMessage,
   composeEventMessage,
+  composeFriendMessage,
+  composeGroupRequestMessage,
   composeMessage,
 } from '@/modules/notification/domain/messages';
 import {
   EventNotification,
+  FriendNotification,
+  GroupRequestNotification,
   Notification,
   NotifiedEvent,
   Recipient,
@@ -20,8 +32,16 @@ import { Inject, Injectable, Logger } from '@nestjs/common';
 /** Who gets the notification, and who it is about. */
 type Audience = { recipients: Recipient[]; person: { name: string } | null };
 
-/** The e-mail and who it goes to. */
-type Prepared = { recipients: Recipient[]; message: ComposedMessage };
+/**
+ * The e-mail and who it goes to, and the upozornění in the centre (#86) and
+ * who gets that: the same people, except where the e-mail goes to its author too.
+ */
+type Prepared = {
+  recipients: Recipient[];
+  message: ComposedMessage;
+  inApp: InAppMessage;
+  inAppRecipientIds: string[];
+};
 
 /** What a log line names: ids only, never an address. */
 const aboutOf = (notification: Notification): string => {
@@ -30,6 +50,13 @@ const aboutOf = (notification: Notification): string => {
       return `oznámení ${notification.announcementId}`;
     case 'event-message':
       return `akce ${notification.eventId}, zpráva ${notification.messageId}`;
+    case 'group-join-request':
+      return `skupina ${notification.groupId}, žadatel ${notification.applicantId}`;
+    case 'group-request-decided':
+      return `skupina ${notification.groupId}, žadatel ${notification.userId}`;
+    case 'friend-request':
+    case 'friend-accepted':
+      return `uživatel ${notification.fromId} → ${notification.toId}`;
     default:
       return `akce ${notification.eventId}`;
   }
@@ -66,11 +93,12 @@ const describeError = (error: unknown): string => {
 };
 
 /**
- * E-mails about events (#177, B-040, B-041). The one thing a service needs:
- * `notify(...)` after the change is written. It returns at once and never
- * throws; the mails go out afterwards, and a mail that can't be sent is
- * logged and skipped, so it never breaks what the user did or the mails to
- * the others.
+ * E-mails about events (#177, B-040, B-041) and the upozornění in the centre
+ * (#86) from the same events. The one thing a service needs: `notify(...)`
+ * after the change is written. It returns at once and never throws; the
+ * upozornění are written and the mails go out afterwards, and what can't be
+ * written or sent is logged and skipped, so it never breaks what the user did
+ * or what the others get.
  */
 @Injectable()
 export class NotificationService {
@@ -90,8 +118,9 @@ export class NotificationService {
   }
 
   /**
-   * Looks up who gets the notification and sends each of them the e-mail.
-   * Never rejects. Public so a test (or a job) can wait for the result.
+   * Looks up who gets the notification, writes their upozornění in the
+   * centre and sends each of them the e-mail. Never rejects. Public so a
+   * test (or a job) can wait for the result.
    */
   async deliver(notification: Notification): Promise<void> {
     try {
@@ -100,8 +129,17 @@ export class NotificationService {
           ? await this.prepareAnnouncement(notification.announcementId)
           : notification.type === 'event-message'
             ? await this.prepareEventMessage(notification.messageId)
-            : await this.prepareEventNotification(notification);
-      if (!prepared || prepared.recipients.length === 0) return;
+            : notification.type === 'friend-request' ||
+                notification.type === 'friend-accepted'
+              ? await this.prepareFriendNotification(notification)
+              : notification.type === 'group-join-request' ||
+                  notification.type === 'group-request-decided'
+                ? await this.prepareGroupRequest(notification)
+                : await this.prepareEventNotification(notification);
+      if (!prepared) return;
+      // the centre first: it doesn't wait for the mail provider
+      await this.store(notification, prepared);
+      if (prepared.recipients.length === 0) return;
 
       const { recipients, message } = prepared;
       const html = await renderEmail(EventNotificationEmail, message.email);
@@ -124,31 +162,45 @@ export class NotificationService {
     if (!event) return null;
     const { recipients, person } = await this.audienceOf(notification, event);
     if (recipients.length === 0) return null;
+    // a sign-up to an open event is e-mailed only to an organizer who asked for it (#86)
+    const emailed =
+      notification.type === 'participant-joined' && !event.emailOnJoin
+        ? []
+        : recipients;
     return {
-      recipients,
+      recipients: emailed,
       message: composeMessage(notification, {
         event,
         person,
         frontendUrl: this.config.frontendUrl,
       }),
+      inApp: composeEventInApp(notification, event, person),
+      inAppRecipientIds: recipients.map(({ id }) => id),
     };
   }
 
   /**
    * A group announcement (#194) goes to every active member of the group,
    * admins and its author included: Figma D-08 promises it to all of them,
-   * and the author's copy shows what the members got. Null when it is gone.
+   * and the author's copy shows what the members got. The upozornění in the
+   * centre doesn't go to the author: it is news only to the others. Null
+   * when it is gone.
    */
   private async prepareAnnouncement(
     announcementId: string,
   ): Promise<Prepared | null> {
     const announcement = await this.repository.findAnnouncement(announcementId);
     if (!announcement) return null;
+    const recipients = await this.repository.findActiveMembers(
+      announcement.group.id,
+    );
     return {
-      recipients: await this.repository.findActiveMembers(
-        announcement.group.id,
-      ),
+      recipients,
       message: composeAnnouncement(announcement, this.config.frontendUrl),
+      inApp: composeAnnouncementInApp(announcement),
+      inAppRecipientIds: recipients
+        .map(({ id }) => id)
+        .filter((id) => id !== announcement.senderId),
     };
   }
 
@@ -162,13 +214,92 @@ export class NotificationService {
   ): Promise<Prepared | null> {
     const message = await this.repository.findEventMessage(messageId);
     if (!message) return null;
+    const recipients = await this.repository.findApprovedParticipants(
+      message.event.id,
+      message.senderId,
+    );
     return {
-      recipients: await this.repository.findApprovedParticipants(
-        message.event.id,
-        message.senderId,
-      ),
+      recipients,
       message: composeEventMessage(message, this.config.frontendUrl),
+      inApp: composeEventMessageInApp(message),
+      inAppRecipientIds: recipients.map(({ id }) => id),
     };
+  }
+
+  /**
+   * A request to join a group (#86): every active admin hears of it (the
+   * applicant is never one), the applicant of the decision. Null when the
+   * group is gone or there is nobody to tell.
+   */
+  private async prepareGroupRequest(
+    notification: GroupRequestNotification,
+  ): Promise<Prepared | null> {
+    const group = await this.repository.findGroup(notification.groupId);
+    if (!group) return null;
+    let recipients: Recipient[];
+    let person: { name: string } | null = null;
+    if (notification.type === 'group-join-request') {
+      const [admins, name] = await Promise.all([
+        this.repository.findGroupAdmins(group.id),
+        this.repository.findPersonName(notification.applicantId),
+      ]);
+      recipients = admins.filter(({ id }) => id !== notification.applicantId);
+      person = name ? { name } : null;
+    } else {
+      recipients = await this.repository.findRecipients([notification.userId]);
+    }
+    if (recipients.length === 0) return null;
+    return {
+      recipients,
+      message: composeGroupRequestMessage(
+        notification,
+        group,
+        person,
+        this.config.frontendUrl,
+      ),
+      inApp: composeGroupRequestInApp(notification, group, person),
+      inAppRecipientIds: recipients.map(({ id }) => id),
+    };
+  }
+
+  /**
+   * Friends (#307, #86): the one asked hears of a request, the one who asked
+   * of the acceptance; the e-mail names the other person. Null when either
+   * of them can't be written to or named (blocked, deleted, gone).
+   */
+  private async prepareFriendNotification(
+    notification: FriendNotification,
+  ): Promise<Prepared | null> {
+    const [recipients, name] = await Promise.all([
+      this.repository.findRecipients([notification.toId]),
+      this.repository.findPersonName(notification.fromId),
+    ]);
+    if (recipients.length === 0 || name === null) return null;
+    const person = { id: notification.fromId, name };
+    return {
+      recipients,
+      message: composeFriendMessage(
+        notification,
+        person,
+        this.config.frontendUrl,
+      ),
+      inApp: composeFriendInApp(notification, person),
+      inAppRecipientIds: recipients.map(({ id }) => id),
+    };
+  }
+
+  /** Writes the upozornění in the centre (#86); a failure is logged, the e-mails still go. */
+  private async store(
+    notification: Notification,
+    { inApp, inAppRecipientIds }: Prepared,
+  ): Promise<void> {
+    try {
+      await this.repository.createInApp(inAppRecipientIds, inApp);
+    } catch (error) {
+      this.logger.error(
+        `Upozornění ${notification.type} (${aboutOf(notification)}) se nepodařilo uložit do centra: ${describeError(error)}`,
+      );
+    }
   }
 
   private async send(
@@ -214,6 +345,7 @@ export class NotificationService {
           person: null,
         };
       case 'request-received':
+      case 'participant-joined':
       case 'participant-left': {
         const personId =
           notification.type === 'request-received'

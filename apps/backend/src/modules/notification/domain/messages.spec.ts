@@ -1,6 +1,8 @@
 import {
   composeAnnouncement,
   composeEventMessage,
+  composeFriendMessage,
+  composeGroupRequestMessage,
   composeMessage,
   MessageContext,
 } from './messages';
@@ -16,6 +18,7 @@ const event: NotifiedEvent = {
   approvedCount: 3,
   maxParticipants: 6,
   organizerId: 'u1',
+  emailOnJoin: false,
 };
 
 const context = (overrides: Partial<MessageContext> = {}): MessageContext => ({
@@ -395,5 +398,96 @@ describe('composeMessage', () => {
         'Sraz v 17:50 u vchodu. Vezmi si sálovky. Míče mám.',
       );
     });
+  });
+});
+
+describe('composeFriendMessage (#307, #86)', () => {
+  const petr = { id: 'u7', name: 'Petr Malý' };
+
+  it('a request leads to the requests waiting for the user', () => {
+    const message = composeFriendMessage(
+      { type: 'friend-request', fromId: 'u7', toId: 'u1' },
+      petr,
+      'https://hobbyhub.example/',
+    );
+    expect(message.subject).toBe('Žádost o přátelství: Petr Malý');
+    expect(message.email.action).toEqual({
+      label: 'Zobrazit žádost',
+      url: 'https://hobbyhub.example/profil/pratele?tab=zadosti',
+    });
+  });
+
+  it('an acceptance leads to the new friend’s profile', () => {
+    const message = composeFriendMessage(
+      { type: 'friend-accepted', fromId: 'u7', toId: 'u1' },
+      petr,
+      'https://hobbyhub.example/',
+    );
+    expect(message.subject).toBe('Jste přátelé: Petr Malý');
+    expect(message.email.action).toEqual({
+      label: 'Zobrazit profil',
+      url: 'https://hobbyhub.example/uzivatele/u7',
+    });
+  });
+});
+
+describe('composeGroupRequestMessage (#86)', () => {
+  const group = { id: 'g1', name: 'Volejbal Pankrác' };
+
+  it('the admins get the request with its message and a link to the management', () => {
+    const message = composeGroupRequestMessage(
+      {
+        type: 'group-join-request',
+        groupId: 'g1',
+        applicantId: 'u2',
+        message: 'Hraju dva roky.',
+      },
+      group,
+      { name: 'Jana' },
+      'https://hobbyhub.example/',
+    );
+    expect(message.subject).toBe('Nová žádost o vstup: Volejbal Pankrác');
+    expect(message.email.quote).toEqual({
+      label: 'Zpráva k žádosti',
+      text: 'Hraju dva roky.',
+    });
+    expect(message.email.action).toEqual({
+      label: 'Vyřídit žádost',
+      url: 'https://hobbyhub.example/skupiny/g1/sprava',
+    });
+  });
+
+  it('the applicant gets the decision with a link to the group', () => {
+    const approved = composeGroupRequestMessage(
+      {
+        type: 'group-request-decided',
+        groupId: 'g1',
+        userId: 'u2',
+        outcome: 'approved',
+      },
+      group,
+      null,
+      'https://hobbyhub.example/',
+    );
+    const rejected = composeGroupRequestMessage(
+      {
+        type: 'group-request-decided',
+        groupId: 'g1',
+        userId: 'u2',
+        outcome: 'rejected',
+      },
+      group,
+      null,
+      'https://hobbyhub.example/',
+    );
+    expect(approved.subject).toBe('Jsi ve skupině: Volejbal Pankrác');
+    expect(rejected.subject).toBe(
+      'Žádost o vstup nebyla přijata: Volejbal Pankrác',
+    );
+    for (const message of [approved, rejected]) {
+      expect(message.email.action.url).toBe(
+        'https://hobbyhub.example/skupiny/g1',
+      );
+    }
   });
 });

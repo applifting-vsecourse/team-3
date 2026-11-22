@@ -279,6 +279,7 @@ export class EventRepository {
       ...toPublicEvent(event, now),
       description: event.description,
       approvalMode: event.approvalMode,
+      emailOnJoin: event.emailOnJoin,
       visibility: event.visibility,
       status: event.status,
       cancelReason: event.cancelReason,

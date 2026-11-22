@@ -281,6 +281,7 @@ model User {
   notificationLogs       NotificationLog[]
   sentFriendRequests     Friendship[]        @relation("FriendshipRequester")
   receivedFriendRequests Friendship[]        @relation("FriendshipAddressee")
+  notifications          Notification[]
 
   @@unique([email])
   @@unique([username])
@@ -381,6 +382,9 @@ model Event {
   level           EventLevel?
   equipment       String?
   approvalMode    ApprovalMode    @default(open)
+  /// Organizátor chce e-mail ke každé přihlášce na akci bez schvalování (#86);
+  /// upozornění v centru dostane vždy, žádosti o účast chodí e-mailem vždy.
+  emailOnJoin     Boolean         @default(false)
   visibility      EventVisibility @default(public)
   organizerUserId String
   organizer       User            @relation("EventOrganizer", fields: [organizerUserId], references: [id], onDelete: Restrict)
@@ -729,6 +733,59 @@ model Friendship {
   @@index([requesterId])
   @@index([addresseeId])
   @@map("friendship")
+}
+
+// ---------------------------------------------------------------------------
+// Upozornění v aplikaci (B-044, #86)
+// ---------------------------------------------------------------------------
+
+/// Druh upozornění, řádky v `docs/navrh-upozorneni.md`. Podle druhu vede proklik
+/// (`notificationPath`): správa akce, detail akce, skupina, žádosti o přátelství, profil.
+enum NotificationType {
+  request_received
+  participant_joined
+  participant_left
+  request_approved
+  request_rejected
+  event_changed
+  event_cancelled
+  event_message
+  group_announcement
+  group_join_request
+  group_request_approved
+  group_request_rejected
+  friend_request
+  friend_accepted
+
+  @@map("notification_type")
+}
+
+enum NotificationTargetType {
+  event
+  group
+  user
+
+  @@map("notification_target_type")
+}
+
+/// Upozornění v centru (zvonek). Vzniká ze stejné události jako e-mail (#177).
+/// `text` je hotová krátká zpráva uložená při vzniku; cíl (`targetType` + `targetId`)
+/// je bez cizího klíče jako u `Report`, existenci ověří detail při prokliku.
+/// Nepřečtené = `readAt` je null.
+model Notification {
+  id         String                 @id @default(cuid())
+  userId     String
+  user       User                   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  type       NotificationType
+  targetType NotificationTargetType
+  targetId   String
+  text       String
+  createdAt  DateTime               @default(now())
+  readAt     DateTime?
+
+  @@index([userId, createdAt])
+  @@index([userId, readAt])
+  @@map("notification")
 }
 
 // ---------------------------------------------------------------------------

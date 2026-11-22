@@ -30,6 +30,7 @@ const event: NotifiedEvent = {
   approvedCount: 3,
   maxParticipants: 6,
   organizerId: 'u1',
+  emailOnJoin: false,
 };
 
 const organizer: Recipient = {
@@ -424,6 +425,272 @@ describe('NotificationService.deliver', () => {
       expect(email.sendEmail).not.toHaveBeenCalled();
       expect(error).toHaveBeenCalledTimes(1);
     });
+  });
+});
+
+describe('NotificationService.deliver: the centre (#86)', () => {
+  afterEach(() => jest.restoreAllMocks());
+
+  it('writes one upozornění for each person the e-mail goes to, before the mails', async () => {
+    const { repository, email, service } = setup();
+    repository.findRecipients.mockResolvedValue([jana, tomas]);
+    const order: string[] = [];
+    repository.createInApp.mockImplementation(async () => {
+      order.push('centre');
+    });
+    email.sendEmail.mockImplementation(async () => {
+      order.push('mail');
+    });
+
+    await service.deliver({
+      type: 'request-decided',
+      eventId: 'e1',
+      userIds: ['u2', 'u3'],
+      outcome: 'approved',
+    });
+
+    expect(repository.createInApp).toHaveBeenCalledTimes(1);
+    expect(repository.createInApp).toHaveBeenCalledWith(['u2', 'u3'], {
+      type: 'request_approved',
+      targetType: 'event',
+      targetId: 'e1',
+      text: 'Tvoje žádost o účast na akci „Deskovky ve středu“ byla schválena.',
+    });
+    expect(order).toEqual(['centre', 'mail', 'mail']);
+  });
+
+  it('the organizer hears of a request with the applicant’s name', async () => {
+    const { repository, service } = setup();
+    repository.findRecipients.mockResolvedValue([organizer]);
+
+    await service.deliver({
+      type: 'request-received',
+      eventId: 'e1',
+      applicantId: 'u2',
+      message: null,
+    });
+
+    expect(repository.createInApp).toHaveBeenCalledWith(['u1'], {
+      type: 'request_received',
+      targetType: 'event',
+      targetId: 'e1',
+      text: 'Jana Nováková se chce zúčastnit akce „Deskovky ve středu“.',
+    });
+  });
+
+  it('a group announcement: every member but its author, who still gets the e-mail', async () => {
+    const { repository, email, service } = setup();
+    repository.findAnnouncement.mockResolvedValue({
+      id: 'an1',
+      subject: 'Přes svátky se nehraje',
+      body: 'Pauza do 6. 1.',
+      senderId: 'u1',
+      group: { id: 'g1', name: 'Florbal Podvinný mlýn' },
+    });
+    repository.findActiveMembers.mockResolvedValue([organizer, jana, tomas]);
+
+    await service.deliver({
+      type: 'group-announcement',
+      announcementId: 'an1',
+    });
+
+    expect(repository.createInApp).toHaveBeenCalledWith(['u2', 'u3'], {
+      type: 'group_announcement',
+      targetType: 'group',
+      targetId: 'g1',
+      text: 'Nové oznámení ve skupině „Florbal Podvinný mlýn“: Přes svátky se nehraje',
+    });
+    expect(sentTo(email)).toEqual([organizer.email, jana.email, tomas.email]);
+  });
+
+  it('the organizer’s message: the approved participants it is sent to', async () => {
+    const { repository, service } = setup();
+    repository.findEventMessage.mockResolvedValue({
+      id: 'm1',
+      subject: 'Sraz u vchodu',
+      body: 'Sraz v 17:50 u vchodu.',
+      senderId: 'u1',
+      event: { id: 'e1', title: 'Deskovky ve středu' },
+    });
+    repository.findApprovedParticipants.mockResolvedValue([jana]);
+
+    await service.deliver({
+      type: 'event-message',
+      eventId: 'e1',
+      messageId: 'm1',
+    });
+
+    expect(repository.createInApp).toHaveBeenCalledWith(['u2'], {
+      type: 'event_message',
+      targetType: 'event',
+      targetId: 'e1',
+      text: 'Nová zpráva k akci „Deskovky ve středu“: Sraz u vchodu',
+    });
+  });
+
+  it('a request to join a group: its active admins, never the applicant', async () => {
+    const { repository, email, service } = setup();
+    repository.findGroup.mockResolvedValue({ id: 'g1', name: 'Florbal' });
+    repository.findGroupAdmins.mockResolvedValue([organizer, jana]);
+
+    await service.deliver({
+      type: 'group-join-request',
+      groupId: 'g1',
+      applicantId: 'u2',
+      message: null,
+    });
+
+    expect(repository.findGroupAdmins).toHaveBeenCalledWith('g1');
+    expect(repository.createInApp).toHaveBeenCalledWith(['u1'], {
+      type: 'group_join_request',
+      targetType: 'group',
+      targetId: 'g1',
+      text: 'Jana Nováková chce do skupiny „Florbal“.',
+    });
+    expect(sentTo(email)).toEqual([organizer.email]);
+  });
+
+  it('a decided request to join: the applicant', async () => {
+    const { repository, email, service } = setup();
+    repository.findGroup.mockResolvedValue({ id: 'g1', name: 'Florbal' });
+    repository.findRecipients.mockResolvedValue([jana]);
+
+    await service.deliver({
+      type: 'group-request-decided',
+      groupId: 'g1',
+      userId: 'u2',
+      outcome: 'rejected',
+    });
+
+    expect(repository.findRecipients).toHaveBeenCalledWith(['u2']);
+    expect(repository.createInApp).toHaveBeenCalledWith(
+      ['u2'],
+      expect.objectContaining({ type: 'group_request_rejected' }),
+    );
+    expect(sentTo(email)).toEqual([jana.email]);
+  });
+
+  it('a group that is gone tells nobody', async () => {
+    const { repository, email, service } = setup();
+    repository.findGroup.mockResolvedValue(null);
+
+    await service.deliver({
+      type: 'group-request-decided',
+      groupId: 'g1',
+      userId: 'u2',
+      outcome: 'approved',
+    });
+
+    expect(repository.createInApp).not.toHaveBeenCalled();
+    expect(email.sendEmail).not.toHaveBeenCalled();
+  });
+
+  it('a friend request: the one asked, by e-mail and in the centre, naming who asks', async () => {
+    const { repository, email, service } = setup();
+    repository.findRecipients.mockResolvedValue([jana]);
+    repository.findPersonName.mockResolvedValue('Petra');
+
+    await service.deliver({ type: 'friend-request', fromId: 'u1', toId: 'u2' });
+
+    expect(repository.findRecipients).toHaveBeenCalledWith(['u2']);
+    expect(repository.findPersonName).toHaveBeenCalledWith('u1');
+    expect(repository.findEvent).not.toHaveBeenCalled();
+    expect(repository.createInApp).toHaveBeenCalledWith(['u2'], {
+      type: 'friend_request',
+      targetType: 'user',
+      targetId: 'u1',
+      text: 'Petra ti posílá žádost o přátelství.',
+    });
+    expect(sentTo(email)).toEqual([jana.email]);
+    expect(email.sendEmail.mock.calls[0]![1]).toBe(
+      'Žádost o přátelství: Petra',
+    );
+  });
+
+  it('a friend who can’t be written to (blocked, deleted) gets nothing', async () => {
+    const { repository, email, service } = setup();
+    repository.findRecipients.mockResolvedValue([]);
+
+    await service.deliver({
+      type: 'friend-accepted',
+      fromId: 'u1',
+      toId: 'u2',
+    });
+
+    expect(repository.createInApp).not.toHaveBeenCalled();
+    expect(email.sendEmail).not.toHaveBeenCalled();
+  });
+
+  it('a sign-up to an open event: the organizer in the centre, no e-mail unless asked for', async () => {
+    const { repository, email, service } = setup();
+    repository.findRecipients.mockResolvedValue([organizer]);
+
+    await service.deliver({
+      type: 'participant-joined',
+      eventId: 'e1',
+      participantId: 'u2',
+    });
+
+    expect(repository.createInApp).toHaveBeenCalledWith(['u1'], {
+      type: 'participant_joined',
+      targetType: 'event',
+      targetId: 'e1',
+      text: 'Jana Nováková jde na akci „Deskovky ve středu“.',
+    });
+    expect(email.sendEmail).not.toHaveBeenCalled();
+  });
+
+  it('a sign-up to an open event is e-mailed to an organizer who asked for it', async () => {
+    const { repository, email, service } = setup();
+    repository.findEvent.mockResolvedValue({ ...event, emailOnJoin: true });
+    repository.findRecipients.mockResolvedValue([organizer]);
+
+    await service.deliver({
+      type: 'participant-joined',
+      eventId: 'e1',
+      participantId: 'u2',
+    });
+
+    expect(sentTo(email)).toEqual([organizer.email]);
+    expect(email.sendEmail.mock.calls[0]![1]).toBe(
+      'Nová přihláška: Deskovky ve středu',
+    );
+  });
+
+  it('the organizer signing up to their own event tells nobody', async () => {
+    const { repository, email, service } = setup();
+
+    await service.deliver({
+      type: 'participant-joined',
+      eventId: 'e1',
+      participantId: 'u1',
+    });
+
+    expect(repository.createInApp).not.toHaveBeenCalled();
+    expect(email.sendEmail).not.toHaveBeenCalled();
+  });
+
+  it('nobody to tell writes nothing', async () => {
+    const { repository, service } = setup();
+
+    await service.deliver({ type: 'event-cancelled', eventId: 'e1' });
+
+    expect(repository.createInApp).not.toHaveBeenCalled();
+  });
+
+  it('a centre that can’t be written is logged and the e-mails still go', async () => {
+    const error = jest.spyOn(Logger.prototype, 'error').mockImplementation();
+    const { repository, email, service } = setup();
+    repository.findAudience.mockResolvedValue([jana]);
+    repository.createInApp.mockRejectedValue(new Error('db down'));
+
+    await expect(
+      service.deliver({ type: 'event-cancelled', eventId: 'e1' }),
+    ).resolves.toBeUndefined();
+
+    expect(sentTo(email)).toEqual([jana.email]);
+    expect(error).toHaveBeenCalledTimes(1);
+    expect(String(error.mock.calls[0]![0])).toContain('centra');
   });
 });
 
