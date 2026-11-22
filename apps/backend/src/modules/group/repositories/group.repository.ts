@@ -299,13 +299,6 @@ export class GroupRepository {
     return count > 0;
   }
 
-  /** A rejected request removes the row, so the user can ask again; leaving is `leaveGroup`. */
-  async deleteMembership(groupId: string, userId: string): Promise<void> {
-    await this.prisma.groupMember.delete({
-      where: { groupId_userId: { groupId, userId } },
-    });
-  }
-
   /**
    * Leaving the group or withdrawing a request (US-17): the row goes, and in
    * the same transaction the places and requests on the group's upcoming
