@@ -239,7 +239,7 @@ export class GroupsController {
   @ApiOperation({
     summary: 'Leave the group, or withdraw a pending request',
     description:
-      "Leaving also withdraws the user's places and waiting requests on the group's upcoming members-only events, in the same transaction (#266). Public, private and past events, and the user's own events, stay as they are.",
+      "Leaving also withdraws the user's places and waiting requests on the group's upcoming members-only events, in the same transaction (#266). Public, private and past events, and the user's own events, stay as they are. After the commit the organizer of each event where an approved place was freed gets participant-left, as when someone leaves the event; a withdrawn request tells nobody.",
   })
   @ApiResponse({ status: 204 })
   @ApiResponse({ status: 401, description: 'Not signed in' })

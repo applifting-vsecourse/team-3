@@ -17,7 +17,7 @@ this.notifications.notify({ type: 'event-cancelled', eventId });
 | `event-cancelled`       | schválení a čekající účastníci, ne organizátor; s důvodem | `EventsService.cancelEvent`                                        |
 | `request-received`      | organizátor; se zprávou žadatele (#175)                   | `EventsService.join` (žádost čeká na schválení)                    |
 | `participant-joined` | organizátor: v centru vždy, e-mailem jen když si u akce zapnul `emailOnJoin` (při založení i v úpravě) | `EventsService.join` (místo hned, akce bez schvalování, #86) |
-| `participant-left`      | organizátor                                               | `EventsService.leave` (odhlásil se schválený účastník)             |
+| `participant-left`      | organizátor                                               | `EventsService.leave` (odhlásil se schválený účastník); `GroupsService.leave` po odchodu ze skupiny, za každou akci jen pro členy, kde měl schválené místo (#266) |
 | `group-announcement`    | všichni aktivní členové skupiny, správci i autor          | `GroupsService.sendAnnouncement` (#194)                            |
 | `event-message`         | schválení účastníci, ne organizátor                       | `EventsService.sendMessage` (#176)                                 |
 | `group-join-request`    | aktivní správci skupiny, ne žadatel; se zprávou žadatele  | `GroupsService.join` (žádost do uzavřené skupiny, #86)             |

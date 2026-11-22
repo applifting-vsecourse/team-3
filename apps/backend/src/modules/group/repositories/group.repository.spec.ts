@@ -46,12 +46,20 @@ describe('GroupRepository', () => {
       prisma.groupMember.delete.mockImplementation((() => {
         if (inTransaction) written.push('membership');
       }) as never);
-      prisma.event.findMany.mockResolvedValue([{ id: 'e1' }] as never);
+      prisma.event.findMany.mockResolvedValue([
+        { id: 'e1', status: 'published' },
+      ] as never);
+      prisma.participation.findMany.mockResolvedValue([
+        { eventId: 'e1' },
+      ] as never);
       prisma.participation.updateMany.mockImplementation((() => {
         if (inTransaction) written.push('participations');
       }) as never);
 
-      await new GroupRepository(prisma).leaveGroup('g1', 'u-jakub', at);
+      // the events whose organizers hear of the freed place (#398)
+      await expect(
+        new GroupRepository(prisma).leaveGroup('g1', 'u-jakub', at),
+      ).resolves.toEqual(['e1']);
 
       expect(prisma.$transaction).toHaveBeenCalledTimes(1);
       expect(written).toEqual(['membership', 'participations']);

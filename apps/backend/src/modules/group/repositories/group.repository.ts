@@ -285,14 +285,20 @@ export class GroupRepository {
   /**
    * Leaving the group or withdrawing a request (US-17): the row goes, and in
    * the same transaction the places and requests on the group's upcoming
-   * members-only events, which the user no longer sees (#266).
+   * members-only events, which the user no longer sees (#266). Returns the
+   * events where an approved place was freed, once the transaction has
+   * committed.
    */
-  async leaveGroup(groupId: string, userId: string, at: Date): Promise<void> {
-    await this.prisma.$transaction(async (tx) => {
+  async leaveGroup(
+    groupId: string,
+    userId: string,
+    at: Date,
+  ): Promise<string[]> {
+    return this.prisma.$transaction(async (tx) => {
       await tx.groupMember.delete({
         where: { groupId_userId: { groupId, userId } },
       });
-      await withdrawFromMembersOnlyEvents(tx, groupId, userId, at);
+      return withdrawFromMembersOnlyEvents(tx, groupId, userId, at);
     });
   }
 

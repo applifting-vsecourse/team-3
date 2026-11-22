@@ -101,13 +101,17 @@ describe('formerMemberEventsWhere (#266)', () => {
 describe('withdrawFromMembersOnlyEvents (#266)', () => {
   it('locks the events as joining does, then withdraws the places and requests', async () => {
     const tx = mockDeep<PrismaService>();
-    tx.event.findMany.mockResolvedValue([{ id: 'e1' }, { id: 'e2' }] as never);
+    tx.event.findMany.mockResolvedValue([
+      { id: 'e1', status: 'published' },
+      { id: 'e2', status: 'published' },
+    ] as never);
+    tx.participation.findMany.mockResolvedValue([]);
 
     await withdrawFromMembersOnlyEvents(tx, 'g1', 'u-jakub', now);
 
     expect(tx.event.findMany).toHaveBeenCalledWith({
       where: formerMemberEventsWhere('g1', 'u-jakub', now),
-      select: { id: true },
+      select: { id: true, status: true },
       orderBy: { id: 'asc' },
     });
     expect(tx.participation.updateMany).toHaveBeenCalledWith({
@@ -124,11 +128,63 @@ describe('withdrawFromMembersOnlyEvents (#266)', () => {
     );
   });
 
+  it('returns the events where an approved place was freed, read under the lock (#398)', async () => {
+    const tx = mockDeep<PrismaService>();
+    tx.event.findMany.mockResolvedValue([
+      { id: 'e1', status: 'published' },
+      { id: 'e2', status: 'published' },
+      { id: 'e3', status: 'cancelled' },
+      { id: 'e4', status: 'hidden' },
+    ] as never);
+    // e2 is only a waiting request: withdrawing it tells nobody
+    tx.participation.findMany.mockResolvedValue([
+      { eventId: 'e1' },
+      { eventId: 'e3' },
+      { eventId: 'e4' },
+    ] as never);
+
+    await expect(
+      withdrawFromMembersOnlyEvents(tx, 'g1', 'u-jakub', now),
+    ).resolves.toEqual(
+      // a cancelled one can be left too; a hidden one has no page to leave from
+      ['e1', 'e3'],
+    );
+    expect(tx.participation.findMany).toHaveBeenCalledWith({
+      where: {
+        userId: 'u-jakub',
+        eventId: { in: ['e1', 'e2', 'e3', 'e4'] },
+        status: 'approved',
+      },
+      select: { eventId: true },
+    });
+    expect(tx.$executeRaw.mock.invocationCallOrder[0]!).toBeLessThan(
+      tx.participation.findMany.mock.invocationCallOrder[0]!,
+    );
+    expect(tx.participation.findMany.mock.invocationCallOrder[0]!).toBeLessThan(
+      tx.participation.updateMany.mock.invocationCallOrder[0]!,
+    );
+  });
+
+  it('only waiting requests: nobody to tell', async () => {
+    const tx = mockDeep<PrismaService>();
+    tx.event.findMany.mockResolvedValue([
+      { id: 'e1', status: 'published' },
+    ] as never);
+    tx.participation.findMany.mockResolvedValue([]);
+
+    await expect(
+      withdrawFromMembersOnlyEvents(tx, 'g1', 'u-jakub', now),
+    ).resolves.toEqual([]);
+    expect(tx.participation.updateMany).toHaveBeenCalled();
+  });
+
   it('with nothing held it locks and writes nothing', async () => {
     const tx = mockDeep<PrismaService>();
     tx.event.findMany.mockResolvedValue([]);
 
-    await withdrawFromMembersOnlyEvents(tx, 'g1', 'u-jakub', now);
+    await expect(
+      withdrawFromMembersOnlyEvents(tx, 'g1', 'u-jakub', now),
+    ).resolves.toEqual([]);
 
     expect(tx.$executeRaw).not.toHaveBeenCalled();
     expect(tx.participation.updateMany).not.toHaveBeenCalled();
