@@ -2,6 +2,7 @@ import type { ReactNode } from "react"
 import { Link } from "@tanstack/react-router"
 
 import { ROUTES } from "@/app/routes"
+import { ActivityLine } from "@/components/ActivityLine/ActivityLine"
 import { StatusBadge } from "@/components/StatusBadge/StatusBadge"
 import { gatheredLabel, missedMinimumLabel, wasHeld } from "@/lib/occupancy"
 
@@ -116,6 +117,11 @@ export function PastEventCard({
             event.title
           )}
         </Title>
+        {/* above the title on screen, after it in the DOM, as on the event card (#348) */}
+        <ActivityLine
+          activity={event.activity}
+          className="order-first"
+        />
         <time
           dateTime={event.startsAt.toISOString()}
           className="sr-only"

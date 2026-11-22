@@ -20,8 +20,7 @@ describe("EventCard", () => {
     const { container } = await renderWithRouter(<EventCard event={withActivity(florbal)} />)
 
     const photo = container.querySelector<HTMLElement>("[data-slot=event-photo]")!
-    // the date tile is decoration, the <time> says it (the activity on the photo is read, #348)
-    expect(within(photo).getByText("23").closest("[aria-hidden]")).not.toBeNull()
+    expect(photo).toHaveAttribute("aria-hidden", "true")
     expect(photo.querySelector("img")?.getAttribute("src")).toMatch(/florbal-480\.webp/)
     // one colour grade for the whole library (Figma: saturation −14 %, contrast +10 %)
     expect(photo.querySelector("img")).toHaveClass("saturate-86", "contrast-110")
@@ -211,4 +210,31 @@ describe("EventCard", () => {
     expect(distance).toHaveClass("shrink-0")
     expect(distance.previousElementSibling).toHaveClass("truncate")
   })
+
+  // #348: the activity on a line of its own above the title, not in the photo
+  it.each(["row", "grid", "responsive"] as const)(
+    "%s: the activity's icon and name above the title",
+    async (variant) => {
+      const { container } = await renderWithRouter(
+        <EventCard
+          event={withActivity(florbal)}
+          variant={variant}
+        />,
+      )
+
+      const line = screen.getByText("Aktivita:").parentElement!
+      expect(line).toHaveTextContent("Aktivita: Florbal")
+      expect(line.querySelector("svg")).toHaveAttribute("aria-hidden")
+      // first on screen, right after the heading in the DOM: the title is heard first (review #397)
+      expect(line).toHaveClass("order-first")
+      expect(screen.getByRole("heading").compareDocumentPosition(line)).toBe(
+        Node.DOCUMENT_POSITION_FOLLOWING,
+      )
+      expect(
+        within(container.querySelector<HTMLElement>("[data-slot=event-photo]")!).queryByText(
+          "Florbal",
+        ),
+      ).toBeNull()
+    },
+  )
 })

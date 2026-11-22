@@ -2,17 +2,20 @@ import { useId, type ReactNode } from "react"
 import { useQuery } from "@tanstack/react-query"
 import { MapPin, RefreshCw } from "lucide-react"
 
+import { homeGridColumns } from "@/components/HomeSection/HomeSection"
 import { LocalityFilter } from "@/components/LocalityFilter/LocalityFilter"
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 import { Button } from "@/components/ui/button"
 import { localityDefault, type LocalityState } from "@/hooks/useLocality"
 import { localitiesQueryOptions } from "@/lib/catalog/catalogQueryOptions"
 import { ALL_LOCALITIES_SLUG } from "@/lib/catalog/localityOptions"
+import { cn } from "@/lib/utils"
 
 import type { EventFilters } from "@/features/events/api/eventSchemas"
 import { eventsQueryOptions } from "@/features/events/api/eventsQueryOptions"
 import { EventCard } from "@/features/events/components/EventCard"
 import { EventCardSkeleton } from "@/features/events/components/EventList"
+import { HomeEventGrid } from "@/features/events/components/HomeEventGrid"
 
 const UPCOMING_COUNT = 3
 
@@ -28,6 +31,12 @@ type UpcomingEventsProps = {
   locality?: LocalityState
   /** Under the list, e.g. a link to all events. */
   footer?: ReactNode
+  /**
+   * `column`: row cards under each other, beside a form (sign-in, sign-up). `grid`: the page's
+   * width as on the landing page (`HomeEventGrid`: a column per card from md, a single one a
+   * row over the width), a column of rows on a phone (the 404, #370).
+   */
+  layout?: "column" | "grid"
 }
 
 /**
@@ -35,7 +44,11 @@ type UpcomingEventsProps = {
  * sign-up forms on desktop (Figma B-01d, B-03d), what the account is for,
  * and on the landing page (A-01, A-01d). A card opens the event's detail.
  */
-export function UpcomingEvents({ locality: shown, footer }: UpcomingEventsProps) {
+export function UpcomingEvents({
+  locality: shown,
+  footer,
+  layout = "column",
+}: UpcomingEventsProps) {
   const headingId = useId()
   const localitySlug = shown?.slug
   const localitiesQuery = useQuery({
@@ -104,16 +117,28 @@ export function UpcomingEvents({ locality: shown, footer }: UpcomingEventsProps)
         </Alert>
       ) : !events ? (
         <div
-          className="flex flex-col gap-3"
+          // the grid's skeleton is the grid of a full list; with fewer events it narrows to their
+          // columns, which can't be known before they come (review #397)
+          className={
+            layout === "grid"
+              ? cn("grid grid-cols-1 gap-3 md:gap-6", homeGridColumns(UPCOMING_COUNT))
+              : "flex flex-col gap-3"
+          }
           aria-busy
           aria-label="Načítám akce"
         >
           {Array.from({ length: UPCOMING_COUNT }, (_, i) => (
-            <EventCardSkeleton key={i} />
+            <EventCardSkeleton
+              key={i}
+              variant={layout === "grid" ? "responsive" : "row"}
+            />
           ))}
         </div>
       ) : events.length === 0 ? (
         <p className="text-sm text-muted-foreground">Teď nejsou žádné nadcházející akce.</p>
+      ) : layout === "grid" ? (
+        // as many columns as events, never an empty one (DESIGN.md › Layout, review #397)
+        <HomeEventGrid events={events} />
       ) : (
         <ul className="flex flex-col gap-3">
           {events.map((event) => (

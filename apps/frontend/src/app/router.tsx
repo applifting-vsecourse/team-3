@@ -19,7 +19,7 @@ function NotFoundPage() {
   return (
     <>
       <AppHeader />
-      <NotFound aside={<UpcomingEvents />} />
+      <NotFound more={<UpcomingEvents layout="grid" />} />
     </>
   )
 }

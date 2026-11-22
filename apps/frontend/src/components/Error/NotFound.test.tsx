@@ -21,9 +21,14 @@ describe("NotFound", () => {
     expect(band).toHaveTextContent("Odkaz je neplatný, nebo stránka už neexistuje.")
   })
 
-  it("shows what it gets beside the ways on, e.g. the upcoming events", async () => {
-    await renderWithRouter(<NotFound aside={<p>Nadcházející akce</p>} />)
+  // #370: the ways on sit in the band, the upcoming events under it over the page's width
+  it("puts the ways on in the band and what it gets under it", async () => {
+    await renderWithRouter(<NotFound more={<p>Nadcházející akce</p>} />)
 
-    expect(screen.getByRole("complementary")).toHaveTextContent("Nadcházející akce")
+    const band = screen.getByRole("heading", { level: 1 }).closest(".border-hero")
+    expect(band).toContainElement(screen.getByRole("link", { name: "Procházet akce" }))
+    expect(band).toContainElement(screen.getByRole("link", { name: "Na úvod" }))
+    expect(band).not.toHaveTextContent("Nadcházející akce")
+    expect(screen.getByText("Nadcházející akce")).toBeInTheDocument()
   })
 })

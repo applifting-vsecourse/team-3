@@ -163,4 +163,18 @@ describe("PastEventCard", () => {
     // „Do minima“ breaks like any words, the number stays with the words around it
     expect(attendance.textContent).toBe("Do minima chybělo 10 lidí")
   })
+
+  // #348: as on the event card
+  it("shows the activity above the title", async () => {
+    const event = anEvent()
+    await renderWithRouter(<PastEventCard event={event} />)
+
+    const line = screen.getByText("Aktivita:").parentElement!
+    expect(line).toHaveTextContent(`Aktivita: ${event.activity.name}`)
+    // first on screen, right after the heading in the DOM (review #397)
+    expect(line).toHaveClass("order-first")
+    expect(screen.getByRole("heading", { name: event.title }).compareDocumentPosition(line)).toBe(
+      Node.DOCUMENT_POSITION_FOLLOWING,
+    )
+  })
 })
