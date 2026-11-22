@@ -43,8 +43,9 @@ describe('GroupRepository', () => {
         }
       }) as never);
       const written: string[] = [];
-      prisma.groupMember.delete.mockImplementation((() => {
+      prisma.groupMember.deleteMany.mockImplementation((() => {
         if (inTransaction) written.push('membership');
+        return Promise.resolve({ count: 1 });
       }) as never);
       prisma.event.findMany.mockResolvedValue([
         { id: 'e1', status: 'published' },
@@ -63,8 +64,8 @@ describe('GroupRepository', () => {
 
       expect(prisma.$transaction).toHaveBeenCalledTimes(1);
       expect(written).toEqual(['membership', 'participations']);
-      expect(prisma.groupMember.delete).toHaveBeenCalledWith({
-        where: { groupId_userId: { groupId: 'g1', userId: 'u-jakub' } },
+      expect(prisma.groupMember.deleteMany).toHaveBeenCalledWith({
+        where: { groupId: 'g1', userId: 'u-jakub' },
       });
       expect(prisma.participation.updateMany).toHaveBeenCalledWith({
         where: {
@@ -77,9 +78,30 @@ describe('GroupRepository', () => {
     });
   });
 
+  describe('leaveGroup against a rejection at the same moment (S-3, review #400)', () => {
+    it('a request rejected already ends without a 500 and frees nothing', async () => {
+      const prisma = mockDeep<PrismaService>();
+      // the transaction client is the same mock
+      prisma.$transaction.mockImplementation((async (
+        run: (tx: PrismaService) => Promise<unknown>,
+      ) => run(prisma)) as never);
+      prisma.groupMember.deleteMany.mockResolvedValue({ count: 0 });
+
+      await expect(
+        new GroupRepository(prisma).leaveGroup(
+          'g1',
+          'u-jakub',
+          new Date('2026-11-22T10:00:00.000Z'),
+        ),
+      ).resolves.toEqual([]);
+      expect(prisma.participation.updateMany).not.toHaveBeenCalled();
+    });
+  });
+
   describe('createMembership (#175)', () => {
     it('a request keeps its message', async () => {
       const prisma = mockDeep<PrismaService>();
+      prisma.groupMember.createMany.mockResolvedValue({ count: 1 });
 
       await new GroupRepository(prisma).createMembership(
         'g1',
@@ -88,7 +110,7 @@ describe('GroupRepository', () => {
         'Ahoj',
       );
 
-      expect(prisma.groupMember.create).toHaveBeenCalledWith({
+      expect(prisma.groupMember.createMany).toHaveBeenCalledWith({
         data: {
           groupId: 'g1',
           userId: 'u1',
@@ -96,11 +118,13 @@ describe('GroupRepository', () => {
           status: 'pending',
           message: 'Ahoj',
         },
+        skipDuplicates: true,
       });
     });
 
     it('joining a public group at once keeps none', async () => {
       const prisma = mockDeep<PrismaService>();
+      prisma.groupMember.createMany.mockResolvedValue({ count: 1 });
 
       await new GroupRepository(prisma).createMembership(
         'g1',
@@ -109,9 +133,48 @@ describe('GroupRepository', () => {
         'Ahoj',
       );
 
-      expect(prisma.groupMember.create).toHaveBeenCalledWith({
-        data: expect.objectContaining({ status: 'active', message: null }),
+      expect(prisma.groupMember.createMany).toHaveBeenCalledWith(
+        expect.objectContaining({
+          data: expect.objectContaining({ status: 'active', message: null }),
+        }),
+      );
+    });
+  });
+
+  describe('races on a membership (S-3, #226)', () => {
+    it('a second „Přidat se“ hits the unique key without an error and says so', async () => {
+      const prisma = mockDeep<PrismaService>();
+      prisma.groupMember.createMany.mockResolvedValue({ count: 0 });
+
+      await expect(
+        new GroupRepository(prisma).createMembership('g1', 'u1', 'active'),
+      ).resolves.toBe(false);
+    });
+
+    it('approving writes only a request that still waits', async () => {
+      const prisma = mockDeep<PrismaService>();
+      prisma.groupMember.updateMany.mockResolvedValue({ count: 0 });
+
+      await expect(
+        new GroupRepository(prisma).approveRequest('g1', 'u1'),
+      ).resolves.toBe(false);
+      expect(prisma.groupMember.updateMany).toHaveBeenCalledWith({
+        where: { groupId: 'g1', userId: 'u1', status: 'pending' },
+        data: { status: 'active' },
       });
+    });
+
+    it('rejecting removes only a request that still waits, never a member', async () => {
+      const prisma = mockDeep<PrismaService>();
+      prisma.groupMember.deleteMany.mockResolvedValue({ count: 1 });
+
+      await expect(
+        new GroupRepository(prisma).rejectRequest('g1', 'u1'),
+      ).resolves.toBe(true);
+      expect(prisma.groupMember.deleteMany).toHaveBeenCalledWith({
+        where: { groupId: 'g1', userId: 'u1', status: 'pending' },
+      });
+      expect(prisma.groupMember.delete).not.toHaveBeenCalled();
     });
   });
 
