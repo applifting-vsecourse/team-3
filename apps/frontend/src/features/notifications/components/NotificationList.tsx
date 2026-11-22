@@ -1,5 +1,5 @@
-import type { MouseEvent } from "react"
-import { useQuery } from "@tanstack/react-query"
+import { useEffect, type MouseEvent } from "react"
+import { useQuery, useQueryClient } from "@tanstack/react-query"
 import { useRouter } from "@tanstack/react-router"
 import { Bell } from "lucide-react"
 
@@ -8,7 +8,10 @@ import { Button } from "@/components/ui/button"
 import { Skeleton } from "@/components/ui/skeleton"
 import { cn } from "@/lib/utils"
 
-import { notificationListQueryOptions } from "@/features/notifications/api/notificationsQueryOptions"
+import {
+  notificationKeys,
+  notificationListQueryOptions,
+} from "@/features/notifications/api/notificationsQueryOptions"
 import type { AppNotification } from "@/features/notifications/api/notificationsSchemas"
 import { useMarkNotificationRead } from "@/features/notifications/hooks/useNotificationMutations"
 import { notificationTime } from "@/features/notifications/lib/notifications"
@@ -26,6 +29,14 @@ type NotificationListProps = {
  */
 export function NotificationList({ viewerId, onNavigate }: NotificationListProps) {
   const query = useQuery(notificationListQueryOptions(viewerId))
+  const queryClient = useQueryClient()
+  const unreadCount = query.data?.unreadCount
+  // the bell asks once a minute; the list's own count is fresher, so the two agree (review #398)
+  useEffect(() => {
+    if (unreadCount !== undefined) {
+      queryClient.setQueryData(notificationKeys.unreadCount(viewerId), unreadCount)
+    }
+  }, [queryClient, viewerId, unreadCount])
   const markRead = useMarkNotificationRead()
   const router = useRouter()
   const now = new Date()

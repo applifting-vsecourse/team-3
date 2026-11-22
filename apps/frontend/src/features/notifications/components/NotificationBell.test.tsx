@@ -84,6 +84,19 @@ describe("NotificationBell (#86, Figma Zvonek)", () => {
     await waitFor(() => expect(api.post).toHaveBeenCalledWith("notifications/read-all"))
   })
 
+  it("opening the panel brings the bell's number up to the list's (review #398)", async () => {
+    api.get.mockImplementation((path: string) =>
+      asJson(path === "notifications/unread-count" ? { count: 1 } : { items: [], unreadCount: 3 }),
+    )
+    await show()
+
+    await userEvent.click(await screen.findByRole("button", { name: "Upozornění, 1 nepřečtené" }))
+
+    expect(
+      await screen.findByRole("button", { name: "Upozornění, 3 nepřečtená" }),
+    ).toBeInTheDocument()
+  })
+
   it("the list isn't asked for until the panel opens", async () => {
     answer(2)
     await show()
