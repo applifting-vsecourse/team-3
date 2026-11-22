@@ -49,6 +49,9 @@ export class ProfileService {
         });
       data.name = trimName(input.name);
     }
+    if (input.partnerDiscoverable !== undefined) {
+      data.partnerDiscoverable = input.partnerDiscoverable;
+    }
     Object.assign(data, await this.preferences(input));
     if (Object.keys(data).length === 0)
       throw new BadRequestException('Vyber aspoň jeden údaj ke změně.');

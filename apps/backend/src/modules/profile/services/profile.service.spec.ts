@@ -15,6 +15,7 @@ const row = (): ProfileRow => ({
   emailVerified: true,
   blockedAt: null,
   deletedAt: null,
+  partnerDiscoverable: true,
   homeLocality: null,
   interests: [],
   accounts: [],
@@ -171,6 +172,13 @@ describe('ProfileService (#178)', () => {
     await service.update('owner', { name: ' Anna Marie Nová   ' });
     expect(repository.save).toHaveBeenCalledWith('owner', {
       name: 'Anna Marie Nová',
+      updatedAt: expect.any(Date),
+    });
+  });
+  it('switches „Ukazovat mě v Najdi parťáka“ alone (#84)', async () => {
+    await service.update('owner', { partnerDiscoverable: false });
+    expect(repository.save).toHaveBeenCalledWith('owner', {
+      partnerDiscoverable: false,
       updatedAt: expect.any(Date),
     });
   });

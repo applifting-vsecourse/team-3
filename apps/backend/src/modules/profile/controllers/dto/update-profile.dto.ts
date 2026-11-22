@@ -3,6 +3,7 @@ import {
   ArrayMaxSize,
   ArrayUnique,
   IsArray,
+  IsBoolean,
   IsOptional,
   IsString,
   MaxLength,
@@ -30,4 +31,12 @@ export class UpdateProfileDto {
   @ArrayUnique()
   @IsString({ each: true })
   interestIds?: string[];
+
+  @ApiPropertyOptional({
+    description:
+      'Ukazovat mě v Najdi parťáka (#84): false = I am suggested to nobody',
+  })
+  @ValidateIf((_object, value) => value !== undefined)
+  @IsBoolean()
+  partnerDiscoverable?: boolean;
 }

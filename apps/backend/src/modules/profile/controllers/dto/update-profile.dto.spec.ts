@@ -17,6 +17,8 @@ describe('profile request boundary (#178)', () => {
     { emailVerified: true },
     { name: null },
     { interestIds: null },
+    { partnerDiscoverable: null },
+    { partnerDiscoverable: 'yes' },
     { interestIds: ['a', 'a'] },
     { interestIds: Array.from({ length: 51 }, (_, i) => String(i)) },
   ])(
@@ -29,5 +31,10 @@ describe('profile request boundary (#178)', () => {
     await expect(
       check({ homeLocalityId: null, interestIds: [] }),
     ).resolves.toMatchObject({ homeLocalityId: null, interestIds: [] });
+  });
+  it('takes „Ukazovat mě v Najdi parťáka“ as a boolean (#84)', async () => {
+    await expect(check({ partnerDiscoverable: false })).resolves.toMatchObject({
+      partnerDiscoverable: false,
+    });
   });
 });
