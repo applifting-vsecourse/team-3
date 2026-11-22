@@ -249,13 +249,18 @@ export class GroupRepository {
     });
   }
 
+  /**
+   * Writes the membership unless the user already has one: false when a
+   * second „Přidat se“ at the same moment got there first (S-3, #226). The
+   * unique key decides it in the database, so the loser gets no 500.
+   */
   async createMembership(
     groupId: string,
     userId: string,
     status: Extract<MembershipStatus, 'active' | 'pending'>,
     message: string | null = null,
-  ): Promise<void> {
-    await this.prisma.groupMember.create({
+  ): Promise<boolean> {
+    const { count } = await this.prisma.groupMember.createMany({
       data: {
         groupId,
         userId,
@@ -264,17 +269,36 @@ export class GroupRepository {
         // only a request carries a message for the admins (#175)
         message: requestMessageFor(status, message),
       },
+      skipDuplicates: true,
     });
+    return count > 0;
   }
 
-  async approveRequest(groupId: string, userId: string): Promise<void> {
-    await this.prisma.groupMember.update({
-      where: { groupId_userId: { groupId, userId } },
+  /**
+   * Approves the request only while it still waits, checked in the write
+   * itself (S-3, #226): false when another admin decided it meanwhile.
+   */
+  async approveRequest(groupId: string, userId: string): Promise<boolean> {
+    const { count } = await this.prisma.groupMember.updateMany({
+      where: { groupId, userId, status: 'pending' },
       data: { status: 'active' },
     });
+    return count > 0;
   }
 
-  /** Leaving, withdrawing a request and a rejected request all remove the row, so the user can ask again. */
+  /**
+   * Removes the request only while it still waits (S-3, #226), so the user
+   * can ask again; false when another admin decided it meanwhile, and a
+   * member approved a moment ago stays.
+   */
+  async rejectRequest(groupId: string, userId: string): Promise<boolean> {
+    const { count } = await this.prisma.groupMember.deleteMany({
+      where: { groupId, userId, status: 'pending' },
+    });
+    return count > 0;
+  }
+
+  /** Leaving and withdrawing a request remove the row, so the user can ask again. */
   async deleteMembership(groupId: string, userId: string): Promise<void> {
     await this.prisma.groupMember.delete({
       where: { groupId_userId: { groupId, userId } },

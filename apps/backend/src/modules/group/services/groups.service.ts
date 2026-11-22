@@ -176,23 +176,42 @@ export class GroupsService {
     const group = await this.getGroup(groupId, userId);
     const decision = decideJoin(group, group.viewerMembership);
     if (decision.kind === 'error') throw MEMBERSHIP_ERRORS[decision.error]();
-    if (decision.kind === 'create') {
-      await this.groupRepository.createMembership(
+    if (decision.kind === 'unchanged') return { status: decision.status };
+    const created = await this.groupRepository.createMembership(
+      groupId,
+      userId,
+      decision.status,
+      message,
+    );
+    if (!created) return this.joinedMeanwhile(group, userId);
+    // a request waits for the admins, who hear of it (#86); joining at once has nobody to tell
+    if (decision.status === 'pending') {
+      this.notifications.notify({
+        type: 'group-join-request',
         groupId,
-        userId,
-        decision.status,
+        applicantId: userId,
         message,
-      );
-      // a request waits for the admins, who hear of it (#86); joining at once has nobody to tell
-      if (decision.status === 'pending') {
-        this.notifications.notify({
-          type: 'group-join-request',
-          groupId,
-          applicantId: userId,
-          message,
-        });
-      }
+      });
     }
+    return { status: decision.status };
+  }
+
+  /**
+   * A second „Přidat se“ at the same moment lost to the first (S-3, #226):
+   * it ends as the first did, with the status written; nobody is told twice.
+   */
+  private async joinedMeanwhile(
+    group: GroupDetail,
+    userId: string,
+  ): Promise<{ status: 'active' | 'pending' | 'blocked' }> {
+    const existing = await this.groupRepository.findMembership(
+      group.id,
+      userId,
+    );
+    const decision = decideJoin(group, existing);
+    if (decision.kind === 'error') throw MEMBERSHIP_ERRORS[decision.error]();
+    // the row went again before it could be read: a plain 409, the user clicks again
+    if (decision.kind === 'create') throw MEMBERSHIP_ERRORS.NOT_PENDING();
     return { status: decision.status };
   }
 
@@ -225,7 +244,10 @@ export class GroupsService {
     userId: string,
   ): Promise<void> {
     await this.assertPendingRequest(groupId, adminId, userId);
-    await this.groupRepository.approveRequest(groupId, userId);
+    // another admin may have decided it since the check (S-3, #226)
+    if (!(await this.groupRepository.approveRequest(groupId, userId))) {
+      throw MEMBERSHIP_ERRORS.NOT_PENDING();
+    }
     this.notifications.notify({
       type: 'group-request-decided',
       groupId,
@@ -241,7 +263,10 @@ export class GroupsService {
     userId: string,
   ): Promise<void> {
     await this.assertPendingRequest(groupId, adminId, userId);
-    await this.groupRepository.deleteMembership(groupId, userId);
+    // another admin may have approved it since the check: they stay (S-3, #226)
+    if (!(await this.groupRepository.rejectRequest(groupId, userId))) {
+      throw MEMBERSHIP_ERRORS.NOT_PENDING();
+    }
     this.notifications.notify({
       type: 'group-request-decided',
       groupId,
