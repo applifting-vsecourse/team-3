@@ -27,9 +27,9 @@ Kdo nález opraví, změní ve stejném PR i jeho stav v tomto reportu.
 | Statická analýza      | CodeQL na GitHubu (`javascript-typescript`, `actions`)                                                                     | Výchozí sada pravidel                                                      |
 | Bezpečnostní hlavičky | Jeden požadavek `HEAD` na úvodní stránku stagingu                                                                          | Jen úvodní stránka frontendu                                               |
 
-Semgrep našel 7 upozornění, všechna stejného typu: akce v GitHub Actions nejsou připnuté na commit (viz N-12).
+Semgrep našel 7 upozornění, všechna stejného typu: akce v GitHub Actions nejsou připnuté na commit (viz N-12, opraveno v #401).
 
-CodeQL má na `main` 3 otevřená upozornění. Dvě hlásí chybějící `permissions` v `ci.yml` a `deploy.yml` (viz N-12). Třetí je planý poplach: kontrola `includes("photon.komoot.io")` je v testovacím mocku (`LocalityCombobox.test.tsx`), ne v kódu aplikace.
+CodeQL má na `main` 3 otevřená upozornění. Dvě hlásí chybějící `permissions` v `ci.yml` a `deploy.yml` (viz N-12, opraveno v #401). Třetí je planý poplach: kontrola `includes("photon.komoot.io")` je v testovacím mocku (`LocalityCombobox.test.tsx`), ne v kódu aplikace.
 
 ## Node.js a CVE-2026-111497
 
@@ -86,8 +86,8 @@ Stav: **opraveno** = sloučeno do `main`, **částečně** = opravená jen čás
 | N-9  | Swagger a referenční stránka BetterAuth jsou v produkci veřejné, referenční stránka načítá nepřipnutý skript z CDN                             | nízká     | opraveno v #240              | V produkci vypnuté, pokud není `API_DOCS=true`; staging je má zapnuté, viz [Zbývá u N-9](#zbývá-u-n-9)                            |
 | N-10 | Každý přihlášený vidí jména účastníků akcí a může je hromadně stáhnout                                                                         | nízká     | částečně v #222, zbytek #224 | Jména účastníků v detailu akce už vidí jen organizátor, schválený účastník a u akce skupiny její aktivní členové; navazuje na #94 |
 | N-11 | Přes registraci a kontrolu uživatelského jména lze zjistit, zda účet existuje                                                                  | nízká     | přijaté                      | Kompromis kvůli UX; limit přihlášení hromadné zkoušení zpomaluje                                                                  |
-| N-12 | `ci.yml` a `deploy.yml` nemají `permissions` (`codeql.yml` je má), akce nejsou připnuté na commit; `COOLIFY_TOKEN` je dostupný celému jobu     | nízká     | otevřený, #228               | Přidat `permissions`, připnout akce, token jen pro krok nasazení                                                                  |
-| N-13 | Frontendový kontejner běží jako root, nasazuje se jen tag `latest`                                                                             | nízká     | otevřený, #228               | `nginx-unprivileged`, tagovat i podle commitu                                                                                     |
+| N-12 | `ci.yml` a `deploy.yml` nemají `permissions` (`codeql.yml` je má), akce nejsou připnuté na commit; `COOLIFY_TOKEN` je dostupný celému jobu     | nízká     | opraveno v #401              | `permissions: contents: read`, akce na SHA, token jen v kroku nasazení                                                            |
+| N-13 | Frontendový kontejner běží jako root, nasazuje se jen tag `latest`                                                                             | nízká     | opraveno v #401              | `nginx-unprivileged` na portu 80, image i s tagem commitu                                                                         |
 
 **CSP u N-4:** frontend omezuje skripty na vlastní doménu a zakazuje vložení do rámce. Obrázky, styly a spojení záměrně neomezuje kvůli mapě, stylům Leafletu a hledání adres. Backend omezuje jen rámce, aby fungoval Swagger.
 
