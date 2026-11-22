@@ -47,6 +47,13 @@ type ParticipationActionProps = {
    */
   onJoin: (message?: string | null) => Promise<EventDetail>
   onLeave: () => Promise<unknown>
+  /**
+   * A members-only event seen from outside its group: only the superadmin
+   * gets one (#308), and the API refuses their join (403 MEMBERS_ONLY). The
+   * way into the group stands in for joining, as for anyone outside (A-05i,
+   * review #380); null while the group loads. Undefined for everyone else.
+   */
+  outsideGroup?: ReactNode
   /** For tests; the event has started once `startsAt` is past it. */
   now?: Date
 }
@@ -67,6 +74,7 @@ export function ParticipationAction({
   isPending,
   onJoin,
   onLeave,
+  outsideGroup,
   now = new Date(),
 }: ParticipationActionProps) {
   const isOrganizer = viewer !== null && event.organizer.id === viewer.id
@@ -119,6 +127,8 @@ export function ParticipationAction({
       </Row>
     )
   }
+
+  if (outsideGroup !== undefined) return outsideGroup === null ? null : <Row>{outsideGroup}</Row>
 
   // A visitor isn't sent to sign in for a place there isn't (B-032: „Plno“);
   // someone signed out who has a place or a request still gets back to it.

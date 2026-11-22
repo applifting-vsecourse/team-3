@@ -21,9 +21,10 @@ import { useEventDetail } from "@/features/events/hooks/useEventDetail"
 import { useHideEvent, useUnhideEvent } from "@/features/events/hooks/useModerateEvent"
 import { useJoinEvent, useLeaveEvent } from "@/features/events/hooks/useParticipation"
 import { useRefreshExpiredSession } from "@/features/events/hooks/useRefreshExpiredSession"
+import { isOutsideGroup } from "@/features/events/lib/outsideGroup"
 import { groupQueryOptions } from "@/features/groups/api/groupsQueryOptions"
 import { GroupOrganizer } from "@/features/groups/components/GroupOrganizer"
-import { MembersOnlyEvent } from "@/features/groups/components/MembersOnlyEvent"
+import { MembersOnlyEvent, MembersOnlyJoin } from "@/features/groups/components/MembersOnlyEvent"
 
 // `akce_`: not nested in /akce, whose page has no outlet. Public on purpose:
 // a shared link opens straight on the detail, without signing in (US-03).
@@ -44,6 +45,10 @@ function EventDetailPage() {
     ...groupQueryOptions(groupId ?? "", viewerId),
     enabled: groupId !== undefined,
   })
+  // the superadmin outside the group of a members-only event (#308): the way
+  // into the group instead of „Přijdu“, which the API refuses (review #380)
+  const isViewerOutsideGroup =
+    event !== undefined && isOutsideGroup(event, viewerId, organizerGroup?.viewerMembership)
   const location = useLocation()
   const join = useJoinEvent(eventId, session.user?.id ?? "")
   const leave = useLeaveEvent(eventId, session.user?.id ?? "")
@@ -114,6 +119,17 @@ function EventDetailPage() {
                   viewer={session.user ? { id: session.user.id } : null}
                   signInFrom={signInFrom}
                   isPending={join.isPending || leave.isPending}
+                  outsideGroup={
+                    isViewerOutsideGroup ? (
+                      organizerGroup ? (
+                        <MembersOnlyJoin
+                          group={organizerGroup}
+                          viewerId={viewerId}
+                          signInFrom={signInFrom}
+                        />
+                      ) : null
+                    ) : undefined
+                  }
                   onJoin={(message) =>
                     join.mutateAsync(message).then(
                       (updated) => {
