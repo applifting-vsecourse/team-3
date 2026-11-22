@@ -2,7 +2,7 @@
 
 - `GET /api/me/profile`: údaje aktuálního účtu, domovská lokalita, zájmy a informace, zda existuje přihlášení heslem.
 - `PATCH /api/me/profile`: volitelné `name`, `homeLocalityId`, `interestIds`. Vynechané pole se nemění; `homeLocalityId=null` lokalitu zruší a `interestIds=[]` vymaže zájmy. Neznámá pole jsou odmítnuta. Název lokality ani názvy aktivit se nepřijímají jako nové katalogové záznamy.
-- `GET /api/me/profile/overview`: přijatá hodnocení (jako účastník a jako organizátor). Z každého seznamu vrací jen první `PROFILE_OVERVIEW_TAKE` (3) položky, celkové počty a průměry jsou v `…Summary`. Akce (Kam jdu, Pořádám, Proběhlé) a skupiny profil od #367 neukazuje: jsou v Moje, `GET /api/me/events` (`attending`, `organizing`, `past`) a `GET /api/me/groups`.
+- `GET /api/me/profile/overview`: přijatá hodnocení (jako účastník a jako organizátor). Z každého seznamu vrací nejvýš `PROFILE_OVERVIEW_TAKE` (50) nejnovějších položek, celkové počty a průměry jsou v `…Summary`. Profil ukáže tři a zbytek na „Zobrazit další“ (#370). Akce (Kam jdu, Pořádám, Proběhlé) a skupiny profil od #367 neukazuje: jsou v Moje, `GET /api/me/events` (`attending`, `organizing`, `past`) a `GET /api/me/groups`.
 
 Všechny endpointy vyžadují session. Vlastník se vždy bere ze session, nikoliv z těla, URL nebo query. Smazaný účet se odmítne; blokovaný účet nesmí upravovat profil. Odpovědi jsou explicitní projekce bez účtů poskytovatelů, hashů hesel, tokenů nebo poznámek moderace.
 

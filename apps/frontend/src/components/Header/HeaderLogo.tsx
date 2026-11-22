@@ -7,7 +7,9 @@ export function HeaderLogo() {
   return (
     <Link
       to={ROUTES.home}
-      className="rounded-md"
+      // the logo is 28 px tall: 8 px above and below make the tap target 44 px, and the negative
+      // margin keeps the header as it was (DESIGN.md › Accessibility, #370)
+      className="-my-2 inline-flex rounded-md py-2"
     >
       <Logo isOnHero />
     </Link>

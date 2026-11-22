@@ -6,7 +6,7 @@ import {
 } from "@tanstack/react-router"
 import { describe, expect, it } from "vitest"
 
-import { redirectFrom, safeRedirect } from "@/features/auth/lib/redirect"
+import { authLinkFrom, redirectFrom, safeRedirect } from "@/features/auth/lib/redirect"
 
 // `from` as the sign-in page reads it: the router has already decoded it once.
 describe("safeRedirect (B-012)", () => {
@@ -94,5 +94,33 @@ describe("`from` roundtrip through the router (#186)", () => {
     const search = new URL(back, "http://app").searchParams
     expect(search.get("lokalita")).toBe("praha-8")
     expect(search.get("q")).toBe("kafe & dort")
+  })
+})
+
+describe("authLinkFrom: the header's and the bottom navigation's sign-in (#370)", () => {
+  const fromAt = async (href: string) => {
+    const router = createRouter({
+      routeTree: createRootRoute(),
+      history: createMemoryHistory({ initialEntries: [href] }),
+    })
+    await router.load()
+    return authLinkFrom(router.state.location)
+  }
+
+  it("comes back to the page it starts on, with its filters", async () => {
+    expect(await fromAt("/akce/abc")).toBe("/akce/abc")
+    expect(await fromAt("/skupiny/g1")).toBe("/skupiny/g1")
+    expect(await fromAt("/akce?lokalita=praha-8&vyber=chybis")).toBe(
+      "/akce?lokalita=praha-8&vyber=chybis",
+    )
+  })
+
+  it("on the sign-in pages passes on their own `from`, never one of them", async () => {
+    expect(await fromAt("/login?from=%2Fakce%2Fabc")).toBe("/akce/abc")
+    expect(await fromAt("/signup?from=%2Fskupiny")).toBe("/skupiny")
+    expect(await fromAt("/login")).toBeUndefined()
+    expect(await fromAt("/signup")).toBeUndefined()
+    expect(await fromAt("/zapomenute-heslo")).toBeUndefined()
+    expect(await fromAt("/reset-password?token=x")).toBeUndefined()
   })
 })

@@ -78,4 +78,19 @@ export const apiErrorCode = (error: unknown): string | undefined => {
   return typeof data.code === "string" ? data.code : undefined
 }
 
+/**
+ * The API's validation messages of a 400 (NestJS `message: string[]`, worded per field in the
+ * DTO: „Napiš předmět“), for a form that shows each at its field (DESIGN.md › Forms). Empty
+ * for anything else.
+ */
+export const apiValidationMessages = (error: unknown): string[] => {
+  if (!(error instanceof HTTPError) || error.response.status !== 400) return []
+  const data: unknown = error.data
+  if (typeof data !== "object" || data === null || !("message" in data)) return []
+  const { message } = data
+  return (Array.isArray(message) ? message : [message]).filter(
+    (part): part is string => typeof part === "string" && part !== "",
+  )
+}
+
 export { HTTPError }

@@ -133,4 +133,34 @@ describe("PastEventCard", () => {
 
     expect(screen.getByText("Sešlo se 5 lidí · ★ 4,5 (3 hodnocení)")).toBeInTheDocument()
   })
+
+  // #370: beside „Ohodnotit“ on a phone, „Sešli se 4 lidé“ broke in two or was cut off
+  it("keeps a number with its words, so the count never breaks in two", async () => {
+    await renderWithRouter(
+      <PastEventCard
+        event={anEvent({ approvedCount: 4, missingToMin: 0 })}
+        rating={{ kind: "given", stars: 5 }}
+        now={new Date("2030-01-01T00:00:00Z")}
+      />,
+    )
+
+    const attendance = screen.getByText("Sešli se 4 lidé · tvoje ★ 5")
+    expect(attendance.textContent).toBe("Sešli se 4 lidé · tvoje ★ 5")
+    expect(attendance).not.toHaveClass("truncate", "line-clamp-2")
+    expect(attendance.parentElement).toHaveClass("flex-wrap")
+  })
+
+  // review #395: with every space unbreakable this ran out of a 320 px card
+  it("a long part may still break between words", async () => {
+    await renderWithRouter(
+      <PastEventCard
+        event={anEvent({ approvedCount: 2, missingToMin: 10 })}
+        now={new Date("2030-01-01T00:00:00Z")}
+      />,
+    )
+
+    const attendance = screen.getByText(/^Do minima/)
+    // „Do minima“ breaks like any words, the number stays with the words around it
+    expect(attendance.textContent).toBe("Do minima chybělo 10 lidí")
+  })
 })

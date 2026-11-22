@@ -147,6 +147,22 @@ describe("ParticipationAction", () => {
     )
   })
 
+  // #281 (review #278): not only in the toast after „Zveřejnit“
+  it("the organizer finds the way to Moje akce › Pořádám on the event, not only in the toast", async () => {
+    await renderAction({ canManage: true }, { viewer: organizer })
+
+    expect(screen.getByRole("link", { name: "Moje akce › Pořádám" })).toHaveAttribute(
+      "href",
+      "/moje/akce?tab=poradam",
+    )
+  })
+
+  it("someone else's event has no such link", async () => {
+    await renderAction({}, { viewer: { id: "u9" } })
+
+    expect(screen.queryByRole("link", { name: "Moje akce › Pořádám" })).toBeNull()
+  })
+
   it("the organizer sees „Spravovat akci“ and next to it „Přijdu“, even with approval", async () => {
     const { onJoin } = await renderAction(
       { approvalMode: "approval", canManage: true },

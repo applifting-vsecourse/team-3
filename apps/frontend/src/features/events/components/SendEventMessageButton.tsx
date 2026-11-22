@@ -6,6 +6,7 @@ import { useForm } from "react-hook-form"
 import { toast } from "sonner"
 import { z } from "zod"
 
+import { Alert, AlertDescription } from "@/components/ui/alert"
 import { Button } from "@/components/ui/button"
 import {
   Dialog,
@@ -28,6 +29,7 @@ import {
 } from "@/components/ui/form"
 import { Input } from "@/components/ui/input"
 import { Textarea } from "@/components/ui/textarea"
+import { apiValidationMessages } from "@/lib/api-client"
 import { cn } from "@/lib/utils"
 
 import {
@@ -66,6 +68,25 @@ type SendEventMessageButtonProps = {
   className?: string
 }
 
+// Which field a validation message of the API is about: the DTO words them per field
+// („Napiš předmět“, „Předmět může mít…“, „Napiš text zprávy“, „Text může mít…“, review #395).
+// One it doesn't recognise still shows, in the dialog's Alert.
+const FIELD_OF_MESSAGE: [RegExp, keyof FormInput][] = [
+  [/předmět/i, "subject"],
+  [/text/i, "body"],
+]
+
+const fieldErrorsOf = (error: unknown) => {
+  const errors: Partial<Record<keyof FormInput, string>> = {}
+  const rest: string[] = []
+  for (const message of apiValidationMessages(error)) {
+    const field = FIELD_OF_MESSAGE.find(([words]) => words.test(message))?.[1]
+    if (field && !errors[field]) errors[field] = message
+    else if (!field) rest.push(message)
+  }
+  return { errors, rest }
+}
+
 /**
  * „Napsat účastníkům“ in the event's management (#176, Figma D-04, D-04d):
  * subject and text, every approved participant gets it by e-mail and sees it
@@ -90,13 +111,19 @@ export function SendEventMessageButton({
     resolver: zodResolver(schema),
     defaultValues: { subject: "", body: "" },
   })
+  // a refusal not about one field (the daily limit, a cancelled event): in the dialog, which
+  // keeps the text to try again (DESIGN.md › Forms)
+  const [refusal, setRefusal] = useState<string | null>(null)
 
   return (
     <Dialog
       open={isOpen}
       onOpenChange={(isNowOpen) => {
         setIsOpen(isNowOpen)
-        if (!isNowOpen) form.reset()
+        if (!isNowOpen) {
+          form.reset()
+          setRefusal(null)
+        }
       }}
     >
       <DialogTrigger asChild>
@@ -113,11 +140,19 @@ export function SendEventMessageButton({
           <form
             noValidate
             onSubmit={form.handleSubmit(async (values) => {
+              setRefusal(null)
               try {
                 await send.mutateAsync(values)
               } catch (error) {
                 // the text stays in the dialog to try again
-                toast.error((error as Error).message)
+                const { errors, rest } = fieldErrorsOf(error)
+                const fieldErrors = Object.entries(errors) as [keyof FormInput, string][]
+                fieldErrors.forEach(([field, message], i) =>
+                  form.setError(field, { message }, { shouldFocus: i === 0 }),
+                )
+                if (!fieldErrors.length || rest.length) {
+                  setRefusal(rest.length ? rest.join(", ") : (error as Error).message)
+                }
                 return
               }
               toast.success("Zpráva je odeslaná")
@@ -171,6 +206,11 @@ export function SendEventMessageButton({
                 </FormItem>
               )}
             />
+            {refusal ? (
+              <Alert variant="destructive">
+                <AlertDescription>{refusal}</AlertDescription>
+              </Alert>
+            ) : null}
             <DialogFooter className="flex-row justify-end">
               <DialogClose asChild>
                 <Button

@@ -1,3 +1,4 @@
+import { byCzechName, compareCzech } from '@/shared/text/czech-order';
 import { friendshipState, type FriendshipRow } from './friendship';
 
 /** A person in the lists: what the rows of „Lidé, které znám“ show (Figma B-05f, B-09). */
@@ -37,10 +38,13 @@ export type FriendLists = {
 const person = (record: FriendPersonRecord): FriendPerson => ({
   id: record.id,
   name: record.name,
-  interests: record.interests.map(({ activity }) => ({
-    id: activity.id,
-    name: activity.name,
-  })),
+  // in Czech order, not the database's (#370)
+  interests: byCzechName(
+    record.interests.map(({ activity }) => ({
+      id: activity.id,
+      name: activity.name,
+    })),
+  ),
 });
 
 const newestFirst = (a: FriendRequest, b: FriendRequest): number =>
@@ -72,7 +76,7 @@ export function friendLists(
         requestedAt: row.createdAt,
       });
   }
-  lists.friends.sort((a, b) => a.name.localeCompare(b.name, 'cs'));
+  lists.friends.sort((a, b) => compareCzech(a.name, b.name));
   lists.incoming.sort(newestFirst);
   lists.outgoing.sort(newestFirst);
   return lists;

@@ -53,9 +53,6 @@ type PastEventCardProps = {
 
 const NO_BREAK_SPACE = " "
 
-/** „tvoje ★ 5“ with no-break spaces: on a phone it wraps whole, never „tvoje ★ / 5“ (#367). */
-const ownStarsLabel = (stars: number): string => ["tvoje", "★", String(stars)].join(NO_BREAK_SPACE)
-
 /**
  * A past event in Moje › Proběhlé (#367), on a public profile (#179) and under /akce › Proběhlé
  * (#61): the row card with the photo desaturated and the date tile neutral; instead of the bar,
@@ -87,11 +84,16 @@ export function PastEventCard({
             missingToMin: event.missingToMin,
           })
         : rating?.kind === "given"
-          ? `${gatheredLabel(event.approvedCount)} · ${ownStarsLabel(rating.stars)}`
+          ? [gatheredLabel(event.approvedCount), `tvoje ★ ${rating.stars}`]
           : gatheredLabel(event.approvedCount),
     detail,
   ]
-    .filter(Boolean)
+    .flat()
+    .filter((part): part is string => Boolean(part))
+    // a number stays with its words, so the line never breaks „Sešli se / 4 lidé“ or
+    // „tvoje ★ / 5“ (#367, #370); the other spaces may break, or „Do minima chybělo 10 lidí“
+    // would run out of a 320 px card (review #395)
+    .map((part) => part.replace(/(?<=[\d★]) | (?=[\d★(])/g, NO_BREAK_SPACE))
     .join(" · ")
 
   return (
@@ -121,14 +123,13 @@ export function PastEventCard({
           {formatEventStart(event.startsAt)}
         </time>
         <p className="truncate text-caption text-muted-foreground">{line}</p>
-        <div className="flex items-center gap-2 pt-1">
+        {/* wraps as whole parts: „Ohodnotit“ beside „Sešli se 4 lidé“ on a phone moves to the
+            next line instead of breaking the count in two or cutting it off (#370) */}
+        <div className="flex flex-wrap items-center gap-x-2 gap-y-1 pt-1">
           <StatusBadge
             status={{ kind: isCancelled ? "cancelled" : isNotHeld ? "not-held" : "past" }}
           />
-          {/* up to two lines: „Do minima chyběli 2 lidé“ and the rating don't fit one on a phone */}
-          <span className="line-clamp-2 min-w-0 text-caption text-muted-foreground">
-            {attendance}
-          </span>
+          <span className="min-w-0 text-caption text-muted-foreground">{attendance}</span>
           {!isCancelled && !isNotHeld && rating?.kind === "open" && rateAction ? (
             // above the card's stretched link, so it stays its own target
             <span className="relative ml-auto shrink-0 text-sm font-semibold">{rateAction}</span>

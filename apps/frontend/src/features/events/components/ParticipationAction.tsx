@@ -163,22 +163,28 @@ export function ParticipationAction({
   // Figma A-05 · Stavy › Vlastní akce: managing is the main action, joining sits beside it
   // (Q12: the organizer joins without approval)
   const canJoinAtOnce = isOrganizer || event.approvalMode === "open"
+  // where the organizer finds the event again: not only in the toast after „Zveřejnit“, which
+  // goes away (#281, review #278)
+  const myEvents = isOrganizer ? <MyEventsNote /> : null
   if (event.canManage && event.myParticipation === null && !event.isFull && canJoinAtOnce) {
     return (
-      <div className="flex gap-2">
-        <ManageLink
-          eventId={event.id}
-          isPrimary
-        />
-        <JoinControl
-          event={event}
-          isOrganizer={isOrganizer}
-          isPending={isPending}
-          onJoin={onJoin}
-          onLeave={onLeave}
-          isSecondary
-        />
-      </div>
+      <Row>
+        <div className="flex gap-2">
+          <ManageLink
+            eventId={event.id}
+            isPrimary
+          />
+          <JoinControl
+            event={event}
+            isOrganizer={isOrganizer}
+            isPending={isPending}
+            onJoin={onJoin}
+            onLeave={onLeave}
+            isSecondary
+          />
+        </div>
+        {myEvents}
+      </Row>
     )
   }
 
@@ -192,7 +198,31 @@ export function ParticipationAction({
         onJoin={onJoin}
         onLeave={onLeave}
       />
+      {myEvents}
     </Row>
+  )
+}
+
+/**
+ * „Najdeš ji v Moje akce › Pořádám“ on the organizer's own upcoming event (#281), in the
+ * desktop panel; a phone's action bar stays two buttons, Moje is one tap away in the bottom nav.
+ */
+function MyEventsNote() {
+  return (
+    <p
+      data-slot="participation-note"
+      className="text-sm text-muted-foreground max-md:hidden"
+    >
+      Najdeš ji v{" "}
+      <Link
+        to={ROUTES.myEvents}
+        search={{ tab: "poradam" }}
+        className="font-medium text-foreground underline underline-offset-4"
+      >
+        Moje akce › Pořádám
+      </Link>
+      .
+    </p>
   )
 }
 

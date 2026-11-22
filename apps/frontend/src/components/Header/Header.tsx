@@ -23,7 +23,9 @@ type HeaderProps = {
 export function Header({ userMenu, isSignedIn = false, screenAction }: HeaderProps) {
   return (
     <header className="sticky top-0 z-40 w-full on-hero max-md:[:root:has([data-slot=sub-bar])_&]:hidden">
-      <div className="mx-auto flex h-14 w-full max-w-7xl items-center gap-8 px-4 md:h-18 md:px-10">
+      {/* gap-4 on a phone: the logo, „Hledat“ and the avatar were 1 px wider than 320 px with
+          gap-8, and the whole page scrolled sideways (#370) */}
+      <div className="mx-auto flex h-14 w-full max-w-7xl items-center gap-4 px-4 md:h-18 md:gap-8 md:px-10">
         <HeaderLogo />
         <HeaderNav isSignedIn={isSignedIn} />
         <div className="ml-auto flex items-center gap-2">

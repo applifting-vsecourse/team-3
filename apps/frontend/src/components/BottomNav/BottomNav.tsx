@@ -12,6 +12,8 @@ type BottomNavProps = {
   // While the session loads we don't know whether to offer Přihlásit or
   // Profil, so the slot stays empty instead of flashing the wrong one.
   isSessionPending: boolean
+  /** Where „Přihlásit“ comes back to after signing in: this page (#370, B-012). */
+  signInFrom?: string
 }
 
 /**
@@ -20,7 +22,7 @@ type BottomNavProps = {
  * Akce, Skupiny, Moje, Profil. Moje holds events and groups (#304), so its icon is a
  * bookmark, not the calendar of Moje akce.
  */
-export function BottomNav({ isSignedIn, isSessionPending }: BottomNavProps) {
+export function BottomNav({ isSignedIn, isSessionPending, signInFrom }: BottomNavProps) {
   return (
     <nav
       aria-label="Hlavní navigace"
@@ -62,6 +64,7 @@ export function BottomNav({ isSignedIn, isSessionPending }: BottomNavProps) {
       ) : (
         <BottomNavLink
           to={ROUTES.login}
+          search={{ from: signInFrom }}
           section="login"
           icon={<LogIn className="size-5" />}
         >
