@@ -43,8 +43,9 @@ describe('GroupRepository', () => {
         }
       }) as never);
       const written: string[] = [];
-      prisma.groupMember.delete.mockImplementation((() => {
+      prisma.groupMember.deleteMany.mockImplementation((() => {
         if (inTransaction) written.push('membership');
+        return Promise.resolve({ count: 1 });
       }) as never);
       prisma.event.findMany.mockResolvedValue([
         { id: 'e1', status: 'published' },
@@ -63,8 +64,8 @@ describe('GroupRepository', () => {
 
       expect(prisma.$transaction).toHaveBeenCalledTimes(1);
       expect(written).toEqual(['membership', 'participations']);
-      expect(prisma.groupMember.delete).toHaveBeenCalledWith({
-        where: { groupId_userId: { groupId: 'g1', userId: 'u-jakub' } },
+      expect(prisma.groupMember.deleteMany).toHaveBeenCalledWith({
+        where: { groupId: 'g1', userId: 'u-jakub' },
       });
       expect(prisma.participation.updateMany).toHaveBeenCalledWith({
         where: {
@@ -74,6 +75,26 @@ describe('GroupRepository', () => {
         },
         data: { status: 'withdrawn', approvedAt: null },
       });
+    });
+  });
+
+  describe('leaveGroup against a rejection at the same moment (S-3, review #400)', () => {
+    it('a request rejected already ends without a 500 and frees nothing', async () => {
+      const prisma = mockDeep<PrismaService>();
+      // the transaction client is the same mock
+      prisma.$transaction.mockImplementation((async (
+        run: (tx: PrismaService) => Promise<unknown>,
+      ) => run(prisma)) as never);
+      prisma.groupMember.deleteMany.mockResolvedValue({ count: 0 });
+
+      await expect(
+        new GroupRepository(prisma).leaveGroup(
+          'g1',
+          'u-jakub',
+          new Date('2026-11-22T10:00:00.000Z'),
+        ),
+      ).resolves.toEqual([]);
+      expect(prisma.participation.updateMany).not.toHaveBeenCalled();
     });
   });
 

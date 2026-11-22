@@ -304,7 +304,9 @@ export class GroupRepository {
    * the same transaction the places and requests on the group's upcoming
    * members-only events, which the user no longer sees (#266). Returns the
    * events where an approved place was freed, once the transaction has
-   * committed.
+   * committed. A request an admin rejected at the same moment is gone
+   * already: that ends the same, with nothing freed, not a 500 (S-3,
+   * review #400).
    */
   async leaveGroup(
     groupId: string,
@@ -312,9 +314,10 @@ export class GroupRepository {
     at: Date,
   ): Promise<string[]> {
     return this.prisma.$transaction(async (tx) => {
-      await tx.groupMember.delete({
-        where: { groupId_userId: { groupId, userId } },
+      const { count } = await tx.groupMember.deleteMany({
+        where: { groupId, userId },
       });
+      if (count === 0) return [];
       return withdrawFromMembersOnlyEvents(tx, groupId, userId, at);
     });
   }
