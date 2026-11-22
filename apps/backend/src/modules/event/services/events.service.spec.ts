@@ -430,8 +430,8 @@ const aDetail = (overrides: Partial<EventDetail> = {}): EventDetail => ({
 });
 
 // someone else (u1) created it; u9 is in the group
-const groupEventDetail = (): EventDetail =>
-  aDetail({ group: { id: 'g1', name: 'Deskovkáři Karlín' } });
+const groupEventDetail = (overrides: Partial<EventDetail> = {}): EventDetail =>
+  aDetail({ group: { id: 'g1', name: 'Deskovkáři Karlín' }, ...overrides });
 
 const participants = [
   { id: 'u2', name: 'Jana' },
@@ -1115,6 +1115,54 @@ describe('EventsService.updateEvent', () => {
         maxParticipants: 6,
       }),
     ).toEqual({ ok: true, data: changes });
+  });
+
+  it('the e-mail for each sign-up: the organizer sees and changes it, another admin neither (#86)', async () => {
+    const organizer = setup(groupEventDetail({ emailOnJoin: true }));
+    expect(
+      (await organizer.service.getEventDetail('e1', 'u1', now)).emailOnJoin,
+    ).toBe(true);
+    await organizer.service.updateEvent(
+      'e1',
+      'u1',
+      { emailOnJoin: false },
+      now,
+    );
+    const decideAsOrganizer =
+      organizer.repository.updateEvent.mock.calls[0]![1];
+    expect(
+      decideAsOrganizer({
+        status: 'published',
+        startsAt: aDetail().startsAt,
+        endsAt: null,
+        approvedCount: 2,
+        minParticipants: 3,
+        maxParticipants: 6,
+      }),
+    ).toEqual({ ok: true, data: { emailOnJoin: false } });
+
+    const admin = setup(groupEventDetail({ emailOnJoin: true }));
+    admin.repository.findActiveGroupRole.mockResolvedValue('admin');
+    expect(
+      (await admin.service.getEventDetail('e1', 'u9', now)).emailOnJoin,
+    ).toBeNull();
+    await admin.service.updateEvent(
+      'e1',
+      'u9',
+      { title: 'Nově', emailOnJoin: false },
+      now,
+    );
+    const decideAsAdmin = admin.repository.updateEvent.mock.calls[0]![1];
+    expect(
+      decideAsAdmin({
+        status: 'published',
+        startsAt: aDetail().startsAt,
+        endsAt: null,
+        approvedCount: 2,
+        minParticipants: 3,
+        maxParticipants: 6,
+      }),
+    ).toEqual({ ok: true, data: { title: 'Nově' } });
   });
 
   it("any admin of the event's group changes it, not a regular member (B-055)", async () => {

@@ -111,7 +111,12 @@ export type EventDetail = PublicEvent & {
 };
 
 /** The detail and, for those taking part, who is coming (#174, `canSeeParticipants`). */
-export type EventDetailView = EventDetail & {
+export type EventDetailView = Omit<EventDetail, 'emailOnJoin'> & {
+  /**
+   * The organizer's e-mail for each sign-up (#86), only for the organizer: it goes to them, so
+   * a fellow admin of the group neither sees nor changes it (review #398). Null for anyone else.
+   */
+  emailOnJoin: boolean | null;
   /** Null for anyone who may not see the names; they get only `capacity`. */
   participants: EventParticipant[] | null;
   /** The signed-in viewer's own participation; null for a visitor or someone not in. */

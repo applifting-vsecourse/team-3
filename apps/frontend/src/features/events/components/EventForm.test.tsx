@@ -480,6 +480,30 @@ describe("EventForm", () => {
       ).toBeInTheDocument()
     })
 
+    it("isn't in a fellow group admin's edit: it is the organizer's (review #398)", async () => {
+      const { onSubmit } = renderForm({
+        mode: "edit",
+        initialValues: {
+          title: "Deskovky po práci",
+          activityId: "a-deskove-hry",
+          localityId: "l-praha-8",
+          lat: 50.11,
+          lng: 14.47,
+          address: "Herna Karlín, Křižíkova 52, Praha 8",
+          startsAt: new Date(Date.now() + 5 * 86_400_000).toISOString(),
+          minParticipants: 3,
+          maxParticipants: 6,
+          approvalMode: "open",
+        },
+      })
+
+      expect(screen.queryByRole("checkbox", { name: /e-mail ke každé přihlášce/ })).toBeNull()
+      await userEvent.click(screen.getByRole("button", { name: "Uložit změny" }))
+
+      expect(onSubmit).toHaveBeenCalledOnce()
+      expect(onSubmit.mock.calls[0]![0]).not.toHaveProperty("emailOnJoin")
+    })
+
     it("can be changed when editing an open event, though the way of joining can't", async () => {
       const { onSubmit } = renderForm({
         mode: "edit",

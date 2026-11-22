@@ -41,10 +41,14 @@ const aView = (overrides: Partial<EventDetailView> = {}): EventDetailView => ({
 });
 
 describe('EventDetailResponseDto.fromDomain', () => {
-  it('shows the e-mail for each sign-up only to who manages the event (#86)', () => {
-    expect(EventDetailResponseDto.fromDomain(aView()).emailOnJoin).toBeNull();
+  it('passes on the e-mail for each sign-up as the service decided it (#86)', () => {
     expect(
-      EventDetailResponseDto.fromDomain(aView({ canManage: true })).emailOnJoin,
+      EventDetailResponseDto.fromDomain(aView({ emailOnJoin: null }))
+        .emailOnJoin,
+    ).toBeNull();
+    expect(
+      EventDetailResponseDto.fromDomain(aView({ emailOnJoin: true }))
+        .emailOnJoin,
     ).toBe(true);
   });
 

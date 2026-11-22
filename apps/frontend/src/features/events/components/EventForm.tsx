@@ -247,6 +247,8 @@ export function EventForm({
   const today = usePragueToday()
   const isEdit = mode === "edit"
   const isGroupCreate = !isEdit && group !== undefined
+  // the e-mail for each sign-up is the organizer's (#86): an edit by another admin has none
+  const canSetEmailOnJoin = !isEdit || initialValues?.emailOnJoin !== undefined
   const schema = useMemo(() => buildSchema(approvedCount), [approvedCount])
   const [initialDay, initialStart] = splitWallTime(initialValues?.startsAt)
   const [, initialEnd] = splitWallTime(initialValues?.endsAt)
@@ -348,7 +350,9 @@ export function EventForm({
               maxParticipants: Number(values.maxParticipants),
               approvalMode: values.approvalMode,
               // an event with approval e-mails every request anyway (#177)
-              emailOnJoin: values.approvalMode === "open" && values.emailOnJoin,
+              ...(canSetEmailOnJoin
+                ? { emailOnJoin: values.approvalMode === "open" && values.emailOnJoin }
+                : {}),
               ...(isGroupCreate ? { groupId: group.id, visibility: values.visibility } : {}),
             },
             image,
@@ -659,7 +663,7 @@ export function EventForm({
                       isDisabled={isEdit}
                     />
                   </FormControl>
-                  {field.value === "open" ? (
+                  {!canSetEmailOnJoin ? null : field.value === "open" ? (
                     // Figma D-01e, D-02e (#86): after the cards, not between them — a checkbox
                     // inside the radiogroup would break its arrow keys and its ARIA children
                     <FormField
