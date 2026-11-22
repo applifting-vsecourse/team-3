@@ -20,7 +20,7 @@ export const inboxAddress = (email: string): string =>
  * successful look forgets them: the owner opening the inbox again and again
  * never locks it, a stranger guessing passwords does. Per address rather
  * than only per IP: a whole classroom on one Wi-Fi is one IP (see
- * rate-limit.ts). In memory and bounded, like the inbox itself.
+ * shared/auth/config/rate-limit.ts). In memory and bounded, like the inbox itself.
  */
 @Injectable()
 export class SimulatedInboxLimits {
