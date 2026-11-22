@@ -51,6 +51,8 @@ export type EventParticipant = z.infer<typeof eventParticipantSchema>
 export const eventDetailSchema = publicEventSchema.extend({
   description: z.string().nullable(),
   approvalMode: z.enum(["open", "approval"]),
+  /** The organizer's e-mail for each sign-up (#86): only for who manages the event, else null. */
+  emailOnJoin: z.boolean().nullish(),
   /** `private`: through its link only; `members`: only the group's members (B-055). */
   visibility: z.enum(["public", "private", "members"]),
   /** `hidden`: deactivated by the superadmin (#308); only the superadmin gets it, anyone else a 404. */
@@ -178,6 +180,8 @@ export type EventInput = {
   minParticipants: number
   maxParticipants: number
   approvalMode: "open" | "approval"
+  /** An e-mail to the organizer for each sign-up to an open event (#86); off by default. */
+  emailOnJoin?: boolean
   /** A group's event (B-055), created by one of its admins; only when creating. */
   groupId?: string
   /** `members`: only the group's members see it and join it; only with `groupId`. */

@@ -6,6 +6,8 @@ import { Button } from "@/components/ui/button"
 import { cn } from "@/lib/utils"
 
 export type BackLinkProps = Pick<LinkProps, "to" | "params" | "search"> & {
+  /** In place of `to`: a page of the app with its search, e.g. the sign-in's `from` (#370). */
+  href?: string
   /** The label when there is no history, e.g. „Všechny akce“ for `to` = the list. */
   fallbackLabel: string
   /**
@@ -26,6 +28,7 @@ export function BackLink({
   to,
   params,
   search,
+  href,
   fallbackLabel,
   label,
   isIconOnlyOnMobile = false,
@@ -45,6 +48,7 @@ export function BackLink({
         to={to}
         params={params}
         search={search}
+        href={href}
         onClick={(e) => {
           if (!canGoBack) return
           e.preventDefault()

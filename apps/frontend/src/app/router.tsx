@@ -1,5 +1,6 @@
 import { createRouter } from "@tanstack/react-router"
 
+import { AppHeader } from "@/app/AppHeader"
 import { AppLoadingScreen } from "@/components/AppLoadingScreen"
 import { rememberHistoryEntry } from "@/components/BackLink/backTarget"
 import { NotFound } from "@/components/Error/NotFound"
@@ -7,7 +8,7 @@ import { RootErrorBoundary } from "@/components/Error/RootErrorBoundary"
 import { queryClient } from "@/config/react-query"
 import { routeTree } from "@/routeTree.gen"
 
-import { AppHeader } from "@/features/auth/components/AppHeader"
+import { UpcomingEvents } from "@/features/events/components/UpcomingEvents"
 
 /**
  * A page of this app like any other, with the header (DESIGN.md › Layout:
@@ -18,7 +19,7 @@ function NotFoundPage() {
   return (
     <>
       <AppHeader />
-      <NotFound />
+      <NotFound more={<UpcomingEvents layout="grid" />} />
     </>
   )
 }

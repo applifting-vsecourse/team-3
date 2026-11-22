@@ -8,6 +8,11 @@ import { renderWithRouter } from "@/test/renderWithRouter"
 
 import { HeaderMenu } from "@/features/auth/components/HeaderMenu"
 
+// which page signing in returns to is the hook's (tested with the app's routes in router.test.tsx)
+vi.mock("@/features/auth/hooks/useAuthLinkFrom", () => ({
+  useAuthLinkFrom: () => "/akce?lokalita=praha-8",
+}))
+
 vi.mock("@/features/auth/lib/auth-client", () => ({
   authClient: { getSession: vi.fn().mockResolvedValue({ data: null, error: null }) },
 }))
@@ -44,5 +49,26 @@ describe("HeaderMenu", () => {
 
     const button = screen.getByRole("button", { name: /Petra Nováková/ })
     expect(button.getAttribute("aria-label")?.startsWith(button.textContent.trim())).toBe(true)
+  })
+
+  // #370: signing in from the header comes back to the page, as „Přihlásit se na akci“ does
+  it("signing in or up from the header comes back to this page", async () => {
+    const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } })
+    queryClient.setQueryData(authKeys.session(), null)
+    await renderWithRouter(
+      <QueryClientProvider client={queryClient}>
+        <HeaderMenu />
+      </QueryClientProvider>,
+    )
+
+    const from = `from=${encodeURIComponent("/akce?lokalita=praha-8")}`
+    expect(screen.getByRole("link", { name: "Přihlásit se" })).toHaveAttribute(
+      "href",
+      `/login?${from}`,
+    )
+    expect(screen.getByRole("link", { name: "Registrovat" })).toHaveAttribute(
+      "href",
+      `/signup?${from}`,
+    )
   })
 })

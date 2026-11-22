@@ -37,6 +37,12 @@ describe('CreateEventDto', () => {
     expect(invalid(valid)).toEqual([]);
   });
 
+  it('an e-mail for each sign-up is an optional yes or no (#86)', () => {
+    expect(invalid({ ...valid, emailOnJoin: true })).toEqual([]);
+    expect(invalid({ ...valid, emailOnJoin: false })).toEqual([]);
+    expect(invalid({ ...valid, emailOnJoin: 'yes' })).toEqual(['emailOnJoin']);
+  });
+
   it('requires the title, activity, locality, place, address, start, limits and approval mode', () => {
     expect(invalid({}).sort()).toEqual(
       [

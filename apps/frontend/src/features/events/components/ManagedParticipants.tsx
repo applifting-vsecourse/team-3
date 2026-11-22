@@ -14,8 +14,8 @@ type ManagedParticipantsProps = {
   participants: EventParticipant[] | undefined
   error: Error | undefined
   onRetry: () => void
-  /** Inside a tab the tab names the list: the heading stays for screen readers only. */
-  isHeadingHidden?: boolean
+  /** In a tab on a phone the tab names the list: there the heading is for screen readers only (#371). */
+  isHeadingHiddenOnPhone?: boolean
   /** A cancelled event gets nobody new: an empty list says nobody was in (#183). */
   isCancelled?: boolean
 }
@@ -29,7 +29,7 @@ export function ManagedParticipants({
   participants,
   error,
   onRetry,
-  isHeadingHidden = false,
+  isHeadingHiddenOnPhone = false,
   isCancelled = false,
 }: ManagedParticipantsProps) {
   const headingId = useId()
@@ -40,7 +40,10 @@ export function ManagedParticipants({
     >
       <h2
         id={headingId}
-        className={cn("text-lg font-semibold tracking-tight", isHeadingHidden && "sr-only")}
+        className={cn(
+          "text-lg font-semibold tracking-tight",
+          isHeadingHiddenOnPhone && "max-md:sr-only",
+        )}
       >
         Účastníci{" "}
         {participants ? (

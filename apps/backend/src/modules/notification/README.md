@@ -10,15 +10,20 @@ this.notifications.notify({ type: 'event-cancelled', eventId });
 
 ## Kdo co dostane
 
-| Druh (`type`)        | Příjemci                                                  | Vyvolá ho                                                          |
-| -------------------- | --------------------------------------------------------- | ------------------------------------------------------------------ |
-| `request-decided`    | žadatelé, kterým organizátor žádost schválil/zamítl       | `EventsService.decideRequests`                                     |
-| `event-changed`      | schválení a čekající účastníci, ne organizátor            | `EventsService.updateEvent` (jen když se změnil termín nebo místo) |
-| `event-cancelled`    | schválení a čekající účastníci, ne organizátor; s důvodem | `EventsService.cancelEvent`                                        |
-| `request-received`   | organizátor; se zprávou žadatele (#175)                   | `EventsService.join` (žádost čeká na schválení)                    |
-| `participant-left`   | organizátor                                               | `EventsService.leave` (odhlásil se schválený účastník)             |
-| `group-announcement` | všichni aktivní členové skupiny, správci i autor          | `GroupsService.sendAnnouncement` (#194)                            |
-| `event-message`      | schválení účastníci, ne organizátor                       | `EventsService.sendMessage` (#176)                                 |
+| Druh (`type`)           | Příjemci                                                  | Vyvolá ho                                                          |
+| ----------------------- | --------------------------------------------------------- | ------------------------------------------------------------------ |
+| `request-decided`       | žadatelé, kterým organizátor žádost schválil/zamítl       | `EventsService.decideRequests`                                     |
+| `event-changed`         | schválení a čekající účastníci, ne organizátor            | `EventsService.updateEvent` (jen když se změnil termín nebo místo) |
+| `event-cancelled`       | schválení a čekající účastníci, ne organizátor; s důvodem | `EventsService.cancelEvent`                                        |
+| `request-received`      | organizátor; se zprávou žadatele (#175)                   | `EventsService.join` (žádost čeká na schválení)                    |
+| `participant-joined` | organizátor: v centru vždy, e-mailem jen když si u akce zapnul `emailOnJoin` (při založení i v úpravě) | `EventsService.join` (místo hned, akce bez schvalování, #86) |
+| `participant-left`      | organizátor                                               | `EventsService.leave` (odhlásil se schválený účastník)             |
+| `group-announcement`    | všichni aktivní členové skupiny, správci i autor          | `GroupsService.sendAnnouncement` (#194)                            |
+| `event-message`         | schválení účastníci, ne organizátor                       | `EventsService.sendMessage` (#176)                                 |
+| `group-join-request`    | aktivní správci skupiny, ne žadatel; se zprávou žadatele  | `GroupsService.join` (žádost do uzavřené skupiny, #86)             |
+| `group-request-decided` | žadatel, kterému správce žádost o vstup schválil/zamítl   | `GroupsService.approveRequest`, `rejectRequest` (#86)              |
+| `friend-request`        | ten, koho žádám o přátelství (i při opakované žádosti)    | `FriendshipService.request` (#307, #86)                            |
+| `friend-accepted`       | ten, kdo o přátelství požádal                             | `FriendshipService.request` (přijetí, #307, #86)                   |
 
 Oznámení skupiny není o akci: e-mail má předmět „{skupina}: {předmět}“, nadpis a text jsou slova správce (odstavce podle prázdných řádků) a tlačítko „Stránka skupiny“ (Figma E-01, typ 8).
 
@@ -38,7 +43,22 @@ Texty jsou česky a tykáním; žádný text nepředpokládá pohlaví organizá
 
 ## Kam e-maily jdou
 
-Přes sdílený `EmailService` jako ověřovací e-maily: Resend nebo SMTP, když jsou nastavené klíče (#165), jinak konzole (v produkci se do logu píše jen příjemce a předmět). Simulovaná schránka (#58) drží jen ověřovací e-mail, upozornění v ní nejsou. Centrum upozornění v aplikaci (zvonek) zatím není; přibude s #86 (B-044) ze stejných událostí jako e-maily.
+Přes sdílený `EmailService` jako ověřovací e-maily: Resend nebo SMTP, když jsou nastavené klíče (#165), jinak konzole (v produkci se do logu píše jen příjemce a předmět). Simulovaná schránka (#58) drží jen ověřovací e-mail, upozornění v ní nejsou. Centrum upozornění v aplikaci (zvonek) popisuje sekce níže.
+
+## Centrum upozornění v aplikaci (#86, B-044)
+
+Každá událost výše zapíše před odesláním e-mailů i upozornění do centra (tabulka `notification`): stejným příjemcům, s jednou výjimkou: oznámení skupiny do centra nedostane jeho autor, pro něj to není novinka (e-mail dostane dál). Krátká zpráva je první řádek e-mailu (náhled), skládá ji `domain/in-app.ts`; proklik podle druhu určí `notificationPath` (správa akce pro organizátora, detail akce, stránka nebo správa skupiny, žádosti o přátelství, profil). Zpráva se ukládá hotová, pozdější přejmenování akce ji nezmění. Když se zápis do centra nepovede, zaloguje se a e-maily odejdou dál. Druhy, texty a otevřené otázky: [`docs/navrh-upozorneni.md`](../../../../../docs/navrh-upozorneni.md).
+
+API (jen přihlášený, vždy jen vlastní upozornění: dotazy jsou omezené na uživatele ze session, cizí id vrátí 404 `NOTIFICATION_NOT_FOUND`, stejně jako neexistující):
+
+| Endpoint                              | Co vrátí                                                                                                 |
+| ------------------------------------- | -------------------------------------------------------------------------------------------------------- |
+| `GET /api/notifications`              | 50 nejnovějších (`id`, `type`, `text`, `path`, `createdAt`, `readAt`) a `unreadCount` všech nepřečtených |
+| `GET /api/notifications/unread-count` | `{ count }` pro číslo u zvonku                                                                           |
+| `POST /api/notifications/:id/read`    | 204; přečtené už jednou zůstane se svým časem                                                            |
+| `POST /api/notifications/read-all`    | `{ marked }`, kolik jich bylo nepřečtených                                                               |
+
+Nový druh do centra: přidej hodnotu do `notification_type` (migrace) a `InAppType`, text do `domain/in-app.ts` a cestu do `notificationPath`.
 
 ## Výzva k hodnocení po akci (#65, B-043)
 

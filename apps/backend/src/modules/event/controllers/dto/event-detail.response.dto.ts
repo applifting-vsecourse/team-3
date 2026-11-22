@@ -24,6 +24,14 @@ export class EventDetailResponseDto extends PublicEventResponseDto {
   approvalMode!: 'open' | 'approval';
 
   @ApiProperty({
+    type: Boolean,
+    nullable: true,
+    description:
+      'Whether the organizer gets an e-mail for each sign-up to the open event (#86); only for the organizer, null for anyone else (a fellow group admin too)',
+  })
+  emailOnJoin!: boolean | null;
+
+  @ApiProperty({
     enum: ['public', 'private', 'members'],
     description:
       "private: reachable through its link only; members: only the group's members (B-055)",
@@ -101,6 +109,8 @@ export class EventDetailResponseDto extends PublicEventResponseDto {
       ...PublicEventResponseDto.fromDomain(event),
       description: event.description,
       approvalMode: event.approvalMode,
+      // the organizer's own setting, already null for anyone else (getEventDetail)
+      emailOnJoin: event.emailOnJoin,
       visibility: event.visibility,
       status: event.status,
       cancelReason: event.cancelReason,

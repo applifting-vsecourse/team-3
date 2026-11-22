@@ -4,6 +4,7 @@ import { ScheduleModule } from '@nestjs/schedule';
 import { AdminModule } from './modules/admin/admin.module';
 import { CatalogModule } from './modules/catalog/catalog.module';
 import { EventModule } from './modules/event/event.module';
+import { FriendshipModule } from './modules/friendship/friendship.module';
 import { GeoModule } from './modules/geo/geo.module';
 import { GroupModule } from './modules/group/group.module';
 import { HomeModule } from './modules/home/home.module';
@@ -25,6 +26,7 @@ const imports = [
   AdminModule,
   CatalogModule,
   EventModule,
+  FriendshipModule,
   GroupModule,
   GeoModule,
   HomeModule,

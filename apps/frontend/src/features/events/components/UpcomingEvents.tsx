@@ -2,24 +2,27 @@ import { useId, type ReactNode } from "react"
 import { useQuery } from "@tanstack/react-query"
 import { MapPin, RefreshCw } from "lucide-react"
 
+import { homeGridColumns } from "@/components/HomeSection/HomeSection"
 import { LocalityFilter } from "@/components/LocalityFilter/LocalityFilter"
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 import { Button } from "@/components/ui/button"
 import { localityDefault, type LocalityState } from "@/hooks/useLocality"
 import { localitiesQueryOptions } from "@/lib/catalog/catalogQueryOptions"
 import { ALL_LOCALITIES_SLUG } from "@/lib/catalog/localityOptions"
+import { cn } from "@/lib/utils"
 
 import type { EventFilters } from "@/features/events/api/eventSchemas"
 import { eventsQueryOptions } from "@/features/events/api/eventsQueryOptions"
 import { EventCard } from "@/features/events/components/EventCard"
 import { EventCardSkeleton } from "@/features/events/components/EventList"
+import { HomeEventGrid } from "@/features/events/components/HomeEventGrid"
 
-const NEAREST_COUNT = 3
+const UPCOMING_COUNT = 3
 
 // the whole public list, soonest first, like /akce without filters
 const NO_FILTERS = { activityIds: [], categoryIds: [] }
 
-type NearestEventsProps = {
+type UpcomingEventsProps = {
   /**
    * The landing page's locality (useLocality, #55): only its events (a city
    * includes its districts), changeable with the locality chip. Without it,
@@ -28,14 +31,24 @@ type NearestEventsProps = {
   locality?: LocalityState
   /** Under the list, e.g. a link to all events. */
   footer?: ReactNode
+  /**
+   * `column`: row cards under each other, beside a form (sign-in, sign-up). `grid`: the page's
+   * width as on the landing page (`HomeEventGrid`: a column per card from md, a single one a
+   * row over the width), a column of rows on a phone (the 404, #370).
+   */
+  layout?: "column" | "grid"
 }
 
 /**
- * „Nejbližší akce“: the three soonest public events. Next to the sign-in and
+ * „Nadcházející akce“ (#370: not „Nejbližší“, which reads as nearest to me): the three soonest public events. Next to the sign-in and
  * sign-up forms on desktop (Figma B-01d, B-03d), what the account is for,
  * and on the landing page (A-01, A-01d). A card opens the event's detail.
  */
-export function NearestEvents({ locality: shown, footer }: NearestEventsProps) {
+export function UpcomingEvents({
+  locality: shown,
+  footer,
+  layout = "column",
+}: UpcomingEventsProps) {
   const headingId = useId()
   const localitySlug = shown?.slug
   const localitiesQuery = useQuery({
@@ -49,7 +62,7 @@ export function NearestEvents({ locality: shown, footer }: NearestEventsProps) {
       ? undefined
       : resolveFilters(localitySlug, localitiesQuery.data, locality)
   const eventsQuery = useQuery(eventsQueryOptions(filters))
-  const events = filters ? eventsQuery.data?.slice(0, NEAREST_COUNT) : undefined
+  const events = filters ? eventsQuery.data?.slice(0, UPCOMING_COUNT) : undefined
   const error = localitiesQuery.error ?? eventsQuery.error
 
   return (
@@ -62,7 +75,7 @@ export function NearestEvents({ locality: shown, footer }: NearestEventsProps) {
           id={headingId}
           className="text-lg font-semibold tracking-tight"
         >
-          Nejbližší akce
+          Nadcházející akce
         </h2>
         {shown && localitySlug && localitiesQuery.data ? (
           <LocalityFilter
@@ -104,16 +117,28 @@ export function NearestEvents({ locality: shown, footer }: NearestEventsProps) {
         </Alert>
       ) : !events ? (
         <div
-          className="flex flex-col gap-3"
+          // the grid's skeleton is the grid of a full list; with fewer events it narrows to their
+          // columns, which can't be known before they come (review #397)
+          className={
+            layout === "grid"
+              ? cn("grid grid-cols-1 gap-3 md:gap-6", homeGridColumns(UPCOMING_COUNT))
+              : "flex flex-col gap-3"
+          }
           aria-busy
           aria-label="Načítám akce"
         >
-          {Array.from({ length: NEAREST_COUNT }, (_, i) => (
-            <EventCardSkeleton key={i} />
+          {Array.from({ length: UPCOMING_COUNT }, (_, i) => (
+            <EventCardSkeleton
+              key={i}
+              variant={layout === "grid" ? "responsive" : "row"}
+            />
           ))}
         </div>
       ) : events.length === 0 ? (
         <p className="text-sm text-muted-foreground">Teď nejsou žádné nadcházející akce.</p>
+      ) : layout === "grid" ? (
+        // as many columns as events, never an empty one (DESIGN.md › Layout, review #397)
+        <HomeEventGrid events={events} />
       ) : (
         <ul className="flex flex-col gap-3">
           {events.map((event) => (

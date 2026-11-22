@@ -7,7 +7,7 @@ import { api } from "@/lib/api-client"
 import type * as ApiClient from "@/lib/api-client"
 import { renderWithRouter } from "@/test/renderWithRouter"
 
-import { NearestEvents } from "@/features/events/components/NearestEvents"
+import { UpcomingEvents } from "@/features/events/components/UpcomingEvents"
 import { anEvent } from "@/features/events/test/anEvent"
 
 vi.mock("@/lib/api-client", async (importOriginal) => ({
@@ -20,10 +20,14 @@ const get = vi.mocked(api.get)
 const asJson = (body: unknown) =>
   ({ json: () => Promise.resolve(JSON.parse(JSON.stringify(body))) }) as never
 
-const renderNearest = ({ localitySlug }: { localitySlug?: string | null } = {}) =>
+const renderNearest = ({
+  localitySlug,
+  layout,
+}: { localitySlug?: string | null; layout?: "column" | "grid" } = {}) =>
   renderWithRouter(
     <QueryClientProvider client={new QueryClient({ defaultOptions: { queries: { retry: 0 } } })}>
-      <NearestEvents
+      <UpcomingEvents
+        layout={layout}
         // null: the landing page's default locality is still loading
         locality={
           localitySlug === undefined
@@ -40,7 +44,7 @@ const renderNearest = ({ localitySlug }: { localitySlug?: string | null } = {}) 
     </QueryClientProvider>,
   )
 
-describe("NearestEvents", () => {
+describe("UpcomingEvents", () => {
   beforeEach(() => get.mockReset())
 
   it("shows the three soonest events, each a link to its detail", async () => {
@@ -146,5 +150,34 @@ describe("NearestEvents", () => {
 
     expect(await screen.findByRole("link", { name: "Deskovky" })).toBeInTheDocument()
     expect(screen.getByText("Praha")).toBeInTheDocument()
+  })
+
+  // review #397: the sign-in pages keep their column, the 404 gets the landing page's grid
+  describe("layout", () => {
+    const three = () => ["e1", "e2", "e3"].map((id) => anEvent({ id, title: `Akce ${id}` }))
+
+    it("by default a column of row cards (sign-in, sign-up)", async () => {
+      get.mockReturnValue(asJson(three()))
+      const { container } = await renderNearest()
+
+      await screen.findByRole("link", { name: "Akce e1" })
+      expect(container.querySelector("ul")).toHaveClass("flex-col")
+      expect(container.querySelector("ul")).not.toHaveClass("grid")
+    })
+
+    it("grid: a column per card from md, never an empty one", async () => {
+      get.mockReturnValue(asJson(three().slice(0, 2)))
+      const { container } = await renderNearest({ layout: "grid" })
+
+      await screen.findByRole("link", { name: "Akce e1" })
+      expect(container.querySelector("ul")).toHaveClass("grid", "md:grid-cols-2")
+    })
+
+    it("grid: while loading, the skeleton is the same grid, so nothing jumps", async () => {
+      get.mockReturnValue({ json: () => new Promise<never>(() => undefined) } as never)
+      await renderNearest({ layout: "grid" })
+
+      expect(screen.getByLabelText("Načítám akce")).toHaveClass("grid", "md:grid-cols-3")
+    })
   })
 })

@@ -1,6 +1,7 @@
 import { createFileRoute, Link, redirect } from "@tanstack/react-router"
 import { Plus } from "lucide-react"
 
+import { AppHeader } from "@/app/AppHeader"
 import { PageBand } from "@/components/PageBand/PageBand"
 import { Seo } from "@/components/Seo"
 import { Button } from "@/components/ui/button"
@@ -8,7 +9,6 @@ import { localityDefault, useLocality } from "@/hooks/useLocality"
 import { PAGE } from "@/lib/pageLayout"
 import { cn } from "@/lib/utils"
 
-import { AppHeader } from "@/features/auth/components/AppHeader"
 import { useSession } from "@/features/auth/hooks/useSession"
 import { EmptyGroups } from "@/features/groups/components/EmptyGroups"
 import { GroupFilters } from "@/features/groups/components/GroupFilters"

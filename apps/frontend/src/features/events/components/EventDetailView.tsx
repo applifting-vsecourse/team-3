@@ -270,6 +270,7 @@ export function EventDetailView({
         participants={event.participants}
         isWaitingForApproval={event.myParticipation === "pending"}
         viewerId={viewerId}
+        isClosed={isCancelled || isOver}
       />
     )
 

@@ -70,6 +70,8 @@ type SendAnnouncementButtonProps = {
   viewerId: string
   /** Active members including admins (the group's memberCount). */
   memberCount: number
+  /** The management's next step makes it the primary button (#371). */
+  variant?: "default" | "outline"
   className?: string
 }
 
@@ -84,6 +86,7 @@ export function SendAnnouncementButton({
   groupId,
   viewerId,
   memberCount,
+  variant = "outline",
   className,
 }: SendAnnouncementButtonProps) {
   const [isOpen, setIsOpen] = useState(false)
@@ -107,7 +110,7 @@ export function SendAnnouncementButton({
     >
       <DialogTrigger asChild>
         <Button
-          variant="outline"
+          variant={variant}
           size="lg"
           className={cn("h-11", className)}
         >

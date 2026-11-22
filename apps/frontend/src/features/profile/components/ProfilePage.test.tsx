@@ -84,6 +84,30 @@ describe("/profil overview (#178, #367, Figma B-05)", () => {
     ])
   })
 
+  it("the people I know come first, before my ratings (#307)", async () => {
+    respond(empty)
+    await renderWithRouter(
+      <QueryClientProvider
+        client={new QueryClient({ defaultOptions: { queries: { retry: false } } })}
+      >
+        <ProfilePage
+          viewerId="owner"
+          peopleContent={
+            <section aria-label="Lidé, které znám">
+              <h2>Lidé, které znám</h2>
+            </section>
+          }
+        />
+      </QueryClientProvider>,
+    )
+
+    await screen.findByRole("heading", { level: 1, name: "Jana Nová" })
+    expect(screen.getAllByRole("heading", { level: 2 }).map((h) => h.textContent)).toEqual([
+      "Lidé, které znám",
+      "Moje hodnocení",
+    ])
+  })
+
   it("says there is no rating yet", async () => {
     respond(empty)
     await show()
@@ -119,6 +143,55 @@ describe("/profil overview (#178, #367, Figma B-05)", () => {
       "/akce/p1",
     )
     expect(within(asParticipant).getByText("Zobrazeno 1 z 6")).toBeInTheDocument()
+  })
+
+  // #370: „Zobrazeno 3 z 7“ had no way to the rest
+  const rating = (n: number) => ({
+    id: `r${n}`,
+    stars: 4,
+    comment: null,
+    createdAt: new Date("2026-10-30T10:00:00Z"),
+    event: { id: `e${n}`, title: `Akce ${n}` },
+    author: { id: "org", name: "Petr" },
+  })
+
+  it("shows the latest three ratings and the rest on „Zobrazit další“, a toggle", async () => {
+    respond({
+      ...empty,
+      participantRatings: [1, 2, 3, 4, 5].map(rating),
+      participantSummary: { average: 4, count: 5 },
+    })
+    await show()
+    const user = userEvent.setup()
+
+    const asParticipant = await screen.findByRole("region", { name: "Jako účastník" })
+    expect(within(asParticipant).getAllByRole("listitem")).toHaveLength(3)
+    const more = within(asParticipant).getByRole("button", { name: "Zobrazit další (2)" })
+    expect(more).toHaveAttribute("aria-expanded", "false")
+    expect(more).toHaveClass("h-10")
+    await user.click(more)
+
+    expect(within(asParticipant).getAllByRole("listitem")).toHaveLength(5)
+    // the same button, so the focus stays where it was (review #395)
+    expect(more).toHaveTextContent("Zobrazit méně")
+    expect(more).toHaveAttribute("aria-expanded", "true")
+    expect(more).toHaveFocus()
+    expect(within(asParticipant).queryByText(/Zobrazeno/)).not.toBeInTheDocument()
+  })
+
+  it("past the API's limit says how many of all there are, never „všechna“", async () => {
+    respond({
+      ...empty,
+      participantRatings: Array.from({ length: 50 }, (_, i) => rating(i + 1)),
+      participantSummary: { average: 4, count: 70 },
+    })
+    await show()
+
+    const asParticipant = await screen.findByRole("region", { name: "Jako účastník" })
+    await userEvent
+      .setup()
+      .click(within(asParticipant).getByRole("button", { name: "Zobrazit další (47)" }))
+    expect(within(asParticipant).getByText("Zobrazeno 50 z 70")).toBeInTheDocument()
   })
 
   it("explains a failed load and loads again on retry", async () => {

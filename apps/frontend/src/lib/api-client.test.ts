@@ -1,6 +1,6 @@
 import { afterEach, describe, expect, it, vi } from "vitest"
 
-import { api } from "@/lib/api-client"
+import { api, apiValidationMessages } from "@/lib/api-client"
 
 // The real client against a stubbed fetch: what the user reads in a toast
 // when the API refuses (ky 2 reads the body before the hook runs).
@@ -65,5 +65,34 @@ describe("api client errors", () => {
     await expect(api.get("events").json()).rejects.toThrow(
       "Nepodařilo se spojit se serverem. Zkontroluj připojení a zkus to znovu.",
     )
+  })
+})
+
+// #281 (review #395): the messages a form puts under its fields
+describe("apiValidationMessages", () => {
+  const refusal = async (status: number, body: unknown) => {
+    respond(status, body)
+    return api
+      .post("events/e1/messages")
+      .json()
+      .catch((error: unknown) => error)
+  }
+
+  it("a 400's validation messages, one per field", async () => {
+    expect(
+      apiValidationMessages(
+        await refusal(400, { message: ["Napiš předmět", "Napiš text zprávy"] }),
+      ),
+    ).toEqual(["Napiš předmět", "Napiš text zprávy"])
+    expect(apiValidationMessages(await refusal(400, { message: "Napiš předmět" }))).toEqual([
+      "Napiš předmět",
+    ])
+  })
+
+  it("nothing for another refusal or another error", async () => {
+    expect(
+      apiValidationMessages(await refusal(429, { code: "MESSAGE_LIMIT", message: "Dnes už ne." })),
+    ).toEqual([])
+    expect(apiValidationMessages(new Error("offline"))).toEqual([])
   })
 })

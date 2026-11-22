@@ -1,4 +1,5 @@
 import { PrismaService } from '@/core/prisma/prisma.service';
+import { AuthenticatedUserGuard } from '@/shared/auth/guards/authenticated-user.guard';
 import { Config } from '@/shared/config/config.service';
 import { DynamicModule, Module } from '@nestjs/common';
 import { Test } from '@nestjs/testing';
@@ -10,6 +11,22 @@ import { NotificationService } from './services/notification.service';
 jest.mock('@/core/email/render', () => ({
   renderEmail: jest.fn(async () => '<html>mail</html>'),
 }));
+// The centre's controller (#86) is guarded by a session: better-auth's
+// ESM-only entry can't load under Jest, so the auth module and the session
+// lookup are stubs and the guard is replaced below.
+jest.mock('@/shared/auth/utils/get-session-from-request', () => ({
+  getSessionFromRequest: jest.fn(),
+}));
+jest.mock('@/shared/auth/providers/better-auth.provider', () => ({
+  InjectBetterAuth: (): void => undefined,
+}));
+jest.mock('@/shared/auth/auth.module', () => {
+  // eslint-disable-next-line @typescript-eslint/no-require-imports
+  const { Module: NestModule } = require('@nestjs/common');
+  @NestModule({})
+  class AuthModule {}
+  return { AuthModule };
+});
 
 @Module({})
 class ConfigStubModule {}
@@ -52,6 +69,8 @@ describe('NotificationModule', () => {
     })
       .overrideProvider(PrismaService)
       .useValue(prisma)
+      .overrideGuard(AuthenticatedUserGuard)
+      .useValue({ canActivate: () => true })
       .compile();
 
     // no mail provider configured: the console mailer takes the mail, as on a dev machine

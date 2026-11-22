@@ -126,6 +126,7 @@ export class EventsController {
         minParticipants: body.minParticipants,
         maxParticipants: body.maxParticipants,
         approvalMode: body.approvalMode,
+        emailOnJoin: body.emailOnJoin ?? false,
         groupId: body.groupId ?? null,
         visibility: body.visibility ?? 'public',
       },

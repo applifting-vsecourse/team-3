@@ -16,6 +16,8 @@ type EventParticipantsProps = {
   isWaitingForApproval?: boolean
   /** The signed-in viewer: first, as „Ty“, with the avatar-self fill (Figma A-05c). */
   viewerId?: string | null
+  /** Over (or cancelled): nobody can join any more, so no promise of the names (#370). */
+  isClosed?: boolean
 }
 
 /**
@@ -29,6 +31,7 @@ export function EventParticipants({
   participants,
   isWaitingForApproval = false,
   viewerId,
+  isClosed = false,
 }: EventParticipantsProps) {
   const people = participants
     ? [
@@ -48,13 +51,18 @@ export function EventParticipants({
       </h2>
       {/* nobody yet, whoever looks: no names to promise (review #269) */}
       {approvedCount === 0 ? (
-        <p className="text-sm text-muted-foreground">Zatím se nikdo nepřihlásil.</p>
-      ) : !people ? (
-        // Figma A-05d adds „Do minima chybí jeden.“; the bar and the band already say it
         <p className="text-sm text-muted-foreground">
-          {isWaitingForApproval
-            ? "Jména uvidíš, až tě organizátor schválí."
-            : "Jména uvidíš, až budeš na akci."}
+          {isClosed ? "Nikdo se nepřihlásil." : "Zatím se nikdo nepřihlásil."}
+        </p>
+      ) : !people ? (
+        // Figma A-05d adds „Do minima chybí jeden.“; the bar and the band already say it.
+        // Over or cancelled, nobody can join any more: no promise of the names (#370)
+        <p className="text-sm text-muted-foreground">
+          {isClosed
+            ? "Jména vidí ti, kdo byli na akci."
+            : isWaitingForApproval
+              ? "Jména uvidíš, až tě organizátor schválí."
+              : "Jména uvidíš, až budeš na akci."}
         </p>
       ) : (
         <>

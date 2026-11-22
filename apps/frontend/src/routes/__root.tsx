@@ -8,6 +8,7 @@ import { Toaster } from "@/components/ui/sonner"
 
 import { AgeConfirmationDialog } from "@/features/auth/components/AgeConfirmationDialog"
 import { EmailVerifiedDialog } from "@/features/auth/components/EmailVerifiedDialog"
+import { useAuthLinkFrom } from "@/features/auth/hooks/useAuthLinkFrom"
 import { useSession } from "@/features/auth/hooks/useSession"
 
 export const Route = createRootRouteWithContext<{
@@ -18,6 +19,7 @@ export const Route = createRootRouteWithContext<{
 
 function RootComponent() {
   const { user, isPending } = useSession()
+  const signInFrom = useAuthLinkFrom()
 
   return (
     <>
@@ -29,6 +31,7 @@ function RootComponent() {
       <BottomNav
         isSignedIn={Boolean(user)}
         isSessionPending={isPending}
+        signInFrom={signInFrom}
       />
       {/* what the link in the verification e-mail did, over any page (#155) */}
       <EmailVerifiedDialog />
