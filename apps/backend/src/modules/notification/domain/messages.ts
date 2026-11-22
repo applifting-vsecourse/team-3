@@ -276,44 +276,86 @@ export const composeFriendMessage = (
   person: { id: string; name: string },
   frontendUrl: string,
 ): ComposedMessage =>
-  notification.type === 'friend-request'
-    ? {
-        subject: `Žádost o přátelství: ${person.name}`,
-        email: {
-          preview: `${person.name} ti posílá žádost o přátelství.`,
-          heading: 'Nová žádost o přátelství',
-          paragraphs: [
-            `${person.name} ti posílá žádost o přátelství.`,
-            'Když ji přijmeš, uvidíte navzájem, na které akce jdete.',
-          ],
-          details: [],
-          quote: null,
-          action: {
-            label: 'Zobrazit žádost',
-            url: new URL('/profil/pratele?tab=zadosti', frontendUrl).toString(),
+  notification.type === 'friend-invite-joined'
+    ? composeInviteJoinedMessage(notification.befriended, person, frontendUrl)
+    : notification.type === 'friend-request'
+      ? {
+          subject: `Žádost o přátelství: ${person.name}`,
+          email: {
+            preview: `${person.name} ti posílá žádost o přátelství.`,
+            heading: 'Nová žádost o přátelství',
+            paragraphs: [
+              `${person.name} ti posílá žádost o přátelství.`,
+              'Když ji přijmeš, uvidíte navzájem, na které akce jdete.',
+            ],
+            details: [],
+            quote: null,
+            action: {
+              label: 'Zobrazit žádost',
+              url: new URL(
+                '/profil/pratele?tab=zadosti',
+                frontendUrl,
+              ).toString(),
+            },
           },
-        },
-      }
-    : {
-        subject: `Jste přátelé: ${person.name}`,
-        email: {
-          preview: `${person.name} a ty jste teď přátelé.`,
-          heading: 'Jste přátelé',
-          paragraphs: [
-            `${person.name} a ty jste teď přátelé.`,
-            'Na profilu teď uvidíš, na které akce jde.',
-          ],
-          details: [],
-          quote: null,
-          action: {
-            label: 'Zobrazit profil',
-            url: new URL(
-              `/uzivatele/${encodeURIComponent(person.id)}`,
-              frontendUrl,
-            ).toString(),
+        }
+      : {
+          subject: `Jste přátelé: ${person.name}`,
+          email: {
+            preview: `${person.name} a ty jste teď přátelé.`,
+            heading: 'Jste přátelé',
+            paragraphs: [
+              `${person.name} a ty jste teď přátelé.`,
+              'Na profilu teď uvidíš, na které akce jde.',
+            ],
+            details: [],
+            quote: null,
+            action: {
+              label: 'Zobrazit profil',
+              url: new URL(
+                `/uzivatele/${encodeURIComponent(person.id)}`,
+                frontendUrl,
+              ).toString(),
+            },
           },
-        },
-      };
+        };
+
+/** The first line of „joined through your invite“ (#406, brief §4), the upozornění word for word. */
+export const inviteJoinedText = (name: string, befriended: boolean): string =>
+  befriended
+    ? `${name} je nově na HobbyHubu díky tvé pozvánce. Jste přátelé.`
+    : `${name} je nově na HobbyHubu díky tvé pozvánce.`;
+
+/**
+ * Somebody signed up through the inviter's link (#406): it leads to their profile. Without the
+ * friendship it offers no „add“: they decided (brief §4).
+ */
+const composeInviteJoinedMessage = (
+  befriended: boolean,
+  person: { id: string; name: string },
+  frontendUrl: string,
+): ComposedMessage => ({
+  subject: `${person.name} je na HobbyHubu díky tvé pozvánce`,
+  email: {
+    preview: inviteJoinedText(person.name, befriended),
+    heading: 'Pozvánka zabrala',
+    paragraphs: [
+      inviteJoinedText(person.name, befriended),
+      befriended
+        ? 'Na profilu teď uvidíš, na které akce jde.'
+        : 'Díky, že HobbyHub posíláš dál.',
+    ],
+    details: [],
+    quote: null,
+    action: {
+      label: 'Zobrazit profil',
+      url: new URL(
+        `/uzivatele/${encodeURIComponent(person.id)}`,
+        frontendUrl,
+      ).toString(),
+    },
+  },
+});
 
 /**
  * A request to join a group (#86): the admins get it with the applicant's

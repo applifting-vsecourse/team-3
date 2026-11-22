@@ -24,6 +24,7 @@ this.notifications.notify({ type: 'event-cancelled', eventId });
 | `group-request-decided` | žadatel, kterému správce žádost o vstup schválil/zamítl   | `GroupsService.approveRequest`, `rejectRequest` (#86)              |
 | `friend-request`        | ten, koho žádám o přátelství (i při opakované žádosti)    | `FriendshipService.request` (#307, #86)                            |
 | `friend-accepted`       | ten, kdo o přátelství požádal                             | `FriendshipService.request` (přijetí, #307, #86)                   |
+| `friend-invite-joined`  | zvoucí, jednou za nového pozvaného (s přátelstvím, nebo bez) | `InviteService.accept` (#406)                                  |
 
 Oznámení skupiny není o akci: e-mail má předmět „{skupina}: {předmět}“, nadpis a text jsou slova správce (odstavce podle prázdných řádků) a tlačítko „Stránka skupiny“ (Figma E-01, typ 8).
 

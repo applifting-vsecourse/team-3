@@ -429,6 +429,27 @@ describe('composeFriendMessage (#307, #86)', () => {
       url: 'https://hobbyhub.example/uzivatele/u7',
     });
   });
+
+  it('joining through the invite leads to the newcomer’s profile, no „add“ (#406)', () => {
+    const message = composeFriendMessage(
+      {
+        type: 'friend-invite-joined',
+        fromId: 'u7',
+        toId: 'u1',
+        befriended: false,
+      },
+      petr,
+      'https://hobbyhub.example/',
+    );
+    expect(message.subject).toBe('Petr Malý je na HobbyHubu díky tvé pozvánce');
+    expect(message.email.paragraphs[0]).toBe(
+      'Petr Malý je nově na HobbyHubu díky tvé pozvánce.',
+    );
+    expect(message.email.action).toEqual({
+      label: 'Zobrazit profil',
+      url: 'https://hobbyhub.example/uzivatele/u7',
+    });
+  });
 });
 
 describe('composeGroupRequestMessage (#86)', () => {

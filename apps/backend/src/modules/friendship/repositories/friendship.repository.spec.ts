@@ -150,4 +150,42 @@ describe('FriendshipRepository (#307)', () => {
       OR: [{ requesterId: A }, { addresseeId: A }],
     });
   });
+
+  it('an invite makes the friendship at once (#406)', async () => {
+    const { prisma, repository } = setup();
+    const now = new Date('2026-11-23T10:00:00.000Z');
+
+    await expect(repository.createAccepted(A, B, now)).resolves.toBe(true);
+    expect(prisma.friendship.create).toHaveBeenCalledWith({
+      data: {
+        requesterId: A,
+        addresseeId: B,
+        pairKey: PAIR,
+        status: 'accepted',
+        acceptedAt: now,
+      },
+    });
+  });
+
+  it('an invite turns the row the rules saw into the friendship (#406)', async () => {
+    const { prisma, repository } = setup();
+    const now = new Date('2026-11-23T10:00:00.000Z');
+    prisma.friendship.updateMany.mockResolvedValue({ count: 0 });
+
+    await expect(
+      repository.promote(
+        { requesterId: B, addresseeId: A, status: 'rejected' },
+        now,
+      ),
+    ).resolves.toBe(false);
+    expect(prisma.friendship.updateMany).toHaveBeenCalledWith({
+      where: {
+        pairKey: PAIR,
+        requesterId: B,
+        addresseeId: A,
+        status: 'rejected',
+      },
+      data: { status: 'accepted', acceptedAt: now },
+    });
+  });
 });

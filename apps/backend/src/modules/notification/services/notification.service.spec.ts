@@ -607,6 +607,28 @@ describe('NotificationService.deliver: the centre (#86)', () => {
     );
   });
 
+  it('joining through an invite: the inviter, by e-mail and in the centre (#406)', async () => {
+    const { repository, email, service } = setup();
+    repository.findRecipients.mockResolvedValue([jana]);
+    repository.findPersonName.mockResolvedValue('Petra');
+
+    await service.deliver({
+      type: 'friend-invite-joined',
+      fromId: 'u1',
+      toId: 'u2',
+      befriended: true,
+    });
+
+    expect(repository.findRecipients).toHaveBeenCalledWith(['u2']);
+    expect(repository.createInApp).toHaveBeenCalledWith(['u2'], {
+      type: 'friend_invite_joined',
+      targetType: 'user',
+      targetId: 'u1',
+      text: 'Petra je nově na HobbyHubu díky tvé pozvánce. Jste přátelé.',
+    });
+    expect(sentTo(email)).toEqual([jana.email]);
+  });
+
   it('a friend who can’t be written to (blocked, deleted) gets nothing', async () => {
     const { repository, email, service } = setup();
     repository.findRecipients.mockResolvedValue([]);

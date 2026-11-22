@@ -119,6 +119,50 @@ export class FriendshipRepository {
     return count === 1;
   }
 
+  /**
+   * Pozvánka (#406): the invited friend confirmed, and there is no row yet: a friendship at
+   * once, as if the inviter had asked and the invitee accepted. False when the pair got a row
+   * meanwhile.
+   */
+  async createAccepted(
+    inviterId: string,
+    inviteeId: string,
+    now: Date,
+  ): Promise<boolean> {
+    try {
+      await this.prisma.friendship.create({
+        data: {
+          requesterId: inviterId,
+          addresseeId: inviteeId,
+          pairKey: friendshipPairKey(inviterId, inviteeId),
+          status: 'accepted',
+          acceptedAt: now,
+        },
+      });
+      return true;
+    } catch (error) {
+      if (isUniqueViolation(error)) return false;
+      throw error;
+    }
+  }
+
+  /**
+   * Pozvánka (#406): the pair's row as the rules saw it (a request either way, a quiet
+   * rejection) becomes the friendship; false when it changed meanwhile.
+   */
+  async promote(row: FriendshipRow, now: Date): Promise<boolean> {
+    const { count } = await this.prisma.friendship.updateMany({
+      where: {
+        pairKey: friendshipPairKey(row.requesterId, row.addresseeId),
+        requesterId: row.requesterId,
+        addresseeId: row.addresseeId,
+        status: row.status,
+      },
+      data: { status: 'accepted', acceptedAt: now },
+    });
+    return count === 1;
+  }
+
   /** „Zrušit žádost“ (the viewer's request, also a rejected one) or „Odebrat z přátel“. */
   async remove(
     viewerId: string,
