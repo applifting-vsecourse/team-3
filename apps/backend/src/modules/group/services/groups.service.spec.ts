@@ -285,7 +285,7 @@ describe('GroupsService', () => {
       expect(notifications.notify).not.toHaveBeenCalled();
     });
 
-    it('a request that went again before it could be read is a 409, not a 500 (S-3)', async () => {
+    it('a membership that went again before it could be read is a 409 MEMBERSHIP_CHANGED, not a 500 (S-3)', async () => {
       const { repository, service } = setup();
       repository.findGroupById.mockResolvedValue(aGroup('g1'));
       repository.createMembership.mockResolvedValue(false);
@@ -293,6 +293,7 @@ describe('GroupsService', () => {
 
       await expect(service.join('g1', 'u-jakub')).rejects.toMatchObject({
         status: 409,
+        response: { code: 'MEMBERSHIP_CHANGED' },
       });
     });
 
@@ -505,8 +506,8 @@ describe('GroupsService', () => {
       expect(repository.findMembers).not.toHaveBeenCalled();
       expect(repository.approveRequest).not.toHaveBeenCalled();
       expect(repository.deleteMembership).not.toHaveBeenCalled();
-      expect(repository.rejectRequest).not.toHaveBeenCalled();
       expect(repository.createMembership).not.toHaveBeenCalled();
+      expect(repository.rejectRequest).not.toHaveBeenCalled();
     });
   });
 

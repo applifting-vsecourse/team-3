@@ -223,7 +223,11 @@ export class GroupsController {
       'EMAIL_NOT_VERIFIED (only a session from before #236, when an unverified e-mail could still sign in), USER_BLOCKED, or MEMBER_BLOCKED (blocked in this group)',
   })
   @ApiResponse({ status: 404, description: 'No such group' })
-  @ApiResponse({ status: 409, description: 'GROUP_INACTIVE' })
+  @ApiResponse({
+    status: 409,
+    description:
+      'GROUP_INACTIVE, or MEMBERSHIP_CHANGED (rare: a second join at the same moment lost, and the membership went again before it could be read; try again). A second join that loses the race otherwise answers 200 like the first (S-3)',
+  })
   async join(
     @Param('id') id: string,
     @Body() body: RequestMessageDto,
@@ -273,7 +277,11 @@ export class GroupsController {
   })
   @ApiResponse({ status: 204 })
   @ApiResponse({ status: 403, description: 'Not an admin of the group' })
-  @ApiResponse({ status: 409, description: 'NOT_PENDING' })
+  @ApiResponse({
+    status: 409,
+    description:
+      'NOT_PENDING: the request is not waiting, also when another admin decided it a moment ago (S-3)',
+  })
   async approve(
     @Param('id') id: string,
     @Param('userId') userId: string,
@@ -292,7 +300,11 @@ export class GroupsController {
   })
   @ApiResponse({ status: 204 })
   @ApiResponse({ status: 403, description: 'Not an admin of the group' })
-  @ApiResponse({ status: 409, description: 'NOT_PENDING' })
+  @ApiResponse({
+    status: 409,
+    description:
+      'NOT_PENDING: the request is not waiting, also when another admin decided it a moment ago (S-3)',
+  })
   async reject(
     @Param('id') id: string,
     @Param('userId') userId: string,

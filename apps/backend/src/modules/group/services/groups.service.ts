@@ -66,6 +66,17 @@ const MEMBERSHIP_ERRORS: Record<MembershipError, () => HttpException> = {
     }),
 };
 
+/**
+ * „Přidat se“ lost a race and the membership went again before it could be
+ * read (S-3, #226): rare, and in a public group there is no request to be
+ * „vyřízená“, so the user is just asked to try again.
+ */
+const MEMBERSHIP_CHANGED = (): HttpException =>
+  new ConflictException({
+    code: 'MEMBERSHIP_CHANGED',
+    message: 'Členství se právě změnilo. Zkus to prosím znovu.',
+  });
+
 const ANNOUNCEMENT_REFUSALS: Record<AnnouncementRefusal, () => HttpException> =
   {
     GROUP_INACTIVE: MEMBERSHIP_ERRORS.GROUP_INACTIVE,
@@ -193,25 +204,6 @@ export class GroupsService {
         message,
       });
     }
-    return { status: decision.status };
-  }
-
-  /**
-   * A second „Přidat se“ at the same moment lost to the first (S-3, #226):
-   * it ends as the first did, with the status written; nobody is told twice.
-   */
-  private async joinedMeanwhile(
-    group: GroupDetail,
-    userId: string,
-  ): Promise<{ status: 'active' | 'pending' | 'blocked' }> {
-    const existing = await this.groupRepository.findMembership(
-      group.id,
-      userId,
-    );
-    const decision = decideJoin(group, existing);
-    if (decision.kind === 'error') throw MEMBERSHIP_ERRORS[decision.error]();
-    // the row went again before it could be read: a plain 409, the user clicks again
-    if (decision.kind === 'create') throw MEMBERSHIP_ERRORS.NOT_PENDING();
     return { status: decision.status };
   }
 
@@ -366,6 +358,25 @@ export class GroupsService {
     const group = await this.getGroup(id, viewerId);
     if (group.status !== 'active') throw MEMBERSHIP_ERRORS.GROUP_INACTIVE();
     return group;
+  }
+
+  /**
+   * A second „Přidat se“ at the same moment lost to the first (S-3, #226):
+   * it ends as the first did, with the status written; nobody is told twice.
+   */
+  private async joinedMeanwhile(
+    group: GroupDetail,
+    userId: string,
+  ): Promise<{ status: 'active' | 'pending' | 'blocked' }> {
+    const existing = await this.groupRepository.findMembership(
+      group.id,
+      userId,
+    );
+    const decision = decideJoin(group, existing);
+    if (decision.kind === 'error') throw MEMBERSHIP_ERRORS[decision.error]();
+    // the row went again before it could be read: the user clicks again
+    if (decision.kind === 'create') throw MEMBERSHIP_CHANGED();
+    return { status: decision.status };
   }
 
   private async assertPendingRequest(

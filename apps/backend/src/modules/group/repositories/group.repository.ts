@@ -275,18 +275,6 @@ export class GroupRepository {
   }
 
   /**
-   * Approves the request only while it still waits, checked in the write
-   * itself (S-3, #226): false when another admin decided it meanwhile.
-   */
-  async approveRequest(groupId: string, userId: string): Promise<boolean> {
-    const { count } = await this.prisma.groupMember.updateMany({
-      where: { groupId, userId, status: 'pending' },
-      data: { status: 'active' },
-    });
-    return count > 0;
-  }
-
-  /**
    * Removes the request only while it still waits (S-3, #226), so the user
    * can ask again; false when another admin decided it meanwhile, and a
    * member approved a moment ago stays.
@@ -298,7 +286,19 @@ export class GroupRepository {
     return count > 0;
   }
 
-  /** Leaving and withdrawing a request remove the row, so the user can ask again. */
+  /**
+   * Approves the request only while it still waits, checked in the write
+   * itself (S-3, #226): false when another admin decided it meanwhile.
+   */
+  async approveRequest(groupId: string, userId: string): Promise<boolean> {
+    const { count } = await this.prisma.groupMember.updateMany({
+      where: { groupId, userId, status: 'pending' },
+      data: { status: 'active' },
+    });
+    return count > 0;
+  }
+
+  /** Leaving, withdrawing a request and a rejected request all remove the row, so the user can ask again. */
   async deleteMembership(groupId: string, userId: string): Promise<void> {
     await this.prisma.groupMember.delete({
       where: { groupId_userId: { groupId, userId } },
