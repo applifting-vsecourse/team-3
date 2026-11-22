@@ -19,25 +19,28 @@ vi.mock("@/lib/api-client", async (importOriginal) => ({
 }))
 
 describe("joining or leaving a group", () => {
-  it.each([
-    ["join", useJoinGroup],
-    ["leave", useLeaveGroup],
-  ])(
-    "%s refreshes the landing page's „Tyhle skupiny rozšiřují partu“",
-    async (_, useMutationHook) => {
-      vi.mocked(api.post).mockReturnValue({ json: () => Promise.resolve({}) } as never)
-      const queryClient = new QueryClient()
-      const invalidate = vi.spyOn(queryClient, "invalidateQueries")
-      const wrapper = ({ children }: { children: ReactNode }) => (
-        <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>
-      )
-      const { result } = renderHook(() => useMutationHook("g1"), { wrapper })
+  const run = async (useMutationHook: typeof useJoinGroup | typeof useLeaveGroup) => {
+    vi.mocked(api.post).mockReturnValue({ json: () => Promise.resolve({}) } as never)
+    const queryClient = new QueryClient()
+    const invalidate = vi.spyOn(queryClient, "invalidateQueries")
+    const wrapper = ({ children }: { children: ReactNode }) => (
+      <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>
+    )
+    const { result } = renderHook(() => useMutationHook("g1"), { wrapper })
+    await act(() => result.current.mutateAsync(undefined))
+    return invalidate
+  }
 
-      await act(() => result.current.mutateAsync(undefined))
+  it("joining refreshes the landing page's „Tyhle skupiny rozšiřují partu“", async () => {
+    expect(await run(useJoinGroup)).toHaveBeenCalledWith({
+      queryKey: ["events", "list", "home"],
+    })
+  })
 
-      expect(invalidate).toHaveBeenCalledWith({ queryKey: ["events", "list", "home"] })
-    },
-  )
+  it("leaving refreshes every event query, the landing page too: the places on members-only events go with it (#266)", async () => {
+    // Moje akce › Přihlášen and the event pages are under it
+    expect(await run(useLeaveGroup)).toHaveBeenCalledWith({ queryKey: ["events"] })
+  })
 })
 
 describe("deactivating a group", () => {

@@ -327,12 +327,17 @@ describe('GroupsService', () => {
       });
       repository.countActiveAdmins.mockResolvedValue(1);
 
-      await service.leave('g1', 'u-jakub');
-      expect(repository.deleteMembership).toHaveBeenCalledWith('g1', 'u-jakub');
+      repository.leaveGroup.mockResolvedValue([]);
+      const now = new Date('2026-11-19T10:00:00.000Z');
+
+      await service.leave('g1', 'u-jakub', now);
+      // with the places on the members-only events, in one transaction (#266)
+      expect(repository.leaveGroup).toHaveBeenCalledWith('g1', 'u-jakub', now);
+      expect(repository.deleteMembership).not.toHaveBeenCalled();
     });
 
     it('the last admin can not leave (409 LAST_ADMIN)', async () => {
-      const { repository, service } = setup();
+      const { repository, notifications, service } = setup();
       repository.findGroupById.mockResolvedValue({
         ...aGroup('g1'),
         viewerMembership: { role: 'admin', status: 'active' },
@@ -342,7 +347,80 @@ describe('GroupsService', () => {
       await expect(service.leave('g1', 'u-petra')).rejects.toMatchObject({
         response: { code: 'LAST_ADMIN' },
       });
-      expect(repository.deleteMembership).not.toHaveBeenCalled();
+      expect(repository.leaveGroup).not.toHaveBeenCalled();
+      expect(notifications.notify).not.toHaveBeenCalled();
+    });
+
+    describe('the organizers hear of the freed places (#266, #398)', () => {
+      const asMember = (): ReturnType<typeof setup> => {
+        const context = setup();
+        context.repository.findGroupById.mockResolvedValue({
+          ...aGroup('g1'),
+          viewerMembership: { role: 'member', status: 'active' },
+        });
+        context.repository.countActiveAdmins.mockResolvedValue(1);
+        return context;
+      };
+      const left = (eventId: string): unknown => ({
+        type: 'participant-left',
+        eventId,
+        participantId: 'u-jakub',
+      });
+
+      it('one event: its organizer gets participant-left, as when leaving the event', async () => {
+        const { repository, notifications, service } = asMember();
+        repository.leaveGroup.mockResolvedValue(['e1']);
+
+        await service.leave('g1', 'u-jakub');
+
+        expect(notifications.notify).toHaveBeenCalledTimes(1);
+        expect(notifications.notify).toHaveBeenCalledWith(left('e1'));
+        // only once the transaction has committed
+        expect(repository.leaveGroup.mock.invocationCallOrder[0]!).toBeLessThan(
+          notifications.notify.mock.invocationCallOrder[0]!,
+        );
+      });
+
+      it('more events: one participant-left for each', async () => {
+        const { repository, notifications, service } = asMember();
+        repository.leaveGroup.mockResolvedValue(['e1', 'e2', 'e3']);
+
+        await service.leave('g1', 'u-jakub');
+
+        expect(notifications.notify.mock.calls).toEqual([
+          [left('e1')],
+          [left('e2')],
+          [left('e3')],
+        ]);
+      });
+
+      it('only waiting requests withdrawn: nobody is told, as today', async () => {
+        const { repository, notifications, service } = asMember();
+        repository.leaveGroup.mockResolvedValue([]);
+
+        await service.leave('g1', 'u-jakub');
+
+        expect(notifications.notify).not.toHaveBeenCalled();
+      });
+
+      it('a failed transaction tells nobody', async () => {
+        const { repository, notifications, service } = asMember();
+        repository.leaveGroup.mockRejectedValue(new Error('serialization'));
+
+        await expect(service.leave('g1', 'u-jakub')).rejects.toThrow();
+        expect(notifications.notify).not.toHaveBeenCalled();
+      });
+
+      it("a notification that fails doesn't undo the leave, and the others still go", async () => {
+        const { repository, notifications, service } = asMember();
+        repository.leaveGroup.mockResolvedValue(['e1', 'e2']);
+        notifications.notify.mockImplementationOnce(() => {
+          throw new Error('queue down');
+        });
+
+        await expect(service.leave('g1', 'u-jakub')).resolves.toBeUndefined();
+        expect(notifications.notify).toHaveBeenCalledWith(left('e2'));
+      });
     });
   });
 
@@ -506,6 +584,7 @@ describe('GroupsService', () => {
       expect(repository.findMembers).not.toHaveBeenCalled();
       expect(repository.approveRequest).not.toHaveBeenCalled();
       expect(repository.deleteMembership).not.toHaveBeenCalled();
+      expect(repository.leaveGroup).not.toHaveBeenCalled();
       expect(repository.createMembership).not.toHaveBeenCalled();
       expect(repository.rejectRequest).not.toHaveBeenCalled();
     });

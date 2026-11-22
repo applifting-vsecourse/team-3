@@ -95,6 +95,7 @@ const HOME_KEY = ["events", "list", "home"] as const
 function useMembershipMutation<Variables = void>(
   groupId: string,
   request: (variables: Variables) => Promise<unknown>,
+  eventsKey: readonly string[] = HOME_KEY,
 ) {
   const queryClient = useQueryClient()
   return useMutation({
@@ -103,7 +104,7 @@ function useMembershipMutation<Variables = void>(
       Promise.all([
         queryClient.invalidateQueries({ queryKey: groupKeys.detail(groupId) }),
         queryClient.invalidateQueries({ queryKey: groupKeys.lists() }),
-        queryClient.invalidateQueries({ queryKey: HOME_KEY }),
+        queryClient.invalidateQueries({ queryKey: eventsKey }),
       ]),
   })
 }
@@ -117,9 +118,13 @@ export const useJoinGroup = (groupId: string) =>
     api.post(`groups/${groupId}/join`, { json: message ? { message } : {} }).json(),
   )
 
-/** „Odejít ze skupiny“; the last admin gets LAST_ADMIN. */
+/**
+ * „Odejít ze skupiny“; the last admin gets LAST_ADMIN. The places on the
+ * group's upcoming members-only events go with it (#266), so every event
+ * query goes stale, Moje akce › Přihlášen too (`["events"]`, as deactivating).
+ */
 export const useLeaveGroup = (groupId: string) =>
-  useMembershipMutation(groupId, () => api.post(`groups/${groupId}/leave`))
+  useMembershipMutation(groupId, () => api.post(`groups/${groupId}/leave`), ["events"])
 
 /** An admin approves or rejects a request (D-07); rejecting removes it. */
 export const useDecideRequest = (groupId: string) =>
