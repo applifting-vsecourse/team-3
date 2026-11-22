@@ -464,6 +464,51 @@ describe("EventForm", () => {
     expect(screen.getByRole("radiogroup", { name: "Způsob přihlašování *" })).toBeInTheDocument()
   })
 
+  describe("an e-mail for each sign-up (#86, Figma D-01e)", () => {
+    it("is offered, off, under an open event; an event with approval says requests come anyway", async () => {
+      renderForm()
+
+      const email = screen.getByRole("checkbox", { name: "Posílat mi e-mail ke každé přihlášce" })
+      expect(email).not.toBeChecked()
+      expect(email).toHaveAccessibleDescription("Upozornění v aplikaci dostaneš vždy.")
+
+      await userEvent.click(screen.getByRole("radio", { name: /Schvaluji přihlášky/ }))
+
+      expect(screen.queryByRole("checkbox", { name: /e-mail ke každé přihlášce/ })).toBeNull()
+      expect(screen.getByText("Každá žádost ti přijde do upozornění i e-mailem.")).toBeInTheDocument()
+    })
+
+    it("can be changed when editing an open event, though the way of joining can't", async () => {
+      const { onSubmit } = renderForm({
+        mode: "edit",
+        initialValues: {
+          title: "Deskovky po práci",
+          activityId: "a-deskove-hry",
+          localityId: "l-praha-8",
+          lat: 50.11,
+          lng: 14.47,
+          address: "Herna Karlín, Křižíkova 52, Praha 8",
+          startsAt: new Date(Date.now() + 5 * 86_400_000).toISOString(),
+          minParticipants: 3,
+          maxParticipants: 6,
+          approvalMode: "open",
+          emailOnJoin: true,
+        },
+      })
+
+      const email = screen.getByRole("checkbox", { name: "Posílat mi e-mail ke každé přihlášce" })
+      expect(email).toBeChecked()
+      expect(email).toBeEnabled()
+      await userEvent.click(email)
+      await userEvent.click(screen.getByRole("button", { name: "Uložit změny" }))
+
+      expect(onSubmit).toHaveBeenCalledWith(
+        expect.objectContaining({ emailOnJoin: false }),
+        { kind: "keep" },
+      )
+    })
+  })
+
   it("ties the place's error to the map", async () => {
     renderForm()
 
@@ -652,6 +697,8 @@ describe("EventForm", () => {
       minParticipants: 3,
       maxParticipants: 6,
       approvalMode: "approval",
+      // an event with approval e-mails every request anyway (#86)
+      emailOnJoin: false,
     })
     expect(input.lat).toBeCloseTo(50.11, 3)
     expect(input.lng).toBeCloseTo(14.47, 3)

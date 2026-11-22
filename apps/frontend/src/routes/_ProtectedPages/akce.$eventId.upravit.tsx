@@ -95,6 +95,7 @@ function EditEventPage() {
                 minParticipants: event.minParticipants,
                 maxParticipants: event.maxParticipants,
                 approvalMode: event.approvalMode,
+                emailOnJoin: event.emailOnJoin ?? false,
               }}
               initialImageSrc={event.imageKey ? imageUrl(event.imageKey) : null}
               isSubmitting={updateEvent.isPending}
