@@ -47,6 +47,22 @@ import { buildGroupEventsWhere } from './group-events-where';
 import { buildMyEventsWhere } from './my-events-where';
 import { buildPublicEventsWhere } from './public-events-where';
 
+/**
+ * Whether the user is an active member of the group, with their membership
+ * row locked until the transaction ends (#266): leaving deletes that row, so
+ * it waits, or this waits for it and finds nothing.
+ */
+async function hasActiveMembershipLocked(
+  tx: Prisma.TransactionClient,
+  groupId: string,
+  userId: string,
+): Promise<boolean> {
+  const rows = await tx.$queryRaw<{ status: string }[]>`
+    SELECT "status"::text AS "status" FROM "group_member"
+    WHERE "groupId" = ${groupId} AND "userId" = ${userId} FOR SHARE`;
+  return rows[0]?.status === 'active';
+}
+
 // What the list and the detail both show of an event (and the profile's event cards, #178).
 export const publicEventInclude = {
   activity: { include: { category: true } },
@@ -279,6 +295,7 @@ export class EventRepository {
       ...toPublicEvent(event, now),
       description: event.description,
       approvalMode: event.approvalMode,
+      emailOnJoin: event.emailOnJoin,
       visibility: event.visibility,
       status: event.status,
       cancelReason: event.cancelReason,
@@ -417,6 +434,13 @@ export class EventRepository {
    * event waits until the first has committed, so two people can't both take
    * the last place. `decide` gets the state read under the lock. Null when
    * the event doesn't exist.
+   *
+   * A members-only event checks the membership inside the transaction too,
+   * with its row locked (`FOR SHARE`) before the event (#266). Leaving the
+   * group deletes that row and then locks the events, in the same order, so
+   * the two can't deadlock and can't overlap: a join waiting for a leave
+   * finds no membership; a leave waiting for a join then sees the new place
+   * and withdraws it. The detail checked before is only the fast answer.
    */
   async join(
     eventId: string,
@@ -425,6 +449,17 @@ export class EventRepository {
     decide: (state: JoinState) => JoinDecision,
   ): Promise<JoinDecision | null> {
     return this.prisma.$transaction(async (tx) => {
+      // visibility and group don't change once the event exists (B-028)
+      const target = await tx.event.findUnique({
+        where: { id: eventId },
+        select: { visibility: true, groupId: true, organizerUserId: true },
+      });
+      if (!target) return null;
+      const isOutsideGroup =
+        target.visibility === 'members' &&
+        target.groupId !== null &&
+        target.organizerUserId !== userId &&
+        !(await hasActiveMembershipLocked(tx, target.groupId, userId));
       await tx.$executeRaw`SELECT 1 FROM "event" WHERE "id" = ${eventId} FOR UPDATE`;
       const event = await tx.event.findUnique({
         where: { id: eventId },
@@ -450,6 +485,7 @@ export class EventRepository {
         approvalMode: event.approvalMode,
         maxParticipants: event.maxParticipants,
         isOrganizer: event.organizerUserId === userId,
+        isOutsideGroup,
         existingStatus: existing?.status ?? null,
         approvedCount,
       });

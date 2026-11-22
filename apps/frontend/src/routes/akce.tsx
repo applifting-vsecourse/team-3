@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState, type CSSProperties } from "react"
 import { createFileRoute } from "@tanstack/react-router"
 import { Map as MapIcon, Search } from "lucide-react"
 
+import { AppHeader } from "@/app/AppHeader"
 import { BandTabs, BandTabsItem } from "@/components/PageBand/BandTabs"
 import { PageBand } from "@/components/PageBand/PageBand"
 import { Seo } from "@/components/Seo"
@@ -13,7 +14,6 @@ import { DESKTOP_QUERY, useMediaQuery } from "@/hooks/useMediaQuery"
 import { ALL_LOCALITIES_SLUG } from "@/lib/catalog/localityOptions"
 import { cn } from "@/lib/utils"
 
-import { AppHeader } from "@/features/auth/components/AppHeader"
 import { useSession } from "@/features/auth/hooks/useSession"
 import { EmptyEvents } from "@/features/events/components/EmptyEvents"
 import { EventFilters } from "@/features/events/components/EventFilters"
@@ -226,10 +226,12 @@ function EventsPage() {
               setIsSearchOpened(false)
               if (search.q !== undefined) setSearch({ q: undefined })
             }}
-            className="h-10 gap-1.5 px-2"
+            // under 380 px only the magnifier: with the bell (#86) the label needs 369 px, at 320 px
+            // the page scrolled sideways (review #398); the word stays the button's name
+            className="h-10 gap-1.5 px-2 max-[379px]:w-10"
           >
             <Search />
-            Hledat
+            <span className="max-[379px]:sr-only">Hledat</span>
           </Button>
         }
       />

@@ -30,4 +30,4 @@ Na veřejném profilu (`GET /api/users/:id`, modul `user`) je `friendship` a pro
 
 ## Upozornění
 
-Upozornění v aplikaci přinese #86. Místo, kde se pošlou (nová žádost a přijetí), je v `FriendshipService.request` označené; odmítnutí a odebrání zůstávají tichá.
+Nová žádost (i odeslaná znovu) přijde tomu, koho žádám, přijetí tomu, kdo žádal: do centra upozornění i e-mailem (#86, `FriendshipService.request` → `NotificationService.notify`, až po zápisu, který se opravdu stal). Odmítnutí a odebrání zůstávají tichá.

@@ -31,6 +31,32 @@ describe("EventCard", () => {
     expect(container.querySelector("[data-slot=capacity-track]")).toHaveClass("h-1.5")
   })
 
+  it.each(["row", "responsive"] as const)(
+    "%s leaves room for a long badge and moves the bar to the next line when needed",
+    async (variant) => {
+      const longTitle = "DruhéSetkáníDobrovolníkůZKampusuProÚklidOkolí"
+      const { container } = await renderWithRouter(
+        <EventCard
+          event={{ ...withActivity(florbal), title: longTitle }}
+          variant={variant}
+          status={{ kind: "pending" }}
+        />,
+      )
+
+      expect(screen.getByRole("heading", { name: longTitle })).toHaveClass("wrap-anywhere")
+      const badge = screen.getByText("Čeká na schválení")
+      expect(badge).toHaveClass("max-w-full", "whitespace-normal")
+      const track = container.querySelector("[data-slot=capacity-track]")
+      expect(track?.parentElement).toHaveClass("min-w-[min(4rem,100%)]")
+      expect(track?.parentElement?.parentElement).toBe(badge.parentElement)
+      expect(badge.parentElement).toHaveClass("flex-wrap")
+      expect(screen.getByText("17:30 · Kavárna Pražírna · Praha 8")).toHaveClass(
+        "min-w-0",
+        "line-clamp-2",
+      )
+    },
+  )
+
   // Figma Karta akce/Foto
   it("grid: the big date tile with the time, place · district, the numbers and the bar", async () => {
     const { container } = await renderWithRouter(
@@ -210,4 +236,31 @@ describe("EventCard", () => {
     expect(distance).toHaveClass("shrink-0")
     expect(distance.previousElementSibling).toHaveClass("truncate")
   })
+
+  // #348: the activity on a line of its own above the title, not in the photo
+  it.each(["row", "grid", "responsive"] as const)(
+    "%s: the activity's icon and name above the title",
+    async (variant) => {
+      const { container } = await renderWithRouter(
+        <EventCard
+          event={withActivity(florbal)}
+          variant={variant}
+        />,
+      )
+
+      const line = screen.getByText("Aktivita:").parentElement!
+      expect(line).toHaveTextContent("Aktivita: Florbal")
+      expect(line.querySelector("svg")).toHaveAttribute("aria-hidden")
+      // first on screen, right after the heading in the DOM: the title is heard first (review #397)
+      expect(line).toHaveClass("order-first")
+      expect(screen.getByRole("heading").compareDocumentPosition(line)).toBe(
+        Node.DOCUMENT_POSITION_FOLLOWING,
+      )
+      expect(
+        within(container.querySelector<HTMLElement>("[data-slot=event-photo]")!).queryByText(
+          "Florbal",
+        ),
+      ).toBeNull()
+    },
+  )
 })

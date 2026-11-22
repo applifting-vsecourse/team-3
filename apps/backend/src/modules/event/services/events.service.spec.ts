@@ -422,6 +422,7 @@ const aDetail = (overrides: Partial<EventDetail> = {}): EventDetail => ({
   ...anEvent('e1', 2),
   description: 'Hrajeme Carcassonne a Azul, hry půjčíme.',
   approvalMode: 'open',
+  emailOnJoin: false,
   visibility: 'public',
   status: 'published',
   cancelReason: null,
@@ -429,8 +430,8 @@ const aDetail = (overrides: Partial<EventDetail> = {}): EventDetail => ({
 });
 
 // someone else (u1) created it; u9 is in the group
-const groupEventDetail = (): EventDetail =>
-  aDetail({ group: { id: 'g1', name: 'Deskovkáři Karlín' } });
+const groupEventDetail = (overrides: Partial<EventDetail> = {}): EventDetail =>
+  aDetail({ group: { id: 'g1', name: 'Deskovkáři Karlín' }, ...overrides });
 
 const participants = [
   { id: 'u2', name: 'Jana' },
@@ -703,6 +704,7 @@ describe('EventsService.createEvent', () => {
     minParticipants: 3,
     maxParticipants: 6,
     approvalMode: 'open',
+    emailOnJoin: false,
     groupId: null,
     visibility: 'public',
     ...overrides,
@@ -994,6 +996,7 @@ describe('EventsService participation', () => {
         approvalMode: 'open',
         maxParticipants: 6,
         isOrganizer: false,
+        isOutsideGroup: false,
         existingStatus: null,
         approvedCount: 2,
       }),
@@ -1023,6 +1026,21 @@ describe('EventsService participation', () => {
     expect(error.getResponse()).toEqual({
       code: 'EVENT_FULL',
       message: 'Akce je plná.',
+    });
+  });
+
+  it('left the group in another tab while joining: the check under the lock is 403 MEMBERS_ONLY (#266)', async () => {
+    const { repository, service } = setup();
+    repository.join.mockResolvedValue({ ok: false, refusal: 'MEMBERS_ONLY' });
+
+    const error = (await service
+      .join('e1', 'u9', null, now)
+      .catch((e: unknown) => e)) as ForbiddenException;
+
+    expect(error).toBeInstanceOf(ForbiddenException);
+    expect(error.getResponse()).toEqual({
+      code: 'MEMBERS_ONLY',
+      message: 'Akce je jen pro členy skupiny.',
     });
   });
 
@@ -1113,6 +1131,54 @@ describe('EventsService.updateEvent', () => {
         maxParticipants: 6,
       }),
     ).toEqual({ ok: true, data: changes });
+  });
+
+  it('the e-mail for each sign-up: the organizer sees and changes it, another admin neither (#86)', async () => {
+    const organizer = setup(groupEventDetail({ emailOnJoin: true }));
+    expect(
+      (await organizer.service.getEventDetail('e1', 'u1', now)).emailOnJoin,
+    ).toBe(true);
+    await organizer.service.updateEvent(
+      'e1',
+      'u1',
+      { emailOnJoin: false },
+      now,
+    );
+    const decideAsOrganizer =
+      organizer.repository.updateEvent.mock.calls[0]![1];
+    expect(
+      decideAsOrganizer({
+        status: 'published',
+        startsAt: aDetail().startsAt,
+        endsAt: null,
+        approvedCount: 2,
+        minParticipants: 3,
+        maxParticipants: 6,
+      }),
+    ).toEqual({ ok: true, data: { emailOnJoin: false } });
+
+    const admin = setup(groupEventDetail({ emailOnJoin: true }));
+    admin.repository.findActiveGroupRole.mockResolvedValue('admin');
+    expect(
+      (await admin.service.getEventDetail('e1', 'u9', now)).emailOnJoin,
+    ).toBeNull();
+    await admin.service.updateEvent(
+      'e1',
+      'u9',
+      { title: 'Nově', emailOnJoin: false },
+      now,
+    );
+    const decideAsAdmin = admin.repository.updateEvent.mock.calls[0]![1];
+    expect(
+      decideAsAdmin({
+        status: 'published',
+        startsAt: aDetail().startsAt,
+        endsAt: null,
+        approvedCount: 2,
+        minParticipants: 3,
+        maxParticipants: 6,
+      }),
+    ).toEqual({ ok: true, data: { title: 'Nově' } });
   });
 
   it("any admin of the event's group changes it, not a regular member (B-055)", async () => {
@@ -1521,6 +1587,7 @@ describe('EventsService notifications (#177)', () => {
     approvalMode,
     maxParticipants: 6,
     isOrganizer: false,
+    isOutsideGroup: false,
     existingStatus: null,
     approvedCount: 2,
   });
@@ -1758,7 +1825,7 @@ describe('EventsService notifications (#177)', () => {
       });
     });
 
-    it('joining at once has nobody to tell', async () => {
+    it('joining at once tells the organizer of the new participant (#86)', async () => {
       const { repository, notifications, service } = setup();
       repository.join.mockImplementation(async (_e, _u, _m, decide) =>
         decide(joinState('open')),
@@ -1766,7 +1833,11 @@ describe('EventsService notifications (#177)', () => {
 
       await service.join('e1', 'u9', null, now);
 
-      expect(notifications.notify).not.toHaveBeenCalled();
+      expect(notifications.notify).toHaveBeenCalledWith({
+        type: 'participant-joined',
+        eventId: 'e1',
+        participantId: 'u9',
+      });
     });
 
     it('a refused request says nothing', async () => {
@@ -1863,6 +1934,7 @@ describe('EventsService notifications (#177)', () => {
       approvedCount: 2,
       maxParticipants: 6,
       organizerId: 'u1',
+      emailOnJoin: false,
     });
     notificationRepository.findAudience.mockResolvedValue([
       { id: 'u2', name: 'Jana', email: 'jana@example.com' },

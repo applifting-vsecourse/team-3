@@ -17,6 +17,7 @@ import { LocationPicker } from "@/components/map/LocationPicker"
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import { Button } from "@/components/ui/button"
 import { Calendar } from "@/components/ui/calendar"
+import { Checkbox } from "@/components/ui/checkbox"
 import {
   Form,
   FormControl,
@@ -105,6 +106,8 @@ const buildSchema = (approvedCount: number) =>
       minParticipants: count("minimum"),
       maxParticipants: count("maximum"),
       approvalMode: z.enum(["open", "approval"]),
+      /** #86: an e-mail for each sign-up; only for an open event. */
+      emailOnJoin: z.boolean(),
       visibility: z.enum(["public", "members"]),
       description: z
         .string()
@@ -244,6 +247,8 @@ export function EventForm({
   const today = usePragueToday()
   const isEdit = mode === "edit"
   const isGroupCreate = !isEdit && group !== undefined
+  // the e-mail for each sign-up is the organizer's (#86): an edit by another admin has none
+  const canSetEmailOnJoin = !isEdit || initialValues?.emailOnJoin !== undefined
   const schema = useMemo(() => buildSchema(approvedCount), [approvedCount])
   const [initialDay, initialStart] = splitWallTime(initialValues?.startsAt)
   const [, initialEnd] = splitWallTime(initialValues?.endsAt)
@@ -266,6 +271,7 @@ export function EventForm({
       minParticipants: initialValues?.minParticipants?.toString() ?? "",
       maxParticipants: initialValues?.maxParticipants?.toString() ?? "",
       approvalMode: initialValues?.approvalMode ?? "open",
+      emailOnJoin: initialValues?.emailOnJoin ?? false,
       visibility: initialValues?.visibility ?? "public",
       description: initialValues?.description ?? "",
       image: initialImageValue(initialImageSrc),
@@ -343,6 +349,10 @@ export function EventForm({
               minParticipants: Number(values.minParticipants),
               maxParticipants: Number(values.maxParticipants),
               approvalMode: values.approvalMode,
+              // an event with approval e-mails every request anyway (#177)
+              ...(canSetEmailOnJoin
+                ? { emailOnJoin: values.approvalMode === "open" && values.emailOnJoin }
+                : {}),
               ...(isGroupCreate ? { groupId: group.id, visibility: values.visibility } : {}),
             },
             image,
@@ -653,6 +663,37 @@ export function EventForm({
                       isDisabled={isEdit}
                     />
                   </FormControl>
+                  {!canSetEmailOnJoin ? null : field.value === "open" ? (
+                    // Figma D-01e, D-02e (#86): after the cards, not between them — a checkbox
+                    // inside the radiogroup would break its arrow keys and its ARIA children
+                    <FormField
+                      control={form.control}
+                      name="emailOnJoin"
+                      render={({ field: emailField }) => (
+                        <FormItem className="grid-cols-[auto_minmax(0,1fr)] gap-x-3 gap-y-0.5 pt-1 pl-4">
+                          <FormControl>
+                            <Checkbox
+                              ref={emailField.ref}
+                              name={emailField.name}
+                              checked={emailField.value}
+                              onCheckedChange={(checked) => emailField.onChange(checked === true)}
+                              onBlur={emailField.onBlur}
+                            />
+                          </FormControl>
+                          <FormLabel className="block leading-normal">
+                            Posílat mi e-mail ke každé přihlášce
+                          </FormLabel>
+                          <FormDescription className="col-start-2">
+                            Upozornění v aplikaci dostaneš vždy.
+                          </FormDescription>
+                        </FormItem>
+                      )}
+                    />
+                  ) : (
+                    <p className="text-sm text-muted-foreground">
+                      Každá žádost ti přijde do upozornění i e-mailem.
+                    </p>
+                  )}
                   {isEdit ? (
                     <p className="text-sm text-muted-foreground">
                       Způsob přihlašování po založení změnit nejde.

@@ -13,8 +13,8 @@ import { SignUpForm, type SignUpValues } from "@/features/auth/components/SignUp
 import { VerifyEmailStep } from "@/features/auth/components/VerifyEmailStep"
 import { useSignUp } from "@/features/auth/hooks/useSignUp"
 import { googleSignInErrorMessage } from "@/features/auth/lib/auth-errors"
-import { safeRedirect } from "@/features/auth/lib/redirect"
-import { NearestEvents } from "@/features/events/components/NearestEvents"
+import { authBackLink, safeRedirect } from "@/features/auth/lib/redirect"
+import { UpcomingEvents } from "@/features/events/components/UpcomingEvents"
 
 // `from`: the page to come back to, e.g. the event (B-012); `error`: why
 // Google sent the user back here without signing in (#198), as on /login
@@ -74,7 +74,8 @@ function SignUpPage() {
       <>
         <Seo title="Ověř si e-mail" />
         <AuthLayout
-          aside={<NearestEvents />}
+          aside={<UpcomingEvents />}
+          back={authBackLink(from)}
           title="Ověř si e-mail"
           // the same for an address that already has an account: it doesn't tell which do
           description={`Odkaz k ověření jsme poslali na ${signedUp.email}. Jestli už tu účet máš, rovnou se přihlas.`}
@@ -94,7 +95,8 @@ function SignUpPage() {
     <>
       <Seo title="Registrace" />
       <AuthLayout
-        aside={<NearestEvents />}
+        aside={<UpcomingEvents />}
+        back={authBackLink(from)}
         title="Registrace"
         description="Jeden účet pro přihlašování na akce i jejich pořádání."
         footer={<>Už máš účet? {signInLink("Přihlas se")}</>}

@@ -161,6 +161,13 @@ describe("GroupMembershipAction", () => {
     expect(screen.getByRole("button", { name: "Odejít ze skupiny" })).toBeEnabled()
   })
 
+  it("leaving says that the places on the group's members-only events go with it (#266)", async () => {
+    await render(as({ role: "member", status: "active" }))
+    expect(screen.getByRole("button", { name: "Odejít ze skupiny" })).toHaveAccessibleDescription(
+      "Odchodem se odhlásíš i z nadcházejících akcí skupiny jen pro členy a zruší se tvoje čekající žádosti na ně.",
+    )
+  })
+
   it("an admin goes to the management, or creates an event of the group (#70)", async () => {
     await render(as({ role: "admin", status: "active" }))
     expect(screen.getByRole("link", { name: "Spravovat skupinu" })).toHaveAttribute(

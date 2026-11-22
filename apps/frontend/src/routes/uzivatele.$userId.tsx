@@ -1,11 +1,11 @@
 import { useQuery, useQueryClient } from "@tanstack/react-query"
 import { createFileRoute, useLocation } from "@tanstack/react-router"
 
+import { AppHeader } from "@/app/AppHeader"
 import { Seo } from "@/components/Seo"
 import { HTTPError } from "@/lib/api-client"
 import { ratingSummaryLabel } from "@/lib/ratingSummary"
 
-import { AppHeader } from "@/features/auth/components/AppHeader"
 import { useSession } from "@/features/auth/hooks/useSession"
 import { redirectFrom } from "@/features/auth/lib/redirect"
 import { EventCard } from "@/features/events/components/EventCard"

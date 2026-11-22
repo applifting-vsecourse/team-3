@@ -95,6 +95,8 @@ function EditEventPage() {
                 minParticipants: event.minParticipants,
                 maxParticipants: event.maxParticipants,
                 approvalMode: event.approvalMode,
+                // only the organizer has it (#86): a fellow group admin's form leaves it out
+                emailOnJoin: event.emailOnJoin ?? undefined,
               }}
               initialImageSrc={event.imageKey ? imageUrl(event.imageKey) : null}
               isSubmitting={updateEvent.isPending}

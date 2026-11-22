@@ -30,8 +30,8 @@ describe("SignInForm", () => {
       />,
     )
 
-    await userEvent.type(screen.getByLabelText("E-mail"), " jana@example.com ")
-    await userEvent.type(screen.getByLabelText("Heslo"), " heslo 2026 ")
+    await userEvent.type(screen.getByLabelText("E-mail *"), " jana@example.com ")
+    await userEvent.type(screen.getByLabelText("Heslo *"), " heslo 2026 ")
     await userEvent.click(screen.getByRole("button", { name: "Přihlásit se" }))
 
     expect(onSubmit).toHaveBeenCalledWith(
@@ -61,8 +61,8 @@ describe("SignInForm", () => {
       />,
     )
 
-    expect(screen.getByLabelText("E-mail")).toHaveClass("h-11")
-    expect(screen.getByLabelText("Heslo")).toHaveClass("h-11")
+    expect(screen.getByLabelText("E-mail *")).toHaveClass("h-11")
+    expect(screen.getByLabelText("Heslo *")).toHaveClass("h-11")
     expect(screen.getByRole("button", { name: "Přihlásit se" })).toHaveClass("h-11")
   })
 })

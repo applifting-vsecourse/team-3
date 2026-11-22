@@ -57,11 +57,12 @@ export function SignInForm({ defaultEmail, isLoading, errorMessage, onSubmit }: 
           name="email"
           render={({ field }) => (
             <FormItem>
-              <FormLabel>E-mail</FormLabel>
+              <FormLabel>E-mail *</FormLabel>
               <FormControl>
                 <Input
                   type="email"
                   placeholder="např. jana@example.com"
+                  aria-required
                   autoComplete="email"
                   className="h-11"
                   {...field}
@@ -77,10 +78,11 @@ export function SignInForm({ defaultEmail, isLoading, errorMessage, onSubmit }: 
           name="password"
           render={({ field }) => (
             <FormItem>
-              <FormLabel>Heslo</FormLabel>
+              <FormLabel>Heslo *</FormLabel>
               <FormControl>
                 <Input
                   type="password"
+                  aria-required
                   autoComplete="current-password"
                   className="h-11"
                   {...field}

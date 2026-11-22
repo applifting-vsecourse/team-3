@@ -29,6 +29,7 @@ const aView = (overrides: Partial<EventDetailView> = {}): EventDetailView => ({
   imageKey: null,
   description: null,
   approvalMode: 'approval',
+  emailOnJoin: true,
   visibility: 'private',
   status: 'published',
   cancelReason: null,
@@ -40,6 +41,17 @@ const aView = (overrides: Partial<EventDetailView> = {}): EventDetailView => ({
 });
 
 describe('EventDetailResponseDto.fromDomain', () => {
+  it('passes on the e-mail for each sign-up as the service decided it (#86)', () => {
+    expect(
+      EventDetailResponseDto.fromDomain(aView({ emailOnJoin: null }))
+        .emailOnJoin,
+    ).toBeNull();
+    expect(
+      EventDetailResponseDto.fromDomain(aView({ emailOnJoin: true }))
+        .emailOnJoin,
+    ).toBe(true);
+  });
+
   it('keeps a visitor at the count: participants stay null', () => {
     const dto = EventDetailResponseDto.fromDomain(aView());
 

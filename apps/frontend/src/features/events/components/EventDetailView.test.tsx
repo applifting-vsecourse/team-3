@@ -10,6 +10,7 @@ import { anEventDetail } from "@/features/events/test/anEvent"
 
 // the fixture starts Fri 23. 10. 2026 17:30 Prague time
 const beforeStart = new Date("2026-10-23T08:00:00.000Z")
+const afterEnd = new Date("2026-11-20T08:00:00.000Z")
 
 const stubDesktop = (isDesktop: boolean) =>
   vi.stubGlobal("matchMedia", (query: string) => ({
@@ -160,6 +161,30 @@ describe("EventDetailView", () => {
     )
 
     expect(screen.queryByRole("heading", { name: /Kdo jde/ })).not.toBeInTheDocument()
+  })
+
+  // #370: nobody can join a past event any more, so the names aren't promised
+  it("over and without the names: says who sees them instead of promising them", async () => {
+    await renderWithRouter(
+      <EventDetailView
+        event={anEventDetail({ participants: null })}
+        now={afterEnd}
+      />,
+    )
+
+    expect(screen.getByText("Jména vidí ti, kdo byli na akci.")).toBeInTheDocument()
+    expect(screen.queryByText(/Jména uvidíš/)).not.toBeInTheDocument()
+  })
+
+  it("over with nobody signed up: no „zatím“ (#370)", async () => {
+    await renderWithRouter(
+      <EventDetailView
+        event={anEventDetail({ approvedCount: 0, missingToMin: 4, participants: null })}
+        now={afterEnd}
+      />,
+    )
+
+    expect(screen.getByText("Nikdo se nepřihlásil.")).toBeInTheDocument()
   })
 
   it("nobody joined yet: says so to a visitor too, instead of promising names (review #269)", async () => {

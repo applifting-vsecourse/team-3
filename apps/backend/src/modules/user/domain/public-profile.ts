@@ -6,6 +6,7 @@ import {
   summarizeStars,
   type RatingSummary,
 } from '@/modules/rating/domain/rating-summary';
+import { byCzechName } from '@/shared/text/czech-order';
 
 export type PublicPerson = { id: string; name: string };
 export type PublicUserRecord = PublicPerson & {
@@ -121,10 +122,13 @@ export function publicProfile(
   return {
     id: user.id,
     name: user.name,
-    interests: user.interests.map(({ activity }) => ({
-      id: activity.id,
-      name: activity.name,
-    })),
+    // in Czech order, not the database's (#370)
+    interests: byCzechName(
+      user.interests.map(({ activity }) => ({
+        id: activity.id,
+        name: activity.name,
+      })),
+    ),
     participantSummary: participantRatingSummary(received),
     organizerSummary: organizerRatingSummary(personal),
     eventSummary: summarizeStars(personal.map((row) => row.eventStars)),

@@ -59,10 +59,10 @@ const fill = async ({
   repeated = password,
   hasConsents = true,
 }: Filled = {}) => {
-  await userEvent.type(screen.getByLabelText("Jméno"), name)
-  await userEvent.type(screen.getByLabelText("E-mail"), "jana@example.com")
-  await userEvent.type(screen.getByLabelText("Heslo"), password)
-  await userEvent.type(screen.getByLabelText("Heslo znovu"), repeated)
+  await userEvent.type(screen.getByLabelText("Jméno *"), name)
+  await userEvent.type(screen.getByLabelText("E-mail *"), "jana@example.com")
+  await userEvent.type(screen.getByLabelText("Heslo *"), password)
+  await userEvent.type(screen.getByLabelText("Heslo znovu *"), repeated)
   if (hasConsents) {
     await userEvent.click(adult())
     await userEvent.click(terms())
@@ -78,7 +78,7 @@ describe("SignUpForm (B-010, #153)", () => {
 
       await submit()
 
-      const name = screen.getByLabelText("Jméno")
+      const name = screen.getByLabelText("Jméno *")
       await waitFor(() => expect(scrollIntoView).toHaveBeenCalledOnce())
       expect(scrollIntoView.mock.contexts[0]).toBe(name)
       expect(scrollIntoView).toHaveBeenCalledWith({ behavior: "smooth", block: "center" })
@@ -123,8 +123,8 @@ describe("SignUpForm (B-010, #153)", () => {
       "name",
       "email",
     ])
-    expect(screen.getByLabelText("Heslo")).toHaveAttribute("type", "password")
-    expect(screen.getByLabelText("Heslo znovu")).toHaveAttribute("type", "password")
+    expect(screen.getByLabelText("Heslo *")).toHaveAttribute("type", "password")
+    expect(screen.getByLabelText("Heslo znovu *")).toHaveAttribute("type", "password")
     expect(terms()).not.toBeChecked()
     expect(privacy()).not.toBeChecked()
     // a screen reader says both are required
@@ -184,7 +184,7 @@ describe("SignUpForm (B-010, #153)", () => {
     await submit()
     expect(await screen.findByText("Hesla se neshodují")).toBeInTheDocument()
 
-    const password = screen.getByLabelText("Heslo")
+    const password = screen.getByLabelText("Heslo *")
     await userEvent.clear(password)
     await userEvent.type(password, "hobbyhub2027")
 
@@ -241,7 +241,7 @@ describe("SignUpForm (B-010, #153)", () => {
       expect(status).toHaveAttribute("aria-live", "polite")
       expect(status).toBeEmptyDOMElement()
 
-      await userEvent.type(screen.getByLabelText("Heslo"), "heslo")
+      await userEvent.type(screen.getByLabelText("Heslo *"), "heslo")
       // not at every key: a screen reader would hear each one
       expect(status).toBeEmptyDOMElement()
 
@@ -255,7 +255,7 @@ describe("SignUpForm (B-010, #153)", () => {
     it("once the rule is met, the level is the estimator's, with advice while it isn't strong", async () => {
       await renderForm()
       const status = screen.getByRole("status")
-      const password = screen.getByLabelText("Heslo")
+      const password = screen.getByLabelText("Heslo *")
 
       estimator.checkPassword.mockReturnValue({
         score: 1,
@@ -283,9 +283,9 @@ describe("SignUpForm (B-010, #153)", () => {
     it("knows the name and the e-mail, so a password made of them is weak", async () => {
       await renderForm()
 
-      await userEvent.type(screen.getByLabelText("Jméno"), "Jana Nováková")
-      await userEvent.type(screen.getByLabelText("E-mail"), "jana.novakova@example.com")
-      await userEvent.type(screen.getByLabelText("Heslo"), "novakova2026")
+      await userEvent.type(screen.getByLabelText("Jméno *"), "Jana Nováková")
+      await userEvent.type(screen.getByLabelText("E-mail *"), "jana.novakova@example.com")
+      await userEvent.type(screen.getByLabelText("Heslo *"), "novakova2026")
 
       await waitFor(() =>
         expect(estimator.checkPassword).toHaveBeenCalledWith(
@@ -299,7 +299,7 @@ describe("SignUpForm (B-010, #153)", () => {
       await renderForm()
       expect(estimator.load).not.toHaveBeenCalled()
 
-      await userEvent.click(screen.getByLabelText("Heslo"))
+      await userEvent.click(screen.getByLabelText("Heslo *"))
 
       expect(estimator.load).toHaveBeenCalled()
     })
@@ -307,7 +307,7 @@ describe("SignUpForm (B-010, #153)", () => {
     it("goes away at once when the password is deleted", async () => {
       await renderForm()
       const status = screen.getByRole("status")
-      const password = screen.getByLabelText("Heslo")
+      const password = screen.getByLabelText("Heslo *")
 
       await userEvent.type(password, "heslo")
       await waitFor(() => expect(status).toHaveTextContent("Síla hesla: slabé."))
@@ -340,7 +340,7 @@ describe("SignUpForm (B-010, #153)", () => {
     it("appears whole with the first character and keeps its parts while the verdict changes", async () => {
       await renderForm()
       const status = screen.getByRole("status")
-      const password = screen.getByLabelText("Heslo")
+      const password = screen.getByLabelText("Heslo *")
 
       await userEvent.type(password, "h")
       // at once, before the pause that brings the verdict: the bar (empty yet)
@@ -372,7 +372,7 @@ describe("SignUpForm (B-010, #153)", () => {
 
     it("stays when the password is deleted, so retyping doesn't move the form", async () => {
       await renderForm()
-      const password = screen.getByLabelText("Heslo")
+      const password = screen.getByLabelText("Heslo *")
 
       await userEvent.type(password, "heslo")
       await userEvent.clear(password)
@@ -404,8 +404,10 @@ describe("SignUpForm (B-010, #153)", () => {
   it("has fields and a button the size of the event form's", async () => {
     await renderForm()
 
-    for (const label of ["Jméno", "E-mail", "Heslo", "Heslo znovu"]) {
+    for (const label of ["Jméno *", "E-mail *", "Heslo *", "Heslo znovu *"]) {
       expect(screen.getByLabelText(label)).toHaveClass("h-11")
+      // the „ *“ is for the eye, a screen reader hears „povinné“ (review #395)
+      expect(screen.getByLabelText(label)).toHaveAttribute("aria-required", "true")
     }
     expect(screen.getByRole("button", { name: "Zaregistrovat se" })).toHaveClass("h-11")
   })

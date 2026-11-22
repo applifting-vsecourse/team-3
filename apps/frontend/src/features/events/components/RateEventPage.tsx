@@ -13,12 +13,16 @@ import { apiErrorCode, HTTPError } from "@/lib/api-client"
 import { PAGE } from "@/lib/pageLayout"
 import { cn } from "@/lib/utils"
 
+import type { EventDetail } from "@/features/events/api/eventSchemas"
+import { eventDetailQueryOptions } from "@/features/events/api/eventsQueryOptions"
 import { myEventRatingQueryOptions } from "@/features/events/api/ratingQueryOptions"
 import { type EventRatingRefusal, type MyEventRating } from "@/features/events/api/ratingSchemas"
+import { EventCard } from "@/features/events/components/EventCard"
 import { PastEventCard } from "@/features/events/components/PastEventCard"
 import { RateEventForm } from "@/features/events/components/RateEventForm"
 import { RatingExplained } from "@/features/events/components/RatingExplained"
 import { useRateEvent } from "@/features/events/hooks/useRateEvent"
+import { isEventOver } from "@/features/events/lib/formatEvent"
 import { ratingBandLine } from "@/features/events/lib/rating"
 import { NOT_RATABLE } from "@/features/events/lib/ratingRefusal"
 
@@ -40,6 +44,14 @@ export function RateEventPage({ eventId, viewerId, onSaved }: RateEventPageProps
   const query = useQuery(myEventRatingQueryOptions(eventId, viewerId))
   const save = useRateEvent(eventId, viewerId, onSaved)
   const data = query.data
+  // someone who wasn't there (403) still sees which event it is (#370): its public detail, when
+  // they may see it — not a members-only event of a group they aren't in, nor a deleted one
+  const isNotParticipant = apiErrorCode(query.error) === "NOT_PARTICIPANT"
+  const detail = useQuery({
+    ...eventDetailQueryOptions(eventId, viewerId),
+    enabled: isNotParticipant,
+  })
+  const shownEvent = isNotParticipant ? detail.data : undefined
 
   // the organizer has their own page (D-05): a link from elsewhere still lands right (review #322)
   if (apiErrorCode(query.error) === "OWN_EVENT") {
@@ -58,7 +70,16 @@ export function RateEventPage({ eventId, viewerId, onSaved }: RateEventPageProps
       <PageBand
         title="Ohodnoť akci"
         // Figma C-03d: „Volejbal na Letné · Po 19. 10. · Sportovní areál Letná, Praha 7 · …“
-        description={data ? ratingBandLine(data.event) : undefined}
+        description={
+          data
+            ? ratingBandLine(data.event)
+            : shownEvent
+              ? // before it ends, nobody has „sešlo se“ yet
+                isEventOver(shownEvent, new Date())
+                ? ratingBandLine(shownEvent)
+                : shownEvent.title
+              : undefined
+        }
         // back where the user came from; with nothing to go back to (the e-mail's link) to the
         // history (#367)
         back={{
@@ -71,9 +92,14 @@ export function RateEventPage({ eventId, viewerId, onSaved }: RateEventPageProps
         isCompactOnMobile
       />
       <div className={cn(PAGE, "gap-6 pb-24")}>
-        {query.error ? (
+        {/* a 403 waits for the event's detail, so its card doesn't jump in above the notice
+            once it loads (review #395) */}
+        {isNotParticipant && detail.isPending ? (
+          <RateEventLoading />
+        ) : query.error ? (
           <RateEventError
             error={query.error}
+            event={shownEvent}
             retry={() => void query.refetch()}
           />
         ) : !data ? (
@@ -165,8 +191,17 @@ function NextStep({ children }: { children: ReactNode }) {
 /**
  * 404 (unknown, hidden or deleted), 403 (not approved for it) —
  * each says why, in the API's words, and where to go; anything else can be tried again.
+ * A 403 shows the event's card above, when its public detail came (`event`, #370).
  */
-function RateEventError({ error, retry }: { error: Error; retry: () => void }) {
+function RateEventError({
+  error,
+  event,
+  retry,
+}: {
+  error: Error
+  event?: EventDetail
+  retry: () => void
+}) {
   const status = error instanceof HTTPError ? error.response.status : undefined
   const code = apiErrorCode(error)
   if (status === 404) {
@@ -185,16 +220,28 @@ function RateEventError({ error, retry }: { error: Error; retry: () => void }) {
   }
   if (code === "NOT_PARTICIPANT") {
     return (
-      <RatingExplained title="Tuhle akci hodnotit nemůžeš">
-        {error.message}{" "}
-        <Link
-          to={ROUTES.events}
-          className="font-medium underline underline-offset-4"
-        >
-          Najdi akci, na kterou půjdeš
-        </Link>
-        .
-      </RatingExplained>
+      <div className="flex flex-col gap-6 md:max-w-xl">
+        {event ? (
+          isEventOver(event, new Date()) ? (
+            <PastEventCard event={event} />
+          ) : (
+            <EventCard
+              event={event}
+              variant="row"
+            />
+          )
+        ) : null}
+        <RatingExplained title="Tuhle akci hodnotit nemůžeš">
+          {error.message}{" "}
+          <Link
+            to={ROUTES.events}
+            className="font-medium underline underline-offset-4"
+          >
+            Najdi akci, na kterou půjdeš
+          </Link>
+          .
+        </RatingExplained>
+      </div>
     )
   }
   return (

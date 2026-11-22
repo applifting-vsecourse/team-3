@@ -15,6 +15,7 @@ import {
 import { initials } from "@/lib/initials"
 import { cn } from "@/lib/utils"
 
+import { useAuthLinkFrom } from "@/features/auth/hooks/useAuthLinkFrom"
 import { useSession } from "@/features/auth/hooks/useSession"
 import { useSignOut } from "@/features/auth/hooks/useSignOut"
 
@@ -26,6 +27,8 @@ export function HeaderMenu({
 } = {}) {
   const { user } = useSession()
   const signOut = useSignOut()
+  // signing in or up from the header comes back to this page (#370)
+  const from = useAuthLinkFrom()
 
   // On mobile, signing in lives in the bottom navigation (but on the landing page, A-01).
   // The header sits on the band (Figma Header/App desktop): cream ghost and outline buttons.
@@ -37,14 +40,24 @@ export function HeaderMenu({
           variant="ghost"
           className="h-11 px-4 text-on-hero max-md:px-2"
         >
-          <Link to={ROUTES.login}>Přihlásit se</Link>
+          <Link
+            to={ROUTES.login}
+            search={{ from }}
+          >
+            Přihlásit se
+          </Link>
         </Button>
         <Button
           asChild
           variant="outline"
           className="h-11 border-on-hero bg-transparent px-4 text-on-hero hover:bg-hero-pattern hover:text-on-hero max-md:hidden"
         >
-          <Link to={ROUTES.signup}>Registrovat</Link>
+          <Link
+            to={ROUTES.signup}
+            search={{ from }}
+          >
+            Registrovat
+          </Link>
         </Button>
       </div>
     )

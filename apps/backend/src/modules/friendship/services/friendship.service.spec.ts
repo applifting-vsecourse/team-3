@@ -1,5 +1,6 @@
 import type { FriendshipRow } from '@/modules/friendship/domain/friendship';
 import { FriendshipRepository } from '@/modules/friendship/repositories/friendship.repository';
+import { NotificationService } from '@/modules/notification/services/notification.service';
 import {
   BadRequestException,
   ConflictException,
@@ -19,12 +20,18 @@ const fromAtoB = (status: FriendshipRow['status']): FriendshipRow => ({
 
 const setup = (): {
   repository: MockProxy<FriendshipRepository>;
+  notifications: MockProxy<NotificationService>;
   service: FriendshipService;
 } => {
   const repository = mock<FriendshipRepository>();
   repository.isAvailable.mockResolvedValue(true);
   repository.findPair.mockResolvedValue(null);
-  return { repository, service: new FriendshipService(repository) };
+  const notifications = mock<NotificationService>();
+  return {
+    repository,
+    notifications,
+    service: new FriendshipService(repository, notifications),
+  };
 };
 
 const code = async (promise: Promise<unknown>): Promise<unknown> =>
@@ -104,6 +111,60 @@ describe('FriendshipService.request („Přidat do přátel“, #307)', () => {
       ConflictException,
     );
     expect(await code(service.request(A, B, now))).toBe(expected);
+  });
+});
+
+describe('FriendshipService: upozornění (#86)', () => {
+  it('a new request tells the one asked', async () => {
+    const { repository, notifications, service } = setup();
+    repository.create.mockResolvedValue(true);
+
+    await service.request(A, B, now);
+
+    expect(notifications.notify).toHaveBeenCalledWith({
+      type: 'friend-request',
+      fromId: A,
+      toId: B,
+    });
+  });
+
+  it('accepting the other’s request tells the one who asked', async () => {
+    const { repository, notifications, service } = setup();
+    repository.findPair.mockResolvedValue(fromAtoB('pending'));
+    repository.accept.mockResolvedValue(true);
+
+    await service.request(B, A, now);
+
+    expect(notifications.notify).toHaveBeenCalledWith({
+      type: 'friend-accepted',
+      fromId: B,
+      toId: A,
+    });
+  });
+
+  it('a write that didn’t happen tells nobody', async () => {
+    const { repository, notifications, service } = setup();
+    repository.create.mockResolvedValue(false);
+    repository.findPair
+      .mockResolvedValueOnce(null)
+      .mockResolvedValueOnce(fromAtoB('accepted'))
+      .mockResolvedValue(fromAtoB('accepted'));
+
+    await service.request(B, A, now).catch(() => undefined);
+
+    expect(notifications.notify).not.toHaveBeenCalled();
+  });
+
+  it('rejecting and removing stay silent', async () => {
+    const { repository, notifications, service } = setup();
+    repository.findPair.mockResolvedValue(fromAtoB('pending'));
+    repository.reject.mockResolvedValue(true);
+    repository.remove.mockResolvedValue(true);
+
+    await service.reject(B, A);
+    await service.remove(A, B);
+
+    expect(notifications.notify).not.toHaveBeenCalled();
   });
 });
 

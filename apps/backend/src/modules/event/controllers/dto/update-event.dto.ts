@@ -1,6 +1,7 @@
 import { ApiPropertyOptional } from '@nestjs/swagger';
 import { Transform } from 'class-transformer';
 import {
+  IsBoolean,
   IsDateString,
   IsInt,
   IsLatitude,
@@ -121,4 +122,12 @@ export class UpdateEventDto {
   @Min(1)
   @Max(EVENT_MAX_PARTICIPANTS)
   maxParticipants?: number;
+
+  @ApiPropertyOptional({
+    description:
+      'An e-mail to the organizer for each sign-up to an open event (#86); the way of joining itself stays',
+  })
+  @IsOptionalNotNull()
+  @IsBoolean()
+  emailOnJoin?: boolean;
 }

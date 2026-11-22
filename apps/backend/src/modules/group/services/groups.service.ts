@@ -35,6 +35,7 @@ import {
   HttpException,
   HttpStatus,
   Injectable,
+  Logger,
   NotFoundException,
 } from '@nestjs/common';
 
@@ -85,6 +86,8 @@ export const GROUPS_LIMIT = 200;
 
 @Injectable()
 export class GroupsService {
+  private readonly logger = new Logger(GroupsService.name);
+
   constructor(
     private readonly groupRepository: GroupRepository,
     private readonly notifications: NotificationService,
@@ -183,19 +186,52 @@ export class GroupsService {
         decision.status,
         message,
       );
+      // a request waits for the admins, who hear of it (#86); joining at once has nobody to tell
+      if (decision.status === 'pending') {
+        this.notifications.notify({
+          type: 'group-join-request',
+          groupId,
+          applicantId: userId,
+          message,
+        });
+      }
     }
     return { status: decision.status };
   }
 
-  /** „Odejít ze skupiny“, also withdrawing a pending request. */
-  async leave(groupId: string, userId: string): Promise<void> {
+  /**
+   * „Odejít ze skupiny“, also withdrawing a pending request. The user's places
+   * on the group's upcoming members-only events go with it (#266); after the
+   * commit each of those organizers hears of it, as when someone leaves the
+   * event (`participant-left`, #398). A withdrawn request tells nobody.
+   */
+  async leave(
+    groupId: string,
+    userId: string,
+    now: Date = new Date(),
+  ): Promise<void> {
     const group = await this.getActiveGroup(groupId, userId);
     const decision = decideLeave(
       group.viewerMembership,
       await this.groupRepository.countActiveAdmins(groupId),
     );
     if (decision.kind === 'error') throw MEMBERSHIP_ERRORS[decision.error]();
-    await this.groupRepository.deleteMembership(groupId, userId);
+    const freed = await this.groupRepository.leaveGroup(groupId, userId, now);
+    // after the commit, as leaving an event does (#398); the leave stands
+    // whatever happens to the notification
+    for (const eventId of freed) {
+      try {
+        this.notifications.notify({
+          type: 'participant-left',
+          eventId,
+          participantId: userId,
+        });
+      } catch (error) {
+        this.logger.warn(
+          `participant-left for event ${eventId} not scheduled: ${error instanceof Error ? error.name : 'unknown error'}`,
+        );
+      }
+    }
   }
 
   /** Requests and members for the management (D-07); only an admin. */
@@ -217,6 +253,12 @@ export class GroupsService {
   ): Promise<void> {
     await this.assertPendingRequest(groupId, adminId, userId);
     await this.groupRepository.approveRequest(groupId, userId);
+    this.notifications.notify({
+      type: 'group-request-decided',
+      groupId,
+      userId,
+      outcome: 'approved',
+    });
   }
 
   /** Any admin rejects a pending request; it is removed, so the user can ask again. */
@@ -227,6 +269,12 @@ export class GroupsService {
   ): Promise<void> {
     await this.assertPendingRequest(groupId, adminId, userId);
     await this.groupRepository.deleteMembership(groupId, userId);
+    this.notifications.notify({
+      type: 'group-request-decided',
+      groupId,
+      userId,
+      outcome: 'rejected',
+    });
   }
 
   /**

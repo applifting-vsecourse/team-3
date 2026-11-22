@@ -153,12 +153,15 @@ export function PageBand({
   return (
     <div
       className={cn(
-        "relative overflow-hidden border-b border-hero on-hero",
+        "relative overflow-hidden border-b border-hero",
+        // a plain band on a phone is the page itself: its back link and focus ring are the
+        // page's, not the band's cream on cream (#370)
+        isPlainOnMobile ? "md:on-hero" : "on-hero",
         // isolate: the landing page's motif sits behind the content (-z-10), not behind the band.
         // Only there: an isolated band would shut in the action that floats on a phone (Moje,
         // Skupiny), and the cards scrolling past would cover it (review #368)
         isHero && "isolate",
-        isPlainOnMobile && "max-md:border-b-0 max-md:bg-background",
+        isPlainOnMobile && "max-md:border-b-0",
       )}
     >
       {isSection || isDetail ? <LogoMotif isAboveTabs={hasTabs && isMotifAboveTabs} /> : null}

@@ -1,10 +1,10 @@
 import { createFileRoute, Outlet, redirect } from "@tanstack/react-router"
 
+import { AppHeader } from "@/app/AppHeader"
 import { ROUTES } from "@/app/routes"
 import { Seo } from "@/components/Seo"
 
 import { authSessionQueryOptions } from "@/features/auth/api/authSessionQueryOptions"
-import { AppHeader } from "@/features/auth/components/AppHeader"
 import { redirectFrom } from "@/features/auth/lib/redirect"
 
 export const Route = createFileRoute("/_ProtectedPages")({

@@ -1,5 +1,6 @@
 import { PrismaService } from '@/core/prisma/prisma.service';
 import { Prisma } from '@/generated/prisma/client';
+import { withdrawFromMembersOnlyEvents } from '@/modules/event/repositories/former-member-participations';
 import {
   AnnouncementInput,
   AnnouncementRefusal,
@@ -14,6 +15,7 @@ import {
   Membership,
   MembershipStatus,
   MyGroup,
+  orderGroupsByName,
   RecruitingGroup,
 } from '@/modules/group/domain/group';
 import {
@@ -95,14 +97,29 @@ export class GroupRepository {
     filters: GroupFilters;
     limit: number;
   }): Promise<GroupSummary[]> {
-    const groups = await this.prisma.group.findMany({
+    // Czech order (#370): the database's collation puts Š after Z, so the names
+    // are ordered here and only the first `limit` are loaded whole. The first
+    // query reads every matching group's id and name: fine for hundreds of
+    // groups. If it ever isn't, give `Group.name` the ICU collation
+    // `cs-CZ-x-icu` in a migration and go back to one query with orderBy + take.
+    const candidates = await this.prisma.group.findMany({
       where: buildActiveGroupsWhere(query.filters),
-      include: summaryInclude,
-      // id breaks ties so the cut-off at `limit` is stable
-      orderBy: [{ name: 'asc' }, { id: 'asc' }],
-      take: query.limit,
+      select: { id: true, name: true },
     });
-    return groups.map(toSummary);
+    const ids = orderGroupsByName(candidates)
+      .slice(0, query.limit)
+      .map(({ id }) => id);
+    if (!ids.length) return [];
+    const groups = await this.prisma.group.findMany({
+      where: { id: { in: ids } },
+      include: summaryInclude,
+    });
+    const byId = new Map(groups.map((group) => [group.id, group]));
+    // a group deleted between the two queries drops out
+    return ids.flatMap((id) => {
+      const group = byId.get(id);
+      return group ? [toSummary(group)] : [];
+    });
   }
 
   /**
@@ -258,10 +275,30 @@ export class GroupRepository {
     });
   }
 
-  /** Leaving, withdrawing a request and a rejected request all remove the row, so the user can ask again. */
+  /** A rejected request removes the row, so the user can ask again; leaving is `leaveGroup`. */
   async deleteMembership(groupId: string, userId: string): Promise<void> {
     await this.prisma.groupMember.delete({
       where: { groupId_userId: { groupId, userId } },
+    });
+  }
+
+  /**
+   * Leaving the group or withdrawing a request (US-17): the row goes, and in
+   * the same transaction the places and requests on the group's upcoming
+   * members-only events, which the user no longer sees (#266). Returns the
+   * events where an approved place was freed, once the transaction has
+   * committed.
+   */
+  async leaveGroup(
+    groupId: string,
+    userId: string,
+    at: Date,
+  ): Promise<string[]> {
+    return this.prisma.$transaction(async (tx) => {
+      await tx.groupMember.delete({
+        where: { groupId_userId: { groupId, userId } },
+      });
+      return withdrawFromMembersOnlyEvents(tx, groupId, userId, at);
     });
   }
 

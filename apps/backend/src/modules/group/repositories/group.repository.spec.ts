@@ -26,6 +26,57 @@ describe('GroupRepository', () => {
     });
   });
 
+  describe('leaveGroup (#266)', () => {
+    it("removes the membership and withdraws the places on the group's members-only events in one transaction", async () => {
+      const prisma = mockDeep<PrismaService>();
+      const at = new Date('2026-11-19T10:00:00.000Z');
+      let inTransaction = false;
+      // the transaction client is the same mock
+      prisma.$transaction.mockImplementation((async (
+        run: (tx: PrismaService) => Promise<unknown>,
+      ) => {
+        inTransaction = true;
+        try {
+          return await run(prisma);
+        } finally {
+          inTransaction = false;
+        }
+      }) as never);
+      const written: string[] = [];
+      prisma.groupMember.delete.mockImplementation((() => {
+        if (inTransaction) written.push('membership');
+      }) as never);
+      prisma.event.findMany.mockResolvedValue([
+        { id: 'e1', status: 'published' },
+      ] as never);
+      prisma.participation.findMany.mockResolvedValue([
+        { eventId: 'e1' },
+      ] as never);
+      prisma.participation.updateMany.mockImplementation((() => {
+        if (inTransaction) written.push('participations');
+      }) as never);
+
+      // the events whose organizers hear of the freed place (#398)
+      await expect(
+        new GroupRepository(prisma).leaveGroup('g1', 'u-jakub', at),
+      ).resolves.toEqual(['e1']);
+
+      expect(prisma.$transaction).toHaveBeenCalledTimes(1);
+      expect(written).toEqual(['membership', 'participations']);
+      expect(prisma.groupMember.delete).toHaveBeenCalledWith({
+        where: { groupId_userId: { groupId: 'g1', userId: 'u-jakub' } },
+      });
+      expect(prisma.participation.updateMany).toHaveBeenCalledWith({
+        where: {
+          userId: 'u-jakub',
+          eventId: { in: ['e1'] },
+          status: { in: ['approved', 'pending'] },
+        },
+        data: { status: 'withdrawn', approvedAt: null },
+      });
+    });
+  });
+
   describe('createMembership (#175)', () => {
     it('a request keeps its message', async () => {
       const prisma = mockDeep<PrismaService>();
@@ -433,5 +484,63 @@ describe('GroupRepository: findGroupById admins (#289)', () => {
         new GroupRepository(prisma).replaceImage('g1', null),
       ).resolves.toBeNull();
     });
+  });
+});
+
+describe('GroupRepository: findActiveGroups in Czech order (#370)', () => {
+  const row = (id: string, name: string): object => ({
+    id,
+    name,
+    type: 'public',
+    activity: {
+      id: 'a1',
+      slug: 'volejbal',
+      name: 'Volejbal',
+      category: { id: 'c1', slug: 'sport', name: 'Sport', icon: 'ball' },
+    },
+    locality: { id: 'l1', slug: 'praha-7', name: 'Praha 7' },
+    _count: { members: 3 },
+  });
+
+  it('orders by the Czech alphabet and cuts the list off in that order', async () => {
+    const prisma = mockDeep<PrismaService>();
+    prisma.group.findMany
+      .mockResolvedValueOnce([
+        { id: 'z', name: 'Zlínští deskovkáři' },
+        { id: 's', name: 'Šachisti z Ústí nad Labem' },
+        { id: 'br', name: 'Brněnští volejbalisti' },
+        { id: 'be', name: 'Běžci od Boleváku' },
+      ] as never)
+      // the second query answers in the database's order, not the list's
+      .mockResolvedValueOnce([
+        row('s', 'Šachisti z Ústí nad Labem'),
+        row('br', 'Brněnští volejbalisti'),
+        row('be', 'Běžci od Boleváku'),
+      ] as never);
+
+    const groups = await new GroupRepository(prisma).findActiveGroups({
+      filters: {},
+      limit: 3,
+    });
+
+    expect(groups.map(({ name }) => name)).toEqual([
+      'Běžci od Boleváku',
+      'Brněnští volejbalisti',
+      'Šachisti z Ústí nad Labem',
+    ]);
+    // „Zlínští“ is past the limit, so it isn't loaded
+    expect(prisma.group.findMany.mock.calls[1]?.[0]?.where).toEqual({
+      id: { in: ['be', 'br', 's'] },
+    });
+  });
+
+  it('loads nothing more when no group matches', async () => {
+    const prisma = mockDeep<PrismaService>();
+    prisma.group.findMany.mockResolvedValueOnce([] as never);
+
+    await expect(
+      new GroupRepository(prisma).findActiveGroups({ filters: {}, limit: 3 }),
+    ).resolves.toEqual([]);
+    expect(prisma.group.findMany).toHaveBeenCalledTimes(1);
   });
 });

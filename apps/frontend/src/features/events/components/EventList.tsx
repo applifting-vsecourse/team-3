@@ -218,6 +218,8 @@ export function EventCardSkeleton({
         )}
       />
       <div className={cn("flex flex-1 flex-col gap-2", isResponsive && "md:p-5")}>
+        {/* the activity above the title (#348) */}
+        <Skeleton className="h-3 w-1/4" />
         <Skeleton className="h-4 w-3/4" />
         <Skeleton className="h-3 w-1/2" />
         <Skeleton className="h-3 w-1/3" />
