@@ -6,14 +6,14 @@ on:
 env:
   COURSE_DOMAIN: vsepractical.applifting.dev
   REGISTRY: registry.vsepractical.applifting.dev
+# The registry and Coolify use their own secrets; GITHUB_TOKEN only reads the code.
+permissions:
+  contents: read
 jobs:
   build-and-deploy:
     runs-on: ubuntu-latest
-    env:
-      COOLIFY_WEBHOOK: ${{ secrets.COOLIFY_WEBHOOK }}
-      COOLIFY_TOKEN: ${{ secrets.COOLIFY_TOKEN }}
     steps:
-      - uses: actions/checkout@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - name: Determine slug
         id: slug
         run: |
@@ -23,13 +23,13 @@ jobs:
           echo "slug=$SLUG" >> "$GITHUB_OUTPUT"
           echo "url=https://$SLUG.$COURSE_DOMAIN" >> "$GITHUB_OUTPUT"
       - name: Login to registry
-        uses: docker/login-action@v4
+        uses: docker/login-action@8aa5831fb8d48d8f76594c7ddde61ae58019f550 # v4.8.0
         with:
           registry: registry.vsepractical.applifting.dev
           username: ${{ secrets.REGISTRY_USER }}
           password: ${{ secrets.REGISTRY_PASSWORD }}
       - name: Build & push backend
-        uses: docker/build-push-action@v7
+        uses: docker/build-push-action@c3c9e263c25d99ce0380d002d59b67737d91b0dc # v7.4.0
         with:
           context: .
           file: apps/backend/Dockerfile.deploy
@@ -46,9 +46,12 @@ jobs:
             SMTP_SECURE=${{ vars.SMTP_SECURE || 'true' }}
             EMAIL_FROM=${{ vars.EMAIL_FROM }}
             SIMULATED_INBOX=${{ vars.SIMULATED_INBOX || 'true' }}
-          tags: ${{ env.REGISTRY }}/${{ steps.slug.outputs.slug }}-backend:latest
+          # latest is what Coolify pulls; the commit tag names the exact build to inspect or roll back to.
+          tags: |
+            ${{ env.REGISTRY }}/${{ steps.slug.outputs.slug }}-backend:latest
+            ${{ env.REGISTRY }}/${{ steps.slug.outputs.slug }}-backend:${{ github.sha }}
       - name: Build & push frontend
-        uses: docker/build-push-action@v7
+        uses: docker/build-push-action@c3c9e263c25d99ce0380d002d59b67737d91b0dc # v7.4.0
         with:
           context: .
           file: apps/frontend/Dockerfile.deploy
@@ -56,8 +59,19 @@ jobs:
           build-args: |
             VITE_API_URL=${{ steps.slug.outputs.url }}/api
             VITE_BETTER_AUTH_URL=${{ steps.slug.outputs.url }}
-          tags: ${{ env.REGISTRY }}/${{ steps.slug.outputs.slug }}-frontend:latest
+          # latest is what Coolify pulls; the commit tag names the exact build to inspect or roll back to.
+          tags: |
+            ${{ env.REGISTRY }}/${{ steps.slug.outputs.slug }}-frontend:latest
+            ${{ env.REGISTRY }}/${{ steps.slug.outputs.slug }}-frontend:${{ github.sha }}
+      # The Coolify secrets live only in this step, so the build steps and the actions they run never see them.
+      # A step's own env is not visible to its `if`, so the "not configured" check is in the script.
       - name: Trigger Coolify deploy
-        if: env.COOLIFY_WEBHOOK != ''
+        env:
+          COOLIFY_WEBHOOK: ${{ secrets.COOLIFY_WEBHOOK }}
+          COOLIFY_TOKEN: ${{ secrets.COOLIFY_TOKEN }}
         run: |
+          if [ -z "$COOLIFY_WEBHOOK" ]; then
+            echo "COOLIFY_WEBHOOK is not set, skipping deploy."
+            exit 0
+          fi
           curl -fsS -X POST -H "Authorization: Bearer $COOLIFY_TOKEN" "$COOLIFY_WEBHOOK"
