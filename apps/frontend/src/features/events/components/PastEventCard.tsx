@@ -2,7 +2,7 @@ import type { ReactNode } from "react"
 import { Link } from "@tanstack/react-router"
 
 import { ROUTES } from "@/app/routes"
-import { ActivityLine } from "@/components/ActivityTag/ActivityLine"
+import { ActivityLine } from "@/components/ActivityLine/ActivityLine"
 import { StatusBadge } from "@/components/StatusBadge/StatusBadge"
 import { gatheredLabel, missedMinimumLabel, wasHeld } from "@/lib/occupancy"
 
@@ -104,8 +104,6 @@ export function PastEventCard({
         variant="past"
       />
       <div className="flex min-w-0 flex-1 flex-col gap-1">
-        {/* above the title, as on the event card (#348) */}
-        <ActivityLine activity={event.activity} />
         <Title className="line-clamp-2 type-row-title">
           {isLinked ? (
             <Link
@@ -119,6 +117,11 @@ export function PastEventCard({
             event.title
           )}
         </Title>
+        {/* above the title on screen, after it in the DOM, as on the event card (#348) */}
+        <ActivityLine
+          activity={event.activity}
+          className="order-first"
+        />
         <time
           dateTime={event.startsAt.toISOString()}
           className="sr-only"

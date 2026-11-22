@@ -2,7 +2,7 @@ import { Link } from "@tanstack/react-router"
 import { Users } from "lucide-react"
 
 import { ROUTES } from "@/app/routes"
-import { ActivityLine } from "@/components/ActivityTag/ActivityLine"
+import { ActivityLine } from "@/components/ActivityLine/ActivityLine"
 import { CapacityBar } from "@/components/CapacityBar/CapacityBar"
 import { StatusBadge, type BadgeStatus } from "@/components/StatusBadge/StatusBadge"
 import { occupancyBesideBadge, occupancyCount } from "@/lib/occupancy"
@@ -67,7 +67,8 @@ type EventCardProps = {
 
 /**
  * An event in a list or a grid (Figma: Karta akce/Foto, Karta akce/Foto řádek; DESIGN.md ›
- * Event card): the activity photo with the date tile, the title, where, and the occupancy.
+ * Event card): the activity photo with the date tile, the activity, the title, where, and the
+ * occupancy.
  * The title links to the detail; its ::after stretches over the card, so the whole card is
  * clickable while the link is still named by the title. The focus ring moves to the card.
  */
@@ -131,8 +132,6 @@ export function EventCard({
           }[variant]
         }
       >
-        {/* above the title, as the detail's band has it (#348) */}
-        <ActivityLine activity={event.activity} />
         <Title
           className={cn(
             "line-clamp-2",
@@ -151,6 +150,12 @@ export function EventCard({
             {event.title}
           </Link>
         </Title>
+        {/* above the title on screen, as the detail's band has it (#348); after it in the DOM,
+            so a screen reader moving by headings hears the activity with the title */}
+        <ActivityLine
+          activity={event.activity}
+          className="order-first"
+        />
         {event.group && isGroupShown ? (
           <p className="flex min-w-0 items-center gap-1 text-caption font-semibold text-secondary-foreground md:text-sm">
             <Users
