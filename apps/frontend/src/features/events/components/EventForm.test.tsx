@@ -475,7 +475,9 @@ describe("EventForm", () => {
       await userEvent.click(screen.getByRole("radio", { name: /Schvaluji přihlášky/ }))
 
       expect(screen.queryByRole("checkbox", { name: /e-mail ke každé přihlášce/ })).toBeNull()
-      expect(screen.getByText("Každá žádost ti přijde do upozornění i e-mailem.")).toBeInTheDocument()
+      expect(
+        screen.getByText("Každá žádost ti přijde do upozornění i e-mailem."),
+      ).toBeInTheDocument()
     })
 
     it("can be changed when editing an open event, though the way of joining can't", async () => {
@@ -502,10 +504,9 @@ describe("EventForm", () => {
       await userEvent.click(email)
       await userEvent.click(screen.getByRole("button", { name: "Uložit změny" }))
 
-      expect(onSubmit).toHaveBeenCalledWith(
-        expect.objectContaining({ emailOnJoin: false }),
-        { kind: "keep" },
-      )
+      expect(onSubmit).toHaveBeenCalledWith(expect.objectContaining({ emailOnJoin: false }), {
+        kind: "keep",
+      })
     })
   })
 
