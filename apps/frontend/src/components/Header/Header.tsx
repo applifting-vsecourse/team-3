@@ -11,6 +11,8 @@ type HeaderProps = {
   isSignedIn?: boolean
   /** Phone only: the screen's action (Figma Header/Screen), e.g. „Hledat“ on /akce (#57). */
   screenAction?: ReactNode
+  /** The bell (#86, Figma Zvonek): before the screen's action and the avatar. */
+  notifications?: ReactNode
 }
 
 /**
@@ -20,7 +22,7 @@ type HeaderProps = {
  * On a phone a detail's bar (SubBar, Figma Header/Sub) replaces it (A-05, A-08, D-03, D-07),
  * so a page with one has no header there — the bottom navigation stays.
  */
-export function Header({ userMenu, isSignedIn = false, screenAction }: HeaderProps) {
+export function Header({ userMenu, isSignedIn = false, screenAction, notifications }: HeaderProps) {
   return (
     <header className="sticky top-0 z-40 w-full on-hero max-md:[:root:has([data-slot=sub-bar])_&]:hidden">
       {/* gap-4 on a phone: the logo, „Hledat“ and the avatar were 1 px wider than 320 px with
@@ -29,6 +31,7 @@ export function Header({ userMenu, isSignedIn = false, screenAction }: HeaderPro
         <HeaderLogo />
         <HeaderNav isSignedIn={isSignedIn} />
         <div className="ml-auto flex items-center gap-2">
+          {notifications}
           {screenAction ? <div className="md:hidden">{screenAction}</div> : null}
           {userMenu}
         </div>
