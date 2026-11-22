@@ -1,0 +1,73 @@
+name: Onboarding browser evidence
+
+on:
+  push:
+    branches: [review/296-prohlizec]
+
+permissions:
+  contents: read
+
+jobs:
+  evidence:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    services:
+      db:
+        image: postgres:17
+        env:
+          POSTGRES_USER: quacker
+          POSTGRES_PASSWORD: quacker
+          POSTGRES_DB: quacker
+        ports:
+          - 5433:5432
+        options: --health-cmd pg_isready --health-interval 5s --health-timeout 3s --health-retries 12
+    env:
+      DATABASE_URL: postgresql://quacker:quacker@localhost:5433/quacker
+      BETTER_AUTH_SECRET: isolated-runner-only-onboarding-test-secret
+      BACKEND_URL: http://localhost:4050
+      FRONTEND_URL: http://localhost:3050
+      VITE_API_URL: http://localhost:4050/api
+      VITE_BETTER_AUTH_URL: http://localhost:4050
+      PORT: 4050
+      SIMULATED_INBOX: 'true'
+      PWNED_PASSWORDS_CHECK: 'false'
+      SEED_DEMO_DATA: 'true'
+      SUPERADMIN_EMAIL: admin@example.test
+      SUPERADMIN_PASSWORD: isolatedAdmin26
+    steps:
+      - uses: actions/checkout@v7
+      - uses: pnpm/action-setup@v6
+      - uses: actions/setup-node@v7
+        with:
+          node-version-file: .nvmrc
+          cache: pnpm
+      - name: Prepare the isolated app
+        run: |
+          pnpm install --frozen-lockfile
+          pnpm env:check
+          pnpm backend migrate
+          pnpm backend seed
+          pnpm backend build
+      - name: Prepare Chromium
+        run: |
+          npm install --prefix review/sprint-4 --no-save --no-package-lock playwright@1.57.0
+          ./review/sprint-4/node_modules/.bin/playwright install --with-deps chromium
+      - name: Check registration, onboarding, and screenshots
+        run: |
+          mkdir -p /tmp/hobbyhub-onboarding-evidence
+          node apps/backend/dist/main > /tmp/hobbyhub-backend.log 2>&1 &
+          pnpm frontend dev --host localhost --port 3050 > /tmp/hobbyhub-frontend.log 2>&1 &
+          for url in http://localhost:4050/api/auth/get-session http://localhost:3050/akce; do
+            curl --fail --silent --output /dev/null --retry 35 --retry-all-errors --retry-delay 2 "$url"
+          done
+          node review/sprint-4/onboarding-browser.mjs
+      - name: Show app logs on failure
+        if: failure()
+        run: tail -n 30 /tmp/hobbyhub-{backend,frontend}.log || true
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: onboarding-browser-evidence
+          path: /tmp/hobbyhub-onboarding-evidence/
+          if-no-files-found: ignore
+          retention-days: 14
