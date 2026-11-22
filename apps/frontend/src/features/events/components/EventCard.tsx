@@ -180,6 +180,7 @@ export function EventCard({
               variant === "responsive" && "md:hidden",
             )}
           >
+            {/* Keep distance visible. Without it, give the place a second line. */}
             <span className={distance ? "truncate" : "line-clamp-2 min-w-0 wrap-anywhere"}>
               {rowLine}
             </span>

@@ -135,7 +135,7 @@ The Figma page „Design system“ is the reference, and each component's descri
   - Pořádám adds the requests: „4 z 5 · min. 3 · 2 žádosti“. A cancelled event has only the count.
   - On the detail the bar's status „Chybí ještě 2“ / „4 volná místa“ / „Plno“ and the participants heading „Kdo jde · 4 z 5“. Czech plural forms everywhere: „1 volné místo“, „2 volná místa“, „5 volných míst“.
   - What sits on an event card around the badge (place, district) is the card's layout — Event card above (#248).
-- **Status badge** (Figma: Status badge) — `StatusBadge`: 24 px tall, `rounded-full border px-2 text-xs font-semibold`. The label always comes from the data (the Figma default text is a placeholder).
+- **Status badge** (Figma: Status badge) — `StatusBadge`: 24 px tall, `rounded-full border px-2 text-xs font-semibold`. The label always comes from the data (the Figma default text is a placeholder). On a narrow event card, move the capacity bar to the next line before wrapping the label. If the label alone is too wide, let it wrap and grow taller than 24 px. Keep distance visible on the place line, shortening the place text first.
   - Chybí „Chybí N“: `bg-primary text-primary-foreground border-primary-edge` — the only highlighted one.
   - Volná „N volných míst“ (Czech plural forms as above) and Jdu „Jdu“: `bg-secondary text-secondary-foreground border-tile-border`.
   - Plno „Plno“ and Čeká „Čeká na schválení“: `bg-badge-neutral text-badge-neutral-foreground border-control-border`.
