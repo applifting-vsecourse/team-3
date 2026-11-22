@@ -100,19 +100,18 @@ export function OnboardingWizard({
 
   const finish = useMutation({
     mutationFn: async (input: FinishInput) => {
-      const request =
-        input
-          ? api.post("me/profile/onboarding", { json: input })
-          : api.post("me/profile/onboarding/skip", {
-              json: {},
-              // The backend returns the existing completion marker on repeat.
-              retry: {
-                limit: 1,
-                methods: ["post"],
-                statusCodes: [408, 500, 502, 503, 504],
-                retryOnTimeout: true,
-              },
-            })
+      const request = input
+        ? api.post("me/profile/onboarding", { json: input })
+        : api.post("me/profile/onboarding/skip", {
+            json: {},
+            // The backend returns the existing completion marker on repeat.
+            retry: {
+              limit: 1,
+              methods: ["post"],
+              statusCodes: [408, 500, 502, 503, 504],
+              retryOnTimeout: true,
+            },
+          })
       return resultSchema.parse(await request.json())
     },
     onSuccess: (result, input) => onFinish(result, input !== null),
@@ -399,9 +398,7 @@ function OnboardingProgress({ stage }: { stage: keyof typeof STAGE_COPY }) {
           />
         ))}
       </span>
-      <span className="text-right text-xs text-on-hero sm:text-sm">
-        {`Krok ${position} ze 2`}
-      </span>
+      <span className="text-right text-xs text-on-hero sm:text-sm">{`Krok ${position} ze 2`}</span>
     </div>
   )
 }

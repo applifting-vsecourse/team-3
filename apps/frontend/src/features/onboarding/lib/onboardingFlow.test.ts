@@ -124,13 +124,12 @@ describe("onboarding transitions", () => {
     expect(moveOnboarding(dismissed, take("tennis"))).toBe(dismissed)
   })
 
-  it.each<OnboardingFlow>([
-    startOnboarding(),
-    follow(place(prague), take("hike")),
-    withThree(),
-  ])("backs out of exit confirmation without mutating the draft in $stage", (state) => {
-    const exiting = moveOnboarding(state, { type: "exit" })
-    expect(exiting.overlay).toBe("exit")
-    expect(moveOnboarding(exiting, { type: "back" })).toEqual(state)
-  })
+  it.each<OnboardingFlow>([startOnboarding(), follow(place(prague), take("hike")), withThree()])(
+    "backs out of exit confirmation without mutating the draft in $stage",
+    (state) => {
+      const exiting = moveOnboarding(state, { type: "exit" })
+      expect(exiting.overlay).toBe("exit")
+      expect(moveOnboarding(exiting, { type: "back" })).toEqual(state)
+    },
+  )
 })
