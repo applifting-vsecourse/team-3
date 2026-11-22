@@ -40,6 +40,13 @@ describe('UpdateEventDto', () => {
     expect(invalid({ endsAt: null })).toEqual([]);
   });
 
+  it('the e-mail for each sign-up can change, as a yes or no (#86)', () => {
+    expect(invalid({ emailOnJoin: true })).toEqual([]);
+    expect(invalid({ emailOnJoin: false })).toEqual([]);
+    expect(invalid({ emailOnJoin: null })).toEqual(['emailOnJoin']);
+    expect(invalid({ emailOnJoin: 'ano' })).toEqual(['emailOnJoin']);
+  });
+
   it('nor the organizer', () => {
     expect(invalid({ organizerUserId: 'someone-else' })).toEqual([
       'organizerUserId',

@@ -101,6 +101,8 @@ export type EventManagementView = {
 export type EventDetail = PublicEvent & {
   description: string | null;
   approvalMode: 'open' | 'approval';
+  /** The organizer's e-mail for each sign-up to an open event (#86); the API shows it only to who manages it. */
+  emailOnJoin: boolean;
   /** `private` = reachable through its link only; `members` = the group's members only. */
   visibility: 'public' | 'private' | 'members';
   /** `hidden` and `deleted` never leave the service (404). */
@@ -109,7 +111,12 @@ export type EventDetail = PublicEvent & {
 };
 
 /** The detail and, for those taking part, who is coming (#174, `canSeeParticipants`). */
-export type EventDetailView = EventDetail & {
+export type EventDetailView = Omit<EventDetail, 'emailOnJoin'> & {
+  /**
+   * The organizer's e-mail for each sign-up (#86), only for the organizer: it goes to them, so
+   * a fellow admin of the group neither sees nor changes it (review #398). Null for anyone else.
+   */
+  emailOnJoin: boolean | null;
   /** Null for anyone who may not see the names; they get only `capacity`. */
   participants: EventParticipant[] | null;
   /** The signed-in viewer's own participation; null for a visitor or someone not in. */
@@ -180,6 +187,8 @@ export type NewEvent = {
   minParticipants: number;
   maxParticipants: number;
   approvalMode: 'open' | 'approval';
+  /** An e-mail to the organizer for each sign-up to an open event (#86). */
+  emailOnJoin: boolean;
   /** A group's event (B-055); null for a person's own. */
   groupId: string | null;
   /** `members` only for a group's event. */
@@ -200,5 +209,6 @@ export type EventChanges = Partial<
     | 'endsAt'
     | 'minParticipants'
     | 'maxParticipants'
+    | 'emailOnJoin'
   >
 >;

@@ -478,3 +478,61 @@ describe('GroupRepository: findGroupById admins (#289)', () => {
     });
   });
 });
+
+describe('GroupRepository: findActiveGroups in Czech order (#370)', () => {
+  const row = (id: string, name: string): object => ({
+    id,
+    name,
+    type: 'public',
+    activity: {
+      id: 'a1',
+      slug: 'volejbal',
+      name: 'Volejbal',
+      category: { id: 'c1', slug: 'sport', name: 'Sport', icon: 'ball' },
+    },
+    locality: { id: 'l1', slug: 'praha-7', name: 'Praha 7' },
+    _count: { members: 3 },
+  });
+
+  it('orders by the Czech alphabet and cuts the list off in that order', async () => {
+    const prisma = mockDeep<PrismaService>();
+    prisma.group.findMany
+      .mockResolvedValueOnce([
+        { id: 'z', name: 'Zlínští deskovkáři' },
+        { id: 's', name: 'Šachisti z Ústí nad Labem' },
+        { id: 'br', name: 'Brněnští volejbalisti' },
+        { id: 'be', name: 'Běžci od Boleváku' },
+      ] as never)
+      // the second query answers in the database's order, not the list's
+      .mockResolvedValueOnce([
+        row('s', 'Šachisti z Ústí nad Labem'),
+        row('br', 'Brněnští volejbalisti'),
+        row('be', 'Běžci od Boleváku'),
+      ] as never);
+
+    const groups = await new GroupRepository(prisma).findActiveGroups({
+      filters: {},
+      limit: 3,
+    });
+
+    expect(groups.map(({ name }) => name)).toEqual([
+      'Běžci od Boleváku',
+      'Brněnští volejbalisti',
+      'Šachisti z Ústí nad Labem',
+    ]);
+    // „Zlínští“ is past the limit, so it isn't loaded
+    expect(prisma.group.findMany.mock.calls[1]?.[0]?.where).toEqual({
+      id: { in: ['be', 'br', 's'] },
+    });
+  });
+
+  it('loads nothing more when no group matches', async () => {
+    const prisma = mockDeep<PrismaService>();
+    prisma.group.findMany.mockResolvedValueOnce([] as never);
+
+    await expect(
+      new GroupRepository(prisma).findActiveGroups({ filters: {}, limit: 3 }),
+    ).resolves.toEqual([]);
+    expect(prisma.group.findMany).toHaveBeenCalledTimes(1);
+  });
+});

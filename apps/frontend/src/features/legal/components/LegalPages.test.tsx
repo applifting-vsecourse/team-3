@@ -29,4 +29,14 @@ describe("the pages behind the sign-up's consents (#153)", () => {
       expect(screen.getByRole("link", { name: other })).toHaveAttribute("href", href)
     },
   )
+
+  // #370: opened from the sign-up's consent in a new tab, without history
+  it.each([<TermsOfUse key="terms" />, <PrivacyNotice key="privacy" />])(
+    "has a way back",
+    async (page) => {
+      await renderWithRouter(page)
+
+      expect(screen.getByRole("link", { name: "Úvod" })).toHaveAttribute("href", "/")
+    },
+  )
 })

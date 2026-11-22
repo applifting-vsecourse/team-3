@@ -137,6 +137,7 @@ describe('EventRepository.createEvent (review #264)', () => {
     minParticipants: 4,
     maxParticipants: 10,
     approvalMode: 'open' as const,
+    emailOnJoin: false,
     visibility: 'public' as const,
   };
 

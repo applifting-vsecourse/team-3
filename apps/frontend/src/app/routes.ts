@@ -15,9 +15,14 @@ export const ROUTES = {
   myEvents: "/moje/akce",
   myGroups: "/moje/skupiny",
   groups: "/skupiny",
+  groupDetail: "/skupiny/$groupId",
   profile: "/profil",
   editProfile: "/profil/upravit",
+  // „Lidé, které znám“ (#307, Figma B-09): the whole list behind the profile's preview
+  friends: "/profil/pratele",
   userProfile: "/uzivatele/$userId",
+  // the centre of upozornění on a phone (#86, Figma C-07); on desktop the bell opens a panel
+  notifications: "/upozorneni",
   login: "/login",
   signup: "/signup",
   forgotPassword: "/zapomenute-heslo",

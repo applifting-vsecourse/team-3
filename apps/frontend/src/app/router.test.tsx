@@ -264,26 +264,100 @@ describe("router", () => {
     })
   })
 
+  // #370: the sign-in pages have a way back, to the page signing in returns to
+  describe("back link on sign-in and sign-up", () => {
+    it.each([
+      ["/login?from=%2Fakce%2Fukazka", "Detail akce", "/akce/ukazka"],
+      ["/signup?from=%2Fskupiny", "Skupiny", "/skupiny"],
+      ["/login", "Úvod", "/"],
+      // a protected page would only lead back here (review #395)
+      ["/login?from=%2Fmoje%2Fakce", "Úvod", "/"],
+      ["/login?from=%2Fakce%2Fukazka%2Fhodnoceni", "Úvod", "/"],
+      ["/login?from=%2Fakce%2Fnova", "Úvod", "/"],
+      ["/login?from=%2Fuzivatele%2Fu1", "Zpět", "/uzivatele/u1"],
+    ])("%s opened from a link: „%s“ leads to %s", async (url, label, href) => {
+      stubApi()
+      await renderApp(url)
+
+      const main = await screen.findByRole("main")
+      expect(within(main).getByRole("link", { name: label })).toHaveAttribute("href", href)
+    })
+
+    it("with history goes back to the page it came from, filters included", async () => {
+      stubApi()
+      const app = await renderApp("/akce?lokalita=praha-8")
+      await app.navigate({ to: "/login", search: { from: "/akce?lokalita=praha-8" } })
+
+      await screen.findByRole("heading", { name: "Přihlášení" })
+      // this test's router doesn't remember the pages (app/router.ts does), so „Zpět“ here
+      await userEvent.click(within(screen.getByRole("main")).getByRole("link", { name: "Zpět" }))
+
+      expect(app.state.location.href).toBe("/akce?lokalita=praha-8")
+    })
+
+    // review #395: from the landing page there is nothing to come back to, so the welcome stays
+    it.each([
+      ["/login?from=%2F", "Vítej zpátky v HobbyHubu."],
+      ["/login?from=%2Fakce", "Po přihlášení tě vrátíme zpátky."],
+    ])("%s says „%s“", async (url, line) => {
+      stubApi()
+      await renderApp(url)
+
+      expect(await screen.findByText(line)).toBeInTheDocument()
+    })
+  })
+
+  // #370: the header's „Přihlásit se“ comes back to the page, filters included
+  it("on a page of the app the header's „Přihlásit se“ carries the page as `from`", async () => {
+    stubApi()
+    await renderApp("/skupiny")
+
+    await screen.findByRole("heading", { level: 1 })
+    expect(screen.getByRole("banner").querySelector('a[href^="/login"]')).toHaveAttribute(
+      "href",
+      `/login?from=${encodeURIComponent("/skupiny")}`,
+    )
+  })
+
+  // review #395: signing in from a page that doesn't exist would end on it again
+  it("on the 404 the header's „Přihlásit se“ carries no `from`", async () => {
+    stubApi()
+    await renderApp("/tohle-neexistuje")
+
+    await screen.findByRole("heading", { name: "Stránka nenalezena" })
+    expect(screen.getByRole("banner").querySelector('a[href^="/login"]')).toHaveAttribute(
+      "href",
+      "/login",
+    )
+  })
+
   // #198: what Google (through BetterAuth) sends back to the page the sign-in started on
   describe("back from Google with an error", () => {
-    it("on /signup: the Czech message offers signing up with the e-mail", async () => {
+    it("on /signup: a cancelled Google sign-up preserves the original destination", async () => {
       stubApi()
-      await renderApp("/signup?error=access_denied")
+      await renderApp("/signup?error=access_denied&from=%2Fakce%2Fukazka")
 
       expect(
         await screen.findByText(
           "Registrace přes Google je zrušená. Zkus to znovu, nebo se zaregistruj e-mailem.",
         ),
       ).toBeInTheDocument()
+      expect(screen.getByRole("link", { name: "Přihlas se" })).toHaveAttribute(
+        "href",
+        "/login?from=%2Fakce%2Fukazka",
+      )
     })
 
-    it("on /login: an error raised before BetterAuth reads the state gets the general sentence", async () => {
-      stubApi()
-      await renderApp("/login?error=state_not_found")
+    it.each(["state_not_found", "invalid_callback_request"])(
+      "on /login: a %s error gets a Czech explanation",
+      async (error) => {
+        stubApi()
+        await renderApp(`/login?error=${error}`)
 
-      expect(
-        await screen.findByText("Přihlášení přes Google se nepovedlo. Zkus to prosím znovu."),
-      ).toBeInTheDocument()
-    })
+        expect(
+          await screen.findByText("Přihlášení přes Google se nepovedlo. Zkus to prosím znovu."),
+        ).toBeInTheDocument()
+      },
+    )
   })
 })

@@ -13,6 +13,8 @@ export type NotifiedEvent = {
   approvedCount: number;
   maxParticipants: number;
   organizerId: string;
+  /** The organizer wants an e-mail for each sign-up to the open event (#86). */
+  emailOnJoin: boolean;
 };
 
 /** What the e-mail of a group announcement needs to know of it (#194). */
@@ -75,12 +77,48 @@ export type Notification =
   | { type: 'event-changed'; eventId: string; change: EventChange }
   /** Everyone with a place or a request hears the event is cancelled, and why. */
   | { type: 'event-cancelled'; eventId: string }
+  /** The organizer hears somebody took a place in an open event (#86): in the centre always, by e-mail when they asked for it. */
+  | { type: 'participant-joined'; eventId: string; participantId: string }
   /** The organizer hears a participant gave up their place. */
   | { type: 'participant-left'; eventId: string; participantId: string }
   /** Every active member of the group hears what its admin announced (#194). */
   | { type: 'group-announcement'; announcementId: string }
   /** Every approved participant hears what the organizer wrote them (#176). */
-  | { type: 'event-message'; eventId: string; messageId: string };
+  | { type: 'event-message'; eventId: string; messageId: string }
+  /** The admins of a closed group hear of a request to join it (#86). */
+  | {
+      type: 'group-join-request';
+      groupId: string;
+      applicantId: string;
+      /** What the applicant wrote with the request (#175). */
+      message: string | null;
+    }
+  /** The applicant hears whether an admin let them in (#86). */
+  | {
+      type: 'group-request-decided';
+      groupId: string;
+      userId: string;
+      outcome: 'approved' | 'rejected';
+    }
+  /** Somebody asks to be friends (#307, #86); a request sent again too. */
+  | { type: 'friend-request'; fromId: string; toId: string }
+  /** The one asked accepted: `fromId` accepted the request of `toId`. */
+  | { type: 'friend-accepted'; fromId: string; toId: string };
+
+/** What a group's admins and applicants hear about requests to join it (#86). */
+export type GroupRequestNotification = Extract<
+  Notification,
+  { type: 'group-join-request' } | { type: 'group-request-decided' }
+>;
+
+/** What the e-mails about a request to join a group need to know of the group. */
+export type NotifiedGroup = { id: string; name: string };
+
+/** What friends hear about each other (#307, #86). */
+export type FriendNotification = Extract<
+  Notification,
+  { type: 'friend-request' } | { type: 'friend-accepted' }
+>;
 
 /**
  * The notifications about something that happened to an event: not the
@@ -89,7 +127,10 @@ export type Notification =
  */
 export type EventNotification = Exclude<
   Notification,
-  { type: 'group-announcement' } | { type: 'event-message' }
+  | { type: 'group-announcement' }
+  | { type: 'event-message' }
+  | GroupRequestNotification
+  | FriendNotification
 >;
 
 export type NotificationType = Notification['type'];

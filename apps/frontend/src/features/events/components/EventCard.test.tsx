@@ -210,4 +210,31 @@ describe("EventCard", () => {
     expect(distance).toHaveClass("shrink-0")
     expect(distance.previousElementSibling).toHaveClass("truncate")
   })
+
+  // #348: the activity on a line of its own above the title, not in the photo
+  it.each(["row", "grid", "responsive"] as const)(
+    "%s: the activity's icon and name above the title",
+    async (variant) => {
+      const { container } = await renderWithRouter(
+        <EventCard
+          event={withActivity(florbal)}
+          variant={variant}
+        />,
+      )
+
+      const line = screen.getByText("Aktivita:").parentElement!
+      expect(line).toHaveTextContent("Aktivita: Florbal")
+      expect(line.querySelector("svg")).toHaveAttribute("aria-hidden")
+      // first on screen, right after the heading in the DOM: the title is heard first (review #397)
+      expect(line).toHaveClass("order-first")
+      expect(screen.getByRole("heading").compareDocumentPosition(line)).toBe(
+        Node.DOCUMENT_POSITION_FOLLOWING,
+      )
+      expect(
+        within(container.querySelector<HTMLElement>("[data-slot=event-photo]")!).queryByText(
+          "Florbal",
+        ),
+      ).toBeNull()
+    },
+  )
 })

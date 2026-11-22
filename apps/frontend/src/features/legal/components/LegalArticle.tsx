@@ -1,7 +1,7 @@
 import type { ReactNode } from "react"
 import { Link } from "@tanstack/react-router"
 
-import type { ROUTES } from "@/app/routes"
+import { ROUTES } from "@/app/routes"
 import { PageBand } from "@/components/PageBand/PageBand"
 import { PAGE } from "@/lib/pageLayout"
 
@@ -16,7 +16,8 @@ type LegalArticleProps = {
 /**
  * The pages behind the sign-up's consents (#153): text to read, so one
  * column of reading width (DESIGN.md › Layout), no cards. The title and the lead sit in the
- * band like on any page.
+ * band like on any page, with the back link (#370): the consent opens them in a new tab, which
+ * has no history, so there it leads to the landing page.
  */
 export function LegalArticle({ title, lead, children, seeAlso }: LegalArticleProps) {
   return (
@@ -24,6 +25,7 @@ export function LegalArticle({ title, lead, children, seeAlso }: LegalArticlePro
       <PageBand
         title={title}
         description={lead}
+        back={{ to: ROUTES.home, fallbackLabel: "Úvod" }}
       />
       <div className={PAGE}>
         <article className="flex max-w-2xl flex-col gap-8">

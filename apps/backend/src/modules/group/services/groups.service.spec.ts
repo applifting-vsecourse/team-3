@@ -212,6 +212,32 @@ describe('GroupsService', () => {
       );
     });
 
+    it('a request tells the admins, with its message (#86)', async () => {
+      const { repository, notifications, service } = setup();
+      repository.findGroupById.mockResolvedValue(aGroup('g1'));
+
+      await service.join('g1', 'u-jakub', 'Hraju dva roky.');
+
+      expect(notifications.notify).toHaveBeenCalledWith({
+        type: 'group-join-request',
+        groupId: 'g1',
+        applicantId: 'u-jakub',
+        message: 'Hraju dva roky.',
+      });
+    });
+
+    it('joining a public group at once tells nobody', async () => {
+      const { repository, notifications, service } = setup();
+      repository.findGroupById.mockResolvedValue({
+        ...aGroup('g1'),
+        type: 'public',
+      });
+
+      await service.join('g1', 'u-jakub');
+
+      expect(notifications.notify).not.toHaveBeenCalled();
+    });
+
     it('a request passes its message on to be saved (#175)', async () => {
       const { repository, service } = setup();
       repository.findGroupById.mockResolvedValue(aGroup('g1'));
@@ -311,8 +337,8 @@ describe('GroupsService', () => {
       expect(repository.deleteMembership).not.toHaveBeenCalled();
     });
 
-    it('an admin approves a pending request', async () => {
-      const { repository, service } = setup();
+    it('an admin approves a pending request, and the applicant hears of it (#86)', async () => {
+      const { repository, notifications, service } = setup();
       repository.findGroupById.mockResolvedValue(aGroup('g1'));
       repository.isActiveAdmin.mockResolvedValue(true);
       repository.findMembership.mockResolvedValue({
@@ -323,10 +349,16 @@ describe('GroupsService', () => {
       await service.approveRequest('g1', 'u-petra', 'u-jakub');
       expect(repository.isActiveAdmin).toHaveBeenCalledWith('g1', 'u-petra');
       expect(repository.approveRequest).toHaveBeenCalledWith('g1', 'u-jakub');
+      expect(notifications.notify).toHaveBeenCalledWith({
+        type: 'group-request-decided',
+        groupId: 'g1',
+        userId: 'u-jakub',
+        outcome: 'approved',
+      });
     });
 
-    it('rejecting removes the request', async () => {
-      const { repository, service } = setup();
+    it('rejecting removes the request, and the applicant hears of it (#86)', async () => {
+      const { repository, notifications, service } = setup();
       repository.findGroupById.mockResolvedValue(aGroup('g1'));
       repository.isActiveAdmin.mockResolvedValue(true);
       repository.findMembership.mockResolvedValue({
@@ -336,10 +368,16 @@ describe('GroupsService', () => {
 
       await service.rejectRequest('g1', 'u-petra', 'u-jakub');
       expect(repository.deleteMembership).toHaveBeenCalledWith('g1', 'u-jakub');
+      expect(notifications.notify).toHaveBeenCalledWith({
+        type: 'group-request-decided',
+        groupId: 'g1',
+        userId: 'u-jakub',
+        outcome: 'rejected',
+      });
     });
 
-    it('a request handled already is a 409, nothing is written', async () => {
-      const { repository, service } = setup();
+    it('a request handled already is a 409, nothing is written or told', async () => {
+      const { repository, notifications, service } = setup();
       repository.findGroupById.mockResolvedValue(aGroup('g1'));
       repository.isActiveAdmin.mockResolvedValue(true);
       repository.findMembership.mockResolvedValue({
@@ -351,6 +389,7 @@ describe('GroupsService', () => {
         service.rejectRequest('g1', 'u-petra', 'u-jakub'),
       ).rejects.toBeInstanceOf(ConflictException);
       expect(repository.deleteMembership).not.toHaveBeenCalled();
+      expect(notifications.notify).not.toHaveBeenCalled();
     });
   });
 

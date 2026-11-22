@@ -315,6 +315,7 @@ export class EventsService {
     const myParticipation = mine === 'withdrawn' ? null : mine;
     return {
       ...event,
+      emailOnJoin: viewer?.isOrganizer ? event.emailOnJoin : null,
       participants,
       myParticipation,
       viewerSignedIn: viewer !== null,
@@ -480,8 +481,14 @@ export class EventsService {
       );
       if (!refs.locality) throw new BadRequestException(['Neznámá lokalita.']);
     }
+    // the e-mail for each sign-up goes to the organizer alone: another admin's choice isn't theirs (#86)
+    const { emailOnJoin, ...others } = changes;
+    const allowed =
+      emailOnJoin !== undefined && event.emailOnJoin !== null
+        ? { ...others, emailOnJoin }
+        : others;
     const decision = await this.eventRepository.updateEvent(id, (state) =>
-      decideUpdate(state, changes, now),
+      decideUpdate(state, allowed, now),
     );
     if (!decision) throw new NotFoundException('Akce neexistuje.');
     if (!decision.ok) throw updateRefused(decision.refusal);
@@ -629,7 +636,10 @@ export class EventsService {
     }
   }
 
-  private assertCancellable(event: EventDetail, now: Date): void {
+  private assertCancellable(
+    event: Pick<EventDetail, 'status' | 'startsAt' | 'endsAt'>,
+    now: Date,
+  ): void {
     if (event.status === 'cancelled') {
       throw new ConflictException({
         code: 'EVENT_CANCELLED',
@@ -665,13 +675,19 @@ export class EventsService {
     );
     if (!decision) throw new NotFoundException('Akce neexistuje.');
     if (!decision.ok) throw refused(decision.refusal);
-    // a request waits for the organizer, who hears of it (#177); joining at once has nobody to tell
+    // a request waits for the organizer, who hears of it (#177); a place at once too (#86)
     if (decision.status === 'pending') {
       this.notifications.notify({
         type: 'request-received',
         eventId,
         applicantId: userId,
         message,
+      });
+    } else {
+      this.notifications.notify({
+        type: 'participant-joined',
+        eventId,
+        participantId: userId,
       });
     }
     return this.getEventDetail(eventId, userId, now);

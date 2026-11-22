@@ -100,7 +100,7 @@ describe('private profile queries (#178)', () => {
     ])
       for (const [query] of finder.mock.calls)
         expect(query?.take).toBe(PROFILE_OVERVIEW_TAKE);
-    expect(PROFILE_OVERVIEW_TAKE).toBe(3);
+    expect(PROFILE_OVERVIEW_TAKE).toBe(50);
     // the averages use the same owner-scoped filters as the lists
     expect(prisma.participantRating.aggregate.mock.calls[0][0].where).toEqual(
       prisma.participantRating.findMany.mock.calls[0][0]?.where,

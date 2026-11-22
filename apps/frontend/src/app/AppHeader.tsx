@@ -4,8 +4,12 @@ import { Header } from "@/components/Header/Header"
 
 import { HeaderMenu } from "@/features/auth/components/HeaderMenu"
 import { useSession } from "@/features/auth/hooks/useSession"
+import { NotificationBell } from "@/features/notifications/components/NotificationBell"
 
-/** The header with what depends on the session: the user menu and „Moje“. */
+/**
+ * The header with what depends on the session: the bell (#86), the user menu and „Moje“. Put
+ * together here, in `app/`: a feature doesn't import from another one.
+ */
 export function AppHeader({
   screenAction,
   isSignInOnMobile = false,
@@ -20,6 +24,7 @@ export function AppHeader({
       userMenu={<HeaderMenu isSignInOnMobile={isSignInOnMobile} />}
       isSignedIn={Boolean(user)}
       screenAction={screenAction}
+      notifications={user ? <NotificationBell viewerId={user.id} /> : null}
     />
   )
 }

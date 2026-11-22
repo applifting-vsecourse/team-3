@@ -15,9 +15,9 @@ describe("authErrorMessage", () => {
     expect(authErrorMessage({ code: "PASSWORD_TOO_SHORT" }, "x")).toBe("Heslo je příliš krátké.")
   })
 
-  it("a wrong e-mail and a wrong password read the same (#37)", () => {
+  it("credential errors give everyone the same next steps (#301)", () => {
     expect(authErrorMessage({ code: "INVALID_EMAIL_OR_PASSWORD" }, "x")).toBe(
-      "Nesprávný e-mail nebo heslo.",
+      "Nesprávný e-mail nebo heslo. Používáš účet přes Google? Přihlas se přes Google nebo si nastav heslo přes „Zapomenuté heslo“.",
     )
   })
 

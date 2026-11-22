@@ -29,6 +29,7 @@ const created: EventDetailView = {
   imageKey: null,
   description: null,
   approvalMode: 'open',
+  emailOnJoin: false,
   visibility: 'public',
   status: 'published',
   cancelReason: null,

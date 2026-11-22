@@ -1,7 +1,8 @@
-import { useId, type ReactNode } from "react"
+import { useId, useState, type ReactNode } from "react"
 import { Link } from "@tanstack/react-router"
 
 import { ROUTES } from "@/app/routes"
+import { Button } from "@/components/ui/button"
 import { ratingSummaryLabel } from "@/lib/ratingSummary"
 
 import type { ProfileRating, RatingSummary } from "@/features/profile/api/profileSchemas"
@@ -54,7 +55,10 @@ export function HighlightedTitle({
   )
 }
 
-/** How much is left out of a list that shows only the latest few (there is no page for all yet). */
+/** The latest few of a role's ratings, the rest on „Zobrazit další“ (#370). */
+const PREVIEW_COUNT = 3
+
+/** How much the API left out of a list: past its limit (PROFILE_OVERVIEW_TAKE), none are loaded. */
 function More({ shown, total }: { shown: number; total: number }) {
   return shown && total > shown ? (
     <p className="text-sm text-muted-foreground">
@@ -98,6 +102,9 @@ export function RatingsSection({
 
 function RatingList({ title, ratings, summary }: RatingGroup & { title: string }) {
   const headingId = useId()
+  const listId = useId()
+  const [isExpanded, setIsExpanded] = useState(false)
+  const shown = isExpanded ? ratings : ratings.slice(0, PREVIEW_COUNT)
   return (
     <section
       aria-labelledby={headingId}
@@ -113,8 +120,11 @@ function RatingList({ title, ratings, summary }: RatingGroup & { title: string }
         <p className="text-sm text-muted-foreground">{ratingSummaryLabel(summary)}</p>
       </div>
       {ratings.length ? (
-        <ul className="divide-y divide-border">
-          {ratings.map((rating) => (
+        <ul
+          id={listId}
+          className="divide-y divide-border"
+        >
+          {shown.map((rating) => (
             <li
               key={rating.id}
               className="flex flex-col gap-1 py-3 first:pt-0"
@@ -136,10 +146,26 @@ function RatingList({ title, ratings, summary }: RatingGroup & { title: string }
           ))}
         </ul>
       ) : null}
-      <More
-        shown={ratings.length}
-        total={summary.count}
-      />
+      {/* a toggle, so the focus stays on it; it promises only what it shows: the API sends
+          the latest PROFILE_OVERVIEW_TAKE, the count says how many more there are (review #395) */}
+      {ratings.length > PREVIEW_COUNT ? (
+        <Button
+          variant="outline"
+          size="lg"
+          className="w-fit px-4"
+          aria-expanded={isExpanded}
+          aria-controls={listId}
+          onClick={() => setIsExpanded((isOpen) => !isOpen)}
+        >
+          {isExpanded ? "Zobrazit méně" : `Zobrazit další (${ratings.length - PREVIEW_COUNT})`}
+        </Button>
+      ) : null}
+      {isExpanded || ratings.length <= PREVIEW_COUNT ? (
+        <More
+          shown={ratings.length}
+          total={summary.count}
+        />
+      ) : null}
     </section>
   )
 }

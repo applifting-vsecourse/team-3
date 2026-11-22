@@ -2,6 +2,7 @@ import { LAST_STORABLE_TIME } from '@/modules/event/domain/event-dates';
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { Transform } from 'class-transformer';
 import {
+  IsBoolean,
   IsDateString,
   IsIn,
   IsInt,
@@ -166,6 +167,15 @@ export class CreateEventDto {
   })
   @IsIn(APPROVAL_MODES)
   approvalMode!: (typeof APPROVAL_MODES)[number];
+
+  @ApiPropertyOptional({
+    default: false,
+    description:
+      'An e-mail to the organizer for each sign-up to an open event (#86); the upozornění in the app comes always',
+  })
+  @IsOptional()
+  @IsBoolean()
+  emailOnJoin?: boolean;
 
   @ApiPropertyOptional({
     description:

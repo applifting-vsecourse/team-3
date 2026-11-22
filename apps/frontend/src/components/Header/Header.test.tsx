@@ -4,6 +4,7 @@ import { describe, expect, it } from "vitest"
 import { renderWithRouter } from "@/test/renderWithRouter"
 
 import { Header } from "./Header"
+import { HeaderLogo } from "./HeaderLogo"
 
 describe("Header", () => {
   it("offers „Moje“ (events and groups, #304) to a signed-in user", async () => {
@@ -55,5 +56,14 @@ describe("Header", () => {
     )
 
     expect(screen.queryByRole("link", { name: "Založit akci" })).not.toBeInTheDocument()
+  })
+})
+
+// #370: the logo is 28 px tall; its link is a 44 px tap target, the header as before
+describe("HeaderLogo", () => {
+  it("pads the logo's link to a 40 px+ tap target without moving it", async () => {
+    await renderWithRouter(<HeaderLogo />)
+
+    expect(screen.getByRole("link")).toHaveClass("py-2", "-my-2", "inline-flex")
   })
 })

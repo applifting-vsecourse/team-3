@@ -1,10 +1,10 @@
 import { createFileRoute } from "@tanstack/react-router"
 import { z } from "zod"
 
+import { AppHeader } from "@/app/AppHeader"
 import { Seo } from "@/components/Seo"
 import { useLocality } from "@/hooks/useLocality"
 
-import { AppHeader } from "@/features/auth/components/AppHeader"
 import { useSession } from "@/features/auth/hooks/useSession"
 import { LandingView, pageLocalitySlug } from "@/features/events/components/LandingView"
 import { RecruitingGroups } from "@/features/groups/components/RecruitingGroups"

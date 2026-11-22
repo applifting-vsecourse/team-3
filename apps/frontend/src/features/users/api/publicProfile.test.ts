@@ -13,20 +13,27 @@ const response = {
   eventSummary: { average: null, count: 0 },
   participantRatings: [],
   organizedEvents: [],
+  friendship: null,
+  upcomingEvents: null,
 }
 afterEach(() => vi.restoreAllMocks())
 describe("public profile API", () => {
-  it("keys each subject separately and requests an encoded ID without requiring a viewer", async () => {
+  it("keys each subject and viewer separately and requests an encoded ID without requiring a viewer", async () => {
     const json = vi.fn().mockResolvedValue(response)
     const get = vi
       .spyOn(api, "get")
       .mockReturnValue({ json } as unknown as ReturnType<typeof api.get>)
-    const options = publicProfileQueryOptions("a/b")
+    const options = publicProfileQueryOptions("a/b", null)
     const run = options.queryFn as () => Promise<unknown>
     await expect(run()).resolves.toEqual(response)
     expect(get).toHaveBeenCalledWith("users/a%2Fb")
-    expect(options.queryKey).toEqual(publicUserKeys.profile("a/b"))
-    expect(publicUserKeys.profile("a")).not.toEqual(publicUserKeys.profile("b"))
+    expect(options.queryKey).toEqual(publicUserKeys.profile("a/b", null))
+    expect(publicUserKeys.profile("a", null)).not.toEqual(publicUserKeys.profile("b", null))
+    // #307: the friendship and Kam jde are the viewer's, so nobody else gets them from the cache
+    expect(publicUserKeys.profile("a", "jakub")).not.toEqual(publicUserKeys.profile("a", "petra"))
+    expect(publicUserKeys.profile("a", "jakub")).not.toEqual(publicUserKeys.profile("a", null))
+    // a change of the friendship refreshes every viewer's copy of the person
+    expect(publicUserKeys.profile("a", "jakub").slice(0, 2)).toEqual(publicUserKeys.person("a"))
     expect(options.retry).toBe(false)
   })
   it("strips unexpected account fields", () => {

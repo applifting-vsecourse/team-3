@@ -319,6 +319,9 @@ Staging a CI/CD (F-59, F-60) už v repu jsou (`.github/workflows/ci.yml`, `deplo
 
 - [ ] Testy: žádost, přijetí, odmítnutí; nepřítel akce neuvidí; soukromá akce se příteli neukáže.
 
+**Jak je to hotové (#307), backend:** model `Friendship` s unikátním `pairKey` (jedna dvojice v databázi), modul `friendship` s pravidly jako čistými funkcemi (`decideRequest`, `decideReject`, `decideRemove`, `friendshipState`) a API `GET /api/friends`, `POST` / `PATCH { status: rejected }` / `DELETE /api/friends/:userId`. Veřejný profil posílá přihlášenému `friendship` a příteli `upcomingEvents` (nejvýš 3, jen akce, které by viděl i sám). Odmítnutí je tiché, zrušit žádost jde i po odmítnutí (18. 11.). Upozornění doplní #86. Podrobnosti v `apps/backend/src/modules/friendship/README.md`.
+**Frontend (#307, Figma sekce „Přátelé (#307)“ na stránce Účet):** feature `friends`. Na veřejném profilu `/uzivatele/:id` blok podle B-07 · Stavy (nepřihlášený → přihlášení a zpět, Přidat do přátel, Žádost odeslána + Zrušit žádost, Posílá ti žádost + Odmítnout / Přijmout žádost, Jste přátelé + Odebrat z přátel s potvrzením B-07h) nahoře v levém sloupci a „Kam jde“ nahoře v pravém; ostatním „Kam chodí, vidí jen přátelé.“, na vlastním profilu sekce není. Profil se cachuje i podle přihlášeného. V Můj profil náhled „Lidé, které znám“ pod pásem (nejvýš 2 příchozí žádosti, odeslané jako odkaz, 4 přátelé na mobilu a 6 na desktopu, odkazy jen když je co dalšího vidět). Celý seznam na `/profil/pratele` s čipy Přátelé / Žádosti (`?tab=pratele|zadosti`, výchozí Žádosti, když nějaká čeká) a hledáním podle jména bez diakritiky.
+
 ---
 
 # Fáze 2 – Akce a objevování
@@ -368,6 +371,7 @@ Doménová logika (čistá funkce + testy): `approvedCount`, `missingToMin = max
 - Stránka `/akce/nova`: povinná a nepovinná pole podle US-11, výběr místa mapou (B-004, režim výběru) + textová adresa, volba způsobu přihlašování (výchozí „Bez schválení“) a viditelnosti s krátkým vysvětlením.
 - Lokalita, adresa a špendlík (#147, #303, PR #295): výběr návrhu adresy posune špendlík a doplní lokalitu. Umístění špendlíku dohledá adresu a lokalitu. Ručně zadanou adresu lze nahradit až po potvrzení návrhu. Obecná shoda s městem zachová vybraný obvod. Volba lokality sama ponechá adresu i existující špendlík. Při větší vzdálenosti nabídne přesun špendlíku do středu lokality. Co lokalita a co adresa znamená, je otevřené (Q14).
 - Klientská validace stejná jako na BE, chyby pod polem, tlačítko s pending stavem (DESIGN.md › Forms).
+- Časy začátku a konce (#200): `Input` z kitu, 24hodinový textový vstup. Přijme `9:00`, `09:00`, `9.00`, `900` a `0900`; na blur a před odesláním normalizuje na `09:00`. Neplatný/neúplný čas ponechá viditelný s chybou pod polem. Konec je nepovinný, dřívější konec znamená následující pražský den; porovnání až po normalizaci. Platný začátek 00:00–04:59 ukáže nezakazující upozornění.
 - Po zveřejnění přesměruj na detail a nabídni „Sdílet odkaz“ (kopírování do schránky + Web Share API na mobilu).
 - Stav „neověřený“ ve formuláři se odstraní (PO 4. 11., B-011): neověřený se nepřihlásí a neověřené session se při nasazení smažou.
 

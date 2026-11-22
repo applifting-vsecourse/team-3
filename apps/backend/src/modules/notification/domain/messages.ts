@@ -3,9 +3,12 @@ import { formatRange } from './format-when';
 import {
   EventChange,
   EventNotification,
+  FriendNotification,
+  GroupRequestNotification,
   NotifiedAnnouncement,
   NotifiedEvent,
   NotifiedEventMessage,
+  NotifiedGroup,
 } from './notification';
 
 /** What the e-mail needs besides the notification itself. */
@@ -49,7 +52,7 @@ const changeDetails = (
 };
 
 // the verb agrees with the first noun: „změnil termín“, but „změnilo místo“
-const whatChanged = (change: EventChange): string =>
+export const whatChanged = (change: EventChange): string =>
   change.when && change.place
     ? 'se změnil termín i místo'
     : change.when
@@ -152,6 +155,27 @@ export const composeMessage = (
           action: { label: 'Zobrazit akci', url: page },
         },
       };
+    case 'participant-joined':
+      return {
+        subject: `Nová přihláška: ${event.title}`,
+        email: {
+          preview: `${name} jde na akci ${title}.`,
+          heading: 'Nová přihláška',
+          paragraphs: [`${name} jde na akci ${title}.`],
+          details: [
+            termin,
+            {
+              label: 'Přihlášených',
+              value: `${event.approvedCount} z ${event.maxParticipants}`,
+            },
+          ],
+          quote: null,
+          action: {
+            label: 'Spravovat akci',
+            url: eventUrl(frontendUrl, event.id, '/sprava'),
+          },
+        },
+      };
     case 'participant-left':
       return {
         subject: `Odhlášení z akce: ${event.title}`,
@@ -241,3 +265,117 @@ export const composeEventMessage = (
     },
   },
 });
+
+/**
+ * Friends (#307, #86): a request leads to the requests waiting for the
+ * user, an acceptance to the new friend's profile. The first line is the
+ * upozornění in the centre, word for word.
+ */
+export const composeFriendMessage = (
+  notification: FriendNotification,
+  person: { id: string; name: string },
+  frontendUrl: string,
+): ComposedMessage =>
+  notification.type === 'friend-request'
+    ? {
+        subject: `Žádost o přátelství: ${person.name}`,
+        email: {
+          preview: `${person.name} ti posílá žádost o přátelství.`,
+          heading: 'Nová žádost o přátelství',
+          paragraphs: [
+            `${person.name} ti posílá žádost o přátelství.`,
+            'Když ji přijmeš, uvidíte navzájem, na které akce jdete.',
+          ],
+          details: [],
+          quote: null,
+          action: {
+            label: 'Zobrazit žádost',
+            url: new URL('/profil/pratele?tab=zadosti', frontendUrl).toString(),
+          },
+        },
+      }
+    : {
+        subject: `Jste přátelé: ${person.name}`,
+        email: {
+          preview: `${person.name} a ty jste teď přátelé.`,
+          heading: 'Jste přátelé',
+          paragraphs: [
+            `${person.name} a ty jste teď přátelé.`,
+            'Na profilu teď uvidíš, na které akce jde.',
+          ],
+          details: [],
+          quote: null,
+          action: {
+            label: 'Zobrazit profil',
+            url: new URL(
+              `/uzivatele/${encodeURIComponent(person.id)}`,
+              frontendUrl,
+            ).toString(),
+          },
+        },
+      };
+
+/**
+ * A request to join a group (#86): the admins get it with the applicant's
+ * message and a link to the group's management, the applicant the decision
+ * with a link to the group. The first line is the upozornění, word for word.
+ */
+export const composeGroupRequestMessage = (
+  notification: GroupRequestNotification,
+  group: NotifiedGroup,
+  person: { name: string } | null,
+  frontendUrl: string,
+): ComposedMessage => {
+  const name = quoted(group.name);
+  const groupUrl = (tail = ''): string =>
+    new URL(
+      `/skupiny/${encodeURIComponent(group.id)}${tail}`,
+      frontendUrl,
+    ).toString();
+  if (notification.type === 'group-join-request') {
+    const who = person?.name ?? 'Někdo';
+    return {
+      subject: `Nová žádost o vstup: ${group.name}`,
+      email: {
+        preview: `${who} chce do skupiny ${name}.`,
+        heading: 'Nová žádost o vstup do skupiny',
+        paragraphs: [
+          `${who} chce do skupiny ${name}. Žádost čeká na rozhodnutí správců.`,
+        ],
+        details: [],
+        quote: notification.message
+          ? { label: 'Zpráva k žádosti', text: notification.message }
+          : null,
+        action: { label: 'Vyřídit žádost', url: groupUrl('/sprava') },
+      },
+    };
+  }
+  return notification.outcome === 'approved'
+    ? {
+        subject: `Jsi ve skupině: ${group.name}`,
+        email: {
+          preview: `Tvoje žádost o vstup do skupiny ${name} byla schválena.`,
+          heading: 'Jsi ve skupině',
+          paragraphs: [
+            `Tvoje žádost o vstup do skupiny ${name} byla schválena.`,
+            'Teď uvidíš i akce, které jsou jen pro členy.',
+          ],
+          details: [],
+          quote: null,
+          action: { label: 'Stránka skupiny', url: groupUrl() },
+        },
+      }
+    : {
+        subject: `Žádost o vstup nebyla přijata: ${group.name}`,
+        email: {
+          preview: `Tvoje žádost o vstup do skupiny ${name} nebyla přijata.`,
+          heading: 'Žádost nebyla přijata',
+          paragraphs: [
+            `Tvoje žádost o vstup do skupiny ${name} nebyla přijata.`,
+          ],
+          details: [],
+          quote: null,
+          action: { label: 'Stránka skupiny', url: groupUrl() },
+        },
+      };
+};
