@@ -1,6 +1,6 @@
 # Bezpečnostní audit HobbyHubu
 
-Analýza vychází z `main` (`1f264ab`), stav oprav k 5. 11. 2026 (`main` `0d8e5c5`). Issue: #172. Zveřejnění reportu i s otevřenými nálezy schválil PO 3. 11.
+Analýza vychází z `main` (`1f264ab`), stav oprav k 23. 11. 2026 (`main` `1a38f75`). Issue: #172. Zveřejnění reportu i s otevřenými nálezy schválil PO 3. 11.
 
 Kdo nález opraví, změní ve stejném PR i jeho stav v tomto reportu.
 
@@ -8,7 +8,7 @@ Kdo nález opraví, změní ve stejném PR i jeho stav v tomto reportu.
 
 - **Node.js:** aplikace běžela na `node:24-alpine` bez pevné verze, takže nebylo jisté, zda obsahuje opravu CVE-2026-111497 (Brotli). Verze je teď pevně 24.22.2 (#196) a na stagingu je ověřená z logu backendu.
 - **Balíčky:** `pnpm audit` hlásil 10 critical a 55 high. Po aktualizaci (#196) a vynucení `js-yaml` přes override (#283) je 0 critical a 0 high, zbývá 4 moderate a 1 low.
-- **Kód:** nezávislá analýza nenašla žádný kritický nález, přístup k cizím datům (IDOR) ani SQL injection. Našla 1 vysoký, 4 střední a 8 nízkých nálezů. Vysoký nález (CSRF) je opravený v #140. Ze čtyř středních jsou N-3 a N-4 opravené, u N-2 a N-5 zbývá část popsaná níže. Z nízkých jsou N-6 a N-9 opravené v #240.
+- **Kód:** nezávislá analýza nenašla žádný kritický nález, přístup k cizím datům (IDOR) ani SQL injection. Našla 1 vysoký, 4 střední a 8 nízkých nálezů. Vysoký nález (CSRF) je opravený v #140. Ze čtyř středních jsou N-3 a N-4 opravené, u N-2 a N-5 zbývá část popsaná níže. Z nízkých jsou N-6 a N-9 opravené v #240, N-12 a N-13 v #401, u N-10 zbývá část, N-11 je přijaté a N-7 a N-8 jsou otevřené.
 - **Dřívější nálezy:** všech pět (S-1 až S-5) je opravených.
 - **Průběžná kontrola:** přibyl Dependabot a CodeQL (#196).
 
@@ -146,7 +146,7 @@ Tým se rozhodl dokumentaci API na stagingu ponechat, proto ji `apps/backend/Doc
 - **Port 80 bez roota:** nginx dál poslouchá na portu 80, protože na něj směruje Coolify a tým jeho nastavení měnit nemůže.
   - Neprivilegovaný proces může port 80 použít jen díky tomu, že Docker 20.10+ to v síťovém namespace kontejneru povolí (`net.ipv4.ip_unprivileged_port_start=0`).
   - Se `network_mode: host` nebo se starším runtime by nginx nenaběhl. V logu frontendu by bylo `bind() to 0.0.0.0:80 failed (13: Permission denied)`.
-  - Po prvním nasazení proto zkontrolovat log frontendu a odpověď stagingu. Kdyby to selhalo, vrátit commit se změnou `apps/frontend/Dockerfile.deploy` z #401, workflow můžou zůstat.
+  - Na stagingu ověřeno 23. 11. po nasazení #401: úvodní stránka odpovídá 200 z `nginx/1.30.6` a bezpečnostní hlavičky z #216 zůstaly, nginx tedy port 80 bez roota otevřel. Log frontendu jsme neviděli, nemáme přístup do Coolify. Kdyby to po změně runtime selhalo, vrátit commit se změnou `apps/frontend/Dockerfile.deploy` z #401, workflow můžou zůstat.
 - **Image v registru přibývají:** každý push na `main` přidá dva image s tagem commitu a nikdo je nemaže.
   - Image backendu obsahuje klíče z build-args (viz [Klíče na stagingu](#zbývá-u-n-2-a-n-3)).
   - Přepsaný `latest` starý image z registru nesmazal ani dřív, dokud neproběhl úklid registru. Tag commitu ho jen pojmenuje.
