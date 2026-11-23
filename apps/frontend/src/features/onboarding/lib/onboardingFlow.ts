@@ -57,7 +57,13 @@ export function moveOnboarding(state: OnboardingFlow, command: OnboardingCommand
         }
       }
       if (state.interestIds.length >= INTEREST_GOAL) return state
-      return { ...state, interestIds: [...state.interestIds, command.interestId] }
+      const interestIds = [...state.interestIds, command.interestId]
+      // The third pick fills the selection, so the confirmation opens by itself.
+      return {
+        ...state,
+        interestIds,
+        overlay: interestIds.length === INTEREST_GOAL && state.locality ? "decision" : null,
+      }
     }
 
     case "review":
