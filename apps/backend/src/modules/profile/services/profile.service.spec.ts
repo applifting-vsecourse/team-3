@@ -16,6 +16,8 @@ const row = (): ProfileRow => ({
   blockedAt: null,
   deletedAt: null,
   partnerDiscoverable: true,
+  homeLocalityChangeDay: null,
+  homeLocalityChangeCount: 0,
   homeLocality: null,
   interests: [],
   accounts: [],
@@ -199,6 +201,58 @@ describe('ProfileService (#178)', () => {
       expect(repository.save).not.toHaveBeenCalled();
     },
   );
+  it('counts a new home in the Prague day (#84)', async () => {
+    const now = new Date('2026-11-23T10:00:00.000Z');
+    await service.update('owner', { homeLocalityId: 'brno' }, now);
+    expect(repository.save).toHaveBeenCalledWith(
+      'owner',
+      expect.objectContaining({
+        homeLocality: { connect: { id: 'brno' } },
+        homeLocalityChangeDay: '2026-11-23',
+        homeLocalityChangeCount: 1,
+      }),
+    );
+  });
+  it('refuses a fourth new home the same day, so the distance bands can’t be probed (#84)', async () => {
+    const now = new Date('2026-11-23T10:00:00.000Z');
+    repository.get.mockResolvedValue({
+      ...row(),
+      homeLocalityChangeDay: '2026-11-23',
+      homeLocalityChangeCount: 3,
+    });
+    const error = await service
+      .update('owner', { homeLocalityId: 'brno' }, now)
+      .catch((caught: unknown) => caught);
+    expect((error as { getStatus: () => number }).getStatus()).toBe(429);
+    expect(repository.save).not.toHaveBeenCalled();
+  });
+  it('the same home again, or other fields, isn’t a change (#84)', async () => {
+    const now = new Date('2026-11-23T10:00:00.000Z');
+    repository.get.mockResolvedValue({
+      ...row(),
+      homeLocality: {
+        id: 'brno',
+        name: 'Brno',
+        slug: 'brno',
+        parentId: null,
+        lat: 49.2,
+        lng: 16.6,
+      },
+      homeLocalityChangeDay: '2026-11-23',
+      homeLocalityChangeCount: 3,
+    });
+    await service.update(
+      'owner',
+      { homeLocalityId: 'brno', name: 'Jana' },
+      now,
+    );
+    expect(repository.save).toHaveBeenCalledWith(
+      'owner',
+      expect.not.objectContaining({
+        homeLocalityChangeCount: expect.anything(),
+      }),
+    );
+  });
   it('rejects a locality outside the catalog', async () => {
     repository.localityExists.mockResolvedValue(false);
     await expect(

@@ -1,8 +1,8 @@
 import { FRIENDSHIP_STATES } from '@/modules/friendship/controllers/dto/friendship.dto';
 import type { FriendshipState } from '@/modules/friendship/domain/friendship';
+import { FRIEND_REQUESTS_PER_DAY } from '@/modules/friendship/domain/request-limit';
 import {
   DEFAULT_PARTNER_RADIUS_KM,
-  PARTNER_DAILY_REQUESTS,
   PARTNER_DISTANCE_BANDS_KM,
   PARTNER_PAGE_SIZE,
   PARTNER_RADII_KM,
@@ -93,16 +93,21 @@ export class PartnerSuggestionsResponseDto implements PartnerSuggestions {
   nextCursor!: string | null;
   @ApiProperty({ enum: PARTNER_RADII_KM }) radiusKm!: PartnerRadiusKm;
   @ApiProperty({
-    enum: ['locality', 'interests'],
+    enum: ['onboarding', 'locality', 'interests'],
     isArray: true,
     description:
       'What my profile still lacks before anyone can be suggested; empty when the deck could be built',
   })
   missing!: PartnerSetupGap[];
   @ApiProperty({
+    description:
+      'Ukazovat mě v Najdi parťáka is off: who isn’t seen sees nobody either (as Bumble’s Snooze), so items are empty',
+  })
+  hidden!: boolean;
+  @ApiProperty({
     minimum: 0,
-    maximum: PARTNER_DAILY_REQUESTS,
-    description: `Přidat left today (${PARTNER_DAILY_REQUESTS} a day from Prague midnight); accepting a request is always possible`,
+    maximum: FRIEND_REQUESTS_PER_DAY,
+    description: `Přidat left today (${FRIEND_REQUESTS_PER_DAY} a day from Prague midnight); accepting a request is always possible`,
   })
   requestsLeft!: number;
 }

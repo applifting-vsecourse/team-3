@@ -8,6 +8,9 @@ import { Injectable } from '@nestjs/common';
 export type PartnerViewerRecord = {
   home: LatLng | null;
   interestIds: string[];
+  hasOnboarded: boolean;
+  /** „Ukazovat mě v Najdi parťáka“ */
+  isDiscoverable: boolean;
 };
 
 @Injectable()
@@ -19,6 +22,8 @@ export class PartnerRepository {
     const user = await this.prisma.user.findFirst({
       where: { id: viewerId, deletedAt: null, blockedAt: null },
       select: {
+        onboardingCompletedAt: true,
+        partnerDiscoverable: true,
         homeLocality: { select: { lat: true, lng: true } },
         interests: { select: { activityId: true } },
       },
@@ -27,6 +32,8 @@ export class PartnerRepository {
     return {
       home: user.homeLocality,
       interestIds: user.interests.map(({ activityId }) => activityId),
+      hasOnboarded: user.onboardingCompletedAt !== null,
+      isDiscoverable: user.partnerDiscoverable,
     };
   }
 
@@ -56,30 +63,6 @@ export class PartnerRepository {
       },
       orderBy: { id: 'asc' },
     });
-  }
-
-  /**
-   * Friendship requests the viewer sent since the moment (the day's limit). A cancelled request
-   * deletes its row but not the notification it sent, so both are counted and the higher wins:
-   * cancelling and sending again doesn't reset the limit, and the request just written counts
-   * even before its notification (written after it) is there. Accepting someone's request is
-   * neither.
-   */
-  async requestsSentSince(viewerId: string, since: Date): Promise<number> {
-    const [rows, notified] = await Promise.all([
-      this.prisma.friendship.count({
-        where: { requesterId: viewerId, createdAt: { gte: since } },
-      }),
-      this.prisma.notification.count({
-        where: {
-          type: 'friend_request',
-          targetType: 'user',
-          targetId: viewerId,
-          createdAt: { gte: since },
-        },
-      }),
-    ]);
-    return Math.max(rows, notified);
   }
 
   /** Whether the person can be skipped: an account that isn't blocked or deleted. */

@@ -8,6 +8,8 @@ export const ownerRow = (): ProfileRow => ({
   blockedAt: null,
   deletedAt: null,
   partnerDiscoverable: true,
+  homeLocalityChangeDay: null,
+  homeLocalityChangeCount: 0,
   homeLocality: null,
   interests: [],
   accounts: [{ id: 'credential' }],

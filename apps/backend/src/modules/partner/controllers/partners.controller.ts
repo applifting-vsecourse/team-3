@@ -2,7 +2,6 @@ import { DEFAULT_PARTNER_RADIUS_KM } from '@/modules/partner/domain/partner-sugg
 import { PartnerService } from '@/modules/partner/services/partner.service';
 import { User } from '@/shared/auth/decorators/user.decorator';
 import { Identity } from '@/shared/auth/domain/identity';
-import { AuthenticatedUserGuard } from '@/shared/auth/guards/authenticated-user.guard';
 import { VerifiedUserGuard } from '@/shared/auth/guards/verified-user.guard';
 import {
   Controller,
@@ -28,7 +27,7 @@ import {
   PartnerSuggestionsResponseDto,
 } from './dto/partner.dto';
 
-const WRITE_ERRORS = [
+const AUTH_ERRORS = [
   { status: 401, description: 'Not signed in' },
   { status: 403, description: 'EMAIL_NOT_VERIFIED or USER_BLOCKED' },
 ] as const;
@@ -50,14 +49,16 @@ export class PartnersController {
   constructor(private readonly partners: PartnerService) {}
 
   @Get('suggestions')
-  @UseGuards(AuthenticatedUserGuard)
+  // verified, as the people it shows; a blocked account sees nobody
+  @UseGuards(VerifiedUserGuard)
   @ApiOperation({
     summary:
       'Najdi parťáka: one page of people nearby who like the same activities (#84)',
   })
   @ApiResponse({ status: 200, type: PartnerSuggestionsResponseDto })
   @ApiResponse({ status: 400, description: 'Invalid query, or INVALID_CURSOR' })
-  @ApiResponse({ status: 401, description: 'Not signed in' })
+  @ApiResponse(AUTH_ERRORS[0])
+  @ApiResponse(AUTH_ERRORS[1])
   @ApiResponse({
     status: 404,
     description: 'USER_NOT_FOUND: my account is gone',
@@ -82,8 +83,8 @@ export class PartnersController {
   })
   @ApiResponse({ status: 200, type: PartnerRequestResponseDto })
   @ApiResponse({ status: 400, description: 'SELF' })
-  @ApiResponse(WRITE_ERRORS[0])
-  @ApiResponse(WRITE_ERRORS[1])
+  @ApiResponse(AUTH_ERRORS[0])
+  @ApiResponse(AUTH_ERRORS[1])
   @ApiResponse({
     status: 404,
     description: 'USER_NOT_FOUND: no such, blocked or deleted account',
@@ -94,7 +95,8 @@ export class PartnersController {
   })
   @ApiResponse({
     status: 429,
-    description: 'PARTNER_DAILY_LIMIT: no more new requests today',
+    description:
+      'FRIEND_REQUEST_DAILY_LIMIT: no more new requests today (the friendship module’s limit, also on POST /api/friends/:userId)',
   })
   request(
     @Param('userId') userId: string,
@@ -115,8 +117,8 @@ export class PartnersController {
     description: 'Skipped (again: the 90 days start anew)',
   })
   @ApiResponse({ status: 400, description: 'SELF' })
-  @ApiResponse(WRITE_ERRORS[0])
-  @ApiResponse(WRITE_ERRORS[1])
+  @ApiResponse(AUTH_ERRORS[0])
+  @ApiResponse(AUTH_ERRORS[1])
   @ApiResponse({
     status: 404,
     description: 'USER_NOT_FOUND: no such, blocked or deleted account',
@@ -140,8 +142,8 @@ export class PartnersController {
     description: 'Forgotten (also when there was nothing)',
   })
   @ApiResponse({ status: 400, description: 'SELF' })
-  @ApiResponse(WRITE_ERRORS[0])
-  @ApiResponse(WRITE_ERRORS[1])
+  @ApiResponse(AUTH_ERRORS[0])
+  @ApiResponse(AUTH_ERRORS[1])
   async unskip(
     @Param('userId') userId: string,
     @User() user: Identity,

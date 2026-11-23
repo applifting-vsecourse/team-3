@@ -25,9 +25,11 @@ describe('PartnerRepository (#84)', () => {
     );
   });
 
-  it('gives the viewer’s home and interest ids', async () => {
+  it('gives the viewer’s home, interest ids, onboarding and visibility', async () => {
     const { prisma, repository } = setup();
     prisma.user.findFirst.mockResolvedValue({
+      onboardingCompletedAt: new Date('2026-11-20T10:00:00.000Z'),
+      partnerDiscoverable: false,
       homeLocality: { lat: 50, lng: 14 },
       interests: [{ activityId: 'a1' }, { activityId: 'a2' }],
     } as never);
@@ -35,6 +37,8 @@ describe('PartnerRepository (#84)', () => {
     await expect(repository.viewer('me')).resolves.toEqual({
       home: { lat: 50, lng: 14 },
       interestIds: ['a1', 'a2'],
+      hasOnboarded: true,
+      isDiscoverable: false,
     });
   });
 
@@ -55,33 +59,6 @@ describe('PartnerRepository (#84)', () => {
     });
     // ranked whole: a cap before ranking would drop people the order puts first
     expect(args?.take).toBeUndefined();
-  });
-
-  it('counts the requests I sent since the moment (the daily limit)', async () => {
-    const { prisma, repository } = setup();
-    prisma.friendship.count.mockResolvedValue(3);
-    prisma.notification.count.mockResolvedValue(2);
-
-    await expect(repository.requestsSentSince('me', now)).resolves.toBe(3);
-    expect(prisma.friendship.count).toHaveBeenCalledWith({
-      where: { requesterId: 'me', createdAt: { gte: now } },
-    });
-  });
-
-  it('a cancelled request still counts: its notification stays', async () => {
-    const { prisma, repository } = setup();
-    prisma.friendship.count.mockResolvedValue(0);
-    prisma.notification.count.mockResolvedValue(5);
-
-    await expect(repository.requestsSentSince('me', now)).resolves.toBe(5);
-    expect(prisma.notification.count).toHaveBeenCalledWith({
-      where: {
-        type: 'friend_request',
-        targetType: 'user',
-        targetId: 'me',
-        createdAt: { gte: now },
-      },
-    });
   });
 
   it('a skip is one row per direction; skipping again starts the 90 days anew', async () => {

@@ -251,6 +251,10 @@ model User {
   bio            String?        @db.VarChar(500)
   homeLocalityId String?
   homeLocality   Locality?      @relation(fields: [homeLocalityId], references: [id], onDelete: SetNull)
+  // Změny domovské lokality za pražský den (#84): nejvýš 3, aby se z pásem
+  // vzdálenosti v Najdi parťáka nedala přesouváním domova dopočítat poloha
+  homeLocalityChangeDay   String? @db.VarChar(10)
+  homeLocalityChangeCount Int     @default(0)
   interests      UserInterest[]
 
   // Viditelnost údajů v profilu (B-014)

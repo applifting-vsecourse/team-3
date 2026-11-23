@@ -79,6 +79,11 @@ export class FriendsController {
     status: 409,
     description: 'ALREADY_FRIENDS, ALREADY_REQUESTED',
   })
+  @ApiResponse({
+    status: 429,
+    description:
+      'FRIEND_REQUEST_DAILY_LIMIT: 20 new requests a day from Prague midnight (#84); accepting is never limited',
+  })
   async request(
     @Param('userId') userId: string,
     @User() user: Identity,

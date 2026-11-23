@@ -2,11 +2,9 @@ import {
   decodePartnerCursor,
   distanceBand,
   encodePartnerCursor,
-  PARTNER_DAILY_REQUESTS,
   partnerCandidatesWhere,
   partnerPage,
   rankPartners,
-  requestsLeft,
   skipsSince,
   type PartnerCandidateRecord,
   type PartnerViewer,
@@ -110,9 +108,12 @@ describe('distanceBand (#84)', () => {
     [24.9, 25],
     [26, 50],
     [50, 50],
-    [80, 50],
   ])('%s km is shown in the %s km band', (km, band) => {
     expect(distanceBand(km)).toBe(band);
+  });
+
+  it('beyond 50 km there is no band: nobody is shown that far', () => {
+    expect(distanceBand(50.1)).toBeUndefined();
   });
 });
 
@@ -260,13 +261,5 @@ describe('partner cursor (#84)', () => {
     Buffer.from('[1,1,2,""]').toString('base64url'),
   ])('refuses anything it did not give out (%s)', (value) => {
     expect(decodePartnerCursor(value)).toBeUndefined();
-  });
-});
-
-describe('requestsLeft (#84)', () => {
-  it('counts down from the daily limit and never goes below zero', () => {
-    expect(requestsLeft(0)).toBe(PARTNER_DAILY_REQUESTS);
-    expect(requestsLeft(15)).toBe(PARTNER_DAILY_REQUESTS - 15);
-    expect(requestsLeft(PARTNER_DAILY_REQUESTS + 3)).toBe(0);
   });
 });

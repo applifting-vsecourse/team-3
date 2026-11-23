@@ -1,4 +1,6 @@
 import { Prisma } from '@/generated/prisma/client';
+import { pragueDayOf } from '@/modules/event/domain/prague-day';
+import { decideHomeChange } from '@/modules/profile/domain/home-change';
 import {
   selfProfile,
   type ProfileOverview,
@@ -11,6 +13,8 @@ import { nameProblem, trimName } from '@/shared/auth/domain/name-policy';
 import {
   BadRequestException,
   ForbiddenException,
+  HttpException,
+  HttpStatus,
   Injectable,
   UnauthorizedException,
 } from '@nestjs/common';
@@ -32,6 +36,7 @@ export class ProfileService {
   async update(
     userId: string,
     input: UpdateProfileInput,
+    now: Date = new Date(),
   ): Promise<SelfProfile> {
     const row = await this.owner(userId);
     if (row.blockedAt)
@@ -48,6 +53,27 @@ export class ProfileService {
           message: problem,
         });
       data.name = trimName(input.name);
+    }
+    // a different home: at most three a Prague day (#84, Najdi parťáka's distance bands)
+    if (
+      input.homeLocalityId !== undefined &&
+      input.homeLocalityId !== (row.homeLocality?.id ?? null)
+    ) {
+      const change = decideHomeChange(
+        { day: row.homeLocalityChangeDay, count: row.homeLocalityChangeCount },
+        pragueDayOf(now),
+      );
+      if (!change.ok)
+        throw new HttpException(
+          {
+            code: 'HOME_LOCALITY_CHANGE_LIMIT',
+            message:
+              'Domovské místo jde změnit nejvýš třikrát za den. Zkus to zítra.',
+          },
+          HttpStatus.TOO_MANY_REQUESTS,
+        );
+      data.homeLocalityChangeDay = change.next.day;
+      data.homeLocalityChangeCount = change.next.count;
     }
     if (input.partnerDiscoverable !== undefined) {
       data.partnerDiscoverable = input.partnerDiscoverable;

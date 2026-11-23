@@ -10,6 +10,8 @@ export const profileSelect = {
   blockedAt: true,
   deletedAt: true,
   partnerDiscoverable: true,
+  homeLocalityChangeDay: true,
+  homeLocalityChangeCount: true,
   homeLocality: {
     select: {
       id: true,

@@ -1,4 +1,3 @@
-import { startOfPragueDayOf } from '@/modules/event/domain/prague-day';
 import type { FriendshipState } from '@/modules/friendship/domain/friendship';
 import { FriendshipService } from '@/modules/friendship/services/friendship.service';
 import {
@@ -6,27 +5,29 @@ import {
   partnerCandidatesWhere,
   partnerPage,
   rankPartners,
-  requestsLeft,
   type PartnerPage,
   type PartnerRadiusKm,
 } from '@/modules/partner/domain/partner-suggestions';
 import { PartnerRepository } from '@/modules/partner/repositories/partner.repository';
 import {
   BadRequestException,
-  HttpException,
-  HttpStatus,
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
 
-/** What the viewer still has to fill in before anyone can be suggested. */
-export type PartnerSetupGap = 'locality' | 'interests';
+/** What the viewer still has to do before anyone can be suggested. */
+export type PartnerSetupGap = 'onboarding' | 'locality' | 'interests';
 
 export type PartnerSuggestions = PartnerPage & {
   radiusKm: PartnerRadiusKm;
   /** Empty when the deck could be built; otherwise the profile needs these first. */
   missing: PartnerSetupGap[];
-  /** „Dnes ještě 5 přidání“: what is left of today's „Přidat“. */
+  /**
+   * „Ukazovat mě v Najdi parťáka“ is off: as Bumble's Snooze, whoever isn't seen doesn't see
+   * anyone either (reciprocal), so the deck is empty until it is on again.
+   */
+  hidden: boolean;
+  /** „Dnes ještě 5 přidání“: new friendship requests left today. */
   requestsLeft: number;
 };
 
@@ -40,7 +41,7 @@ export type PartnerRequestResult = {
  * Najdi parťáka (#84). The deck is ranked whole on every page (`rankPartners`) and paged by the
  * last card's place in the order, so people skipped or liked between pages don't make anyone
  * else jump out. „Přidat“ is the friendship module's request (#307) — with its notifications
- * (#86) — under a daily limit; „Teď ne“ is remembered here, „Vrátit“ forgets it.
+ * (#86) and its daily limit; „Teď ne“ is remembered here, „Vrátit“ forgets it.
  */
 @Injectable()
 export class PartnerService {
@@ -65,25 +66,17 @@ export class PartnerService {
     }
     const viewer = await this.repository.viewer(viewerId);
     if (!viewer) throw userNotFound();
-    const left = requestsLeft(
-      await this.repository.requestsSentSince(
-        viewerId,
-        startOfPragueDayOf(now),
-      ),
-    );
+    const requestsLeft = await this.friendships.requestsLeft(viewerId, now);
     const { home, interestIds } = viewer;
     const missing: PartnerSetupGap[] = [];
+    if (!viewer.hasOnboarded) missing.push('onboarding');
     if (!home) missing.push('locality');
     if (interestIds.length === 0) missing.push('interests');
+    const empty = { items: [], nextCursor: null, radiusKm, requestsLeft };
     if (!home || missing.length > 0) {
-      return {
-        items: [],
-        nextCursor: null,
-        radiusKm,
-        missing,
-        requestsLeft: left,
-      };
+      return { ...empty, missing, hidden: !viewer.isDiscoverable };
     }
+    if (!viewer.isDiscoverable) return { ...empty, missing, hidden: true };
     const candidates = await this.repository.candidates(
       viewerId,
       partnerCandidatesWhere(viewerId, { home, interestIds }, radiusKm, now),
@@ -93,41 +86,24 @@ export class PartnerService {
       ...partnerPage(ranked, after),
       radiusKm,
       missing,
-      requestsLeft: left,
+      hidden: false,
+      requestsLeft,
     };
   }
 
   /**
-   * „Přidat“: a friendship request, or accepting theirs — the match. Accepting is always allowed;
-   * a new request only while today's limit lasts (`PARTNER_DAILY_REQUESTS`).
+   * „Přidat“: a friendship request, or accepting theirs — the match. The friendship module
+   * decides, notifies and keeps the daily limit (429 FRIEND_REQUEST_DAILY_LIMIT).
    */
   async request(
     viewerId: string,
     otherId: string,
     now: Date = new Date(),
   ): Promise<PartnerRequestResult> {
-    const since = startOfPragueDayOf(now);
-    const isAccepting =
-      (await this.friendships.state(viewerId, otherId)) === 'incoming';
-    if (
-      !isAccepting &&
-      requestsLeft(await this.repository.requestsSentSince(viewerId, since)) ===
-        0
-    ) {
-      throw new HttpException(
-        {
-          code: 'PARTNER_DAILY_LIMIT',
-          message: 'Na dnešek máš přidáno dost. Další lidi můžeš přidat zítra.',
-        },
-        HttpStatus.TOO_MANY_REQUESTS,
-      );
-    }
     const state = await this.friendships.request(viewerId, otherId, now);
     return {
       state,
-      requestsLeft: requestsLeft(
-        await this.repository.requestsSentSince(viewerId, since),
-      ),
+      requestsLeft: await this.friendships.requestsLeft(viewerId, now),
     };
   }
 

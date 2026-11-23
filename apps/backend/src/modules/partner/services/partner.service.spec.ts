@@ -1,18 +1,29 @@
 import { FriendshipService } from '@/modules/friendship/services/friendship.service';
 import {
   decodePartnerCursor,
-  PARTNER_DAILY_REQUESTS,
   type PartnerCandidateRecord,
 } from '@/modules/partner/domain/partner-suggestions';
-import { PartnerRepository } from '@/modules/partner/repositories/partner.repository';
+import {
+  PartnerRepository,
+  type PartnerViewerRecord,
+} from '@/modules/partner/repositories/partner.repository';
+import { HttpException, HttpStatus } from '@nestjs/common';
 import { mock, type MockProxy } from 'jest-mock-extended';
 import { PartnerService } from './partner.service';
 
 const PRAHA = { lat: 50.0875, lng: 14.4214 };
 const VOLLEYBALL = { id: 'a-volejbal', name: 'Volejbal', slug: 'volejbal' };
-// 12:00 in Prague; the day started at 23:00 UTC the evening before
 const now = new Date('2026-11-23T11:00:00.000Z');
-const pragueMidnight = new Date('2026-11-22T23:00:00.000Z');
+
+const viewer = (
+  changes: Partial<PartnerViewerRecord> = {},
+): PartnerViewerRecord => ({
+  home: PRAHA,
+  interestIds: [VOLLEYBALL.id],
+  hasOnboarded: true,
+  isDiscoverable: true,
+  ...changes,
+});
 
 const setup = (): {
   repository: MockProxy<PartnerRepository>;
@@ -20,16 +31,12 @@ const setup = (): {
   service: PartnerService;
 } => {
   const repository = mock<PartnerRepository>();
-  repository.viewer.mockResolvedValue({
-    home: PRAHA,
-    interestIds: [VOLLEYBALL.id],
-  });
-  repository.requestsSentSince.mockResolvedValue(0);
+  repository.viewer.mockResolvedValue(viewer());
   repository.candidates.mockResolvedValue([]);
   repository.isAvailable.mockResolvedValue(true);
   const friendships = mock<FriendshipService>();
-  friendships.state.mockResolvedValue('none');
   friendships.request.mockResolvedValue('outgoing');
+  friendships.requestsLeft.mockResolvedValue(20);
   return {
     repository,
     friendships,
@@ -64,13 +71,17 @@ describe('PartnerService.suggestions (#84)', () => {
     const first = await service.suggestions('me', 10, undefined, now);
 
     expect(first.items).toHaveLength(20);
-    expect(first.radiusKm).toBe(10);
-    expect(first.missing).toEqual([]);
-    expect(first.requestsLeft).toBe(PARTNER_DAILY_REQUESTS);
+    expect(first).toMatchObject({
+      radiusKm: 10,
+      missing: [],
+      hidden: false,
+      requestsLeft: 20,
+    });
     expect(decodePartnerCursor(first.nextCursor ?? '')?.id).toBe('p19');
-    const where = repository.candidates.mock.calls[0][1];
     expect(repository.candidates.mock.calls[0][0]).toBe('me');
-    expect(where).toMatchObject({ id: { not: 'me' } });
+    expect(repository.candidates.mock.calls[0][1]).toMatchObject({
+      id: { not: 'me' },
+    });
 
     const second = await service.suggestions(
       'me',
@@ -88,30 +99,39 @@ describe('PartnerService.suggestions (#84)', () => {
     expect(second.nextCursor).toBeNull();
   });
 
-  it('counts today’s requests from Prague midnight', async () => {
-    const { repository, service } = setup();
-    repository.requestsSentSince.mockResolvedValue(15);
+  it('says what is left of today’s requests, from the friendship module', async () => {
+    const { friendships, service } = setup();
+    friendships.requestsLeft.mockResolvedValue(5);
 
     const page = await service.suggestions('me', 10, undefined, now);
 
-    expect(page.requestsLeft).toBe(PARTNER_DAILY_REQUESTS - 15);
-    expect(repository.requestsSentSince).toHaveBeenCalledWith(
-      'me',
-      pragueMidnight,
-    );
+    expect(page.requestsLeft).toBe(5);
+    expect(friendships.requestsLeft).toHaveBeenCalledWith('me', now);
   });
 
-  it('without a home locality or interests says what the profile lacks and suggests nobody', async () => {
+  it('without a finished onboarding, a home locality or interests says what is missing and suggests nobody', async () => {
     const { repository, service } = setup();
-    repository.viewer.mockResolvedValue({ home: null, interestIds: [] });
+    repository.viewer.mockResolvedValue(
+      viewer({ hasOnboarded: false, home: null, interestIds: [] }),
+    );
 
     const page = await service.suggestions('me', 25, undefined, now);
 
     expect(page).toMatchObject({
       items: [],
       nextCursor: null,
-      missing: ['locality', 'interests'],
+      missing: ['onboarding', 'locality', 'interests'],
     });
+    expect(repository.candidates).not.toHaveBeenCalled();
+  });
+
+  it('hidden from the deck: sees nobody either, as Bumble’s Snooze', async () => {
+    const { repository, service } = setup();
+    repository.viewer.mockResolvedValue(viewer({ isDiscoverable: false }));
+
+    const page = await service.suggestions('me', 25, undefined, now);
+
+    expect(page).toMatchObject({ items: [], hidden: true, missing: [] });
     expect(repository.candidates).not.toHaveBeenCalled();
   });
 
@@ -135,22 +155,19 @@ describe('PartnerService.suggestions (#84)', () => {
 });
 
 describe('PartnerService.request („Přidat“, #84)', () => {
-  it('sends the friendship request (with its notification) and says what is left of today', async () => {
-    const { repository, friendships, service } = setup();
-    repository.requestsSentSince
-      .mockResolvedValueOnce(4)
-      .mockResolvedValueOnce(5);
+  it('is the friendship request (with its notification) and says what is left of today', async () => {
+    const { friendships, service } = setup();
+    friendships.requestsLeft.mockResolvedValue(15);
 
     await expect(service.request('me', 'other', now)).resolves.toEqual({
       state: 'outgoing',
-      requestsLeft: PARTNER_DAILY_REQUESTS - 5,
+      requestsLeft: 15,
     });
     expect(friendships.request).toHaveBeenCalledWith('me', 'other', now);
   });
 
   it('their request waiting for me is accepted: the match', async () => {
     const { friendships, service } = setup();
-    friendships.state.mockResolvedValue('incoming');
     friendships.request.mockResolvedValue('friends');
 
     await expect(service.request('me', 'other', now)).resolves.toMatchObject({
@@ -158,26 +175,18 @@ describe('PartnerService.request („Přidat“, #84)', () => {
     });
   });
 
-  it('refuses a new request once the day’s limit is used up', async () => {
-    const { repository, friendships, service } = setup();
-    repository.requestsSentSince.mockResolvedValue(PARTNER_DAILY_REQUESTS);
+  it('the friendship module’s daily limit passes through as it is', async () => {
+    const { friendships, service } = setup();
+    friendships.request.mockRejectedValue(
+      new HttpException(
+        { code: 'FRIEND_REQUEST_DAILY_LIMIT' },
+        HttpStatus.TOO_MANY_REQUESTS,
+      ),
+    );
 
     await expect(code(service.request('me', 'other', now))).resolves.toBe(
-      'PARTNER_DAILY_LIMIT',
+      'FRIEND_REQUEST_DAILY_LIMIT',
     );
-    expect(friendships.request).not.toHaveBeenCalled();
-  });
-
-  it('accepting is allowed also after the limit', async () => {
-    const { repository, friendships, service } = setup();
-    repository.requestsSentSince.mockResolvedValue(PARTNER_DAILY_REQUESTS);
-    friendships.state.mockResolvedValue('incoming');
-    friendships.request.mockResolvedValue('friends');
-
-    await expect(service.request('me', 'other', now)).resolves.toEqual({
-      state: 'friends',
-      requestsLeft: 0,
-    });
   });
 });
 

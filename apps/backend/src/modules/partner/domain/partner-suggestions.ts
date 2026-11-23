@@ -17,12 +17,6 @@ export const PARTNER_PAGE_SIZE = 20;
 /** A skipped person may come back after this long (Strava hides a suggestion for 28 days). */
 export const PARTNER_SKIP_DAYS = 90;
 /**
- * „Přidat“ sends a stranger a request with a notification and an e-mail (#86), so a day has a
- * limit (Hinge: 8 likes a day for free). „Teď ne“ has none. Counted from Prague midnight.
- */
-export const PARTNER_DAILY_REQUESTS = 20;
-
-/**
  * The distance a card shows, in bands, never finer and never the locality (the public profile
  * doesn't show it, #179): rounded up to the band, „do 2 km“, „asi 5 km“, „asi 10 km“, „asi 25
  * km“, „do 50 km“. It is measured between the centres of the two home localities, not where
@@ -110,12 +104,9 @@ export function skipsSince(now: Date): Date {
   return new Date(now.getTime() - PARTNER_SKIP_DAYS * 24 * 60 * 60 * 1000);
 }
 
-/** The smallest band the distance fits in; beyond the last one, the last one. */
-export function distanceBand(km: number): PartnerDistanceBand {
-  return (
-    PARTNER_DISTANCE_BANDS_KM.find((band) => km <= band) ??
-    PARTNER_DISTANCE_BANDS_KM[PARTNER_DISTANCE_BANDS_KM.length - 1]
-  );
+/** The smallest band the distance fits in; beyond the last one, none (nobody is that far). */
+export function distanceBand(km: number): PartnerDistanceBand | undefined {
+  return PARTNER_DISTANCE_BANDS_KM.find((band) => km <= band);
 }
 
 /**
@@ -160,8 +151,10 @@ export function rankPartners(
   const ranked: PartnerSuggestion[] = [];
   for (const candidate of candidates) {
     if (!candidate.homeLocality) continue;
-    const distance = distanceKm(viewer.home, candidate.homeLocality);
-    if (distance > radiusKm) continue;
+    // the cut-off is the band, never the exact distance: what crosses the radius is exactly what
+    // changes the band shown, so an edge reveals nothing finer than the card does
+    const band = distanceBand(distanceKm(viewer.home, candidate.homeLocality));
+    if (band === undefined || band > radiusKm) continue;
     const interests = candidate.interests
       .map(({ activity: { id, name, slug } }) => ({ id, name, slug }))
       .sort((a, b) => compareCzech(a.name, b.name));
@@ -170,7 +163,7 @@ export function rankPartners(
     ranked.push({
       id: candidate.id,
       name: candidate.name,
-      distanceBandKm: distanceBand(distance),
+      distanceBandKm: band,
       sharedInterests,
       otherInterests: interests.filter(({ id }) => !liked.has(id)),
       hasRequestedMe: candidate.sentFriendRequests.length > 0,
@@ -245,9 +238,4 @@ export function partnerPage(
     items: page,
     nextCursor: rest.length > size && last ? encodePartnerCursor(last) : null,
   };
-}
-
-/** „Dnes ještě 5 přidání“: what is left of the day's limit, never below zero. */
-export function requestsLeft(sentToday: number): number {
-  return Math.max(0, PARTNER_DAILY_REQUESTS - sentToday);
 }

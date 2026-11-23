@@ -1,5 +1,7 @@
 -- AlterTable
-ALTER TABLE "user" ADD COLUMN     "partnerDiscoverable" BOOLEAN NOT NULL DEFAULT true;
+ALTER TABLE "user" ADD COLUMN     "homeLocalityChangeCount" INTEGER NOT NULL DEFAULT 0,
+ADD COLUMN     "homeLocalityChangeDay" VARCHAR(10),
+ADD COLUMN     "partnerDiscoverable" BOOLEAN NOT NULL DEFAULT true;
 
 -- CreateTable
 CREATE TABLE "partner_skip" (
