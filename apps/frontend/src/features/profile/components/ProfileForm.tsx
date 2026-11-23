@@ -34,6 +34,8 @@ import { ProfileError, ProfileLoading } from "./ProfileState"
 const FIELD_OF_ERROR: Record<string, keyof ProfileInput> = {
   INVALID_NAME: "name",
   UNKNOWN_LOCALITY: "homeLocalityId",
+  // a new home at most three times a day (#84)
+  HOME_LOCALITY_CHANGE_LIMIT: "homeLocalityId",
   UNKNOWN_ACTIVITY: "interestIds",
 }
 const fieldOfError = (error: unknown) => {

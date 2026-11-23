@@ -27,8 +27,10 @@ export const partnerPageSchema = z.object({
   /** Null once nobody else is in the radius. */
   nextCursor: z.string().nullable(),
   radiusKm: z.number().int(),
-  /** What my profile lacks before anyone can be suggested. */
-  missing: z.array(z.enum(["locality", "interests"])),
+  /** What I still have to do before anyone can be suggested. */
+  missing: z.array(z.enum(["onboarding", "locality", "interests"])),
+  /** „Ukazovat mě v Najdi parťáka“ is off: who isn't seen sees nobody either. */
+  hidden: z.boolean(),
   /** „Přidat“ left today. */
   requestsLeft: z.number().int().nonnegative(),
 })

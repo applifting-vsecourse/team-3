@@ -9,7 +9,7 @@ import type { Partner, PartnerPage } from "@/features/partners/api/partnersSchem
 import { PartnerDeck } from "@/features/partners/components/PartnerDeck"
 
 const { api, toast } = vi.hoisted(() => ({
-  api: { get: vi.fn(), post: vi.fn(), delete: vi.fn() },
+  api: { get: vi.fn(), post: vi.fn(), delete: vi.fn(), patch: vi.fn() },
   toast: { error: vi.fn(), success: vi.fn() },
 }))
 vi.mock("@/lib/api-client", () => ({ api }))
@@ -31,6 +31,7 @@ const page = (changes: Partial<PartnerPage> = {}): PartnerPage => ({
   nextCursor: null,
   radiusKm: 10,
   missing: [],
+  hidden: false,
   requestsLeft: 20,
   ...changes,
 })
@@ -80,7 +81,8 @@ describe("Najdi parťáka: the deck (#84)", () => {
     )
     expect(within(card).getByText("asi 5 km")).toBeInTheDocument()
     expect(within(card).getByText("Oba vás baví")).toBeInTheDocument()
-    expect(within(card).getByRole("list", { name: "Zájmy" })).toHaveTextContent("Volejbal")
+    expect(within(card).getByRole("list", { name: "Oba vás baví" })).toHaveTextContent("Volejbal")
+    expect(within(card).getByRole("list", { name: "Další zájmy" })).toHaveTextContent("Běh")
     // the card under it is only a picture
     expect(screen.getAllByRole("article")).toHaveLength(1)
   })
@@ -316,8 +318,8 @@ describe("Najdi parťáka: the deck (#84)", () => {
     expect(onWiden).toHaveBeenCalledWith(25)
   })
 
-  it("without a home locality the profile comes first", async () => {
-    api.get.mockReturnValue(asJson(page({ items: [], missing: ["locality"] })))
+  it("without a finished onboarding the profile comes first", async () => {
+    api.get.mockReturnValue(asJson(page({ items: [], missing: ["onboarding", "locality"] })))
     await renderWithRouter(
       <QueryClientProvider client={new QueryClient()}>
         <PartnerDeck
@@ -331,13 +333,88 @@ describe("Najdi parťáka: the deck (#84)", () => {
 
     expect(
       await screen.findByRole("heading", {
-        name: "Nastav si domovské místo, ať víme, koho ti ukázat.",
+        name: "Doplň místo a zájmy, ať víme, koho ti ukázat.",
       }),
     ).toBeInTheDocument()
     expect(screen.getByRole("link", { name: "Nastavit v profilu" })).toHaveAttribute(
       "href",
       "/profil/upravit",
     )
+  })
+
+  it("hidden from others: sees nobody either, and „Ukázat mě“ turns it back on", async () => {
+    api.get.mockReturnValueOnce(asJson(page({ items: [], hidden: true })))
+    api.patch.mockReturnValue(Promise.resolve(undefined))
+    await renderWithRouter(
+      <QueryClientProvider client={new QueryClient()}>
+        <PartnerDeck
+          viewerId="jana"
+          viewerName="Jana Nová"
+          radiusKm={10}
+          onWiden={vi.fn()}
+        />
+      </QueryClientProvider>,
+    )
+
+    expect(
+      await screen.findByRole("heading", { name: "Teď tě v Najdi parťáka nikdo nevidí." }),
+    ).toBeInTheDocument()
+    api.get.mockReturnValue(asJson(page()))
+    await userEvent.click(screen.getByRole("button", { name: "Ukázat mě" }))
+
+    expect(api.patch).toHaveBeenCalledWith("me/profile", { json: { partnerDiscoverable: true } })
+    expect(await screen.findByRole("article", { name: "Tomáš Novák" })).toBeInTheDocument()
+  })
+
+  it.each([
+    ["{ArrowRight}", "Přidat", "partners/tomas/request"],
+    ["{ArrowLeft}", "Teď ne", "partners/tomas/skip"],
+  ])(
+    "%s from the name link: the focus moves to „%s“ before the card goes",
+    async (key, button, path) => {
+      const user = userEvent.setup()
+      await show()
+
+      within(screen.getByRole("article")).getByRole("link", { name: "Tomáš Novák" }).focus()
+      await user.keyboard(key)
+
+      await waitFor(() => expect(api.post).toHaveBeenCalledWith(path))
+      expect(screen.getByRole("button", { name: button })).toHaveFocus()
+    },
+  )
+
+  it("after the last card the buttons stay, and Vrátit still brings it back", async () => {
+    const user = userEvent.setup()
+    await show(page({ items: [TOMAS] }))
+
+    await user.click(screen.getByRole("button", { name: "Teď ne" }))
+
+    await screen.findByRole("heading", { name: "V okolí 10 km teď nikdo další není." })
+    expect(screen.getByRole("button", { name: "Teď ne" })).toHaveAttribute("aria-disabled", "true")
+    expect(screen.getByRole("button", { name: "Přidat" })).toHaveAttribute("aria-disabled", "true")
+    const undo = screen.getByRole("button", { name: "Vrátit poslední přeskočení" })
+    expect(undo).toHaveAttribute("aria-disabled", "false")
+
+    await user.click(undo)
+
+    expect(await screen.findByRole("article", { name: "Tomáš Novák" })).toBeInTheDocument()
+    await waitFor(() => expect(api.delete).toHaveBeenCalledWith("partners/tomas/skip"))
+  })
+
+  it("a failed skip brings the card back and leaves nothing to undo", async () => {
+    const user = userEvent.setup()
+    await show()
+    api.post.mockImplementationOnce(() => Promise.reject(new Error("Přeskočení se nepovedlo.")))
+
+    await user.click(screen.getByRole("button", { name: "Teď ne" }))
+
+    await waitFor(() => expect(toast.error).toHaveBeenCalledWith("Přeskočení se nepovedlo."))
+    expect(topName()).toHaveTextContent("Tomáš Novák")
+    expect(screen.getByRole("button", { name: "Vrátit poslední přeskočení" })).toHaveAttribute(
+      "aria-disabled",
+      "true",
+    )
+    expect(api.delete).not.toHaveBeenCalled()
   })
 
   it("an error says so in the card's place, with a retry", async () => {

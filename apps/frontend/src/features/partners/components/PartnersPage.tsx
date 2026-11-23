@@ -30,12 +30,14 @@ export function PartnersPage({
   radiusKm,
   onRadiusChange,
   onFriendsChanged,
+  onVisibilityChanged,
 }: {
   viewerId: string
   viewerName: string
   radiusKm: PartnerRadius
   onRadiusChange: (radius: PartnerRadius) => void
   onFriendsChanged?: () => Promise<unknown>
+  onVisibilityChanged?: () => Promise<unknown>
 }) {
   const [matches, setMatches] = useState<Partner[]>([])
   const radiusLabelId = useId()
@@ -95,6 +97,7 @@ export function PartnersPage({
             radiusKm={radiusKm}
             onWiden={onRadiusChange}
             onFriendsChanged={onFriendsChanged}
+            onVisibilityChanged={onVisibilityChanged}
             onMatch={(partner) => setMatches((previous) => [partner, ...previous])}
           />
           <aside className="flex flex-col gap-8 max-md:hidden">

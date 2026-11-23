@@ -24,6 +24,7 @@ import {
   usePartnerRequest,
   usePartnerSkip,
   usePartnerUnskip,
+  useShowMe,
 } from "@/features/partners/hooks/usePartnerActions"
 import {
   announce,
@@ -49,11 +50,13 @@ import {
 
 import { PartnerCard } from "./PartnerCard"
 import { PartnerMatch } from "./PartnerMatch"
-import { PartnersEmpty, PartnersError, PartnersSetup } from "./PartnersEmpty"
+import { PartnersEmpty, PartnersError, PartnersHidden, PartnersSetup } from "./PartnersEmpty"
 
 import "./partners-motion.css"
 
 const FLY_EASING = "cubic-bezier(0.16, 1, 0.3, 1)"
+/** „Vrátit“ brings the card back in this long. */
+const UNDO_MS = 300
 const SPRING_EASING = "cubic-bezier(0.34, 1.56, 0.64, 1)"
 /** A double click must not skip two people: input waits this long after a commit. */
 const INPUT_LOCK_MS = 200
@@ -104,6 +107,7 @@ export function PartnerDeck({
   radiusKm,
   onWiden,
   onFriendsChanged,
+  onVisibilityChanged,
   onMatch,
 }: {
   viewerId: string
@@ -113,6 +117,8 @@ export function PartnerDeck({
   onWiden: (radius: PartnerRadius) => void
   /** After „Přidat“: the route refreshes what the friends feature shows. */
   onFriendsChanged?: () => Promise<unknown>
+  /** After „Ukázat mě“: the route refreshes the profile, which another feature shows. */
+  onVisibilityChanged?: () => Promise<unknown>
   /** A match, for the page's „Nové shody“. */
   onMatch?: (partner: Partner) => void
 }) {
@@ -134,6 +140,9 @@ export function PartnerDeck({
   })
   const pendingSkips = useRef(new Map<string, Promise<void>>())
   const requestButton = useRef<HTMLButtonElement>(null)
+  const skipButton = useRef<HTMLButtonElement>(null)
+  /** The card „Vrátit“ brings back, to fly in from the side it left. */
+  const returning = useRef<string | null>(null)
   const drag = useRef<Drag | null>(null)
   const frame = useRef(0)
   const isLocked = useRef(false)
@@ -155,6 +164,7 @@ export function PartnerDeck({
   const request = usePartnerRequest(onFriendsChanged)
   const skip = usePartnerSkip()
   const unskip = usePartnerUnskip()
+  const showMe = useShowMe(onVisibilityChanged)
 
   const pages = query.data?.pages
   const firstPage = pages?.[0]
@@ -179,6 +189,17 @@ export function PartnerDeck({
     if (!element) return
     element.style.transform = ""
     element.style.transition = ""
+    // „Vrátit“: the card comes back from the left, where „Teď ne“ sent it (motion-safe)
+    if (returning.current !== current?.id) return
+    returning.current = null
+    if (isReducedMotion() || typeof element.animate !== "function") return
+    element.animate(
+      [
+        { transform: cardTransform(-(window.innerWidth * 0.6), 0, -BUTTON_FLING.tiltDeg) },
+        { transform: "none" },
+      ],
+      { duration: UNDO_MS, easing: FLY_EASING },
+    )
   }, [current?.id])
 
   // the deck ran out under the user's hands: focus goes to what the page says now
@@ -196,8 +217,15 @@ export function PartnerDeck({
     const isReduced = isReducedMotion()
     const progress = dragProgress(dx, width)
     element.style.transform = cardTransform(dx, dy, isReduced ? 0 : tiltDeg(dx, width))
-    if (stamps.current.request) stamps.current.request.style.opacity = String(dx > 0 ? progress : 0)
-    if (stamps.current.skip) stamps.current.skip.style.opacity = String(dx < 0 ? progress : 0)
+    for (const [stamp, isShown] of [
+      [stamps.current.request, dx > 0],
+      [stamps.current.skip, dx < 0],
+    ] as const) {
+      if (!stamp) continue
+      stamp.style.opacity = String(isShown ? progress : 0)
+      // it lands from a little bigger, as a stamp does; under reduced motion just appears
+      stamp.style.scale = isReduced ? "" : String(1.3 - 0.3 * progress)
+    }
     if (next.current && !isReduced) {
       next.current.style.transform = `translateY(${12 * (1 - progress)}px) scale(${0.95 + 0.05 * progress})`
     }
@@ -216,6 +244,10 @@ export function PartnerDeck({
     const element = top.current
     if (!partner || isLocked.current) return
     if (direction === "request" && !canRequest) return
+    // the name link inside the card would go with it: the focus moves to the matching button
+    if (element?.contains(document.activeElement)) {
+      ;(direction === "skip" ? skipButton : requestButton).current?.focus({ preventScroll: true })
+    }
     isLocked.current = true
     hasActed.current = true
     window.setTimeout(() => {
@@ -294,6 +326,7 @@ export function PartnerDeck({
     const partner = state.undoable
     // not locked: the lock only stops a double click from skipping two people
     if (!partner) return
+    returning.current = partner.id
     dispatch({ type: "undo" })
     setMessage(announce("undo", partner, undefined))
     // a skip still on its way would land after the undo and hide the person again: wait for it
@@ -417,6 +450,15 @@ export function PartnerDeck({
   if (firstPage && firstPage.missing.length > 0) {
     return <PartnersSetup missing={firstPage.missing} />
   }
+  if (firstPage?.hidden) {
+    return (
+      <PartnersHidden
+        isPending={showMe.isPending}
+        error={showMe.error?.message}
+        onShow={() => showMe.mutate()}
+      />
+    )
+  }
 
   return (
     <section
@@ -456,7 +498,7 @@ export function PartnerDeck({
           onWiden={onWiden}
         />
       ) : (
-        <div className="relative grid">
+        <div className="hh-deck-arrive relative grid">
           {/* one list keyed by person, the top card first: the second one stays the same element
               when it moves up, so it grows into place instead of appearing */}
           {queue.slice(0, 2).map((partner, index) =>
@@ -516,13 +558,16 @@ export function PartnerDeck({
         </div>
       )}
 
-      {current ? (
+      {/* the row stays while loading and after the last card: „Vrátit“ can still bring one back */}
+      {query.isError && !current ? null : (
         <div className="flex flex-col gap-2 bg-background max-md:sticky max-md:bottom-16 max-md:py-3">
           <div className="grid grid-cols-[1fr_auto_1fr] gap-3">
             <Button
               type="button"
+              ref={skipButton}
               variant="outline"
-              className="min-h-12"
+              className="min-h-12 aria-disabled:cursor-not-allowed aria-disabled:opacity-50"
+              aria-disabled={!current}
               onClick={() => commit("skip", { dx: 0, dy: 0, vx: 0 })}
             >
               <X aria-hidden /> Teď ne
@@ -544,13 +589,13 @@ export function PartnerDeck({
               ref={requestButton}
               className="min-h-12 aria-disabled:cursor-not-allowed aria-disabled:opacity-50"
               aria-disabled={!canRequest}
-              aria-describedby={canRequest ? undefined : `${headingId}-limit`}
+              aria-describedby={current && !canRequest ? `${headingId}-limit` : undefined}
               onClick={() => commit("request", { dx: 0, dy: 0, vx: 0 })}
             >
               <UserPlus aria-hidden /> Přidat
             </Button>
           </div>
-          {!canRequest ? (
+          {current && !canRequest ? (
             <p
               id={`${headingId}-limit`}
               className="text-caption text-muted-foreground"
@@ -564,7 +609,7 @@ export function PartnerDeck({
             Šipkami ← → to jde i z klávesnice.
           </p>
         </div>
-      ) : null}
+      )}
 
       {match ? (
         <PartnerMatch
@@ -573,7 +618,9 @@ export function PartnerDeck({
           onClose={() => setMatch(undefined)}
           // back to „Přidat“, also after a swipe; past the last card, to what the page says now
           onRestoreFocus={() =>
-            (requestButton.current ?? emptyHeading.current)?.focus({ preventScroll: true })
+            (current ? requestButton.current : emptyHeading.current)?.focus({
+              preventScroll: true,
+            })
           }
         />
       ) : null}

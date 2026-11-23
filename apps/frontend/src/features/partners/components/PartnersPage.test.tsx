@@ -21,6 +21,7 @@ describe("/partaci (#84)", () => {
           nextCursor: null,
           radiusKm: 25,
           missing: [],
+          hidden: false,
           requestsLeft: 20,
         }),
     })

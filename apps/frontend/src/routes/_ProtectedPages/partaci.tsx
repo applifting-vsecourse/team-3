@@ -4,6 +4,7 @@ import { useSession } from "@/features/auth/hooks/useSession"
 import { friendsKeys } from "@/features/friends/api/friendsQueryOptions"
 import { PartnersPage } from "@/features/partners/components/PartnersPage"
 import { partnersSearchSchema, radiusFromSearch } from "@/features/partners/lib/partnersSearch"
+import { profileKeys } from "@/features/profile/api/profileQueryOptions"
 import { ProfileLoading } from "@/features/profile/components/ProfileState"
 
 export const Route = createFileRoute("/_ProtectedPages/partaci")({
@@ -28,6 +29,10 @@ function PartnersRoute() {
       onRadiusChange={(radius) => void navigate({ search: { okoli: `${radius}` }, replace: true })}
       // a request or a match changes „Lidé, které znám“ on the profile
       onFriendsChanged={() => queryClient.invalidateQueries({ queryKey: friendsKeys.all() })}
+      // „Ukázat mě“ changes the profile's „Ukazovat mě v Najdi parťáka“
+      onVisibilityChanged={() =>
+        queryClient.invalidateQueries({ queryKey: profileKeys.self(user.id) })
+      }
     />
   ) : (
     <ProfileLoading />

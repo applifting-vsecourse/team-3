@@ -1,7 +1,8 @@
-import { useMutation } from "@tanstack/react-query"
+import { useMutation, useQueryClient } from "@tanstack/react-query"
 
 import { api } from "@/lib/api-client"
 
+import { partnersKeys } from "@/features/partners/api/partnersQueryOptions"
 import { partnerRequestSchema } from "@/features/partners/api/partnersSchemas"
 
 const partnerPath = (userId: string, action: "request" | "skip") =>
@@ -35,5 +36,20 @@ export function usePartnerUnskip() {
     mutationFn: async (userId: string) => {
       await api.delete(partnerPath(userId, "skip"))
     },
+  })
+}
+
+/**
+ * „Ukázat mě“: turns „Ukazovat mě v Najdi parťáka“ back on and loads the deck again.
+ * `onSettled` lets the route refresh the profile, which another feature shows.
+ */
+export function useShowMe(onSettled?: () => Promise<unknown>) {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: async () => {
+      await api.patch("me/profile", { json: { partnerDiscoverable: true } })
+    },
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: partnersKeys.all() }),
+    onSettled: () => onSettled?.(),
   })
 }

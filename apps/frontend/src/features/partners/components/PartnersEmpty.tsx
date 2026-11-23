@@ -67,15 +67,19 @@ export function PartnersEmpty({
 }
 
 const SETUP_COPY = {
+  onboarding: "Doplň místo a zájmy, ať víme, koho ti ukázat.",
   locality: "Nastav si domovské místo, ať víme, koho ti ukázat.",
   interests: "Vyber si, co tě baví, ať víme, koho ti ukázat.",
 } as const
 
-/** Without a home locality or interests there is nobody to suggest yet: the profile first. */
+/**
+ * Without the onboarding, a home locality or interests there is nobody to suggest yet: the
+ * profile first.
+ */
 export function PartnersSetup({ missing }: { missing: PartnerPage["missing"] }) {
   return (
     <div className="flex w-full max-w-100 flex-col items-start gap-4 rounded-2xl border border-card-border bg-card p-6">
-      <h2 className="type-card-heading">{SETUP_COPY[missing[0] ?? "locality"]}</h2>
+      <h2 className="type-card-heading">{SETUP_COPY[missing[0] ?? "onboarding"]}</h2>
       <Button
         asChild
         className="min-h-11"
@@ -102,6 +106,45 @@ export function PartnersError({ onRetry }: { onRetry: () => void }) {
         onClick={onRetry}
       >
         Zkusit znovu
+      </Button>
+    </div>
+  )
+}
+
+/**
+ * „Ukazovat mě v Najdi parťáka“ is off (#84): as Bumble's Snooze, who isn't seen sees nobody
+ * either. One sentence and the way back on, here, without a detour to the profile.
+ */
+export function PartnersHidden({
+  isPending,
+  error,
+  onShow,
+}: {
+  isPending: boolean
+  error?: string
+  onShow: () => void
+}) {
+  return (
+    <div className="flex w-full max-w-100 flex-col items-start gap-4 rounded-2xl border border-card-border bg-card p-6">
+      <h2 className="type-card-heading">Teď tě v Najdi parťáka nikdo nevidí.</h2>
+      <p className="text-sm text-muted-foreground">
+        Když se ukážeš, uvidíš i ty lidi z okolí. Vypnout to jde kdykoli v úpravě profilu.
+      </p>
+      {error ? (
+        <p
+          role="alert"
+          className="text-sm text-destructive"
+        >
+          {error}
+        </p>
+      ) : null}
+      <Button
+        type="button"
+        className="min-h-11"
+        disabled={isPending}
+        onClick={onShow}
+      >
+        {isPending ? "Ukládám…" : "Ukázat mě"}
       </Button>
     </div>
   )

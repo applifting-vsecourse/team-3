@@ -76,6 +76,18 @@ export function deckQueue(pages: readonly Partner[], state: DeckState): Partner[
   return queue
 }
 
+/**
+ * The card's photo (#84): one of the activities in common, the same for a person every time (a
+ * stable hash of the id), so the deck isn't a row of identical volleyball photos.
+ */
+export function cardPhotoSlug(partner: Pick<Partner, "id" | "sharedInterests">): string {
+  const { sharedInterests } = partner
+  if (sharedInterests.length === 0) return ""
+  let hash = 0
+  for (const char of partner.id) hash = (hash * 31 + char.charCodeAt(0)) >>> 0
+  return sharedInterests[hash % sharedInterests.length]?.slug ?? ""
+}
+
 /** The band as a card says it; the distance is between the centres of the home localities. */
 export function distanceLabel(bandKm: number): string {
   if (bandKm <= 2) return "do 2 km"

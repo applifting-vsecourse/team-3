@@ -125,6 +125,26 @@ describe("FriendshipAction (Figma B-07 · Stavy tlačítka přátelství, #307)"
     await waitFor(() => expect(toast.error).toHaveBeenCalledWith("Žádost už je odeslaná."))
   })
 
+  it("over the day's limit of new requests (#84): the API's sentence, as in Najdi parťáka", async () => {
+    api.post.mockReturnValue({
+      json: () =>
+        Promise.reject(
+          Object.assign(new Error("Na dnešek máš přidáno dost. Další lidi můžeš přidat zítra."), {
+            response: { status: 429 },
+          }),
+        ),
+    })
+    await show("none")
+
+    await userEvent.click(screen.getByRole("button", { name: "Přidat do přátel" }))
+
+    await waitFor(() =>
+      expect(toast.error).toHaveBeenCalledWith(
+        "Na dnešek máš přidáno dost. Další lidi můžeš přidat zítra.",
+      ),
+    )
+  })
+
   it("nothing on one's own profile", async () => {
     const { container } = await show("self")
 

@@ -121,6 +121,11 @@ describe("profile editing (#178)", () => {
   it.each([
     ["INVALID_NAME", "Jméno", "Do jména nepatří znak „#“."],
     ["UNKNOWN_LOCALITY", "Domovská lokalita", "Vyber domovskou lokalitu ze seznamu."],
+    [
+      "HOME_LOCALITY_CHANGE_LIMIT",
+      "Domovská lokalita",
+      "Domovské místo jde změnit nejvýš třikrát za den. Zkus to zítra.",
+    ],
   ])("shows the API's %s at the field it is about", async (code, label, message) => {
     const refusal = new HTTPError(
       new Response(null, { status: 400 }),

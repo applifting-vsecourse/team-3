@@ -4,6 +4,7 @@ import type { Partner } from "@/features/partners/api/partnersSchemas"
 
 import {
   announce,
+  cardPhotoSlug,
   deckQueue,
   distanceLabel,
   emptyDeck,
@@ -67,6 +68,27 @@ describe("the deck's moves (#84)", () => {
 
   it("never shows a person twice when pages overlap", () => {
     expect(deckQueue([a, b, b, c], emptyDeck()).map(({ id }) => id)).toEqual(["a", "b", "c"])
+  })
+})
+
+describe("the card's photo (#84)", () => {
+  const shared = ["volejbal", "beh", "sachy"].map((slug) => ({ id: slug, name: slug, slug }))
+
+  it("is one of the activities in common, the same for a person every time", () => {
+    const slug = cardPhotoSlug({ id: "tomas", sharedInterests: shared })
+    expect(shared.map(({ slug }) => slug)).toContain(slug)
+    expect(cardPhotoSlug({ id: "tomas", sharedInterests: shared })).toBe(slug)
+  })
+
+  it("differs between people", () => {
+    const slugs = new Set(
+      ["a", "b", "c", "d", "e", "f"].map((id) => cardPhotoSlug({ id, sharedInterests: shared })),
+    )
+    expect(slugs.size).toBeGreaterThan(1)
+  })
+
+  it("without anything in common there is none", () => {
+    expect(cardPhotoSlug({ id: "a", sharedInterests: [] })).toBe("")
   })
 })
 
