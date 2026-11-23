@@ -1,11 +1,13 @@
 import type { QueryClient } from "@tanstack/react-query"
-import { createRootRouteWithContext, Outlet } from "@tanstack/react-router"
+import { createRootRouteWithContext, Navigate, Outlet, useLocation } from "@tanstack/react-router"
 
 import "@/styles/global.css"
 
+import { ROUTES } from "@/app/routes"
 import { BottomNav } from "@/components/BottomNav/BottomNav"
 import { Toaster } from "@/components/ui/sonner"
 
+import { needsOnboarding } from "@/features/auth/api/authSessionQueryOptions"
 import { AgeConfirmationDialog } from "@/features/auth/components/AgeConfirmationDialog"
 import { EmailVerifiedDialog } from "@/features/auth/components/EmailVerifiedDialog"
 import { useAuthLinkFrom } from "@/features/auth/hooks/useAuthLinkFrom"
@@ -20,6 +22,24 @@ export const Route = createRootRouteWithContext<{
 function RootComponent() {
   const { user, isPending } = useSession()
   const signInFrom = useAuthLinkFrom()
+  const location = useLocation()
+  const pathname = location.pathname.replace(/\/$/, "")
+
+  if (
+    needsOnboarding(user) &&
+    pathname !== ROUTES.onboarding &&
+    pathname !== ROUTES.login &&
+    pathname !== ROUTES.signup &&
+    !location.state.emailVerification?.error
+  ) {
+    return (
+      <Navigate
+        to={ROUTES.onboarding}
+        search={{ from: location.href }}
+        replace
+      />
+    )
+  }
 
   return (
     <>

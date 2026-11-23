@@ -1,40 +1,6 @@
-import { useState } from "react"
-import { zodResolver } from "@hookform/resolvers/zod"
-import { Ban, Loader2 } from "lucide-react"
-import { useForm } from "react-hook-form"
-import { z } from "zod"
+import { Ban } from "lucide-react"
 
-import { Button } from "@/components/ui/button"
-import {
-  Dialog,
-  DialogClose,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-} from "@/components/ui/dialog"
-import {
-  Form,
-  FormControl,
-  FormField,
-  FormItem,
-  FormLabel,
-  FormMessage,
-} from "@/components/ui/form"
-import { Textarea } from "@/components/ui/textarea"
-
-// the same limit as the API's CancelEventDto
-const REASON_MAX_LENGTH = 500
-
-const schema = z.object({
-  reason: z
-    .string()
-    .trim()
-    .min(1, "Napiš, proč se akce ruší")
-    .max(REASON_MAX_LENGTH, `Důvod může mít nejvýš ${REASON_MAX_LENGTH} znaků`),
-})
+import { ReasonDialog } from "@/features/events/components/ReasonDialog"
 
 type CancelEventDialogProps = {
   isPending: boolean
@@ -58,88 +24,17 @@ export function CancelEventDialog({
   triggerVariant = "outline",
   className,
 }: CancelEventDialogProps) {
-  const [isOpen, setIsOpen] = useState(false)
-  const form = useForm<z.input<typeof schema>>({
-    resolver: zodResolver(schema),
-    defaultValues: { reason: "" },
-  })
-
   return (
-    <Dialog
-      open={isOpen}
-      onOpenChange={(isNowOpen) => {
-        setIsOpen(isNowOpen)
-        if (!isNowOpen) form.reset()
-      }}
-    >
-      <DialogTrigger asChild>
-        <Button
-          variant={triggerVariant}
-          className={className ?? "self-start"}
-        >
-          <Ban />
-          Zrušit akci
-        </Button>
-      </DialogTrigger>
-      <DialogContent>
-        <Form {...form}>
-          <form
-            noValidate
-            onSubmit={form.handleSubmit(async ({ reason }) => {
-              try {
-                await onCancel(reason.trim())
-                setIsOpen(false)
-              } catch {
-                // the page says why; the reason stays in the field
-              }
-            })}
-            className="flex flex-col gap-4"
-          >
-            <DialogHeader>
-              <DialogTitle>Zrušit akci?</DialogTitle>
-              <DialogDescription>
-                Akce zmizí ze seznamu a z mapy. Přes odkaz zůstane vidět se štítkem „Zrušeno“ a s
-                tvým důvodem.
-              </DialogDescription>
-            </DialogHeader>
-            <FormField
-              control={form.control}
-              name="reason"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Důvod zrušení *</FormLabel>
-                  <FormControl>
-                    <Textarea
-                      placeholder="např. Herna má ten den zavřeno."
-                      className="min-h-24"
-                      {...field}
-                    />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-            <DialogFooter>
-              <DialogClose asChild>
-                <Button
-                  type="button"
-                  variant="outline"
-                >
-                  Zpět
-                </Button>
-              </DialogClose>
-              <Button
-                type="submit"
-                variant="destructive"
-                disabled={isPending}
-              >
-                {isPending ? <Loader2 className="size-4 animate-spin" /> : null}
-                Zrušit akci
-              </Button>
-            </DialogFooter>
-          </form>
-        </Form>
-      </DialogContent>
-    </Dialog>
+    <ReasonDialog
+      trigger={{ label: "Zrušit akci", icon: <Ban />, variant: triggerVariant, className }}
+      title="Zrušit akci?"
+      description="Akce zmizí ze seznamu a z mapy. Přes odkaz zůstane vidět se štítkem „Zrušeno“ a s tvým důvodem."
+      label="Důvod zrušení *"
+      placeholder="např. Herna má ten den zavřeno."
+      requiredMessage="Napiš, proč se akce ruší"
+      submit={{ label: "Zrušit akci", variant: "destructive" }}
+      isPending={isPending}
+      onSubmit={onCancel}
+    />
   )
 }

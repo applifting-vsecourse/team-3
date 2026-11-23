@@ -37,6 +37,9 @@ const created: EventDetailView = {
   myParticipation: null,
   viewerSignedIn: true,
   canManage: true,
+  canEdit: true,
+  canModerate: false,
+  hiddenReason: null,
 };
 
 describe('CreatedEventResponseDto', () => {

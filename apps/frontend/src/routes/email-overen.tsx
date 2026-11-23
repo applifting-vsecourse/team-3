@@ -4,7 +4,10 @@ import { z } from "zod"
 import { ROUTES } from "@/app/routes"
 import { authKeys } from "@/lib/auth-keys"
 
-import { authSessionQueryOptions } from "@/features/auth/api/authSessionQueryOptions"
+import {
+  authSessionQueryOptions,
+  needsOnboarding,
+} from "@/features/auth/api/authSessionQueryOptions"
 import { safeRedirect } from "@/features/auth/lib/redirect"
 
 /**
@@ -23,14 +26,18 @@ export const Route = createFileRoute("/email-overen")({
   beforeLoad: async ({ context, search }) => {
     // BetterAuth sets the cookie before this callback. Refresh before a protected
     // destination reads the session: a valid link may have switched accounts.
-    await context.queryClient
+    const session = await context.queryClient
       .fetchQuery({ ...authSessionQueryOptions(), staleTime: 0 })
       .catch(() => {
         // A failed refresh must not keep showing a different cached account.
         context.queryClient.setQueryData(authKeys.session(), null)
       })
+    const from = safeRedirect(search.from, ROUTES.events)
+    if (!search.error && session && needsOnboarding(session.user)) {
+      throw redirect({ to: ROUTES.onboarding, search: { from }, replace: true })
+    }
     throw redirect({
-      href: safeRedirect(search.from, ROUTES.events),
+      href: from,
       // „Zpět“ then leads where the link was opened from, not here again
       replace: true,
       state: { emailVerification: { error: search.error } },

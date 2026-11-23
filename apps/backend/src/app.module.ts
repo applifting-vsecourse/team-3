@@ -1,6 +1,7 @@
 import { ConfigModule } from '@applifting-io/nestjs-decorated-config';
 import { Module } from '@nestjs/common';
 import { ScheduleModule } from '@nestjs/schedule';
+import { AdminModule } from './modules/admin/admin.module';
 import { CatalogModule } from './modules/catalog/catalog.module';
 import { EventModule } from './modules/event/event.module';
 import { FriendshipModule } from './modules/friendship/friendship.module';
@@ -24,6 +25,7 @@ const imports = [
   AuthModule,
   RateLimitModule,
   WelcomeModule,
+  AdminModule,
   CatalogModule,
   EventModule,
   FriendshipModule,

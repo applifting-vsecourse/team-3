@@ -25,6 +25,7 @@ export const ROUTES = {
   notifications: "/upozorneni",
   login: "/login",
   signup: "/signup",
+  onboarding: "/vitej",
   forgotPassword: "/zapomenute-heslo",
   // where the link in the verification e-mail leads (Figma B-02)
   emailVerified: "/email-overen",

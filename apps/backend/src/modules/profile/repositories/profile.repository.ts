@@ -9,6 +9,13 @@ import {
 import { summarizeTotals } from '@/modules/rating/domain/rating-summary';
 import { Injectable } from '@nestjs/common';
 
+const onboardingSelect = {
+  onboardingCompletedAt: true,
+  homeLocality: { select: { slug: true } },
+  _count: { select: { interests: true } },
+} satisfies Prisma.UserSelect;
+type OnboardingRow = Prisma.UserGetPayload<{ select: typeof onboardingSelect }>;
+
 @Injectable()
 export class ProfileRepository {
   constructor(private readonly prisma: PrismaService) {}
@@ -26,6 +33,38 @@ export class ProfileRepository {
       data,
       select: profileSelect,
     });
+  }
+
+  async finishOnboarding(
+    userId: string,
+    preferences: Prisma.UserUpdateInput,
+  ): Promise<OnboardingRow | null> {
+    const owner = { id: userId, deletedAt: null, blockedAt: null };
+    const completedAt = new Date();
+    try {
+      // The profile and completion marker are written together. A retry or
+      // another tab cannot replace the preferences after the first success.
+      return await this.prisma.user.update({
+        where: { ...owner, onboardingCompletedAt: null },
+        data: {
+          ...preferences,
+          onboardingCompletedAt: completedAt,
+          updatedAt: completedAt,
+        },
+        select: onboardingSelect,
+      });
+    } catch (error) {
+      if (
+        !(error instanceof Prisma.PrismaClientKnownRequestError) ||
+        error.code !== 'P2025'
+      ) {
+        throw error;
+      }
+      return this.prisma.user.findUnique({
+        where: { ...owner, onboardingCompletedAt: { not: null } },
+        select: onboardingSelect,
+      });
+    }
   }
 
   async localityExists(id: string): Promise<boolean> {

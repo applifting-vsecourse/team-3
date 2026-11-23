@@ -4,6 +4,7 @@ import { useQuery } from "@tanstack/react-query"
 import { ActivityTile } from "@/components/ActivityTile/ActivityTile"
 import { Skeleton } from "@/components/ui/skeleton"
 
+import type { GroupDetail } from "@/features/groups/api/groupSchemas"
 import { groupQueryOptions } from "@/features/groups/api/groupsQueryOptions"
 import { GroupCard } from "@/features/groups/components/GroupCard"
 import {
@@ -76,19 +77,41 @@ export function MembersOnlyEvent({
         group={group}
         titleAs="h2"
       />
-      {hasMembershipAction(group) ? (
-        <div className="flex flex-col gap-2">
-          <GroupMembershipAction
-            group={group}
-            isSignedIn={viewerId !== null && viewerId !== undefined}
-            signInFrom={signInFrom}
-            joinLabel="Přidat se ke skupině"
-          />
-          <p className="text-sm text-muted-foreground">
-            Akce skupiny „jen pro členy“ nejsou v hledání, na mapě ani na úvodní stránce.
-          </p>
-        </div>
-      ) : null}
+      <MembersOnlyJoin
+        group={group}
+        viewerId={viewerId}
+        signInFrom={signInFrom}
+      />
     </article>
+  )
+}
+
+type MembersOnlyJoinProps = {
+  group: GroupDetail
+  viewerId: string | null | undefined
+  signInFrom: string
+}
+
+/**
+ * The way into the group of a members-only event (A-05i): „Přidat se ke
+ * skupině“ or „Požádat o členství“, and why such events are nowhere else.
+ * Also the action of the event's detail for the superadmin outside the group,
+ * who sees the event but can't join it (#308, review #380). Nothing when the
+ * group offers no membership action.
+ */
+export function MembersOnlyJoin({ group, viewerId, signInFrom }: MembersOnlyJoinProps) {
+  if (!hasMembershipAction(group)) return null
+  return (
+    <div className="flex flex-col gap-2">
+      <GroupMembershipAction
+        group={group}
+        isSignedIn={viewerId !== null && viewerId !== undefined}
+        signInFrom={signInFrom}
+        joinLabel="Přidat se ke skupině"
+      />
+      <p className="text-sm text-muted-foreground">
+        Akce skupiny „jen pro členy“ nejsou v hledání, na mapě ani na úvodní stránce.
+      </p>
+    </div>
   )
 }

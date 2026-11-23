@@ -49,6 +49,37 @@ export class ProfileService {
         });
       data.name = trimName(input.name);
     }
+    Object.assign(data, await this.preferences(input));
+    if (Object.keys(data).length === 0)
+      throw new BadRequestException('Vyber aspoň jeden údaj ke změně.');
+    data.updatedAt = new Date();
+    return selfProfile(await this.repository.save(userId, data));
+  }
+
+  async finishOnboarding(
+    userId: string,
+    input?: { homeLocalityId: string; interestIds: string[] },
+  ): Promise<{
+    onboardingCompletedAt: Date;
+    localitySlug: string | null;
+    hasInterests: boolean;
+  }> {
+    const saved = await this.repository.finishOnboarding(
+      userId,
+      input ? await this.preferences(input) : {},
+    );
+    if (!saved?.onboardingCompletedAt) throw new UnauthorizedException();
+    return {
+      onboardingCompletedAt: saved.onboardingCompletedAt,
+      localitySlug: saved.homeLocality?.slug ?? null,
+      hasInterests: saved._count.interests > 0,
+    };
+  }
+
+  private async preferences(
+    input: Pick<UpdateProfileInput, 'homeLocalityId' | 'interestIds'>,
+  ): Promise<Prisma.UserUpdateInput> {
+    const data: Prisma.UserUpdateInput = {};
     if (input.homeLocalityId !== undefined) {
       if (
         input.homeLocalityId !== null &&
@@ -79,10 +110,7 @@ export class ProfileService {
         })),
       };
     }
-    if (Object.keys(data).length === 0)
-      throw new BadRequestException('Vyber aspoň jeden údaj ke změně.');
-    data.updatedAt = new Date();
-    return selfProfile(await this.repository.save(userId, data));
+    return data;
   }
 
   async overview(userId: string): Promise<ProfileOverview> {

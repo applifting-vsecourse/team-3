@@ -30,7 +30,8 @@ export function ratingDeadline(event: { startsAt: Date; endsAt: Date | null }): 
 type RatableEvent = {
   startsAt: Date
   endsAt: Date | null
-  status: "published" | "cancelled"
+  // "hidden": deactivated by the superadmin (#308), only they get it; it took place for nobody
+  status: "published" | "cancelled" | "hidden"
   approvedCount: number
   missingToMin: number
   organizer: { id: string }
@@ -56,7 +57,8 @@ export function canRateEvent(event: RatableEvent, viewerId: string | null, now: 
 type HeldEvent = {
   startsAt: Date
   endsAt: Date | null
-  status: "published" | "cancelled"
+  // "hidden": deactivated by the superadmin (#308), only they get it; it took place for nobody
+  status: "published" | "cancelled" | "hidden"
   approvedCount: number
   missingToMin: number
 }

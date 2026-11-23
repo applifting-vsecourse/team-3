@@ -445,7 +445,7 @@ export class EventsController {
   @ApiCookieAuth()
   @ApiOperation({
     summary:
-      'Change the event (B-028); only its organizer, before it starts. Not the activity nor the way of joining.',
+      "Change the event (B-028); only its organizer (a group's admins, the superadmin #308), before it starts. Not the activity nor the way of joining.",
   })
   @ApiResponse({ status: 200, type: EventDetailResponseDto })
   @ApiResponse({
@@ -460,7 +460,10 @@ export class EventsController {
       'NOT_ORGANIZER, EMAIL_NOT_VERIFIED, USER_BLOCKED, or MEMBERS_ONLY (a members-only event, the caller is not a member)',
   })
   @ApiResponse({ status: 404, description: 'No such event for this user' })
-  @ApiResponse({ status: 409, description: 'EVENT_CANCELLED' })
+  @ApiResponse({
+    status: 409,
+    description: 'EVENT_CANCELLED, or EVENT_HIDDEN (deactivated, #308)',
+  })
   async update(
     @Param('id') id: string,
     @Body() body: UpdateEventDto,
@@ -492,7 +495,7 @@ export class EventsController {
   @ApiCookieAuth()
   @ApiOperation({
     summary:
-      "Upload the event's own image (#77), replacing the previous one; only its organizer, before it starts",
+      "Upload the event's own image (#77), replacing the previous one; only who may edit the event (its organizer, a group's admins, the superadmin #308), before it starts",
     description:
       "JPEG, PNG or WebP by the file's content, at most 5 MB. The detail then has `imageKey`; the image is at GET /api/images/{imageKey}.",
   })
@@ -509,7 +512,10 @@ export class EventsController {
       'NOT_ORGANIZER, EMAIL_NOT_VERIFIED, USER_BLOCKED, or MEMBERS_ONLY',
   })
   @ApiResponse({ status: 404, description: 'No such event for this user' })
-  @ApiResponse({ status: 409, description: 'EVENT_CANCELLED' })
+  @ApiResponse({
+    status: 409,
+    description: 'EVENT_CANCELLED, or EVENT_HIDDEN (deactivated, #308)',
+  })
   async setImage(
     @Param('id') id: string,
     @UploadedFile() file: UploadedImageFile | undefined,

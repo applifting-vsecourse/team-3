@@ -21,6 +21,7 @@ import { Route as ResetPasswordRouteImport } from './routes/reset-password'
 import { Route as SignupRouteImport } from './routes/signup'
 import { Route as ZapomenuteHesloRouteImport } from './routes/zapomenute-heslo'
 import { Route as ProtectedPagesUpozorneniRouteImport } from './routes/_ProtectedPages/upozorneni'
+import { Route as ProtectedPagesVitejRouteImport } from './routes/_ProtectedPages/vitej'
 import { Route as AkceEventIdRouteImport } from './routes/akce_.$eventId'
 import { Route as SkupinyIndexRouteImport } from './routes/skupiny.index'
 import { Route as SkupinyGroupIdRouteImport } from './routes/skupiny.$groupId'
@@ -101,6 +102,11 @@ const ProtectedPagesUpozorneniRoute =
     path: '/upozorneni',
     getParentRoute: () => ProtectedPagesRoute,
   } as any)
+const ProtectedPagesVitejRoute = ProtectedPagesVitejRouteImport.update({
+  id: '/vitej',
+  path: '/vitej',
+  getParentRoute: () => ProtectedPagesRoute,
+} as any)
 const AkceEventIdRoute = AkceEventIdRouteImport.update({
   id: '/akce_/$eventId',
   path: '/akce/$eventId',
@@ -221,6 +227,7 @@ export interface FileRoutesByFullPath {
   '/signup': typeof SignupRoute
   '/zapomenute-heslo': typeof ZapomenuteHesloRoute
   '/upozorneni': typeof ProtectedPagesUpozorneniRoute
+  '/vitej': typeof ProtectedPagesVitejRoute
   '/akce/$eventId': typeof AkceEventIdRoute
   '/skupiny/$groupId': typeof SkupinyGroupIdRoute
   '/uzivatele/$userId': typeof UzivateleUserIdRoute
@@ -253,6 +260,7 @@ export interface FileRoutesByTo {
   '/signup': typeof SignupRoute
   '/zapomenute-heslo': typeof ZapomenuteHesloRoute
   '/upozorneni': typeof ProtectedPagesUpozorneniRoute
+  '/vitej': typeof ProtectedPagesVitejRoute
   '/akce/$eventId': typeof AkceEventIdRoute
   '/skupiny/$groupId': typeof SkupinyGroupIdRoute
   '/uzivatele/$userId': typeof UzivateleUserIdRoute
@@ -287,6 +295,7 @@ export interface FileRoutesById {
   '/signup': typeof SignupRoute
   '/zapomenute-heslo': typeof ZapomenuteHesloRoute
   '/_ProtectedPages/upozorneni': typeof ProtectedPagesUpozorneniRoute
+  '/_ProtectedPages/vitej': typeof ProtectedPagesVitejRoute
   '/akce_/$eventId': typeof AkceEventIdRoute
   '/skupiny/$groupId': typeof SkupinyGroupIdRoute
   '/uzivatele/$userId': typeof UzivateleUserIdRoute
@@ -321,6 +330,7 @@ export interface FileRouteTypes {
     | '/signup'
     | '/zapomenute-heslo'
     | '/upozorneni'
+    | '/vitej'
     | '/akce/$eventId'
     | '/skupiny/$groupId'
     | '/uzivatele/$userId'
@@ -353,6 +363,7 @@ export interface FileRouteTypes {
     | '/signup'
     | '/zapomenute-heslo'
     | '/upozorneni'
+    | '/vitej'
     | '/akce/$eventId'
     | '/skupiny/$groupId'
     | '/uzivatele/$userId'
@@ -386,6 +397,7 @@ export interface FileRouteTypes {
     | '/signup'
     | '/zapomenute-heslo'
     | '/_ProtectedPages/upozorneni'
+    | '/_ProtectedPages/vitej'
     | '/akce_/$eventId'
     | '/skupiny/$groupId'
     | '/uzivatele/$userId'
@@ -509,6 +521,13 @@ declare module '@tanstack/react-router' {
       path: '/upozorneni'
       fullPath: '/upozorneni'
       preLoaderRoute: typeof ProtectedPagesUpozorneniRouteImport
+      parentRoute: typeof ProtectedPagesRoute
+    }
+    '/_ProtectedPages/vitej': {
+      id: '/_ProtectedPages/vitej'
+      path: '/vitej'
+      fullPath: '/vitej'
+      preLoaderRoute: typeof ProtectedPagesVitejRouteImport
       parentRoute: typeof ProtectedPagesRoute
     }
     '/akce_/$eventId': {
@@ -649,6 +668,7 @@ declare module '@tanstack/react-router' {
 
 interface ProtectedPagesRouteChildren {
   ProtectedPagesUpozorneniRoute: typeof ProtectedPagesUpozorneniRoute
+  ProtectedPagesVitejRoute: typeof ProtectedPagesVitejRoute
   ProtectedPagesAkceNovaRoute: typeof ProtectedPagesAkceNovaRoute
   ProtectedPagesMojeAkceRoute: typeof ProtectedPagesMojeAkceRoute
   ProtectedPagesMojeSkupinyRoute: typeof ProtectedPagesMojeSkupinyRoute
@@ -668,6 +688,7 @@ interface ProtectedPagesRouteChildren {
 
 const ProtectedPagesRouteChildren: ProtectedPagesRouteChildren = {
   ProtectedPagesUpozorneniRoute: ProtectedPagesUpozorneniRoute,
+  ProtectedPagesVitejRoute: ProtectedPagesVitejRoute,
   ProtectedPagesAkceNovaRoute: ProtectedPagesAkceNovaRoute,
   ProtectedPagesMojeAkceRoute: ProtectedPagesMojeAkceRoute,
   ProtectedPagesMojeSkupinyRoute: ProtectedPagesMojeSkupinyRoute,

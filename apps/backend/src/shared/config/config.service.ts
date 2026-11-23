@@ -33,11 +33,15 @@ export class Config {
   @IsNotEmpty()
   readonly betterAuthSecret!: string;
 
+  /** Empty = no superadmin is seeded; the seed logs why (#308). */
   @Env('SUPERADMIN_EMAIL')
-  readonly superadminEmail!: string;
+  @IsOptional()
+  readonly superadminEmail?: string;
 
+  /** Locally only: production never takes it, see superadminAccount (#308, review #380). */
   @Env('SUPERADMIN_PASSWORD')
-  readonly superadminPassword!: string;
+  @IsOptional()
+  readonly superadminPassword?: string;
 
   @Env('NODE_ENV', { expose: true })
   @IsOptional()
