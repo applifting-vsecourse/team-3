@@ -59,11 +59,11 @@ export function PartnerMatch({
           >
             <PersonAvatar
               name={viewerName}
-              className="hh-deck-meet-left size-16 border-2 border-hero"
+              className="hh-deck-meet-left border-2 border-hero data-[size=lg]:size-16"
             />
             <PersonAvatar
               name={partner.name}
-              className="hh-deck-meet-right -ml-4 size-16 border-2 border-hero"
+              className="hh-deck-meet-right -ml-4 border-2 border-hero data-[size=lg]:size-16"
             />
           </div>
           <LogoMark

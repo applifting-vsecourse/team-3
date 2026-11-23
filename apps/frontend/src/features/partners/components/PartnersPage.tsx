@@ -46,11 +46,8 @@ export function PartnersPage({
     <>
       <Seo title="Najdi parťáka" />
       <PageBand
-        title={
-          <>
-            Najdi <span className="highlight-keyword">parťáka</span>
-          </>
-        }
+        // no highlighted keyword: its dark text is for light sections, on the band it vanishes
+        title="Najdi parťáka"
         description="Lidi z okolí, které baví to co tebe."
         back={{ to: ROUTES.profile, fallbackLabel: "Můj profil", label: "Můj profil" }}
       />

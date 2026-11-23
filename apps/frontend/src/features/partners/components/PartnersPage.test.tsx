@@ -37,7 +37,9 @@ describe("/partaci (#84)", () => {
       </QueryClientProvider>,
     )
 
-    expect(screen.getByRole("heading", { level: 1, name: "Najdi parťáka" })).toBeInTheDocument()
+    const title = screen.getByRole("heading", { level: 1, name: "Najdi parťáka" })
+    // the section keyword's dark text would vanish on the dark band
+    expect(title.querySelector(".highlight-keyword")).toBeNull()
     expect(screen.getByRole("radio", { name: "+25 km" })).toHaveAttribute("aria-checked", "true")
     await userEvent.click(screen.getByRole("radio", { name: "+50 km" }))
     expect(onRadiusChange).toHaveBeenCalledWith(50)
