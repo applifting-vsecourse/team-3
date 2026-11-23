@@ -5,6 +5,7 @@ import { LAST_STORABLE_TIME } from './event-dates';
 /** Why the organizer's change was refused (B-028, #41). */
 export type UpdateRefusal =
   | { code: 'EVENT_CANCELLED' }
+  | { code: 'EVENT_HIDDEN' }
   | { code: 'EVENT_STARTED' }
   | { code: 'INVALID_CAPACITY'; problem: string }
   | { code: 'INVALID_END'; problem: string };
@@ -22,12 +23,19 @@ export type UpdateState = {
 export type UpdateDecision =
   { ok: true; data: EventChanges } | { ok: false; refusal: UpdateRefusal };
 
-/** A cancelled or started event can't change any more; null while it can. */
+/**
+ * A cancelled or started event can't change any more; null while it can. A
+ * deactivated one neither (#308): only the superadmin sees it, and restores
+ * it before changing it.
+ */
 export const lifecycleRefusal = (
   event: Pick<UpdateState, 'status' | 'startsAt'>,
   now: Date,
 ): UpdateRefusal | null => {
   if (event.status === 'cancelled') return { code: 'EVENT_CANCELLED' };
+  if (event.status === 'hidden' || event.status === 'deleted') {
+    return { code: 'EVENT_HIDDEN' };
+  }
   if (event.startsAt <= now) return { code: 'EVENT_STARTED' };
   return null;
 };

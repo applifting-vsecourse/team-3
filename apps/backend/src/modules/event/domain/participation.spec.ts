@@ -66,6 +66,16 @@ describe('decideJoin', () => {
     }
   });
 
+  it.each(['hidden', 'deleted'] as const)(
+    'not on a %s event: the superadmin took it down while the join waited (#308)',
+    (eventStatus) => {
+      expect(decideJoin(state({ eventStatus }), now)).toEqual({
+        ok: false,
+        refusal: 'EVENT_UNAVAILABLE',
+      });
+    },
+  );
+
   it('not on a cancelled event, nor one that started (or starts now)', () => {
     expect(decideJoin(state({ eventStatus: 'cancelled' }), now)).toEqual({
       ok: false,
