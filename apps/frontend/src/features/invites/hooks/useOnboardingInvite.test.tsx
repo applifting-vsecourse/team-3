@@ -7,7 +7,7 @@ import { afterEach, describe, expect, it, vi } from "vitest"
 import type * as ApiClient from "@/lib/api-client"
 
 import { useOnboardingInvite } from "@/features/invites/hooks/useOnboardingInvite"
-import { pendingInvite } from "@/features/invites/lib/invite"
+import { pendingInvite, rememberInvite } from "@/features/invites/lib/invite"
 
 const { api } = vi.hoisted(() => ({ api: { get: vi.fn(), post: vi.fn() } }))
 vi.mock("@/lib/api-client", async (importOriginal) => ({
@@ -32,6 +32,8 @@ function Onboarding({ viewerId, onDone }: { viewerId: string; onDone: () => void
 }
 
 const show = (viewerId = "me") => {
+  // opened signed out before the sign-up: remembered in this browser too
+  rememberInvite(CODE)
   const onDone = vi.fn()
   render(
     <QueryClientProvider client={new QueryClient()}>
@@ -69,8 +71,8 @@ describe("the onboarding's invite step (#406)", () => {
       json: { befriend: true },
     })
     expect(toast.success).toHaveBeenCalledWith("Tomáš Novák je teď mezi přáteli.")
-    // answered: not asked again
-    expect(pendingInvite(FROM)).toBeNull()
+    // answered: the browser forgets the remembered code
+    expect(pendingInvite(undefined)).toBeNull()
   })
 
   it("„Teď ne“: goes on at once, the inviter only hears who joined", async () => {
@@ -111,7 +113,7 @@ describe("the onboarding's invite step (#406)", () => {
 
     await waitFor(() => expect(onDone).toHaveBeenCalled())
     expect(api.post).not.toHaveBeenCalled()
-    expect(pendingInvite(FROM)).toBe(CODE)
+    expect(pendingInvite(undefined)).toBe(CODE)
   })
 
   it("an invalid code (404): no step, never asked again", async () => {
@@ -125,6 +127,6 @@ describe("the onboarding's invite step (#406)", () => {
     await user.click(screen.getByRole("button", { name: "Uložit" }))
 
     await waitFor(() => expect(onDone).toHaveBeenCalled())
-    expect(pendingInvite(FROM)).toBeNull()
+    expect(pendingInvite(undefined)).toBeNull()
   })
 })

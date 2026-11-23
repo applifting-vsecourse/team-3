@@ -22,7 +22,7 @@ export const inviteCodeFromPath = (path: string | undefined): string | null => {
   return match?.[1] && isInviteCode(match[1]) ? match[1] : null
 }
 
-type Stored = { code: string; savedAt: number; isAnswered?: boolean }
+type Stored = { code: string; savedAt: number }
 
 const read = (): Stored | null => {
   try {
@@ -47,31 +47,26 @@ const write = (stored: Stored | null) => {
 }
 
 /**
- * Opening the link: remember the code. The same code keeps its answer, so passing through the
- * link after the onboarding doesn't offer it to the next person on a shared computer.
+ * A visitor opening the link: remember the code in this browser. Only signed out (the route
+ * decides): a signed-in passer-by would leave it for the next person on a shared computer.
  */
 export const rememberInvite = (code: string, now = Date.now()) => {
-  if (!isInviteCode(code)) return
-  const stored = read()
-  write(stored?.code === code ? { ...stored, savedAt: now } : { code, savedAt: now })
+  if (isInviteCode(code)) write({ code, savedAt: now })
 }
 
 /**
- * The invite still waiting for an answer: from `from` first (this sign-up's own link), else
- * the remembered one if it is under 30 days old. One answered in the onboarding isn't asked
- * again.
+ * The invite waiting for the onboarding: from `from` first (this sign-up's own link), else the
+ * one remembered in this browser if it is under 30 days old.
  */
 export const pendingInvite = (from: string | undefined, now = Date.now()): string | null => {
   const stored = read()
   const fresh = stored && now - stored.savedAt <= KEPT_MS ? stored : null
-  const code = inviteCodeFromPath(from) ?? fresh?.code ?? null
-  if (!code) return null
-  return stored?.code === code && stored.isAnswered ? null : code
+  return inviteCodeFromPath(from) ?? fresh?.code ?? null
 }
 
-/** „Přidat do přátel“ or „Teď ne“: the onboarding doesn't ask again. */
-export const answerInvite = (code: string, now = Date.now()) => {
-  write({ code, savedAt: read()?.savedAt ?? now, isAnswered: true })
+/** „Přidat do přátel“ or „Teď ne“ (or no such invite): the browser forgets the code. */
+export const answerInvite = () => {
+  write(null)
 }
 
 /**

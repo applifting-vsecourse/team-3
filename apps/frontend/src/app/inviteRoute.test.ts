@@ -83,6 +83,12 @@ describe("the invite link /pozvanka/:code (#406)", () => {
     ).resolves.toMatchObject({ to: "/uzivatele/$userId", params: { userId: "u1" } })
   })
 
+  it("signed in: the code is not remembered (a shared computer)", async () => {
+    await leadsTo(CODE, user(), { id: "u1", name: "Tomáš", interests: [] })
+    await leadsTo(CODE, user({ onboardingCompletedAt: null }))
+    expect(pendingInvite(undefined)).toBeNull()
+  })
+
   it("one's own link: Můj profil", async () => {
     await expect(
       leadsTo(CODE, user(), { id: "me", name: "Já", interests: [] }),

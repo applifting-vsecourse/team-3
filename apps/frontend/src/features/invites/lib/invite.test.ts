@@ -46,19 +46,11 @@ describe("pendingInvite (#406)", () => {
     expect(pendingInvite(`/pozvanka/${CODE}`, now)).toBe(CODE)
   })
 
-  it("doesn't ask again once answered, also when the link is passed through again", () => {
+  it("forgets the remembered code once answered", () => {
     rememberInvite(CODE, now)
-    answerInvite(CODE, now)
-    expect(pendingInvite(`/pozvanka/${CODE}`, now)).toBeNull()
-    rememberInvite(CODE, now)
+    answerInvite()
     expect(pendingInvite(undefined, now)).toBeNull()
-  })
-
-  it("another friend's link is a new invite", () => {
-    rememberInvite(CODE, now)
-    answerInvite(CODE, now)
-    rememberInvite(OTHER, now)
-    expect(pendingInvite(undefined, now)).toBe(OTHER)
+    expect(localStorage.getItem("hobbyhub.invite")).toBeNull()
   })
 
   it("survives garbage in the storage", () => {

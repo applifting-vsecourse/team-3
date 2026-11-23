@@ -28,7 +28,7 @@ export function useOnboardingInvite(viewerId: string, from: string | undefined) 
     if (inviter === undefined) return
     // no such invite (404) or one's own: nothing to ask, ever
     if (!inviter || inviter.id === viewerId) {
-      answerInvite(code)
+      answerInvite()
       return
     }
     await new Promise<void>((resolve) => {
@@ -37,8 +37,8 @@ export function useOnboardingInvite(viewerId: string, from: string | undefined) 
     })
   }
 
-  const finish = (code: string) => {
-    answerInvite(code)
+  const finish = () => {
+    answerInvite()
     setOffered(null)
     done.current()
   }
@@ -47,7 +47,7 @@ export function useOnboardingInvite(viewerId: string, from: string | undefined) 
     <InviteStep
       key={offered.code}
       offer={offered}
-      onDone={() => finish(offered.code)}
+      onDone={finish}
     />
   ) : null
 
@@ -74,7 +74,8 @@ function InviteStep({ offer, onDone }: { offer: Offer; onDone: () => void }) {
         })
       }
       onDecline={() => {
-        // the inviter only hears who joined; the onboarding doesn't wait for it
+        // fire and forget: „Teď ne“ only tells the inviter who joined, so the onboarding goes
+        // on at once; a failed call just means the inviter isn't told (and isn't claimed)
         answer.mutate(false)
         onDone()
       }}

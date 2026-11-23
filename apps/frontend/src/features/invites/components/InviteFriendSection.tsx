@@ -60,7 +60,8 @@ export function InviteFriendSection({
         Pozvi kamaráda
       </h3>
       <p className="text-body text-muted-foreground">
-        Kdo se přidá přes tvůj odkaz, tě bude mít rovnou v přátelích.
+        Kdo se přidá přes tvůj odkaz, tě bude mít rovnou v přátelích. Přátelé vidí, na které akce
+        jdeš, tak odkaz posílej jen lidem, které znáš.
       </p>
       {invite.error ? (
         <div
@@ -70,6 +71,7 @@ export function InviteFriendSection({
           <p className="text-sm">Odkaz s pozvánkou se nepodařilo načíst.</p>
           <Button
             variant="outline"
+            className="min-h-10"
             onClick={() => void invite.refetch()}
           >
             Zkusit znovu
@@ -173,7 +175,10 @@ function RegenerateDialog({
           <Button
             variant="outline"
             disabled={regenerate.isPending}
-            onClick={onClose}
+            onClick={() => {
+              regenerate.reset()
+              onClose()
+            }}
           >
             Zrušit
           </Button>
