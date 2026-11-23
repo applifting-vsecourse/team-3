@@ -1,5 +1,10 @@
 import { PrismaService } from '@/core/prisma/prisma.service';
 import { Prisma } from '@/generated/prisma/client';
+import type { NewImage } from '@/modules/image/domain/uploaded-image';
+import {
+  createImage,
+  deleteImage,
+} from '@/modules/image/repositories/image.repository';
 import {
   PROFILE_OVERVIEW_TAKE,
   profileSelect,
@@ -11,10 +16,24 @@ import { Injectable } from '@nestjs/common';
 
 const onboardingSelect = {
   onboardingCompletedAt: true,
+  name: true,
   homeLocality: { select: { slug: true } },
   _count: { select: { interests: true } },
 } satisfies Prisma.UserSelect;
 type OnboardingRow = Prisma.UserGetPayload<{ select: typeof onboardingSelect }>;
+
+/** Locks the user's row (a concurrent upload waits) and returns the photo it has now. */
+async function lockPhoto(
+  tx: Prisma.TransactionClient,
+  userId: string,
+): Promise<string | null> {
+  await tx.$executeRaw`SELECT 1 FROM "user" WHERE "id" = ${userId} FOR UPDATE`;
+  const user = await tx.user.findUnique({
+    where: { id: userId },
+    select: { photoImageKey: true },
+  });
+  return user?.photoImageKey ?? null;
+}
 
 @Injectable()
 export class ProfileRepository {
@@ -27,31 +46,67 @@ export class ProfileRepository {
     });
   }
 
-  save(userId: string, data: Prisma.UserUpdateInput): Promise<ProfileRow> {
-    return this.prisma.user.update({
-      where: { id: userId, deletedAt: null, blockedAt: null },
-      data,
-      select: profileSelect,
+  /**
+   * Saves the profile; with `photo` also sets (a new image) or removes (null)
+   * the uploaded photo (#64). The photo is an `UploadedImage` as an event's or
+   * a group's (#77): the new one is created and the previous one deleted in
+   * the same transaction, so a replaced photo leaves nothing behind.
+   */
+  save(
+    userId: string,
+    data: Prisma.UserUpdateInput,
+    photo?: NewImage | null,
+  ): Promise<ProfileRow> {
+    const owner = { id: userId, deletedAt: null, blockedAt: null };
+    if (photo === undefined) {
+      return this.prisma.user.update({
+        where: owner,
+        data,
+        select: profileSelect,
+      });
+    }
+    return this.prisma.$transaction(async (tx) => {
+      const previous = await lockPhoto(tx, userId);
+      const key = photo ? await createImage(tx, photo) : null;
+      const profile = await tx.user.update({
+        where: owner,
+        data: {
+          ...data,
+          photo: key ? { connect: { key } } : { disconnect: true },
+        },
+        select: profileSelect,
+      });
+      if (previous) await deleteImage(tx, previous);
+      return profile;
     });
   }
 
   async finishOnboarding(
     userId: string,
     preferences: Prisma.UserUpdateInput,
+    photo?: NewImage,
   ): Promise<OnboardingRow | null> {
     const owner = { id: userId, deletedAt: null, blockedAt: null };
     const completedAt = new Date();
     try {
       // The profile and completion marker are written together. A retry or
-      // another tab cannot replace the preferences after the first success.
-      return await this.prisma.user.update({
-        where: { ...owner, onboardingCompletedAt: null },
-        data: {
-          ...preferences,
-          onboardingCompletedAt: completedAt,
-          updatedAt: completedAt,
-        },
-        select: onboardingSelect,
+      // another tab cannot replace the preferences after the first success;
+      // its photo then rolls back with the rest (#64).
+      return await this.prisma.$transaction(async (tx) => {
+        const previous = photo ? await lockPhoto(tx, userId) : null;
+        const key = photo ? await createImage(tx, photo) : null;
+        const saved = await tx.user.update({
+          where: { ...owner, onboardingCompletedAt: null },
+          data: {
+            ...preferences,
+            ...(key ? { photo: { connect: { key } } } : {}),
+            onboardingCompletedAt: completedAt,
+            updatedAt: completedAt,
+          },
+          select: onboardingSelect,
+        });
+        if (previous) await deleteImage(tx, previous);
+        return saved;
       });
     } catch (error) {
       if (

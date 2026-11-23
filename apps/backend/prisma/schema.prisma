@@ -31,9 +31,12 @@ enum UserRole {
   @@map("user_role")
 }
 
-/// B-014: kdo vidí fotku, bio a navštívené akce v profilu.
+/// B-014, #64: kdo vidí fotku, bio a navštívené akce v profilu. Okruhy jsou
+/// vnořené: everyone ⊃ friends (přátelé a organizátoři akcí, na které se
+/// hlásím) ⊃ organizers (jen ti organizátoři) ⊃ nobody (jen já).
 enum ProfileVisibility {
   everyone
+  friends
   organizers
   nobody
 
@@ -231,7 +234,8 @@ model Verification {
 }
 
 /// Uživatel. Pole do `displayUsername` spravuje BetterAuth, zbytek je profil HobbyHubu (B-003, B-013, B-014).
-/// Fotka profilu = pole `image` (v MVP jen URL, Q3).
+/// `image` je URL fotky od přihlašovacího poskytovatele (BetterAuth); fotka nahraná
+/// v HobbyHubu je `photo` (#64), uložená jako obrázky akcí a skupin (#77).
 model User {
   id            String    @id
   name          String
@@ -252,11 +256,15 @@ model User {
   homeLocalityId String?
   homeLocality   Locality?      @relation(fields: [homeLocalityId], references: [id], onDelete: SetNull)
   interests      UserInterest[]
+  /// Profilová fotka nahraná uživatelem (#64); kdo ji vidí, říká `photoVisibility`
+  photoImageKey  String?        @unique
+  photo          UploadedImage? @relation(fields: [photoImageKey], references: [key], onDelete: SetNull)
 
   // Viditelnost údajů v profilu (B-014)
   photoVisibility      ProfileVisibility @default(everyone)
   bioVisibility        ProfileVisibility @default(everyone)
-  pastEventsVisibility ProfileVisibility @default(everyone)
+  /// Navštívené akce dosud neviděl nikdo cizí (#179); přátelé už vidí „Kam jde“ (B-017)
+  pastEventsVisibility ProfileVisibility @default(friends)
 
   // Souhlasy (B-016), blokace superadminem (B-063), smazání účtu (B-080)
   ageConfirmedAt  DateTime?
@@ -417,7 +425,7 @@ model Event {
   @@map("event")
 }
 
-/// Obrázek, který nahrál organizátor akce nebo správce skupiny (#77): nahrává se
+/// Obrázek, který nahrál organizátor akce nebo správce skupiny (#77), nebo profilová fotka (#64): nahrává se
 /// JPEG, PNG nebo WebP do 5 MB, ukládá se zmenšený na WebP (šířka nejvýš 1600 px) a s
 /// malou variantou pro karty. Bajty jsou v databázi, protože staging nemá trvalý
 /// disk (kontejner se při každém nasazení vytvoří znovu) a databáze ano. `key`
@@ -436,6 +444,7 @@ model UploadedImage {
 
   event Event?
   group Group?
+  user  User?
 
   @@map("uploaded_image")
 }

@@ -1,3 +1,8 @@
+import type { UploadedImageFile } from '@/modules/image/controllers/image-upload';
+import type {
+  OnboardingInput,
+  UpdateProfileInput,
+} from '@/modules/profile/domain/profile';
 import { ProfileService } from '@/modules/profile/services/profile.service';
 import { User } from '@/shared/auth/decorators/user.decorator';
 import { Identity } from '@/shared/auth/domain/identity';
@@ -11,6 +16,7 @@ import {
   HttpCode,
   Patch,
   Post,
+  UploadedFile,
   UseGuards,
   UsePipes,
   ValidationPipe,
@@ -23,13 +29,18 @@ import {
 } from '@nestjs/swagger';
 import {
   CompleteOnboardingDto,
+  OnboardingProfileDto,
   OnboardingResultDto,
 } from './dto/onboarding.dto';
 import {
   ProfileOverviewResponseDto,
   SelfProfileResponseDto,
 } from './dto/profile.response.dto';
-import { UpdateProfileDto } from './dto/update-profile.dto';
+import {
+  UpdateProfileDto,
+  UpdateProfileWithPhotoDto,
+} from './dto/update-profile.dto';
+import { ProfilePayloadPipe, ProfileUpload } from './profile-upload';
 
 @ApiTags('profile')
 @ApiCookieAuth()
@@ -59,13 +70,64 @@ export class ProfileController {
   @UseGuards(WriteThrottlerGuard)
   @ApiResponse({ status: 200, type: SelfProfileResponseDto })
   @ApiOperation({
-    summary: 'Update my name, home locality and interests (#178)',
+    summary:
+      'Update my name, bio, home locality, interests and who sees what (#178, #64)',
   })
   update(
     @User() user: Identity,
     @Body() input: UpdateProfileDto,
   ): Promise<SelfProfileResponseDto> {
     return this.profile.update(user.id, input);
+  }
+
+  @Patch('details')
+  @UseGuards(WriteThrottlerGuard)
+  @ProfileUpload()
+  @ApiResponse({ status: 200, type: SelfProfileResponseDto })
+  @ApiOperation({
+    summary: 'Update my profile and replace or remove its photo (#64)',
+    description:
+      'multipart/form-data: `profile` = the JSON of PATCH /api/me/profile (+ `removePhoto`), `image` = JPEG, PNG or WebP up to 5 MB. The photo is then at GET /api/images/{photoKey}.',
+  })
+  @ApiResponse({
+    status: 400,
+    description: 'INVALID_PHOTO, INVALID_NAME, … (Czech message)',
+  })
+  @ApiResponse({ status: 413, description: 'Over 5 MB (Czech message)' })
+  updateWithPhoto(
+    @User() user: Identity,
+    @Body('profile', new ProfilePayloadPipe(UpdateProfileWithPhotoDto))
+    payload: UpdateProfileInput & { removePhoto?: boolean },
+    @UploadedFile() file?: UploadedImageFile,
+  ): Promise<SelfProfileResponseDto> {
+    const { removePhoto, ...input } = payload;
+    return this.profile.update(user.id, input, {
+      bytes: file?.buffer,
+      remove: removePhoto,
+    });
+  }
+
+  @Post('onboarding/profile')
+  @HttpCode(200)
+  @UseGuards(VerifiedUserGuard, WriteThrottlerGuard)
+  @ProfileUpload()
+  @ApiOperation({
+    summary:
+      'Save the initial preferences with the optional „Představ se partě“ step: photo, name, bio (#296, #64)',
+  })
+  @ApiResponse({ status: 200, type: OnboardingResultDto })
+  finishOnboardingProfile(
+    @User() user: Identity,
+    @Body('profile', new ProfilePayloadPipe(OnboardingProfileDto))
+    payload: Omit<OnboardingInput, 'displayName'> & { name?: string },
+    @UploadedFile() file?: UploadedImageFile,
+  ): Promise<OnboardingResultDto> {
+    const { name, ...preferences } = payload;
+    return this.profile.finishOnboarding(
+      user.id,
+      { ...preferences, displayName: name },
+      file?.buffer,
+    );
   }
 
   @Post('onboarding')

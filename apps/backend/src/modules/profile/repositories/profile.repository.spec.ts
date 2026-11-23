@@ -113,3 +113,78 @@ describe('private profile queries (#178)', () => {
     });
   });
 });
+
+describe('profile photo storage (#64)', () => {
+  const prisma = mockDeep<PrismaService>();
+  const repository = new ProfileRepository(prisma);
+  const image = {
+    contentType: 'image/webp' as const,
+    data: new Uint8Array([1, 2, 3]),
+    small: new Uint8Array([1]),
+  };
+  beforeEach(() => {
+    jest.clearAllMocks();
+    prisma.$transaction.mockImplementation(((
+      run: (tx: typeof prisma) => unknown,
+    ) => run(prisma)) as never);
+    prisma.user.update.mockResolvedValue({} as never);
+    prisma.uploadedImage.create.mockResolvedValue({ key: 'new-key' } as never);
+  });
+
+  it('stores the photo as an uploaded image and deletes the one it replaces', async () => {
+    prisma.user.findUnique.mockResolvedValue({
+      photoImageKey: 'old-key',
+    } as never);
+    await repository.save('owner', { bio: 'Ahoj' }, image);
+    expect(prisma.$executeRaw).toHaveBeenCalled();
+    expect(prisma.uploadedImage.create).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({ contentType: 'image/webp', size: 3 }),
+      }),
+    );
+    expect(prisma.user.update).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: { id: 'owner', deletedAt: null, blockedAt: null },
+        data: { bio: 'Ahoj', photo: { connect: { key: 'new-key' } } },
+      }),
+    );
+    expect(prisma.uploadedImage.delete).toHaveBeenCalledWith({
+      where: { key: 'old-key' },
+    });
+  });
+
+  it('removes the photo with null and creates nothing', async () => {
+    prisma.user.findUnique.mockResolvedValue({
+      photoImageKey: 'old-key',
+    } as never);
+    await repository.save('owner', {}, null);
+    expect(prisma.uploadedImage.create).not.toHaveBeenCalled();
+    expect(prisma.user.update).toHaveBeenCalledWith(
+      expect.objectContaining({ data: { photo: { disconnect: true } } }),
+    );
+    expect(prisma.uploadedImage.delete).toHaveBeenCalledWith({
+      where: { key: 'old-key' },
+    });
+  });
+
+  it('leaves the photo alone when the save carries none', async () => {
+    await repository.save('owner', { bio: 'Ahoj' });
+    expect(prisma.$transaction).not.toHaveBeenCalled();
+    expect(prisma.uploadedImage.create).not.toHaveBeenCalled();
+    expect(prisma.uploadedImage.delete).not.toHaveBeenCalled();
+  });
+
+  it('saves the onboarding photo in the same transaction as the completion', async () => {
+    prisma.user.findUnique.mockResolvedValue({ photoImageKey: null } as never);
+    await repository.finishOnboarding('owner', {}, image);
+    expect(prisma.user.update).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: expect.objectContaining({ onboardingCompletedAt: null }),
+        data: expect.objectContaining({
+          photo: { connect: { key: 'new-key' } },
+        }),
+      }),
+    );
+    expect(prisma.uploadedImage.delete).not.toHaveBeenCalled();
+  });
+});

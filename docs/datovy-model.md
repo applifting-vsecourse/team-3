@@ -6,30 +6,30 @@ Schéma vzniklo v rámci #47 (testovací data), protože bez něj nešla data na
 
 ## Přehled tabulek
 
-| Model               | Tabulka              | K čemu je                                                                                                                | Úkol                | Sprint 2 |
-| ------------------- | -------------------- | ------------------------------------------------------------------------------------------------------------------------ | ------------------- | -------- |
-| `User`              | `user`               | Účet (BetterAuth) a profil: bio, domovská lokalita, viditelnost údajů, souhlasy, blokace                                 | B-003, B-013, B-014 | ano      |
-| `UserInterest`      | `user_interest`      | Zájmy v profilu, vazba M:N uživatel × aktivita                                                                           | B-003               | ano      |
-| `ActivityCategory`  | `activity_category`  | Kategorie aktivit (první úroveň)                                                                                         | B-002               | ano      |
-| `Activity`          | `activity`           | Aktivita (druhá úroveň) s klíčovými slovy pro hledání                                                                    | B-002               | ano      |
-| `Locality`          | `locality`           | Město nebo městská část se souřadnicemi středu                                                                           | B-002               | ano      |
-| `Event`             | `event`              | Akce jednotlivce i skupiny                                                                                               | B-020               | ano      |
-| `UploadedImage`     | `uploaded_image`     | Obrázek akce nebo fotka skupiny nahraná jako soubor (v databázi, viz [Obrázky akcí a skupin](#obrázky-akcí-a-skupin-77)) | #77                 | ne       |
-| `Participation`     | `participation`      | Přihláška na akci a její stav, docházka                                                                                  | B-030, B-072        | ano      |
-| `Group`             | `group`              | Skupina (veřejná / neveřejná, aktivní / deaktivovaná)                                                                    | B-050               | ano      |
-| `GroupMember`       | `group_member`       | Členství a role ve skupině                                                                                               | B-050               | ano      |
-| `EventMessage`      | `event_message`      | Zpráva organizátora účastníkům (limit 10 za den)                                                                         | B-042               | ne       |
-| `GroupAnnouncement` | `group_announcement` | Oznámení správce členům skupiny (limit 10 za den na skupinu)                                                             | #194                | ne       |
-| `Friendship`        | `friendship`         | Přátelství: jedna žádost na dvojici lidí a její stav (viz [Přátelé](#přátelé-307))                                       | B-017, #307         | ne       |
-| `Notification`      | `notification`       | Upozornění v centru (zvonek), nepřečtené mají `readAt` prázdné (viz [Upozornění](#upozornění-86))                        | B-044, #86          | ne       |
-| `NotificationLog`   | `notification_log`   | Záznam o odeslaném plánovaném e-mailu, aby nepřišel dvakrát                                                              | B-043               | ne       |
-| `Rating`            | `rating`             | Hodnocení akce a organizátora od účastníka                                                                               | B-060               | ne       |
-| `ParticipantRating` | `participant_rating` | Hodnocení účastníka organizátorem akce                                                                                   | B-060, #180         | ne       |
-| `Report`            | `report`             | Nahlášení uživatele, akce, skupiny nebo hodnocení                                                                        | B-061               | ne       |
-| `ModerationAction`  | `moderation_action`  | Zásah superadmina a jeho vrácení                                                                                         | B-063               | ne       |
-| `Payment`           | `payment`            | Simulovaná platba (předplatné, topování)                                                                                 | B-070               | ne       |
-| `Subscription`      | `subscription`       | Předplatné organizátora (evidence docházky)                                                                              | B-071               | ne       |
-| `SeedState`         | `seed_state`         | Verze testovacích dat v databázi, podle ní seed pozná, že má data vyměnit                                                | #181                | –        |
+| Model               | Tabulka              | K čemu je                                                                                                                                       | Úkol                | Sprint 2 |
+| ------------------- | -------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------- | ------------------- | -------- |
+| `User`              | `user`               | Účet (BetterAuth) a profil: bio, domovská lokalita, viditelnost údajů, souhlasy, blokace                                                        | B-003, B-013, B-014 | ano      |
+| `UserInterest`      | `user_interest`      | Zájmy v profilu, vazba M:N uživatel × aktivita                                                                                                  | B-003               | ano      |
+| `ActivityCategory`  | `activity_category`  | Kategorie aktivit (první úroveň)                                                                                                                | B-002               | ano      |
+| `Activity`          | `activity`           | Aktivita (druhá úroveň) s klíčovými slovy pro hledání                                                                                           | B-002               | ano      |
+| `Locality`          | `locality`           | Město nebo městská část se souřadnicemi středu                                                                                                  | B-002               | ano      |
+| `Event`             | `event`              | Akce jednotlivce i skupiny                                                                                                                      | B-020               | ano      |
+| `UploadedImage`     | `uploaded_image`     | Obrázek akce, fotka skupiny nebo profilová fotka (#64) nahraná jako soubor (v databázi, viz [Obrázky akcí a skupin](#obrázky-akcí-a-skupin-77)) | #77                 | ne       |
+| `Participation`     | `participation`      | Přihláška na akci a její stav, docházka                                                                                                         | B-030, B-072        | ano      |
+| `Group`             | `group`              | Skupina (veřejná / neveřejná, aktivní / deaktivovaná)                                                                                           | B-050               | ano      |
+| `GroupMember`       | `group_member`       | Členství a role ve skupině                                                                                                                      | B-050               | ano      |
+| `EventMessage`      | `event_message`      | Zpráva organizátora účastníkům (limit 10 za den)                                                                                                | B-042               | ne       |
+| `GroupAnnouncement` | `group_announcement` | Oznámení správce členům skupiny (limit 10 za den na skupinu)                                                                                    | #194                | ne       |
+| `Friendship`        | `friendship`         | Přátelství: jedna žádost na dvojici lidí a její stav (viz [Přátelé](#přátelé-307))                                                              | B-017, #307         | ne       |
+| `Notification`      | `notification`       | Upozornění v centru (zvonek), nepřečtené mají `readAt` prázdné (viz [Upozornění](#upozornění-86))                                               | B-044, #86          | ne       |
+| `NotificationLog`   | `notification_log`   | Záznam o odeslaném plánovaném e-mailu, aby nepřišel dvakrát                                                                                     | B-043               | ne       |
+| `Rating`            | `rating`             | Hodnocení akce a organizátora od účastníka                                                                                                      | B-060               | ne       |
+| `ParticipantRating` | `participant_rating` | Hodnocení účastníka organizátorem akce                                                                                                          | B-060, #180         | ne       |
+| `Report`            | `report`             | Nahlášení uživatele, akce, skupiny nebo hodnocení                                                                                               | B-061               | ne       |
+| `ModerationAction`  | `moderation_action`  | Zásah superadmina a jeho vrácení                                                                                                                | B-063               | ne       |
+| `Payment`           | `payment`            | Simulovaná platba (předplatné, topování)                                                                                                        | B-070               | ne       |
+| `Subscription`      | `subscription`       | Předplatné organizátora (evidence docházky)                                                                                                     | B-071               | ne       |
+| `SeedState`         | `seed_state`         | Verze testovacích dat v databázi, podle ní seed pozná, že má data vyměnit                                                                       | #181                | –        |
 
 Tabulky `session`, `account` a `verification` spravuje BetterAuth (přihlášení, ověření e-mailu, obnova hesla).
 
@@ -53,6 +53,7 @@ erDiagram
         string username UK
         string bio "max 500 znaků"
         string homeLocalityId FK
+        string photoImageKey FK "nahraná fotka (#64)"
         profile_visibility photoVisibility
         profile_visibility bioVisibility
         profile_visibility pastEventsVisibility
@@ -119,6 +120,7 @@ erDiagram
     Event |o--o{ NotificationLog : "e-maily"
     UploadedImage |o--o| Event : "obrázek (#77)"
     UploadedImage |o--o| Group : "fotka (#77)"
+    UploadedImage |o--o| User : "profilová fotka (#64)"
     User |o--o{ NotificationLog : "příjemce"
 
     Event {
@@ -319,18 +321,18 @@ Databáze vynucuje cizí klíče, unikátnost a enumy, k tomu `CHECK` na hvězdi
 
 Backlog popisuje modely v bodech. Tyto věci v něm výslovně nejsou a schéma je doplňuje:
 
-| Co                                                                                                                                        | Proč                                                                                                                                                                          |
-| ----------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `Participation.approvedAt`                                                                                                                | Design D-03 řadí účastníky „podle data schválení“, `updatedAt` se mění i při jiných změnách                                                                                   |
-| `photoVisibility`, `bioVisibility`, `pastEventsVisibility`                                                                                | B-014 je chce, v seznamu polí B-003 chybí. Fotka profilu je existující pole `image` z BetterAuth                                                                              |
-| `UserInterest` jako vlastní tabulka                                                                                                       | B-003 chce M:N vazbu; vlastní tabulka má čitelný název a jde do ní přidat sloupec                                                                                             |
-| `EventMessage`                                                                                                                            | B-042 omezuje počet zpráv na 10 za den, bez záznamu o odeslání to nejde spočítat                                                                                              |
-| `NotificationLog`                                                                                                                         | B-043 chce „záznam o odeslání, aby po restartu nepřišel e-mail dvakrát“                                                                                                       |
-| `Rating.deletedAt`, `ParticipantRating.deletedAt`, `ModerationAction.revertedAt`                                                          | B-063: smazání hodnocení musí jít vrátit, proto se hodnocení jen označí                                                                                                       |
-| `ParticipantRating` jako vlastní tabulka se složeným cizím klíčem `(eventId, participantId)` na účast                                     | Stejný tvar jako `Rating`, přihlašování (`participation`) se nemění; databáze zaručí, že hodnocený byl na akci přihlášený. Bez `raterId`: hodnotí jen organizátor akce (#180) |
-| `CHECK` na `participant_rating.stars` a `rating.eventStars` / `rating.organizerStars`                                                     | Hvězdičky hlídá i databáze, u obou hodnocení stejně (`Rating` od review #313)                                                                                                 |
-| `Report.resolvedById`, `resolvedAt`                                                                                                       | Historie v administraci (B-062, B-063) potřebuje vědět, kdo a kdy nahlášení vyřídil                                                                                           |
-| Uživatel s pořádanými akcemi nebo platbami a skupina s akcemi nejdou smazat (`RESTRICT`), přihlášky a členství se mažou s akcí / skupinou | Akce a platby jsou historie. Smazání účtu (B-080) uživatele anonymizuje, nemaže                                                                                               |
+| Co                                                                                                                                        | Proč                                                                                                                                                                                                                                 |
+| ----------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `Participation.approvedAt`                                                                                                                | Design D-03 řadí účastníky „podle data schválení“, `updatedAt` se mění i při jiných změnách                                                                                                                                          |
+| `photoVisibility`, `bioVisibility`, `pastEventsVisibility`                                                                                | B-014 je chce, v seznamu polí B-003 chybí. Hodnoty `everyone` / `friends` (přátelé a organizátoři mých akcí, #64) / `organizers` / `nobody`. Nahraná fotka je `photoImageKey` → `uploaded_image` (#64), `image` je URL od BetterAuth |
+| `UserInterest` jako vlastní tabulka                                                                                                       | B-003 chce M:N vazbu; vlastní tabulka má čitelný název a jde do ní přidat sloupec                                                                                                                                                    |
+| `EventMessage`                                                                                                                            | B-042 omezuje počet zpráv na 10 za den, bez záznamu o odeslání to nejde spočítat                                                                                                                                                     |
+| `NotificationLog`                                                                                                                         | B-043 chce „záznam o odeslání, aby po restartu nepřišel e-mail dvakrát“                                                                                                                                                              |
+| `Rating.deletedAt`, `ParticipantRating.deletedAt`, `ModerationAction.revertedAt`                                                          | B-063: smazání hodnocení musí jít vrátit, proto se hodnocení jen označí                                                                                                                                                              |
+| `ParticipantRating` jako vlastní tabulka se složeným cizím klíčem `(eventId, participantId)` na účast                                     | Stejný tvar jako `Rating`, přihlašování (`participation`) se nemění; databáze zaručí, že hodnocený byl na akci přihlášený. Bez `raterId`: hodnotí jen organizátor akce (#180)                                                        |
+| `CHECK` na `participant_rating.stars` a `rating.eventStars` / `rating.organizerStars`                                                     | Hvězdičky hlídá i databáze, u obou hodnocení stejně (`Rating` od review #313)                                                                                                                                                        |
+| `Report.resolvedById`, `resolvedAt`                                                                                                       | Historie v administraci (B-062, B-063) potřebuje vědět, kdo a kdy nahlášení vyřídil                                                                                                                                                  |
+| Uživatel s pořádanými akcemi nebo platbami a skupina s akcemi nejdou smazat (`RESTRICT`), přihlášky a členství se mažou s akcí / skupinou | Akce a platby jsou historie. Smazání účtu (B-080) uživatele anonymizuje, nemaže                                                                                                                                                      |
 
 ## Co se seeduje
 

@@ -1,8 +1,11 @@
 import { LocalityResponseDto } from '@/modules/catalog/controllers/dto/locality.response.dto';
 import {
   PROFILE_OVERVIEW_TAKE,
+  PROFILE_VISIBILITIES,
   type ProfileOverview,
   type ProfileRating,
+  type ProfileVisibility,
+  type ProfileVisibilitySettings,
   type SelfProfile,
 } from '@/modules/profile/domain/profile';
 import type { RatingSummary } from '@/modules/rating/domain/rating-summary';
@@ -11,6 +14,11 @@ import { ApiProperty } from '@nestjs/swagger';
 class NamedProfileEntityDto {
   @ApiProperty() id!: string;
   @ApiProperty() name!: string;
+}
+class ProfileVisibilityDto implements ProfileVisibilitySettings {
+  @ApiProperty({ enum: PROFILE_VISIBILITIES }) photo!: ProfileVisibility;
+  @ApiProperty({ enum: PROFILE_VISIBILITIES }) bio!: ProfileVisibility;
+  @ApiProperty({ enum: PROFILE_VISIBILITIES }) pastEvents!: ProfileVisibility;
 }
 class ProfileEventReferenceDto {
   @ApiProperty() id!: string;
@@ -22,6 +30,17 @@ export class SelfProfileResponseDto implements SelfProfile {
   @ApiProperty() email!: string;
   @ApiProperty() emailVerified!: boolean;
   @ApiProperty() hasPassword!: boolean;
+  @ApiProperty({ type: String, nullable: true })
+  bio!: string | null;
+  @ApiProperty({
+    type: String,
+    nullable: true,
+    description:
+      'The uploaded photo (#64), at GET /api/images/{photoKey}; null = initials',
+  })
+  photoKey!: string | null;
+  @ApiProperty({ type: ProfileVisibilityDto })
+  visibility!: ProfileVisibilitySettings;
   @ApiProperty({ type: LocalityResponseDto, nullable: true })
   homeLocality!: SelfProfile['homeLocality'];
   @ApiProperty({ type: [NamedProfileEntityDto] })
