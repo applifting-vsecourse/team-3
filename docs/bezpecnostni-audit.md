@@ -76,7 +76,7 @@ Stav: **opraveno** = sloučeno do `main`, **částečně** = opravená jen čás
 | ID   | Nález                                                                                                                                          | Závažnost | Stav                         | Oprava nebo doporučení                                                                                                            |
 | ---- | ---------------------------------------------------------------------------------------------------------------------------------------------- | --------- | ---------------------------- | --------------------------------------------------------------------------------------------------------------------------------- |
 | N-1  | Zápisy do `/api` nekontrolovaly původ požadavku, aplikace jiného týmu na společné doméně je mohla vyvolat                                      | vysoká    | opraveno v #140              | Stejný problém jako S-4; na stagingu ověřeno                                                                                      |
-| N-2  | Simulovaná schránka se zapínala sama, když chyběla e-mailová služba, takže jde ověřit cizí adresu; po zapnutí Googlu (#165) hrozí sdílení účtu | střední   | částečně v #216              | Viz [Zbývá u N-2 a N-3](#zbývá-u-n-2-a-n-3)                                                                                       |
+| N-2  | Simulovaná schránka se zapínala sama, když chyběla e-mailová služba, takže jde ověřit cizí adresu; po zapnutí Googlu (#165) hrozí sdílení účtu | střední   | částečně v #216 a #165       | Simulovaná schránka je se SMTP vypnutá; zbývá riziko u účtů ověřených simulací, viz [Zbývá u N-2 a N-3](#zbývá-u-n-2-a-n-3)       |
 | N-3  | Demo účty s heslem zveřejněným v repu se zakládaly při každém startu, pokud se to výslovně nevyplo                                             | střední   | opraveno v #216, #234 a #235 | Viz [Zbývá u N-2 a N-3](#zbývá-u-n-2-a-n-3)                                                                                       |
 | N-4  | Chyběly bezpečnostní hlavičky (CSP, `frame-ancestors`, HSTS, `nosniff`), stránku šlo vložit do cizího rámce; #140 to neřeší                    | střední   | opraveno v #216              | Hlavičky v `nginx`, `helmet` v backendu; CSP viz níže                                                                             |
 | N-5  | Neověřený účet mohl bez omezení přidávat lokality do veřejného katalogu; `/api` nemá rate limit                                                | střední   | částečně v #216 a #230       | Limity zápisů na uživatele, viz [Zbývá u N-5](#zbývá-u-n-5)                                                                       |
@@ -93,19 +93,16 @@ Stav: **opraveno** = sloučeno do `main`, **částečně** = opravená jen čás
 
 ### Zbývá u N-2 a N-3
 
-V produkci se simulovaná schránka ani demo účty nezapnou samy. Staging je má dál zapnuté výslovně v `apps/backend/Dockerfile.deploy`, protože nemá e-mailovou službu a tým nemá přístup k proměnným v Coolify.
+V produkci se simulovaná schránka ani demo účty nezapnou samy. Demo účty má staging dál zapnuté výslovně v `apps/backend/Dockerfile.deploy`.
 
-**N-2** se dokončí s #165 (Martin):
+**N-2:** staging od #165 posílá skutečné e-maily přes SMTP. Na stagingu ověřeno (#165): registrace pošle skutečný ověřovací e-mail a odkaz v něm funguje, „Zapomenuté heslo“ pošle e-mail. Se zadaným SMTP se simulovaná schránka vypne sama (`simulatedInboxEnabled`), staging to hlásí v `GET /api/sign-in-providers` (`"simulatedInbox": false`, 23. 11.). Ověřit cizí adresu na stagingu už nejde.
 
-- Zadat klíče e-mailové služby na stagingu a ověřit, že e-maily chodí.
-- Smazat z `Dockerfile.deploy` řádek `SIMULATED_INBOX=true`.
-- Účtům ověřeným simulací zrušit ověření, nebo vynulovat databázi stagingu.
+- **Zbývající riziko:** účty ověřené dřív simulací zůstávají ověřené, tak to tým rozhodl ([`docs/staging-auth-mail.md`](staging-auth-mail.md#na-co-dát-pozor)). Vlastnictví jejich adresy nikdo nedoložil a se skutečnou poštou BetterAuth propojí přihlášení přes Google s existujícím účtem se stejnou ověřenou adresou. Kdo si přes simulaci založil účet s cizí adresou, zná k němu heslo; když se pak majitel adresy přihlásí přes Google, dostane se do téhož účtu a oba ho sdílejí. Demo účty ze seedu jsou na `@example.com`, ty ohrožené nejsou. Kdyby se to mělo změnit: nechat tyto účty znovu ověřit, nebo vynulovat databázi stagingu.
+- Řádek `SIMULATED_INBOX=true` v `Dockerfile.deploy` zůstává. Dokud je SMTP nastavené, nemá účinek; kdyby klíče SMTP z image zmizely, schránka se zase zapne. Před skutečnou produkcí ho smazat.
 
 **Klíče na stagingu:** proměnné v Coolify nastavují vyučující, takže vlastní klíče (Google, Resend, SMTP) se na staging dostanou jen při sestavení image: GitHub secret, build-arg v `deploy.yml` a `ENV` v `Dockerfile.deploy`. Hodnoty pak jsou uvnitř image a přečte je každý, kdo k image má přístup. Proto pro staging použít samostatné klíče jen pro staging (u Resendu klíč jen s právem odesílat, u Googlu samostatného OAuth klienta), aby šly při úniku zneplatnit bez dopadu jinam. Klíče nepatří do repa, ani jako výchozí hodnota v `Dockerfile.deploy`.
 
-Dokud je schránka zapnutá, jde na stagingu ověřit cizí adresu. Google se ale k existujícímu účtu nepřipojí, takže účet takhle převzít nejde.
-
-**Limity simulované schránky (#236)** platí, jen dokud je schránka zapnutá (staging). Zůstávají dvě slabiny, které odstraní až její vypnutí:
+**Limity simulované schránky (#236)** platí, jen dokud je schránka zapnutá. Na stagingu je od #165 vypnutá, takže následující dvě slabiny se teď neprojeví:
 
 - Kdo pošle 20 pokusů se špatným heslem na cizí adresu, zamkne majiteli schránku na 10 minut. Úspěšný pokus počítadlo vynuluje, ale zamčenou schránku neotevře.
 - Počítadla drží nejvýš 10 000 klíčů a plné počítadlo nový klíč odmítne, aby zahlcení nevynulovalo běžící limity. Když se naplní počítadlo IP adres, dostane na 10 minut 429 každá nová IP, tedy všichni noví návštěvníci schránky, nejen útočník.
@@ -162,17 +159,17 @@ Z kódu nejde zjistit a tým nemá přístup do Coolify. Ověří to Tomáš Kl�
 - `BETTER_AUTH_SECRET` nastavuje Coolify, nesmí mít hodnotu z `.env.example`.
 - Backend nesmí být dostupný přímo mimo proxy.
 - Proxy musí přepisovat hlavičku `X-Forwarded-For`, jinak nemusí správně fungovat rate limit přihlášení a limit veřejného čtení akcí a skupin (#230).
-- Frontend běží z image s tagem commitu z #401 nebo novějším (`nginxinc/nginx-unprivileged`) a proces nginx má uid 101, ne 0 (N-13).
 - Před backendem je právě jedna proxy (`TRUST_PROXY_HOPS=1`). Při víc proxy by limit simulované schránky počítal adresu vnější proxy, ne klienta.
 - Po nasazení #236 nemá žádný uživatel s neověřeným e-mailem platnou session (migrace `20261107120000_end_unverified_sessions`). Dotaz musí vrátit 0: `SELECT count(*) FROM "session" s JOIN "user" u ON u."id" = s."userId" WHERE u."emailVerified" = false AND s."expiresAt" > now();`
 - `FRONTEND_URL` a `BACKEND_URL` musí odpovídat skutečným adresám, jinak ochrana z #140 odmítne všechny zápisy.
+- Frontend běží z image s tagem commitu z #401 nebo novějším (`nginxinc/nginx-unprivileged`) a proces nginx má uid 101, ne 0 (N-13).
 
 **Superadmin:** do #308 na stagingu nebyl nastavený `SUPERADMIN_EMAIL` ani `SUPERADMIN_PASSWORD` (`deploy.yml` je nepředával a proměnné v Coolify nastavit nejde), takže se superadmin nezaložil (seed to hlásí v logu, ověřeno 2. 11.). Od #308 předává `deploy.yml` jen GitHub variable `SUPERADMIN_EMAIL` (build-arg). Heslo ani jeho hash v image nejsou (review #380): seed založí účet s ověřeným e-mailem a náhodným heslem, které nikde neuloží ani nezaloguje, a superadmin si heslo nastaví přes „Zapomenuté heslo“. Odkaz dojde jen majiteli schránky, proto to seed udělá jen se skutečným e-mailem (SMTP nebo Resend); se simulovanou schránkou superadmina nezaloží a vypíše proč. Existující účet se stejnou adresou, i běžný, nepovýší a heslo mu nemění; superadminovi heslo nemění ani při dalších startech. Zbývající riziko: kdo ovládne schránku `SUPERADMIN_EMAIL`, ovládne i superadmina, proto adresa jen pro tým, s dvoufázovým ověřením. Superadmin má od #308 práva navíc (deaktivace a úprava akcí).
 
 ## Co je v pořádku
 
 - **Oprávnění:** všechny controllery prošly kontrolou. Uživatel se bere ze session a akce i skupiny hlídají organizátora a správce.
-- **Osobní údaje:** API o lidech vrací jen `id` a jméno, e-mail vidí jen jeho majitel. Zprávu k žádosti (#243) vidí v aplikaci jen organizátor akce nebo správci skupiny, a jen dokud žádost čeká. Organizátorovi akce ji navíc pošle e-mail o nové žádosti (#177), takže mu ve schránce zůstane i po rozhodnutí. Dokud na stagingu neposílá e-maily SMTP (#165), zapisuje se u každého upozornění do logu adresa příjemce a předmět s názvem akce (N-6). U oznámení skupiny (#194) je v předmětu i text, který napsal správce („{skupina}: {předmět}“), takže do logu jde u každého příjemce volný text od uživatele.
+- **Osobní údaje:** API o lidech vrací jen `id` a jméno, e-mail vidí jen jeho majitel. Zprávu k žádosti (#243) vidí v aplikaci jen organizátor akce nebo správci skupiny, a jen dokud žádost čeká. Organizátorovi akce ji navíc pošle e-mail o nové žádosti (#177), takže mu ve schránce zůstane i po rozhodnutí. Bez e-mailové služby se u každého upozornění zapisuje do logu adresa příjemce a předmět s názvem akce (N-6). U oznámení skupiny (#194) je v předmětu i text, který napsal správce („{skupina}: {předmět}“), takže do logu jde u každého příjemce volný text od uživatele. Staging od #165 posílá e-maily přes SMTP, takže se tam do logu nezapisují.
 - **Vstupy:** DTO odmítají neznámá pole a seznamy mají strop. Raw SQL je parametrizované.
 - **Přihlášení:** platnost tokenů, ochranu přihlášení limitem a kontrolu uniklých hesel agent v kódu našel.
 - **XSS a přesměrování:** aplikace nepoužívá `dangerouslySetInnerHTML` a návratové adresy prochází přes `safeRedirect`.
