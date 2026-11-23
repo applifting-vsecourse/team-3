@@ -14,6 +14,8 @@ type ShareLinkButtonProps = {
   path: string
   /** The title the phone's share sheet shows. */
   title: string
+  /** A message the share sheet sends with the link (the invite's, #406); the copy is the link alone. */
+  text?: string
   label: string
   /** The phone's own share sheet where there is one; otherwise the link is copied. */
   shouldUseShareSheet?: boolean
@@ -30,6 +32,7 @@ type ShareLinkButtonProps = {
 export function ShareLinkButton({
   path,
   title,
+  text,
   label,
   shouldUseShareSheet = false,
   variant,
@@ -40,7 +43,7 @@ export function ShareLinkButton({
     const url = absoluteLink(path)
     if (shouldUseShareSheet && typeof navigator.share === "function") {
       try {
-        await navigator.share({ title, url })
+        await navigator.share({ title, url, ...(text ? { text } : {}) })
       } catch {
         // dismissing the share sheet is not an error worth a toast
       }

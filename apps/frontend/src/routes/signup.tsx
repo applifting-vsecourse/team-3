@@ -15,6 +15,8 @@ import { useSignUp } from "@/features/auth/hooks/useSignUp"
 import { googleSignInErrorMessage } from "@/features/auth/lib/auth-errors"
 import { authBackLink, safeRedirect } from "@/features/auth/lib/redirect"
 import { UpcomingEvents } from "@/features/events/components/UpcomingEvents"
+import { InviteBanner } from "@/features/invites/components/InviteBanner"
+import { pendingInvite } from "@/features/invites/lib/invite"
 
 // `from`: the page to come back to, e.g. the event (B-012); `error`: why
 // Google sent the user back here without signing in (#198), as on /login
@@ -43,6 +45,8 @@ function SignUpPage() {
   )
   // #236: signed up, not signed in: the link from the e-mail comes first
   const [signedUp, setSignedUp] = useState<InboxCredentials | null>(null)
+  // #406: a friend's invite, from `from` or remembered in this browser
+  const [inviteCode] = useState(() => pendingInvite(from))
 
   const handleSubmit = async (values: SignUpValues) => {
     setErrorMessage(null)
@@ -101,6 +105,7 @@ function SignUpPage() {
         description="Jeden účet pro přihlašování na akce i jejich pořádání."
         footer={<>Už máš účet? {signInLink("Přihlas se")}</>}
       >
+        <InviteBanner code={inviteCode} />
         <SignUpForm
           isLoading={signUp.isPending}
           errorMessage={errorMessage}
