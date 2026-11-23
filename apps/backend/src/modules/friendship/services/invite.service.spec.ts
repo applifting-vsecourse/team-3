@@ -1,6 +1,7 @@
 import type { FriendshipRow } from '@/modules/friendship/domain/friendship';
 import { FriendshipRepository } from '@/modules/friendship/repositories/friendship.repository';
 import { InviteRepository } from '@/modules/friendship/repositories/invite.repository';
+import { FriendRequestLimitRepository } from '@/modules/friendship/repositories/request-limit.repository';
 import { NotificationService } from '@/modules/notification/services/notification.service';
 import type { Config } from '@/shared/config/config.service';
 import { mock, type MockProxy } from 'jest-mock-extended';
@@ -16,6 +17,7 @@ const setup = (): {
   invites: MockProxy<InviteRepository>;
   friendships: MockProxy<FriendshipRepository>;
   notifications: MockProxy<NotificationService>;
+  limits: MockProxy<FriendRequestLimitRepository>;
   service: InviteService;
 } => {
   const invites = mock<InviteRepository>();
@@ -26,11 +28,17 @@ const setup = (): {
   const friendships = mock<FriendshipRepository>();
   friendships.findPair.mockResolvedValue(null);
   const notifications = mock<NotificationService>();
-  const service = new InviteService(invites, friendships, notifications, {
-    frontendUrl: 'https://hobbyhub.test',
-  } as Config);
+  const limits = mock<FriendRequestLimitRepository>();
+  limits.limited.mockResolvedValue('written');
+  const service = new InviteService(
+    invites,
+    friendships,
+    notifications,
+    { frontendUrl: 'https://hobbyhub.test' } as Config,
+    limits,
+  );
   service.random = (size): Uint8Array => new Uint8Array(size).fill(1);
-  return { invites, friendships, notifications, service };
+  return { invites, friendships, notifications, limits, service };
 };
 
 const code = async (promise: Promise<unknown>): Promise<unknown> =>
@@ -159,7 +167,6 @@ describe('InviteService.accept (the onboarding’s step, #406)', () => {
       createdAt: now,
       invitedById: INVITER,
     });
-    friendships.create.mockResolvedValue(true);
 
     await expect(service.accept(NEW, CODE, true, now)).resolves.toBe(
       'outgoing',
@@ -174,7 +181,7 @@ describe('InviteService.accept (the onboarding’s step, #406)', () => {
   });
 
   it('claimed, then the inviter unfriends: accepting again is a request, not friends', async () => {
-    const { invites, friendships, service } = setup();
+    const { invites, friendships, limits, service } = setup();
     friendships.createAccepted.mockResolvedValue(true);
     await expect(service.accept(NEW, CODE, true, now)).resolves.toBe('friends');
 
@@ -184,13 +191,18 @@ describe('InviteService.accept (the onboarding’s step, #406)', () => {
       invitedById: INVITER,
     });
     friendships.findPair.mockResolvedValue(null);
-    friendships.create.mockResolvedValue(true);
 
     await expect(service.accept(NEW, CODE, true, now)).resolves.toBe(
       'outgoing',
     );
     expect(friendships.createAccepted).toHaveBeenCalledTimes(1);
-    expect(friendships.create).toHaveBeenCalledWith(NEW, INVITER);
+    expect(limits.limited).toHaveBeenCalledWith(
+      NEW,
+      INVITER,
+      'create',
+      expect.any(Date),
+      now,
+    );
   });
 
   it('the inviter quietly rejected my request: the invite doesn’t override it', async () => {
@@ -215,18 +227,23 @@ describe('InviteService.accept (the onboarding’s step, #406)', () => {
   });
 
   it('an older account sends an ordinary request', async () => {
-    const { invites, friendships, notifications, service } = setup();
+    const { invites, notifications, limits, service } = setup();
     invites.findInvitee.mockResolvedValue({
       createdAt: new Date('2026-01-01T00:00:00.000Z'),
       invitedById: null,
     });
-    friendships.create.mockResolvedValue(true);
 
     await expect(service.accept(NEW, CODE, true, now)).resolves.toBe(
       'outgoing',
     );
     expect(invites.claim).not.toHaveBeenCalled();
-    expect(friendships.create).toHaveBeenCalledWith(NEW, INVITER);
+    expect(limits.limited).toHaveBeenCalledWith(
+      NEW,
+      INVITER,
+      'create',
+      expect.any(Date),
+      now,
+    );
     expect(notifications.notify).toHaveBeenCalledWith({
       type: 'friend-request',
       fromId: NEW,
@@ -237,7 +254,6 @@ describe('InviteService.accept (the onboarding’s step, #406)', () => {
   it('past 20 sign-ups a day the code is ignored: an ordinary request', async () => {
     const { invites, friendships, service } = setup();
     invites.countInvited.mockResolvedValue(20);
-    friendships.create.mockResolvedValue(true);
 
     await expect(service.accept(NEW, CODE, true, now)).resolves.toBe(
       'outgoing',
@@ -246,10 +262,30 @@ describe('InviteService.accept (the onboarding’s step, #406)', () => {
     expect(friendships.createAccepted).not.toHaveBeenCalled();
   });
 
+  it('an ordinary request counts towards the daily limit (#84)', async () => {
+    const { invites, limits, notifications, service } = setup();
+    invites.findInvitee.mockResolvedValue({
+      createdAt: now,
+      invitedById: INVITER,
+    });
+    limits.limited.mockResolvedValue('limit');
+
+    await expect(code(service.accept(NEW, CODE, true, now))).resolves.toBe(
+      'FRIEND_REQUEST_DAILY_LIMIT',
+    );
+    expect(limits.limited).toHaveBeenCalledWith(
+      NEW,
+      INVITER,
+      'create',
+      new Date('2026-11-22T23:00:00.000Z'),
+      now,
+    );
+    expect(notifications.notify).not.toHaveBeenCalled();
+  });
+
   it('another tab claimed first: no second „joined“', async () => {
-    const { invites, friendships, notifications, service } = setup();
+    const { invites, notifications, service } = setup();
     invites.claim.mockResolvedValue(false);
-    friendships.create.mockResolvedValue(true);
 
     await service.accept(NEW, CODE, true, now);
 

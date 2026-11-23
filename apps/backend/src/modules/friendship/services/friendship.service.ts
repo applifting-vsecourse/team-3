@@ -52,9 +52,12 @@ const REFUSALS: Record<FriendshipRefusal, () => HttpException> = {
     }),
 };
 
-/** 429 on `POST /api/friends/:userId` and on „Přidat“ in Najdi parťáka alike (#84). */
+/**
+ * 429 on `POST /api/friends/:userId`, on „Přidat“ in Najdi parťáka (#84) and on an invite's
+ * „Přidat do přátel“ that ends up an ordinary request (#406) alike.
+ */
 export const FRIEND_REQUEST_DAILY_LIMIT = 'FRIEND_REQUEST_DAILY_LIMIT';
-const dailyLimit = (): HttpException =>
+export const dailyLimit = (): HttpException =>
   new HttpException(
     {
       code: FRIEND_REQUEST_DAILY_LIMIT,

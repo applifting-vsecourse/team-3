@@ -1,4 +1,5 @@
 import { randomBytes } from 'node:crypto';
+import { startOfPragueDayOf } from '@/modules/event/domain/prague-day';
 import {
   friendshipState,
   type FriendshipRow,
@@ -17,6 +18,8 @@ import {
   InviteRepository,
   type Inviter,
 } from '@/modules/friendship/repositories/invite.repository';
+import { FriendRequestLimitRepository } from '@/modules/friendship/repositories/request-limit.repository';
+import { dailyLimit } from '@/modules/friendship/services/friendship.service';
 import { NotificationService } from '@/modules/notification/services/notification.service';
 import { Config } from '@/shared/config/config.service';
 import {
@@ -53,6 +56,7 @@ export class InviteService {
     private readonly friendships: FriendshipRepository,
     private readonly notifications: NotificationService,
     private readonly config: Config,
+    private readonly limits: FriendRequestLimitRepository,
   ) {}
 
   /** The CSPRNG; a test may put a fixed one in. */
@@ -125,7 +129,11 @@ export class InviteService {
 
     const outcome = befriend
       ? await this.befriend(inviteeId, inviter.id, isInvited, now)
-      : { state: await this.stateOf(inviteeId, inviter.id), written: null };
+      : {
+          state: await this.stateOf(inviteeId, inviter.id),
+          written: null,
+          isLimited: false,
+        };
 
     if (isNewlyClaimed) {
       this.notifications.notify({
@@ -144,6 +152,8 @@ export class InviteService {
         toId: inviter.id,
       });
     }
+    // an ordinary request counts towards today's limit like any other (#84)
+    if (outcome.isLimited) throw dailyLimit();
     return outcome.state;
   }
 
@@ -153,17 +163,46 @@ export class InviteService {
     inviterId: string,
     isInvited: boolean,
     now: Date,
-  ): Promise<{ state: FriendshipState; written: WriteAction | null }> {
+  ): Promise<{
+    state: FriendshipState;
+    written: WriteAction | null;
+    isLimited: boolean;
+  }> {
     for (let attempt = 0; attempt < 2; attempt++) {
       const row = await this.friendships.findPair(inviteeId, inviterId);
       const decision = decideInviteAccept(row, inviteeId, inviterId, isInvited);
       if (!decision.ok || decision.action === 'none')
-        return { state: decision.ok ? decision.state : 'self', written: null };
-      if (await this.write(decision.action, row, inviteeId, inviterId, now))
-        return { state: decision.state, written: decision.action };
+        return {
+          state: decision.ok ? decision.state : 'self',
+          written: null,
+          isLimited: false,
+        };
+      const result = await this.write(
+        decision.action,
+        row,
+        inviteeId,
+        inviterId,
+        now,
+      );
+      if (result === 'limit')
+        return {
+          state: friendshipState(row, inviteeId, inviterId),
+          written: null,
+          isLimited: true,
+        };
+      if (result)
+        return {
+          state: decision.state,
+          written: decision.action,
+          isLimited: false,
+        };
     }
     // the pair's row kept changing under us: answer with where it is now
-    return { state: await this.stateOf(inviteeId, inviterId), written: null };
+    return {
+      state: await this.stateOf(inviteeId, inviterId),
+      written: null,
+      isLimited: false,
+    };
   }
 
   private async stateOf(
@@ -183,7 +222,7 @@ export class InviteService {
     inviteeId: string,
     inviterId: string,
     now: Date,
-  ): Promise<boolean> {
+  ): Promise<boolean | 'limit'> {
     switch (action) {
       case 'befriend':
         return this.friendships.createAccepted(inviterId, inviteeId, now);
@@ -194,10 +233,26 @@ export class InviteService {
       case 'accept':
         return this.friendships.accept(inviteeId, inviterId, now);
       case 'request':
-        return this.friendships.create(inviteeId, inviterId);
       case 'resend':
-        return this.friendships.resend(inviteeId, inviterId, now);
+        // a request (also one sent again) goes through the one daily limit (#84)
+        return this.limited(action, inviteeId, inviterId, now);
     }
+  }
+
+  private async limited(
+    action: 'request' | 'resend',
+    inviteeId: string,
+    inviterId: string,
+    now: Date,
+  ): Promise<boolean | 'limit'> {
+    const written = await this.limits.limited(
+      inviteeId,
+      inviterId,
+      action === 'request' ? 'create' : 'resend',
+      startOfPragueDayOf(now),
+      now,
+    );
+    return written === 'limit' ? 'limit' : written === 'written';
   }
 
   private urlOf(code: string): string {
