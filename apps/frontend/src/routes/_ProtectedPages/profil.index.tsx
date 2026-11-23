@@ -1,5 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router"
 
+import { AccountSection } from "@/features/auth/components/AccountSection"
 import { useSession } from "@/features/auth/hooks/useSession"
 import { FriendsPreview } from "@/features/friends/components/FriendsPreview"
 import { ProfilePage } from "@/features/profile/components/ProfilePage"
@@ -15,6 +16,7 @@ function ProfileRoute() {
       key={user.id}
       viewerId={user.id}
       peopleContent={<FriendsPreview viewerId={user.id} />}
+      accountContent={<AccountSection viewerId={user.id} />}
     />
   ) : (
     <ProfileLoading />

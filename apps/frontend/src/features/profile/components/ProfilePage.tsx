@@ -25,16 +25,19 @@ import { ProfileError, ProfileLoading } from "./ProfileState"
 
 /**
  * /profil (Figma B-05, B-05d): who I am and whom I know — the band, then the people I know
- * (#307) and my ratings. What I do (my events, my groups, the history) is in Moje (#367).
+ * (#307), my ratings and the account (#64). What I do (my events, my groups, the history) is in Moje (#367).
  * Editing is on /profil/upravit.
  */
 export function ProfilePage({
   viewerId,
   peopleContent,
+  accountContent,
 }: {
   viewerId: string
   /** „Lidé, které znám“, from the friends feature (the route puts it in, #307). */
   peopleContent?: ReactNode
+  /** „Účet“ at the end: my data and deleting the account, from the auth feature (#64). */
+  accountContent?: ReactNode
 }) {
   const profile = useQuery(profileQueryOptions(viewerId))
   const overview = useQuery(profileOverviewQueryOptions(viewerId))
@@ -79,6 +82,7 @@ export function ProfilePage({
                 summary: overview.data.organizerSummary,
               }}
             />
+            {accountContent}
           </div>
         </>
       )}
