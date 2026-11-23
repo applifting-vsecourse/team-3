@@ -128,12 +128,9 @@ describe("onboarding transitions", () => {
     startOnboarding(),
     follow(place(prague), take("hike")),
     moveOnboarding(withThree(), { type: "dismiss" }),
-  ])(
-    "backs out of exit confirmation without mutating the draft in $stage",
-    (state) => {
-      const exiting = moveOnboarding(state, { type: "exit" })
-      expect(exiting.overlay).toBe("exit")
-      expect(moveOnboarding(exiting, { type: "back" })).toEqual(state)
-    },
-  )
+  ])("backs out of exit confirmation without mutating the draft in $stage", (state) => {
+    const exiting = moveOnboarding(state, { type: "exit" })
+    expect(exiting.overlay).toBe("exit")
+    expect(moveOnboarding(exiting, { type: "back" })).toEqual(state)
+  })
 })
