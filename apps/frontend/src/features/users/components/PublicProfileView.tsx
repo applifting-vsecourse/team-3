@@ -1,11 +1,14 @@
-import type { ReactNode } from "react"
+import { useState, type ReactNode } from "react"
 import { Link } from "@tanstack/react-router"
 
 import { ROUTES } from "@/app/routes"
 import { ActivityTag } from "@/components/ActivityTag/ActivityTag"
 import { PageBand } from "@/components/PageBand/PageBand"
 import { PersonRow } from "@/components/PersonRow/PersonRow"
+import { Avatar, AvatarFallback } from "@/components/ui/avatar"
 import { Button } from "@/components/ui/button"
+import { imageUrl } from "@/lib/image"
+import { initials } from "@/lib/initials"
 import { PAGE } from "@/lib/pageLayout"
 import { formatAverage, ratingSummaryLabel } from "@/lib/ratingSummary"
 import { cn } from "@/lib/utils"
@@ -45,7 +48,7 @@ export function PublicProfileView({
   isNotFound?: boolean
   error?: Error
   onRetry: () => void
-  /** A past organised event as its card, from the events feature (the route puts it in). */
+  /** A past event as its card — organised, or visited (#64) — from the events feature (the route puts it in). */
   renderOrganizedEvent: (event: PublicOrganizedEvent) => ReactNode
   /** The friendship's block by the viewer's relation (Figma B-07 · Stavy), from the friends feature. */
   friendshipAction?: ReactNode
@@ -99,6 +102,13 @@ export function PublicProfileView({
       <PageBand
         title={<span className="break-words">{profile.name}</span>}
         back={BACK}
+        // the photo when the person shows it to this viewer (#64), else the initials as on /profil
+        leading={
+          <BandAvatar
+            name={profile.name}
+            photoKey={profile.photoKey}
+          />
+        }
         description={`Jako účastník ${ratingSummaryLabel(profile.participantSummary)} · Jako organizátor ${ratingSummaryLabel(profile.organizerSummary)}`}
       >
         <section
@@ -122,6 +132,21 @@ export function PublicProfileView({
       <div className={cn(PAGE, "grid grid-cols-1 gap-12 lg:grid-cols-2 lg:gap-16")}>
         <div className="flex min-w-0 flex-col gap-12">
           {friendshipAction ? <div className="lg:max-w-105">{friendshipAction}</div> : null}
+          {profile.bio ? (
+            <section
+              className="flex min-w-0 flex-col gap-2"
+              aria-labelledby="about"
+            >
+              <h2
+                id="about"
+                className="type-feature"
+              >
+                O <span className="highlight-keyword">mně</span>
+              </h2>
+              {/* written by the person: as they wrote it (DESIGN.md › Copy) */}
+              <p className="max-w-2xl break-words whitespace-pre-line">{profile.bio}</p>
+            </section>
+          ) : null}
           <section
             className="flex min-w-0 flex-col gap-4"
             aria-labelledby="participant-ratings"
@@ -180,6 +205,28 @@ export function PublicProfileView({
               </p>
             ) : null}
           </section>
+          {profile.pastEvents ? (
+            <section
+              className="flex flex-col gap-4"
+              aria-labelledby="past-events"
+            >
+              <h2
+                id="past-events"
+                className="type-feature"
+              >
+                <span className="highlight-keyword">Navštívené</span> akce
+              </h2>
+              {profile.pastEvents.length ? (
+                <ul className="grid grid-cols-1 gap-3">
+                  {profile.pastEvents.map((event) => (
+                    <li key={event.id}>{renderOrganizedEvent(event)}</li>
+                  ))}
+                </ul>
+              ) : (
+                <p className="text-muted-foreground">Zatím žádná proběhlá veřejná akce.</p>
+              )}
+            </section>
+          ) : null}
         </div>
         <div className="flex min-w-0 flex-col gap-12">
           <UpcomingEvents
@@ -282,6 +329,34 @@ function UpcomingEvents({
         </>
       )}
     </section>
+  )
+}
+
+/**
+ * The photo when the person shows it to this viewer (#64) — its small variant, 480 px is
+ * plenty — else, or when it fails to load, the initials as on /profil.
+ */
+function BandAvatar({ name, photoKey }: { name: string; photoKey: string | null }) {
+  const [failed, setFailed] = useState<string>()
+  const src = photoKey ? `${imageUrl(photoKey)}/small` : undefined
+  return (
+    <Avatar
+      aria-hidden="true"
+      className="size-12 border border-on-hero-muted md:size-16"
+    >
+      {src && failed !== src ? (
+        <img
+          src={src}
+          alt=""
+          className="size-full object-cover"
+          onError={() => setFailed(src)}
+        />
+      ) : (
+        <AvatarFallback className="bg-secondary text-body font-semibold text-secondary-foreground md:text-base">
+          {initials(name)}
+        </AvatarFallback>
+      )}
+    </Avatar>
   )
 }
 

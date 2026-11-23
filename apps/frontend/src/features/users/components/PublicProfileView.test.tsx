@@ -22,6 +22,9 @@ const profile = (changes: Partial<PublicProfile> = {}): PublicProfile => ({
   eventSummary: empty,
   participantRatings: [],
   organizedEvents: [],
+  bio: null,
+  photoKey: null,
+  pastEvents: null,
   friendship: null,
   upcomingEvents: null,
   ...changes,
@@ -262,3 +265,67 @@ describe("friends on the public profile (#307, Figma B-07f, B-07g)", () => {
     ).toBeTruthy()
   })
 })
+
+describe("photo, bio and visited events (B-014, #64)", () => {
+  const pastEvent = (id: string, title: string): PublicOrganizedEvent => ({
+    id,
+    title,
+    startsAt: new Date("2026-11-01T10:00:00Z"),
+    endsAt: null,
+    localityName: "Praha",
+    activityName: "Volejbal",
+    address: "Hala Strahov",
+    locality: { id: "p", slug: "praha", name: "Praha" },
+    activity: {
+      id: "v",
+      slug: "volejbal",
+      name: "Volejbal",
+      category: { id: "s", slug: "sport", name: "Sport", icon: "ball" },
+    },
+    approvedCount: 6,
+    missingToMin: 0,
+    rating: { average: null, count: 0 },
+  })
+  const render = (changes: Partial<PublicProfile>) =>
+    renderWithRouter(
+      <PublicProfileView
+        profile={profile(changes)}
+        onRetry={vi.fn()}
+        renderOrganizedEvent={card}
+        renderUpcomingEvent={upcomingCard}
+      />,
+    )
+
+  it("shows the photo, the bio as written and the visited events the person shows", async () => {
+    const { container } = await render({
+      photoKey: "photo-key",
+      bio: "Hraju volejbal.\nA ráda vařím.",
+      pastEvents: [pastEvent("e1", "Volejbal v hale")],
+    })
+
+    const photo = container.querySelector(".on-hero img")
+    expect(photo?.getAttribute("src")).toMatch(/\/images\/photo-key\/small$/)
+    expect(screen.getByRole("heading", { level: 2, name: "O mně" })).toBeInTheDocument()
+    expect(screen.getByText(/Hraju volejbal\.\s+A ráda vařím\./)).toBeInTheDocument()
+    const visited = screen.getByRole("region", { name: "Navštívené akce" })
+    expect(visited).toHaveTextContent("Volejbal v hale")
+  })
+
+  it("hidden or empty: initials, no about me and no visited events", async () => {
+    const { container } = await render({})
+
+    expect(container.querySelector(".on-hero img")).toBeNull()
+    expect(screen.getByText("JS")).toBeInTheDocument()
+    expect(screen.queryByRole("heading", { name: "O mně" })).not.toBeInTheDocument()
+    expect(screen.queryByRole("region", { name: "Navštívené akce" })).not.toBeInTheDocument()
+  })
+
+  it("says so when the person shows visited events but has none yet", async () => {
+    await render({ pastEvents: [] })
+
+    expect(screen.getByRole("region", { name: "Navštívené akce" })).toHaveTextContent(
+      "Zatím žádná proběhlá veřejná akce.",
+    )
+  })
+})
+

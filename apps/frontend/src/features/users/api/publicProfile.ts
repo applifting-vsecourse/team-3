@@ -43,6 +43,33 @@ const upcomingEventSchema = z.object({
 })
 export type PublicUpcomingEvent = z.infer<typeof upcomingEventSchema>
 
+/** A past event as its card shows it (#179): organised by the person, or one they went to (#64). */
+const pastEventSchema = z.object({id: z.string(),
+  title: z.string(),
+  startsAt: z.coerce.date(),
+  endsAt: z.coerce.date().nullable(),
+  localityName: z.string(),
+  activityName: z.string(),
+  // what the past event card shows (#179): the photo by the activity, the place
+  address: z.string(),
+  locality: z.object({ id: z.string(), slug: z.string(), name: z.string() }),
+  activity: z.object({
+    id: z.string(),
+    slug: z.string(),
+    name: z.string(),
+    category: z.object({
+      id: z.string(),
+      slug: z.string(),
+      name: z.string(),
+      icon: z.string(),
+    }),
+  }),
+  approvedCount: z.number().int().nonnegative(),
+  // above 0 it didn't take place: „Nekonalo se“ on the card, as on its detail (review #323)
+  missingToMin: z.number().int().nonnegative(),
+  rating: summary,
+})
+
 export const publicProfileSchema = person.extend({
   interests: z.array(person),
   participantSummary: summary,
@@ -58,34 +85,14 @@ export const publicProfileSchema = person.extend({
       event: z.object({ id: z.string(), title: z.string() }),
     }),
   ),
-  organizedEvents: z.array(
-    z.object({
-      id: z.string(),
-      title: z.string(),
-      startsAt: z.coerce.date(),
-      endsAt: z.coerce.date().nullable(),
-      localityName: z.string(),
-      activityName: z.string(),
-      // what the past event card shows (#179): the photo by the activity, the place
-      address: z.string(),
-      locality: z.object({ id: z.string(), slug: z.string(), name: z.string() }),
-      activity: z.object({
-        id: z.string(),
-        slug: z.string(),
-        name: z.string(),
-        category: z.object({
-          id: z.string(),
-          slug: z.string(),
-          name: z.string(),
-          icon: z.string(),
-        }),
-      }),
-      approvedCount: z.number().int().nonnegative(),
-      // above 0 it didn't take place: „Nekonalo se“ on the card, as on its detail (review #323)
-      missingToMin: z.number().int().nonnegative(),
-      rating: summary,
-    }),
-  ),
+  organizedEvents: z.array(pastEventSchema),
+  /**
+   * What the person shows to whom (B-014, #64): about me, the uploaded photo at
+   * GET /api/images/:key and the events they went to. Null = empty or not for this viewer.
+   */
+  bio: z.string().nullable(),
+  photoKey: z.string().nullable(),
+  pastEvents: z.array(pastEventSchema).nullable(),
   /**
    * How the signed-in viewer stands to the person (#307): friends; outgoing — my request waits,
    * also after a silent rejection; incoming — theirs waits for me; none; self. Null for a visitor.

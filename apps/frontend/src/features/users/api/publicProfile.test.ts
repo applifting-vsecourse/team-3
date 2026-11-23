@@ -13,6 +13,9 @@ const response = {
   eventSummary: { average: null, count: 0 },
   participantRatings: [],
   organizedEvents: [],
+  bio: null,
+  photoKey: null,
+  pastEvents: null,
   friendship: null,
   upcomingEvents: null,
 }
