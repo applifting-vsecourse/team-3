@@ -23,7 +23,10 @@ export function useOnboardingInvite(viewerId: string, from: string | undefined) 
   const offer = async (): Promise<void> => {
     const code = pendingInvite(from)
     if (!code) return
-    const inviter = await queryClient.fetchQuery(inviterQueryOptions(code)).catch(() => null)
+    // undefined: the lookup failed (offline) — skip it now, but keep the invite for later
+    const inviter = await queryClient.fetchQuery(inviterQueryOptions(code)).catch(() => undefined)
+    if (inviter === undefined) return
+    // no such invite (404) or one's own: nothing to ask, ever
     if (!inviter || inviter.id === viewerId) {
       answerInvite(code)
       return

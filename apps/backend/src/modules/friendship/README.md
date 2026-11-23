@@ -38,8 +38,8 @@ Každý má osobní odkaz `/pozvanka/{kód}`. Kód je 16 náhodných bajtů z CS
 
 Pravidla jsou čisté funkce v [`domain/invite.ts`](domain/invite.ts), každý případ s testem:
 
-- **Kdo je pozvaný** (`inviteClaim`): nový účet (do 14 dnů od registrace), který ještě nikdo nepozval, a kód nemá za posledních 24 hodin 20 registrací. Jinak se kód tiše ignoruje: starší účet, pozvaný někým jiným, nebo nad limitem.
-- **„Přidat do přátel“ z pozvánky** (`decideInviteAccept`): pozvaný je se zvoucím přítel hned, bez žádosti (sdílený odkaz je souhlas zvoucího). Nový řádek `accepted`, nebo se na přátelství změní řádek, který mezi nimi už byl (žádost kterýmkoli směrem, tiché odmítnutí). Kdo pozvaný není, pošle obyčejnou žádost (`decideRequest`), takže odkaz, který se dostal ven, nikomu cizímu „Kam jde“ neotevře. Sám sebe nepozveš (`SELF`), přátelům se nic nemění.
+- **Kdo je pozvaný** (`inviteClaim`): nový účet (do 14 dnů od registrace), který ještě nikdo nepozval, a kód nemá za posledních 24 hodin 20 registrací. Jinak se kód tiše ignoruje: starší účet (i pozvaný, po 14 dnech už pozvánka nic nepřebije), pozvaný někým jiným, nebo nad limitem.
+- **„Přidat do přátel“ z pozvánky** (`decideInviteAccept`): pozvaný je se zvoucím přítel hned, bez žádosti (sdílený odkaz je souhlas zvoucího). Nový řádek `accepted`, nebo se na přátelství změní řádek, který mezi nimi už byl (žádost kterýmkoli směrem, pozvaný dřív tiše odmítl zvoucího). Žádost pozvaného, kterou zvoucí tiše odmítl, zůstane, jak je: odkaz jeho „ne“ nepřebije. Kdo pozvaný není, pošle obyčejnou žádost (`decideRequest`), takže odkaz, který se dostal ven, nikomu cizímu „Kam jde“ neotevře. Sám sebe nepozveš (`SELF`), přátelům se nic nemění.
 
 API:
 

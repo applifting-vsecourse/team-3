@@ -57,6 +57,17 @@ describe('inviteClaim (#406)', () => {
     );
   });
 
+  it('claimed by the same inviter counts only while the account is new', () => {
+    expect(
+      inviteClaim(
+        { createdAt: daysAgo(30), invitedById: INVITER },
+        INVITER,
+        0,
+        now,
+      ),
+    ).toBe('ignored');
+  });
+
   it('the same inviter asking again is claimed already', () => {
     expect(
       inviteClaim({ ...fresh, invitedById: INVITER }, INVITER, 99, now),
@@ -113,7 +124,6 @@ describe('decideInviteAccept (#406)', () => {
     it.each([
       ['the inviter’s request', row(INVITER, NEW, 'pending')],
       ['my request', row(NEW, INVITER, 'pending')],
-      ['my request, quietly rejected', row(NEW, INVITER, 'rejected')],
       ['the inviter’s request I rejected', row(INVITER, NEW, 'rejected')],
     ])('%s becomes the friendship', (_, existing) => {
       expect(decideInviteAccept(existing, NEW, INVITER, true)).toEqual({
@@ -122,6 +132,12 @@ describe('decideInviteAccept (#406)', () => {
         state: 'friends',
       });
     });
+  });
+
+  it('invited, but the inviter quietly rejected my request: it stays mine', () => {
+    expect(
+      decideInviteAccept(row(NEW, INVITER, 'rejected'), NEW, INVITER, true),
+    ).toEqual({ ok: true, action: 'none', state: 'outgoing' });
   });
 
   describe('not invited: the ordinary „Přidat do přátel“', () => {

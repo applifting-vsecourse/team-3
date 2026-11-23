@@ -114,6 +114,8 @@ export class InviteService {
       inviter.id,
       inviteLimitSince(now),
     );
+    // count, then claim: two sign-ups at the very same moment may pass 20 by one, which the
+    // limit (against bulk fake accounts, not an exact quota) accepts
     const claim = inviteClaim(account, inviter.id, joinedToday, now);
     const isNewlyClaimed =
       claim === 'claim' &&

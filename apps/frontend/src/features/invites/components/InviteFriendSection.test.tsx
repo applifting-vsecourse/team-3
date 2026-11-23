@@ -4,11 +4,13 @@ import userEvent from "@testing-library/user-event"
 import { toast } from "sonner"
 import { afterEach, describe, expect, it, vi } from "vitest"
 
+import type * as ApiClient from "@/lib/api-client"
+
 import { InviteFriendSection } from "@/features/invites/components/InviteFriendSection"
 
 const { api } = vi.hoisted(() => ({ api: { get: vi.fn(), post: vi.fn() } }))
-vi.mock("@/lib/api-client", async (original) => ({
-  ...(await original<typeof import("@/lib/api-client")>()),
+vi.mock("@/lib/api-client", async (importOriginal) => ({
+  ...(await importOriginal<typeof ApiClient>()),
   api,
 }))
 vi.mock("sonner", () => ({ toast: { success: vi.fn(), error: vi.fn() } }))
@@ -77,9 +79,7 @@ describe("„Pozvi kamaráda“ on Můj profil (#406)", () => {
     await user.click(await screen.findByRole("button", { name: "Vytvořit nový odkaz" }))
     expect(screen.getByRole("dialog", { name: "Vytvořit nový odkaz?" })).toBeInTheDocument()
     expect(api.post).not.toHaveBeenCalled()
-    await user.click(
-      screen.getAllByRole("button", { name: "Vytvořit nový odkaz" }).at(-1)!,
-    )
+    await user.click(screen.getAllByRole("button", { name: "Vytvořit nový odkaz" }).at(-1)!)
 
     expect(await screen.findByDisplayValue(URL_2)).toBeInTheDocument()
     expect(api.post).toHaveBeenCalledWith("invites/me/regenerate")

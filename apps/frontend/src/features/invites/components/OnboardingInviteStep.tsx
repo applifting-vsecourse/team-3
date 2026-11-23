@@ -37,7 +37,8 @@ export function OnboardingInviteStep({
     >
       <DialogContent
         showCloseButton={false}
-        overlayClassName="hh-wizard-overlay hh-wizard-overlay-raised"
+        // over „Máš vybráno!“ (raised already): a second raised overlay would turn the page black
+        overlayClassName="hh-wizard-overlay"
         onOpenAutoFocus={(event) => {
           event.preventDefault()
           title.current?.focus({ preventScroll: true })

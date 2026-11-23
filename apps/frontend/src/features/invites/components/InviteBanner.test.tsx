@@ -2,12 +2,14 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query"
 import { render, screen } from "@testing-library/react"
 import { afterEach, describe, expect, it, vi } from "vitest"
 
+import type * as ApiClient from "@/lib/api-client"
+
 import { InviteBanner } from "@/features/invites/components/InviteBanner"
 import { pendingInvite, rememberInvite } from "@/features/invites/lib/invite"
 
 const { api } = vi.hoisted(() => ({ api: { get: vi.fn() } }))
-vi.mock("@/lib/api-client", async (original) => ({
-  ...(await original<typeof import("@/lib/api-client")>()),
+vi.mock("@/lib/api-client", async (importOriginal) => ({
+  ...(await importOriginal<typeof ApiClient>()),
   api,
 }))
 

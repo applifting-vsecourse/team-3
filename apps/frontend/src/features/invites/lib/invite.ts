@@ -46,9 +46,14 @@ const write = (stored: Stored | null) => {
   }
 }
 
-/** Opening the link: remember the code (again, also after an earlier answer). */
+/**
+ * Opening the link: remember the code. The same code keeps its answer, so passing through the
+ * link after the onboarding doesn't offer it to the next person on a shared computer.
+ */
 export const rememberInvite = (code: string, now = Date.now()) => {
-  if (isInviteCode(code)) write({ code, savedAt: now })
+  if (!isInviteCode(code)) return
+  const stored = read()
+  write(stored?.code === code ? { ...stored, savedAt: now } : { code, savedAt: now })
 }
 
 /**

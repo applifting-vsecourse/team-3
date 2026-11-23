@@ -46,12 +46,19 @@ describe("pendingInvite (#406)", () => {
     expect(pendingInvite(`/pozvanka/${CODE}`, now)).toBe(CODE)
   })
 
-  it("doesn't ask again once answered, until the link is opened again", () => {
+  it("doesn't ask again once answered, also when the link is passed through again", () => {
     rememberInvite(CODE, now)
     answerInvite(CODE, now)
     expect(pendingInvite(`/pozvanka/${CODE}`, now)).toBeNull()
     rememberInvite(CODE, now)
-    expect(pendingInvite(undefined, now)).toBe(CODE)
+    expect(pendingInvite(undefined, now)).toBeNull()
+  })
+
+  it("another friend's link is a new invite", () => {
+    rememberInvite(CODE, now)
+    answerInvite(CODE, now)
+    rememberInvite(OTHER, now)
+    expect(pendingInvite(undefined, now)).toBe(OTHER)
   })
 
   it("survives garbage in the storage", () => {

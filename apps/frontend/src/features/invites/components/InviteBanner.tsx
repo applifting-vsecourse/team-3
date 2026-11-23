@@ -20,7 +20,7 @@ export function InviteBanner({ code }: { code: string | null }) {
         className="size-10"
       />
       <div className="flex min-w-0 flex-col gap-1">
-        <p className="font-semibold break-words">{name} tě zve na HobbyHub</p>
+        <p className="text-base font-semibold break-words">{name} tě zve na HobbyHub</p>
         {interests.length ? <p className="text-sm">{interests.join(", ")}</p> : null}
         <p className="text-sm">Po registraci budete rovnou přátelé.</p>
       </div>

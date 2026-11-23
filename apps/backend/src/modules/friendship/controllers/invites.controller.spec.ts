@@ -3,6 +3,15 @@ import type { Identity } from '@/shared/auth/domain/identity';
 import { mock } from 'jest-mock-extended';
 import { InvitesController } from './invites.controller';
 
+// Factories, so neither better-auth's ESM-only node entry nor the provider's
+// e-mail templates are loaded under Jest (as in notifications.controller.spec.ts).
+jest.mock('@/shared/auth/utils/get-session-from-request', () => ({
+  getSessionFromRequest: jest.fn(),
+}));
+jest.mock('@/shared/auth/providers/better-auth.provider', () => ({
+  InjectBetterAuth: (): void => undefined,
+}));
+
 const CODE = 'q3Zr1hXkE0bLw9yT2vNcAa';
 const user = { id: 'u2' } as Identity;
 

@@ -47,7 +47,7 @@ export type InviteeAccount = { createdAt: Date; invitedById: string | null };
  * Whether the invitee counts as invited by this inviter:
  * - `claim`: a new account nobody invited yet, and the code's limit isn't reached: it is now
  *   the inviter's invitee, and the inviter hears of it;
- * - `claimed`: already the inviter's invitee (the onboarding asked again);
+ * - `claimed`: already the inviter's invitee (the onboarding asked again), while still new;
  * - `ignored`: an older account, somebody else's invitee, or the code's limit is reached —
  *   the code is quietly ignored, „Přidat do přátel“ is an ordinary request.
  */
@@ -57,9 +57,10 @@ export function inviteClaim(
   joinedToday: number,
   now: Date,
 ): 'claim' | 'claimed' | 'ignored' {
+  // only while the account is new: an old invite never undoes the inviter's later „no“
+  if (!isNewAccount(account.createdAt, now)) return 'ignored';
   if (account.invitedById === inviterId) return 'claimed';
-  if (account.invitedById !== null || !isNewAccount(account.createdAt, now))
-    return 'ignored';
+  if (account.invitedById !== null) return 'ignored';
   return joinedToday < INVITE_DAILY_LIMIT ? 'claim' : 'ignored';
 }
 
@@ -67,8 +68,9 @@ export function inviteClaim(
  * What „Přidat do přátel“ from an invite does, from the invitee's side; `isInvited` is a
  * claimed invite (`inviteClaim`):
  * - `befriend`: no row between them, invited: a new friendship, accepted at once;
- * - `promote`: a row in any other state (a request either way, or a quiet rejection), invited:
- *   the row becomes the friendship;
+ * - `promote`: a row in any other state (a request either way, or the invitee's quiet rejection
+ *   of the inviter), invited: the row becomes the friendship. A request of the invitee that the
+ *   inviter quietly rejected stays theirs: the link doesn't undo the inviter's „no“;
  * - `request` / `accept` / `resend`: not invited, the ordinary „Přidat do přátel“
  *   (`decideRequest`): a request to the inviter, or accepting the inviter's own;
  * - `none`: nothing to write: already friends, or an older account whose request already waits.
@@ -94,7 +96,10 @@ export function decideInviteAccept(
   if (state === 'self') return { ok: false, refusal: 'SELF' };
   if (state === 'friends')
     return { ok: true, action: 'none', state: 'friends' };
-  if (isInvited) {
+  // the inviter quietly rejected the invitee's request: the link doesn't override that
+  const isRejectedByInviter =
+    row?.status === 'rejected' && row.addresseeId === inviterId;
+  if (isInvited && !isRejectedByInviter) {
     return row
       ? { ok: true, action: 'promote', state: 'friends' }
       : { ok: true, action: 'befriend', state: 'friends' };

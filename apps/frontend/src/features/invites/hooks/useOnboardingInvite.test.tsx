@@ -4,12 +4,14 @@ import userEvent from "@testing-library/user-event"
 import { toast } from "sonner"
 import { afterEach, describe, expect, it, vi } from "vitest"
 
+import type * as ApiClient from "@/lib/api-client"
+
 import { useOnboardingInvite } from "@/features/invites/hooks/useOnboardingInvite"
 import { pendingInvite } from "@/features/invites/lib/invite"
 
 const { api } = vi.hoisted(() => ({ api: { get: vi.fn(), post: vi.fn() } }))
-vi.mock("@/lib/api-client", async (original) => ({
-  ...(await original<typeof import("@/lib/api-client")>()),
+vi.mock("@/lib/api-client", async (importOriginal) => ({
+  ...(await importOriginal<typeof ApiClient>()),
   api,
 }))
 vi.mock("sonner", () => ({ toast: { success: vi.fn(), error: vi.fn() } }))
@@ -100,7 +102,7 @@ describe("the onboarding's invite step (#406)", () => {
     expect(api.post).not.toHaveBeenCalled()
   })
 
-  it("an invalid code: no step, the onboarding goes on", async () => {
+  it("offline: no step now, the onboarding goes on, the invite is kept", async () => {
     const user = userEvent.setup()
     api.get.mockReturnValue({ json: () => Promise.reject(new Error("offline")) })
     const onDone = show()
@@ -109,5 +111,20 @@ describe("the onboarding's invite step (#406)", () => {
 
     await waitFor(() => expect(onDone).toHaveBeenCalled())
     expect(api.post).not.toHaveBeenCalled()
+    expect(pendingInvite(FROM)).toBe(CODE)
+  })
+
+  it("an invalid code (404): no step, never asked again", async () => {
+    const user = userEvent.setup()
+    const { HTTPError } = await import("@/lib/api-client")
+    const notFound = Object.create(HTTPError.prototype) as InstanceType<typeof HTTPError>
+    Object.defineProperty(notFound, "response", { value: { status: 404 } })
+    api.get.mockReturnValue({ json: () => Promise.reject(notFound) })
+    const onDone = show()
+
+    await user.click(screen.getByRole("button", { name: "Uložit" }))
+
+    await waitFor(() => expect(onDone).toHaveBeenCalled())
+    expect(pendingInvite(FROM)).toBeNull()
   })
 })

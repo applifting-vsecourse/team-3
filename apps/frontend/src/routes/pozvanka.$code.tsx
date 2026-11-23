@@ -17,12 +17,15 @@ import { invitePath, isInviteCode, rememberInvite } from "@/features/invites/lib
  * with „Přidat do přátel“ there. An invalid code leads on as if there were none.
  */
 export const Route = createFileRoute("/pozvanka/$code")({
-  beforeLoad: async ({ context, params }) => {
+  beforeLoad: async ({ context, params, location }) => {
     const { code } = params
     rememberInvite(code)
     const from = isInviteCode(code) ? invitePath(code) : undefined
     const session = await context.queryClient.ensureQueryData(authSessionQueryOptions())
-    if (!session) throw redirect({ to: ROUTES.signup, search: { from }, replace: true })
+    if (!session) {
+      // an expired verification link comes through here: its dialog goes along (#155)
+      throw redirect({ to: ROUTES.signup, search: { from }, state: location.state, replace: true })
+    }
     if (needsOnboarding(session.user)) {
       throw redirect({ to: ROUTES.onboarding, search: { from }, replace: true })
     }
