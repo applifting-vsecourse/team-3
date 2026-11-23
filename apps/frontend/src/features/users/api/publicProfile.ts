@@ -44,7 +44,8 @@ const upcomingEventSchema = z.object({
 export type PublicUpcomingEvent = z.infer<typeof upcomingEventSchema>
 
 /** A past event as its card shows it (#179): organised by the person, or one they went to (#64). */
-const pastEventSchema = z.object({id: z.string(),
+const pastEventSchema = z.object({
+  id: z.string(),
   title: z.string(),
   startsAt: z.coerce.date(),
   endsAt: z.coerce.date().nullable(),

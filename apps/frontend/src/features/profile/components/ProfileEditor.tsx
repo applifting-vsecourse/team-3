@@ -453,7 +453,11 @@ export function ProfileEditor({
                 variant="ghost"
                 className="min-h-11"
                 disabled={isBusy}
-                onClick={() => onboarding.onBack(collectDraft({ ...DEFAULT_VISIBILITY, ...initial }, form.getValues(), photo))}
+                onClick={() =>
+                  onboarding.onBack(
+                    collectDraft({ ...DEFAULT_VISIBILITY, ...initial }, form.getValues(), photo),
+                  )
+                }
               >
                 Zpět
               </Button>

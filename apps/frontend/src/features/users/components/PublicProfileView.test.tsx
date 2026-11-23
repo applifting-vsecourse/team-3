@@ -328,4 +328,3 @@ describe("photo, bio and visited events (B-014, #64)", () => {
     )
   })
 })
-
