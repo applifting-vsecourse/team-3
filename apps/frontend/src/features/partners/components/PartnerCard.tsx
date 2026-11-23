@@ -53,7 +53,8 @@ export function PartnerCard({
         />
         <PersonAvatar
           name={partner.name}
-          className="absolute right-5 bottom-5 size-12"
+          // PersonAvatar is size="lg": only a data-[size=lg] size wins over its 40 px
+          className="absolute right-5 bottom-5 data-[size=lg]:size-12"
         />
         {partner.hasRequestedMe ? (
           <span className="w-fit rounded-full border border-control-border bg-badge-neutral px-2 py-0.5 text-xs font-semibold text-badge-neutral-foreground">
