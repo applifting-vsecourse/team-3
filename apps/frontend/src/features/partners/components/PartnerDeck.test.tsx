@@ -64,7 +64,7 @@ const show = async (data: PartnerPage | PartnerPage[] = page(), onWiden = vi.fn(
   return result
 }
 
-const topName = () => within(screen.getByRole("article")).getByRole("heading", { level: 2 })
+const topName = () => within(screen.getByRole("article")).getByRole("heading", { level: 3 })
 const status = () => screen.getAllByRole("status").find((element) => element.textContent)
 
 describe("Najdi parťáka: the deck (#84)", () => {
@@ -102,15 +102,17 @@ describe("Najdi parťáka: the deck (#84)", () => {
     const user = userEvent.setup()
     await show()
     const undo = screen.getByRole("button", { name: "Vrátit poslední přeskočení" })
-    expect(undo).toBeDisabled()
+    expect(undo).toHaveAttribute("aria-disabled", "true")
 
     await user.click(screen.getByRole("button", { name: "Teď ne" }))
     await waitFor(() => expect(topName()).toHaveTextContent("Petra Malá"))
     await user.click(undo)
 
-    expect(api.delete).toHaveBeenCalledWith("partners/tomas/skip")
+    await waitFor(() => expect(api.delete).toHaveBeenCalledWith("partners/tomas/skip"))
     expect(topName()).toHaveTextContent("Tomáš Novák")
-    expect(undo).toBeDisabled()
+    expect(undo).toHaveAttribute("aria-disabled", "true")
+    // the focus stays on the button, so the arrow keys keep working
+    expect(undo).toHaveFocus()
     expect(status()).toHaveTextContent("Vráceno: Tomáš Novák.")
   })
 
@@ -137,13 +139,55 @@ describe("Najdi parťáka: the deck (#84)", () => {
     await waitFor(() => expect(topName()).toHaveTextContent("Petra Malá"))
 
     await user.keyboard("{Backspace}")
-    expect(api.delete).toHaveBeenCalledWith("partners/tomas/skip")
+    await waitFor(() => expect(api.delete).toHaveBeenCalledWith("partners/tomas/skip"))
     expect(topName()).toHaveTextContent("Tomáš Novák")
 
     // a second commit waits out the lock that stops a double press from skipping two people
     await new Promise((resolve) => setTimeout(resolve, 250))
     await user.keyboard("{ArrowRight}")
     expect(api.post).toHaveBeenCalledWith("partners/tomas/request")
+  })
+
+  it("Vrátit waits for a skip still on its way, so the skip can't land after it", async () => {
+    const user = userEvent.setup()
+    await show()
+    let answerSkip = () => undefined as void
+    // the skip answers with no body: the request itself is what is awaited
+    api.post.mockReturnValueOnce(
+      new Promise<undefined>((resolve) => {
+        answerSkip = () => resolve(undefined)
+      }),
+    )
+
+    await user.click(screen.getByRole("button", { name: "Teď ne" }))
+    await user.click(screen.getByRole("button", { name: "Vrátit poslední přeskočení" }))
+    expect(api.delete).not.toHaveBeenCalled()
+
+    answerSkip()
+    await waitFor(() => expect(api.delete).toHaveBeenCalledWith("partners/tomas/skip"))
+  })
+
+  it("the day's limit from the server stops Přidat, also when the count was off", async () => {
+    const user = userEvent.setup()
+    await show()
+    api.post.mockReturnValue({
+      json: () =>
+        Promise.reject(
+          Object.assign(new Error("Na dnešek máš přidáno dost. Další lidi můžeš přidat zítra."), {
+            response: { status: 429 },
+          }),
+        ),
+    })
+
+    await user.click(screen.getByRole("button", { name: "Přidat" }))
+
+    await waitFor(() =>
+      expect(screen.getByRole("button", { name: "Přidat" })).toHaveAttribute(
+        "aria-disabled",
+        "true",
+      ),
+    )
+    expect(topName()).toHaveTextContent("Tomáš Novák")
   })
 
   it("a double press skips one person, not two", async () => {
@@ -196,6 +240,12 @@ describe("Najdi parťáka: the deck (#84)", () => {
     )
     await user.click(within(dialog).getByRole("button", { name: "Hledat dál" }))
     expect(screen.queryByRole("dialog")).not.toBeInTheDocument()
+    // the last card is gone: the focus goes to what the page says now
+    await waitFor(() =>
+      expect(
+        screen.getByRole("heading", { name: "V okolí 10 km teď nikdo další není." }),
+      ).toHaveFocus(),
+    )
   })
 
   it("a failure brings the card back with the API's message", async () => {
@@ -223,7 +273,11 @@ describe("Najdi parťáka: the deck (#84)", () => {
 
     await user.click(screen.getByRole("button", { name: "Přidat" }))
 
-    await waitFor(() => expect(screen.getByRole("button", { name: "Přidat" })).toBeDisabled())
+    const add = screen.getByRole("button", { name: "Přidat" })
+    await waitFor(() => expect(add).toHaveAttribute("aria-disabled", "true"))
+    expect(add).toHaveFocus()
+    await user.click(add)
+    expect(api.post).toHaveBeenCalledTimes(1)
     expect(
       screen.getByText("Na dnešek máš přidáno dost. Další lidi můžeš přidat zítra."),
     ).toBeInTheDocument()

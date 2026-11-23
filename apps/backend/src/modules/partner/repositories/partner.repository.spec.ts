@@ -53,16 +53,34 @@ describe('PartnerRepository (#84)', () => {
       where: { addresseeId: 'me', status: 'pending' },
       select: { id: true },
     });
-    expect(args?.take).toBe(1000);
+    // ranked whole: a cap before ranking would drop people the order puts first
+    expect(args?.take).toBeUndefined();
   });
 
   it('counts the requests I sent since the moment (the daily limit)', async () => {
     const { prisma, repository } = setup();
     prisma.friendship.count.mockResolvedValue(3);
+    prisma.notification.count.mockResolvedValue(2);
 
     await expect(repository.requestsSentSince('me', now)).resolves.toBe(3);
     expect(prisma.friendship.count).toHaveBeenCalledWith({
       where: { requesterId: 'me', createdAt: { gte: now } },
+    });
+  });
+
+  it('a cancelled request still counts: its notification stays', async () => {
+    const { prisma, repository } = setup();
+    prisma.friendship.count.mockResolvedValue(0);
+    prisma.notification.count.mockResolvedValue(5);
+
+    await expect(repository.requestsSentSince('me', now)).resolves.toBe(5);
+    expect(prisma.notification.count).toHaveBeenCalledWith({
+      where: {
+        type: 'friend_request',
+        targetType: 'user',
+        targetId: 'me',
+        createdAt: { gte: now },
+      },
     });
   });
 

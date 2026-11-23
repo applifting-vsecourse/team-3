@@ -23,7 +23,7 @@ export function PartnersEmpty({
   const wider = widerRadius(radiusKm)
   return (
     <div className="hh-deck-arrive flex flex-col items-start gap-4 rounded-2xl border border-card-border bg-card p-6">
-      <h2
+      <h3
         ref={ref}
         tabIndex={-1}
         className="type-card-heading focus:outline-none"
@@ -31,7 +31,7 @@ export function PartnersEmpty({
         {wider
           ? `V okolí ${radiusKm} km teď nikdo další není.`
           : `Do ${radiusKm} km teď nikdo další není.`}
-      </h2>
+      </h3>
       <p className="text-sm text-muted-foreground">
         {wider
           ? "Zkus hledat dál, nebo si v profilu přidej další zájmy."

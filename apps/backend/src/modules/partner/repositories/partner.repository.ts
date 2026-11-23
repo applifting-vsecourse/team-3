@@ -1,9 +1,6 @@
 import { PrismaService } from '@/core/prisma/prisma.service';
 import type { Prisma } from '@/generated/prisma/client';
-import {
-  PARTNER_CANDIDATE_LIMIT,
-  type PartnerCandidateRecord,
-} from '@/modules/partner/domain/partner-suggestions';
+import type { PartnerCandidateRecord } from '@/modules/partner/domain/partner-suggestions';
 import type { LatLng } from '@/shared/geo/distance';
 import { Injectable } from '@nestjs/common';
 
@@ -58,18 +55,31 @@ export class PartnerRepository {
         },
       },
       orderBy: { id: 'asc' },
-      take: PARTNER_CANDIDATE_LIMIT,
     });
   }
 
   /**
-   * Friendship requests the viewer sent since the moment (the day's limit). A request sent again
-   * counts once more (`resend` moves `createdAt`); accepting someone's request isn't one.
+   * Friendship requests the viewer sent since the moment (the day's limit). A cancelled request
+   * deletes its row but not the notification it sent, so both are counted and the higher wins:
+   * cancelling and sending again doesn't reset the limit, and the request just written counts
+   * even before its notification (written after it) is there. Accepting someone's request is
+   * neither.
    */
-  requestsSentSince(viewerId: string, since: Date): Promise<number> {
-    return this.prisma.friendship.count({
-      where: { requesterId: viewerId, createdAt: { gte: since } },
-    });
+  async requestsSentSince(viewerId: string, since: Date): Promise<number> {
+    const [rows, notified] = await Promise.all([
+      this.prisma.friendship.count({
+        where: { requesterId: viewerId, createdAt: { gte: since } },
+      }),
+      this.prisma.notification.count({
+        where: {
+          type: 'friend_request',
+          targetType: 'user',
+          targetId: viewerId,
+          createdAt: { gte: since },
+        },
+      }),
+    ]);
+    return Math.max(rows, notified);
   }
 
   /** Whether the person can be skipped: an account that isn't blocked or deleted. */

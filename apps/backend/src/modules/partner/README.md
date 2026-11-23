@@ -13,14 +13,14 @@ Pravidla jsou čisté funkce v [`domain/partner-suggestions.ts`](domain/partner-
 
 ## Stránkování
 
-Balíček se při každém dotazu seřadí celý (nejvýš `PARTNER_CANDIDATE_LIMIT` lidí v obdélníku). Vrací stránky po 20 (`PARTNER_PAGE_SIZE`) a `nextCursor`. Kurzor je místo poslední karty v pořadí, ne offset. Lidé, které mezitím přeskočím nebo přidám, z balíčku vypadnou, a offset by pak přeskočil stejný počet jiných. Kurzor obsahuje jen klíče pořadí, které jsou vidět i na kartě (žádost, počet společných zájmů, pásmo, id), takže nic neprozradí. Cizí nebo poškozený kurzor vrátí `400 INVALID_CURSOR`.
+Balíček se při každém dotazu seřadí celý, všichni v obdélníku okruhu se společným zájmem. Omezení počtu před seřazením by vyřadilo i lidi, které pořadí dává dopředu, a stránkování by je pak už neukázalo. Vrací stránky po 20 (`PARTNER_PAGE_SIZE`) a `nextCursor`. Kurzor je místo poslední karty v pořadí, ne offset. Lidé, které mezitím přeskočím nebo přidám, z balíčku vypadnou, a offset by pak přeskočil stejný počet jiných. Kurzor obsahuje jen klíče pořadí, které jsou vidět i na kartě (žádost, počet společných zájmů, pásmo, id), takže nic neprozradí. Cizí nebo poškozený kurzor vrátí `400 INVALID_CURSOR`.
 
 ## API
 
 Jen pro přihlášené. Uživatel je vždy ze session, `:userId` je ten druhý. Zápisy chtějí `VerifiedUserGuard`.
 
 - `GET /api/partners/suggestions?radiusKm=10&cursor=…` vrací `{ items, nextCursor, radiusKm, missing, requestsLeft }`. `missing` říká, co v profilu chybí (`locality`, `interests`), a dokud něco chybí, je balíček prázdný.
-- `POST /api/partners/:userId/request` je „Přidat“, tedy `FriendshipService.request` (#307) včetně upozornění a e-mailu (#86). Odpoví `{ state, requestsLeft }`, kde `state: friends` znamená „Je to shoda!“. Nových žádostí je 20 denně od pražské půlnoci (`PARTNER_DAILY_REQUESTS`), počítají se všechny moje žádosti o přátelství od půlnoci, i ty z profilu. Pak `429 PARTNER_DAILY_LIMIT`. Přijmout cizí žádost jde vždy. Chyby friendship modulu (`SELF`, `USER_NOT_FOUND`, `ALREADY_*`) projdou beze změny.
+- `POST /api/partners/:userId/request` je „Přidat“, tedy `FriendshipService.request` (#307) včetně upozornění a e-mailu (#86). Odpoví `{ state, requestsLeft }`, kde `state: friends` znamená „Je to shoda!“. Nových žádostí je 20 denně od pražské půlnoci (`PARTNER_DAILY_REQUESTS`), počítají se všechny moje žádosti o přátelství od půlnoci, i ty z profilu. Počítají se řádky `Friendship` i upozornění `friend_request`, která žádosti poslaly, a platí vyšší číslo, takže zrušení a nové odeslání limit neobnoví. Pak `429 PARTNER_DAILY_LIMIT`. Kontrola a zápis nejsou atomické, takže souběžné požadavky můžou limit překročit o pár žádostí. Přijmout cizí žádost jde vždy. Chyby friendship modulu (`SELF`, `USER_NOT_FOUND`, `ALREADY_*`) projdou beze změny.
 - `POST /api/partners/:userId/skip` je „Teď ne“. Uloží `PartnerSkip` (jeden řádek na směr dvojice, opakované přeskočení posune `createdAt`), odpoví `204`. Druhý se o přeskočení nikdy nedozví.
 - `DELETE /api/partners/:userId/skip` je „Vrátit“ a přeskočení smaže, `204` i tehdy, když nebylo co mazat. Aplikace vrací jen poslední „Teď ne“. „Přidat“ se nevrací: žádost už odešla s upozorněním a ruší se na profilu („Zrušit žádost“).
 

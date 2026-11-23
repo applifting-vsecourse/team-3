@@ -118,10 +118,11 @@ export function PartnerDeck({
 }) {
   const query = useInfiniteQuery(partnerDeckQueryOptions(viewerId, radiusKm))
   const [state, dispatch] = useReducer(moveDeck, undefined, emptyDeck)
-  const [leaving, setLeaving] = useState<Leaving>()
+  const [leaving, setLeaving] = useState<Leaving[]>([])
   const [match, setMatch] = useState<Partner>()
   const [message, setMessage] = useState("")
-  const [requestsLeft, setRequestsLeft] = useState<number>()
+  // what the last „Přidat“ answered, as long as no fresher first page came meanwhile
+  const [answered, setAnswered] = useState<{ left: number; after: unknown }>()
   const headingId = useId()
   const nameId = useId()
   const emptyHeading = useRef<HTMLHeadingElement>(null)
@@ -131,6 +132,8 @@ export function PartnerDeck({
     request: null,
     skip: null,
   })
+  const pendingSkips = useRef(new Map<string, Promise<void>>())
+  const requestButton = useRef<HTMLButtonElement>(null)
   const drag = useRef<Drag | null>(null)
   const frame = useRef(0)
   const isLocked = useRef(false)
@@ -138,7 +141,10 @@ export function PartnerDeck({
   const hasCrossedThreshold = useRef(false)
   const wasDragged = useRef(false)
 
-  const clearLeaving = useCallback(() => setLeaving(undefined), [])
+  const clearLeaving = useCallback(
+    (id: string) => setLeaving((cards) => cards.filter(({ partner }) => partner.id !== id)),
+    [],
+  )
   const keyHandler = useRef<(event: globalThis.KeyboardEvent) => void>(() => undefined)
   const attachKeys = useCallback((node: HTMLElement | null) => {
     if (!node) return
@@ -155,7 +161,8 @@ export function PartnerDeck({
   const items = useMemo(() => pages?.flatMap((page) => page.items) ?? [], [pages])
   const queue = deckQueue(items, state)
   const current = queue[0]
-  const left = requestsLeft ?? firstPage?.requestsLeft ?? 0
+  const left =
+    answered && answered.after === firstPage ? answered.left : (firstPage?.requestsLeft ?? 0)
   const canRequest = Boolean(current) && (left > 0 || current?.hasRequestedMe === true)
 
   // the next page while five cards are left, so nobody waits between cards
@@ -226,35 +233,42 @@ export function PartnerDeck({
       : isButton
         ? BUTTON_FLING.durationMs
         : flingDurationMs(Math.abs(endX - from.dx), from.vx)
-    setLeaving({
-      partner,
-      direction,
-      from: cardTransform(from.dx, from.dy, startTilt),
-      to: isReduced
-        ? cardTransform(from.dx, from.dy, 0)
-        : cardTransform(
-            endX,
-            from.dy + from.vx * 120,
-            sign * (isButton ? BUTTON_FLING.tiltDeg : FLING_TILT_DEG),
-          ),
-      durationMs,
-      isFade: isReduced,
-    })
+    setLeaving((cards) => [
+      ...cards,
+      {
+        partner,
+        direction,
+        from: cardTransform(from.dx, from.dy, startTilt),
+        to: isReduced
+          ? cardTransform(from.dx, from.dy, 0)
+          : cardTransform(
+              endX,
+              from.dy + from.vx * 120,
+              sign * (isButton ? BUTTON_FLING.tiltDeg : FLING_TILT_DEG),
+            ),
+        durationMs,
+        isFade: isReduced,
+      },
+    ])
     buzz(15)
     dispatch({ type: direction, partner })
     const after = queue[1]
     if (direction === "skip") {
       setMessage(announce("skip", partner, after))
-      skip.mutate(partner.id, {
-        onError: (error) => {
-          dispatch({ type: "failed", partner })
-          toast.error(error.message || "Přeskočení se nepovedlo. Zkus to znovu.")
-        },
+      const sent = skip.mutateAsync(partner.id).catch((error: unknown) => {
+        dispatch({ type: "failed", partner })
+        toast.error(
+          (error instanceof Error && error.message) || "Přeskočení se nepovedlo. Zkus to znovu.",
+        )
+      })
+      pendingSkips.current.set(partner.id, sent)
+      void sent.finally(() => {
+        if (pendingSkips.current.get(partner.id) === sent) pendingSkips.current.delete(partner.id)
       })
     } else {
       request.mutate(partner.id, {
         onSuccess: (result) => {
-          setRequestsLeft(result.requestsLeft)
+          setAnswered({ left: result.requestsLeft, after: firstPage })
           if (result.state === "friends") {
             buzz([20, 40, 20])
             setMessage(announce("match", partner, after))
@@ -266,6 +280,10 @@ export function PartnerDeck({
         },
         onError: (error) => {
           dispatch({ type: "failed", partner })
+          // the day's limit: the server knows better than the count we had
+          if ((error as { response?: { status?: number } }).response?.status === 429) {
+            setAnswered({ left: 0, after: firstPage })
+          }
           toast.error(error.message || "Žádost se nepodařilo odeslat. Zkus to znovu.")
         },
       })
@@ -278,13 +296,17 @@ export function PartnerDeck({
     if (!partner) return
     dispatch({ type: "undo" })
     setMessage(announce("undo", partner, undefined))
-    unskip.mutate(partner.id, {
-      onError: (error) => {
-        // the skip stays on the server: it goes again
-        dispatch({ type: "skip", partner })
-        toast.error(error.message || "Vrátit se nepovedlo. Zkus to znovu.")
-      },
-    })
+    // a skip still on its way would land after the undo and hide the person again: wait for it
+    const pending = pendingSkips.current.get(partner.id) ?? Promise.resolve()
+    void pending.then(() =>
+      unskip.mutate(partner.id, {
+        onError: (error) => {
+          // the skip stays on the server: it goes again, unless the card was acted on meanwhile
+          dispatch({ type: "skip", partner })
+          toast.error(error.message || "Vrátit se nepovedlo. Zkus to znovu.")
+        },
+      }),
+    )
   }
 
   function onPointerDown(event: PointerEvent<HTMLDivElement>) {
@@ -484,13 +506,13 @@ export function PartnerDeck({
               </div>
             ),
           )}
-          {leaving ? (
+          {leaving.map((card) => (
             <LeavingCard
-              key={`leaving-${leaving.partner.id}`}
-              leaving={leaving}
+              key={`leaving-${card.partner.id}`}
+              leaving={card}
               onDone={clearLeaving}
             />
-          ) : null}
+          ))}
         </div>
       )}
 
@@ -510,16 +532,18 @@ export function PartnerDeck({
               variant="ghost"
               size="icon"
               aria-label="Vrátit poslední přeskočení"
-              disabled={!state.undoable}
-              className="size-12"
+              // aria-disabled, not disabled: a disabled button would drop the focus on it
+              aria-disabled={!state.undoable}
+              className="size-12 aria-disabled:cursor-not-allowed aria-disabled:opacity-50"
               onClick={undo}
             >
               <Undo2 aria-hidden />
             </Button>
             <Button
               type="button"
-              className="min-h-12"
-              disabled={!canRequest}
+              ref={requestButton}
+              className="min-h-12 aria-disabled:cursor-not-allowed aria-disabled:opacity-50"
+              aria-disabled={!canRequest}
               aria-describedby={canRequest ? undefined : `${headingId}-limit`}
               onClick={() => commit("request", { dx: 0, dy: 0, vx: 0 })}
             >
@@ -546,8 +570,11 @@ export function PartnerDeck({
         <PartnerMatch
           partner={match}
           viewerName={viewerName}
-          radiusKm={radiusKm}
           onClose={() => setMatch(undefined)}
+          // back to „Přidat“, also after a swipe; past the last card, to what the page says now
+          onRestoreFocus={() =>
+            (requestButton.current ?? emptyHeading.current)?.focus({ preventScroll: true })
+          }
         />
       ) : null}
     </section>
@@ -593,12 +620,13 @@ function DeckStamps({
  * out past the screen's edge, its stamp fully on. It floats, so it has the shadow. Under reduced
  * motion it fades where it is instead. Without the Web Animations API (tests) it is gone at once.
  */
-function LeavingCard({ leaving, onDone }: { leaving: Leaving; onDone: () => void }) {
+function LeavingCard({ leaving, onDone }: { leaving: Leaving; onDone: (id: string) => void }) {
   const element = useRef<HTMLDivElement>(null)
   useLayoutEffect(() => {
     const node = element.current
+    const id = leaving.partner.id
     if (!node || typeof node.animate !== "function") {
-      onDone()
+      onDone(id)
       return
     }
     const animation = node.animate(
@@ -607,7 +635,7 @@ function LeavingCard({ leaving, onDone }: { leaving: Leaving; onDone: () => void
         : [{ transform: leaving.from }, { transform: leaving.to }],
       { duration: leaving.durationMs, easing: FLY_EASING, fill: "forwards" },
     )
-    animation.onfinish = onDone
+    animation.onfinish = () => onDone(id)
     return () => animation.cancel()
   }, [leaving, onDone])
   return (

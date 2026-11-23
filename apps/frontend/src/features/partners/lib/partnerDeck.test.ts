@@ -59,6 +59,12 @@ describe("the deck's moves (#84)", () => {
     expect(deckQueue([a, b, c], state).map(({ id }) => id)).toEqual(["b", "a", "c"])
   })
 
+  it("a late skip doesn't touch a card acted on meanwhile", () => {
+    let state = moveDeck(emptyDeck(), { type: "request", partner: a })
+    state = moveDeck(state, { type: "skip", partner: a })
+    expect(state.undoable).toBeNull()
+  })
+
   it("never shows a person twice when pages overlap", () => {
     expect(deckQueue([a, b, b, c], emptyDeck()).map(({ id }) => id)).toEqual(["a", "b", "c"])
   })

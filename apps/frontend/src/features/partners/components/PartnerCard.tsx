@@ -56,11 +56,11 @@ export function PartnerCard({
           className="absolute right-5 bottom-5 size-12"
         />
         {partner.hasRequestedMe ? (
-          <span className="w-fit rounded-full bg-badge-neutral px-2 py-0.5 text-xs font-semibold text-badge-neutral-foreground">
+          <span className="w-fit rounded-full border border-control-border bg-badge-neutral px-2 py-0.5 text-xs font-semibold text-badge-neutral-foreground">
             Posílá ti žádost
           </span>
         ) : null}
-        <h2
+        <h3
           id={nameId}
           className="min-w-0 pr-16 type-feature break-words"
         >
@@ -76,7 +76,7 @@ export function PartnerCard({
           ) : (
             partner.name
           )}
-        </h2>
+        </h3>
         <p className="text-sm text-on-hero-muted">{distanceLabel(partner.distanceBandKm)}</p>
       </div>
       <div className="flex flex-col gap-3 p-5">

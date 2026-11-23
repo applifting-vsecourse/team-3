@@ -129,7 +129,7 @@ export function PartnersPage({
             <section className="flex flex-col gap-2">
               <h2 className="type-card-heading">Jak to funguje</h2>
               <ul className="flex list-disc flex-col gap-1 pl-5 text-sm text-muted-foreground">
-                <li>„Přidat“ pošle žádost o přátelství. Dozví se o ní jen ten, koho přidáš.</li>
+                <li>„Přidat“ pošle žádost o přátelství. Uvidí ji jen člověk, kterého přidáš.</li>
                 <li>„Teď ne“ je tiché a nikdo se o něm nedozví. Poslední můžeš vrátit.</li>
                 <li>Vzdálenost je jen přibližná, mezi středy vašich domovských míst.</li>
               </ul>

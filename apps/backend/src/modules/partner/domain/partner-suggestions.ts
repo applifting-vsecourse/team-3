@@ -14,8 +14,6 @@ export type PartnerRadiusKm = (typeof PARTNER_RADII_KM)[number];
 export const DEFAULT_PARTNER_RADIUS_KM: PartnerRadiusKm = 10;
 /** One page of the deck; the app asks for the next one while five cards are still left. */
 export const PARTNER_PAGE_SIZE = 20;
-/** At most this many people within the radius are ranked; plenty for a Czech region. */
-export const PARTNER_CANDIDATE_LIMIT = 1000;
 /** A skipped person may come back after this long (Strava hides a suggestion for 28 days). */
 export const PARTNER_SKIP_DAYS = 90;
 /**

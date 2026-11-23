@@ -10,7 +10,7 @@ import { Dialog, DialogContent, DialogDescription, DialogTitle } from "@/compone
 
 import "./partners-motion.css"
 
-import type { Partner, PartnerRadius } from "@/features/partners/api/partnersSchemas"
+import type { Partner } from "@/features/partners/api/partnersSchemas"
 
 /**
  * „Je to shoda!“ (#84): „Přidat“ met their request, so the two are friends now. In the style of
@@ -22,13 +22,13 @@ import type { Partner, PartnerRadius } from "@/features/partners/api/partnersSch
 export function PartnerMatch({
   partner,
   viewerName,
-  radiusKm,
   onClose,
+  onRestoreFocus,
 }: {
   partner: Partner
   viewerName: string
-  radiusKm: PartnerRadius
   onClose: () => void
+  onRestoreFocus: () => void
 }) {
   const title = useRef<HTMLHeadingElement>(null)
   const activities = partner.sharedInterests.map(({ slug }) => slug).join(",")
@@ -42,6 +42,10 @@ export function PartnerMatch({
       <DialogContent
         showCloseButton={false}
         overlayClassName="hh-deck-overlay"
+        onCloseAutoFocus={(event) => {
+          event.preventDefault()
+          onRestoreFocus()
+        }}
         onOpenAutoFocus={(event) => {
           event.preventDefault()
           title.current?.focus({ preventScroll: true })
@@ -89,7 +93,8 @@ export function PartnerMatch({
           >
             <Link
               to={ROUTES.events}
-              search={{ aktivita: activities || undefined, okoli: `${radiusKm}` }}
+              // /akce around the remembered locality; its okolí needs a centre the card can't give
+              search={{ aktivita: activities || undefined }}
             >
               <CalendarSearch aria-hidden /> Najít společnou akci
             </Link>

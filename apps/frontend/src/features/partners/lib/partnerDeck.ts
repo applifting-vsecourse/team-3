@@ -35,6 +35,8 @@ export function moveDeck(state: DeckState, action: DeckAction): DeckState {
   switch (action.type) {
     case "skip":
     case "request": {
+      // acted on already (e.g. a failed undo arriving after „Přidat“ on the returned card)
+      if (state.done.has(action.partner.id)) return state
       const done = new Set(state.done).add(action.partner.id)
       return {
         done,
