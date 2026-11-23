@@ -16,6 +16,7 @@ import { eventKeys } from "@/features/events/api/eventsQueryOptions"
 import { OnboardingEventPreview } from "@/features/events/components/OnboardingEventPreview"
 import {
   OnboardingWizard,
+  type OnboardingNext,
   type OnboardingResult,
 } from "@/features/onboarding/components/OnboardingWizard"
 import { profileKeys } from "@/features/profile/api/profileQueryOptions"
@@ -48,6 +49,7 @@ function OnboardingPage() {
   const finish = async (
     { onboardingCompletedAt, localitySlug, hasInterests }: OnboardingResult,
     hasSubmittedPreferences: boolean,
+    next: OnboardingNext,
   ) => {
     const current = queryClient.getQueryData<Session>(authKeys.session())
     if (current?.user.id !== viewerId) return
@@ -58,7 +60,10 @@ function OnboardingPage() {
     void queryClient.invalidateQueries({ queryKey: profileKeys.self(viewerId) })
     void queryClient.invalidateQueries({ queryKey: eventKeys.lists() })
 
-    if (hasSubmittedPreferences && localitySlug && hasInterests) {
+    if (hasSubmittedPreferences && next === "partners") {
+      // „Nebo se podívej, kdo z okolí má stejné koníčky“ (#84)
+      await navigate({ to: ROUTES.partners, replace: true })
+    } else if (hasSubmittedPreferences && localitySlug && hasInterests) {
       await navigate({
         to: ROUTES.events,
         search: { lokalita: localitySlug, vyber: "podle-zajmu" },

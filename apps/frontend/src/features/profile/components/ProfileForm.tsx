@@ -6,9 +6,11 @@ import { useForm } from "react-hook-form"
 import { ActivityCombobox } from "@/components/CatalogCombobox/ActivityCombobox"
 import { LocalityCombobox } from "@/components/CatalogCombobox/LocalityCombobox"
 import { Button } from "@/components/ui/button"
+import { Checkbox } from "@/components/ui/checkbox"
 import {
   Form,
   FormControl,
+  FormDescription,
   FormField,
   FormItem,
   FormLabel,
@@ -56,6 +58,7 @@ export function ProfileForm({
       name: profile.name,
       homeLocalityId: profile.homeLocality?.id ?? null,
       interestIds: profile.interests.map((activity) => activity.id),
+      partnerDiscoverable: profile.partnerDiscoverable,
     },
   })
   if (activities.error || localities.error) {
@@ -79,6 +82,7 @@ export function ProfileForm({
         name: saved.name,
         homeLocalityId: saved.homeLocality?.id ?? null,
         interestIds: saved.interests.map((activity) => activity.id),
+        partnerDiscoverable: saved.partnerDiscoverable,
       })
     } catch (error) {
       const field = fieldOfError(error)
@@ -192,6 +196,30 @@ export function ProfileForm({
                 <p className="text-sm text-muted-foreground">Vyber aktivity, které tě zajímají.</p>
               )}
               <FormMessage />
+            </FormItem>
+          )}
+        />
+        <FormField
+          control={form.control}
+          name="partnerDiscoverable"
+          render={({ field }) => (
+            <FormItem className="flex flex-row items-start gap-3">
+              <FormControl>
+                <Checkbox
+                  checked={field.value}
+                  onCheckedChange={(checked) => field.onChange(checked === true)}
+                  onBlur={field.onBlur}
+                  ref={field.ref}
+                  className="mt-0.5"
+                />
+              </FormControl>
+              <div className="flex flex-col gap-1">
+                <FormLabel>Ukazovat mě v Najdi parťáka</FormLabel>
+                <FormDescription>
+                  Lidé z okolí se stejnými koníčky tě uvidí se jménem, zájmy a přibližnou
+                  vzdáleností.
+                </FormDescription>
+              </div>
             </FormItem>
           )}
         />

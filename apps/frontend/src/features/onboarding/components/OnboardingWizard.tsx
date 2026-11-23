@@ -50,13 +50,19 @@ type Preferences = {
 }
 
 export type OnboardingResult = z.infer<typeof resultSchema>
+/** Where the saved wizard leads: the events, or Najdi parťáka (#84). */
+export type OnboardingNext = "events" | "partners"
 
 type FinishInput = Preferences | null
 
 type OnboardingWizardProps = {
   viewerId: string
   renderEventPreview?: (locality: Locality, categoryId: string) => ReactNode
-  onFinish: (result: OnboardingResult, hasSubmittedPreferences: boolean) => Promise<void>
+  onFinish: (
+    result: OnboardingResult,
+    hasSubmittedPreferences: boolean,
+    next: OnboardingNext,
+  ) => Promise<void>
 }
 
 const EMPTY_CATEGORIES: ActivityCategory[] = []
@@ -85,6 +91,7 @@ export function OnboardingWizard({
   const dialogContent = useRef<HTMLDivElement>(null)
   const restore = useRef<HTMLElement | null>(null)
   const requestPending = useRef(false)
+  const nextStop = useRef<OnboardingNext>("events")
   const localities = useQuery(localitiesQueryOptions())
   const estimate = useQuery(defaultLocalityQueryOptions(viewerId))
   const activities = useQuery(activityTreeQueryOptions())
@@ -114,7 +121,7 @@ export function OnboardingWizard({
           })
       return resultSchema.parse(await request.json())
     },
-    onSuccess: (result, input) => onFinish(result, input !== null),
+    onSuccess: (result, input) => onFinish(result, input !== null, nextStop.current),
     onSettled: () => {
       requestPending.current = false
     },
@@ -135,10 +142,11 @@ export function OnboardingWizard({
     return { homeLocalityId: flow.locality.id, interestIds: flow.interestIds }
   }
 
-  function submit(mode: "preferences" | "exit") {
+  function submit(mode: "preferences" | "exit", next: OnboardingNext = "events") {
     const input = mode === "exit" ? null : preferences()
     if (requestPending.current || input === undefined) return
     requestPending.current = true
+    nextStop.current = next
     finish.mutate(input)
   }
 
@@ -359,6 +367,7 @@ export function OnboardingWizard({
           isSaving={finish.isPending}
           error={errorMessage}
           onSave={() => submit("preferences")}
+          onSaveForPartners={() => submit("preferences", "partners")}
           onClose={dismissOverlay}
           onRestoreFocus={restoreFocus}
         />

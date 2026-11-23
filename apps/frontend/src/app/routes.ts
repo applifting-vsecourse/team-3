@@ -21,6 +21,8 @@ export const ROUTES = {
   // „Lidé, které znám“ (#307, Figma B-09): the whole list behind the profile's preview
   friends: "/profil/pratele",
   userProfile: "/uzivatele/$userId",
+  // Najdi parťáka (#84): a deck of people nearby who like the same, linked from Můj profil
+  partners: "/partaci",
   // the centre of upozornění on a phone (#86, Figma C-07); on desktop the bell opens a panel
   notifications: "/upozorneni",
   login: "/login",

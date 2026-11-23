@@ -2,6 +2,7 @@ import { createFileRoute } from "@tanstack/react-router"
 
 import { useSession } from "@/features/auth/hooks/useSession"
 import { FriendsPreview } from "@/features/friends/components/FriendsPreview"
+import { PartnerEntry } from "@/features/partners/components/PartnerEntry"
 import { ProfilePage } from "@/features/profile/components/ProfilePage"
 import { ProfileLoading } from "@/features/profile/components/ProfileState"
 
@@ -14,7 +15,12 @@ function ProfileRoute() {
     <ProfilePage
       key={user.id}
       viewerId={user.id}
-      peopleContent={<FriendsPreview viewerId={user.id} />}
+      peopleContent={
+        <>
+          <FriendsPreview viewerId={user.id} />
+          <PartnerEntry />
+        </>
+      }
     />
   ) : (
     <ProfileLoading />
