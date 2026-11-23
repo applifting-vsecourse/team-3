@@ -17,11 +17,13 @@ import { UserModule } from './modules/user/user.module';
 import { WelcomeModule } from './modules/welcome/welcome.module';
 import { AuthModule } from './shared/auth/auth.module';
 import { Config } from './shared/config/config.service';
+import { RateLimitModule } from './shared/rate-limit/rate-limit.module';
 
 const imports = [
   ScheduleModule.forRoot(),
   ConfigModule.forRootAsync(Config, { validate: true }),
   AuthModule,
+  RateLimitModule,
   WelcomeModule,
   AdminModule,
   CatalogModule,

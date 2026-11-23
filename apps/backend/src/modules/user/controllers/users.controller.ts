@@ -2,6 +2,7 @@ import { UserService } from '@/modules/user/services/user.service';
 import { OptionalUser } from '@/shared/auth/decorators/optional-user.decorator';
 import { Identity } from '@/shared/auth/domain/identity';
 import { OptionalUserGuard } from '@/shared/auth/guards/optional-user.guard';
+import { PublicReadThrottlerGuard } from '@/shared/rate-limit/rate-limit.guards';
 import { Controller, Get, Param, UseGuards } from '@nestjs/common';
 import { ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger';
 import { PublicUserResponseDto } from './dto/public-user.response.dto';
@@ -12,7 +13,7 @@ export class UsersController {
   constructor(private readonly users: UserService) {}
   @Get(':userId')
   // a visitor gets the profile too; a signed-in viewer also how they stand to the person (#307)
-  @UseGuards(OptionalUserGuard)
+  @UseGuards(OptionalUserGuard, PublicReadThrottlerGuard)
   @ApiOperation({
     summary:
       'Public profile: name, interests, ratings and public personal event history (#179); for a signed-in viewer the friendship, for a friend Kam jde (#307)',

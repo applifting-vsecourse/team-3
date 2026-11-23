@@ -1,13 +1,11 @@
 import { VerifiedUserGuard } from '@/shared/auth/guards/verified-user.guard';
+import { RATE_LIMIT_OPTIONS } from '@/shared/rate-limit/rate-limits';
 import { ExecutionContext, HttpException } from '@nestjs/common';
 import { GUARDS_METADATA } from '@nestjs/common/constants';
 import { Test, TestingModule } from '@nestjs/testing';
 import { ThrottlerModule } from '@nestjs/throttler';
 import { CatalogController } from './catalog.controller';
-import {
-  LOCALITY_THROTTLER_OPTIONS,
-  LocalityThrottlerGuard,
-} from './locality-throttler.guard';
+import { LocalityThrottlerGuard } from './locality-throttler.guard';
 
 // Factories, so neither better-auth's ESM-only node entry nor the provider's
 // e-mail templates are loaded under Jest; the guards here need neither.
@@ -36,7 +34,7 @@ describe('LocalityThrottlerGuard', () => {
 
   beforeEach(async () => {
     moduleRef = await Test.createTestingModule({
-      imports: [ThrottlerModule.forRoot(LOCALITY_THROTTLER_OPTIONS)],
+      imports: [ThrottlerModule.forRoot(RATE_LIMIT_OPTIONS)],
       providers: [LocalityThrottlerGuard],
     }).compile();
     await moduleRef.init();

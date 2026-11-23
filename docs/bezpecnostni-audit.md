@@ -79,12 +79,12 @@ Stav: **opraveno** = sloučeno do `main`, **částečně** = opravená jen čás
 | N-2  | Simulovaná schránka se zapínala sama, když chyběla e-mailová služba, takže jde ověřit cizí adresu; po zapnutí Googlu (#165) hrozí sdílení účtu | střední   | částečně v #216              | Viz [Zbývá u N-2 a N-3](#zbývá-u-n-2-a-n-3)                                                                                       |
 | N-3  | Demo účty s heslem zveřejněným v repu se zakládaly při každém startu, pokud se to výslovně nevyplo                                             | střední   | opraveno v #216, #234 a #235 | Viz [Zbývá u N-2 a N-3](#zbývá-u-n-2-a-n-3)                                                                                       |
 | N-4  | Chyběly bezpečnostní hlavičky (CSP, `frame-ancestors`, HSTS, `nosniff`), stránku šlo vložit do cizího rámce; #140 to neřeší                    | střední   | opraveno v #216              | Hlavičky v `nginx`, `helmet` v backendu; CSP viz níže                                                                             |
-| N-5  | Neověřený účet mohl bez omezení přidávat lokality do veřejného katalogu; `/api` nemá rate limit                                                | střední   | částečně v #216, zbytek #230 | Viz [Zbývá u N-5](#zbývá-u-n-5)                                                                                                   |
+| N-5  | Neověřený účet mohl bez omezení přidávat lokality do veřejného katalogu; `/api` nemá rate limit                                                | střední   | částečně v #216 a #230       | Limity zápisů na uživatele, viz [Zbývá u N-5](#zbývá-u-n-5)                                                                       |
 | N-6  | Bez e-mailové služby se odkazy pro obnovu hesla a ověření vypisují do logu i v produkci                                                        | nízká     | opraveno v #240              | V produkci se loguje jen příjemce a předmět, i při seedu                                                                          |
 | N-7  | Zablokovaného uživatele zastaví jen některé cesty; projeví se až s blokací (B-063)                                                             | nízká     | otevřený                     | Odmítat blokované při přihlášení a rušit jejich session                                                                           |
 | N-8  | Cookie session nemá prefix `__Host-`, jiná aplikace na doméně může podstrčit vlastní cookie                                                    | nízká     | otevřený                     | Samostatná doména pro každý tým, nebo prefix `__Host-`                                                                            |
 | N-9  | Swagger a referenční stránka BetterAuth jsou v produkci veřejné, referenční stránka načítá nepřipnutý skript z CDN                             | nízká     | opraveno v #240              | V produkci vypnuté, pokud není `API_DOCS=true`; staging je má zapnuté, viz [Zbývá u N-9](#zbývá-u-n-9)                            |
-| N-10 | Každý přihlášený vidí jména účastníků akcí a může je hromadně stáhnout                                                                         | nízká     | částečně v #222, zbytek #224 | Jména účastníků v detailu akce už vidí jen organizátor, schválený účastník a u akce skupiny její aktivní členové; navazuje na #94 |
+| N-10 | Každý přihlášený vidí jména účastníků akcí a může je hromadně stáhnout                                                                         | nízká     | částečně v #222 a #230       | Účastníky vidí jen organizátor, přijatí účastníci a členové skupiny; veřejné čtení má limit IP, viz [Zbývá u N-10](#zbývá-u-n-10) |
 | N-11 | Přes registraci a kontrolu uživatelského jména lze zjistit, zda účet existuje                                                                  | nízká     | přijaté                      | Kompromis kvůli UX; limit přihlášení hromadné zkoušení zpomaluje                                                                  |
 | N-12 | `ci.yml` a `deploy.yml` nemají `permissions` (`codeql.yml` je má), akce nejsou připnuté na commit; `COOLIFY_TOKEN` je dostupný celému jobu     | nízká     | opraveno v #401              | `permissions: contents: read`, akce na SHA, token jen v kroku nasazení                                                            |
 | N-13 | Frontendový kontejner běží jako root, nasazuje se jen tag `latest`                                                                             | nízká     | opraveno v #401              | `nginx-unprivileged` na portu 80, tag commitu; viz [Zbývá u N-13](#zbývá-u-n-13)                                                  |
@@ -114,10 +114,28 @@ Dokud je schránka zapnutá, jde na stagingu ověřit cizí adresu. Google se al
 
 ### Zbývá u N-5
 
-Přidat lokalitu teď může jen ověřený uživatel a nejvýš 20krát za hodinu. Limit se počítá na uživatele a po restartu backendu se vynuluje. Zůstává:
+Limity API (#230, `apps/backend/src/shared/rate-limit/rate-limits.ts`) počítá backend v paměti, po restartu se vynulují. Překročení vrací 429 s českou hláškou, kterou frontend zobrazí.
 
-- **Rate limit na zbytek `/api`:** ověřený uživatel může dál hromadně zakládat akce a skupiny. Limit podle IP jsme záměrně nepřidali: celá učebna na jedné Wi-Fi je jedna IP (viz #141) a `trust proxy` je zatím nastavené jen na stagingu (`TRUST_PROXY_HOPS=1` v `Dockerfile.deploy`, kvůli limitu simulované schránky z #236). Řeší #230.
+| Co                                                                          | Limit         | Počítá se                   |
+| --------------------------------------------------------------------------- | ------------- | --------------------------- |
+| Přidání lokality do katalogu (jen ověřený uživatel, #216)                   | 20 za hodinu  | na uživatele                |
+| Založení akce nebo skupiny, dohromady                                       | 20 za hodinu  | na uživatele                |
+| Ostatní zápisy (přihlášky, zprávy, úpravy, schvalování, přátelé, hodnocení) | 120 za minutu | na uživatele, všechny spolu |
+
+Zakládání a přidání lokality se započítá i do ostatních zápisů. Limit podle IP u zápisů záměrně není: celá učebna na jedné Wi-Fi je jedna IP (viz #141). Bez limitu zůstává simulovaná schránka (má vlastní limity z #236) a potvrzení věku (jednou za účet). Test `rate-limit.coverage.spec.ts` hlídá, že nový zápisový endpoint bez limitu neprojde.
+
+Zůstává:
+
 - **Mazání lokalit:** už přidané lokality jde odstranit jen přímo v databázi, patří to k administraci (B-063).
+
+### Zbývá u N-10
+
+Veřejná čtení vracejí jména a id lidí: organizátora akce v `GET /api/events`, `GET /api/events/:id`, `GET /api/home`, `GET /api/home/events` a `GET /api/groups/:groupId/events`, správců skupiny v `GET /api/groups` a `GET /api/groups/:id`, a veřejný profil v `GET /api/users/:userId`. Od #230 mají všechna dohromady limit 600 požadavků za minutu. Nepřihlášený se počítá podle IP. Přihlášený se počítá podle účtu všude, kde se načítá session, tedy kromě seznamů `GET /api/events` a `GET /api/groups` (u nich by to byl dotaz do databáze navíc). Detail akce se totiž sám ptá každých 10 s a celá učebna na jedné IP by si jinak sdílela jedno počítadlo. Limit je velkorysý a hromadné stahování jen zpomalí. Test `rate-limit.coverage.spec.ts` hlídá, že nová veřejná cesta bez limitu neprojde, pokud není mezi vyjmenovanými cestami, které o lidech nic nevracejí (katalog, obrázky, stav aplikace).
+
+- IP je `request.ip` z Expressu. Za proxy na stagingu ji určuje `trust proxy` (`TRUST_PROXY_HOPS=1`, od #236) a limit tak spoléhá na stejné nastavení proxy jako limit simulované schránky (viz [Ke kontrole na stagingu](#ke-kontrole-na-stagingu)). Dokud to vyučující nepotvrdí, může se stát:
+  - Proxy do `X-Forwarded-For` nepřidává adresu klienta: kdo hlavičku nepošle, má IP proxy, takže 600 požadavků za minutu si sdílejí všichni nepřihlášení a seznamy akcí a skupin všech návštěvníků. Kdo ji pošle sám, IP si zvolí a limit obejde.
+  - Backend je dostupný přímo, mimo proxy: klient si IP podvrhne stejnou hlavičkou.
+- Zda jméno organizátora a správců ve veřejném API zůstává, rozhoduje PO (dotaz v #230).
 
 ### Zbývá u N-9
 
@@ -141,7 +159,7 @@ Z kódu nejde zjistit a tým nemá přístup do Coolify. Ověří to Tomáš Kl�
 
 - `BETTER_AUTH_SECRET` nastavuje Coolify, nesmí mít hodnotu z `.env.example`.
 - Backend nesmí být dostupný přímo mimo proxy.
-- Proxy musí přepisovat hlavičku `X-Forwarded-For`, jinak nemusí správně fungovat rate limit přihlášení.
+- Proxy musí přepisovat hlavičku `X-Forwarded-For`, jinak nemusí správně fungovat rate limit přihlášení a limit veřejného čtení akcí a skupin (#230).
 - Před backendem je právě jedna proxy (`TRUST_PROXY_HOPS=1`). Při víc proxy by limit simulované schránky počítal adresu vnější proxy, ne klienta.
 - Po nasazení #236 nemá žádný uživatel s neověřeným e-mailem platnou session (migrace `20261107120000_end_unverified_sessions`). Dotaz musí vrátit 0: `SELECT count(*) FROM "session" s JOIN "user" u ON u."id" = s."userId" WHERE u."emailVerified" = false AND s."expiresAt" > now();`
 - `FRONTEND_URL` a `BACKEND_URL` musí odpovídat skutečným adresám, jinak ochrana z #140 odmítne všechny zápisy.

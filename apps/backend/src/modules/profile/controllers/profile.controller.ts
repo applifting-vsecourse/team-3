@@ -3,6 +3,7 @@ import { User } from '@/shared/auth/decorators/user.decorator';
 import { Identity } from '@/shared/auth/domain/identity';
 import { AuthenticatedUserGuard } from '@/shared/auth/guards/authenticated-user.guard';
 import { VerifiedUserGuard } from '@/shared/auth/guards/verified-user.guard';
+import { WriteThrottlerGuard } from '@/shared/rate-limit/rate-limit.guards';
 import {
   Body,
   Controller,
@@ -55,6 +56,7 @@ export class ProfileController {
   }
 
   @Patch()
+  @UseGuards(WriteThrottlerGuard)
   @ApiResponse({ status: 200, type: SelfProfileResponseDto })
   @ApiOperation({
     summary: 'Update my name, home locality and interests (#178)',
@@ -68,7 +70,7 @@ export class ProfileController {
 
   @Post('onboarding')
   @HttpCode(200)
-  @UseGuards(VerifiedUserGuard)
+  @UseGuards(VerifiedUserGuard, WriteThrottlerGuard)
   @ApiOperation({
     summary: 'Save the initial locality and interests once (#296)',
   })
@@ -82,7 +84,7 @@ export class ProfileController {
 
   @Post('onboarding/skip')
   @HttpCode(200)
-  @UseGuards(VerifiedUserGuard)
+  @UseGuards(VerifiedUserGuard, WriteThrottlerGuard)
   @ApiOperation({ summary: 'Skip the initial onboarding once (#296)' })
   @ApiResponse({ status: 200, type: OnboardingResultDto })
   skipOnboarding(@User() user: Identity): Promise<OnboardingResultDto> {

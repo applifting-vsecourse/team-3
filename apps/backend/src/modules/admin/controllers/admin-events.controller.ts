@@ -2,6 +2,7 @@ import { EventModerationService } from '@/modules/admin/services/event-moderatio
 import { User } from '@/shared/auth/decorators/user.decorator';
 import { Identity } from '@/shared/auth/domain/identity';
 import { AdminGuard } from '@/shared/auth/guards/admin.guard';
+import { WriteThrottlerGuard } from '@/shared/rate-limit/rate-limit.guards';
 import {
   Body,
   Controller,
@@ -45,6 +46,7 @@ export class AdminEventsController {
   constructor(private readonly moderation: EventModerationService) {}
 
   @Post(':id/hide')
+  @UseGuards(WriteThrottlerGuard)
   @HttpCode(204)
   @ApiOperation({
     summary:
@@ -66,6 +68,7 @@ export class AdminEventsController {
   }
 
   @Post(':id/unhide')
+  @UseGuards(WriteThrottlerGuard)
   @HttpCode(204)
   @ApiOperation({
     summary:

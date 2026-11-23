@@ -1,6 +1,7 @@
 import { PrismaService } from '@/core/prisma/prisma.service';
 import { AuthenticatedUserGuard } from '@/shared/auth/guards/authenticated-user.guard';
 import { Config } from '@/shared/config/config.service';
+import { RateLimitModule } from '@/shared/rate-limit/rate-limit.module';
 import { DynamicModule, Module } from '@nestjs/common';
 import { Test } from '@nestjs/testing';
 import { mockDeep } from 'jest-mock-extended';
@@ -64,6 +65,8 @@ describe('NotificationModule', () => {
           frontendUrl: 'https://hobbyhub.example',
           emailFrom: 'HobbyHub <x@example.com>',
         }),
+        // global in the app (AppModule), for the controller's rate limit
+        RateLimitModule,
         NotificationModule,
       ],
     })
