@@ -98,7 +98,7 @@ V produkci se simulovaná schránka ani demo účty nezapnou samy. Demo účty m
 **N-2:** staging od #165 posílá skutečné e-maily přes SMTP. Na stagingu ověřeno (#165): registrace pošle skutečný ověřovací e-mail a odkaz v něm funguje, „Zapomenuté heslo“ pošle e-mail. Se zadaným SMTP se simulovaná schránka vypne sama (`simulatedInboxEnabled`), staging to hlásí v `GET /api/sign-in-providers` (`"simulatedInbox": false`, 23. 11.). Ověřit cizí adresu na stagingu už nejde.
 
 - **Zbývající riziko:** účty ověřené dřív simulací zůstávají ověřené, tak to tým rozhodl ([`docs/staging-auth-mail.md`](staging-auth-mail.md#na-co-dát-pozor)). Vlastnictví jejich adresy nikdo nedoložil a se skutečnou poštou BetterAuth propojí přihlášení přes Google s existujícím účtem se stejnou ověřenou adresou. Kdo si přes simulaci založil účet s cizí adresou, zná k němu heslo; když se pak majitel adresy přihlásí přes Google, dostane se do téhož účtu a oba ho sdílejí. Demo účty ze seedu jsou na `@example.com`, ty ohrožené nejsou. Kdyby se to mělo změnit: nechat tyto účty znovu ověřit, nebo vynulovat databázi stagingu.
-- Řádek `SIMULATED_INBOX=true` v `Dockerfile.deploy` zůstává. Dokud je SMTP nastavené, nemá účinek; kdyby klíče SMTP z image zmizely, schránka se zase zapne. Před skutečnou produkcí ho smazat.
+- `SIMULATED_INBOX` je v `Dockerfile.deploy` build argument s výchozí hodnotou `true` a `deploy.yml` mu předává GitHub variable `SIMULATED_INBOX` (bez ní `true`). Dokud je SMTP nastavené, nemá účinek; kdyby klíče SMTP z image zmizely, schránka se zase zapne. Pro skutečnou produkci předat `SIMULATED_INBOX=false`.
 
 **Klíče na stagingu:** proměnné v Coolify nastavují vyučující, takže vlastní klíče (Google, Resend, SMTP) se na staging dostanou jen při sestavení image: GitHub secret, build-arg v `deploy.yml` a `ENV` v `Dockerfile.deploy`. Hodnoty pak jsou uvnitř image a přečte je každý, kdo k image má přístup. Proto pro staging použít samostatné klíče jen pro staging (u Resendu klíč jen s právem odesílat, u Googlu samostatného OAuth klienta), aby šly při úniku zneplatnit bez dopadu jinam. Klíče nepatří do repa, ani jako výchozí hodnota v `Dockerfile.deploy`.
 
@@ -136,7 +136,7 @@ Veřejná čtení vracejí jména a id lidí: organizátora akce v `GET /api/eve
 
 ### Zbývá u N-9
 
-Tým se rozhodl dokumentaci API na stagingu ponechat, proto ji `apps/backend/Dockerfile.deploy` zapíná řádkem `API_DOCS=true`. Před skutečnou produkcí je potřeba ho smazat, stejně jako `SIMULATED_INBOX=true` a `SEED_DEMO_DATA=true`.
+Tým se rozhodl dokumentaci API na stagingu ponechat, proto ji `apps/backend/Dockerfile.deploy` zapíná řádkem `API_DOCS=true`. Před skutečnou produkcí je potřeba ho smazat, stejně jako `SEED_DEMO_DATA=true`, a předat `SIMULATED_INBOX=false` (viz [Zbývá u N-2 a N-3](#zbývá-u-n-2-a-n-3)).
 
 ### Zbývá u N-13
 
