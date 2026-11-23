@@ -60,6 +60,18 @@ export class CreateThrottlerGuard extends UserRateLimitGuard {
   protected readonly limits = ['create', 'write'] as const;
 }
 
+/** „Smazat účet“ (#64): 5 tries in 15 minutes per user, and a write. */
+@Injectable()
+export class AccountDeletionThrottlerGuard extends UserRateLimitGuard {
+  protected readonly limits = ['accountDeletion', 'write'] as const;
+}
+
+/** „Stáhnout moje data“ (#64): 10 an hour per user. */
+@Injectable()
+export class AccountExportThrottlerGuard extends UserRateLimitGuard {
+  protected readonly limits = ['accountExport'] as const;
+}
+
 /**
  * Public reads with people's names (N-10): 600 a minute. A visitor counts per
  * IP; a signed-in user per account where OptionalUserGuard has put the

@@ -12,6 +12,8 @@ import {
   METHOD_METADATA,
 } from '@nestjs/common/constants';
 import {
+  AccountDeletionThrottlerGuard,
+  AccountExportThrottlerGuard,
   CreateThrottlerGuard,
   PublicReadThrottlerGuard,
   WriteThrottlerGuard,
@@ -25,6 +27,7 @@ jest.mock('@/shared/auth/utils/get-session-from-request', () => ({
 jest.mock('@/shared/auth/providers/better-auth.provider', () => ({
   InjectBetterAuth: (): void => undefined,
 }));
+jest.mock('@/shared/auth/utils/reauthentication', () => ({}));
 
 /** Every controller in the backend, so a new one can't be left out. */
 const CONTROLLERS: Type[] = (
@@ -79,6 +82,8 @@ const NO_PEOPLE = [
 
 const USER_THROTTLERS: unknown[] = [
   WriteThrottlerGuard,
+  AccountDeletionThrottlerGuard,
+  AccountExportThrottlerGuard,
   CreateThrottlerGuard,
   LocalityThrottlerGuard,
 ];

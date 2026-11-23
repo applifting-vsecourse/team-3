@@ -31,6 +31,19 @@ export const RATE_LIMITS = {
     ttl: MINUTE_MS,
     message: 'Posíláš toho teď moc najednou. Zkus to znovu za chvíli.',
   },
+  // „Smazat účet“ (#64): each try checks a password, so few, per user —
+  // guessing a password through it is no faster than through sign-in
+  accountDeletion: {
+    limit: 5,
+    ttl: 15 * MINUTE_MS,
+    message: 'Příliš mnoho pokusů. Zkus to znovu za 15 minut.',
+  },
+  // „Stáhnout moje data“ (#64): a dozen queries each, per user
+  accountExport: {
+    limit: 10,
+    ttl: HOUR_MS,
+    message: 'Svoje data stahuješ moc často. Zkus to znovu za hodinu.',
+  },
   // public reads that carry names, per account when signed in, otherwise per
   // IP: a whole classroom on one Wi-Fi is one IP (#141), hence the generous limit
   publicRead: {
