@@ -146,7 +146,9 @@ Tým se rozhodl dokumentaci API na stagingu ponechat, proto ji `apps/backend/Doc
 - **Port 80 bez roota:** nginx dál poslouchá na portu 80, protože na něj směruje Coolify a tým jeho nastavení měnit nemůže.
   - Neprivilegovaný proces může port 80 použít jen díky tomu, že Docker 20.10+ to v síťovém namespace kontejneru povolí (`net.ipv4.ip_unprivileged_port_start=0`).
   - Se `network_mode: host` nebo se starším runtime by nginx nenaběhl. V logu frontendu by bylo `bind() to 0.0.0.0:80 failed (13: Permission denied)`.
-  - Na stagingu ověřeno 23. 11. po nasazení #401: úvodní stránka odpovídá 200 z `nginx/1.30.6` a bezpečnostní hlavičky z #216 zůstaly, nginx tedy port 80 bez roota otevřel. Log frontendu jsme neviděli, nemáme přístup do Coolify. Kdyby to po změně runtime selhalo, vrátit commit se změnou `apps/frontend/Dockerfile.deploy` z #401, workflow můžou zůstat.
+  - Běh bez roota je ověřený lokálně v #401: všechny procesy nginx běží pod uživatelem `nginx` (uid 101).
+  - Na stagingu je po nasazení #401 (23. 11.) ověřené jen to, že je dostupný a hlavičky zůstaly: úvodní stránka vrací 200 a bezpečnostní hlavičky z #216. Běh bez roota to nedokládá, stejnou verzi `nginx/1.30.6` a stejné hlavičky vracel i předchozí image. Potvrdit ho jde jen v Coolify (viz [Ke kontrole na stagingu](#ke-kontrole-na-stagingu)).
+  - Kdyby to po změně runtime selhalo, vrátit commit se změnou `apps/frontend/Dockerfile.deploy` z #401, workflow můžou zůstat.
 - **Image v registru přibývají:** každý push na `main` přidá dva image s tagem commitu a nikdo je nemaže.
   - Image backendu obsahuje klíče z build-args (viz [Klíče na stagingu](#zbývá-u-n-2-a-n-3)).
   - Přepsaný `latest` starý image z registru nesmazal ani dřív, dokud neproběhl úklid registru. Tag commitu ho jen pojmenuje.
@@ -160,6 +162,7 @@ Z kódu nejde zjistit a tým nemá přístup do Coolify. Ověří to Tomáš Kl�
 - `BETTER_AUTH_SECRET` nastavuje Coolify, nesmí mít hodnotu z `.env.example`.
 - Backend nesmí být dostupný přímo mimo proxy.
 - Proxy musí přepisovat hlavičku `X-Forwarded-For`, jinak nemusí správně fungovat rate limit přihlášení a limit veřejného čtení akcí a skupin (#230).
+- Frontend běží z image s tagem commitu z #401 nebo novějším (`nginxinc/nginx-unprivileged`) a proces nginx má uid 101, ne 0 (N-13).
 - Před backendem je právě jedna proxy (`TRUST_PROXY_HOPS=1`). Při víc proxy by limit simulované schránky počítal adresu vnější proxy, ne klienta.
 - Po nasazení #236 nemá žádný uživatel s neověřeným e-mailem platnou session (migrace `20261107120000_end_unverified_sessions`). Dotaz musí vrátit 0: `SELECT count(*) FROM "session" s JOIN "user" u ON u."id" = s."userId" WHERE u."emailVerified" = false AND s."expiresAt" > now();`
 - `FRONTEND_URL` a `BACKEND_URL` musí odpovídat skutečným adresám, jinak ochrana z #140 odmítne všechny zápisy.
