@@ -7,9 +7,7 @@ import { ROUTES } from "@/app/routes"
 import { ActivityTag } from "@/components/ActivityTag/ActivityTag"
 import { PageBand } from "@/components/PageBand/PageBand"
 import { Seo } from "@/components/Seo"
-import { Avatar, AvatarFallback } from "@/components/ui/avatar"
 import { Button } from "@/components/ui/button"
-import { initials } from "@/lib/initials"
 import { PAGE } from "@/lib/pageLayout"
 import { ratingSummaryLabel } from "@/lib/ratingSummary"
 import { cn } from "@/lib/utils"
@@ -20,6 +18,7 @@ import {
 } from "@/features/profile/api/profileQueryOptions"
 import type { ProfileOverviewData, SelfProfile } from "@/features/profile/api/profileSchemas"
 
+import { ProfileAvatar } from "./ProfileAvatar"
 import { RatingsSection } from "./ProfileOverview"
 import { ProfileError, ProfileLoading } from "./ProfileState"
 
@@ -68,6 +67,20 @@ export function ProfilePage({
             overview={overview.data}
           />
           <div className={cn(PAGE, "gap-12 pb-24")}>
+            {profile.data.bio ? (
+              <section
+                aria-labelledby="profile-about"
+                className="space-y-2"
+              >
+                <h2
+                  id="profile-about"
+                  className="type-feature"
+                >
+                  O mně
+                </h2>
+                <p className="max-w-2xl break-words whitespace-pre-wrap">{profile.data.bio}</p>
+              </section>
+            ) : null}
             {peopleContent}
             <RatingsSection
               participant={{
@@ -102,14 +115,11 @@ function ProfileBand({
       title={<span className="break-words">{profile.name}</span>}
       leading={
         // like the avatar in the header on the band (HeaderMenu)
-        <Avatar
-          aria-hidden="true"
-          className="size-12 border border-on-hero-muted md:size-16"
-        >
-          <AvatarFallback className="bg-secondary text-body font-semibold text-secondary-foreground md:text-base">
-            {initials(profile.name)}
-          </AvatarFallback>
-        </Avatar>
+        <ProfileAvatar
+          name={profile.name}
+          photoKey={profile.photoKey}
+          className="size-12 md:size-16"
+        />
       }
       description={`${profile.homeLocality?.name ?? "Bez domovské lokality"} · ${ratingSummaryLabel(overview.participantSummary)}`}
       action={

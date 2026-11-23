@@ -3,18 +3,46 @@ import { z } from "zod"
 import { localitySchema } from "@/lib/catalog/catalogSchemas"
 import { nameSchema } from "@/lib/validation/name"
 
+/** As the database's VarChar(500) (B-013, #64). */
+export const BIO_MAX_LENGTH = 500
+
+/**
+ * Who sees the photo, the bio and the visited events (B-014, #64). Nested:
+ * everyone ⊃ friends (friends and organizers of events I apply to) ⊃
+ * organizers ⊃ nobody (just me).
+ */
+export const PROFILE_VISIBILITIES = ["everyone", "friends", "organizers", "nobody"] as const
+export const profileVisibilitySchema = z.enum(PROFILE_VISIBILITIES)
+export type ProfileVisibility = z.infer<typeof profileVisibilitySchema>
+
 export const profileSchema = z.object({
   id: z.string(),
   name: z.string(),
   email: z.string(),
   emailVerified: z.boolean(),
   hasPassword: z.boolean(),
+  bio: z.string().nullable(),
+  // the uploaded photo (#64) at GET /api/images/:key; null = initials
+  photoKey: z.string().nullable(),
+  visibility: z.object({
+    photo: profileVisibilitySchema,
+    bio: profileVisibilitySchema,
+    pastEvents: profileVisibilitySchema,
+  }),
   homeLocality: localitySchema.nullable(),
   interests: z.array(z.object({ id: z.string(), name: z.string() })),
 })
 export type SelfProfile = z.infer<typeof profileSchema>
 export const profileInputSchema = z.object({
   name: nameSchema,
+  bio: z
+    .string()
+    .max(BIO_MAX_LENGTH, `Napiš o sobě nejvýš ${BIO_MAX_LENGTH} znaků.`)
+    .nullable()
+    .optional(),
+  photoVisibility: profileVisibilitySchema.optional(),
+  bioVisibility: profileVisibilitySchema.optional(),
+  pastEventsVisibility: profileVisibilitySchema.optional(),
   homeLocalityId: z.string().nullable(),
   interestIds: z.array(z.string()).max(50, "Vyber nejvýš 50 zájmů."),
 })

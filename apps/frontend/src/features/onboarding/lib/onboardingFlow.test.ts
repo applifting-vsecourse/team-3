@@ -125,10 +125,35 @@ describe("onboarding transitions", () => {
     expect(moveOnboarding(dismissed, take("tennis"))).toBe(dismissed)
   })
 
+  it("requires the decision to start editing optional profile fields", () => {
+    const state = moveOnboarding(withThree(), { type: "dismiss" })
+    expect(moveOnboarding(state, { type: "profile" })).toBe(state)
+  })
+
+  it("offers the optional profile with one pick too", () => {
+    const one = moveOnboarding(follow(place(prague), take("hike")), { type: "review" })
+    expect(moveOnboarding(one, { type: "profile" }).stage).toBe("profile")
+  })
+
+  it("preserves picks across Back and reopening the profile", () => {
+    const original = withThree()
+    const commands: OnboardingCommand[] = [
+      { type: "profile" },
+      { type: "back" },
+      { type: "review" },
+      { type: "profile" },
+    ]
+    const result = commands.reduce(moveOnboarding, original)
+    expect(result.stage).toBe("profile")
+    expect(result.overlay).toBeNull()
+    expect(result.interestIds).toEqual(original.interestIds)
+  })
+
   it.each<OnboardingFlow>([
     startOnboarding(),
     follow(place(prague), take("hike")),
     moveOnboarding(withThree(), { type: "dismiss" }),
+    moveOnboarding(withThree(), { type: "profile" }),
   ])("backs out of exit confirmation without mutating the draft in $stage", (state) => {
     const exiting = moveOnboarding(state, { type: "exit" })
     expect(exiting.overlay).toBe("exit")

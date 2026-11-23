@@ -42,6 +42,9 @@ const profile: SelfProfile = {
   email: "jana@example.com",
   emailVerified: true,
   hasPassword: true,
+  bio: null,
+  photoKey: null,
+  visibility: { photo: "everyone", bio: "everyone", pastEvents: "friends" },
   homeLocality: locality,
   interests: [{ id: "running", name: "Běh" }],
 }

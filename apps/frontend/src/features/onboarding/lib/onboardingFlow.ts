@@ -2,7 +2,7 @@ import type { Locality } from "@/lib/catalog/catalogSchemas"
 
 export const INTEREST_GOAL = 3
 
-type Stage = "locality" | "interests"
+type Stage = "locality" | "interests" | "profile"
 type Overlay = "decision" | "exit"
 
 export type OnboardingFlow = {
@@ -18,6 +18,7 @@ export type OnboardingCommand =
   | { type: "browse"; categoryId: string }
   | { type: "toggle"; interestId: string }
   | { type: "review" }
+  | { type: "profile" }
   | { type: "back" }
   | { type: "exit" }
   | { type: "dismiss" }
@@ -73,8 +74,14 @@ export function moveOnboarding(state: OnboardingFlow, command: OnboardingCommand
         ? { ...state, overlay: "decision" }
         : state
 
+    case "profile":
+      return state.stage === "interests" && state.overlay === "decision" && reviewOnboarding(state)
+        ? { ...state, stage: "profile", overlay: null }
+        : state
+
     case "back":
       if (state.overlay) return { ...state, overlay: null }
+      if (state.stage === "profile") return { ...state, stage: "interests" }
       if (state.stage === "interests") return { ...state, stage: "locality" }
       return state
 

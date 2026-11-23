@@ -43,6 +43,7 @@ const resultSchema = z.object({
   onboardingCompletedAt: z.string(),
   localitySlug: z.string().nullable(),
   hasInterests: z.boolean(),
+  displayName: z.string().optional(),
 })
 
 type Preferences = {
@@ -52,10 +53,20 @@ type Preferences = {
 
 export type OnboardingResult = z.infer<typeof resultSchema>
 
-type FinishInput = Preferences | null
+type FinishInput = Preferences | FormData | null
+export type OnboardingProfileContext = {
+  locality: Locality
+  interestIds: string[]
+  categories: ActivityCategory[]
+  localities: Locality[]
+  onBack: () => void
+  onSkip: () => Promise<void>
+  onSave: (profile: FormData) => Promise<void>
+}
 
 type OnboardingWizardProps = {
   viewerId: string
+  renderProfile: (context: OnboardingProfileContext) => ReactNode
   renderEventPreview?: (locality: Locality, categoryId: string) => ReactNode
   onFinish: (result: OnboardingResult, hasSubmittedPreferences: boolean) => Promise<void>
 }
@@ -71,12 +82,17 @@ const STAGE_COPY = {
     title: "Co tě baví?",
     hint: "Vyber jednu až tři aktivity, na které máš chuť.",
   },
+  profile: {
+    title: "Představ se partě",
+    hint: "Přidej svoji fotku, uprav jméno nebo napiš pár vět o sobě. K profilu se můžeš kdykoli vrátit.",
+  },
 }
 
 export function OnboardingWizard({
   viewerId,
   onFinish,
   renderEventPreview,
+  renderProfile,
 }: OnboardingWizardProps) {
   const [flow, dispatch] = useReducer(moveOnboarding, undefined, startOnboarding)
   const [flight, setFlight] = useState<PhotoFlight>()
@@ -101,18 +117,21 @@ export function OnboardingWizard({
 
   const finish = useMutation({
     mutationFn: async (input: FinishInput) => {
-      const request = input
-        ? api.post("me/profile/onboarding", { json: input })
-        : api.post("me/profile/onboarding/skip", {
-            json: {},
-            // The backend returns the existing completion marker on repeat.
-            retry: {
-              limit: 1,
-              methods: ["post"],
-              statusCodes: [408, 500, 502, 503, 504],
-              retryOnTimeout: true,
-            },
-          })
+      const request =
+        input instanceof FormData
+          ? api.post("me/profile/onboarding/profile", { body: input })
+          : input
+            ? api.post("me/profile/onboarding", { json: input })
+            : api.post("me/profile/onboarding/skip", {
+                json: {},
+                // The backend returns the existing completion marker on repeat.
+                retry: {
+                  limit: 1,
+                  methods: ["post"],
+                  statusCodes: [408, 500, 502, 503, 504],
+                  retryOnTimeout: true,
+                },
+              })
       return resultSchema.parse(await request.json())
     },
     onSuccess: (result, input) => onFinish(result, input !== null),
@@ -141,6 +160,12 @@ export function OnboardingWizard({
     if (requestPending.current || input === undefined) return
     requestPending.current = true
     finish.mutate(input)
+  }
+
+  async function submitProfile(input: FinishInput | undefined) {
+    if (requestPending.current || input === undefined) return
+    requestPending.current = true
+    await finish.mutateAsync(input)
   }
 
   function chooseInterest(activity: Activity, target?: HTMLButtonElement) {
@@ -322,25 +347,38 @@ export function OnboardingWizard({
                         isMinor
                       />
                     </>
-                  ) : categories.length ? (
-                    <InterestPicker
+                  ) : isInterestStep ? (
+                    categories.length ? (
+                      <InterestPicker
+                        categories={categories}
+                        categoryId={flow.categoryId}
+                        selected={flow.interestIds}
+                        isDisabled={finish.isPending}
+                        onBrowse={(categoryId) => dispatch({ type: "browse", categoryId })}
+                        onToggle={chooseInterest}
+                        renderEventPreview={(categoryId) =>
+                          flow.locality && renderEventPreview?.(flow.locality, categoryId)
+                        }
+                      />
+                    ) : (
+                      <CatalogNotice
+                        isPending={activities.isPending}
+                        label="aktivity"
+                        onRetry={() => void activities.refetch()}
+                      />
+                    )
+                  ) : flow.locality && localities.data ? (
+                    <ProfileStep
+                      render={renderProfile}
+                      locality={flow.locality}
+                      interestIds={flow.interestIds}
                       categories={categories}
-                      categoryId={flow.categoryId}
-                      selected={flow.interestIds}
-                      isDisabled={finish.isPending}
-                      onBrowse={(categoryId) => dispatch({ type: "browse", categoryId })}
-                      onToggle={chooseInterest}
-                      renderEventPreview={(categoryId) =>
-                        flow.locality && renderEventPreview?.(flow.locality, categoryId)
-                      }
+                      localities={localities.data}
+                      onBack={goBack}
+                      onSkip={() => submitProfile(preferences())}
+                      onSave={submitProfile}
                     />
-                  ) : (
-                    <CatalogNotice
-                      isPending={activities.isPending}
-                      label="aktivity"
-                      onRetry={() => void activities.refetch()}
-                    />
-                  )}
+                  ) : null}
                 </div>
               </div>
               {isInterestStep ? (
@@ -367,6 +405,11 @@ export function OnboardingWizard({
           isSaving={finish.isPending}
           error={errorMessage}
           onSave={() => submit("preferences")}
+          onProfile={() => {
+            finish.reset()
+            restore.current = null
+            dispatch({ type: "profile" })
+          }}
           onClose={dismissOverlay}
           onRestoreFocus={restoreFocus}
         />
@@ -388,6 +431,13 @@ export function OnboardingWizard({
   )
 }
 
+function ProfileStep({
+  render,
+  ...context
+}: OnboardingProfileContext & { render: OnboardingWizardProps["renderProfile"] }) {
+  return render(context)
+}
+
 function OnboardingProgress({ stage }: { stage: keyof typeof STAGE_COPY }) {
   const position = stage === "locality" ? 1 : 2
   return (
@@ -406,7 +456,9 @@ function OnboardingProgress({ stage }: { stage: keyof typeof STAGE_COPY }) {
           />
         ))}
       </span>
-      <span className="text-right text-xs text-on-hero sm:text-sm">{`Krok ${position} ze 2`}</span>
+      <span className="text-right text-xs text-on-hero sm:text-sm">
+        {stage === "profile" ? "Volitelný profil" : `Krok ${position} ze 2`}
+      </span>
     </div>
   )
 }

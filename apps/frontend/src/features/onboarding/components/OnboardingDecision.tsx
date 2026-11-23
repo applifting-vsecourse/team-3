@@ -1,5 +1,5 @@
 import { useRef, type CSSProperties } from "react"
-import { ArrowRight, Check, Heart } from "lucide-react"
+import { ArrowRight, Check, Heart, Pencil } from "lucide-react"
 
 import { activityPhoto } from "@/assets/activity-photos"
 import { Button } from "@/components/ui/button"
@@ -12,6 +12,7 @@ type DecisionProps = {
   isSaving: boolean
   error?: string
   onSave: () => void
+  onProfile: () => void
   onClose: () => void
   onRestoreFocus: () => void
 }
@@ -22,6 +23,7 @@ export function OnboardingDecision({
   isSaving,
   error,
   onSave,
+  onProfile,
   onClose,
   onRestoreFocus,
 }: DecisionProps) {
@@ -101,9 +103,13 @@ export function OnboardingDecision({
           </ul>
         </div>
         <div className="space-y-4 bg-card p-5 sm:p-6">
-          <p className="text-sm text-muted-foreground">
-            Lokalitu a zájmy můžeš kdykoli změnit v Můj profil.
-          </p>
+          <div className="space-y-1">
+            <p className="font-semibold">Chceš nám o sobě ještě něco povědět?</p>
+            <p className="text-sm text-muted-foreground">
+              Přidej fotku a pár slov o sobě, nebo se rovnou podívej, co se chystá. Lokalitu a zájmy
+              můžeš kdykoli změnit v Můj profil.
+            </p>
+          </div>
           {error ? (
             <p
               role="alert"
@@ -112,7 +118,16 @@ export function OnboardingDecision({
               {error}
             </p>
           ) : null}
-          <div className="flex flex-col gap-2 sm:flex-row sm:flex-wrap sm:items-center sm:gap-3">
+          <div className="grid gap-2 sm:grid-cols-2">
+            <Button
+              type="button"
+              variant="outline"
+              className="min-h-11 whitespace-normal"
+              disabled={isSaving}
+              onClick={onProfile}
+            >
+              <Pencil aria-hidden /> Povědět něco o sobě
+            </Button>
             <Button
               type="button"
               className="min-h-11 whitespace-normal"
@@ -121,6 +136,8 @@ export function OnboardingDecision({
             >
               {isSaving ? "Ukládám…" : "Uložit a ukázat akce"} <ArrowRight aria-hidden />
             </Button>
+          </div>
+          <div>
             <Button
               type="button"
               variant="link"
