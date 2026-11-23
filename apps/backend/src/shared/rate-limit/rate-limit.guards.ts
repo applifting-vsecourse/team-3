@@ -36,8 +36,7 @@ abstract class RateLimitGuard extends ThrottlerGuard {
 /**
  * Counted per signed-in user, not per IP: a whole classroom on one Wi-Fi is
  * one IP (#141). Goes after the guard that puts the session on the request;
- * without one it falls back to the IP rather than letting the request through
- * uncounted.
+ * without one it counts the IP rather than letting the request through.
  */
 export abstract class UserRateLimitGuard extends RateLimitGuard {
   protected async getTracker(request: {
@@ -62,11 +61,14 @@ export class CreateThrottlerGuard extends UserRateLimitGuard {
 }
 
 /**
- * Public reads with organisers' and admins' names (N-10): 600 a minute per
- * IP. The IP is Express's `request.ip`, never a header the client sets: behind
+ * Public reads with people's names (N-10): 600 a minute. A visitor counts per
+ * IP; a signed-in user per account where OptionalUserGuard has put the
+ * session on the request first, so a classroom on one IP doesn't share one
+ * count (an event detail asks again every 10 s while one waits, #230 review).
+ * The IP is Express's `request.ip`, never a header the client sets: behind
  * the staging proxy it comes from `trust proxy` (TRUST_PROXY_HOPS).
  */
 @Injectable()
-export class PublicReadThrottlerGuard extends RateLimitGuard {
+export class PublicReadThrottlerGuard extends UserRateLimitGuard {
   protected readonly limits = ['publicRead'] as const;
 }

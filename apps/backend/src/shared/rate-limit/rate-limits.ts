@@ -9,7 +9,8 @@ const HOUR_MS = 60 * MINUTE_MS;
  * walk through the happy path never meets them: they stop bulk creation and
  * bulk downloading, not people using the app. The counts live in memory and
  * reset when the backend restarts. Messages are shown as they are (the
- * frontend shows the API's message of a 4xx).
+ * frontend shows the API's message of a 4xx). Guards run before validation,
+ * so a refused form (400) counts too.
  */
 export const RATE_LIMITS = {
   // places added to the public catalog, per user
@@ -30,8 +31,8 @@ export const RATE_LIMITS = {
     ttl: MINUTE_MS,
     message: 'Posíláš toho teď moc najednou. Zkus to znovu za chvíli.',
   },
-  // public reads that carry names, per IP: no account is needed for them, and
-  // a whole classroom on one Wi-Fi is one IP (#141), hence the generous limit
+  // public reads that carry names, per account when signed in, otherwise per
+  // IP: a whole classroom on one Wi-Fi is one IP (#141), hence the generous limit
   publicRead: {
     limit: 600,
     ttl: MINUTE_MS,

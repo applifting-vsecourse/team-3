@@ -193,5 +193,22 @@ describe('rate limit guards', () => {
         read(EventsRoutes, 'detail', { ip: '10.0.0.2' }),
       ).resolves.toBe(true);
     });
+
+    it('count signed-in users per account: a classroom on one IP shares no count', async () => {
+      for (let i = 0; i < LIMIT; i++) {
+        await read(EventsRoutes, 'detail', user('eva'));
+      }
+
+      await expect(
+        rejection(read(EventsRoutes, 'detail', user('eva'))),
+      ).resolves.toBeInstanceOf(HttpException);
+      // adam and a visitor on eva's IP go on
+      await expect(read(EventsRoutes, 'detail', user('adam'))).resolves.toBe(
+        true,
+      );
+      await expect(
+        read(EventsRoutes, 'detail', { ip: '10.0.0.1' }),
+      ).resolves.toBe(true);
+    });
   });
 });
