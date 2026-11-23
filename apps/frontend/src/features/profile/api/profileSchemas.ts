@@ -11,12 +11,15 @@ export const profileSchema = z.object({
   hasPassword: z.boolean(),
   homeLocality: localitySchema.nullable(),
   interests: z.array(z.object({ id: z.string(), name: z.string() })),
+  /** „Ukazovat mě v Najdi parťáka“ (#84), on by default. */
+  partnerDiscoverable: z.boolean(),
 })
 export type SelfProfile = z.infer<typeof profileSchema>
 export const profileInputSchema = z.object({
   name: nameSchema,
   homeLocalityId: z.string().nullable(),
   interestIds: z.array(z.string()).max(50, "Vyber nejvýš 50 zájmů."),
+  partnerDiscoverable: z.boolean(),
 })
 export type ProfileInput = z.infer<typeof profileInputSchema>
 const ratingSchema = z.object({

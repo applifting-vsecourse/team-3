@@ -251,12 +251,18 @@ model User {
   bio            String?        @db.VarChar(500)
   homeLocalityId String?
   homeLocality   Locality?      @relation(fields: [homeLocalityId], references: [id], onDelete: SetNull)
+  // Změny domovské lokality za pražský den (#84): nejvýš 3, aby se z pásem
+  // vzdálenosti v Najdi parťáka nedala přesouváním domova dopočítat poloha
+  homeLocalityChangeDay   String? @db.VarChar(10)
+  homeLocalityChangeCount Int     @default(0)
   interests      UserInterest[]
 
   // Viditelnost údajů v profilu (B-014)
   photoVisibility      ProfileVisibility @default(everyone)
   bioVisibility        ProfileVisibility @default(everyone)
   pastEventsVisibility ProfileVisibility @default(everyone)
+  // „Ukazovat mě v Najdi parťáka“ (#84): vypnuté = nikomu se nenabízím
+  partnerDiscoverable  Boolean           @default(true)
 
   // Souhlasy (B-016), blokace superadminem (B-063), smazání účtu (B-080)
   ageConfirmedAt  DateTime?
@@ -291,6 +297,8 @@ model User {
   notificationLogs       NotificationLog[]
   sentFriendRequests     Friendship[]        @relation("FriendshipRequester")
   receivedFriendRequests Friendship[]        @relation("FriendshipAddressee")
+  partnerSkipsMade       PartnerSkip[]       @relation("PartnerSkipper")
+  partnerSkipsReceived   PartnerSkip[]       @relation("PartnerSkipped")
   notifications          Notification[]
 
   @@unique([email])
@@ -744,6 +752,28 @@ model Friendship {
   @@index([requesterId])
   @@index([addresseeId])
   @@map("friendship")
+}
+
+// ---------------------------------------------------------------------------
+// Najdi parťáka (#84)
+// ---------------------------------------------------------------------------
+
+/// „Teď ne“ v Najdi parťáka: koho `skipper` přeskočil, aby se mu ten člověk
+/// 90 dní neukázal, ani na jiném zařízení (`createdAt` = poslední přeskočení,
+/// „Vrátit“ řádek smaže). Jeden řádek na směr dvojice; ten druhý se o
+/// přeskočení nikdy nedozví. „Přidat“ je žádost o přátelství
+/// (`Friendship`), vlastní řádek nemá.
+model PartnerSkip {
+  id        String   @id @default(cuid())
+  skipperId String
+  skipper   User     @relation("PartnerSkipper", fields: [skipperId], references: [id], onDelete: Cascade)
+  skippedId String
+  skipped   User     @relation("PartnerSkipped", fields: [skippedId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now())
+
+  @@unique([skipperId, skippedId])
+  @@index([skippedId])
+  @@map("partner_skip")
 }
 
 // ---------------------------------------------------------------------------

@@ -1,3 +1,4 @@
+import { startOfPragueDayOf } from '@/modules/event/domain/prague-day';
 import {
   friendLists,
   type FriendLists,
@@ -10,12 +11,15 @@ import {
   type FriendshipRefusal,
   type FriendshipState,
 } from '@/modules/friendship/domain/friendship';
+import { friendRequestsLeft } from '@/modules/friendship/domain/request-limit';
 import { FriendshipRepository } from '@/modules/friendship/repositories/friendship.repository';
+import { FriendRequestLimitRepository } from '@/modules/friendship/repositories/request-limit.repository';
 import { NotificationService } from '@/modules/notification/services/notification.service';
 import {
   BadRequestException,
   ConflictException,
   HttpException,
+  HttpStatus,
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
@@ -48,6 +52,17 @@ const REFUSALS: Record<FriendshipRefusal, () => HttpException> = {
     }),
 };
 
+/** 429 on `POST /api/friends/:userId` and on „Přidat“ in Najdi parťáka alike (#84). */
+export const FRIEND_REQUEST_DAILY_LIMIT = 'FRIEND_REQUEST_DAILY_LIMIT';
+const dailyLimit = (): HttpException =>
+  new HttpException(
+    {
+      code: FRIEND_REQUEST_DAILY_LIMIT,
+      message: 'Na dnešek máš přidáno dost. Další lidi můžeš přidat zítra.',
+    },
+    HttpStatus.TOO_MANY_REQUESTS,
+  );
+
 const userNotFound = (): HttpException =>
   new NotFoundException({
     code: 'USER_NOT_FOUND',
@@ -69,6 +84,7 @@ export class FriendshipService {
   constructor(
     private readonly repository: FriendshipRepository,
     private readonly notifications: NotificationService,
+    private readonly limits: FriendRequestLimitRepository,
   ) {}
 
   /** „Přidat do přátel“: a request, or accepting the other's (one row per pair). */
@@ -83,12 +99,21 @@ export class FriendshipService {
       const row = await this.repository.findPair(viewerId, otherId);
       const decision = decideRequest(row, viewerId, otherId);
       if (!decision.ok) throw REFUSALS[decision.refusal]();
-      const done =
-        decision.action === 'create'
-          ? await this.repository.create(viewerId, otherId)
-          : decision.action === 'accept'
-            ? await this.repository.accept(viewerId, otherId, now)
-            : await this.repository.resend(viewerId, otherId, now);
+      // a new request (also one sent again) only while today's limit lasts (#84); accepting always
+      let done: boolean;
+      if (decision.action === 'accept') {
+        done = await this.repository.accept(viewerId, otherId, now);
+      } else {
+        const written = await this.limits.limited(
+          viewerId,
+          otherId,
+          decision.action,
+          startOfPragueDayOf(now),
+          now,
+        );
+        if (written === 'limit') throw dailyLimit();
+        done = written === 'written';
+      }
       if (done) {
         // only the write that happened tells the other, after it is written (#86)
         this.notifications.notify({
@@ -102,6 +127,16 @@ export class FriendshipService {
     }
     // the state kept changing under us: answer with where it is now
     return this.state(viewerId, otherId);
+  }
+
+  /** „Dnes ještě 5 přidání“: new requests left today (#84). */
+  async requestsLeft(
+    viewerId: string,
+    now: Date = new Date(),
+  ): Promise<number> {
+    return friendRequestsLeft(
+      await this.limits.sentSince(viewerId, startOfPragueDayOf(now)),
+    );
   }
 
   /** „Odmítnout“: quietly, the other still sees „Žádost odeslána“. */

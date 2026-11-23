@@ -28,6 +28,7 @@ const profile = {
   email: "old@example.com",
   emailVerified: true,
   hasPassword: true,
+  partnerDiscoverable: true,
   homeLocality: null,
   interests: [],
 }

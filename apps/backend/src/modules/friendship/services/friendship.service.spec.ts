@@ -1,9 +1,11 @@
 import type { FriendshipRow } from '@/modules/friendship/domain/friendship';
 import { FriendshipRepository } from '@/modules/friendship/repositories/friendship.repository';
+import { FriendRequestLimitRepository } from '@/modules/friendship/repositories/request-limit.repository';
 import { NotificationService } from '@/modules/notification/services/notification.service';
 import {
   BadRequestException,
   ConflictException,
+  HttpException,
   NotFoundException,
 } from '@nestjs/common';
 import { mock, type MockProxy } from 'jest-mock-extended';
@@ -18,19 +20,26 @@ const fromAtoB = (status: FriendshipRow['status']): FriendshipRow => ({
   status,
 });
 
+// 11:00 in Prague; the day started at 23:00 UTC the evening before
+const pragueMidnight = new Date('2026-11-18T23:00:00.000Z');
+
 const setup = (): {
   repository: MockProxy<FriendshipRepository>;
   notifications: MockProxy<NotificationService>;
+  limits: MockProxy<FriendRequestLimitRepository>;
   service: FriendshipService;
 } => {
   const repository = mock<FriendshipRepository>();
   repository.isAvailable.mockResolvedValue(true);
   repository.findPair.mockResolvedValue(null);
   const notifications = mock<NotificationService>();
+  const limits = mock<FriendRequestLimitRepository>();
+  limits.limited.mockResolvedValue('written');
   return {
     repository,
     notifications,
-    service: new FriendshipService(repository, notifications),
+    limits,
+    service: new FriendshipService(repository, notifications, limits),
   };
 };
 
@@ -42,12 +51,17 @@ const code = async (promise: Promise<unknown>): Promise<unknown> =>
   );
 
 describe('FriendshipService.request („Přidat do přátel“, #307)', () => {
-  it('sends a new request', async () => {
-    const { repository, service } = setup();
-    repository.create.mockResolvedValue(true);
+  it('sends a new request, under the daily limit from Prague midnight', async () => {
+    const { limits, service } = setup();
 
     await expect(service.request(A, B, now)).resolves.toBe('outgoing');
-    expect(repository.create).toHaveBeenCalledWith(A, B);
+    expect(limits.limited).toHaveBeenCalledWith(
+      A,
+      B,
+      'create',
+      pragueMidnight,
+      now,
+    );
   });
 
   it('accepts when the other already asks me', async () => {
@@ -60,35 +74,73 @@ describe('FriendshipService.request („Přidat do přátel“, #307)', () => {
   });
 
   it('the one who rejected asks themselves', async () => {
-    const { repository, service } = setup();
+    const { repository, limits, service } = setup();
     repository.findPair.mockResolvedValue(fromAtoB('rejected'));
-    repository.resend.mockResolvedValue(true);
 
     await expect(service.request(B, A, now)).resolves.toBe('outgoing');
-    expect(repository.resend).toHaveBeenCalledWith(B, A, now);
+    expect(limits.limited).toHaveBeenCalledWith(
+      B,
+      A,
+      'resend',
+      pragueMidnight,
+      now,
+    );
   });
 
   it('both asking at once: the second one becomes an acceptance', async () => {
-    const { repository, service } = setup();
+    const { repository, limits, service } = setup();
     // nothing when B read, but A's request was saved before B's
     repository.findPair
       .mockResolvedValueOnce(null)
       .mockResolvedValueOnce(fromAtoB('pending'));
-    repository.create.mockResolvedValue(false);
+    limits.limited.mockResolvedValue('unchanged');
     repository.accept.mockResolvedValue(true);
 
     await expect(service.request(B, A, now)).resolves.toBe('friends');
   });
 
   it('a person who can’t be asked: 404 as a missing profile', async () => {
-    const { repository, service } = setup();
+    const { repository, limits, service } = setup();
     repository.isAvailable.mockResolvedValue(false);
 
     await expect(service.request(A, B, now)).rejects.toBeInstanceOf(
       NotFoundException,
     );
     expect(await code(service.request(A, B, now))).toBe('USER_NOT_FOUND');
-    expect(repository.create).not.toHaveBeenCalled();
+    expect(limits.limited).not.toHaveBeenCalled();
+  });
+
+  it('over the day’s limit: 429 FRIEND_REQUEST_DAILY_LIMIT, nobody is told', async () => {
+    const { limits, notifications, service } = setup();
+    limits.limited.mockResolvedValue('limit');
+
+    const error = await service
+      .request(A, B, now)
+      .catch((caught: unknown) => caught);
+
+    expect((error as HttpException).getStatus()).toBe(429);
+    expect(await code(service.request(A, B, now))).toBe(
+      'FRIEND_REQUEST_DAILY_LIMIT',
+    );
+    expect(notifications.notify).not.toHaveBeenCalled();
+  });
+
+  it('accepting the other’s request is never limited', async () => {
+    const { repository, limits, service } = setup();
+    repository.findPair.mockResolvedValue(fromAtoB('pending'));
+    repository.accept.mockResolvedValue(true);
+    limits.limited.mockResolvedValue('limit');
+
+    await expect(service.request(B, A, now)).resolves.toBe('friends');
+    expect(limits.limited).not.toHaveBeenCalled();
+  });
+
+  it('says how many new requests are left today', async () => {
+    const { limits, service } = setup();
+    limits.sentSince.mockResolvedValue(15);
+
+    await expect(service.requestsLeft(A, now)).resolves.toBe(5);
+    expect(limits.sentSince).toHaveBeenCalledWith(A, pragueMidnight);
   });
 
   it('not myself', async () => {
@@ -116,8 +168,7 @@ describe('FriendshipService.request („Přidat do přátel“, #307)', () => {
 
 describe('FriendshipService: upozornění (#86)', () => {
   it('a new request tells the one asked', async () => {
-    const { repository, notifications, service } = setup();
-    repository.create.mockResolvedValue(true);
+    const { notifications, service } = setup();
 
     await service.request(A, B, now);
 
@@ -143,8 +194,8 @@ describe('FriendshipService: upozornění (#86)', () => {
   });
 
   it('a write that didn’t happen tells nobody', async () => {
-    const { repository, notifications, service } = setup();
-    repository.create.mockResolvedValue(false);
+    const { repository, limits, notifications, service } = setup();
+    limits.limited.mockResolvedValue('unchanged');
     repository.findPair
       .mockResolvedValueOnce(null)
       .mockResolvedValueOnce(fromAtoB('accepted'))

@@ -7,6 +7,7 @@ import { InviteLookupThrottlerGuard } from './controllers/invite-lookup-throttle
 import { InvitesController } from './controllers/invites.controller';
 import { FriendshipRepository } from './repositories/friendship.repository';
 import { InviteRepository } from './repositories/invite.repository';
+import { FriendRequestLimitRepository } from './repositories/request-limit.repository';
 import { FriendshipService } from './services/friendship.service';
 import { InviteService } from './services/invite.service';
 
@@ -18,6 +19,7 @@ import { InviteService } from './services/invite.service';
   providers: [
     FriendshipService,
     FriendshipRepository,
+    FriendRequestLimitRepository,
     InviteService,
     InviteRepository,
     // one counter for the public lookup of invite codes (#406)

@@ -9,6 +9,9 @@ export const profileSelect = {
   emailVerified: true,
   blockedAt: true,
   deletedAt: true,
+  partnerDiscoverable: true,
+  homeLocalityChangeDay: true,
+  homeLocalityChangeCount: true,
   homeLocality: {
     select: {
       id: true,
@@ -39,6 +42,8 @@ export type SelfProfile = {
   hasPassword: boolean;
   homeLocality: ProfileRow['homeLocality'];
   interests: { id: string; name: string }[];
+  /** „Ukazovat mě v Najdi parťáka“ (#84), on by default. */
+  partnerDiscoverable: boolean;
 };
 
 // A projection, never a spread: auth/account and moderation data cannot escape.
@@ -50,6 +55,7 @@ export function selfProfile(row: ProfileRow): SelfProfile {
     emailVerified: row.emailVerified,
     hasPassword: row.accounts.length > 0,
     homeLocality: row.homeLocality,
+    partnerDiscoverable: row.partnerDiscoverable,
     // in Czech order, not the database's (#370)
     interests: byCzechName(
       row.interests.map(({ activity }) => ({
@@ -88,4 +94,5 @@ export type UpdateProfileInput = {
   name?: string;
   homeLocalityId?: string | null;
   interestIds?: string[];
+  partnerDiscoverable?: boolean;
 };
