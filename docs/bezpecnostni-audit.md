@@ -130,10 +130,10 @@ Zůstává:
 
 ### Zbývá u N-10
 
-Veřejná čtení vracejí jména a id lidí: organizátora akce v `GET /api/events`, `GET /api/events/:id`, `GET /api/home`, `GET /api/home/events` a `GET /api/groups/:groupId/events`, správců skupiny v `GET /api/groups` a `GET /api/groups/:id`, a veřejný profil v `GET /api/users/:userId`. Od #230 mají všechna dohromady limit 600 požadavků za minutu na IP. Limit je velkorysý kvůli učebně na jedné IP a hromadné stahování jen zpomalí. Test `rate-limit.coverage.spec.ts` hlídá, že nová veřejná cesta bez limitu neprojde, pokud není mezi vyjmenovanými cestami, které o lidech nic nevracejí (katalog, obrázky, stav aplikace).
+Veřejná čtení vracejí jména a id lidí: organizátora akce v `GET /api/events`, `GET /api/events/:id`, `GET /api/home`, `GET /api/home/events` a `GET /api/groups/:groupId/events`, správců skupiny v `GET /api/groups` a `GET /api/groups/:id`, a veřejný profil v `GET /api/users/:userId`. Od #230 mají všechna dohromady limit 600 požadavků za minutu. Nepřihlášený se počítá podle IP. Přihlášený se počítá podle účtu všude, kde se načítá session, tedy kromě seznamů `GET /api/events` a `GET /api/groups` (u nich by to byl dotaz do databáze navíc). Detail akce se totiž sám ptá každých 10 s a celá učebna na jedné IP by si jinak sdílela jedno počítadlo. Limit je velkorysý a hromadné stahování jen zpomalí. Test `rate-limit.coverage.spec.ts` hlídá, že nová veřejná cesta bez limitu neprojde, pokud není mezi vyjmenovanými cestami, které o lidech nic nevracejí (katalog, obrázky, stav aplikace).
 
 - IP je `request.ip` z Expressu. Za proxy na stagingu ji určuje `trust proxy` (`TRUST_PROXY_HOPS=1`, od #236) a limit tak spoléhá na stejné nastavení proxy jako limit simulované schránky (viz [Ke kontrole na stagingu](#ke-kontrole-na-stagingu)). Dokud to vyučující nepotvrdí, může se stát:
-  - Proxy do `X-Forwarded-For` nepřidává adresu klienta: kdo hlavičku nepošle, má IP proxy, takže 600 požadavků za minutu může vyčerpat celá třída při demu. Kdo ji pošle sám, IP si zvolí a limit obejde.
+  - Proxy do `X-Forwarded-For` nepřidává adresu klienta: kdo hlavičku nepošle, má IP proxy, takže 600 požadavků za minutu si sdílejí všichni nepřihlášení a seznamy akcí a skupin všech návštěvníků. Kdo ji pošle sám, IP si zvolí a limit obejde.
   - Backend je dostupný přímo, mimo proxy: klient si IP podvrhne stejnou hlavičkou.
 - Zda jméno organizátora a správců ve veřejném API zůstává, rozhoduje PO (dotaz v #230).
 
