@@ -1674,6 +1674,56 @@ describe('EventsService notifications (#177)', () => {
     });
   });
 
+  describe('cancelling the events of a deleted account (B-080, #64)', () => {
+    it('cancels every upcoming one with the reason and tells the participants like a cancel does', async () => {
+      const { repository, notifications, service } = setup();
+      repository.findUpcomingOrganized.mockResolvedValue([
+        { id: 'e1', status: 'published' },
+        { id: 'e2', status: 'published' },
+      ]);
+
+      await expect(
+        service.cancelOrganizedEvents(
+          'u1',
+          'Účet organizátora byl smazán.',
+          now,
+        ),
+      ).resolves.toEqual(['e1', 'e2']);
+
+      expect(repository.findUpcomingOrganized).toHaveBeenCalledWith('u1', now);
+      expect(repository.cancelEvent).toHaveBeenCalledWith(
+        'e1',
+        'Účet organizátora byl smazán.',
+        now,
+      );
+      expect(notifications.notify.mock.calls).toEqual([
+        [{ type: 'event-cancelled', eventId: 'e1' }],
+        [{ type: 'event-cancelled', eventId: 'e2' }],
+      ]);
+    });
+
+    it('cancels a deactivated one quietly and skips one cancelled meanwhile', async () => {
+      const { repository, notifications, service } = setup();
+      repository.findUpcomingOrganized.mockResolvedValue([
+        { id: 'hidden', status: 'hidden' },
+        { id: 'gone', status: 'published' },
+      ]);
+      repository.cancelHiddenEvent.mockResolvedValue(true);
+      repository.cancelEvent.mockResolvedValue(false);
+
+      await expect(
+        service.cancelOrganizedEvents('u1', 'Důvod', now),
+      ).resolves.toEqual(['hidden']);
+
+      expect(repository.cancelHiddenEvent).toHaveBeenCalledWith(
+        'hidden',
+        'Důvod',
+        now,
+      );
+      expect(notifications.notify).not.toHaveBeenCalled();
+    });
+  });
+
   describe('changing the event', () => {
     const changed = (overrides: Partial<EventDetail>): EventDetail =>
       aDetail(overrides);

@@ -480,6 +480,39 @@ export class EventsService {
   }
 
   /**
+   * Cancels every upcoming event the user organizes, when the account is
+   * deleted (B-080, #64). The same cancellation as `cancelEvent`: the
+   * participants of a published one hear of it with the reason (#177); one
+   * the superadmin deactivated is cancelled quietly, nobody could see it.
+   * Returns the ids of the events cancelled.
+   */
+  async cancelOrganizedEvents(
+    organizerId: string,
+    reason: string,
+    now: Date = new Date(),
+  ): Promise<string[]> {
+    const cancelled: string[] = [];
+    for (const event of await this.eventRepository.findUpcomingOrganized(
+      organizerId,
+      now,
+    )) {
+      if (event.status === 'hidden') {
+        if (await this.eventRepository.cancelHiddenEvent(event.id, reason, now))
+          cancelled.push(event.id);
+        continue;
+      }
+      if (await this.eventRepository.cancelEvent(event.id, reason, now)) {
+        this.notifications.notify({
+          type: 'event-cancelled',
+          eventId: event.id,
+        });
+        cancelled.push(event.id);
+      }
+    }
+    return cancelled;
+  }
+
+  /**
    * The organizer changes the event (B-028, #41), until it starts. The
    * maximum can't go below the people who already have a place, and the end
    * moves with the start; the activity and the way of joining can't change

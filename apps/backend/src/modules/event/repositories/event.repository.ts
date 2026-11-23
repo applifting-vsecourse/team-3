@@ -410,6 +410,46 @@ export class EventRepository {
   }
 
   /**
+   * The organizer's events that have not started yet and could still be
+   * cancelled (#64): published ones, the ones that tell their participants,
+   * and the ones the superadmin deactivated, which nobody sees.
+   */
+  async findUpcomingOrganized(
+    organizerId: string,
+    now: Date,
+  ): Promise<{ id: string; status: 'published' | 'hidden' }[]> {
+    const events = await this.prisma.event.findMany({
+      where: {
+        organizerUserId: organizerId,
+        status: { in: ['published', 'hidden'] },
+        startsAt: { gt: now },
+      },
+      select: { id: true, status: true },
+      orderBy: { startsAt: 'asc' },
+    });
+    return events.map(({ id, status }) => ({
+      id,
+      status: status === 'hidden' ? 'hidden' : 'published',
+    }));
+  }
+
+  /**
+   * Cancels a deactivated event that hasn't started (#64): a superadmin
+   * restoring it later would publish an event of a deleted account.
+   */
+  async cancelHiddenEvent(
+    id: string,
+    reason: string,
+    now: Date,
+  ): Promise<boolean> {
+    const { count } = await this.prisma.event.updateMany({
+      where: { id, status: 'hidden', startsAt: { gt: now } },
+      data: { status: 'cancelled', cancelReason: reason, cancelledAt: now },
+    });
+    return count === 1;
+  }
+
+  /**
    * Cancels the event (B-028): it is never deleted, only marked, with the
    * reason the participants see. Conditional on it still being published and
    * ahead, so of two cancels at once only one writes; false when none did.
