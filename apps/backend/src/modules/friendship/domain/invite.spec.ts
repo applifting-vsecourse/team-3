@@ -51,50 +51,27 @@ describe('inviteClaim (#406)', () => {
   const fresh = { createdAt: daysAgo(0), invitedById: null };
 
   it('a new account nobody invited becomes the inviter’s', () => {
-    expect(inviteClaim(fresh, INVITER, 0, now)).toBe('claim');
-    expect(inviteClaim(fresh, INVITER, INVITE_DAILY_LIMIT - 1, now)).toBe(
-      'claim',
+    expect(inviteClaim(fresh, 0, now)).toBe('claim');
+    expect(inviteClaim(fresh, INVITE_DAILY_LIMIT - 1, now)).toBe('claim');
+  });
+
+  it('claims once only: answered before (also for this inviter), the code is ignored', () => {
+    expect(inviteClaim({ ...fresh, invitedById: INVITER }, 0, now)).toBe(
+      'ignored',
     );
-  });
-
-  it('claimed by the same inviter counts only while the account is new', () => {
-    expect(
-      inviteClaim(
-        { createdAt: daysAgo(30), invitedById: INVITER },
-        INVITER,
-        0,
-        now,
-      ),
-    ).toBe('ignored');
-  });
-
-  it('the same inviter asking again is claimed already', () => {
-    expect(
-      inviteClaim({ ...fresh, invitedById: INVITER }, INVITER, 99, now),
-    ).toBe('claimed');
-  });
-
-  it('ignores the code for somebody else’s invitee', () => {
-    expect(
-      inviteClaim({ ...fresh, invitedById: 'other' }, INVITER, 0, now),
-    ).toBe('ignored');
+    expect(inviteClaim({ ...fresh, invitedById: 'other' }, 0, now)).toBe(
+      'ignored',
+    );
   });
 
   it('ignores the code for an older account', () => {
     expect(
-      inviteClaim(
-        { createdAt: daysAgo(30), invitedById: null },
-        INVITER,
-        0,
-        now,
-      ),
+      inviteClaim({ createdAt: daysAgo(30), invitedById: null }, 0, now),
     ).toBe('ignored');
   });
 
-  it('ignores the code past 20 sign-ups a day', () => {
-    expect(inviteClaim(fresh, INVITER, INVITE_DAILY_LIMIT, now)).toBe(
-      'ignored',
-    );
+  it('ignores the code past 20 sign-ups per inviter per day', () => {
+    expect(inviteClaim(fresh, INVITE_DAILY_LIMIT, now)).toBe('ignored');
   });
 });
 

@@ -3,6 +3,7 @@ import { NotificationModule } from '@/modules/notification/notification.module';
 import { AuthModule } from '@/shared/auth/auth.module';
 import { Module } from '@nestjs/common';
 import { FriendsController } from './controllers/friends.controller';
+import { InviteLookupThrottlerGuard } from './controllers/invite-lookup-throttler.guard';
 import { InvitesController } from './controllers/invites.controller';
 import { FriendshipRepository } from './repositories/friendship.repository';
 import { InviteRepository } from './repositories/invite.repository';
@@ -19,6 +20,8 @@ import { InviteService } from './services/invite.service';
     FriendshipRepository,
     InviteService,
     InviteRepository,
+    // one counter for the public lookup of invite codes (#406)
+    InviteLookupThrottlerGuard,
   ],
   // the public profile reads how its viewer stands to the person (#307)
   exports: [FriendshipService],

@@ -153,21 +153,65 @@ describe('InviteService.accept (the onboarding’s step, #406)', () => {
     expect(friendships.promote).toHaveBeenCalledWith(pending, now);
   });
 
-  it('asked again after „Teď ne“: friends, told like an acceptance', async () => {
+  it('asked again after „Teď ne“: an ordinary request, no friends at once', async () => {
     const { invites, friendships, notifications, service } = setup();
     invites.findInvitee.mockResolvedValue({
       createdAt: now,
       invitedById: INVITER,
     });
-    friendships.createAccepted.mockResolvedValue(true);
+    friendships.create.mockResolvedValue(true);
 
-    await expect(service.accept(NEW, CODE, true, now)).resolves.toBe('friends');
+    await expect(service.accept(NEW, CODE, true, now)).resolves.toBe(
+      'outgoing',
+    );
     expect(invites.claim).not.toHaveBeenCalled();
+    expect(friendships.createAccepted).not.toHaveBeenCalled();
     expect(notifications.notify).toHaveBeenCalledWith({
-      type: 'friend-accepted',
+      type: 'friend-request',
       fromId: NEW,
       toId: INVITER,
     });
+  });
+
+  it('claimed, then the inviter unfriends: accepting again is a request, not friends', async () => {
+    const { invites, friendships, service } = setup();
+    friendships.createAccepted.mockResolvedValue(true);
+    await expect(service.accept(NEW, CODE, true, now)).resolves.toBe('friends');
+
+    // „Odebrat z přátel“ deleted the row; the account is the inviter's invitee now
+    invites.findInvitee.mockResolvedValue({
+      createdAt: now,
+      invitedById: INVITER,
+    });
+    friendships.findPair.mockResolvedValue(null);
+    friendships.create.mockResolvedValue(true);
+
+    await expect(service.accept(NEW, CODE, true, now)).resolves.toBe(
+      'outgoing',
+    );
+    expect(friendships.createAccepted).toHaveBeenCalledTimes(1);
+    expect(friendships.create).toHaveBeenCalledWith(NEW, INVITER);
+  });
+
+  it('the inviter quietly rejected my request: the invite doesn’t override it', async () => {
+    const { friendships, notifications, service } = setup();
+    friendships.findPair.mockResolvedValue({
+      requesterId: NEW,
+      addresseeId: INVITER,
+      status: 'rejected',
+    });
+
+    await expect(service.accept(NEW, CODE, true, now)).resolves.toBe(
+      'outgoing',
+    );
+    expect(friendships.promote).not.toHaveBeenCalled();
+    // joined is still news, without the friendship
+    expect(notifications.notify).toHaveBeenCalledWith(
+      expect.objectContaining({
+        type: 'friend-invite-joined',
+        befriended: false,
+      }),
+    );
   });
 
   it('an older account sends an ordinary request', async () => {

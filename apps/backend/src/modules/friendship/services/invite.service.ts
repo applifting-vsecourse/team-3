@@ -92,9 +92,9 @@ export class InviteService {
 
   /**
    * The onboarding's answer to „{jméno} tě sem zve“: `befriend` = „Přidat do přátel“, else
-   * „Teď ne“. A new account becomes the inviter's invitee (`inviteClaim`) and, with
-   * `befriend`, their friend at once; otherwise „Přidat do přátel“ is an ordinary request
-   * (`decideInviteAccept`). Answers how the invitee stands to the inviter afterwards.
+   * „Teď ne“. A new account becomes the inviter's invitee once (`inviteClaim`) and, with
+   * `befriend` in that same answer, their friend at once; otherwise „Přidat do přátel“ is an
+   * ordinary request (`decideInviteAccept`). Answers how the invitee stands to the inviter afterwards.
    */
   async accept(
     inviteeId: string,
@@ -114,13 +114,14 @@ export class InviteService {
       inviter.id,
       inviteLimitSince(now),
     );
-    // count, then claim: two sign-ups at the very same moment may pass 20 by one, which the
-    // limit (against bulk fake accounts, not an exact quota) accepts
-    const claim = inviteClaim(account, inviter.id, joinedToday, now);
+    // count, then claim: two sign-ups at the very same moment may pass 20 per inviter per day
+    // by one, which the limit (against bulk fake accounts, not an exact quota) accepts
     const isNewlyClaimed =
-      claim === 'claim' &&
+      inviteClaim(account, joinedToday, now) === 'claim' &&
       (await this.invites.claim(inviteeId, inviter.id, now));
-    const isInvited = isNewlyClaimed || claim === 'claimed';
+    // friends at once only in the answer that claims the invite: asking again later (after the
+    // inviter's „Odebrat z přátel“, say) is an ordinary request
+    const isInvited = isNewlyClaimed;
 
     const outcome = befriend
       ? await this.befriend(inviteeId, inviter.id, isInvited, now)

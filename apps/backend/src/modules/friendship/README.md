@@ -38,16 +38,18 @@ Každý má osobní odkaz `/pozvanka/{kód}`. Kód je 16 náhodných bajtů z CS
 
 Pravidla jsou čisté funkce v [`domain/invite.ts`](domain/invite.ts), každý případ s testem:
 
-- **Kdo je pozvaný** (`inviteClaim`): nový účet (do 14 dnů od registrace), který ještě nikdo nepozval, a kód nemá za posledních 24 hodin 20 registrací. Jinak se kód tiše ignoruje: starší účet (i pozvaný, po 14 dnech už pozvánka nic nepřebije), pozvaný někým jiným, nebo nad limitem.
+- **Kdo je pozvaný** (`inviteClaim`): nový účet (do 14 dnů od registrace), který ještě nikdo nepozval, a zvoucí nemá za posledních 24 hodin 20 registrací přes svůj odkaz (20 na zvoucího za den). Pozvaný je jen jednou: přátelé hned vzniknou jen v odpovědi, která pozvánku uplatní. Jinak se kód tiše ignoruje: starší účet, pozvaný už dřív (i tímhle zvoucím, takže jeho pozdější „Odebrat z přátel“ nebo „Zrušit žádost“ platí), nebo nad limitem.
 - **„Přidat do přátel“ z pozvánky** (`decideInviteAccept`): pozvaný je se zvoucím přítel hned, bez žádosti (sdílený odkaz je souhlas zvoucího). Nový řádek `accepted`, nebo se na přátelství změní řádek, který mezi nimi už byl (žádost kterýmkoli směrem, pozvaný dřív tiše odmítl zvoucího). Žádost pozvaného, kterou zvoucí tiše odmítl, zůstane, jak je: odkaz jeho „ne“ nepřebije. Kdo pozvaný není, pošle obyčejnou žádost (`decideRequest`), takže odkaz, který se dostal ven, nikomu cizímu „Kam jde“ neotevře. Sám sebe nepozveš (`SELF`), přátelům se nic nemění.
 
 API:
 
-- `GET /api/invites/me` (přihlášený): `{ code, url, joinedCount }`. Odkaz se skládá z `FRONTEND_URL`, nikdy z hlavičky `Host`.
+- `GET /api/invites/me` (`VerifiedUserGuard`): `{ code, url, joinedCount }`. Odkaz se skládá z `FRONTEND_URL`, nikdy z hlavičky `Host`.
 - `POST /api/invites/me/regenerate` (`VerifiedUserGuard`): nový kód.
-- `GET /api/invites/:code` (veřejné): `{ id, name, interests }` zvoucího, tedy jen to, co ukazuje i veřejný profil (nejvýš 3 zájmy pro banner na registraci). Neplatný, vyměněný kód i zablokovaný nebo smazaný zvoucí jsou stejná 404 `INVITE_NOT_FOUND`, takže odpověď nic dalšího o účtech neprozradí.
+- `GET /api/invites/:code` (veřejné): `{ id, name, interests }` zvoucího, tedy jen to, co ukazuje i veřejný profil (nejvýš 3 zájmy pro banner na registraci). Neplatný, vyměněný kód i zablokovaný, smazaný nebo neověřený zvoucí jsou stejná 404 `INVITE_NOT_FOUND`, takže odpověď nic dalšího o účtech neprozradí. Navíc nejvýš 60 dotazů z jedné IP za 10 minut, pak 429 (`InviteLookupThrottlerGuard`).
 - `POST /api/invites/:code/accept` s `{ "befriend": true | false }` (`VerifiedUserGuard`): odpověď na krok onboardingu. `{ state }` je vztah ke zvoucímu po akci.
 
-Zvoucí se o novém pozvaném dozví jednou (`friend-invite-joined`, do centra i e-mailem, #86): „{jméno} je nově na HobbyHubu díky tvé pozvánce. Jste přátelé.“, nebo bez druhé věty, když pozvaný zvolil „Teď ne“. Přátelství uzavřené z pozvánky později přijde jako přijetí žádosti, obyčejná žádost jako žádost.
+Zvoucí se o novém pozvaném dozví jednou (`friend-invite-joined`, do centra i e-mailem, #86): „{jméno} je nově na HobbyHubu díky tvé pozvánce. Jste přátelé.“, nebo bez druhé věty, když pozvaný zvolil „Teď ne“. E-mail zvoucímu radí, co dělat s odkazem, který se dostal k cizímu (odebrat z přátel, vytvořit nový odkaz). Další odpověď téhož pozvaného je obyčejná žádost a přijde jako žádost, nebo jako přijetí, když zvoucí žádal první.
 
-Frontend drží kód z odkazu v `localStorage` (30 dní) a v `from` přes registraci, ověření e-mailu i Google, viz `apps/frontend/src/features/invites`.
+Frontend drží kód z odkazu v `localStorage` (30 dní, uloží ho jen nepřihlášený) a v `from` přes registraci, ověření e-mailu i Google, viz `apps/frontend/src/features/invites`. Po odpovědi v onboardingu se kód z prohlížeče smaže.
+
+Známé omezení: když se v onboardingu nepodaří načíst zvoucího (výpadek sítě), krok se přeskočí, aby onboarding neblokoval. Kód zůstane v prohlížeči, ale znovu se nabízí jen v onboardingu, takže pozvánka propadne. Přes odkaz pak jde poslat obyčejná žádost na profilu zvoucího.

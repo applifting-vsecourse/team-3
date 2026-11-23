@@ -344,6 +344,8 @@ const composeInviteJoinedMessage = (
       befriended
         ? 'Na profilu teď uvidíš, na které akce jde.'
         : 'Díky, že HobbyHub posíláš dál.',
+      // a link that got around: the way to stop it (#406 review)
+      'Neznáš toho člověka? Odeber ho z přátel a v Můj profil › Pozvi kamaráda si vytvoř nový odkaz, starý tím přestane platit.',
     ],
     details: [],
     quote: null,

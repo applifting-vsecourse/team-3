@@ -21,10 +21,18 @@ const isUniqueViolation = (error: unknown): boolean =>
 export class InviteRepository {
   constructor(private readonly prisma: PrismaService) {}
 
-  /** The owner of the code, unless their account is blocked or deleted (then like no code). */
+  /**
+   * The owner of the code, unless their account is blocked, deleted or not verified yet (then
+   * like no code): an unverified account can't invite anyone into the app.
+   */
   async findInviter(code: string): Promise<Inviter | null> {
     const user = await this.prisma.user.findFirst({
-      where: { inviteCode: code, deletedAt: null, blockedAt: null },
+      where: {
+        inviteCode: code,
+        emailVerified: true,
+        deletedAt: null,
+        blockedAt: null,
+      },
       select: {
         id: true,
         name: true,

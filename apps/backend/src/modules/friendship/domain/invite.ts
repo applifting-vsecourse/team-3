@@ -29,7 +29,7 @@ export const inviteCodeOf = (bytes: Uint8Array): string =>
  * strangers friends who see where the inviter goes (Wise and Revolut count only new accounts).
  */
 export const INVITE_NEW_ACCOUNT_DAYS = 14;
-/** Sign-ups through one code per 24 hours; past it the code is quietly ignored (brief §4). */
+/** Sign-ups through one inviter's link per 24 hours; past it the code is quietly ignored (brief §4). */
 export const INVITE_DAILY_LIMIT = 20;
 const DAY_MS = 24 * 60 * 60 * 1000;
 
@@ -44,29 +44,28 @@ export const inviteLimitSince = (now: Date): Date =>
 export type InviteeAccount = { createdAt: Date; invitedById: string | null };
 
 /**
- * Whether the invitee counts as invited by this inviter:
- * - `claim`: a new account nobody invited yet, and the code's limit isn't reached: it is now
- *   the inviter's invitee, and the inviter hears of it;
- * - `claimed`: already the inviter's invitee (the onboarding asked again), while still new;
- * - `ignored`: an older account, somebody else's invitee, or the code's limit is reached —
- *   the code is quietly ignored, „Přidat do přátel“ is an ordinary request.
+ * Whether answering the invite claims the invitee for this inviter — once only:
+ * - `claim`: a new account nobody invited yet, and the inviter hasn't had 20 sign-ups through
+ *   their link in the last 24 hours: it is now the inviter's invitee, the inviter hears of it,
+ *   and „Přidat do přátel“ in this very answer makes them friends at once;
+ * - `ignored`: anything else — an older account, somebody's invitee already (also this
+ *   inviter's: the onboarding answered once, and a later „Odebrat z přátel“ or „Zrušit
+ *   žádost“ of the inviter must stand), or over the limit. The code is quietly ignored,
+ *   „Přidat do přátel“ is an ordinary request.
  */
 export function inviteClaim(
   account: InviteeAccount,
-  inviterId: string,
   joinedToday: number,
   now: Date,
-): 'claim' | 'claimed' | 'ignored' {
-  // only while the account is new: an old invite never undoes the inviter's later „no“
+): 'claim' | 'ignored' {
   if (!isNewAccount(account.createdAt, now)) return 'ignored';
-  if (account.invitedById === inviterId) return 'claimed';
   if (account.invitedById !== null) return 'ignored';
   return joinedToday < INVITE_DAILY_LIMIT ? 'claim' : 'ignored';
 }
 
 /**
- * What „Přidat do přátel“ from an invite does, from the invitee's side; `isInvited` is a
- * claimed invite (`inviteClaim`):
+ * What „Přidat do přátel“ from an invite does, from the invitee's side; `isInvited` is true
+ * only in the answer that claims the invite (`inviteClaim`):
  * - `befriend`: no row between them, invited: a new friendship, accepted at once;
  * - `promote`: a row in any other state (a request either way, or the invitee's quiet rejection
  *   of the inviter), invited: the row becomes the friendship. A request of the invitee that the

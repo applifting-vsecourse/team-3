@@ -21,7 +21,7 @@ const taken = (): Prisma.PrismaClientKnownRequestError =>
   });
 
 describe('InviteRepository (#406)', () => {
-  it('finds the inviter only on an account neither blocked nor deleted, with 3 interests', async () => {
+  it('finds the inviter only on a verified account neither blocked nor deleted, with 3 interests', async () => {
     const { prisma, repository } = setup();
     prisma.user.findFirst.mockResolvedValue({
       id: 'u1',
@@ -39,7 +39,12 @@ describe('InviteRepository (#406)', () => {
     });
     expect(prisma.user.findFirst).toHaveBeenCalledWith(
       expect.objectContaining({
-        where: { inviteCode: CODE, deletedAt: null, blockedAt: null },
+        where: {
+          inviteCode: CODE,
+          emailVerified: true,
+          deletedAt: null,
+          blockedAt: null,
+        },
       }),
     );
   });

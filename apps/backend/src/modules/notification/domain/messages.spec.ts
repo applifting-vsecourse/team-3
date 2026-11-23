@@ -445,6 +445,7 @@ describe('composeFriendMessage (#307, #86)', () => {
     expect(message.email.paragraphs[0]).toBe(
       'Petr Malý je nově na HobbyHubu díky tvé pozvánce.',
     );
+    expect(message.email.paragraphs[2]).toContain('vytvoř nový odkaz');
     expect(message.email.action).toEqual({
       label: 'Zobrazit profil',
       url: 'https://hobbyhub.example/uzivatele/u7',

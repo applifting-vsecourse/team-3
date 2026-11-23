@@ -1,7 +1,6 @@
 import { InviteService } from '@/modules/friendship/services/invite.service';
 import { User } from '@/shared/auth/decorators/user.decorator';
 import { Identity } from '@/shared/auth/domain/identity';
-import { AuthenticatedUserGuard } from '@/shared/auth/guards/authenticated-user.guard';
 import { VerifiedUserGuard } from '@/shared/auth/guards/verified-user.guard';
 import {
   Body,
@@ -26,6 +25,7 @@ import {
   InviteStateResponseDto,
   MyInviteResponseDto,
 } from './dto/invite.dto';
+import { InviteLookupThrottlerGuard } from './invite-lookup-throttler.guard';
 
 /**
  * Pozvánka od kamaráda (#406): my personal link, who a link belongs to (public, for the
@@ -45,13 +45,18 @@ export class InvitesController {
 
   @Get('me')
   @ApiCookieAuth()
-  @UseGuards(AuthenticatedUserGuard)
+  // a verified account only: an unverified one's link would lead nowhere (findInviter)
+  @UseGuards(VerifiedUserGuard)
   @ApiOperation({
     summary:
       'Pozvi kamaráda: my invite link and how many joined through it (#406)',
   })
   @ApiResponse({ status: 200, type: MyInviteResponseDto })
   @ApiResponse({ status: 401, description: 'Not signed in' })
+  @ApiResponse({
+    status: 403,
+    description: 'EMAIL_NOT_VERIFIED or USER_BLOCKED',
+  })
   mine(@User() user: Identity): Promise<MyInviteResponseDto> {
     return this.invites.mine(user.id);
   }
@@ -75,11 +80,13 @@ export class InvitesController {
   }
 
   @Get(':code')
+  @UseGuards(InviteLookupThrottlerGuard)
   @ApiOperation({
     summary:
       'Who invites: the public name and interests of the link’s owner, for the sign-up (#406)',
   })
   @ApiResponse({ status: 200, type: InviterResponseDto })
+  @ApiResponse({ status: 429, description: 'Too many lookups from one IP' })
   @ApiResponse({
     status: 404,
     description:
