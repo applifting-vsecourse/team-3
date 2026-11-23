@@ -1,4 +1,5 @@
 import { PrismaService } from '@/core/prisma/prisma.service';
+import { Prisma } from '@/generated/prisma/client';
 import type { PublicEvent } from '@/modules/event/domain/event';
 import {
   publicEventInclude,
@@ -10,12 +11,42 @@ import {
 } from '@/modules/user/domain/friend-events';
 import {
   finishedEventWhere,
+  PAST_EVENTS_TAKE,
+  type AttendedEventRecord,
   type PersonalRatingRecord,
   type PublicEventRecord,
   type PublicUserRecord,
   type ReceivedRatingRecord,
 } from '@/modules/user/domain/public-profile';
 import { Injectable } from '@nestjs/common';
+
+/** What a past event card needs (Figma Karta akce/Proběhlá řádek). */
+const pastEventSelect = {
+  id: true,
+  title: true,
+  startsAt: true,
+  endsAt: true,
+  status: true,
+  visibility: true,
+  groupId: true,
+  organizerUserId: true,
+  address: true,
+  minParticipants: true,
+  locality: { select: { id: true, slug: true, name: true } },
+  activity: {
+    select: {
+      id: true,
+      slug: true,
+      name: true,
+      category: {
+        select: { id: true, slug: true, name: true, icon: true },
+      },
+    },
+  },
+  _count: {
+    select: { participations: { where: { status: 'approved' } } },
+  },
+} satisfies Prisma.EventSelect;
 
 export type PublicProfileDetails = {
   received: ReceivedRatingRecord[];
@@ -32,6 +63,11 @@ export class UserRepository {
       select: {
         id: true,
         name: true,
+        bio: true,
+        photoImageKey: true,
+        photoVisibility: true,
+        bioVisibility: true,
+        pastEventsVisibility: true,
         interests: {
           select: { activity: { select: { id: true, name: true } } },
           orderBy: { activity: { name: 'asc' } },
@@ -124,35 +160,49 @@ export class UserRepository {
           status: 'published',
           ...finished,
         },
-        select: {
-          id: true,
-          title: true,
-          startsAt: true,
-          endsAt: true,
-          status: true,
-          visibility: true,
-          groupId: true,
-          organizerUserId: true,
-          address: true,
-          minParticipants: true,
-          locality: { select: { id: true, slug: true, name: true } },
-          activity: {
-            select: {
-              id: true,
-              slug: true,
-              name: true,
-              category: {
-                select: { id: true, slug: true, name: true, icon: true },
-              },
-            },
-          },
-          _count: {
-            select: { participations: { where: { status: 'approved' } } },
-          },
-        },
+        select: pastEventSelect,
         orderBy: { startsAt: 'desc' },
       }),
     ]);
     return { received, personal, events };
+  }
+
+  /**
+   * Whether the person has applied to an event the viewer organizes (B-014,
+   * #64): a pending or an approved application, at any time.
+   */
+  async isOrganizerFor(viewerId: string, personId: string): Promise<boolean> {
+    const application = await this.prisma.participation.findFirst({
+      where: {
+        userId: personId,
+        status: { in: ['pending', 'approved'] },
+        event: { organizerUserId: viewerId },
+      },
+      select: { id: true },
+    });
+    return application !== null;
+  }
+
+  /**
+   * Visited events (#64): public, published and over, with an approved place,
+   * organized by someone else (their own are `organizedEvents`); the latest
+   * first, at most PAST_EVENTS_TAKE.
+   */
+  attendedEvents(personId: string, now: Date): Promise<AttendedEventRecord[]> {
+    return this.prisma.event.findMany({
+      where: {
+        participations: { some: { userId: personId, status: 'approved' } },
+        organizerUserId: { not: personId },
+        visibility: 'public',
+        status: 'published',
+        ...finishedEventWhere(now),
+      },
+      select: {
+        ...pastEventSelect,
+        ratings: { where: { deletedAt: null }, select: { eventStars: true } },
+      },
+      orderBy: [{ startsAt: 'desc' }, { id: 'asc' }],
+      take: PAST_EVENTS_TAKE,
+    });
   }
 }

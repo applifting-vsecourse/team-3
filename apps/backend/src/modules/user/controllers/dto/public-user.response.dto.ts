@@ -86,6 +86,27 @@ export class PublicUserResponseDto
   @ApiProperty({ type: [PublicOrganizedEventDto] })
   organizedEvents!: PublicOrganizedEvent[];
   @ApiProperty({
+    type: String,
+    nullable: true,
+    description:
+      'About me (#64); null when empty or when the person does not show it to this viewer (bioVisibility, B-014)',
+  })
+  bio!: string | null;
+  @ApiProperty({
+    type: String,
+    nullable: true,
+    description:
+      'The uploaded photo at GET /api/images/{photoKey} (#64); null when none or not shown to this viewer (photoVisibility)',
+  })
+  photoKey!: string | null;
+  @ApiProperty({
+    type: [PublicOrganizedEventDto],
+    nullable: true,
+    description:
+      'Visited events (#64): public, over, with an approved place, organized by someone else; the latest 10. Null when not shown to this viewer (pastEventsVisibility); [] = none yet.',
+  })
+  pastEvents!: PublicOrganizedEvent[] | null;
+  @ApiProperty({
     enum: FRIENDSHIP_STATES,
     nullable: true,
     description:

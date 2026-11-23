@@ -1,5 +1,9 @@
+import { STRANGER } from './profile-visibility';
 import {
+  PAST_EVENTS_TAKE,
   publicProfile,
+  visibleDetails,
+  type AttendedEventRecord,
   type PersonalRatingRecord,
   type PublicEventRecord,
   type PublicUserRecord,
@@ -11,6 +15,11 @@ const user: PublicUserRecord = {
   id: 'user',
   name: 'Jana Nová',
   interests: [{ activity: { id: 'run', name: 'Běh' } }],
+  bio: 'Běhám po Stromovce.',
+  photoImageKey: 'photo-key',
+  photoVisibility: 'everyone',
+  bioVisibility: 'everyone',
+  pastEventsVisibility: 'friends',
 };
 const event = (
   changes: Partial<PublicEventRecord> = {},
@@ -204,5 +213,90 @@ describe('public profile privacy (#179)', () => {
       localityName: 'Praha',
       activityName: 'Volejbal',
     });
+  });
+});
+
+describe('photo, bio and visited events by who looks (B-014, #64)', () => {
+  const attended = (
+    id: string,
+    changes: Partial<PublicEventRecord> = {},
+  ): AttendedEventRecord => ({
+    ...event({ id, organizerUserId: 'host', ...changes }),
+    ratings: [{ eventStars: 4 }, { eventStars: 5 }],
+  });
+  const organizer = { ...STRANGER, isOrganizer: true };
+
+  it('a stranger sees no field set to organizers; the organizer of their event does', () => {
+    const person = {
+      ...user,
+      photoVisibility: 'organizers' as const,
+      bioVisibility: 'organizers' as const,
+      pastEventsVisibility: 'organizers' as const,
+    };
+    expect(visibleDetails(person, STRANGER, [attended('e1')], now)).toEqual({
+      bio: null,
+      photoKey: null,
+      pastEvents: null,
+    });
+    expect(
+      visibleDetails(person, organizer, [attended('e1')], now),
+    ).toMatchObject({
+      bio: 'Běhám po Stromovce.',
+      photoKey: 'photo-key',
+      pastEvents: [{ id: 'e1', rating: { average: 4.5, count: 2 } }],
+    });
+  });
+
+  it('a friend sees what is set to friends, a stranger does not', () => {
+    const person = {
+      ...user,
+      photoVisibility: 'friends' as const,
+      bioVisibility: 'friends' as const,
+    };
+    const friend = { ...STRANGER, isFriend: true };
+    expect(visibleDetails(person, friend, [], now)).toMatchObject({
+      bio: 'Běhám po Stromovce.',
+      photoKey: 'photo-key',
+      pastEvents: [],
+    });
+    expect(visibleDetails(person, STRANGER, [], now)).toEqual({
+      bio: null,
+      photoKey: null,
+      pastEvents: null,
+    });
+  });
+
+  it('nobody: only the person', () => {
+    const person = {
+      ...user,
+      photoVisibility: 'nobody' as const,
+      bioVisibility: 'nobody' as const,
+      pastEventsVisibility: 'nobody' as const,
+    };
+    expect(
+      visibleDetails(person, { ...organizer, isFriend: true }, [], now),
+    ).toEqual({ bio: null, photoKey: null, pastEvents: null });
+    expect(
+      visibleDetails(person, { ...STRANGER, isSelf: true }, [], now),
+    ).toEqual({
+      bio: 'Běhám po Stromovce.',
+      photoKey: 'photo-key',
+      pastEvents: [],
+    });
+  });
+
+  it('never lists a private, unfinished or own event among the visited ones, and at most ten', () => {
+    const person = { ...user, pastEventsVisibility: 'everyone' as const };
+    const rows = [
+      attended('private', { visibility: 'private' }),
+      attended('members', { visibility: 'members' }),
+      attended('future', { startsAt: new Date('2026-12-01T10:00:00Z') }),
+      attended('own', { organizerUserId: user.id }),
+      ...Array.from({ length: 12 }, (_, index) => attended(`e${index}`)),
+    ];
+    const result = visibleDetails(person, STRANGER, rows, now).pastEvents;
+    expect(result?.map(({ id }) => id)).toEqual(
+      Array.from({ length: PAST_EVENTS_TAKE }, (_, index) => `e${index}`),
+    );
   });
 });

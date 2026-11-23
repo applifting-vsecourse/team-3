@@ -76,4 +76,39 @@ describe('public profile database predicates (#179)', () => {
       _count: { select: { participations: { where: { status: 'approved' } } } },
     });
   });
+
+  // B-014, #64
+  it('counts as the organizer only for a pending or approved application to an event the viewer organizes', async () => {
+    prisma.participation.findFirst.mockResolvedValue(null);
+    await expect(repository.isOrganizerFor('viewer', 'person')).resolves.toBe(
+      false,
+    );
+    expect(prisma.participation.findFirst).toHaveBeenCalledWith({
+      where: {
+        userId: 'person',
+        status: { in: ['pending', 'approved'] },
+        event: { organizerUserId: 'viewer' },
+      },
+      select: { id: true },
+    });
+    prisma.participation.findFirst.mockResolvedValue({ id: 'p' } as never);
+    await expect(repository.isOrganizerFor('viewer', 'person')).resolves.toBe(
+      true,
+    );
+  });
+
+  it('lists as visited only public, finished events with an approved place, organized by someone else', async () => {
+    const now = new Date('2026-11-06T12:00:00Z');
+    await repository.attendedEvents('person', now);
+    const query = prisma.event.findMany.mock.calls[0]![0]!;
+    expect(query.where).toEqual({
+      participations: { some: { userId: 'person', status: 'approved' } },
+      organizerUserId: { not: 'person' },
+      visibility: 'public',
+      status: 'published',
+      ...eventOverWhere(now),
+    });
+    expect(query.take).toBe(10);
+    expect(query.select).not.toHaveProperty('participations');
+  });
 });
