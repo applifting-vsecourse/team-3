@@ -33,6 +33,7 @@ const place = (locality: Locality): OnboardingCommand => ({ type: "pick-place", 
 function follow(...commands: OnboardingCommand[]) {
   return commands.reduce(moveOnboarding, startOnboarding())
 }
+/** Three picks; the third opens the decision by itself. */
 function withThree() {
   return follow(place(prague), take("hike"), take("hockey"), take("chess"))
 }

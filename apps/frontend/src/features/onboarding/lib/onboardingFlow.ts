@@ -36,6 +36,11 @@ export function reviewOnboarding(state: OnboardingFlow) {
   return Boolean(state.locality && state.interestIds.length > 0)
 }
 
+/** The pick that fills the selection: the confirmation opens by itself after it. */
+export function fillsSelection(state: OnboardingFlow, interestId: string) {
+  return !state.interestIds.includes(interestId) && state.interestIds.length + 1 === INTEREST_GOAL
+}
+
 export function moveOnboarding(state: OnboardingFlow, command: OnboardingCommand): OnboardingFlow {
   switch (command.type) {
     case "pick-place":
@@ -58,12 +63,9 @@ export function moveOnboarding(state: OnboardingFlow, command: OnboardingCommand
       }
       if (state.interestIds.length >= INTEREST_GOAL) return state
       const interestIds = [...state.interestIds, command.interestId]
-      // The third pick fills the selection, so the confirmation opens by itself.
-      return {
-        ...state,
-        interestIds,
-        overlay: interestIds.length === INTEREST_GOAL && state.locality ? "decision" : null,
-      }
+      return fillsSelection(state, command.interestId) && state.locality
+        ? { ...state, interestIds, overlay: "decision" }
+        : { ...state, interestIds }
     }
 
     case "review":

@@ -112,7 +112,7 @@ export function OnboardingDecision({
               {error}
             </p>
           ) : null}
-          <div className="flex flex-col gap-2 sm:flex-row sm:flex-wrap sm:items-center sm:gap-4">
+          <div className="flex flex-col gap-2 sm:flex-row sm:flex-wrap sm:items-center sm:gap-3">
             <Button
               type="button"
               className="min-h-11 whitespace-normal"

@@ -23,6 +23,7 @@ import { cn } from "@/lib/utils"
 
 import { resolveActivities } from "@/features/onboarding/lib/activityScenes"
 import {
+  fillsSelection,
   INTEREST_GOAL,
   moveOnboarding,
   reviewOnboarding,
@@ -146,7 +147,7 @@ export function OnboardingWizard({
     if (finish.isPending || flow.overlay) return
     const index = flow.interestIds.length
     if (!flow.interestIds.includes(activity.id) && index < INTEREST_GOAL && target) {
-      if (index + 1 === INTEREST_GOAL) {
+      if (fillsSelection(flow, activity.id)) {
         // The third pick opens the confirmation; focus returns to the card when it closes.
         restore.current = target
         setFlight(undefined)
