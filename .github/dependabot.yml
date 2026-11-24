@@ -11,6 +11,13 @@ updates:
         patterns: ['@nestjs/*']
       minor-and-patch:
         update-types: [minor, patch]
+    ignore:
+      # Types follow the Node major we run (24, see .nvmrc); a newer major would allow APIs Node 24 lacks.
+      - dependency-name: '@types/node'
+        update-types: [version-update:semver-major]
+      # In 0.x a minor is breaking (0.35 changed the typings); sharp is pinned for the Alpine binary, upgrade it by hand.
+      - dependency-name: sharp
+        update-types: [version-update:semver-minor]
     open-pull-requests-limit: 5
 
   - package-ecosystem: docker
