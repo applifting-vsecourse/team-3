@@ -15,6 +15,7 @@ import { useCreateEvent } from "@/features/events/hooks/useCreateEvent"
 import { groupQueryOptions } from "@/features/groups/api/groupsQueryOptions"
 import { AdminOnlyNotice } from "@/features/groups/components/AdminOnlyNotice"
 import { CatalogState } from "@/features/groups/components/CatalogState"
+import { EventOrganizerChoice } from "@/features/groups/components/EventOrganizerChoice"
 import { InactiveGroupNotice } from "@/features/groups/components/InactiveGroupNotice"
 
 export const Route = createFileRoute("/_ProtectedPages/skupiny/$groupId/akce/nova")({
@@ -52,6 +53,12 @@ function NewGroupEventPage() {
         />
         <div className={FORM}>
           <h1 className="text-3xl font-semibold tracking-tight md:text-4xl">Nová akce skupiny</h1>
+          {user && isAdmin ? (
+            <EventOrganizerChoice
+              viewerId={user.id}
+              groupId={groupId}
+            />
+          ) : null}
           {group?.status === "inactive" ? (
             <InactiveGroupNotice />
           ) : catalog && group && !isAdmin ? (
