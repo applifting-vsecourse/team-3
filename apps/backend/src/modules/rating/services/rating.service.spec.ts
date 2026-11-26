@@ -1,3 +1,4 @@
+import type { NotificationService } from '@/modules/notification/services/notification.service';
 import {
   EventRatingState,
   RatedEvent,
@@ -81,10 +82,12 @@ const input = { eventStars: 5, organizerStars: 4, comment: 'Skvělá parta' };
 describe('RatingService (#66)', () => {
   let repository: MockProxy<RatingRepository>;
   let service: RatingService;
+  let notifications: MockProxy<NotificationService>;
 
   beforeEach(() => {
     repository = mock<RatingRepository>();
-    service = new RatingService(repository);
+    notifications = mock<NotificationService>();
+    service = new RatingService(repository, notifications);
   });
 
   describe('getMyEventRating', () => {
@@ -201,6 +204,7 @@ describe('RatingService (#66)', () => {
         rating: saved,
         state: later.state,
         event,
+        isNew: true,
       });
 
       await expect(
@@ -210,6 +214,11 @@ describe('RatingService (#66)', () => {
         rating: saved,
         ratableUntil: new Date('2026-11-15T22:59:59.999Z'),
         refusal: null,
+      });
+      // PO 26. 11.: the organizer hears of a new rating
+      expect(notifications.notify).toHaveBeenCalledWith({
+        type: 'event-rated',
+        eventId: 'e1',
       });
       expect(repository.saveEventRating).toHaveBeenCalledWith(
         'e1',
@@ -225,9 +234,12 @@ describe('RatingService (#66)', () => {
         rating: saved,
         state: snapshot().state,
         event,
+        isNew: false,
       });
 
       await service.rateEvent('e1', 'u-jakub', input, now);
+      // a change of one's own rating tells nobody (PO 26. 11.)
+      expect(notifications.notify).not.toHaveBeenCalled();
       expect(repository.findEventRating).not.toHaveBeenCalled();
     });
 

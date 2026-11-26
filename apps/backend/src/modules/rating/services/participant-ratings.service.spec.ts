@@ -1,3 +1,4 @@
+import type { NotificationService } from '@/modules/notification/services/notification.service';
 import { RatedParticipantState } from '@/modules/rating/domain/participant-rating';
 import {
   ParticipantRatingsSnapshot,
@@ -61,10 +62,12 @@ const approved = (participantId: string): RatedParticipantState => ({
 describe('RatingService – participant ratings (#66)', () => {
   let repository: MockProxy<RatingRepository>;
   let service: RatingService;
+  let notifications: MockProxy<NotificationService>;
 
   beforeEach(() => {
     repository = mock<RatingRepository>();
-    service = new RatingService(repository);
+    notifications = mock<NotificationService>();
+    service = new RatingService(repository, notifications);
   });
 
   describe('getParticipantRatings', () => {
@@ -151,6 +154,7 @@ describe('RatingService – participant ratings (#66)', () => {
       repository.saveParticipantRatings.mockResolvedValue({
         ok: true,
         snapshot: { event: anEvent(), participants },
+        newlyRatedIds: ['u-jakub'],
       });
 
       await expect(
@@ -167,6 +171,12 @@ describe('RatingService – participant ratings (#66)', () => {
         inputs,
         expect.any(Function),
       );
+      // PO 26. 11.: who got their first rating hears of it
+      expect(notifications.notify).toHaveBeenCalledWith({
+        type: 'participant-rated',
+        eventId: 'e1',
+        participantIds: ['u-jakub'],
+      });
       // nothing read outside the transaction, neither before nor after
       expect(repository.findRatableEvent).not.toHaveBeenCalled();
       expect(repository.findParticipantsWithRatings).not.toHaveBeenCalled();

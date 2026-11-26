@@ -1,4 +1,5 @@
 import { EventViewer } from '@/modules/event/domain/event-viewer';
+import type { NotificationService } from '@/modules/notification/services/notification.service';
 import { RatingRepository } from '@/modules/rating/repositories/rating.repository';
 import { ForbiddenException, NotFoundException } from '@nestjs/common';
 import { mock, MockProxy } from 'jest-mock-extended';
@@ -38,10 +39,12 @@ const viewer = (
 describe('RatingService – received ratings (#66)', () => {
   let repository: MockProxy<RatingRepository>;
   let service: RatingService;
+  let notifications: MockProxy<NotificationService>;
 
   beforeEach(() => {
     repository = mock<RatingRepository>();
-    service = new RatingService(repository);
+    notifications = mock<NotificationService>();
+    service = new RatingService(repository, notifications);
   });
 
   it.each([

@@ -1,4 +1,5 @@
 import { canManageEvent } from '@/modules/event/domain/event-viewer';
+import { NotificationService } from '@/modules/notification/services/notification.service';
 import {
   decideEventRating,
   EVENT_RATING_FORBIDDEN,
@@ -118,7 +119,10 @@ const participantRatingRefused = (
  */
 @Injectable()
 export class RatingService {
-  constructor(private readonly ratingRepository: RatingRepository) {}
+  constructor(
+    private readonly ratingRepository: RatingRepository,
+    private readonly notifications: NotificationService,
+  ) {}
 
   /**
    * The user's rating of the event and whether they may give or change it.
@@ -175,6 +179,9 @@ export class RatingService {
     );
     if (!result) throw new NotFoundException('Akce neexistuje.');
     if (!result.ok) throw refused(result.refusal);
+    // PO 26. 11.: the organizer hears of a new rating, not of each change
+    if (result.isNew)
+      this.notifications.notify({ type: 'event-rated', eventId });
     return {
       event: result.event,
       rating: result.rating,
@@ -232,6 +239,13 @@ export class RatingService {
     if (!result) throw new NotFoundException('Akce neexistuje.');
     if (!result.ok) {
       throw participantRatingRefused(result.refusal, result.participantId);
+    }
+    if (result.newlyRatedIds.length > 0) {
+      this.notifications.notify({
+        type: 'participant-rated',
+        eventId,
+        participantIds: result.newlyRatedIds,
+      });
     }
     return toParticipantRatings(result.snapshot, now);
   }

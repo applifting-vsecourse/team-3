@@ -128,6 +128,8 @@ describe('RatingRepository – participant ratings (#66)', () => {
             expect.objectContaining({ id: 'u-lucie' }),
           ],
         },
+        // Lucie had a rating already, only Jakub's is new (PO 26. 11.: the upozornění)
+        newlyRatedIds: ['u-jakub'],
       });
       expect(decide).toHaveBeenCalledTimes(1);
       expect(decide).toHaveBeenCalledWith(event, [
