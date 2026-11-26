@@ -1,11 +1,12 @@
 import { useId, type ReactNode } from "react"
 import { zodResolver } from "@hookform/resolvers/zod"
-import { Loader2 } from "lucide-react"
+import { Info, Loader2 } from "lucide-react"
 import { useForm } from "react-hook-form"
 import { toast } from "sonner"
 import { z } from "zod"
 
 import { RatingStars } from "@/components/RatingStars/RatingStars"
+import { Alert, AlertTitle } from "@/components/ui/alert"
 import { Button } from "@/components/ui/button"
 import {
   Form,
@@ -100,6 +101,13 @@ export function RateEventForm({ data, isSaving, onSave }: RateEventFormProps) {
         })}
         className="flex flex-col gap-6"
       >
+        {rating ? (
+          // #369 (Figma C-03e): it says this changes the rating given before
+          <Alert variant="info">
+            <Info />
+            <AlertTitle>Upravuješ své hodnocení z {formatRatingDay(rating.updatedAt)}.</AlertTitle>
+          </Alert>
+        ) : null}
         <div className="grid gap-6 md:grid-cols-2 md:gap-12">
           {/* min-w-0: the card's truncated line would widen the column past a phone's width */}
           <div className="flex min-w-0 flex-col gap-6">
@@ -156,43 +164,61 @@ export function RateEventForm({ data, isSaving, onSave }: RateEventFormProps) {
               )}
             />
           </div>
-          <FormField
-            control={form.control}
-            name="comment"
-            render={({ field }) => (
-              <FormItem className="min-w-0">
-                <FormLabel>Komentář (nepovinné)</FormLabel>
-                <FormControl>
-                  <Textarea
-                    className="min-h-24"
-                    {...field}
-                  />
-                </FormControl>
-                <FormDescription>
-                  Komentář uvidí organizátor. Hvězdičky se započítají do průměru akce a{" "}
-                  {rated.average}.
-                </FormDescription>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
+          {/* PO 26. 11. („ukládání komentářů až úplně dole“): the button right under the
+              comment, in its column on desktop, not under both columns */}
+          <div className="flex min-w-0 flex-col gap-6">
+            <FormField
+              control={form.control}
+              name="comment"
+              render={({ field }) => (
+                <FormItem className="min-w-0">
+                  <FormLabel>Komentář (nepovinné)</FormLabel>
+                  <FormControl>
+                    <Textarea
+                      className="min-h-24"
+                      // #369 (Figma C-03n): an example while empty, gone with the first letter
+                      placeholder="např. Skvělá parta, hrálo se do posledního míče. Příště zase!"
+                      {...field}
+                    />
+                  </FormControl>
+                  <FormDescription>
+                    Komentář uvidí organizátor. Hvězdičky se započítají do průměru akce a{" "}
+                    {rated.average}.
+                  </FormDescription>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+            <div className="flex flex-col gap-3">
+              <Button
+                type="submit"
+                size="lg"
+                className="h-11 w-full md:w-fit"
+                disabled={isSaving}
+              >
+                {isSaving ? <Loader2 className="size-4 animate-spin" /> : null}
+                {rating ? "Uložit změny" : "Odeslat hodnocení"}
+              </Button>
+              <p className="text-sm text-muted-foreground">
+                {ratingWindowNote(ratableUntil, event.group !== null)}
+              </p>
+            </div>
+          </div>
         </div>
-        <Button
-          type="submit"
-          size="lg"
-          className="h-11 w-full md:w-fit"
-          disabled={isSaving}
-        >
-          {isSaving ? <Loader2 className="size-4 animate-spin" /> : null}
-          {rating ? "Uložit změny" : "Odeslat hodnocení"}
-        </Button>
-        <p className="text-sm text-muted-foreground">
-          {ratingWindowNote(ratableUntil, event.group !== null)}
-        </p>
       </form>
     </Form>
   )
 }
+
+const ratingDayFormat = new Intl.DateTimeFormat("cs-CZ", {
+  timeZone: "Europe/Prague",
+  day: "numeric",
+  month: "numeric",
+  year: "numeric",
+})
+
+/** „26. 11. 2026“: the day the rating was last given or changed. */
+const formatRatingDay = (date: Date): string => ratingDayFormat.format(date)
 
 /**
  * A question above the stars. Not a <label>: the stars are a radio group, not one field it could
