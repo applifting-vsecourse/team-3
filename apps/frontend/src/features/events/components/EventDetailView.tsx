@@ -126,9 +126,19 @@ export function EventDetailView({
 
   if (isLoading || !event) {
     return (
-      <StatePage>
-        <EventDetailSkeleton isDesktop={isDesktop} />
-      </StatePage>
+      <>
+        {/* PO 26. 11. (the top bar „hiding“): the phone's bar is there while loading too, so the
+            header doesn't show first and then give way to it (the Header steps aside for it) */}
+        {isDesktop ? null : (
+          <SubBar
+            back={EVENTS_BACK}
+            label="Detail akce"
+          />
+        )}
+        <StatePage>
+          <EventDetailSkeleton isDesktop={isDesktop} />
+        </StatePage>
+      </>
     )
   }
 

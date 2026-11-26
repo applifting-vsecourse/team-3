@@ -114,6 +114,15 @@ function ManageEventPage() {
   return (
     <>
       <Seo title="Správa akce" />
+      {/* PO 26. 11.: while loading a phone has the bar the page will have, so the header
+          doesn't show first and then jump away */}
+      {isPending && !isDesktop && !isManaging ? (
+        <SubBar
+          back={back}
+          label="Správa akce"
+          isHeading
+        />
+      ) : null}
       {isManaging ? (
         isDesktop ? (
           <PageBand
@@ -149,7 +158,7 @@ function ManageEventPage() {
       ) : null}
       <div className={cn(PAGE, "gap-6")}>
         {/* until the event is here and theirs, the page is just its name */}
-        {isManaging ? null : (
+        {isManaging || (isPending && !isDesktop) ? null : (
           <>
             <BackLink {...back} />
             <h1 className="text-3xl font-semibold tracking-tight md:text-4xl">Správa akce</h1>
