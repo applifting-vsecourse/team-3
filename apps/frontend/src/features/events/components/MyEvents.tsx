@@ -25,7 +25,7 @@ import {
   organizingStatus,
   pendingRequestsSummary,
 } from "@/features/events/lib/myEvents"
-import { canRateEvent } from "@/features/events/lib/rating"
+import { canRateEvent, canRateParticipants } from "@/features/events/lib/rating"
 
 // Figma C-01d, C-02d: three columns on a wide desktop like Moje skupiny, one on mobile
 // grid-cols-1 = minmax(0, 1fr): a long title truncates instead of widening the page on mobile
@@ -277,7 +277,7 @@ export function PastEvents({ viewerId, now = new Date() }: { viewerId: string; n
   if (events.length === 0) {
     return (
       <MyEventsEmpty>
-        <p>Tady uvidíš proběhlé akce, na které máš schválenou účast.</p>
+        <p>Tady uvidíš proběhlé akce, na kterých máš místo nebo které pořádáš.</p>
       </MyEventsEmpty>
     )
   }
@@ -293,7 +293,17 @@ export function PastEvents({ viewerId, now = new Date() }: { viewerId: string; n
                 : { kind: "given", stars: event.myEventStars }
             }
             rateAction={
-              // a rating moderation deleted can only be restored: the page would refuse (RATING_DELETED)
+              // PO 26. 11.: an event the user ran is here too; they rate its participants
+              canRateParticipants(event, viewerId, now) ? (
+                <Link
+                  to={ROUTES.rateParticipants}
+                  params={{ eventId: event.id }}
+                  className="underline-offset-4 hover:underline focus-visible:underline"
+                  aria-label={`Ohodnotit účastníky akce ${event.title}`}
+                >
+                  Ohodnotit účastníky
+                </Link>
+              ) : // a rating moderation deleted can only be restored: the page would refuse (RATING_DELETED)
               canRateEvent(event, viewerId, now) && !event.myRatingDeleted ? (
                 <Link
                   to={ROUTES.rateEvent}
