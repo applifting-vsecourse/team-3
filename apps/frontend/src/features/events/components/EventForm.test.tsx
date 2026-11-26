@@ -450,10 +450,11 @@ describe("EventForm", () => {
       "Akce potřebuje datum",
       "Vyplň začátek",
       "Vyplň minimum",
-      "Vyplň maximum",
     ]) {
       expect(await screen.findByText(message)).toBeInTheDocument()
     }
+    // PO 26. 11.: the maximum is optional
+    expect(screen.queryByText("Vyplň maximum")).not.toBeInTheDocument()
     expect(onSubmit).not.toHaveBeenCalled()
   })
 
@@ -683,6 +684,26 @@ describe("EventForm", () => {
     expect(await screen.findByText("Maximum nesmí být menší než minimum")).toBeInTheDocument()
     expect(screen.getByText("Termín musí být v budoucnosti")).toBeInTheDocument()
     expect(onSubmit).not.toHaveBeenCalled()
+  })
+
+  it("an empty maximum is sent as no maximum (PO 26. 11.)", async () => {
+    const { onSubmit } = renderForm({
+      initialValues: {
+        activityId: "a-deskove-hry",
+        localityId: "l-praha-8",
+        startsAt: new Date(Date.now() + 3 * 86_400_000).toISOString(),
+      },
+    })
+
+    await userEvent.type(screen.getByLabelText("Název akce *"), "Grilovačka")
+    await userEvent.click(screen.getByRole("button", { name: "Umístit špendlík do středu mapy" }))
+    await userEvent.type(screen.getByLabelText("Adresa *"), "Stromovka")
+    await userEvent.type(screen.getByLabelText("Minimum"), "3")
+    expect(screen.getByLabelText("Maximum")).toHaveAttribute("placeholder", "bez omezení")
+    await submit()
+
+    expect(onSubmit).toHaveBeenCalledOnce()
+    expect(onSubmit.mock.calls[0]![0]).toMatchObject({ minParticipants: 3, maxParticipants: null })
   })
 
   it("sends the event: numbers, the place from the map, the start and the end as instants", async () => {

@@ -133,7 +133,7 @@ erDiagram
         string address "adresa místa (Q14)"
         string localityId FK "lokalita (Q14)"
         int minParticipants
-        int maxParticipants
+        int maxParticipants "null = bez omezení (PO 26. 11.)"
         int price "Kč"
         event_level level "beginner / advanced / all"
         string equipment

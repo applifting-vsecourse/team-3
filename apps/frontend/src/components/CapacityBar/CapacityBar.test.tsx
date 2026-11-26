@@ -8,7 +8,7 @@ import { CapacityBar } from "./CapacityBar"
 const renderBar = (
   approvedCount: number,
   min = 8,
-  max = 10,
+  max: number | null = 10,
   variant: "detail" | "compact" = "detail",
 ) => {
   const { container } = render(
@@ -156,5 +156,16 @@ describe("CapacityBar", () => {
       "aria-hidden",
       "true",
     )
+  })
+
+  // PO 26. 11.: without a maximum the minimum sits at two thirds, the fill never reaches the end
+  it("without a maximum: room past the minimum, never full", () => {
+    const { fill, tick } = renderBar(4, 4, null)
+
+    expect(tick).toHaveStyle({ left: `${(4 / 6) * 100}%` })
+    expect(fill).toHaveStyle({ width: `${(4 / 6) * 100}%` })
+    expect(fill).toHaveClass("bg-capacity-fill")
+    expect(screen.getByText("Volná místa")).toBeInTheDocument()
+    expect(screen.getByText("4 lidi")).toBeInTheDocument()
   })
 })

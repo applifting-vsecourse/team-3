@@ -104,7 +104,8 @@ const buildSchema = (approvedCount: number) =>
       /** Optional; earlier than the start means the next day. */
       end: clockTime(),
       minParticipants: count("minimum"),
-      maxParticipants: count("maximum"),
+      /** Optional (PO 26. 11.): empty means no maximum. */
+      maxParticipants: z.union([z.literal(""), count("maximum")]),
       approvalMode: z.enum(["open", "approval"]),
       /** #86: an e-mail for each sign-up; only for an open event. */
       emailOnJoin: z.boolean(),
@@ -141,14 +142,22 @@ const buildSchema = (approvedCount: number) =>
         path: ["end"],
       },
     )
-    .refine((values) => Number(values.maxParticipants) >= Number(values.minParticipants), {
-      message: "Maximum nesmí být menší než minimum",
-      path: ["maxParticipants"],
-    })
-    .refine((values) => Number(values.maxParticipants) >= approvedCount, {
-      message: `Maximum nejde snížit pod počet přihlášených (${approvedCount})`,
-      path: ["maxParticipants"],
-    })
+    .refine(
+      (values) =>
+        values.maxParticipants === "" ||
+        Number(values.maxParticipants) >= Number(values.minParticipants),
+      {
+        message: "Maximum nesmí být menší než minimum",
+        path: ["maxParticipants"],
+      },
+    )
+    .refine(
+      (values) => values.maxParticipants === "" || Number(values.maxParticipants) >= approvedCount,
+      {
+        message: `Maximum nejde snížit pod počet přihlášených (${approvedCount})`,
+        path: ["maxParticipants"],
+      },
+    )
 
 type FormValues = z.input<ReturnType<typeof buildSchema>>
 
@@ -347,7 +356,9 @@ export function EventForm({
               startsAt: startsAt.toISOString(),
               endsAt: endsAt?.toISOString() ?? null,
               minParticipants: Number(values.minParticipants),
-              maxParticipants: Number(values.maxParticipants),
+              // empty: no maximum; null also removes one when editing
+              maxParticipants:
+                values.maxParticipants === "" ? null : Number(values.maxParticipants),
               approvalMode: values.approvalMode,
               // an event with approval e-mails every request anyway (#177)
               ...(canSetEmailOnJoin
@@ -607,7 +618,7 @@ export function EventForm({
                           inputMode="numeric"
                           min={1}
                           max={EVENT_MAX_PARTICIPANTS}
-                          placeholder="např. 8"
+                          placeholder="bez omezení"
                           className="h-11"
                           {...field}
                         />
@@ -619,8 +630,8 @@ export function EventForm({
               </div>
               <p className="text-sm text-muted-foreground">
                 {isEdit
-                  ? `Maximum nejde snížit pod počet přihlášených (${approvedCount}).`
-                  : "U akce se ukáže „Chybí ještě X“. Po naplnění maxima se přihlašování zavře. Organizátor se do počtu počítá, jen když se na akci sám přihlásí."}
+                  ? `Maximum nejde snížit pod počet přihlášených (${approvedCount}). Bez maxima se může přihlásit kdokoli.`
+                  : "U akce se ukáže „Chybí ještě X“. Maximum je nepovinné: po jeho naplnění se přihlašování zavře, bez něj se může přihlásit kdokoli. Organizátor se do počtu počítá, jen když se na akci sám přihlásí."}
               </p>
             </div>
 

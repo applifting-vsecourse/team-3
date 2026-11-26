@@ -34,7 +34,10 @@ export function CapacityBar({
   const state = occupancyState(occupancy)
   const isFull = state === "full"
   const isCompact = variant === "compact"
-  const minPct = percent(minParticipants, maxParticipants)
+  // without a maximum (PO 26. 11.) the bar has room past whoever is bigger, the minimum or
+  // those coming, so the minimum sits at two thirds and the fill never reaches the end
+  const whole = maxParticipants ?? Math.max(minParticipants, approvedCount) * 1.5
+  const minPct = percent(minParticipants, whole)
 
   const track = (
     // the 1 px outline sits outside the track (a ring), so it never covers the hatch
@@ -53,7 +56,7 @@ export function CapacityBar({
           // not confirmed yet: below the minimum hatched, from exactly the minimum solid
           isFull ? "bg-full" : state === "missing" ? "capacity-hatch" : "bg-capacity-fill",
         )}
-        style={{ width: `${isFull ? 100 : percent(approvedCount, maxParticipants)}%` }}
+        style={{ width: `${isFull ? 100 : percent(approvedCount, whole)}%` }}
       />
     </div>
   )
