@@ -197,7 +197,9 @@
   /* on the band the primary button is the brand's lime: it has the contrast there */
   --button-primary: var(--primary);
   --button-primary-foreground: var(--primary-foreground);
-  --button-primary-edge: var(--primary);
+  /* the dark edge stays: a band's floating button (a phone's „Založit skupinu“) lies over the
+     page, where lime alone is 1.1:1 */
+  --button-primary-edge: var(--primary-edge);
   --button-primary-hover: color-mix(in srgb, var(--primary) 90%, var(--hero));
 }
 
