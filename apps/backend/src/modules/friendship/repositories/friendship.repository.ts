@@ -82,6 +82,7 @@ export class FriendshipRepository {
       },
       data: { status: 'accepted', acceptedAt: now },
     });
+    if (count === 1) await this.dropRequestNotice(viewerId, otherId);
     return count === 1;
   }
 
@@ -96,6 +97,7 @@ export class FriendshipRepository {
       },
       data: { status: 'rejected' },
     });
+    if (count === 1) await this.dropRequestNotice(viewerId, otherId);
     return count === 1;
   }
 
@@ -133,7 +135,29 @@ export class FriendshipRepository {
           : { status: 'accepted' }),
       },
     });
+    // a cancelled request leaves nothing for the other to decide
+    if (count === 1 && action === 'cancel') {
+      await this.dropRequestNotice(otherId, viewerId);
+    }
     return count === 1;
+  }
+
+  /**
+   * PO 26. 11.: „Jakub poslal žádost o přátelství, ale v žádostech ho nevidím.“ Once a
+   * request is decided or cancelled, its upozornění „… ti posílá žádost o přátelství“ would
+   * lead to an empty list, so it goes away with it (the acceptance sends its own).
+   */
+  private async dropRequestNotice(
+    addresseeId: string,
+    requesterId: string,
+  ): Promise<void> {
+    await this.prisma.notification.deleteMany({
+      where: {
+        userId: addresseeId,
+        type: 'friend_request',
+        targetId: requesterId,
+      },
+    });
   }
 
   list(userId: string): Promise<FriendshipRecord[]> {
