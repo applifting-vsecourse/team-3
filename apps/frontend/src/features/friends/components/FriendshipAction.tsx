@@ -1,6 +1,6 @@
 import { useState, type ComponentProps } from "react"
 import { Link } from "@tanstack/react-router"
-import { Check, Info, Loader2, UserMinus, UserPlus, X } from "lucide-react"
+import { Check, ChevronDown, Info, Loader2, UserCheck, UserMinus, UserPlus, X } from "lucide-react"
 import { toast } from "sonner"
 
 import { ROUTES } from "@/app/routes"
@@ -14,8 +14,13 @@ import {
   DialogFooter,
   DialogHeader,
   DialogTitle,
-  DialogTrigger,
 } from "@/components/ui/dialog"
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu"
 
 import type { FriendshipState } from "@/features/friends/api/friendsSchemas"
 import { useFriendshipChange } from "@/features/friends/hooks/useFriendMutations"
@@ -77,22 +82,16 @@ export function FriendshipAction({
 
   if (state === "friends") {
     return (
-      <div className="flex flex-col gap-2">
-        <Alert variant="neutral">
-          <Info aria-hidden />
-          <AlertTitle>Jste přátelé</AlertTitle>
-        </Alert>
-        <RemoveFriendButton
-          name={name}
-          isPending={remove.isPending}
-          onConfirm={() =>
-            remove.mutate(userId, {
-              onSuccess: () => toast.success("Odebráno z přátel."),
-              onError: showError,
-            })
-          }
-        />
-      </div>
+      <RemoveFriendButton
+        name={name}
+        isPending={remove.isPending}
+        onConfirm={() =>
+          remove.mutate(userId, {
+            onSuccess: () => toast.success("Odebráno z přátel."),
+            onError: showError,
+          })
+        }
+      />
     )
   }
 
@@ -183,22 +182,36 @@ function RemoveFriendButton({
   onConfirm: () => void
 }) {
   const [isOpen, setIsOpen] = useState(false)
+  // PO 26. 11. („Jste přátelé a Odebrat z přátel takhle fakt není moc pěkné“): one quiet
+  // button that says the state, removing tucked in its menu, still confirmed in the dialog
   return (
     <Dialog
       open={isOpen}
       onOpenChange={setIsOpen}
     >
-      <DialogTrigger asChild>
-        <Button
-          variant="outline"
-          size="lg"
-          className="h-11 w-full"
-          disabled={isPending}
-        >
-          {isPending ? <Loader2 className="animate-spin" /> : <UserMinus aria-hidden />}
-          Odebrat z přátel
-        </Button>
-      </DialogTrigger>
+      <DropdownMenu>
+        <DropdownMenuTrigger asChild>
+          <Button
+            variant="outline"
+            size="lg"
+            className="h-11 w-full"
+            disabled={isPending}
+          >
+            {isPending ? <Loader2 className="animate-spin" /> : <UserCheck aria-hidden />}
+            Přátelé
+            <ChevronDown aria-hidden />
+          </Button>
+        </DropdownMenuTrigger>
+        <DropdownMenuContent align="end">
+          <DropdownMenuItem
+            variant="destructive"
+            onSelect={() => setIsOpen(true)}
+          >
+            <UserMinus aria-hidden />
+            Odebrat z přátel
+          </DropdownMenuItem>
+        </DropdownMenuContent>
+      </DropdownMenu>
       <DialogContent>
         <DialogHeader>
           <DialogTitle>Odebrat z přátel?</DialogTitle>

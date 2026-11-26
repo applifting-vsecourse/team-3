@@ -97,8 +97,11 @@ describe("FriendshipAction (Figma B-07 · Stavy tlačítka přátelství, #307)"
     api.delete.mockReturnValue(answer("none"))
     await show("friends")
 
-    expect(screen.getByText("Jste přátelé")).toBeInTheDocument()
-    await userEvent.click(screen.getByRole("button", { name: "Odebrat z přátel" }))
+    // PO 26. 11.: one quiet button with the state; removing is in its menu
+    expect(screen.queryByText("Jste přátelé")).not.toBeInTheDocument()
+    expect(screen.queryByRole("button", { name: "Odebrat z přátel" })).not.toBeInTheDocument()
+    await userEvent.click(screen.getByRole("button", { name: "Přátelé" }))
+    await userEvent.click(screen.getByRole("menuitem", { name: "Odebrat z přátel" }))
     const dialog = screen.getByRole("dialog", { name: "Odebrat z přátel?" })
     expect(
       within(dialog).getByText(
@@ -108,7 +111,8 @@ describe("FriendshipAction (Figma B-07 · Stavy tlačítka přátelství, #307)"
     await userEvent.click(within(dialog).getByRole("button", { name: "Zpět" }))
     expect(api.delete).not.toHaveBeenCalled()
 
-    await userEvent.click(screen.getByRole("button", { name: "Odebrat z přátel" }))
+    await userEvent.click(screen.getByRole("button", { name: "Přátelé" }))
+    await userEvent.click(screen.getByRole("menuitem", { name: "Odebrat z přátel" }))
     await userEvent.click(
       within(screen.getByRole("dialog")).getByRole("button", { name: "Odebrat" }),
     )
