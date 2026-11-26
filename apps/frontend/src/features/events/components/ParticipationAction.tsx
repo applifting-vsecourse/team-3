@@ -4,6 +4,7 @@ import { Info, Loader2 } from "lucide-react"
 
 import { ROUTES } from "@/app/routes"
 import { RequestDialog } from "@/components/RequestDialog/RequestDialog"
+import { StatusBadge } from "@/components/StatusBadge/StatusBadge"
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 import { Button } from "@/components/ui/button"
 import {
@@ -31,6 +32,9 @@ import { canRateEvent } from "@/features/events/lib/rating"
 // Signed in means verified (#236): an unverified e-mail can't sign in, and an
 // old session gets the API's 403 EMAIL_NOT_VERIFIED as the error message.
 export type Viewer = { id: string }
+
+/** Where a joined user sees what the organizer changes. */
+const changesLine = "Změny akce uvidíš tady a v Mých akcích."
 
 type ParticipationActionProps = {
   event: EventDetail
@@ -307,17 +311,26 @@ function JoinControl({
             tabIndex={-1}
             className="rounded-lg outline-offset-4"
           >
-            <HasPlace
-              line={
-                isThanks
-                  ? happeningThanks(event)
-                  : // the organizer makes the changes, nobody needs to tell them
-                    isOrganizer
-                    ? undefined
-                    : "Změny akce uvidíš tady a v Mých akcích."
-              }
-              isFillAnimated={hasJustJoined}
-            />
+            {/* PO 26. 11.: „Máš místo“ is the moment of joining, a flash — coming back to the
+                event later shows the plain state, „Jdu“, not the block again */}
+            {hasJustJoined ? (
+              <HasPlace
+                line={
+                  isThanks
+                    ? happeningThanks(event)
+                    : // the organizer makes the changes, nobody needs to tell them
+                      isOrganizer
+                      ? undefined
+                      : changesLine
+                }
+                isFillAnimated
+              />
+            ) : (
+              <p className="flex flex-wrap items-center gap-x-2 gap-y-1 text-sm">
+                <StatusBadge status={{ kind: "going" }} />
+                {isOrganizer ? null : <span className="text-muted-foreground">{changesLine}</span>}
+              </p>
+            )}
           </div>
           <ConfirmButton
             label="Odhlásit se"

@@ -108,11 +108,12 @@ describe("ParticipationAction", () => {
     expect(onJoin).toHaveBeenCalledOnce()
   })
 
-  it("joined: „Máš místo“ and „Odhlásit se“, which asks before leaving", async () => {
+  it("joined before: „Jdu“ and „Odhlásit se“, which asks before leaving", async () => {
     const { onLeave } = await renderAction({ myParticipation: "approved" })
 
-    // Figma A-05 · Stavy: the Máš místo block instead of a bare „Jdu“
-    expect(screen.getByText("Máš místo. Parta je o jednoho větší.")).toBeInTheDocument()
+    // PO 26. 11.: „Máš místo“ is a flash at joining, not a block hanging at the event
+    expect(screen.getByText("Jdu")).toBeInTheDocument()
+    expect(screen.queryByText("Máš místo. Parta je o jednoho větší.")).not.toBeInTheDocument()
     // no e-mail comes with a change yet: say where it shows
     expect(screen.getByText("Změny akce uvidíš tady a v Mých akcích.")).toBeInTheDocument()
     // opening the page doesn't move the focus, only a change does
@@ -513,10 +514,9 @@ describe("ParticipationAction", () => {
     expect(screen.getByRole("button", { name: "Přijdu" })).toBeDisabled()
   })
 
-  it("once in, „Máš místo“ stands out and „Odhlásit se“ is quiet (ghost, not a bordered button)", async () => {
+  it("once in, „Odhlásit se“ is quiet (ghost, not a bordered button)", async () => {
     await renderAction({ approvalMode: "approval", myParticipation: "approved" })
 
-    expect(screen.getByText("Máš místo. Parta je o jednoho větší.")).toHaveClass("font-semibold")
     expect(screen.getByRole("button", { name: "Odhlásit se" })).toHaveAttribute(
       "data-variant",
       "ghost",
@@ -541,7 +541,7 @@ describe("ParticipationAction", () => {
   it("the organizer going to their own event isn't told where its changes show", async () => {
     await renderAction({ myParticipation: "approved" }, { viewer: organizer })
 
-    expect(screen.getByText("Máš místo. Parta je o jednoho větší.")).toBeInTheDocument()
+    expect(screen.getByText("Jdu")).toBeInTheDocument()
     expect(screen.queryByText(/Změny akce uvidíš/)).not.toBeInTheDocument()
   })
 
