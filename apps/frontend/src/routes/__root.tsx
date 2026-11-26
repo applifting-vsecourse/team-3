@@ -56,9 +56,14 @@ function RootComponent() {
       {/* what the link in the verification e-mail did, over any page (#155) */}
       <EmailVerifiedDialog />
       <AgeConfirmationDialog />
+      {/* PO 26. 11. („Pohrajte si s toast notifikacemi, obsahují butony a jsou ve zvláštních
+          místech“): one calm place for every toast, as most apps keep them — bottom right on
+          desktop, bottom on a phone just above the bottom navigation (64 px + a gap), never
+          over the header; app colours, not the bright fills of richColors; no buttons in them */}
       <Toaster
-        richColors
-        position="top-right"
+        position="bottom-right"
+        offset={24}
+        mobileOffset={{ bottom: 80, left: 16, right: 16 }}
       />
     </>
   )
