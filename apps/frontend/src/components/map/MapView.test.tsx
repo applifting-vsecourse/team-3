@@ -336,3 +336,46 @@ describe("AreaSearchButton", () => {
     expect(button.style.top).toBe("")
   })
 })
+
+// #373: the detail's map can be explored, the page still scrolls over it
+describe("MapView isScrollSafe", () => {
+  const pin = [{ id: "a", lat: 50.09, lng: 14.45, variant: "default" as const, label: "Deskovky" }]
+  const pointer = (isCoarse: boolean) =>
+    vi.stubGlobal(
+      "matchMedia",
+      (query: string) =>
+        ({ matches: isCoarse && query === "(pointer: coarse)", media: query }) as MediaQueryList,
+    )
+
+  afterEach(() => {
+    vi.unstubAllGlobals()
+  })
+
+  it("is dragged by a mouse and zoomed by its buttons", () => {
+    pointer(false)
+    const { container } = render(
+      <MapView
+        center={praha}
+        pins={pin}
+        isScrollSafe
+      />,
+    )
+
+    expect(container.querySelector(".leaflet-container")).toHaveClass("leaflet-grab")
+    expect(container.querySelector(".leaflet-control-zoom-in")).toBeInTheDocument()
+  })
+
+  it("leaves one finger to the page on a touch screen", () => {
+    pointer(true)
+    const { container } = render(
+      <MapView
+        center={praha}
+        pins={pin}
+        isScrollSafe
+      />,
+    )
+
+    expect(container.querySelector(".leaflet-container")).not.toHaveClass("leaflet-grab")
+    expect(container.querySelector(".leaflet-control-zoom-in")).toBeInTheDocument()
+  })
+})

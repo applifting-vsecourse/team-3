@@ -47,6 +47,12 @@ describe("EventDetailView", () => {
     expect(screen.getByText("Pá 23. 10. 2026 · 17:30")).toBeInTheDocument()
     expect(screen.getByText("Kavárna Pražírna, Dělnická 12, Praha 8")).toBeInTheDocument()
     expect(screen.getByLabelText("Místo akce na mapě")).toBeInTheDocument()
+    // #373: the place in a map app, for directions — not only OSM's licence link
+    expect(screen.getByRole("link", { name: /^Mapy\.com/ })).toHaveAttribute(
+      "href",
+      expect.stringContaining("mapy.com/fnc/v1/showmap"),
+    )
+    expect(screen.getByRole("link", { name: /^Google Maps/ })).toHaveAttribute("target", "_blank")
     expect(screen.getByText("Bez schválení – kdo se přihlásí, je na akci")).toBeInTheDocument()
     // the organizer's name opens their public profile (#179)
     expect(screen.getByRole("link", { name: "Petra" })).toHaveAttribute("href", "/uzivatele/u1")

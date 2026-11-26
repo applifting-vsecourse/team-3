@@ -64,10 +64,11 @@ type MapViewProps = {
    */
   topInset?: number
   /**
-   * A picture of where, not a map to explore (Figma: Map/Static): no panning,
-   * no zoom, so on a phone the page scrolls over it instead of the map.
+   * A map inside a scrolling page (the event detail, #373): it can be moved and zoomed, but the
+   * page keeps scrolling over it — the mouse wheel scrolls the page (zoom by the buttons), and
+   * on a touch screen one finger scrolls the page while two move and pinch the map.
    */
-  isStatic?: boolean
+  isScrollSafe?: boolean
   label?: string
   className?: string
 }
@@ -94,6 +95,16 @@ export function viewKey({
 
 const pinsKey = (pins: { id: string }[]) => pins.map((pin) => pin.id).join(",")
 
+/**
+ * A finger, not a mouse: one finger dragging the map would stop the page from scrolling over
+ * it, so a scroll-safe map leaves one finger to the page (Leaflet's pinch still moves it).
+ */
+export function isCoarsePointer(): boolean {
+  return typeof window !== "undefined" && typeof window.matchMedia === "function"
+    ? window.matchMedia("(pointer: coarse)").matches
+    : false
+}
+
 const DEFAULT_ZOOM = 12
 // One or two nearby events would otherwise zoom in to single streets and
 // lose where in the city they are; 14 still shows the district around them.
@@ -115,7 +126,7 @@ export function MapView({
   area,
   onAreaSearch,
   topInset = 0,
-  isStatic = false,
+  isScrollSafe = false,
   label = "Mapa akcí",
   className,
 }: MapViewProps) {
@@ -137,16 +148,13 @@ export function MapView({
         zoom={center.zoom ?? DEFAULT_ZOOM}
         zoomControl={false}
         attributionControl={false}
-        dragging={!isStatic}
-        touchZoom={!isStatic}
-        scrollWheelZoom={!isStatic}
-        doubleClickZoom={!isStatic}
-        boxZoom={!isStatic}
-        keyboard={!isStatic}
+        dragging={!isScrollSafe || !isCoarsePointer()}
+        scrollWheelZoom={!isScrollSafe}
+        boxZoom={!isScrollSafe}
         className="size-full bg-muted"
       >
         <AttributionControl position="bottomright" />
-        {hasZoomControl && !isStatic ? <ZoomControl position="bottomright" /> : null}
+        {hasZoomControl ? <ZoomControl position="bottomright" /> : null}
         <TileLayer
           attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
           url="https://tile.openstreetmap.org/{z}/{x}/{y}.png"
