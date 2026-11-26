@@ -15,6 +15,7 @@ import { ALL_LOCALITIES_SLUG } from "@/lib/catalog/localityOptions"
 import { cn } from "@/lib/utils"
 
 import { useSession } from "@/features/auth/hooks/useSession"
+import { CreateEventButton } from "@/features/events/components/CreateEventButton"
 import { EmptyEvents } from "@/features/events/components/EmptyEvents"
 import { EventFilters } from "@/features/events/components/EventFilters"
 import { EventList } from "@/features/events/components/EventList"
@@ -255,6 +256,8 @@ function EventsPage() {
             variant="section"
             isMotifAboveTabs
             title={title}
+            // a signed-in user's way to found one, as „Založit skupinu“ on /skupiny (PO 26. 11.)
+            action={session.user ? <CreateEventButton /> : undefined}
             description={
               area
                 ? `${which} akce ve výřezu mapy${order}.`
