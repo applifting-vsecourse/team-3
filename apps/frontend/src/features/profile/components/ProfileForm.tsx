@@ -1,9 +1,9 @@
+import type { ReactNode } from "react"
 import { zodResolver } from "@hookform/resolvers/zod"
 import { useQuery } from "@tanstack/react-query"
 import { X } from "lucide-react"
 import { useForm } from "react-hook-form"
 
-import { ActivityCombobox } from "@/components/CatalogCombobox/ActivityCombobox"
 import { LocalityCombobox } from "@/components/CatalogCombobox/LocalityCombobox"
 import { Button } from "@/components/ui/button"
 import {
@@ -17,6 +17,7 @@ import {
 import { Input } from "@/components/ui/input"
 import { apiErrorCode } from "@/lib/api-client"
 import { activityTreeQueryOptions, localitiesQueryOptions } from "@/lib/catalog/catalogQueryOptions"
+import type { Activity, ActivityCategory } from "@/lib/catalog/catalogSchemas"
 
 import {
   profileInputSchema,
@@ -34,6 +35,16 @@ const FIELD_OF_ERROR: Record<string, keyof ProfileInput> = {
   UNKNOWN_LOCALITY: "homeLocalityId",
   UNKNOWN_ACTIVITY: "interestIds",
 }
+/** What the interest picker gets: the catalog, what is picked and how to (un)pick one. */
+export type InterestChoice = {
+  categories: ActivityCategory[]
+  selected: string[]
+  onToggle: (activity: Activity) => void
+}
+
+/** As many as the API takes (profileInputSchema). */
+const MAX_INTERESTS = 50
+
 const fieldOfError = (error: unknown) => {
   const code = apiErrorCode(error)
   return code ? FIELD_OF_ERROR[code] : undefined
@@ -43,9 +54,12 @@ const fieldOfError = (error: unknown) => {
 export function ProfileForm({
   profile,
   onSaved,
+  interestChoice,
 }: {
   profile: SelfProfile
   onSaved?: () => Promise<void>
+  /** The onboarding's picker by category (the route puts it in): PO 26. 11. */
+  interestChoice: (choice: InterestChoice) => ReactNode
 }) {
   const activities = useQuery(activityTreeQueryOptions())
   const localities = useQuery(localitiesQueryOptions())
@@ -146,17 +160,8 @@ export function ProfileForm({
           name="interestIds"
           render={({ field }) => (
             <FormItem>
-              <FormLabel>Zájmy</FormLabel>
-              <FormControl>
-                <ActivityCombobox
-                  categories={categories}
-                  value=""
-                  disabled={field.value.length >= 50}
-                  onChange={(id) => {
-                    if (!field.value.includes(id)) field.onChange([...field.value, id])
-                  }}
-                />
-              </FormControl>
+              {/* the picker is no single control, so a heading names it, not a <label> */}
+              <p className="text-sm leading-none font-medium">Zájmy</p>
               {field.value.length ? (
                 <ul
                   className="flex flex-wrap gap-2"
@@ -191,6 +196,19 @@ export function ProfileForm({
               ) : (
                 <p className="text-sm text-muted-foreground">Vyber aktivity, které tě zajímají.</p>
               )}
+              {/* PO 26. 11.: the same choice by category and activity as in the onboarding */}
+              {interestChoice({
+                categories,
+                selected: field.value,
+                onToggle: (activity) =>
+                  field.onChange(
+                    field.value.includes(activity.id)
+                      ? field.value.filter((current) => current !== activity.id)
+                      : field.value.length < MAX_INTERESTS
+                        ? [...field.value, activity.id]
+                        : field.value,
+                  ),
+              })}
               <FormMessage />
             </FormItem>
           )}

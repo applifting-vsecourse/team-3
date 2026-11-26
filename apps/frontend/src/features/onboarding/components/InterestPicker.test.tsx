@@ -5,7 +5,7 @@ import { describe, expect, it, vi } from "vitest"
 
 import type { Activity, ActivityCategory } from "@/lib/catalog/catalogSchemas"
 
-import { InterestPicker } from "./InterestPicker"
+import { InterestBrowser, InterestPicker } from "./InterestPicker"
 
 const categoryList: ActivityCategory[] = [
   {
@@ -247,5 +247,29 @@ describe("onboarding category and activity chooser", () => {
     })
     expect(activity("Volejbal")).toHaveAttribute("aria-pressed", "true")
     expect(screen.queryByText("Akce pro removed-category")).toBeNull()
+  })
+})
+
+// PO 26. 11.: /profil/upravit uses the same picker, holding its own browsing
+describe("InterestBrowser", () => {
+  it("opens a category and toggles its activities", async () => {
+    const user = userEvent.setup()
+    const toggle = vi.fn()
+    render(
+      <InterestBrowser
+        categories={categoryList}
+        selected={["floorball"]}
+        onToggle={toggle}
+      />,
+    )
+
+    await user.click(
+      within(screen.getByRole("region", { name: "Okruhy aktivit" })).getByRole("button", {
+        name: "Týmové sporty",
+      }),
+    )
+    expect(screen.getByRole("button", { name: /Florbal/ })).toHaveAttribute("aria-pressed", "true")
+    await user.click(screen.getByRole("button", { name: /Volejbal/ }))
+    expect(toggle).toHaveBeenCalledWith(expect.objectContaining({ id: "volleyball" }))
   })
 })

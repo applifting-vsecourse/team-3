@@ -283,3 +283,28 @@ export function InterestPicker({
     </div>
   )
 }
+
+/**
+ * The same picker holding its own browsing, for /profil/upravit (PO 26. 11.: „stejný výběr
+ * aktivit podle kategorií a podkategorií“ as in the onboarding). The route puts it in.
+ */
+export function InterestBrowser({
+  categories,
+  selected,
+  onToggle,
+}: {
+  categories: ActivityCategory[]
+  selected: string[]
+  onToggle: (activity: Activity) => void
+}) {
+  const [categoryId, setCategoryId] = useState("")
+  return (
+    <InterestPicker
+      categories={categories}
+      categoryId={categoryId}
+      selected={selected}
+      onBrowse={setCategoryId}
+      onToggle={(activity) => onToggle(activity)}
+    />
+  )
+}
