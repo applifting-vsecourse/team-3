@@ -23,6 +23,8 @@ export const ROUTES = {
   userProfile: "/uzivatele/$userId",
   // the centre of upozornění on a phone (#86, Figma C-07); on desktop the bell opens a panel
   notifications: "/upozorneni",
+  // the superadmin's „Správa HobbyHubu“ (PO 26. 11.): deactivated events, blocked users
+  admin: "/sprava",
   login: "/login",
   signup: "/signup",
   onboarding: "/vitej",

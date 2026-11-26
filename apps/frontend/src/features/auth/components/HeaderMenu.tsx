@@ -1,5 +1,5 @@
 import { Link } from "@tanstack/react-router"
-import { LogOut, UserRound } from "lucide-react"
+import { LogOut, ShieldCheck, UserRound } from "lucide-react"
 
 import { ROUTES } from "@/app/routes"
 import { Avatar, AvatarFallback } from "@/components/ui/avatar"
@@ -83,7 +83,7 @@ export function HeaderMenu({
       </DropdownMenuTrigger>
       <DropdownMenuContent
         align="end"
-        className="w-48"
+        className="w-56"
       >
         <DropdownMenuLabel>
           <div className="flex flex-col">
@@ -102,6 +102,15 @@ export function HeaderMenu({
             Můj profil
           </Link>
         </DropdownMenuItem>
+        {/* PO 26. 11.: the superadmin's own section; the session's role, the API decides again */}
+        {user.role === "admin" ? (
+          <DropdownMenuItem asChild>
+            <Link to={ROUTES.admin}>
+              <ShieldCheck className="size-4" />
+              Správa HobbyHubu
+            </Link>
+          </DropdownMenuItem>
+        ) : null}
         <DropdownMenuItem
           onSelect={() => signOut.mutate()}
           disabled={signOut.isPending}

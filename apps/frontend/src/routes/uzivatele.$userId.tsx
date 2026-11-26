@@ -1,15 +1,20 @@
 import { useQuery, useQueryClient } from "@tanstack/react-query"
 import { createFileRoute, useLocation } from "@tanstack/react-router"
+import { Ban } from "lucide-react"
+import { toast } from "sonner"
 
 import { AppHeader } from "@/app/AppHeader"
 import { Seo } from "@/components/Seo"
 import { HTTPError } from "@/lib/api-client"
 import { ratingSummaryLabel } from "@/lib/ratingSummary"
 
+import { isSuperadmin } from "@/features/admin/api/adminApi"
+import { useBlockUser } from "@/features/admin/hooks/useModerateUser"
 import { useSession } from "@/features/auth/hooks/useSession"
 import { redirectFrom } from "@/features/auth/lib/redirect"
 import { EventCard } from "@/features/events/components/EventCard"
 import { PastEventCard } from "@/features/events/components/PastEventCard"
+import { ReasonDialog } from "@/features/events/components/ReasonDialog"
 import { FriendshipAction } from "@/features/friends/components/FriendshipAction"
 import { publicProfileQueryOptions, publicUserKeys } from "@/features/users/api/publicProfile"
 import { PublicProfileView } from "@/features/users/components/PublicProfileView"
@@ -30,6 +35,11 @@ function PublicUserPage() {
   })
   const isNotFound = query.error instanceof HTTPError && query.error.response.status === 404
   const profile = query.data
+  // PO 26. 11.: the superadmin blocks a user from their profile; the profile is gone after it
+  const blockUser = useBlockUser(userId, () =>
+    queryClient.invalidateQueries({ queryKey: publicUserKeys.person(userId) }),
+  )
+  const canBlock = isSuperadmin(session.user) && viewerId !== userId
   return (
     <>
       <Seo title={profile?.name ?? "Profil uživatele"} />
@@ -51,16 +61,39 @@ function PublicUserPage() {
           )}
           friendshipAction={
             profile ? (
-              <FriendshipAction
-                userId={userId}
-                name={profile.name}
-                state={profile.friendship}
-                signInFrom={redirectFrom(location)}
-                // the state and Kam jde change with the friendship
-                onChanged={() =>
-                  queryClient.invalidateQueries({ queryKey: publicUserKeys.person(userId) })
-                }
-              />
+              <div className="flex flex-col gap-3">
+                <FriendshipAction
+                  userId={userId}
+                  name={profile.name}
+                  state={profile.friendship}
+                  signInFrom={redirectFrom(location)}
+                  // the state and Kam jde change with the friendship
+                  onChanged={() =>
+                    queryClient.invalidateQueries({ queryKey: publicUserKeys.person(userId) })
+                  }
+                />
+                {canBlock ? (
+                  <ReasonDialog
+                    trigger={{ label: "Zablokovat uživatele", icon: <Ban /> }}
+                    title={`Zablokovat uživatele ${profile.name}?`}
+                    description="Odhlásí se ze všech zařízení, nic nového nezaloží ani se nepřihlásí na akci a jeho profil ostatní neuvidí. Odblokovat jde ve Správě HobbyHubu."
+                    label="Důvod zablokování *"
+                    placeholder="např. Opakovaně posílá spam do zpráv skupiny."
+                    requiredMessage="Napiš, proč uživatele blokuješ"
+                    submit={{ label: "Zablokovat", variant: "destructive" }}
+                    isPending={blockUser.isPending}
+                    onSubmit={(reason) =>
+                      blockUser.mutateAsync(reason).then(
+                        () => toast.success("Uživatel je zablokovaný."),
+                        (error: Error) => {
+                          toast.error(error.message)
+                          throw error
+                        },
+                      )
+                    }
+                  />
+                ) : null}
+              </div>
             ) : null
           }
           renderUpcomingEvent={(event) => (

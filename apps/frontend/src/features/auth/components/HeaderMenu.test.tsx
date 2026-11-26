@@ -71,4 +71,26 @@ describe("HeaderMenu", () => {
       `/signup?${from}`,
     )
   })
+
+  // PO 26. 11.: „Superadmin nemá nikde žádnou sekci v menu.“
+  it.each([
+    ["the superadmin has „Správa HobbyHubu“", "admin", true],
+    ["anyone else hasn't", "user", false],
+  ])("%s", async (_case, role, isShown) => {
+    const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } })
+    queryClient.setQueryData(authKeys.session(), { user: { ...user, role } })
+    await renderWithRouter(
+      <QueryClientProvider client={queryClient}>
+        <HeaderMenu />
+      </QueryClientProvider>,
+    )
+
+    await userEvent.click(
+      screen.getByRole("button", { name: "PN – Petra Nováková, uživatelské menu" }),
+    )
+    await screen.findByRole("menuitem", { name: "Můj profil" })
+    const admin = screen.queryByRole("menuitem", { name: "Správa HobbyHubu" })
+    if (isShown) expect(admin).toHaveAttribute("href", "/sprava")
+    else expect(admin).not.toBeInTheDocument()
+  })
 })
