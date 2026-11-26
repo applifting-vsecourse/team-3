@@ -321,8 +321,27 @@ describe("ParticipationAction", () => {
       { now: new Date("2026-10-23T16:00:00.000Z") },
     )
 
-    expect(screen.getByText("Akce už začala. Máš na ní místo.")).toBeInTheDocument()
+    // PO 26. 11.: while it is on, when and where the rating comes
+    expect(
+      screen.getByText(
+        /^Akce právě probíhá a máš na ní místo\. Ohodnotit ji půjde tady na detailu po skončení, od /,
+      ),
+    ).toBeInTheDocument()
     expect(screen.queryByRole("button")).not.toBeInTheDocument()
+  })
+
+  // PO 26. 11.: the organizer rates the participants from the detail, as participants rate here
+  it("once over, the organizer gets „Ohodnotit účastníky“ on the detail", async () => {
+    await renderAction(
+      { approvedCount: 8, missingToMin: 0, endsAt: afterNow, canManage: true },
+      { viewer: organizer, now: new Date("2026-10-24T08:00:00.000Z") },
+    )
+
+    expect(screen.getByRole("link", { name: "Ohodnotit účastníky" })).toHaveAttribute(
+      "href",
+      expect.stringContaining("/hodnoceni-ucastniku"),
+    )
+    expect(screen.getByRole("link", { name: "Spravovat akci" })).toBeInTheDocument()
   })
 
   it("once over, it says when it was; how many came is in the panel above (Figma A-05h, #61)", async () => {
@@ -417,7 +436,11 @@ describe("ParticipationAction", () => {
       { now: new Date("2026-10-23T16:05:00.000Z") },
     )
 
-    expect(screen.getByText("Akce už začala. Máš na ní místo.")).toBeInTheDocument()
+    expect(
+      screen.getByText(
+        "Akce právě probíhá a máš na ní místo. Ohodnotit ji půjde tady na detailu po skončení dne akce.",
+      ),
+    ).toBeInTheDocument()
   })
 
   it("leaving in progress: „Odhlásit se“ can't be sent twice", async () => {
@@ -492,7 +515,11 @@ describe("ParticipationAction", () => {
     )
 
     expect(screen.getByRole("link", { name: "Spravovat akci" })).toBeInTheDocument()
-    expect(screen.getByText("Akce už začala.")).toBeInTheDocument()
+    expect(
+      screen.getByText(
+        /^Akce právě probíhá\. Účastníky ohodnotíš tady na detailu po skončení, od /,
+      ),
+    ).toBeInTheDocument()
   })
 
   it("an admin of the event's group gets to the management too, and joins like anyone (#70)", async () => {
