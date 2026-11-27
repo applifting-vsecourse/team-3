@@ -20,29 +20,30 @@ These are rules, not suggestions. When a rule and a "nicer looking" idea disagre
 - Body text is `foreground`; supporting text is `muted-foreground`. There is no third level.
 - **The app has a light mode only** (PO 10. 11. 2026). No dark mode, no `.dark` tokens, no theme switcher, no `dark:` classes — never add them back (removed in #297). Never use `text-white`/`bg-black` either; colour comes from the tokens alone. No file in `src` has a `dark:` class or a `.dark` selector, and `index.html` has one `theme-color`, the band's `hero` (`tokens.test.ts` checks both). Text and icons on a filled surface use that surface's `-foreground` token. Form fields (input, textarea, select) sit on `card`, as in Figma. The one exception is the kit's `bg-black/50` overlay behind dialogs and bottom sheets: darkening the page keeps the sheet's edge above 3:1.
 
-| Token                                             | Value                             | Use                                                                       |
-| ------------------------------------------------- | --------------------------------- | ------------------------------------------------------------------------- |
-| `background` / `foreground`                       | `#f4f1e8` / `#14201a`             | Page and body text                                                        |
-| `card`                                            | `#ffffff`                         | Cards and panels, always with `card-border`                               |
-| `muted` / `muted-foreground`                      | `#e8e2d2` / `#505e56`             | Quiet surfaces / supporting text                                          |
-| `primary` / `primary-foreground`                  | `#b9f53c` / `#14201a`             | Lime fill / text on it                                                    |
-| `primary-edge`                                    | `#265212`                         | Outline of lime on light surfaces                                         |
-| `secondary` / `secondary-foreground`              | `#e3f3cb` / `#265212`             | Quiet green surfaces                                                      |
-| `tile-border`                                     | `#6f8a5a`                         | Outline of every `secondary` surface                                      |
-| `border` = `input-border` = `card-border`         | `#847e70`                         | Hairlines, inputs, chips, card and panel edges                            |
-| `control-border`                                  | `#847e70`                         | Outline buttons, neutral badges, capacity track, sheet handle, empty star |
-| `badge-neutral` / `-foreground`                   | `#e8e2d2` / `#505e56`             | „Plno“, „Čeká na schválení“                                               |
-| `full`                                            | `#8f8a7c`                         | Capacity bar when full                                                    |
-| `capacity-fill` / `capacity-track`                | `#265212` / `#e8e2d2`             | Capacity bar solid fill / track                                           |
-| `hero` / `on-hero` / `on-hero-muted`              | `#0f3626` / `#f6f3ea` / `#bccbc0` | The dark green band and text on it                                        |
-| `hero-pattern`                                    | `#1f4c37`                         | Logo motif on the band — decoration only, never text                      |
-| `tile-on-hero`                                    | `#e3f3cb`                         | Activity tile on the band                                                 |
-| `highlight-text` / `highlight-marker`             | `#14201a` / `#b9f53c`             | Section-heading keyword and the marker under it                           |
-| `avatar-self` / `-foreground`                     | `#265212` / `#ffffff`             | The „ty“ avatar                                                           |
-| `logo-dot`, `logo-dot-stroke`, `logo-self-stroke` | see Figma                         | Logo mark only                                                            |
-| `destructive` / `-foreground`                     | `#b42318` / `#ffffff`             | Destructive actions, errors                                               |
-| `ring`                                            | `#265212`                         | Focus ring                                                                |
-| `map-land`, `map-road`, `map-water`, `map-park`   | see Figma                         | Map placeholder (the real map uses its own tiles)                         |
+| Token                                                 | Value                                                            | Use                                                                       |
+| ----------------------------------------------------- | ---------------------------------------------------------------- | ------------------------------------------------------------------------- |
+| `background` / `foreground`                           | `#f4f1e8` / `#14201a`                                            | Page and body text                                                        |
+| `card`                                                | `#ffffff`                                                        | Cards and panels, always with `card-border`                               |
+| `muted` / `muted-foreground`                          | `#e8e2d2` / `#505e56`                                            | Quiet surfaces / supporting text                                          |
+| `primary` / `primary-foreground`                      | `#b9f53c` / `#14201a`                                            | Lime fill / text on it                                                    |
+| `primary-edge`                                        | `#265212`                                                        | Outline of lime on light surfaces                                         |
+| `button-primary` / `-foreground` / `-edge` / `-hover` | `hero` / `on-hero` / `hero` / `hero-pattern`; in `on-hero`: lime | The default button: dark green on light surfaces, lime on the band (#445) |
+| `secondary` / `secondary-foreground`                  | `#e3f3cb` / `#265212`                                            | Quiet green surfaces                                                      |
+| `tile-border`                                         | `#6f8a5a`                                                        | Outline of every `secondary` surface                                      |
+| `border` = `input-border` = `card-border`             | `#847e70`                                                        | Hairlines, inputs, chips, card and panel edges                            |
+| `control-border`                                      | `#847e70`                                                        | Outline buttons, neutral badges, capacity track, sheet handle, empty star |
+| `badge-neutral` / `-foreground`                       | `#e8e2d2` / `#505e56`                                            | „Plno“, „Čeká na schválení“                                               |
+| `full`                                                | `#8f8a7c`                                                        | Capacity bar when full                                                    |
+| `capacity-fill` / `capacity-track`                    | `#265212` / `#e8e2d2`                                            | Capacity bar solid fill / track                                           |
+| `hero` / `on-hero` / `on-hero-muted`                  | `#0f3626` / `#f6f3ea` / `#bccbc0`                                | The dark green band and text on it                                        |
+| `hero-pattern`                                        | `#1f4c37`                                                        | Logo motif on the band (decoration, never text); hover of the dark button |
+| `tile-on-hero`                                        | `#e3f3cb`                                                        | Activity tile on the band                                                 |
+| `highlight-text` / `highlight-marker`                 | `#14201a` / `#b9f53c`                                            | Section-heading keyword and the marker under it                           |
+| `avatar-self` / `-foreground`                         | `#265212` / `#ffffff`                                            | The „ty“ avatar                                                           |
+| `logo-dot`, `logo-dot-stroke`, `logo-self-stroke`     | see Figma                                                        | Logo mark only                                                            |
+| `destructive` / `-foreground`                         | `#b42318` / `#ffffff`                                            | Destructive actions, errors                                               |
+| `ring`                                                | `#265212`                                                        | Focus ring                                                                |
+| `map-land`, `map-road`, `map-water`, `map-park`       | see Figma                                                        | Map placeholder (the real map uses its own tiles)                         |
 
 There is no `band-edge` or `accent-bar` (they existed for dark mode only): the band's edge is the band itself (`border-hero`), and „Máš místo“ is edged by its `tile-border`.
 
