@@ -2,7 +2,7 @@
 
 **Issue:** #86 (F-40, B-044) · **PR:** #398 · **Navazuje na:** #177 (e-maily k účasti a akci), #307 (přátelé) · **Stav:** postaveno podle rozhodnutí týmu (21. a 22. 11. 2026); seznam událostí a texty rozhodl tým, PO je nedoplňuje
 
-Planning sprintu 4 (`zapis-planning-sprint4.md`): notifikační centrum v aplikaci i e-maily, zpráva v centru je krátká („Na tvou akci se přihlásil…“) a vede na detail. Refinement 16. 11. upozornění neprobíral, otázky proto rozhodl tým a PO je potvrdí při akceptaci. Tento dokument popisuje, co je postavené.
+Planning sprintu 4 (`zapis-planning-sprint4.md`): notifikační centrum v aplikaci i e-maily, zpráva v centru je krátká („Na tvou akci se přihlásil…“) a vede na detail. Refinement 16. 11. upozornění neprobíral, otázky proto rozhodl tým. Tento dokument popisuje, co je postavené.
 
 ## Jak upozornění funguje
 

@@ -82,5 +82,4 @@ PO hodnotil sprint 4 26. 11., den po planningu. Kvůli množství chyb aplikaci 
 - Fotka, bio, viditelnost profilu a správa účtu, smazání účtu a export dat (#64, B-080)
 - Další správci skupiny (#62, #100), profil skupiny s historií akcí (#98)
 - Odebrání účastníka a hromadné schválení (#60)
-- Cena, úroveň, vybavení a soukromé akce (#59), opakované akce (#76)
-- Reklamní plocha (#105), prémium bez reklam (#93)
+- Cena, úroveň, vybavení a soukromé akce (#59)
