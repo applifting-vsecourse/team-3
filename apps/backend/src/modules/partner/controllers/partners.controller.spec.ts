@@ -1,5 +1,6 @@
 import { PartnerService } from '@/modules/partner/services/partner.service';
 import { VerifiedUserGuard } from '@/shared/auth/guards/verified-user.guard';
+import { WriteThrottlerGuard } from '@/shared/rate-limit/rate-limit.guards';
 import { HttpException, HttpStatus } from '@nestjs/common';
 import { GUARDS_METADATA } from '@nestjs/common/constants';
 import { mock } from 'jest-mock-extended';
@@ -19,10 +20,17 @@ const guardsOf = (handler: keyof PartnersController): unknown[] =>
 const user = { id: 'me' } as never;
 
 describe('PartnersController (#84)', () => {
-  it.each(['suggestions', 'request', 'skip', 'unskip'] as const)(
-    '%s needs a verified, unblocked account',
+  it('reading the deck needs a verified, unblocked account', () => {
+    expect(guardsOf('suggestions')).toEqual([VerifiedUserGuard]);
+  });
+
+  it.each(['request', 'skip', 'unskip'] as const)(
+    '%s needs a verified, unblocked account and is a limited write',
     (handler) => {
-      expect(guardsOf(handler)).toEqual([VerifiedUserGuard]);
+      expect(guardsOf(handler)).toEqual([
+        VerifiedUserGuard,
+        WriteThrottlerGuard,
+      ]);
     },
   );
 
