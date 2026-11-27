@@ -6,6 +6,16 @@ import {
 } from '@/modules/event/domain/event-over';
 import { NO_NEW_REQUEST_STATUSES } from '@/modules/event/domain/participation';
 
+/** The events the user runs: created by them, or of a group they are an active admin of (B-055). */
+const organizedByWhere = (userId: string): Prisma.EventWhereInput[] => [
+  { organizerUserId: userId },
+  {
+    group: {
+      members: { some: { userId, role: 'admin', status: 'active' } },
+    },
+  },
+];
+
 /**
  * Prisma `where` for a tab of „Moje akce“ (B-035). A pure function so the
  * sorting into tabs can be tested without a database (CI has none).
@@ -32,16 +42,6 @@ import { NO_NEW_REQUEST_STATUSES } from '@/modules/event/domain/participation';
  * started – one can't join once it runs – and no cancelled ones (there is
  * nothing to go to). Hidden and deleted never.
  */
-/** The events the user runs: created by them, or of a group they are an active admin of (B-055). */
-const organizedByWhere = (userId: string): Prisma.EventWhereInput[] => [
-  { organizerUserId: userId },
-  {
-    group: {
-      members: { some: { userId, role: 'admin', status: 'active' } },
-    },
-  },
-];
-
 export const buildMyEventsWhere = (
   tab: MyEventsTab,
   userId: string,
