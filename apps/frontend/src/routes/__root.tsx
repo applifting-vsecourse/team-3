@@ -63,7 +63,9 @@ function RootComponent() {
           A phone page with its own action at the bottom lifts them over it (--toast-bottom) */}
       <Toaster
         position="bottom-right"
-        offset={24}
+        // Sonner's mobileOffset holds only up to 600 px, the bottom navigation up to 767 px:
+        // the bottom comes from CSS for both (--toast-offset, global.css), review #443
+        offset={{ bottom: "var(--toast-offset)", right: 24 }}
         mobileOffset={{ bottom: "var(--toast-bottom)", left: 16, right: 16 }}
       />
     </>

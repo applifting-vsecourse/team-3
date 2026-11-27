@@ -95,6 +95,8 @@
   /* where a phone's toast sits (PO 26. 11.): above the bottom navigation, and above a page's
      own bottom action too (the detail's „Přijdu“ bar, the floating „Založit“), never over it */
   --toast-bottom: 80px;
+  /* the desktop offset's bottom (Sonner past 600 px): above the navigation while it shows */
+  --toast-offset: var(--toast-bottom);
   /* Light mode only (DESIGN.md › Colour): native scrollbars and form controls stay light even
      when the system is set to dark. */
   color-scheme: light;
@@ -365,4 +367,11 @@
 /* a page with an action at the bottom of a phone, marked data-toast-clear: toasts above it */
 :root:has([data-toast-clear]:not(:empty)) {
   --toast-bottom: 152px;
+}
+
+/* from md the bottom navigation is gone: the desktop corner */
+@media (min-width: 768px) {
+  :root {
+    --toast-offset: 24px;
+  }
 }
