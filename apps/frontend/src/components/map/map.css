@@ -16,6 +16,13 @@
 .leaflet-touch .leaflet-bar {
   border: 1px solid var(--control-border);
 }
+/* 40 × 40 px like every control (DESIGN.md › Accessibility, review of PR 416): Leaflet has 30 px */
+.leaflet-bar a,
+.leaflet-touch .leaflet-bar a {
+  width: 40px;
+  height: 40px;
+  line-height: 40px;
+}
 .leaflet-bar a,
 .leaflet-bar a:hover {
   background: var(--card);

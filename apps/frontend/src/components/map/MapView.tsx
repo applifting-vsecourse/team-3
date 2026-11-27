@@ -98,6 +98,9 @@ const pinsKey = (pins: { id: string }[]) => pins.map((pin) => pin.id).join(",")
 /**
  * A finger, not a mouse: one finger dragging the map would stop the page from scrolling over
  * it, so a scroll-safe map leaves one finger to the page (Leaflet's pinch still moves it).
+ * Only the primary pointer counts: a laptop with a touch screen is a mouse device here, so a
+ * finger on its screen drags the map — its page scrolls by the trackpad or the wheel, which
+ * the map leaves alone (decided in review #416).
  */
 export function isCoarsePointer(): boolean {
   return typeof window !== "undefined" && typeof window.matchMedia === "function"
@@ -154,7 +157,15 @@ export function MapView({
         className="size-full bg-muted"
       >
         <AttributionControl position="bottomright" />
-        {hasZoomControl ? <ZoomControl position="bottomright" /> : null}
+        {hasZoomControl ? (
+          // Czech names: Leaflet's „Zoom in“ / „Zoom out“ would be the title and the label read
+          // out (review #416)
+          <ZoomControl
+            position="bottomright"
+            zoomInTitle="Přiblížit"
+            zoomOutTitle="Oddálit"
+          />
+        ) : null}
         <TileLayer
           attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
           url="https://tile.openstreetmap.org/{z}/{x}/{y}.png"

@@ -476,7 +476,8 @@ function EventDetailSkeleton({ isDesktop }: { isDesktop: boolean }) {
       <Skeleton className="h-2 w-full rounded-full" />
       <Skeleton className="h-10 w-2/3" />
       <Skeleton className="h-10 w-full" />
-      <Skeleton className="h-40 rounded-lg" />
+      {/* the map is 224 px (#373) */}
+      <Skeleton className="h-56 rounded-lg" />
     </div>
   )
   return (
