@@ -38,6 +38,7 @@ Nové funkce pro objevování akcí a hledání lidí, první verze monetizace a
 - QA – Martin a Eliška (#457)
 - Revize Figmy – Veronika (#458)
 - Dokumentace (#459), demo data (#460)
+- Test hlavního toku přes API v CI, část smoke testu z #50 (#467, tým 27. 11.)
 
 ## Výtky PO ke sprintu 4
 
@@ -75,7 +76,7 @@ PO hodnotil sprint 4 26. 11., den po planningu. Kvůli množství chyb aplikaci 
 
 ## MVP mimo scope sprintu 5
 
-- Smoke test (#50), monitoring, logy a zálohy (#51) – sprint 6
+- Zbytek smoke testu (#50), monitoring, logy a zálohy (#51) – sprint 6
 - Kontrola veřejného profilu a nepoužitých hodnot v modelu (#365)
 - Bezpečnost a ochrana osobních údajů (#94)
 - Jeden účet pro účast i pořádání (#75)
