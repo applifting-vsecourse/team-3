@@ -364,13 +364,9 @@
    detail's „Přijdu“ bar, the floating „Založit“), never over it. --toast-offset is the desktop
    offset's bottom, which Sonner uses past 600 px: above the navigation while it shows. */
 :root {
+  /* the default; useToastClearance measures what the page marked data-toast-clear */
   --toast-bottom: 80px;
   --toast-offset: var(--toast-bottom);
-}
-
-/* a page with an action at the bottom of a phone, marked data-toast-clear: toasts above it */
-:root:has([data-toast-clear]:not(:empty)) {
-  --toast-bottom: 152px;
 }
 
 /* from md the bottom navigation is gone: the desktop corner */

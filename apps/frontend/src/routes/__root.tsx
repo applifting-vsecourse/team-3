@@ -5,6 +5,7 @@ import "@/styles/global.css"
 
 import { ROUTES } from "@/app/routes"
 import { BottomNav } from "@/components/BottomNav/BottomNav"
+import { useToastClearance } from "@/components/Toast/useToastClearance"
 import { Toaster } from "@/components/ui/sonner"
 
 import { needsOnboarding } from "@/features/auth/api/authSessionQueryOptions"
@@ -20,6 +21,8 @@ export const Route = createRootRouteWithContext<{
 })
 
 function RootComponent() {
+  // a phone's toasts stay above the page's own bottom action, measured (review #443)
+  useToastClearance()
   const { user, isPending } = useSession()
   const signInFrom = useAuthLinkFrom()
   const location = useLocation()
