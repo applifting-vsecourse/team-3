@@ -1,4 +1,4 @@
-import { useState } from "react"
+import { useState, type ReactNode } from "react"
 import { act, cleanup, screen, waitFor, within } from "@testing-library/react"
 import userEvent from "@testing-library/user-event"
 import { describe, expect, it, vi } from "vitest"
@@ -16,11 +16,16 @@ const afterNow = new Date("2026-10-23T18:00:00.000Z")
 const jakub: Viewer = { id: "u9" }
 const organizer: Viewer = { id: "u1" } // the fixture's organizer
 
-type RenderOptions = { viewer?: Viewer | null; isPending?: boolean; now?: Date }
+type RenderOptions = {
+  viewer?: Viewer | null
+  isPending?: boolean
+  now?: Date
+  outsideGroup?: ReactNode
+}
 
 const renderAction = async (event: Partial<EventDetail> = {}, options: RenderOptions = {}) => {
   // a missing viewer is Jakub; an explicit null is a visitor
-  const { viewer = jakub, isPending = false, now = before } = options
+  const { viewer = jakub, isPending = false, now = before, outsideGroup } = options
   const onJoin = vi.fn().mockResolvedValue(anEventDetail({ ...event, myParticipation: "approved" }))
   const onLeave = vi.fn().mockResolvedValue(undefined)
   await renderWithRouter(
@@ -31,6 +36,7 @@ const renderAction = async (event: Partial<EventDetail> = {}, options: RenderOpt
       isPending={isPending}
       onJoin={onJoin}
       onLeave={onLeave}
+      outsideGroup={outsideGroup}
       now={now}
     />,
   )
@@ -428,6 +434,45 @@ describe("ParticipationAction", () => {
 
   it("a cancelled event shows no action (its label is #52)", async () => {
     await renderAction({ status: "cancelled" })
+
+    expect(screen.queryByRole("button")).not.toBeInTheDocument()
+    expect(screen.queryByRole("link")).not.toBeInTheDocument()
+  })
+
+  describe("the superadmin on a members-only event (#308, review #380)", () => {
+    const membersOnly = {
+      visibility: "members" as const,
+      group: { id: "g1", name: "Deskovkáři" },
+      canEdit: true,
+      canModerate: true,
+    }
+
+    it("outside the group: the way into the group, not „Přijdu“", async () => {
+      await renderAction(membersOnly, {
+        outsideGroup: <button type="button">Přidat se ke skupině</button>,
+      })
+
+      expect(screen.getByRole("button", { name: "Přidat se ke skupině" })).toBeInTheDocument()
+      expect(screen.queryByRole("button", { name: /Přijdu/ })).not.toBeInTheDocument()
+      expect(screen.queryByRole("button", { name: /Požádat o místo/ })).not.toBeInTheDocument()
+    })
+
+    it("while the group loads: nothing, so „Přijdu“ never flashes", async () => {
+      await renderAction(membersOnly, { outsideGroup: null })
+
+      expect(screen.queryByRole("button")).not.toBeInTheDocument()
+      expect(screen.queryByRole("link")).not.toBeInTheDocument()
+    })
+
+    it("a member of the group joins as before", async () => {
+      await renderAction(membersOnly)
+
+      expect(screen.getByRole("button", { name: /Přijdu/ })).toBeInTheDocument()
+    })
+  })
+
+  it("a deactivated event, as the superadmin sees it, offers no joining (#308)", async () => {
+    await renderAction({ status: "hidden", canEdit: true, canModerate: true })
 
     expect(screen.queryByRole("button")).not.toBeInTheDocument()
     expect(screen.queryByRole("link")).not.toBeInTheDocument()

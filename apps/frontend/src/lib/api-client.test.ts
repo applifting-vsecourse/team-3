@@ -23,6 +23,18 @@ describe("api client errors", () => {
     await expect(api.post("events/e1/participation").json()).rejects.toThrow(/^Akce je plná\.$/)
   })
 
+  it("a rate limit (429) shows the API's Czech message", async () => {
+    // the body of @nestjs/throttler's ThrottlerException with our message (#230)
+    respond(429, {
+      statusCode: 429,
+      message: "Nových akcí a skupin je teď moc. Zkus to znovu později.",
+    })
+
+    await expect(api.post("events").json()).rejects.toThrow(
+      /^Nových akcí a skupin je teď moc\. Zkus to znovu později\.$/,
+    )
+  })
+
   it("validation messages (an array) are joined", async () => {
     respond(400, { message: ["Vyplň název akce", "Akce potřebuje aktivitu"] })
 

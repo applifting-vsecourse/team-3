@@ -4,14 +4,18 @@ import { GroupRepository } from './group.repository';
 
 describe('GroupRepository', () => {
   describe('deactivateGroup (B-051, B-055)', () => {
-    it("cancels the group's upcoming events with the reason; past ones stay", async () => {
+    it("cancels the group's upcoming events with the reason, the deactivated ones too (#308); past ones stay", async () => {
       const prisma = mockDeep<PrismaService>();
       const at = new Date('2026-11-07T10:00:00.000Z');
 
       await new GroupRepository(prisma).deactivateGroup('g1', at);
 
       expect(prisma.event.updateMany).toHaveBeenCalledWith({
-        where: { groupId: 'g1', status: 'published', startsAt: { gt: at } },
+        where: {
+          groupId: 'g1',
+          status: { in: ['published', 'hidden'] },
+          startsAt: { gt: at },
+        },
         data: {
           status: 'cancelled',
           cancelReason: 'Skupina už není aktivní',

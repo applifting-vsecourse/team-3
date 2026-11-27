@@ -4,6 +4,7 @@ import { User } from '@/shared/auth/decorators/user.decorator';
 import { Identity } from '@/shared/auth/domain/identity';
 import { AuthenticatedUserGuard } from '@/shared/auth/guards/authenticated-user.guard';
 import { VerifiedUserGuard } from '@/shared/auth/guards/verified-user.guard';
+import { WriteThrottlerGuard } from '@/shared/rate-limit/rate-limit.guards';
 import {
   Body,
   Controller,
@@ -97,7 +98,7 @@ export class EventRatingController {
   }
 
   @Put(':id/rating')
-  @UseGuards(VerifiedUserGuard)
+  @UseGuards(VerifiedUserGuard, WriteThrottlerGuard)
   @ApiCookieAuth()
   @ApiOperation({
     summary: `Rate the event and its organizer, or change the rating (B-060, #66); within ${RATING_WINDOW_DAYS} calendar days (Prague) of the end`,

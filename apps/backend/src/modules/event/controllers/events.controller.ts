@@ -11,6 +11,11 @@ import { AuthenticatedUserGuard } from '@/shared/auth/guards/authenticated-user.
 import { OptionalUserGuard } from '@/shared/auth/guards/optional-user.guard';
 import { VerifiedUserGuard } from '@/shared/auth/guards/verified-user.guard';
 import { Config } from '@/shared/config/config.service';
+import {
+  CreateThrottlerGuard,
+  PublicReadThrottlerGuard,
+  WriteThrottlerGuard,
+} from '@/shared/rate-limit/rate-limit.guards';
 import { RequestMessageDto } from '@/shared/request-message/dto/request-message.dto';
 import {
   Body,
@@ -69,6 +74,7 @@ export class EventsController {
   ) {}
 
   @Get()
+  @UseGuards(PublicReadThrottlerGuard)
   @ApiOperation({
     summary:
       'Upcoming public events, soonest first or the most interest first (sort=popular), at most 200 (list, map and landing page); with past=true the events that are over, newest first (Proběhlé, #61)',
@@ -86,7 +92,7 @@ export class EventsController {
   }
 
   @Post()
-  @UseGuards(VerifiedUserGuard)
+  @UseGuards(VerifiedUserGuard, CreateThrottlerGuard)
   @ApiCookieAuth()
   @ApiOperation({
     summary:
@@ -137,7 +143,7 @@ export class EventsController {
 
   // Keep below any fixed path like /events/facets, or `:id` would catch it.
   @Get(':id')
-  @UseGuards(OptionalUserGuard)
+  @UseGuards(OptionalUserGuard, PublicReadThrottlerGuard)
   @ApiOperation({
     summary:
       'One event for its detail page; public, the names of participants only for those taking part',
@@ -173,7 +179,7 @@ export class EventsController {
 
   @Post(':id/cancel')
   @HttpCode(200)
-  @UseGuards(AuthenticatedUserGuard)
+  @UseGuards(AuthenticatedUserGuard, WriteThrottlerGuard)
   @ApiCookieAuth()
   @ApiOperation({
     summary:
@@ -230,7 +236,7 @@ export class EventsController {
   }
 
   @Post(':id/messages')
-  @UseGuards(AuthenticatedUserGuard)
+  @UseGuards(AuthenticatedUserGuard, WriteThrottlerGuard)
   @ApiCookieAuth()
   @ApiOperation({
     summary:
@@ -299,7 +305,7 @@ export class EventsController {
 
   @Post(':id/participants/approve')
   @HttpCode(200)
-  @UseGuards(VerifiedUserGuard)
+  @UseGuards(VerifiedUserGuard, WriteThrottlerGuard)
   @ApiCookieAuth()
   @ApiOperation({
     summary:
@@ -337,7 +343,7 @@ export class EventsController {
   // Rejecting takes no place, so a session is enough (like cancelling).
   @Post(':id/participants/reject')
   @HttpCode(200)
-  @UseGuards(AuthenticatedUserGuard)
+  @UseGuards(AuthenticatedUserGuard, WriteThrottlerGuard)
   @ApiCookieAuth()
   @ApiOperation({
     summary:
@@ -373,7 +379,7 @@ export class EventsController {
 
   @Post(':id/participation')
   @HttpCode(200)
-  @UseGuards(VerifiedUserGuard)
+  @UseGuards(VerifiedUserGuard, WriteThrottlerGuard)
   @ApiCookieAuth()
   @ApiOperation({
     summary:
@@ -410,7 +416,7 @@ export class EventsController {
   // Leaving needs only a session: someone who lost the verified state or got
   // blocked must still be able to free their place.
   @Delete(':id/participation')
-  @UseGuards(AuthenticatedUserGuard)
+  @UseGuards(AuthenticatedUserGuard, WriteThrottlerGuard)
   @ApiCookieAuth()
   @ApiOperation({
     summary:
@@ -435,11 +441,11 @@ export class EventsController {
   }
 
   @Patch(':id')
-  @UseGuards(VerifiedUserGuard)
+  @UseGuards(VerifiedUserGuard, WriteThrottlerGuard)
   @ApiCookieAuth()
   @ApiOperation({
     summary:
-      'Change the event (B-028); only its organizer, before it starts. Not the activity nor the way of joining.',
+      "Change the event (B-028); only its organizer (a group's admins, the superadmin #308), before it starts. Not the activity nor the way of joining.",
   })
   @ApiResponse({ status: 200, type: EventDetailResponseDto })
   @ApiResponse({
@@ -454,7 +460,10 @@ export class EventsController {
       'NOT_ORGANIZER, EMAIL_NOT_VERIFIED, USER_BLOCKED, or MEMBERS_ONLY (a members-only event, the caller is not a member)',
   })
   @ApiResponse({ status: 404, description: 'No such event for this user' })
-  @ApiResponse({ status: 409, description: 'EVENT_CANCELLED' })
+  @ApiResponse({
+    status: 409,
+    description: 'EVENT_CANCELLED, or EVENT_HIDDEN (deactivated, #308)',
+  })
   async update(
     @Param('id') id: string,
     @Body() body: UpdateEventDto,
@@ -479,14 +488,14 @@ export class EventsController {
   }
 
   @Put(':id/image')
-  @UseGuards(VerifiedUserGuard)
+  @UseGuards(VerifiedUserGuard, WriteThrottlerGuard)
   // guards run first: no file from someone signed out or unverified is read;
   // whether the user manages the event the service decides after the upload
   @ImageUpload()
   @ApiCookieAuth()
   @ApiOperation({
     summary:
-      "Upload the event's own image (#77), replacing the previous one; only its organizer, before it starts",
+      "Upload the event's own image (#77), replacing the previous one; only who may edit the event (its organizer, a group's admins, the superadmin #308), before it starts",
     description:
       "JPEG, PNG or WebP by the file's content, at most 5 MB. The detail then has `imageKey`; the image is at GET /api/images/{imageKey}.",
   })
@@ -503,7 +512,10 @@ export class EventsController {
       'NOT_ORGANIZER, EMAIL_NOT_VERIFIED, USER_BLOCKED, or MEMBERS_ONLY',
   })
   @ApiResponse({ status: 404, description: 'No such event for this user' })
-  @ApiResponse({ status: 409, description: 'EVENT_CANCELLED' })
+  @ApiResponse({
+    status: 409,
+    description: 'EVENT_CANCELLED, or EVENT_HIDDEN (deactivated, #308)',
+  })
   async setImage(
     @Param('id') id: string,
     @UploadedFile() file: UploadedImageFile | undefined,
@@ -515,7 +527,7 @@ export class EventsController {
   }
 
   @Delete(':id/image')
-  @UseGuards(VerifiedUserGuard)
+  @UseGuards(VerifiedUserGuard, WriteThrottlerGuard)
   @ApiCookieAuth()
   @ApiOperation({
     summary:

@@ -3,6 +3,7 @@ import { User } from '@/shared/auth/decorators/user.decorator';
 import { Identity } from '@/shared/auth/domain/identity';
 import { AuthenticatedUserGuard } from '@/shared/auth/guards/authenticated-user.guard';
 import { VerifiedUserGuard } from '@/shared/auth/guards/verified-user.guard';
+import { WriteThrottlerGuard } from '@/shared/rate-limit/rate-limit.guards';
 import {
   Body,
   Controller,
@@ -59,7 +60,7 @@ export class FriendsController {
 
   @Post(':userId')
   @HttpCode(200)
-  @UseGuards(VerifiedUserGuard)
+  @UseGuards(VerifiedUserGuard, WriteThrottlerGuard)
   @ApiOperation({
     summary:
       'Přidat do přátel: send a request, or accept theirs when they already ask me (#307)',
@@ -92,7 +93,7 @@ export class FriendsController {
   }
 
   @Patch(':userId')
-  @UseGuards(VerifiedUserGuard)
+  @UseGuards(VerifiedUserGuard, WriteThrottlerGuard)
   @ApiOperation({
     summary: 'Odmítnout: quietly reject the request waiting for me (#307)',
   })
@@ -113,7 +114,7 @@ export class FriendsController {
   }
 
   @Delete(':userId')
-  @UseGuards(VerifiedUserGuard)
+  @UseGuards(VerifiedUserGuard, WriteThrottlerGuard)
   @ApiOperation({
     summary:
       'Zrušit žádost or Odebrat z přátel; a request may then be sent again (#307)',

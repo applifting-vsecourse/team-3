@@ -20,8 +20,8 @@ HobbyHub helps people find others for their hobbies: organizers post an event (a
 ## How we work
 
 - **Every change goes through a branch and a pull request** — nobody pushes to `main`. Branch from `main` and name the branch `<type>/<issue>-<slug>`, where the type is `feat`, `fix`, `polish` or `docs` and the issue number is there when the change has an issue (`feat/39-detail-akce`, `fix/address-czech-only`). `main` is protected by a ruleset: no direct pushes or force pushes.
-- **Every PR needs an approval from a teammate** before it is merged, and CI (`pnpm check-all`) has to pass. The author doesn't approve their own PR.
-- Before merging, run the agent review in Claude Code: `/review-branch` (or `/review-branch <PR number>`). It checks the branch against `main`, [CLAUDE.md](CLAUDE.md) and the story, and doesn't change code. The prompt is in [.claude/commands/review-branch.md](.claude/commands/review-branch.md).
+- **Every PR needs an approval from a teammate** before it is merged, and CI (`pnpm check-all` and the main-flow test, #467) has to pass. The author doesn't approve their own PR.
+- Before merging, run the agent review in Claude Code: `/review-branch` (or `/review-branch <PR number>`). It checks the branch against `main`, [AGENTS.md](AGENTS.md) and the story, and doesn't change code. The prompt is in [.claude/commands/review-branch.md](.claude/commands/review-branch.md).
 - The PR description follows the [template](.github/pull_request_template.md) and links the story or issue with `Refs #<number>`, not `Closes` — the PO closes the issue after accepting it on staging. A PR without an issue says in one sentence why it is needed. (Applies to every PR after #171.)
 - Merged to `main` = deployed to staging.
 - What "ready" and "done" mean: [Definition of Ready & Done](docs/definition-of-ready-a-done.md).
@@ -67,15 +67,15 @@ What a new version replaces: only the events and groups the previous seed insert
 
 Demo accounts for walking through the app (all demo accounts share one password). Locally the password is `hobbyhub-demo-2026` (`DEMO_PASSWORD` in `demo-data.ts`). On staging it is different: it comes from the GitHub secret `SEED_DEMO_PASSWORD` and the team shares it privately, never in the repo, an issue or a PR (N-3 in the security audit, #172). Staging accounts still on the repo password get the new one on the next start, and their sessions end.
 
-| Role                        | Name           | Email                        | Password                       |
-| --------------------------- | -------------- | ---------------------------- | ------------------------------ |
-| Seeker (looking for events) | Jakub Král     | `jakub.kral@example.com`     | demo password                  |
-| Organizer                   | Petra Nováková | `petra.novakova@example.com` | demo password                  |
-| Group admin                 | Tomáš Dvořák   | `tomas.dvorak@example.com`   | demo password                  |
-| Unverified email            | Eva Malá       | `eva.mala@example.com`       | demo password                  |
-| Superadmin (`role = admin`) | –              | `SUPERADMIN_EMAIL` from env  | `SUPERADMIN_PASSWORD` from env |
+| Role                        | Name           | Email                        | Password                                                                       |
+| --------------------------- | -------------- | ---------------------------- | ------------------------------------------------------------------------------ |
+| Seeker (looking for events) | Jakub Král     | `jakub.kral@example.com`     | demo password                                                                  |
+| Organizer                   | Petra Nováková | `petra.novakova@example.com` | demo password                                                                  |
+| Group admin                 | Tomáš Dvořák   | `tomas.dvorak@example.com`   | demo password                                                                  |
+| Unverified email            | Eva Malá       | `eva.mala@example.com`       | demo password                                                                  |
+| Superadmin (`role = admin`) | –              | `SUPERADMIN_EMAIL` from env  | locally `SUPERADMIN_PASSWORD` from env; on staging set with „Zapomenuté heslo“ |
 
-Locally the superadmin is `admin@example.com` / `adminpassword26` (from `apps/backend/.env.example`; passwords need 10 characters with a letter and a digit, B-010). A database seeded before that keeps `adminpassword`. On staging it uses the values set in the deployment environment. The prepared demo cases (an approval event with one free spot, events missing one person, pending group requests) are described in the header of `demo-data.ts`.
+Locally the superadmin is `admin@example.com` / `adminpassword26` (from `apps/backend/.env.example`; passwords need 10 characters with a letter and a digit, B-010). A database seeded before that keeps `adminpassword`. On staging (`NODE_ENV=production`) only the GitHub variable `SUPERADMIN_EMAIL` goes into the image (`deploy.yml`, #308); no password nor its hash (review #380). The seed creates the account with a verified e-mail and a random password that it keeps nowhere and never logs; the superadmin then sets a password with „Zapomenuté heslo“ on `/login`. That needs real e-mail (SMTP or Resend): with the simulated inbox the seed doesn't create the superadmin and logs why. An existing account with that e-mail, a regular one too, is never promoted and keeps its password, and an existing superadmin keeps its password on every later start. The prepared demo cases (an approval event with one free spot, events missing one person, pending group requests) are described in the header of `demo-data.ts`.
 
 Only a verified e-mail signs in (#236). Eva therefore can't sign in: e-mail and password show „Ověř si e-mail“ with „Poslat odkaz znovu“ instead, the screen a new user sees after signing up (sign-up doesn't sign in). Once she opens the link she is verified and can sign in; a new version of the test data sets her back to unverified and ends her sessions. Google sign-in isn't affected: Google has verified the address.
 
@@ -84,7 +84,8 @@ Verification/reset emails are printed to the backend terminal (console mailer) u
 ## Everyday commands
 
 ```shell
-pnpm check-all                     # lint + type-check + tests + builds (what CI runs)
+pnpm check-all                     # lint + type-check + tests + builds (CI runs this and check:main-flow)
+pnpm backend check:main-flow       # main flow through the API on a real database (#467); only with DATABASE_URL of a throwaway DB, after pnpm backend migrate
 pnpm backend test                  # backend unit tests (jest)
 pnpm frontend test:ci              # frontend component tests (vitest)
 pnpm backend prisma:migrations:run # create + apply a migration after schema changes
@@ -108,7 +109,7 @@ Worth knowing:
 
 - **You set exactly two URLs**, `BACKEND_URL` and `FRONTEND_URL`. The backend uses them for CORS, BetterAuth trusted origins and password-reset links; the frontend's API URL is derived from `BACKEND_URL`. Point them at the real domains or the backend rejects the browser.
 - **The frontend bakes its API URL in at build time** (`VITE_*` are build args, not runtime env), so changing `BACKEND_URL` needs a rebuild, not just a restart.
-- **The container migrates and seeds on every start** — it runs `prisma migrate deploy`, then the seed, then the app. The seed is repeatable: it syncs the activity/locality catalog, creates the superadmin and demo accounts only if they are missing (and finishes one an earlier seed left half-created, recognised by having no username and the seed's password), and replaces the test data only when their version changes (see [Test data versions](#test-data-versions-181)), so a redeploy never duplicates or moves them. With `NODE_ENV=production` the demo data needs `SEED_DEMO_DATA=true`, which `apps/backend/Dockerfile.deploy` sets for staging, and a `SEED_DEMO_PASSWORD` other than the one in the repo (the GitHub secret, passed in by `deploy.yml`); without it the seed logs why and skips the demo data. `SEED_DEMO_DATA=false` skips the demo data anywhere (the catalog is always seeded). **Before real production, delete `SEED_DEMO_DATA=true`, `SIMULATED_INBOX=true` and `API_DOCS=true` from that file:** the simulated inbox lets anyone verify any address, and the API docs describe every endpoint and its parameters to anyone who opens them. If the superadmin can't be created (check `SUPERADMIN_EMAIL` and a `SUPERADMIN_PASSWORD` of at least 10 characters with a letter and a digit), the seed logs why and carries on with the demo data. Any other failed seed is logged and the app starts anyway.
+- **The container migrates and seeds on every start** — it runs `prisma migrate deploy`, then the seed, then the app. The seed is repeatable: it syncs the activity/locality catalog, creates the superadmin and demo accounts only if they are missing (and finishes one an earlier seed left half-created, recognised by having no username and the seed's password), and replaces the test data only when their version changes (see [Test data versions](#test-data-versions-181)), so a redeploy never duplicates or moves them. With `NODE_ENV=production` the demo data needs `SEED_DEMO_DATA=true`, which `apps/backend/Dockerfile.deploy` sets for staging, and a `SEED_DEMO_PASSWORD` other than the one in the repo (the GitHub secret, passed in by `deploy.yml`); without it the seed logs why and skips the demo data. `SEED_DEMO_DATA=false` skips the demo data anywhere (the catalog is always seeded). **Before real production, delete `SEED_DEMO_DATA=true`, `SIMULATED_INBOX=true` and `API_DOCS=true` from that file:** the simulated inbox lets anyone verify any address, and the API docs describe every endpoint and its parameters to anyone who opens them. If the superadmin can't be created (locally check `SUPERADMIN_EMAIL` and a `SUPERADMIN_PASSWORD` of at least 10 characters with a letter and a digit; on staging `SUPERADMIN_EMAIL` and real e-mail), the seed logs why and carries on with the demo data. Any other failed seed is logged and the app starts anyway.
 - **API docs are off in production unless switched on.** With `NODE_ENV=production`, Swagger (`/api/docs`) and BetterAuth's reference page (`/api/auth/reference`) return 404 unless `API_DOCS=true`. The team decided to keep them on for staging (#229), so `apps/backend/Dockerfile.deploy` sets it. Real production should not: the docs map every endpoint and its parameters for anyone probing the API, and BetterAuth's reference page loads an unpinned script from a CDN (N-9).
 - **Without an e-mail service, production logs only the recipient and subject.** `ConsoleMailerAdapter` writes whole e-mails, links included, to the log in development only; with `NODE_ENV=production` the verification and password-reset links stay out of the log (#229). On staging the verification link is in the simulated inbox (on „Ověř si e-mail“ after sign-up or a refused sign-in); a password-reset link is nowhere, so test password reset locally, and get a demo account's password back as described in [Test data versions](#test-data-versions-181).
 
@@ -132,4 +133,4 @@ apps/backend/   NestJS — src/modules (features), src/core, src/shared; prisma/
 apps/frontend/  React — src/routes (pages), src/features (feature folders), src/components (UI kit)
 ```
 
-Working conventions for AI-assisted development: [`CLAUDE.md`](CLAUDE.md). UI rules every screen must follow: [`DESIGN.md`](DESIGN.md).
+Working conventions for AI-assisted development: [`AGENTS.md`](AGENTS.md) (Claude Code reads it through `CLAUDE.md`). UI rules every screen must follow: [`DESIGN.md`](DESIGN.md).

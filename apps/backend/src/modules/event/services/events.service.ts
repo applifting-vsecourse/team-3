@@ -65,6 +65,7 @@ const REFUSAL_MESSAGES: Record<ParticipationRefusal, string> = {
   ALREADY_JOINED: 'Na akci už máš místo nebo žádost.',
   EVENT_STARTED: 'Akce už začala.',
   EVENT_CANCELLED: 'Akce je zrušená.',
+  EVENT_UNAVAILABLE: 'Akce není dostupná.',
   // rejected or removed; neutral, as the organizer may be a woman
   PARTICIPATION_REFUSED: 'Na akci se už přihlásit nemůžeš.',
   NOT_JOINED: 'Na akci nemáš místo ani žádost.',
@@ -96,6 +97,11 @@ const updateRefused = (refusal: UpdateRefusal): HttpException => {
       return new ConflictException({
         code: refusal.code,
         message: 'Zrušenou akci nejde upravit.',
+      });
+    case 'EVENT_HIDDEN':
+      return new ConflictException({
+        code: refusal.code,
+        message: 'Deaktivovanou akci nejde upravit. Nejdřív ji obnov.',
       });
     case 'EVENT_STARTED':
       // B-028: changing a started event is a 400
@@ -300,16 +306,32 @@ export class EventsService {
    * gets `participants: null` and sees the occupancy. `canManage` tells the
    * organizer and the group's admins apart (B-055). `viewerId` is always
    * the session's user, never something from the request.
+   *
+   * The superadmin (#308) sees every event, a deactivated (`hidden`) one and
+   * a members-only one too, with `canModerate`, and may edit it (`canEdit`)
+   * as its organizer would; everyone else, the organizer included, gets 404
+   * for a deactivated event.
    */
   async getEventDetail(
     id: string,
     viewerId: string | null,
     now: Date = new Date(),
   ): Promise<EventDetailView> {
-    const { event, viewer } = await this.findVisibleEvent(id, viewerId, now);
-    const participants = canSeeParticipants(viewer)
-      ? await this.eventRepository.findApprovedParticipants(event.id)
-      : null;
+    const { event, viewer, isAdmin } = await this.findVisibleEvent(
+      id,
+      viewerId,
+      now,
+      { asModerator: true },
+    );
+    const [participants, hiddenReason] = await Promise.all([
+      canSeeParticipants(viewer)
+        ? this.eventRepository.findApprovedParticipants(event.id)
+        : null,
+      // only the superadmin gets a deactivated event, and why (review #380)
+      isAdmin && event.status === 'hidden'
+        ? this.eventRepository.findHideReason(event.id)
+        : null,
+    ]);
     // someone who withdrew is simply not in
     const mine = viewer?.participation ?? null;
     const myParticipation = mine === 'withdrawn' ? null : mine;
@@ -320,6 +342,9 @@ export class EventsService {
       myParticipation,
       viewerSignedIn: viewer !== null,
       canManage: canManageEvent(viewer),
+      canEdit: canManageEvent(viewer) || isAdmin,
+      canModerate: isAdmin,
+      hiddenReason,
     };
   }
 
@@ -467,7 +492,8 @@ export class EventsService {
     now: Date = new Date(),
   ): Promise<EventDetailView> {
     const event = await this.getEventDetail(id, userId, now); // 404 or MEMBERS_ONLY first
-    this.assertCanManage(event, 'Upravit akci může jen její organizátor.');
+    // the organizer, a group's admins and the superadmin (#308), by the same rules
+    this.assertCanEdit(event, 'Upravit akci může jen její organizátor.');
     // fail fast, before the field checks; checked again under the lock
     const refusal = lifecycleRefusal(event, now);
     if (refusal) throw updateRefused(refusal);
@@ -519,10 +545,8 @@ export class EventsService {
     now: Date = new Date(),
   ): Promise<EventDetailView> {
     const event = await this.getEventDetail(id, userId, now); // 404 or MEMBERS_ONLY first
-    this.assertCanManage(
-      event,
-      'Obrázek akce může změnit jen její organizátor.',
-    );
+    // part of editing the event: the superadmin too (#308)
+    this.assertCanEdit(event, 'Obrázek akce může změnit jen její organizátor.');
     const refusal = lifecycleRefusal(event, now);
     if (refusal) throw updateRefused(refusal);
     let image: NewImage | null = null;
@@ -605,6 +629,12 @@ export class EventsService {
     }
   }
 
+  private assertCanEdit(event: EventDetailView, message: string): void {
+    if (!event.canEdit) {
+      throw new ForbiddenException({ code: 'NOT_ORGANIZER', message });
+    }
+  }
+
   private async assertCanCreateFor(
     event: NewEvent,
     userId: string,
@@ -665,8 +695,9 @@ export class EventsService {
     message: string | null = null,
     now: Date = new Date(),
   ): Promise<EventDetailView> {
-    // 404, or 403 MEMBERS_ONLY for a members-only event outside the group
-    await this.getEventDetail(eventId, userId, now);
+    // 404, or 403 MEMBERS_ONLY for a members-only event outside the group;
+    // not as the superadmin's detail (#308): seeing an event lets nobody in
+    await this.findVisibleEvent(eventId, userId, now);
     const decision = await this.eventRepository.join(
       eventId,
       userId,
@@ -733,22 +764,37 @@ export class EventsService {
    * the group 401/403 (see `getEventDetail`). Who the viewer is comes first,
    * before the 404 decision: one membership lookup serves both canView and
    * what the viewer may see. Keep the two together.
+   *
+   * `asModerator` is the detail page's read (#308): the superadmin then sees
+   * a hidden and a members-only event too. Actions that let someone in
+   * (joining) never pass it, so seeing an event grants nothing.
    */
   private async findVisibleEvent(
     id: string,
     viewerId: string | null,
     now: Date,
-  ): Promise<{ event: EventDetail; viewer: EventViewer }> {
+    { asModerator = false }: { asModerator?: boolean } = {},
+  ): Promise<{ event: EventDetail; viewer: EventViewer; isAdmin: boolean }> {
     const event = await this.eventRepository.findEventDetail(id, now);
     // a cancelled event stays reachable, with its reason (#52)
-    if (!event || event.status === 'hidden' || event.status === 'deleted') {
+    if (!event || event.status === 'deleted') {
       throw new NotFoundException('Akce neexistuje.');
     }
-    const viewer = viewerId ? await this.viewerOf(event, viewerId) : null;
-    if (!this.canView(event, viewer)) {
+    const [viewer, isAdmin] = viewerId
+      ? await Promise.all([
+          this.viewerOf(event, viewerId),
+          this.eventRepository.isAdmin(viewerId),
+        ])
+      : [null, false];
+    const moderating = asModerator && isAdmin;
+    // the same 404 as an unknown event: nobody learns a hidden one exists
+    if (event.status === 'hidden' && !moderating) {
+      throw new NotFoundException('Akce neexistuje.');
+    }
+    if (!moderating && !this.canView(event, viewer)) {
       throw this.membersOnly(event, viewer);
     }
-    return { event, viewer };
+    return { event, viewer, isAdmin };
   }
 
   /**

@@ -38,8 +38,12 @@ export class EventDetailResponseDto extends PublicEventResponseDto {
   })
   visibility!: 'public' | 'private' | 'members';
 
-  @ApiProperty({ enum: ['published', 'cancelled'] })
-  status!: 'published' | 'cancelled';
+  @ApiProperty({
+    enum: ['published', 'cancelled', 'hidden'],
+    description:
+      'hidden: deactivated by the superadmin (#308); only the superadmin gets it, everyone else 404',
+  })
+  status!: 'published' | 'cancelled' | 'hidden';
 
   @ApiProperty({
     type: String,
@@ -76,9 +80,29 @@ export class EventDetailResponseDto extends PublicEventResponseDto {
   })
   canManage!: boolean;
 
+  @ApiProperty({
+    description:
+      'Whether the signed-in user may edit the event: whoever manages it, and the superadmin (#308). The same rules apply: not cancelled, not started.',
+  })
+  canEdit!: boolean;
+
+  @ApiProperty({
+    description:
+      'Whether the signed-in user is the superadmin, who may deactivate and restore the event (#308)',
+  })
+  canModerate!: boolean;
+
+  @ApiProperty({
+    type: String,
+    nullable: true,
+    description:
+      'Why the superadmin deactivated the event (#308); only for the superadmin on a hidden event, null for anyone else',
+  })
+  hiddenReason!: string | null;
+
   static fromDomain(event: EventDetailView): EventDetailResponseDto {
-    if (event.status === 'hidden' || event.status === 'deleted') {
-      // the service answers 404 for these; this guards the response shape
+    if (event.status === 'deleted') {
+      // the service answers 404 for it; this guards the response shape
       throw new Error(`Event ${event.id} is ${event.status}`);
     }
     return {
@@ -94,6 +118,9 @@ export class EventDetailResponseDto extends PublicEventResponseDto {
       myParticipation: event.myParticipation,
       viewerSignedIn: event.viewerSignedIn,
       canManage: event.canManage,
+      canEdit: event.canEdit,
+      canModerate: event.canModerate,
+      hiddenReason: event.hiddenReason,
     };
   }
 }
