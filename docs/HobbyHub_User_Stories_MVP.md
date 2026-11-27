@@ -1,16 +1,16 @@
 # HobbyHub – User stories MVP
 
-Zdroj: Feature breakdown v3.4 po FB1 (9. 10. 2026) zkonzultovaný s PO, Lean Canvas v2 (12. 10. 2026) a upřesnění týmem 9. 10. Features s prioritou **MVP** a skupiny. Příbuzné features jsou sloučené do jedné story. US-20 až US-22 přidal planning sprintu 4 (PO 10. 11. 2026, `docs/zapis-planning-sprint4.md`).
+Zdroj: Feature breakdown v3.4 po FB1 (9. 10. 2026) zkonzultovaný s PO, Lean Canvas v2 (12. 10. 2026) a upřesnění týmem 9. 10. Features s prioritou **MVP** a skupiny. Příbuzné features jsou sloučené do jedné story. US-20 až US-22 přidal planning sprintu 4 (PO 10. 11. 2026, `docs/zapis-planning-sprint4.md`), US-23 až US-28 planning sprintu 5 (25. 11. 2026, `docs/zapis-planning-sprint5.md`), který změnil i US-14 a US-15.
 
 ## Role
 
-| Role                | Kdo to je                                                                                                                             | Label                   |
-| ------------------- | ------------------------------------------------------------------------------------------------------------------------------------- | ----------------------- |
-| Návštěvník          | Kdokoli nepřihlášený. Akce jen prohlíží.                                                                                              | `role: návštěvník`      |
-| Přihlášený uživatel | Hlásí se na akce, přidává se do skupin, hodnotí akce i organizátory, nahlašuje lidi a akce                                            | `role: uživatel`        |
-| Organizátor akce    | Přihlášený uživatel, který založí akci sám za sebe. Není to zvláštní typ účtu. Předplatným organizátora si odemkne evidenci docházky. | `role: organizátor`     |
-| Správce skupiny     | Kdo skupinu založil, nebo koho správce jmenoval. Všichni správci mají stejná práva (správce = admin skupiny).                         | `role: správce skupiny` |
-| Superadmin          | Provozovatel / technická podpora: schvaluje nahlášení, blokuje, maže akce, potvrzuje platby                                           | `role: superadmin`      |
+| Role                | Kdo to je                                                                                                                 | Label                   |
+| ------------------- | ------------------------------------------------------------------------------------------------------------------------- | ----------------------- |
+| Návštěvník          | Kdokoli nepřihlášený. Akce jen prohlíží.                                                                                  | `role: návštěvník`      |
+| Přihlášený uživatel | Hlásí se na akce, přidává se do skupin, hodnotí akce i organizátory, nahlašuje lidi a akce                                | `role: uživatel`        |
+| Organizátor akce    | Přihlášený uživatel, který založí akci sám za sebe. Není to zvláštní typ účtu. Tarifem si odemkne placené funkce (US-14). | `role: organizátor`     |
+| Správce skupiny     | Kdo skupinu založil, nebo koho správce jmenoval. Všichni správci mají stejná práva (správce = admin skupiny).             | `role: správce skupiny` |
+| Superadmin          | Provozovatel / technická podpora: schvaluje nahlášení, blokuje, skrývá akce                                               | `role: superadmin`      |
 
 Každá role umí i všechno, co přihlášený uživatel. Správce skupiny řídí akce skupiny stejně jako organizátor svou akci (US-11 až US-14).
 
@@ -18,30 +18,36 @@ Každá role umí i všechno, co přihlášený uživatel. Správce skupiny ří
 
 ## Přehled
 
-| ID    | Role                       | Story                                       | Feature                |
-| ----- | -------------------------- | ------------------------------------------- | ---------------------- |
-| US-01 | Návštěvník                 | Úvodní stránka s náhledem akcí              | F-68                   |
-| US-02 | Návštěvník                 | Procházení a hledání akcí                   | F-01, F-02, F-03, F-04 |
-| US-03 | Návštěvník                 | Detail akce a sdílený odkaz                 | F-05, F-06             |
-| US-04 | Návštěvník                 | Registrace a přihlášení                     | F-10, F-12             |
-| US-05 | Uživatel                   | Profil a správa účtu                        | F-11, F-14             |
-| US-06 | Uživatel                   | Přihlášení na akci a odhlášení              | F-22, F-19, F-24       |
-| US-07 | Uživatel                   | Moje: akce i skupiny                        | F-25                   |
-| US-08 | Uživatel                   | E-mailová upozornění                        | F-36, F-37             |
-| US-09 | Uživatel                   | Hodnocení akce a organizátora               | F-42, F-41             |
-| US-10 | Uživatel                   | Nahlášení uživatele nebo akce               | F-43                   |
-| US-11 | Organizátor                | Založení akce s kapacitou                   | F-15, F-16, F-19, F-06 |
-| US-12 | Organizátor                | Schvalování a správa účastníků              | F-22, F-23, F-38       |
-| US-13 | Organizátor                | Úprava a zrušení akce                       | F-17                   |
-| US-14 | Organizátor                | Předplatné organizátora a evidence docházky | F-69, F-56, F-55       |
-| US-15 | Organizátor                | Topování akce se simulovanou platbou        | F-54, F-55             |
-| US-16 | Správce skupiny            | Založení skupiny a jmenování správců        | F-28                   |
-| US-17 | Uživatel / Správce skupiny | Členství ve veřejné a neveřejné skupině     | F-30, F-31             |
-| US-18 | Správce skupiny            | Akce skupiny                                | F-28, F-15             |
-| US-19 | Superadmin                 | Vyřízení nahlášení a zásah                  | F-43, F-44             |
-| US-20 | Uživatel                   | Onboarding po registraci                    | PO 10. 11.             |
-| US-21 | Uživatel                   | Centrum upozornění v aplikaci               | PO 10. 11.             |
-| US-22 | Uživatel                   | Přátelé                                     | PO 10. 11.             |
+| ID    | Role                       | Story                                   | Feature                |
+| ----- | -------------------------- | --------------------------------------- | ---------------------- |
+| US-01 | Návštěvník                 | Úvodní stránka s náhledem akcí          | F-68                   |
+| US-02 | Návštěvník                 | Procházení a hledání akcí               | F-01, F-02, F-03, F-04 |
+| US-03 | Návštěvník                 | Detail akce a sdílený odkaz             | F-05, F-06             |
+| US-04 | Návštěvník                 | Registrace a přihlášení                 | F-10, F-12             |
+| US-05 | Uživatel                   | Profil a správa účtu                    | F-11, F-14             |
+| US-06 | Uživatel                   | Přihlášení na akci a odhlášení          | F-22, F-19, F-24       |
+| US-07 | Uživatel                   | Moje: akce i skupiny                    | F-25                   |
+| US-08 | Uživatel                   | E-mailová upozornění                    | F-36, F-37             |
+| US-09 | Uživatel                   | Hodnocení akce a organizátora           | F-42, F-41             |
+| US-10 | Uživatel                   | Nahlášení uživatele nebo akce           | F-43                   |
+| US-11 | Organizátor                | Založení akce s kapacitou               | F-15, F-16, F-19, F-06 |
+| US-12 | Organizátor                | Schvalování a správa účastníků          | F-22, F-23, F-38       |
+| US-13 | Organizátor                | Úprava a zrušení akce                   | F-17                   |
+| US-14 | Uživatel / Organizátor     | Tarify a placené funkce                 | F-55, #354             |
+| US-15 | Organizátor                | Topování a propagace akce               | F-54, F-78             |
+| US-16 | Správce skupiny            | Založení skupiny a jmenování správců    | F-28                   |
+| US-17 | Uživatel / Správce skupiny | Členství ve veřejné a neveřejné skupině | F-30, F-31             |
+| US-18 | Správce skupiny            | Akce skupiny                            | F-28, F-15             |
+| US-19 | Superadmin                 | Vyřízení nahlášení a zásah              | F-43, F-44             |
+| US-20 | Uživatel                   | Onboarding po registraci                | PO 10. 11.             |
+| US-21 | Uživatel                   | Centrum upozornění v aplikaci           | PO 10. 11.             |
+| US-22 | Uživatel                   | Přátelé                                 | PO 10. 11.             |
+| US-23 | Uživatel                   | Oblíbené akce                           | F-27, #80              |
+| US-24 | Uživatel                   | Podobné akce                            | #351                   |
+| US-25 | Uživatel                   | Najdi parťáka                           | F-35, #84              |
+| US-26 | Uživatel                   | Přezdívka a celé jméno                  | #346                   |
+| US-27 | Uživatel                   | Pozvánka do aplikace od kamaráda        | #406                   |
+| US-28 | Správce skupiny            | Pozvánka do skupiny odkazem             | #352                   |
 
 ---
 
@@ -229,32 +235,32 @@ Každá role umí i všechno, co přihlášený uživatel. Správce skupiny ří
 
 ---
 
-### US-14 Předplatné organizátora a evidence docházky
+### US-14 Tarify a placené funkce
 
-`epic: monetizace` `epic: účast` `priorita: MVP` `role: organizátor` `role: správce skupiny` `role: superadmin` · F-69, F-56, F-55
+`epic: monetizace` `priorita: MVP` `role: uživatel` `role: organizátor` `role: správce skupiny` · F-55, #354
 
-**Jako** organizátor **chci** si zaplatit předplatné a po akci označit, kdo skutečně přišel, **abych** věděl, s kým příště počítat.
+**Jako** uživatel **chci** vidět, co mi placený tarif odemkne, a zkusit si ho „zaplatit“, **abych** věděl, za co platím.
 
-- [ ] Stránka předplatného organizátora ukazuje výhody (evidence docházky) a cenu 149 Kč měsíčně.
-- [ ] Platba je simulovaná, bez platební brány: obrazovka platby → potvrzení → superadmin platbu v administraci potvrdí, v DB se nastaví „zaplaceno“ s platností a docházka se odemkne.
-- [ ] Bez předplatného vidím u akce „Evidence docházky“ zamčenou s odkazem na předplatné.
-- [ ] S předplatným od začátku akce do 7 dnů po ní odškrtávám v seznamu schválených „Přišel“ (ručně, na mobilu i tabletu; QR až po MVP).
-- [ ] U žadatele na mé další akce vidím, kolikrát na mé akce přišel.
-- [ ] Předplatné správce platí i pro akce jeho skupiny.
-- [ ] Po vypršení předplatného se docházka zamkne; už zaznamenaná data zůstanou.
+- [ ] Stránka tarifů ukazuje, co který tarif odemyká a za kolik.
+- [ ] Zamčená funkce ukáže, který tarif ji odemkne, s odkazem na tarify. Za paywallem: akce jen pro členy ve skupinách, Najdi parťáka, propagace a topování akce.
+- [ ] Platba je simulovaná, bez platební brány: formulář na číslo karty, platnost a CVC (nic se neukládá) a animace, že platba proběhla; pak se funkce odemkne.
+- [ ] Do kdy tarif platí, vidím v Můj profil.
+- [ ] Paywall platí jen pro nově založené: akce jen pro členy, které skupiny založily dřív, zůstanou.
+
+Evidence docházky (původně součást předplatného organizátora) je odložená.
 
 ---
 
-### US-15 Topování akce se simulovanou platbou
+### US-15 Topování a propagace akce
 
-`epic: monetizace` `priorita: MVP` `role: organizátor` `role: superadmin` · F-54, F-55
+`epic: monetizace` `priorita: MVP` `role: organizátor` · F-54, F-78, #69, #104
 
-**Jako** organizátor akce, které chybí lidé, **chci** akci topovat, **aby** ji vidělo víc lidí.
+**Jako** organizátor akce, které chybí lidé, **chci** akci topovat nebo propagovat, **aby** ji vidělo víc lidí.
 
-- [ ] Ve správě akce je „Topovat akci“ za 50 Kč jednorázově; topování platí do konání akce.
-- [ ] Platba je simulovaná, bez platební brány: obrazovka platby → potvrzení → superadmin platbu v administraci potvrdí a v DB se nastaví „zaplaceno“.
-- [ ] Topovaná akce je nahoře v seznamu a v doporučených a odlišená na mapě, se štítkem, který nepůsobí jako reklama.
+- [ ] Ve správě akce je „Topovat akci“, odemyká ho tarif (US-14); topování platí do konání akce.
+- [ ] Topovaná akce je nahoře v seznamu a v sekcích úvodní stránky, odlišená na mapě, vždy se štítkem „Topováno“, který nepůsobí jako reklama.
 - [ ] Topování skončí začátkem nebo zrušením akce.
+- [ ] Propagovanou akci uvidí uživatelé se zájmem o její aktivitu v okolí; je označená stejně.
 
 ---
 
@@ -341,7 +347,7 @@ Každá role umí i všechno, co přihlášený uživatel. Správce skupiny ří
 
 - [ ] Zvonek s počtem nepřečtených a centrum upozornění.
 - [ ] Upozornění je krátká zpráva („Na tvou akci se přihlásil…“) s proklikem na detail.
-- [ ] Které události upozornění vyvolají a jak zní, schválí refinement 16. 11.; ke stejným událostem chodí e-mail (US-08).
+- [ ] Které události upozornění vyvolají a jak zní, rozhodl tým (`docs/navrh-upozorneni.md`); ke stejným událostem chodí e-mail (US-08).
 
 ---
 
@@ -354,3 +360,65 @@ Každá role umí i všechno, co přihlášený uživatel. Správce skupiny ří
 - [ ] Veřejný profil vidí kdokoli, přátelé vidí víc (osobní profil).
 - [ ] Na veřejném profilu „Přidat do přátel“; žádost přijde jako upozornění (US-21) a jde přijmout nebo odmítnout.
 - [ ] Sekce „Lidé, které znám“; u přítele vidím akce, na které jde.
+
+---
+
+### US-23 Oblíbené akce
+
+`epic: účast` `priorita: MVP` `role: uživatel` · F-27, #80, B-090
+
+**Jako** hledající **chci** si akci uložit do oblíbených, i když na ni zatím nejdu, **abych** ji později snadno našel.
+
+- [ ] Na kartě a detailu akce jde akci přidat do oblíbených a odebrat (jen přihlášený).
+- [ ] Oblíbené akce najdu v Moje (proběhlé a zrušené jsou odlišené).
+
+---
+
+### US-24 Podobné akce
+
+`epic: objevování` `priorita: MVP` `role: návštěvník` `role: uživatel` · #351, B-091
+
+**Jako** hledající **chci** u detailu akce vidět podobné akce, **abych** našel alternativu, když mi tahle nevyhovuje.
+
+- [ ] Detail akce má sekci „Podobné akce“ se stejnou aktivitou nebo kategorií, seřazenou podle vzdálenosti.
+
+---
+
+### US-25 Najdi parťáka
+
+`epic: hledání lidí` `priorita: MVP` `role: uživatel` · F-35, #84, #347, B-092
+
+**Jako** uživatel **chci** procházet lidi v okolí s podobnými zájmy, **abych** našel parťáka na koníček.
+
+- [ ] Procházím lidi swipem ve stylu Tinderu; nabídka bere v úvahu zájmy, vzdálenost a společně navštívené akce.
+- [ ] Funkce je za paywallem (US-14).
+
+---
+
+### US-26 Přezdívka a celé jméno
+
+`epic: účet` `epic: důvěra` `priorita: MVP` `role: uživatel` · #346, B-093
+
+**Jako** uživatel **chci**, aby mé celé jméno viděli jen lidé, se kterými mám co dělat, **abych** nebyl veřejně dohledatelný.
+
+- [ ] Přezdívku vidí všichni; celé jméno jen organizátor akce, na kterou jdu, správce mé skupiny a přátelé.
+
+---
+
+### US-27 Pozvánka do aplikace od kamaráda
+
+`epic: účet` `priorita: MVP` `role: uživatel` · #406, B-094
+
+**Jako** uživatel **chci** pozvat kamaráda vlastním odkazem, **abychom** spolu mohli chodit na akce.
+
+- [ ] Kamarád po registraci přes můj odkaz vidí „{jméno} tě zve“ a jsme hned přátelé.
+
+---
+
+### US-28 Pozvánka do skupiny odkazem
+
+`epic: skupiny` `priorita: MVP` `role: správce skupiny` · #352, B-095
+
+**Jako** správce skupiny **chci** poslat pozvánku odkazem, **aby** pozvaný nemusel čekat na schválení.
+
+- [ ] Kdo přijde přes pozvánku od správce, je ve skupině hned.
