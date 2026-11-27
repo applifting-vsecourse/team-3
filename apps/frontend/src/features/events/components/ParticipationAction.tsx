@@ -64,7 +64,7 @@ type ParticipationActionProps = {
 
 /**
  * The one action of the event detail (B-032, Figma A-05 · Stavy): „Přijdu“
- * → „Máš místo“ + „Odhlásit se“, „Plno“ with similar events nearby, the
+ * → „Máš místo“ right after joining, later „Jdu“ (#422), + „Odhlásit se“, „Plno“ with similar events nearby, the
  * sign-in for a visitor, and for the organizer „Spravovat akci“ with „Přijdu“
  * beside it. An event with approval takes a request instead (A-05a, #53),
  * confirmed in a dialog with an optional message for the organizer (#175); a
@@ -272,8 +272,9 @@ function JoinControl({
     shouldFocusNewState.current = false
     newState.current?.focus()
   }, [event.myParticipation])
-  // „Díky tobě se akce koná…“ only when this sign-up reached the minimum (DESIGN.md › Máš
-  // místo); known only here, at the moment of joining — a reload just says „Máš místo“
+  // „Máš místo“ (and „Díky tobě se akce koná…“ when this sign-up reached the minimum,
+  // DESIGN.md › Máš místo) only at the moment of joining, known only here — a reload or a
+  // later visit says „Jdu“ (PO 26. 11., #422)
   const [hasJustJoined, setHasJustJoined] = useState(false)
   const [hasReachedMinimum, setHasReachedMinimum] = useState(false)
   // The page's cache shows the place before `onJoin` resolves (React Query's onSuccess), so
@@ -467,7 +468,7 @@ function FullButton() {
 }
 
 type ConfirmButtonProps = {
-  /** Figma A-05 · Stavy: „Odhlásit se“ ghost under „Máš místo“, „Stáhnout žádost“ outline. */
+  /** Figma A-05 · Stavy: „Odhlásit se“ ghost under „Máš místo“ / „Jdu“, „Stáhnout žádost“ outline. */
   variant?: "ghost" | "outline"
   label: string
   title: string

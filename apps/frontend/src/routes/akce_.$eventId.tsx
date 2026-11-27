@@ -115,6 +115,9 @@ function EventDetailPage() {
             participation={
               event ? (
                 <ParticipationAction
+                  // its „Máš místo“ is this event's moment of joining: another event's detail
+                  // starts fresh, not with the place just taken elsewhere (review #423)
+                  key={event.id}
                   event={event}
                   viewer={session.user ? { id: session.user.id } : null}
                   signInFrom={signInFrom}

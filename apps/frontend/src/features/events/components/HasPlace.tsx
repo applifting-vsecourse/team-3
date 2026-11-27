@@ -8,8 +8,9 @@ type HasPlaceProps = {
 }
 
 /**
- * „Máš místo“ (Figma Máš místo, DESIGN.md › Máš místo): the user's place on an event, in the
- * detail's action instead of a bare „Jdu“. Secondary, edged by its tile-border — no accent bar.
+ * „Máš místo“ (Figma Máš místo, DESIGN.md › Máš místo): the moment of joining, shown once
+ * right after „Přijdu“ — not a lasting state: a later visit shows the plain „Jdu“ (PO 26. 11.,
+ * #422). Secondary, edged by its tile-border — no accent bar.
  */
 export function HasPlace({ line, isFillAnimated = false }: HasPlaceProps) {
   return (
