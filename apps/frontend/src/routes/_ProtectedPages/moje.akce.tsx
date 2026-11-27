@@ -33,8 +33,9 @@ export const Route = createFileRoute("/_ProtectedPages/moje/akce")({
 
 const TABS: readonly MyEventsTabName[] = ["prihlasen", "poradam", "probehle"]
 
-/** The band's line on Proběhlé: what the tab holds and what to do there. */
-const PAST_LINE = `Akce, které už proběhly. Ohodnotit je můžeš do ${RATING_WINDOW_DAYS} dnů od konce.`
+/** The band's line on Proběhlé: what the tab holds and what to do there – for a participant
+ * (the event) and an organizer (the participants, #436) alike. */
+const PAST_LINE = `Akce, které už proběhly. Hodnotit můžeš do ${RATING_WINDOW_DAYS} dnů od konce.`
 
 /**
  * Moje › Akce (Figma C-01, C-02, C-06 and their desktops; B-035, #44, #304, #367): the chips

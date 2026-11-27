@@ -182,7 +182,7 @@ describe("Moje › Akce › Proběhlé: the band's line", () => {
     await renderMy("/moje/akce?tab=probehle", { attending: [], organizing: [] })
 
     expect(
-      await screen.findByText("Akce, které už proběhly. Ohodnotit je můžeš do 14 dnů od konce."),
+      await screen.findByText("Akce, které už proběhly. Hodnotit můžeš do 14 dnů od konce."),
     ).toBeInTheDocument()
   })
 })
