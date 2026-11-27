@@ -6,7 +6,7 @@ import { toast } from "sonner"
 import { z } from "zod"
 
 import { RatingStars } from "@/components/RatingStars/RatingStars"
-import { Alert, AlertTitle } from "@/components/ui/alert"
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 import { Button } from "@/components/ui/button"
 import {
   Form,
@@ -102,10 +102,16 @@ export function RateEventForm({ data, isSaving, onSave }: RateEventFormProps) {
         className="flex flex-col gap-6"
       >
         {rating ? (
-          // #369 (Figma C-03e): it says this changes the rating given before
-          <Alert variant="info">
+          // #369 (Figma C-03e, C-03ed): it says this changes the rating given before, neutral
+          // like the other notes on the page, and that nothing changes until it is saved
+          <Alert variant="neutral">
             <Info />
-            <AlertTitle>Upravuješ své hodnocení z {formatRatingDay(rating.updatedAt)}.</AlertTitle>
+            {/* „6. 11.“ ends with its own dot, the sentence's */}
+            <AlertTitle>Upravuješ své hodnocení z {formatRatingDay(rating.updatedAt)}</AlertTitle>
+            <AlertDescription>
+              Hvězdičky a komentář jsou vyplněné tak, jak jsou uložené. Změny platí až po „Uložit
+              změny“.
+            </AlertDescription>
           </Alert>
         ) : null}
         <div className="grid gap-6 md:grid-cols-2 md:gap-12">
@@ -210,14 +216,14 @@ export function RateEventForm({ data, isSaving, onSave }: RateEventFormProps) {
   )
 }
 
+// „6. 11.“ as in Figma C-03e: rating is open 14 days after the event, so it is this year's
 const ratingDayFormat = new Intl.DateTimeFormat("cs-CZ", {
   timeZone: "Europe/Prague",
   day: "numeric",
   month: "numeric",
-  year: "numeric",
 })
 
-/** „26. 11. 2026“: the day the rating was last given or changed. */
+/** „26. 11.“: the day the rating was last given or changed. */
 const formatRatingDay = (date: Date): string => ratingDayFormat.format(date)
 
 /**
