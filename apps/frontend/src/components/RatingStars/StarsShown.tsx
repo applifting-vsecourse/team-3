@@ -14,7 +14,7 @@ export function StarsShown({ stars, className }: { stars: number; className?: st
     <span
       role="img"
       aria-label={`${stars} z ${STARS.length} hvězd`}
-      className={cn("inline-flex gap-0.5 align-[-2px]", className)}
+      className={cn("inline-flex gap-0.5", className)}
     >
       {STARS.map((star) => (
         <Star
