@@ -263,7 +263,7 @@ export function OrganizingEvents({ viewerId }: { viewerId: string }) {
 }
 
 /**
- * Proběhlé (Figma C-06, #367): the events that are over where I had an approved place, the
+ * Proběhlé (Figma C-06, #367): the events that are over where I had an approved place or that I ran (#436), the
  * latest first — the history that was on the profile until #367 — as the past card (Karta
  * akce/Proběhlá řádek): how many came and „tvoje ★ N“ once I rated it (Dáno); „Ohodnotit“ to the
  * rating page (C-03, #66) while it can be rated by the API's rules and I haven't rated it nor had
