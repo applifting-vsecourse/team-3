@@ -150,11 +150,16 @@ export class UserModerationRepository {
       if (!latest.has(action.targetId)) latest.set(action.targetId, action);
     }
     return {
-      hiddenEvents: events.map((event) => ({
-        ...event,
-        reason: latest.get(event.id)?.reason ?? null,
-        hiddenAt: latest.get(event.id)?.createdAt ?? null,
-      })),
+      // newest deactivation first (README), not the event's last edit (review #441)
+      hiddenEvents: events
+        .map((event) => ({
+          ...event,
+          reason: latest.get(event.id)?.reason ?? null,
+          hiddenAt: latest.get(event.id)?.createdAt ?? null,
+        }))
+        .sort(
+          (a, b) => (b.hiddenAt?.getTime() ?? 0) - (a.hiddenAt?.getTime() ?? 0),
+        ),
       blockedUsers: users.map((user) => ({
         id: user.id,
         name: user.name,

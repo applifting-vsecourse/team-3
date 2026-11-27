@@ -7,8 +7,18 @@ import { renderWithRouter } from "@/test/renderWithRouter"
 
 import { AdminOverviewPage } from "./AdminOverviewPage"
 
-const { api } = vi.hoisted(() => ({ api: { get: vi.fn(), post: vi.fn() } }))
-vi.mock("@/lib/api-client", () => ({ api }))
+const { api, FakeHTTPError } = vi.hoisted(() => {
+  // an API refusal as ky hands it over: the status and the API's message
+  class FakeHTTPError extends Error {
+    response: { status: number }
+    constructor(status: number, message: string) {
+      super(message)
+      this.response = { status }
+    }
+  }
+  return { api: { get: vi.fn(), post: vi.fn() }, FakeHTTPError }
+})
+vi.mock("@/lib/api-client", () => ({ api, HTTPError: FakeHTTPError }))
 
 const overview = {
   hiddenEvents: [
@@ -60,5 +70,17 @@ describe("AdminOverviewPage", () => {
       within(users).getByRole("button", { name: "Odblokovat uživatele Spam Spamovič" }),
     )
     expect(api.post).toHaveBeenCalledWith("admin/users/u9/unblock")
+  })
+
+  it("a refusal says the API's reason, not to check the connection (review #441)", async () => {
+    api.get.mockReturnValue({
+      json: () =>
+        Promise.reject(new FakeHTTPError(403, "Nejdřív potvrď, že ti je alespoň 18 let.")),
+    })
+    void show()
+
+    expect(await screen.findByText("Nejdřív potvrď, že ti je alespoň 18 let.")).toBeInTheDocument()
+    expect(screen.queryByText("Zkontroluj připojení a zkus to znovu.")).not.toBeInTheDocument()
+    expect(screen.queryByRole("button", { name: "Zkusit znovu" })).not.toBeInTheDocument()
   })
 })

@@ -2,6 +2,7 @@ import { apiDocsEnabled } from '@/core/api-docs/api-docs-enabled';
 import { EmailService } from '@/core/email/interfaces/email-service.interface';
 import { PrismaService } from '@/core/prisma/prisma.service';
 import { betterAuthCoreConfig } from '@/shared/auth/config/better-auth.config';
+import { refuseBlockedSessions } from '@/shared/auth/config/blocked-sign-in';
 import { breachedPasswordsPlugin } from '@/shared/auth/config/breached-passwords';
 import {
   emailFlowOptions,
@@ -34,6 +35,13 @@ const createAuth = (
     database: prismaAdapter(prismaService, {
       provider: 'postgresql',
     }),
+    // the core config's hooks, and a blocked account gets no new session (PO 26. 11., N-7)
+    databaseHooks: {
+      ...betterAuthCoreConfig.databaseHooks,
+      session: {
+        create: { before: refuseBlockedSessions(prismaService) },
+      },
+    },
     trustedOrigins: [config.frontendUrl],
     // Google, when GOOGLE_CLIENT_ID and GOOGLE_CLIENT_SECRET are set (#154);
     // its errors end on /login, not on BetterAuth's English page (#198)

@@ -29,6 +29,8 @@ const MESSAGES: Record<string, string> = {
     "K registraci je potřeba souhlas s podmínkami užívání a potvrzení, že bereš na vědomí zpracování osobních údajů.",
   AGE_CONFIRMATION_REQUIRED: "K registraci musíš potvrdit, že ti je alespoň 18 let.",
   INVALID_NAME: "Jméno může obsahovat jen písmena, mezery, pomlčky, apostrofy a tečky.",
+  // a blocked account signs in no more (PO 26. 11., B-063)
+  USER_BLOCKED: "Tvůj účet je zablokovaný. Jestli jde o omyl, napiš nám.",
 }
 
 // Our own checks whose Czech message says more than the code: INVALID_NAME

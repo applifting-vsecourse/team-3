@@ -8,6 +8,7 @@ import { PageBand } from "@/components/PageBand/PageBand"
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 import { Button } from "@/components/ui/button"
 import { Skeleton } from "@/components/ui/skeleton"
+import { HTTPError } from "@/lib/api-client"
 import { PAGE } from "@/lib/pageLayout"
 import { cn } from "@/lib/utils"
 
@@ -20,6 +21,10 @@ const dateFormat = new Intl.DateTimeFormat("cs-CZ", {
   month: "numeric",
   year: "numeric",
 })
+
+/** A 4xx answer says why in its own words; only the rest is the connection or the server. */
+const isRefused = (error: Error): error is HTTPError =>
+  error instanceof HTTPError && error.response.status < 500
 
 /**
  * „Správa HobbyHubu“ (PO 26. 11.: „Superadmin nemá nikde žádnou sekci v menu“): the
@@ -44,17 +49,23 @@ export function AdminOverviewPage({ viewerId }: { viewerId: string }) {
         {query.error ? (
           <Alert variant="destructive">
             <AlertTitle>Správu se nepodařilo načíst</AlertTitle>
-            <AlertDescription className="flex items-center justify-between gap-3">
-              <span>Zkontroluj připojení a zkus to znovu.</span>
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => void query.refetch()}
-              >
-                <RefreshCw className="size-4" />
-                Zkusit znovu
-              </Button>
-            </AlertDescription>
+            {isRefused(query.error) ? (
+              // the API's reason, e.g. a superadmin without a confirmed age: trying again won't
+              // help, and it isn't the connection (review #441)
+              <AlertDescription>{query.error.message}</AlertDescription>
+            ) : (
+              <AlertDescription className="flex items-center justify-between gap-3">
+                <span>Zkontroluj připojení a zkus to znovu.</span>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => void query.refetch()}
+                >
+                  <RefreshCw className="size-4" />
+                  Zkusit znovu
+                </Button>
+              </AlertDescription>
+            )}
           </Alert>
         ) : !overview ? (
           <div
