@@ -70,17 +70,18 @@ function GroupPage() {
             }
           />
         ) : (
-          // before there is a band: the column with the way back; while loading a phone has
-          // the bar the group's page will have, so the header doesn't jump away (PO 26. 11.)
+          // before there is a band: the column with the way back; while loading or when it fails
+          // a phone has the bar the group's page will have, so the header doesn't jump away
+          // (PO 26. 11., review #448)
           <>
-            {groupQuery.error || isDesktop ? null : (
+            {isDesktop ? null : (
               <SubBar
                 back={GROUPS_BACK}
                 label="Skupina"
               />
             )}
             <div className={cn(PAGE, "gap-4")}>
-              {groupQuery.error || isDesktop ? <BackLink {...GROUPS_BACK} /> : null}
+              {isDesktop ? <BackLink {...GROUPS_BACK} /> : null}
               {groupQuery.error ? (
                 <GroupError
                   isNotFound={isNotFound}
