@@ -881,7 +881,8 @@ export function EventForm({
             />
 
             {/* PO 26. 11. (#303): the address is entered once and the locality follows from it
-                (and from the pin); picking it by hand is the way out when it can't be found */}
+                (and from the pin); picking it by hand is the way out when it can't be found —
+                the field shows only then, or after „Změnit“ / „Vybrat ručně“ */}
             <FormField
               control={form.control}
               name="localityId"
@@ -903,6 +904,26 @@ export function EventForm({
                       </Button>
                     </p>
                     <FormDescription>Doplní se podle adresy a místa na mapě.</FormDescription>
+                  </FormItem>
+                ) : !place && !isPickingLocality ? (
+                  // no address or pin yet: one line, not a second field to fill in before the
+                  // address (review #417, PO 26. 11.: „lokalitu brát automaticky z adresy“)
+                  <FormItem className="order-5 md:order-none">
+                    <p className="flex flex-wrap items-center gap-x-2 text-sm">
+                      <span className="text-muted-foreground">
+                        Lokalita pro vyhledávání se doplní podle adresy.
+                      </span>
+                      <Button
+                        type="button"
+                        variant="link"
+                        size="sm"
+                        className="h-10 px-1"
+                        onClick={() => setIsPickingLocality(true)}
+                      >
+                        Vybrat ručně
+                      </Button>
+                    </p>
+                    <FormMessage />
                   </FormItem>
                 ) : (
                   <FormItem className="order-5 md:order-none">

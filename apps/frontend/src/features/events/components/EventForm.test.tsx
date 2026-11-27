@@ -385,8 +385,19 @@ describe("EventForm", () => {
     })
   })
 
+  // review #417 (PO 26. 11.): a new event has no second field before the address
+  it("a new event: the locality is one line until there is an address, the field on request", async () => {
+    renderForm()
+
+    expect(screen.getByText("Lokalita pro vyhledávání se doplní podle adresy.")).toBeInTheDocument()
+    expect(screen.queryByRole("combobox", { name: "Lokalita *" })).not.toBeInTheDocument()
+    await userEvent.click(screen.getByRole("button", { name: "Vybrat ručně" }))
+    expect(screen.getByRole("combobox", { name: "Lokalita *" })).toBeInTheDocument()
+  })
+
   it("choosing a locality alone does not satisfy the required map point", async () => {
     renderForm()
+    await userEvent.click(screen.getByRole("button", { name: "Vybrat ručně" }))
     await pick("Lokalita *", "Hledat lokalitu", "Louny")
     await submit()
     expect(await screen.findByText("Vyber místo na mapě")).toBeInTheDocument()
@@ -742,8 +753,12 @@ describe("EventForm", () => {
     expect(screen.getByRole("combobox", { name: "Aktivita *" })).toHaveTextContent(
       "Pohyb a tanec › Atletika",
     )
+    await userEvent.click(screen.getByRole("button", { name: "Vybrat ručně" }))
     await pick("Lokalita *", "Hledat lokalitu", "usti nad orl")
-    expect(shownLocality()).toHaveTextContent("Ústí nad Orlicí")
+    // picked by hand, the field stays to change it again
+    expect(screen.getByRole("combobox", { name: "Lokalita *" })).toHaveTextContent(
+      "Ústí nad Orlicí",
+    )
     await userEvent.type(screen.getByLabelText("Název akce *"), "Atletické závody")
     // the map looks at the chosen town; its middle is the place
     await userEvent.click(screen.getByRole("button", { name: "Umístit špendlík do středu mapy" }))
