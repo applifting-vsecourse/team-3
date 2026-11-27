@@ -3,6 +3,7 @@ import { PartnerService } from '@/modules/partner/services/partner.service';
 import { User } from '@/shared/auth/decorators/user.decorator';
 import { Identity } from '@/shared/auth/domain/identity';
 import { VerifiedUserGuard } from '@/shared/auth/guards/verified-user.guard';
+import { WriteThrottlerGuard } from '@/shared/rate-limit/rate-limit.guards';
 import {
   Controller,
   Delete,
@@ -76,7 +77,7 @@ export class PartnersController {
 
   @Post(':userId/request')
   @HttpCode(200)
-  @UseGuards(VerifiedUserGuard)
+  @UseGuards(VerifiedUserGuard, WriteThrottlerGuard)
   @ApiOperation({
     summary:
       'Přidat: a friendship request with its notification (#307, #86), or accepting theirs = a match; 20 new requests a day (#84)',
@@ -107,7 +108,7 @@ export class PartnersController {
 
   @Post(':userId/skip')
   @HttpCode(204)
-  @UseGuards(VerifiedUserGuard)
+  @UseGuards(VerifiedUserGuard, WriteThrottlerGuard)
   @ApiOperation({
     summary:
       'Teď ne: the person isn’t suggested to me for 90 days, on any device; they never learn of it (#84)',
@@ -132,7 +133,7 @@ export class PartnersController {
 
   @Delete(':userId/skip')
   @HttpCode(204)
-  @UseGuards(VerifiedUserGuard)
+  @UseGuards(VerifiedUserGuard, WriteThrottlerGuard)
   @ApiOperation({
     summary:
       'Vrátit: forget the last skip, the person is back in the deck (#84)',
