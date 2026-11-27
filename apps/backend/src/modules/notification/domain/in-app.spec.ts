@@ -293,7 +293,7 @@ describe('composeRatingInApp', () => {
       type: 'event_rated',
       targetType: 'event',
       targetId: 'e1',
-      text: 'Tvoje akce Florbal má nové hodnocení.',
+      text: 'Tvoje akce „Florbal“ má nové hodnocení.',
     });
   });
 
@@ -307,7 +307,7 @@ describe('composeRatingInApp', () => {
       type: 'participant_rated',
       targetType: 'event',
       targetId: 'e1',
-      text: 'Máš nové hodnocení od organizátora akce Florbal.',
+      text: 'Máš nové hodnocení od organizátora akce „Florbal“.',
     });
   });
 });

@@ -623,7 +623,7 @@ describe('NotificationService.deliver: the centre (#86)', () => {
     expect(email.sendEmail).not.toHaveBeenCalled();
   });
 
-  it('the rated participants hear of it; a gone event tells nobody', async () => {
+  it('the rated participants hear of it', async () => {
     const { repository, service } = setup();
     repository.findEvent.mockResolvedValue(event);
     repository.findRecipients.mockResolvedValue([jana]);
@@ -638,10 +638,14 @@ describe('NotificationService.deliver: the centre (#86)', () => {
       [jana.id],
       expect.objectContaining({ type: 'participant_rated' }),
     );
+  });
 
-    repository.createInApp.mockClear();
+  it('a rating of an event that is gone tells nobody', async () => {
+    const { repository, service } = setup();
     repository.findEvent.mockResolvedValue(null);
+
     await service.deliver({ type: 'event-rated', eventId: 'gone' });
+
     expect(repository.createInApp).not.toHaveBeenCalled();
   });
 

@@ -179,13 +179,13 @@ export const composeRatingInApp = (
         type: 'event_rated',
         targetType: 'event',
         targetId: event.id,
-        text: `Tvoje akce ${event.title} má nové hodnocení.`,
+        text: `Tvoje akce ${quoted(event.title)} má nové hodnocení.`,
       }
     : {
         type: 'participant_rated',
         targetType: 'event',
         targetId: event.id,
-        text: `Máš nové hodnocení od organizátora akce ${event.title}.`,
+        text: `Máš nové hodnocení od organizátora akce ${quoted(event.title)}.`,
       };
 
 /**
