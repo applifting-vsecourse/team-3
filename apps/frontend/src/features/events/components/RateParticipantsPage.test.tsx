@@ -578,6 +578,12 @@ describe("/akce/:id/hodnoceni for the organizer (Figma D-05, #66)", () => {
     await renderPage()
 
     expect(await screen.findByText("Účastníky hodnotí jen organizátor akce")).toBeInTheDocument()
+    // said once, then the way on: the participant rates the event itself
+    expect(screen.queryByText("Účastníky hodnotí jen organizátor akce.")).not.toBeInTheDocument()
+    expect(screen.getByRole("link", { name: "Ohodnotit akci" })).toHaveAttribute(
+      "href",
+      "/akce/e1/hodnoceni",
+    )
     expect(screen.queryByRole("button", { name: "Zkusit znovu" })).not.toBeInTheDocument()
   })
 
