@@ -92,11 +92,6 @@
 }
 
 :root {
-  /* where a phone's toast sits (PO 26. 11.): above the bottom navigation, and above a page's
-     own bottom action too (the detail's „Přijdu“ bar, the floating „Založit“), never over it */
-  --toast-bottom: 80px;
-  /* the desktop offset's bottom (Sonner past 600 px): above the navigation while it shows */
-  --toast-offset: var(--toast-bottom);
   /* Light mode only (DESIGN.md › Colour): native scrollbars and form controls stay light even
      when the system is set to dark. */
   color-scheme: light;
@@ -362,6 +357,15 @@
   input::-ms-reveal {
     @apply ms-3;
   }
+}
+
+/* Where toasts sit (PO 26. 11.), apart from the colour tokens above (tokens.test.ts reads those):
+   on a phone above the bottom navigation, and above a page's own bottom action too (the
+   detail's „Přijdu“ bar, the floating „Založit“), never over it. --toast-offset is the desktop
+   offset's bottom, which Sonner uses past 600 px: above the navigation while it shows. */
+:root {
+  --toast-bottom: 80px;
+  --toast-offset: var(--toast-bottom);
 }
 
 /* a page with an action at the bottom of a phone, marked data-toast-clear: toasts above it */
