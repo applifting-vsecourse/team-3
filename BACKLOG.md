@@ -8,7 +8,7 @@ Zdroj: `HobbyHub_User_Stories_MVP.md` (US-01 až US-19 odvozené z Feature break
 
 1. **Ber úkoly v pořadí.** Úkol začni, jen když jsou hotové všechny úkoly v řádku _Závisí na_.
 2. **Jeden úkol = jeden PR.** Název PR: `B-0XX: <název úkolu>`. Do popisu dej odkaz na US.
-3. **Před prací přečti** `CLAUDE.md` a `DESIGN.md`. DESIGN.md je závazný (tokeny, žádné vnořené karty, tři stavy seznamu).
+3. **Před prací přečti** `AGENTS.md` a `DESIGN.md`. DESIGN.md je závazný (tokeny, žádné vnořené karty, tři stavy seznamu).
 4. **Kopíruj vzor feature akcí (`event`, #38):** Prisma model → seed → repository → service → controller s DTO → zod schéma na FE → TanStack Query → stránka. Backend v `apps/backend/src/modules/<feature>/`, frontend v `apps/frontend/src/features/<feature>/`.
 5. **UI ovládací prvky jen z kitu** (`pnpm dlx shadcn@latest add <name>`), bez stínů na kartách a inputech.
 6. **Validace vždy na FE i BE.** Oprávnění kontroluj na backendu (organizátor smí jen svou akci, správce jen svou skupinu, admin jen role `admin`).

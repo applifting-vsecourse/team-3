@@ -71,7 +71,7 @@ PO hodnotil sprint 4 26. 11. Kvůli množství chyb aplikaci přestal kontrolova
 
 ## Dohody (tým)
 
-- **Review:** připomínka v review je tvrzení, ne příkaz. Kdo ji píše, uvede zdroj (kritérium issue, rozhodnutí PO, BACKLOG.md, DESIGN.md, Figma) a co se kvůli tomu pokazí uživateli, a podívá se, jak věc v aplikaci funguje teď. Popis issue nemusí být do detailu aktuální. Kdo ji zapracovává, ji nejdřív ověří proti stejným zdrojům a aplikaci, a když nesedí, odpoví v PR, místo aby ji slepě zapracoval. Pravidlo je v `CLAUDE.md` › Reviews.
+- **Review:** připomínka v review je tvrzení, ne příkaz. Kdo ji píše, uvede zdroj (kritérium issue, rozhodnutí PO, BACKLOG.md, DESIGN.md, Figma) a co se kvůli tomu pokazí uživateli, a podívá se, jak věc v aplikaci funguje teď. Popis issue nemusí být do detailu aktuální. Kdo ji zapracovává, ji nejdřív ověří proti stejným zdrojům a aplikaci, a když nesedí, odpoví v PR, místo aby ji slepě zapracoval. Pravidlo je v `AGENTS.md` › Reviews a v `docs/definition-of-ready-a-done.md`.
 
 ## MVP mimo scope sprintu 5
 

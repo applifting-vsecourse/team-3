@@ -29,7 +29,7 @@ Rozcestník podkladů k projektu. Agent i lidé začínají tady.
 - **Sitemapa (FigJam):** https://www.figma.com/board/fPmS1iWbq2EAYS4uNJeemW/HobbyHub-sitemapa?node-id=103-648 (v3)
 - **Feature breakdown v3.4:** https://vse-my.sharepoint.com/:x:/r/personal/mita05_vse_cz/_layouts/15/Doc.aspx?sourcedoc=%7B0BD89393-AE98-496B-8A9A-9AAD68E51119%7D&file=HobbyHub_Feature_Breakdown_FINAL_sablona.xlsx&action=default&mobileredirect=true&share=cQqTk9gLmK5rSYqamq1o5REZEgUClNZoRR7RsjYRRJYgXF5iKg
 - Starší verze: design a wireframy do 19. 10. jsou ve Figmě na stránkách „Archiv – v1“, sitemapa v2 na stránce „v2 Hackathon“.
-- **UI pravidla pro kód:** [../DESIGN.md](../DESIGN.md), konvence repa: [../CLAUDE.md](../CLAUDE.md)
+- **UI pravidla pro kód:** [../DESIGN.md](../DESIGN.md), konvence repa a pravidla pro agenty: [../AGENTS.md](../AGENTS.md)
 
 ## Jak s tím pracujeme
 
