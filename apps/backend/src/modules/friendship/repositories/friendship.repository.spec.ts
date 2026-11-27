@@ -15,6 +15,10 @@ const setup = (): {
   repository: FriendshipRepository;
 } => {
   const prisma = mockDeep<PrismaService>();
+  // the transaction runs on the same mock, so the calls inside it are seen as usual
+  prisma.$transaction.mockImplementation(((
+    run: (tx: Prisma.TransactionClient) => Promise<unknown>,
+  ) => run(prisma)) as never);
   return { prisma, repository: new FriendshipRepository(prisma) };
 };
 
