@@ -894,7 +894,7 @@ Doménová logika (čistá funkce + testy): `approvedCount`, `missingToMin = max
 
 - Stránka tarifů: co který tarif odemyká, cena, [návrh] měsíční nebo roční. Vstup ze zamčené funkce a z úvodní stránky.
 - Platba je simulovaná, bez platební brány: formulář na číslo karty, platnost a CVC (nic se neukládá, ani v logu) → animace, že platba proběhla → tarif platí. Admin platbu nepotvrzuje.
-- Tarif a jeho platnost se ukládají na backendu (`validUntil`), klient sám nic neodemyká. Do kdy tarif platí, je vidět v Můj profil; [návrh] po „zaplacení“ přijde potvrzovací e-mail.
+- Tarif a jeho platnost se ukládají na backendu ([návrh] `validUntil`), klient sám nic neodemyká. Do kdy tarif platí, je vidět v Můj profil; [návrh] po „zaplacení“ přijde potvrzovací e-mail.
 
 **Hotovo, když:**
 
@@ -909,13 +909,13 @@ Doménová logika (čistá funkce + testy): `approvedCount`, `missingToMin = max
 `US-14` · FS · M · závisí na: B-070 · #354
 
 - Za paywallem (návrh týmu, #354): zakládání akcí jen pro členy ve skupinách (#70), Najdi parťáka (B-092), propagace akce (B-074) a topování akce (B-073).
-- Jedna sdílená kontrola na backendu (`hasPaidFeature(user, feature)`); u akce skupiny platí tarif správce, který akci zakládá.
+- Jedna sdílená kontrola na backendu ([návrh] `hasPaidFeature(user, feature)`); [návrh] u akce skupiny platí tarif správce, který akci zakládá.
 - Zamčená funkce ukáže, který tarif ji odemkne, s odkazem na tarify.
 - Paywall platí jen pro nově zakládané: akce jen pro členy, které skupiny založily dřív, zůstanou.
 
 **Hotovo, když:**
 
-- [ ] Testy `hasPaidFeature` pro každou funkci, akci skupiny a prošlý tarif.
+- [ ] Testy kontroly placených funkcí pro každou funkci, akci skupiny a prošlý tarif.
 
 ---
 
