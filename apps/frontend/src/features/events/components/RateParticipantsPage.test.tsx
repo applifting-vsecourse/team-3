@@ -578,13 +578,25 @@ describe("/akce/:id/hodnoceni for the organizer (Figma D-05, #66)", () => {
     await renderPage()
 
     expect(await screen.findByText("Účastníky hodnotí jen organizátor akce")).toBeInTheDocument()
-    // said once, then the way on: the participant rates the event itself
+    expect(screen.queryByRole("button", { name: "Zkusit znovu" })).not.toBeInTheDocument()
+  })
+
+  it("not the organizer: the refusal is said once, then the way to rate the event (#451)", async () => {
+    participants = new FakeHTTPError(403, {
+      code: "NOT_ORGANIZER",
+      message: "Účastníky hodnotí jen organizátor akce.",
+    })
+    await renderPage()
+
+    expect(await screen.findByText("Účastníky hodnotí jen organizátor akce")).toBeInTheDocument()
+    // not the API's message again under the title
     expect(screen.queryByText("Účastníky hodnotí jen organizátor akce.")).not.toBeInTheDocument()
+    // true for anyone who isn't the organizer, a participant or not
+    expect(screen.getByText(/Akci a jejího organizátora hodnotí účastníci\./)).toBeInTheDocument()
     expect(screen.getByRole("link", { name: "Ohodnotit akci" })).toHaveAttribute(
       "href",
       "/akce/e1/hodnoceni",
     )
-    expect(screen.queryByRole("button", { name: "Zkusit znovu" })).not.toBeInTheDocument()
   })
 
   it("„Zkusit znovu“ reads again only what failed (review #322)", async () => {

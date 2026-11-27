@@ -86,10 +86,11 @@ export function RateParticipantsPage({ eventId, viewerId, onSaved }: RatePartici
       <div className={cn(PAGE, "gap-6 pb-24")}>
         {/* by priority (review #322): an answer that explains, then one to try again */}
         {apiErrorCode(query.error) === "NOT_ORGANIZER" ? (
-          // the API's message says the same as the title: the way on instead (a participant
-          // rates the event and its organizer on their own page)
+          // the API's message says the same as the title: the way on instead. Said so it is
+          // true for anyone who isn't the organizer (#451): the rating page itself says why
+          // someone who wasn't there can't rate
           <RatingExplained title="Účastníky hodnotí jen organizátor akce">
-            Ty můžeš ohodnotit akci a jejího organizátora.{" "}
+            Akci a jejího organizátora hodnotí účastníci.{" "}
             <Link
               to={ROUTES.rateEvent}
               params={{ eventId }}
@@ -97,6 +98,7 @@ export function RateParticipantsPage({ eventId, viewerId, onSaved }: RatePartici
             >
               Ohodnotit akci
             </Link>
+            .
           </RatingExplained>
         ) : detail.isNotFound || isNotFound(query.error) ? (
           <RatingExplained title="Akce neexistuje">
