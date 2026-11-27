@@ -242,7 +242,7 @@ Každá role umí i všechno, co přihlášený uživatel. Správce skupiny ří
 **Jako** uživatel **chci** vidět, co mi placený tarif odemkne, a zkusit si ho „zaplatit“, **abych** věděl, za co platím.
 
 - [ ] [návrh] Stránka tarifů s výčtem, co který tarif odemyká.
-- [ ] Zamčená funkce ukáže, který tarif ji odemkne, s odkazem na tarify. Za paywall navrhujeme: privátní akce ve skupinách, hledání parťáka, propagaci a topování akce.
+- [ ] Zamčená funkce ukáže, který tarif ji odemkne, s odkazem na tarify. Za paywall navrhujeme: akce jen pro členy skupiny (#70), hledání parťáka, propagaci a topování akce.
 - [ ] Platba je simulovaná: formulář na číslo karty, platnost a CVC (nic se neukládá) a animace, že platba proběhla; pak se funkce odemkne.
 - [ ] Paywall platí jen pro nově založené: akce jen pro členy, které skupiny založily dřív, zůstanou.
 

@@ -12,7 +12,7 @@ Nové funkce pro objevování akcí a hledání lidí, první verze monetizace a
 - **Podobné akce:** na detailu akce.
 - **Najdi parťáka:** lidé v okolí s podobnými aktivitami, procházení swipem ve stylu Tinderu.
 - **Přezdívka a celé jméno:** veřejně jen přezdívka.
-- **Monetizace:** tarify, paywall a simulovaná platba kartou. Za paywall navrhujeme privátní akce ve skupinách, hledání parťáka, propagaci a topování akce.
+- **Monetizace:** tarify, paywall a simulovaná platba kartou. Za paywall navrhujeme akce jen pro členy skupiny, hledání parťáka, propagaci a topování akce.
 - **Superadmin:** nahlašování uživatelů a akcí.
 
 ## Scope sprintu 5
@@ -41,7 +41,7 @@ Nové funkce pro objevování akcí a hledání lidí, první verze monetizace a
 
 ## Výtky PO ke sprintu 4
 
-PO hodnotil sprint 4 26. 11. Kvůli množství chyb aplikaci přestal kontrolovat a čeká, že zapracujeme všechny připomínky, sami projdeme mobilní verzi a chyby budeme hledat dřív než on.
+PO hodnotil sprint 4 26. 11., den po planningu. Kvůli množství chyb aplikaci přestal kontrolovat a čeká, že zapracujeme všechny připomínky, sami projdeme mobilní verzi a chyby budeme hledat dřív než on.
 
 | Výtka                                                                | Issue | PR   |
 | -------------------------------------------------------------------- | ----- | ---- |
