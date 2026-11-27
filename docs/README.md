@@ -12,6 +12,7 @@ Rozcestník podkladů k projektu. Agent i lidé začínají tady.
 | [zapis-planning-sprint3.md](zapis-planning-sprint3.md)       | Zápis z planningu s PO 28. 10. 2026: životní cyklus akce, scope a rozhodnutí sprintu 3                                   |
 | [zapis-planning-sprint4.md](zapis-planning-sprint4.md)       | Zápis z planningu s PO 10. 11. 2026: zpětná vazba ke sprintu 3, scope a rozhodnutí sprintu 4                             |
 | [zapis-refinement-sprint4.md](zapis-refinement-sprint4.md)   | Zápis z refinementu s PO 16. 11. 2026: rozhodnutí, změny v backlogu a proč, návrhy týmu na vylepšení                     |
+| [zapis-planning-sprint5.md](zapis-planning-sprint5.md)       | Zápis z planningu s PO 25. 11. 2026: scope sprintu 5, výtky PO ke sprintu 4, MVP mimo scope                              |
 | [navrh-upozorneni.md](navrh-upozorneni.md)                   | Upozornění v aplikaci (#86): události, texty, chování centra a rozhodnutí k potvrzení PO                                 |
 | [design-rozhodnuti.md](design-rozhodnuti.md)                 | Kde se design vědomě liší od wireframů a proč                                                                            |
 | [ux-audit.md](ux-audit.md)                                   | UX audit a nový brand (#173): rozhodnutí, pravidla úvodní stránky a hodnocení, hlas aplikace, přehled obrazovek ve Figmě |
@@ -28,7 +29,7 @@ Rozcestník podkladů k projektu. Agent i lidé začínají tady.
 - **Sitemapa (FigJam):** https://www.figma.com/board/fPmS1iWbq2EAYS4uNJeemW/HobbyHub-sitemapa?node-id=103-648 (v3)
 - **Feature breakdown v3.4:** https://vse-my.sharepoint.com/:x:/r/personal/mita05_vse_cz/_layouts/15/Doc.aspx?sourcedoc=%7B0BD89393-AE98-496B-8A9A-9AAD68E51119%7D&file=HobbyHub_Feature_Breakdown_FINAL_sablona.xlsx&action=default&mobileredirect=true&share=cQqTk9gLmK5rSYqamq1o5REZEgUClNZoRR7RsjYRRJYgXF5iKg
 - Starší verze: design a wireframy do 19. 10. jsou ve Figmě na stránkách „Archiv – v1“, sitemapa v2 na stránce „v2 Hackathon“.
-- **UI pravidla pro kód:** [../DESIGN.md](../DESIGN.md), konvence repa: [../CLAUDE.md](../CLAUDE.md)
+- **UI pravidla pro kód:** [../DESIGN.md](../DESIGN.md), konvence repa a pravidla pro agenty: [../AGENTS.md](../AGENTS.md)
 
 ## Jak s tím pracujeme
 

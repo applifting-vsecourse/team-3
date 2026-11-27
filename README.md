@@ -20,8 +20,8 @@ HobbyHub helps people find others for their hobbies: organizers post an event (a
 ## How we work
 
 - **Every change goes through a branch and a pull request** — nobody pushes to `main`. Branch from `main` and name the branch `<type>/<issue>-<slug>`, where the type is `feat`, `fix`, `polish` or `docs` and the issue number is there when the change has an issue (`feat/39-detail-akce`, `fix/address-czech-only`). `main` is protected by a ruleset: no direct pushes or force pushes.
-- **Every PR needs an approval from a teammate** before it is merged, and CI (`pnpm check-all`) has to pass. The author doesn't approve their own PR.
-- Before merging, run the agent review in Claude Code: `/review-branch` (or `/review-branch <PR number>`). It checks the branch against `main`, [CLAUDE.md](CLAUDE.md) and the story, and doesn't change code. The prompt is in [.claude/commands/review-branch.md](.claude/commands/review-branch.md).
+- **Every PR needs an approval from a teammate** before it is merged, and CI (`pnpm check-all` and the main-flow test, #467) has to pass. The author doesn't approve their own PR.
+- Before merging, run the agent review in Claude Code: `/review-branch` (or `/review-branch <PR number>`). It checks the branch against `main`, [AGENTS.md](AGENTS.md) and the story, and doesn't change code. The prompt is in [.claude/commands/review-branch.md](.claude/commands/review-branch.md).
 - The PR description follows the [template](.github/pull_request_template.md) and links the story or issue with `Refs #<number>`, not `Closes` — the PO closes the issue after accepting it on staging. A PR without an issue says in one sentence why it is needed. (Applies to every PR after #171.)
 - Merged to `main` = deployed to staging.
 - What "ready" and "done" mean: [Definition of Ready & Done](docs/definition-of-ready-a-done.md).
@@ -84,7 +84,8 @@ Verification/reset emails are printed to the backend terminal (console mailer) u
 ## Everyday commands
 
 ```shell
-pnpm check-all                     # lint + type-check + tests + builds (what CI runs)
+pnpm check-all                     # lint + type-check + tests + builds (CI runs this and check:main-flow)
+pnpm backend check:main-flow       # main flow through the API on a real database (#467); only with DATABASE_URL of a throwaway DB, after pnpm backend migrate
 pnpm backend test                  # backend unit tests (jest)
 pnpm frontend test:ci              # frontend component tests (vitest)
 pnpm backend prisma:migrations:run # create + apply a migration after schema changes
@@ -132,4 +133,4 @@ apps/backend/   NestJS — src/modules (features), src/core, src/shared; prisma/
 apps/frontend/  React — src/routes (pages), src/features (feature folders), src/components (UI kit)
 ```
 
-Working conventions for AI-assisted development: [`CLAUDE.md`](CLAUDE.md). UI rules every screen must follow: [`DESIGN.md`](DESIGN.md).
+Working conventions for AI-assisted development: [`AGENTS.md`](AGENTS.md) (Claude Code reads it through `CLAUDE.md`). UI rules every screen must follow: [`DESIGN.md`](DESIGN.md).
