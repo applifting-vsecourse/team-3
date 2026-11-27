@@ -264,6 +264,18 @@ function ManageEventPage() {
               {/* Figma D-03d: Upravit, Sdílet odkaz, Zrušit (ghost) beside each other; a phone
                   shares from the bar and has Upravit and Zrušit side by side (D-03) */}
               <div className="grid grid-cols-2 gap-3 md:flex md:flex-wrap md:items-center">
+                {/* someone is coming, but sharing comes first: writing stays at hand (#371).
+                    First, as in Figma D-03: full width over Upravit and Zrušit on a phone, which
+                    stay side by side (#453), and Zrušit stays the last action; in the DOM too,
+                    so Tab goes the way the eye does */}
+                {viewerId && canWrite && nextStep?.action !== "write" && recipientCount ? (
+                  <SendEventMessageButton
+                    eventId={eventId}
+                    viewerId={viewerId}
+                    recipientCount={recipientCount}
+                    className="col-span-2 md:col-span-1"
+                  />
+                ) : null}
                 {canEdit ? (
                   <Button
                     asChild
@@ -279,17 +291,6 @@ function ManageEventPage() {
                       Upravit akci
                     </Link>
                   </Button>
-                ) : null}
-                {/* someone is coming, but sharing comes first: writing stays at hand (#371) */}
-                {viewerId && canWrite && nextStep?.action !== "write" && recipientCount ? (
-                  <SendEventMessageButton
-                    eventId={eventId}
-                    viewerId={viewerId}
-                    recipientCount={recipientCount}
-                    // last on a phone: Upravit and Zrušit stay side by side (D-03), this full
-                    // width under them; in its place on desktop
-                    className="order-last col-span-2 md:order-none md:col-span-1"
-                  />
                 ) : null}
                 {canShareAside ? (
                   <ShareEventButton
