@@ -4,6 +4,7 @@ import { Ban } from "lucide-react"
 import { toast } from "sonner"
 
 import { AppHeader } from "@/app/AppHeader"
+import { ROUTES } from "@/app/routes"
 import { Seo } from "@/components/Seo"
 import { HTTPError } from "@/lib/api-client"
 import { ratingSummaryLabel } from "@/lib/ratingSummary"
@@ -35,10 +36,10 @@ function PublicUserPage() {
   })
   const isNotFound = query.error instanceof HTTPError && query.error.response.status === 404
   const profile = query.data
-  // PO 26. 11.: the superadmin blocks a user from their profile; the profile is gone after it
-  const blockUser = useBlockUser(userId, () =>
-    queryClient.invalidateQueries({ queryKey: publicUserKeys.person(userId) }),
-  )
+  // PO 26. 11.: the superadmin blocks a user from their profile. The profile is gone after it
+  // (404 even for the superadmin), so they go on to Správa, where the user is with Odblokovat.
+  const blockUser = useBlockUser(userId)
+  const navigate = Route.useNavigate()
   const canBlock = isSuperadmin(session.user) && viewerId !== userId
   return (
     <>
@@ -84,7 +85,13 @@ function PublicUserPage() {
                     isPending={blockUser.isPending}
                     onSubmit={(reason) =>
                       blockUser.mutateAsync(reason).then(
-                        () => toast.success("Uživatel je zablokovaný."),
+                        async () => {
+                          toast.success("Uživatel je zablokovaný.")
+                          await navigate({ to: ROUTES.admin })
+                          void queryClient.invalidateQueries({
+                            queryKey: publicUserKeys.person(userId),
+                          })
+                        },
                         (error: Error) => {
                           toast.error(error.message)
                           throw error
