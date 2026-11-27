@@ -209,6 +209,15 @@ export function ProfileForm({
                         : field.value,
                   ),
               })}
+              {/* a pick over the limit does nothing, so say why */}
+              {field.value.length >= MAX_INTERESTS ? (
+                <p
+                  role="status"
+                  className="text-sm text-muted-foreground"
+                >
+                  Víc než {MAX_INTERESTS} zájmů vybrat nejde. Některý odeber a pak přidej jiný.
+                </p>
+              ) : null}
               <FormMessage />
             </FormItem>
           )}

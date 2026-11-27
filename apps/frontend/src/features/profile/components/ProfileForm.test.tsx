@@ -35,7 +35,7 @@ const profile: SelfProfile = {
   homeLocality: locality,
   interests: [{ id: "running", name: "Běh" }],
 }
-function show() {
+function show(shown: SelfProfile = profile) {
   const client = new QueryClient({ defaultOptions: { queries: { retry: false } } })
   client.setQueryData(catalogKeys.activities(), [
     {
@@ -50,7 +50,7 @@ function show() {
   return render(
     <QueryClientProvider client={client}>
       <ProfileForm
-        profile={profile}
+        profile={shown}
         interestChoice={({ categories, selected, onToggle }) =>
           categories
             .flatMap((category) => category.activities)
@@ -105,6 +105,19 @@ describe("profile editing (#178)", () => {
       interestIds: ["running"],
     })
   })
+  it("says why a 51st interest can't be picked", () => {
+    show({
+      ...profile,
+      interests: Array.from({ length: 50 }, (_, index) => ({ id: `a${index}`, name: `A${index}` })),
+    })
+    expect(screen.getByRole("status")).toHaveTextContent("Víc než 50 zájmů vybrat nejde.")
+  })
+
+  it("no limit note while there is room", () => {
+    show()
+    expect(screen.queryByText(/Víc než 50 zájmů/)).not.toBeInTheDocument()
+  })
+
   it("explains an invalid name before sending any update", async () => {
     const user = userEvent.setup()
     show()
