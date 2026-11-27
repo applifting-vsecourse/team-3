@@ -12,6 +12,19 @@ permissions:
 jobs:
   verify:
     runs-on: ubuntu-latest
+    # throwaway database for the main-flow check (#467); nothing else uses it
+    services:
+      postgres:
+        image: postgres:17-alpine
+        env:
+          POSTGRES_USER: hobbyhub
+          POSTGRES_PASSWORD: hobbyhub
+          POSTGRES_DB: hobbyhub_ci
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U hobbyhub -d hobbyhub_ci"
+          --health-interval 5s --health-timeout 5s --health-retries 10
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
@@ -51,6 +64,13 @@ jobs:
 
       - name: Test email verification and sign-in
         run: pnpm backend auth:check-email-verification
+
+      - name: Test main flow through the API on a real database (#467)
+        env:
+          DATABASE_URL: postgresql://hobbyhub:hobbyhub@localhost:5432/hobbyhub_ci
+        run: |
+          pnpm backend migrate
+          pnpm backend check:main-flow
 
       - name: Test frontend
         run: pnpm frontend test:ci
