@@ -5,14 +5,18 @@
  * whole app the way main.ts does (`configureApp`), on a random port, and talks
  * to it over HTTP with each user's own cookies.
  *
- * It needs an empty database with the migrations applied (DATABASE_URL) and
- * no e-mail service, so the simulated inbox (#58) holds the verification
- * e-mails. CI runs it against a throwaway Postgres; locally:
+ * It needs a throwaway database with the migrations applied and no e-mail
+ * service, so the simulated inbox (#58) holds the verification e-mails. It can
+ * run again on the same database. CI runs it against a throwaway Postgres;
+ * locally pass DATABASE_URL explicitly, or dotenv takes the dev database from
+ * apps/backend/.env:
  *
- *   pnpm backend migrate && pnpm backend check:main-flow
+ *   DATABASE_URL=<throwaway db> pnpm backend migrate
+ *   DATABASE_URL=<throwaway db> pnpm backend check:main-flow
  *
- * Don't point it at a database you care about: it adds three users, an event
- * and a one-activity catalog (`flow-check`). It exits with 1 when any step fails.
+ * Don't point it at a database you care about: each run adds three users and a
+ * cancelled event, and it adds a one-activity catalog („Test toku“, slug
+ * `flow-check`). It exits with 1 when any step fails.
  */
 import { AddressInfo } from 'node:net';
 import { AppModule } from '@/app.module';
@@ -139,6 +143,16 @@ const signUpAndVerify = async (
   );
   if (verified.status >= 400) {
     expectStatus(`verification link ${client.email}`, verified, 302);
+  }
+  // an invalid or expired token still redirects, with ?error= in Location
+  const location = verified.response.headers.get('location');
+  const verifyError = location
+    ? new URL(location, link).searchParams.get('error')
+    : null;
+  if (verifyError) {
+    throw new StepFailed(
+      `verification link ${client.email}: redirected with error ${verifyError}`,
+    );
   }
 
   // #300 signs in after verification; sign in explicitly when it did not
@@ -275,8 +289,9 @@ const main = async (): Promise<void> => {
           userIds: [requestId],
         },
       );
-      if (approved.status >= 300) expectStatus('approve', approved, 200);
+      expectStatus('approve', approved, 200);
       const detail = await participant.request('GET', `/api/events/${eventId}`);
+      expectStatus('event detail after approval', detail, 200);
       if (field(detail.json, 'myParticipation') !== 'approved') {
         throw new StepFailed(
           `expected approved, got ${JSON.stringify(field(detail.json, 'myParticipation'))}`,
@@ -291,7 +306,7 @@ const main = async (): Promise<void> => {
         {},
       );
       expectStatus('join a full event', refused, 409);
-      if (JSON.stringify(refused.json).indexOf('EVENT_FULL') === -1) {
+      if (!JSON.stringify(refused.json).includes('EVENT_FULL')) {
         throw new StepFailed(
           `expected EVENT_FULL, got ${JSON.stringify(refused.json)}`,
         );
@@ -308,7 +323,7 @@ const main = async (): Promise<void> => {
             reason: 'Test hlavního toku končí.',
           },
         );
-        if (cancelled.status >= 300) expectStatus('cancel', cancelled, 200);
+        expectStatus('cancel', cancelled, 200);
         const detail = await participant.request(
           'GET',
           `/api/events/${eventId}`,

@@ -14,7 +14,7 @@ The worked example is the event list (#38): `Event` model → seed → repositor
 ## Commands
 
 - `pnpm dev` — everything: env files, Postgres (Docker), migrate, seed, both dev servers
-- `pnpm check-all` — lint + type-check + tests + build (same as CI)
+- `pnpm check-all` — lint + type-check + tests + build; CI also runs `pnpm backend check:main-flow` (main flow on a real database, #467), locally only with `DATABASE_URL` of a throwaway database
 - `pnpm backend test` / `pnpm frontend test:ci` — unit tests
 - `pnpm backend prisma:migrations:run` — create/apply migrations after schema changes
 
