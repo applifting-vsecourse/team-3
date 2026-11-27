@@ -209,6 +209,11 @@ type EventFormProps = {
    * activity is the group's and locked, and the admin picks who sees it.
    */
   group?: { id: string; name: string }
+  /**
+   * The page shows „Pořádá: Já / skupina“ above the form (#438): the form's own „Pořádá“ row
+   * would say it twice (review #439).
+   */
+  hasOrganizerChoice?: boolean
   /** Prefilled values, e.g. when editing (#41). */
   initialValues?: Partial<EventInput>
   /** The image the event already has (#77), when editing. */
@@ -229,6 +234,7 @@ export function EventForm({
   mode = "create",
   approvedCount = 0,
   group,
+  hasOrganizerChoice = false,
   initialValues,
   initialImageSrc,
   isSubmitting,
@@ -360,7 +366,7 @@ export function EventForm({
         })}
         className="flex flex-col gap-6"
       >
-        {group ? (
+        {group && !hasOrganizerChoice ? (
           // Figma D-01g: „Pořádá“ — the group is the organizer shown at the event
           <div className="flex items-center gap-3">
             <span className="flex size-10 shrink-0 items-center justify-center rounded-lg border border-tile-border bg-secondary text-secondary-foreground">

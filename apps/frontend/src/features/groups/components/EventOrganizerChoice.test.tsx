@@ -35,6 +35,9 @@ describe("EventOrganizerChoice", () => {
       "href",
       "/skupiny/g1/akce/nova",
     )
+    // chips, dark once picked: not a second primary button on the form (review #439)
+    expect(screen.getByRole("link", { name: "Já" })).toHaveClass("bg-foreground", "rounded-full")
+    expect(screen.getByRole("link", { name: "Florbal Letná" })).toHaveClass("bg-background")
   })
 
   it("the group's form marks the group", async () => {

@@ -67,6 +67,8 @@ function NewGroupEventPage() {
             <EventForm
               catalog={catalog}
               group={{ id: group.id, name: group.name }}
+              // „Pořádá“ is the choice above (#438), not a second row in the form
+              hasOrganizerChoice={Boolean(user)}
               initialValues={{ activityId: group.activity.id, localityId: group.locality.id }}
               isSubmitting={createEvent.isPending}
               errorMessage={createEvent.error?.message}

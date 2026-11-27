@@ -2,7 +2,9 @@ import { Link } from "@tanstack/react-router"
 import { User, Users } from "lucide-react"
 
 import { ROUTES } from "@/app/routes"
+import { chip, chipDefault, chipSelected } from "@/components/FilterChip/FilterChip"
 import { Button } from "@/components/ui/button"
+import { cn } from "@/lib/utils"
 
 import { useMyGroups } from "@/features/groups/hooks/useMyGroups"
 
@@ -19,6 +21,12 @@ type EventOrganizerChoiceProps = {
  * (public / members, #70). Only for who runs at least one active group; nobody else has a
  * choice. Links, so each form keeps its own address and the back button.
  */
+/**
+ * A single choice drawn as Filter chips, dark once picked (DESIGN.md › Okolí: a single-choice
+ * group of chips), not the page's primary button twice over (review #439). 40 px for the finger.
+ */
+const chipClass = (isPicked: boolean) => cn(chip, "h-10", isPicked ? chipSelected : chipDefault)
+
 export function EventOrganizerChoice({ viewerId, groupId }: EventOrganizerChoiceProps) {
   const { sections } = useMyGroups(viewerId)
   const running = sections?.running ?? []
@@ -33,8 +41,8 @@ export function EventOrganizerChoice({ viewerId, groupId }: EventOrganizerChoice
         <li>
           <Button
             asChild
-            variant={groupId === null ? "default" : "outline"}
-            className="h-10"
+            variant="outline"
+            className={chipClass(groupId === null)}
           >
             <Link
               to={ROUTES.newEvent}
@@ -49,8 +57,8 @@ export function EventOrganizerChoice({ viewerId, groupId }: EventOrganizerChoice
           <li key={group.id}>
             <Button
               asChild
-              variant={groupId === group.id ? "default" : "outline"}
-              className="h-10"
+              variant="outline"
+              className={chipClass(groupId === group.id)}
             >
               <Link
                 to="/skupiny/$groupId/akce/nova"
@@ -65,7 +73,8 @@ export function EventOrganizerChoice({ viewerId, groupId }: EventOrganizerChoice
         ))}
       </ul>
       <p className="text-sm text-muted-foreground">
-        Akce skupiny může být veřejná, nebo jen pro členy.
+        Akce skupiny může být veřejná, nebo jen pro členy. Vyber jako první: přepnutí otevře prázdný
+        formulář.
       </p>
     </nav>
   )
