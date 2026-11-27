@@ -60,4 +60,10 @@ Before reviewing a PR, read the other reviewers' reviews and comments and leave 
 
 A design PR may change DESIGN.md and Figma before the code: the code follows in its own issue once the PO approves the design. In such a PR a mismatch between DESIGN.md and the code is expected, not a finding.
 
+A review finding is a claim, not an order:
+
+- **Reviewer:** a finding that something is out of scope, wrong or missing names its source (acceptance criterion, BACKLOG.md, a PO decision, DESIGN.md, Figma) and says what goes wrong for the user. Check it in the context of the app as it is now, not only against the issue text: the issue may have been written by someone else, the behaviour may have changed since, and the text is not always current in every detail. "Not in the issue" alone is not a finding.
+- **Assignee:** before applying a finding, check it against the same sources and the app. If it would remove or change something the issue, the PO, DESIGN.md or the current app relies on, don't apply it: answer in the PR with the source and let the reviewer reply. Applying a wrong finding blindly is a bug too.
+- After applying a finding, re-check the acceptance criteria it touches, not only the tests.
+
 Answer a review with a PR comment, not only by editing the PR description: a comment notifies the reviewer and stays in the timeline. Keep it short, one line per point with the commit that fixes it, and re-request the review.
