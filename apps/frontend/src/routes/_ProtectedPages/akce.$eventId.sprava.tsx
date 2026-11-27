@@ -286,7 +286,9 @@ function ManageEventPage() {
                     eventId={eventId}
                     viewerId={viewerId}
                     recipientCount={recipientCount}
-                    className="col-span-2 md:col-span-1"
+                    // last on a phone: Upravit and Zrušit stay side by side (D-03), this full
+                    // width under them; in its place on desktop
+                    className="order-last col-span-2 md:order-none md:col-span-1"
                   />
                 ) : null}
                 {canShareAside ? (
