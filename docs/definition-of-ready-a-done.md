@@ -26,6 +26,16 @@ Vývojář projde checklist dřív, než otevře PR. Do PR jde jen to, co je ote
 - [ ] PR řeší jen tuto issue a v popisu je `Refs #číslo` (story nebo issue; PR bez issue jednou větou vysvětlí, proč je potřeba).
 - [ ] Issue jsem na boardu sprintu posunul/a z **In Progress** do **Ready for Code Review**.
 
+## Code review
+
+Připomínka v review je tvrzení, ne příkaz.
+
+- **Reviewer** u připomínky, že něco je mimo scope, špatně nebo chybí, uvede zdroj (akceptační kritérium, BACKLOG.md, rozhodnutí PO, DESIGN.md, Figma) a co se kvůli tomu pokazí uživateli. Podívá se, jak věc v aplikaci funguje teď, ne jen do popisu issue: mohl ho psát někdo jiný, věc se mohla mezitím změnit a popis nemusí být aktuální do detailu. Samotné „není v issue“ připomínka není.
+- **Autor PR** připomínku před zapracováním ověří proti stejným zdrojům a aplikaci. Když by odebrala nebo změnila něco, co chce issue, PO, DESIGN.md nebo na čem aplikace stojí, nezapracuje ji a odpoví v PR se zdrojem. Slepě zapracovaná špatná připomínka je taky chyba.
+- Po zapracování připomínky autor znovu ověří akceptační kritéria, kterých se týká, ne jen testy.
+
+Stejné pravidlo mají agenti v `AGENTS.md` › Reviews.
+
 PR odkazuje na issue přes `Refs #číslo`, ne `Closes`. Issue se mergem nezavírá, zavírá ji PO po akceptaci na stagingu.
 
 ## Definition of Done

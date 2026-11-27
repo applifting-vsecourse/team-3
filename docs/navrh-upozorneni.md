@@ -1,8 +1,8 @@
 # HobbyHub – upozornění v aplikaci (#86)
 
-**Issue:** #86 (F-40, B-044) · **PR:** #398 · **Navazuje na:** #177 (e-maily k účasti a akci), #307 (přátelé) · **Stav:** postaveno podle rozhodnutí týmu (21. a 22. 11. 2026); seznam událostí a texty potvrdí PO při akceptaci #86
+**Issue:** #86 (F-40, B-044) · **PR:** #398 · **Navazuje na:** #177 (e-maily k účasti a akci), #307 (přátelé) · **Stav:** postaveno podle rozhodnutí týmu (21. a 22. 11. 2026); seznam událostí a texty rozhodl tým, PO je nedoplňuje
 
-Planning sprintu 4 (`zapis-planning-sprint4.md`): notifikační centrum v aplikaci i e-maily, zpráva v centru je krátká („Na tvou akci se přihlásil…“) a vede na detail. Refinement 16. 11. upozornění neprobíral, otázky proto rozhodl tým a PO je potvrdí při akceptaci. Tento dokument popisuje, co je postavené.
+Planning sprintu 4 (`zapis-planning-sprint4.md`): notifikační centrum v aplikaci i e-maily, zpráva v centru je krátká („Na tvou akci se přihlásil…“) a vede na detail. Refinement 16. 11. upozornění neprobíral, otázky proto rozhodl tým. Tento dokument popisuje, co je postavené.
 
 ## Jak upozornění funguje
 
@@ -34,12 +34,14 @@ Planning sprintu 4 (`zapis-planning-sprint4.md`): notifikační centrum v aplika
 | Oznámení správce (#194)                | aktivní členové kromě autora | `Nové oznámení ve skupině „{skupina}“: {předmět}`                                         | stránka skupiny      | {skupina}: {předmět}                                             |
 | Žádost o přátelství (i opakovaná)      | ten, koho žádám              | `{jméno} ti posílá žádost o přátelství.`                                                  | žádosti o přátelství | Žádost o přátelství: {jméno}                                     |
 | Přijetí přátelství                     | ten, kdo žádal               | `{jméno} a ty jste teď přátelé.`                                                          | profil {jméno}       | Jste přátelé: {jméno}                                            |
+| Nové hodnocení akce (#432)             | organizátor                  | `Tvoje akce {akce} má nové hodnocení.`                                                    | správa akce          | – (jen v centru)                                                 |
+| Nové hodnocení od organizátora (#432)  | hodnocený účastník           | `Máš nové hodnocení od organizátora akce {akce}.`                                         | profil               | – (jen v centru)                                                 |
 
-Výsledek žádosti o vstup do skupiny v zadání #86 není, je to protějšek schválení a zamítnutí přihlášky na akci. Odmítnutí a odebrání z přátel zůstávají tichá (#307).
+Výsledek žádosti o vstup do skupiny v zadání #86 není, je to protějšek schválení a zamítnutí přihlášky na akci. Odmítnutí a odebrání z přátel zůstávají tichá (#307). U hodnocení (#432, platí po merge PR #433) přijde upozornění jen k prvnímu hodnocení, ne k jeho úpravě, a e-mail k němu nechodí.
 
-**Mimo #86:** upozornění na novou akci skupiny (#362), na obdržené hodnocení (#364). Plánované e-maily (výzva k hodnocení #65) chodí jen e-mailem, do centra nepatří. Odebrání účastníka organizátorem (`removed`) neoznamuje ani e-mail. Podle zadání mimo rozsah: push notifikace, obecné nastavení upozornění, akce v okolí (#74).
+**Mimo #86:** upozornění na novou akci skupiny (#362), na obdržené hodnocení řeší #432 (v tabulce výše). Plánované e-maily (výzva k hodnocení #65) chodí jen e-mailem, do centra nepatří. Odebrání účastníka organizátorem (`removed`) neoznamuje ani e-mail. Podle zadání mimo rozsah: push notifikace, obecné nastavení upozornění, akce v okolí (#74).
 
-## Rozhodnutí týmu, která potvrdí PO
+## Rozhodnutí týmu
 
 - **E-mail ke každé přihlášce (21. a 22. 11.):** u akce bez schvalování dostane organizátor upozornění v centru vždy; e-mail ke každé přihlášce si zvolí ve formuláři akce při založení i v úpravě („Posílat mi e-mail ke každé přihlášce“, `Event.emailOnJoin`, výchozí vypnuto). Volbu vidí a mění jen organizátor, protože e-mail chodí jemu; spolusprávce skupiny ji ve formuláři nemá. Zadání #86 v „Mimo rozsah“ vylučuje nastavení upozornění; tohle je volba u jedné akce, aby organizátor oblíbené akce nedostával desítky e-mailů.
 - **Nová akce skupiny (21. 11.):** řeší #362, ne #86.
