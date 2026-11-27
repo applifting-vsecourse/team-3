@@ -168,4 +168,13 @@ describe("CapacityBar", () => {
     expect(screen.getByText("Volná místa")).toBeInTheDocument()
     expect(screen.getByText("4 lidi")).toBeInTheDocument()
   })
+
+  it("without a maximum the minimum stays at two thirds however many come (review #425)", () => {
+    const { fill, tick } = renderBar(12, 4, null)
+
+    expect(tick).toHaveStyle({ left: `${(4 / 6) * 100}%` })
+    // well past the minimum, yet not the whole bar: there is no „full“
+    expect(fill).toHaveStyle({ width: "90%" })
+    expect(screen.getByText("12 lidí")).toBeInTheDocument()
+  })
 })
