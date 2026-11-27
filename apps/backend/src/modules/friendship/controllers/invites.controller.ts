@@ -2,6 +2,7 @@ import { InviteService } from '@/modules/friendship/services/invite.service';
 import { User } from '@/shared/auth/decorators/user.decorator';
 import { Identity } from '@/shared/auth/domain/identity';
 import { VerifiedUserGuard } from '@/shared/auth/guards/verified-user.guard';
+import { WriteThrottlerGuard } from '@/shared/rate-limit/rate-limit.guards';
 import {
   Body,
   Controller,
@@ -64,7 +65,7 @@ export class InvitesController {
   @Post('me/regenerate')
   @HttpCode(200)
   @ApiCookieAuth()
-  @UseGuards(VerifiedUserGuard)
+  @UseGuards(VerifiedUserGuard, WriteThrottlerGuard)
   @ApiOperation({
     summary:
       'Vytvořit nový odkaz: a new code, the old link stops working (#406)',
@@ -99,7 +100,7 @@ export class InvitesController {
   @Post(':code/accept')
   @HttpCode(200)
   @ApiCookieAuth()
-  @UseGuards(VerifiedUserGuard)
+  @UseGuards(VerifiedUserGuard, WriteThrottlerGuard)
   @ApiOperation({
     summary:
       'The onboarding’s answer to the invite: friends at once for a newly invited user (#406)',
