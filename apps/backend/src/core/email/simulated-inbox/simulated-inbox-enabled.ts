@@ -15,6 +15,18 @@ const usesConsoleMailer = (config: InboxEnv): boolean =>
   !(config.smtpHost && config.smtpUsername && config.smtpPassword);
 
 /**
+ * Whether e-mails really go out (Resend or SMTP), the same rule that picks
+ * the mailer. Only then is a link in an e-mail proof of owning the address:
+ * the seed creates staging's superadmin only then (#308, review #380).
+ */
+export const sendsRealEmail = (
+  config: Pick<
+    InboxEnv,
+    'resendApiKey' | 'smtpHost' | 'smtpUsername' | 'smtpPassword'
+  >,
+): boolean => !usesConsoleMailer(config as InboxEnv);
+
+/**
  * The simulated inbox shows a verification link to whoever signed up, so an
  * address counts as verified without its owner. Never next to a real e-mail
  * service; in production only with SIMULATED_INBOX=true (staging sets it in

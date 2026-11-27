@@ -2,7 +2,7 @@
 #   docker build -f apps/backend/Dockerfile.deploy -t backend .
 
 # --- Build stage: install all deps, generate Prisma client, compile Nest ---
-FROM node:24.22.2-alpine AS builder
+FROM node:24.22.3-alpine AS builder
 
 RUN apk add --no-cache openssl
 RUN corepack enable
@@ -30,7 +30,7 @@ RUN pnpm --filter backend build
 
 
 # --- Production deps: the same lockfile, minus everything only used to build ---
-FROM node:24.22.2-alpine AS prod-deps
+FROM node:24.22.3-alpine AS prod-deps
 
 RUN apk add --no-cache openssl
 RUN corepack enable
@@ -47,7 +47,7 @@ RUN pnpm install --frozen-lockfile --prod --filter backend
 
 
 # --- Runtime stage: production deps + compiled output, nothing else ---
-FROM node:24.22.2-alpine
+FROM node:24.22.3-alpine
 
 RUN apk add --no-cache openssl
 RUN corepack enable
@@ -84,6 +84,13 @@ ENV SEED_DEMO_DATA=true
 # Anyone who can pull this image can read it: use a password for staging only.
 ARG SEED_DEMO_PASSWORD=""
 ENV SEED_DEMO_PASSWORD=$SEED_DEMO_PASSWORD
+# The superadmin (#308): only the GitHub variable SUPERADMIN_EMAIL
+# (deploy.yml). No password and no hash in this image (review #380): the seed
+# creates the account with a random password it keeps nowhere, and the
+# superadmin sets one with „Zapomenuté heslo“. Only with real e-mail (SMTP);
+# empty, or with the simulated inbox, the seed logs why and skips it.
+ARG SUPERADMIN_EMAIL=""
+ENV SUPERADMIN_EMAIL=$SUPERADMIN_EMAIL
 # Google sign-in and real e-mail on staging (#165), from GitHub secrets and
 # variables via build-args in deploy.yml — the course's way: Coolify's own
 # variables are fixed. Empty = off (no Google button; e-mails only logged).

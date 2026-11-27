@@ -4,6 +4,7 @@ import { HomeService } from '@/modules/home/services/home.service';
 import { OptionalUser } from '@/shared/auth/decorators/optional-user.decorator';
 import { Identity } from '@/shared/auth/domain/identity';
 import { OptionalUserGuard } from '@/shared/auth/guards/optional-user.guard';
+import { PublicReadThrottlerGuard } from '@/shared/rate-limit/rate-limit.guards';
 import {
   Controller,
   Get,
@@ -37,7 +38,7 @@ export class HomeController {
   constructor(private readonly homeService: HomeService) {}
 
   @Get()
-  @UseGuards(OptionalUserGuard)
+  @UseGuards(OptionalUserGuard, PublicReadThrottlerGuard)
   @ApiCookieAuth()
   @ApiOperation({
     summary:
@@ -66,7 +67,7 @@ export class HomeController {
   }
 
   @Get('events')
-  @UseGuards(OptionalUserGuard)
+  @UseGuards(OptionalUserGuard, PublicReadThrottlerGuard)
   @ApiCookieAuth()
   @ApiOperation({
     summary:

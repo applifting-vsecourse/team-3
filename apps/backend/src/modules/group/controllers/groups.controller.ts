@@ -10,6 +10,11 @@ import { Identity } from '@/shared/auth/domain/identity';
 import { AuthenticatedUserGuard } from '@/shared/auth/guards/authenticated-user.guard';
 import { OptionalUserGuard } from '@/shared/auth/guards/optional-user.guard';
 import { VerifiedUserGuard } from '@/shared/auth/guards/verified-user.guard';
+import {
+  CreateThrottlerGuard,
+  PublicReadThrottlerGuard,
+  WriteThrottlerGuard,
+} from '@/shared/rate-limit/rate-limit.guards';
 import { RequestMessageDto } from '@/shared/request-message/dto/request-message.dto';
 import {
   Body,
@@ -63,6 +68,7 @@ export class GroupsController {
   constructor(private readonly groupsService: GroupsService) {}
 
   @Get()
+  @UseGuards(PublicReadThrottlerGuard)
   @ApiOperation({
     summary: 'Active public and closed groups, by name, at most 200',
   })
@@ -78,7 +84,7 @@ export class GroupsController {
   }
 
   @Get(':id')
-  @UseGuards(OptionalUserGuard)
+  @UseGuards(OptionalUserGuard, PublicReadThrottlerGuard)
   @ApiOperation({
     summary:
       'A group page, deactivated groups included; a signed-in viewer also gets their own membership',
@@ -96,7 +102,7 @@ export class GroupsController {
 
   @Post()
   // B-011: founding a group needs a verified e-mail
-  @UseGuards(VerifiedUserGuard)
+  @UseGuards(VerifiedUserGuard, CreateThrottlerGuard)
   @ApiCookieAuth()
   @ApiOperation({ summary: 'Found a group; the founder becomes its admin' })
   @ApiResponse({ status: 201, type: GroupDetailResponseDto })
@@ -124,7 +130,7 @@ export class GroupsController {
   }
 
   @Patch(':id')
-  @UseGuards(AuthenticatedUserGuard)
+  @UseGuards(AuthenticatedUserGuard, WriteThrottlerGuard)
   @ApiCookieAuth()
   @ApiOperation({ summary: 'Change a group; only its admins may' })
   @ApiResponse({ status: 200, type: GroupDetailResponseDto })
@@ -143,7 +149,7 @@ export class GroupsController {
   }
 
   @Put(':id/image')
-  @UseGuards(VerifiedUserGuard)
+  @UseGuards(VerifiedUserGuard, WriteThrottlerGuard)
   @ImageUpload()
   @ApiCookieAuth()
   @ApiOperation({
@@ -176,7 +182,7 @@ export class GroupsController {
   }
 
   @Delete(':id/image')
-  @UseGuards(VerifiedUserGuard)
+  @UseGuards(VerifiedUserGuard, WriteThrottlerGuard)
   @ApiCookieAuth()
   @ApiOperation({
     summary:
@@ -204,7 +210,7 @@ export class GroupsController {
   @HttpCode(200)
   // #236 (S-5): joining or asking to join needs a verified e-mail, like
   // founding a group; leaving and withdrawing a request don't
-  @UseGuards(VerifiedUserGuard)
+  @UseGuards(VerifiedUserGuard, WriteThrottlerGuard)
   @ApiCookieAuth()
   @ApiOperation({
     summary:
@@ -238,7 +244,7 @@ export class GroupsController {
 
   @Post(':id/leave')
   @HttpCode(204)
-  @UseGuards(AuthenticatedUserGuard)
+  @UseGuards(AuthenticatedUserGuard, WriteThrottlerGuard)
   @ApiCookieAuth()
   @ApiOperation({
     summary: 'Leave the group, or withdraw a pending request',
@@ -274,7 +280,7 @@ export class GroupsController {
 
   @Post(':id/requests/:userId/approve')
   @HttpCode(204)
-  @UseGuards(AuthenticatedUserGuard)
+  @UseGuards(AuthenticatedUserGuard, WriteThrottlerGuard)
   @ApiCookieAuth()
   @ApiOperation({
     summary: 'Approve a pending request; any admin of the group',
@@ -296,7 +302,7 @@ export class GroupsController {
 
   @Post(':id/requests/:userId/reject')
   @HttpCode(204)
-  @UseGuards(AuthenticatedUserGuard)
+  @UseGuards(AuthenticatedUserGuard, WriteThrottlerGuard)
   @ApiCookieAuth()
   @ApiOperation({
     summary:
@@ -341,7 +347,7 @@ export class GroupsController {
   }
 
   @Post(':id/announcements')
-  @UseGuards(AuthenticatedUserGuard)
+  @UseGuards(AuthenticatedUserGuard, WriteThrottlerGuard)
   @ApiCookieAuth()
   @ApiOperation({
     summary:
@@ -375,7 +381,7 @@ export class GroupsController {
 
   @Post(':id/deactivate')
   @HttpCode(204)
-  @UseGuards(AuthenticatedUserGuard)
+  @UseGuards(AuthenticatedUserGuard, WriteThrottlerGuard)
   @ApiCookieAuth()
   @ApiOperation({
     summary:

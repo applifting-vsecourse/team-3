@@ -268,6 +268,34 @@ describe('ensureUser', () => {
     expect(prisma.userInterest.createMany).not.toHaveBeenCalled();
   });
 
+  it.each([
+    ['the superadmin from an earlier start', 'superadmin'],
+    ['a regular account someone signed up with that e-mail', 'jana'],
+  ])(
+    '%s keeps its role and password, though the seed brings a new random password (#308, review #380)',
+    async (_who, username) => {
+      const { prisma, auth } = setup([
+        {
+          id: 'u1',
+          email: 'admin@hobbyhub.cz',
+          username,
+          password: 'vlastni-heslo-1',
+        },
+      ]);
+
+      const result = await ensureUser(prisma, auth, {
+        ...params,
+        password: 'nahodne-heslo-ze-seedu-1',
+      });
+
+      expect(result).toMatchObject({ created: false, user: { id: 'u1' } });
+      expect(auth.api.signUpEmail).not.toHaveBeenCalled();
+      expect(prisma.user.update).not.toHaveBeenCalled();
+      expect(prisma.account.updateMany).not.toHaveBeenCalled();
+      expect(prisma.session.deleteMany).not.toHaveBeenCalled();
+    },
+  );
+
   it('signs up with the trimmed, lower-cased e-mail and finishes the profile', async () => {
     const { prisma, auth } = setup([]);
 

@@ -303,11 +303,11 @@ Všechny tabulky kromě `user_interest` a číselníků mají navíc `createdAt`
 
 Podle planningu sprintu 4 (`docs/zapis-planning-sprint4.md`). Jen návrh týmu, tvar doladí issues a refinement 16. 11.; do schématu přijde s migrací v daném issue.
 
-| Co                       | Návrh                                                                                                                                                                                                           | Úkol        |
-| ------------------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------- |
-| Onboarding               | `User` dostane `onboardingCompletedAt` (datetime): `null` = průvodce `/vitej` se ještě má nabídnout. Nastaví se po dokončení i po „Teď ne“, aby se průvodce znovu nenabízel ani na jiném zařízení               | B-013, #296 |
-| Úprava akce superadminem | `ModerationActionType` nemá typ pro úpravu akce: doplnit `edit_event` (migrace), nebo zapisovat jen deaktivaci. Deaktivace už model má: `Event.status = hidden` a zásah `hide_event`                            | B-063, #308 |
-| Lokalita a adresa        | Zůstávají dvě nezávislé hodnoty: `localityId` (číselník, filtr a výpis) a `address` (text) s `lat` / `lng`. Formulář lokalitu odvodí z místa a jde upravit ručně (PR #295); co která znamená, rozhodne PO (Q14) | B-022, #303 |
+| Co                       | Návrh                                                                                                                                                                                                              | Úkol        |
+| ------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | ----------- |
+| Onboarding               | `User` dostane `onboardingCompletedAt` (datetime): `null` = průvodce `/vitej` se ještě má nabídnout. Nastaví se po dokončení i po „Teď ne“, aby se průvodce znovu nenabízel ani na jiném zařízení                  | B-013, #296 |
+| Úprava akce superadminem | Rozhodnuto v #308: do `ModerationAction` se zapisuje jen deaktivace (`hide_event`, obnovení vyplní `revertedAt`), úprava zatím ne, enum se nemění. Superadmin upravuje akci jako organizátor, se stejnými pravidly | B-063, #308 |
+| Lokalita a adresa        | Zůstávají dvě nezávislé hodnoty: `localityId` (číselník, filtr a výpis) a `address` (text) s `lat` / `lng`. Formulář lokalitu odvodí z místa a jde upravit ručně (PR #295); co která znamená, rozhodne PO (Q14)    | B-022, #303 |
 
 ## Pravidla, která hlídá aplikace, ne databáze
 

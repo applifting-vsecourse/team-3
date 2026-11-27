@@ -1,30 +1,30 @@
 import { useEffect } from "react"
 import { useQuery } from "@tanstack/react-query"
-import { createFileRoute, Link, useLocation, useNavigate } from "@tanstack/react-router"
+import { createFileRoute, useLocation, useNavigate } from "@tanstack/react-router"
 import { toast } from "sonner"
 
 import { AppHeader } from "@/app/AppHeader"
 import { ROUTES } from "@/app/routes"
 import { BackLink } from "@/components/BackLink/BackLink"
 import { Seo } from "@/components/Seo"
-import { Button } from "@/components/ui/button"
 import { PAGE } from "@/lib/pageLayout"
 import { cn } from "@/lib/utils"
 
 import { useSession } from "@/features/auth/hooks/useSession"
 import { redirectFrom } from "@/features/auth/lib/redirect"
-import { CancelEventDialog } from "@/features/events/components/CancelEventDialog"
+import { EventActions } from "@/features/events/components/EventActions"
 import { EventDetailView, EVENTS_BACK } from "@/features/events/components/EventDetailView"
 import { EventMessages } from "@/features/events/components/EventMessages"
 import { ParticipationAction } from "@/features/events/components/ParticipationAction"
 import { useCancelEvent } from "@/features/events/hooks/useCancelEvent"
 import { useEventDetail } from "@/features/events/hooks/useEventDetail"
+import { useHideEvent, useUnhideEvent } from "@/features/events/hooks/useModerateEvent"
 import { useJoinEvent, useLeaveEvent } from "@/features/events/hooks/useParticipation"
 import { useRefreshExpiredSession } from "@/features/events/hooks/useRefreshExpiredSession"
-import { editRefusal } from "@/features/events/lib/editRefusal"
+import { isOutsideGroup } from "@/features/events/lib/outsideGroup"
 import { groupQueryOptions } from "@/features/groups/api/groupsQueryOptions"
 import { GroupOrganizer } from "@/features/groups/components/GroupOrganizer"
-import { MembersOnlyEvent } from "@/features/groups/components/MembersOnlyEvent"
+import { MembersOnlyEvent, MembersOnlyJoin } from "@/features/groups/components/MembersOnlyEvent"
 
 // `akce_`: not nested in /akce, whose page has no outlet. Public on purpose:
 // a shared link opens straight on the detail, without signing in (US-03).
@@ -45,13 +45,18 @@ function EventDetailPage() {
     ...groupQueryOptions(groupId ?? "", viewerId),
     enabled: groupId !== undefined,
   })
+  // the superadmin outside the group of a members-only event (#308): the way
+  // into the group instead of „Přijdu“, which the API refuses (review #380)
+  const isViewerOutsideGroup =
+    event !== undefined && isOutsideGroup(event, viewerId, organizerGroup?.viewerMembership)
   const location = useLocation()
   const join = useJoinEvent(eventId, session.user?.id ?? "")
   const leave = useLeaveEvent(eventId, session.user?.id ?? "")
   const signInFrom = redirectFrom(location)
   const cancelEvent = useCancelEvent(eventId, session.user?.id ?? "")
-  // who manages it (organizer, group admin), and only while it can still be edited or cancelled
-  const canManage = event !== undefined && editRefusal(event) === null
+  // the superadmin's interventions (#308)
+  const hideEvent = useHideEvent(eventId, session.user?.id ?? "")
+  const unhideEvent = useUnhideEvent(eventId, session.user?.id ?? "")
 
   useRefreshExpiredSession(viewerId, event)
 
@@ -73,7 +78,7 @@ function EventDetailPage() {
 
   return (
     <>
-      <Seo title={event?.title ?? (isNotFound ? "Akce nenalezena" : "Akce")} />
+      <Seo title={event?.title ?? (isNotFound ? "Akce není dostupná" : "Akce")} />
       <AppHeader />
       <main className="flex-1">
         {membersOnlyGroupId ? (
@@ -94,7 +99,8 @@ function EventDetailPage() {
             messages={
               // the organizer's messages go to whoever got the names of who is coming;
               // the API decides both (#174, #176)
-              event?.participants && viewerId ? (
+              // a deactivated event has none to read: its messages are 404, also to the superadmin (#308)
+              event?.participants && viewerId && event.status !== "hidden" ? (
                 <EventMessages
                   eventId={eventId}
                   viewerId={viewerId}
@@ -113,6 +119,17 @@ function EventDetailPage() {
                   viewer={session.user ? { id: session.user.id } : null}
                   signInFrom={signInFrom}
                   isPending={join.isPending || leave.isPending}
+                  outsideGroup={
+                    isViewerOutsideGroup ? (
+                      organizerGroup ? (
+                        <MembersOnlyJoin
+                          group={organizerGroup}
+                          viewerId={viewerId}
+                          signInFrom={signInFrom}
+                        />
+                      ) : null
+                    ) : undefined
+                  }
                   onJoin={(message) =>
                     join.mutateAsync(message).then(
                       (updated) => {
@@ -148,32 +165,36 @@ function EventDetailPage() {
               ) : null
             }
             organizerActions={
-              canManage ? (
-                <div className="flex flex-wrap gap-3">
-                  <Button
-                    asChild
-                    variant="outline"
-                  >
-                    <Link
-                      to={ROUTES.editEvent}
-                      params={{ eventId }}
-                    >
-                      Upravit
-                    </Link>
-                  </Button>
-                  <CancelEventDialog
-                    isPending={cancelEvent.isPending}
-                    onCancel={(reason) =>
-                      cancelEvent.mutateAsync(reason).then(
-                        () => toast.success("Akce je zrušená."),
-                        (cancelError: Error) => {
-                          toast.error(cancelError.message)
-                          throw cancelError
-                        },
-                      )
-                    }
-                  />
-                </div>
+              event ? (
+                <EventActions
+                  event={event}
+                  isCancelling={cancelEvent.isPending}
+                  onCancel={(reason) =>
+                    cancelEvent.mutateAsync(reason).then(
+                      () => toast.success("Akce je zrušená."),
+                      (cancelError: Error) => {
+                        toast.error(cancelError.message)
+                        throw cancelError
+                      },
+                    )
+                  }
+                  isModerating={hideEvent.isPending || unhideEvent.isPending}
+                  onHide={(reason) =>
+                    hideEvent.mutateAsync(reason).then(
+                      () => toast.success("Akce je deaktivovaná."),
+                      (hideError: Error) => {
+                        toast.error(hideError.message)
+                        throw hideError
+                      },
+                    )
+                  }
+                  onUnhide={() =>
+                    unhideEvent.mutate(undefined, {
+                      onSuccess: () => toast.success("Akce je zase zveřejněná."),
+                      onError: (unhideError) => toast.error(unhideError.message),
+                    })
+                  }
+                />
               ) : null
             }
           />

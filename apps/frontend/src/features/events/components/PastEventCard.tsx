@@ -36,7 +36,7 @@ type PastEventCardProps = {
     // required, so no caller forgets it: above 0 it didn't take place, „Nekonalo se“ (#61,
     // review #323 — the public profile once sent none and said „Proběhlo“)
     | "missingToMin"
-  > & { status?: "published" | "cancelled" }
+  > & { status?: "published" | "cancelled" | "hidden" }
   /** Ignored for a cancelled event or one that didn't take place. */
   rating?: PastRating
   /** After how many came, e.g. the event's rating on a public profile: „★ 4,5 (3 hodnocení)“ (#179). */
