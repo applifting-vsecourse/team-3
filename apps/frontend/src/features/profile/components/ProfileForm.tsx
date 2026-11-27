@@ -39,6 +39,8 @@ const FIELD_OF_ERROR: Record<string, keyof ProfileInput> = {
 export type InterestChoice = {
   categories: ActivityCategory[]
   selected: string[]
+  /** While the profile saves. */
+  isDisabled: boolean
   onToggle: (activity: Activity) => void
 }
 
@@ -196,10 +198,22 @@ export function ProfileForm({
               ) : (
                 <p className="text-sm text-muted-foreground">Vyber aktivity, které tě zajímají.</p>
               )}
-              {/* PO 26. 11.: the same choice by category and activity as in the onboarding */}
+              {/* a pick over the limit does nothing, so say why — here by the picked ones, not under
+                  a picker several screens long (review #419) */}
+              {field.value.length >= MAX_INTERESTS ? (
+                <p
+                  role="status"
+                  className="text-sm text-muted-foreground"
+                >
+                  Víc než {MAX_INTERESTS} zájmů vybrat nejde. Některý odeber a pak přidej jiný.
+                </p>
+              ) : null}
+              {/* PO 26. 11.: the same choice by category and activity as in the onboarding;
+                  locked while saving, so no pick is lost when the saved profile comes back */}
               {interestChoice({
                 categories,
                 selected: field.value,
+                isDisabled: save.isPending,
                 onToggle: (activity) =>
                   field.onChange(
                     field.value.includes(activity.id)
@@ -209,15 +223,6 @@ export function ProfileForm({
                         : field.value,
                   ),
               })}
-              {/* a pick over the limit does nothing, so say why */}
-              {field.value.length >= MAX_INTERESTS ? (
-                <p
-                  role="status"
-                  className="text-sm text-muted-foreground"
-                >
-                  Víc než {MAX_INTERESTS} zájmů vybrat nejde. Některý odeber a pak přidej jiný.
-                </p>
-              ) : null}
               <FormMessage />
             </FormItem>
           )}
