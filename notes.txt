@@ -1,0 +1,11 @@
+416: desktop zoom {"label":"Přiblížit","w":40,"h":40}
+425: desktop create without max: 201 {"id":"cmwzl74570008mfjvbndhimjs","title":"Grilovačka bez limitu desktop","startsAt":"2026-12-02T23:02:44.971Z","endsAt":null,"address":"Letenská pláň, Praha 7"
+416: telefon zoom {"label":"Přiblížit","w":40,"h":40}
+425: telefon create without max: 201 {"id":"cmwzl8qiq0009mfjvzgy22dt9","title":"Grilovačka bez limitu telefon","startsAt":"2026-12-02T23:04:00.406Z","endsAt":null,"address":"Letenská pláň, Praha 7"
+421: 320: {"btn":[180,60,124,40],"h1":[60,64,71,33],"titleOverButton":false,"ringBoxesOverButton":0,"scrollW":320,"clientW":320}
+421: 360: {"btn":[220,60,124,40],"h1":[60,64,71,33],"titleOverButton":false,"ringBoxesOverButton":1,"scrollW":360,"clientW":360}
+421: 390: {"btn":[250,60,124,40],"h1":[60,64,71,33],"titleOverButton":false,"ringBoxesOverButton":1,"scrollW":390,"clientW":390}
+421: 1280: {"btn":[1116,98,124,44],"h1":[96,96,110,48],"titleOverButton":false,"ringBoxesOverButton":0,"scrollW":1280,"clientW":1280}
+421: 1440: {"btn":[1196,98,124,44],"h1":[176,96,110,48],"titleOverButton":false,"ringBoxesOverButton":0,"scrollW":1440,"clientW":1440}
+443: 390: joined=true {"toast":[560,613],"nav":[780,844],"bar":[625,780],"innerH":844}
+443: 700: joined=true {"toast":[560,613],"nav":[780,844],"bar":[625,780],"innerH":844}
