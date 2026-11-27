@@ -337,6 +337,15 @@
   html {
     overflow-y: scroll;
   }
+  /* PO 26. 11. (#447, video): on a Mac, Chrome bounces the page past its end (the trackpad's
+     elastic overscroll) and afterwards the sticky header disappeared for a few seconds while the
+     page stood still. Desktop pages don't bounce: no overscroll there. Phones keep it — pulling
+     down to refresh is the bounce. To be confirmed on a Mac (nobody in the team has one). */
+  @media (min-width: 768px) {
+    html {
+      overscroll-behavior-y: none;
+    }
+  }
   /* A Radix dialog, menu or select locks the page (react-remove-scroll-bar): it hides the body's
      overflow and pads the body by the scrollbar's width so nothing moves. With html scrolling
      itself the scrollbar stays, so that padding would only narrow the page and move the header
