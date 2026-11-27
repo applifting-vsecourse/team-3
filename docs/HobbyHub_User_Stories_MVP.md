@@ -241,10 +241,9 @@ Každá role umí i všechno, co přihlášený uživatel. Správce skupiny ří
 
 **Jako** uživatel **chci** vidět, co mi placený tarif odemkne, a zkusit si ho „zaplatit“, **abych** věděl, za co platím.
 
-- [ ] Stránka tarifů ukazuje, co který tarif odemyká a za kolik.
-- [ ] Zamčená funkce ukáže, který tarif ji odemkne, s odkazem na tarify. Za paywallem: akce jen pro členy ve skupinách, Najdi parťáka, propagace a topování akce.
-- [ ] Platba je simulovaná, bez platební brány: formulář na číslo karty, platnost a CVC (nic se neukládá) a animace, že platba proběhla; pak se funkce odemkne.
-- [ ] Do kdy tarif platí, vidím v Můj profil.
+- [ ] [návrh] Stránka tarifů s výčtem, co který tarif odemyká.
+- [ ] Zamčená funkce ukáže, který tarif ji odemkne, s odkazem na tarify. Za paywall navrhujeme: privátní akce ve skupinách, hledání parťáka, propagaci a topování akce.
+- [ ] Platba je simulovaná: formulář na číslo karty, platnost a CVC (nic se neukládá) a animace, že platba proběhla; pak se funkce odemkne.
 - [ ] Paywall platí jen pro nově založené: akce jen pro členy, které skupiny založily dřív, zůstanou.
 
 Evidence docházky (původně součást předplatného organizátora) je odložená.
@@ -257,10 +256,9 @@ Evidence docházky (původně součást předplatného organizátora) je odlože
 
 **Jako** organizátor akce, které chybí lidé, **chci** akci topovat nebo propagovat, **aby** ji vidělo víc lidí.
 
-- [ ] Ve správě akce je „Topovat akci“, odemyká ho tarif (US-14); topování platí do konání akce.
-- [ ] Topovaná akce je nahoře v seznamu a v sekcích úvodní stránky, odlišená na mapě, vždy se štítkem „Topováno“, který nepůsobí jako reklama.
+- [ ] Topování (vyšší pozice v seznamu) a propagace (zobrazení relevantním uživatelům) jsou za paywallem (US-14).
+- [ ] Topovaná akce je nahoře v seznamu a odlišená na mapě, vždy se štítkem „Topováno“, který nepůsobí jako reklama.
 - [ ] Topování skončí začátkem nebo zrušením akce.
-- [ ] Propagovanou akci uvidí uživatelé se zájmem o její aktivitu v okolí; je označená stejně.
 
 ---
 
@@ -380,7 +378,7 @@ Evidence docházky (původně součást předplatného organizátora) je odlože
 
 **Jako** hledající **chci** u detailu akce vidět podobné akce, **abych** našel alternativu, když mi tahle nevyhovuje.
 
-- [ ] Detail akce má sekci „Podobné akce“ se stejnou aktivitou nebo kategorií, seřazenou podle vzdálenosti.
+- [ ] Detail akce má sekci „Podobné akce“ s nadcházejícími akcemi stejné aktivity, seřazenými podle vzdálenosti (kritéria v #351).
 
 ---
 
@@ -390,7 +388,8 @@ Evidence docházky (původně součást předplatného organizátora) je odlože
 
 **Jako** uživatel **chci** procházet lidi v okolí s podobnými zájmy, **abych** našel parťáka na koníček.
 
-- [ ] Procházím lidi swipem ve stylu Tinderu; nabídka bere v úvahu zájmy, vzdálenost a společně navštívené akce.
+- [ ] Vidím lidi v dosahu s podobnými aktivitami a procházím je swipem ve stylu Tinderu.
+- [ ] [návrh] Výběr počítá i se společně navštívenými akcemi.
 - [ ] Funkce je za paywallem (US-14).
 
 ---
@@ -399,9 +398,9 @@ Evidence docházky (původně součást předplatného organizátora) je odlože
 
 `epic: účet` `epic: důvěra` `priorita: MVP` `role: uživatel` · #346, B-093
 
-**Jako** uživatel **chci**, aby mé celé jméno viděli jen lidé, se kterými mám co dělat, **abych** nebyl veřejně dohledatelný.
+**Jako** uživatel **chci**, aby mé celé jméno viděli jen lidé, se kterými mám co dělat (PO 16. 11.: anonymizace).
 
-- [ ] Přezdívku vidí všichni; celé jméno jen organizátor akce, na kterou jdu, správce mé skupiny a přátelé.
+- [ ] Přezdívku vidí všichni; celé jméno jen organizátor akce, na kterou jsem se přihlásil, správce skupiny, ve které jsem, a přátelé.
 
 ---
 
@@ -409,9 +408,9 @@ Evidence docházky (původně součást předplatného organizátora) je odlože
 
 `epic: účet` `priorita: MVP` `role: uživatel` · #406, B-094
 
-**Jako** uživatel **chci** pozvat kamaráda vlastním odkazem, **abychom** spolu mohli chodit na akce.
+**Jako** uživatel **chci** pozvat kamaráda do HobbyHubu vlastním odkazem, **abychom** se po jeho registraci rovnou propojili a mohli spolu chodit na akce.
 
-- [ ] Kamarád po registraci přes můj odkaz vidí „{jméno} tě zve“ a jsme hned přátelé.
+- [ ] [návrh] Kamarád při registraci vidí, kdo ho zve, a v onboardingu si mě může přidat do přátel. Kritéria jsou v #406.
 
 ---
 
@@ -419,6 +418,6 @@ Evidence docházky (původně součást předplatného organizátora) je odlože
 
 `epic: skupiny` `priorita: MVP` `role: správce skupiny` · #352, B-095
 
-**Jako** správce skupiny **chci** poslat pozvánku odkazem, **aby** pozvaný nemusel čekat na schválení.
+**Jako** správce skupiny **chci** poslat odkaz s pozvánkou do skupiny, **aby** pozvaný nemusel čekat na schválení.
 
-- [ ] Kdo přijde přes pozvánku od správce, je ve skupině hned.
+- [ ] Kdo přijde přes pozvánku od správce, nemusí čekat na schválení.

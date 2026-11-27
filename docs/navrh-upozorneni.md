@@ -37,7 +37,7 @@ Planning sprintu 4 (`zapis-planning-sprint4.md`): notifikační centrum v aplika
 | Nové hodnocení akce (#432)             | organizátor                  | `Tvoje akce {akce} má nové hodnocení.`                                                    | správa akce          | – (jen v centru)                                                 |
 | Nové hodnocení od organizátora (#432)  | hodnocený účastník           | `Máš nové hodnocení od organizátora akce {akce}.`                                         | profil               | – (jen v centru)                                                 |
 
-Výsledek žádosti o vstup do skupiny v zadání #86 není, je to protějšek schválení a zamítnutí přihlášky na akci. Odmítnutí a odebrání z přátel zůstávají tichá (#307). U hodnocení (#432, PR #433) přijde upozornění jen k prvnímu hodnocení, ne k jeho úpravě, a e-mail k němu nechodí.
+Výsledek žádosti o vstup do skupiny v zadání #86 není, je to protějšek schválení a zamítnutí přihlášky na akci. Odmítnutí a odebrání z přátel zůstávají tichá (#307). U hodnocení (#432, platí po merge PR #433) přijde upozornění jen k prvnímu hodnocení, ne k jeho úpravě, a e-mail k němu nechodí.
 
 **Mimo #86:** upozornění na novou akci skupiny (#362), na obdržené hodnocení řeší #432 (v tabulce výše). Plánované e-maily (výzva k hodnocení #65) chodí jen e-mailem, do centra nepatří. Odebrání účastníka organizátorem (`removed`) neoznamuje ani e-mail. Podle zadání mimo rozsah: push notifikace, obecné nastavení upozornění, akce v okolí (#74).
 

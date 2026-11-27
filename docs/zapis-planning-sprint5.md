@@ -1,6 +1,6 @@
 # HobbyHub – zápis z planningu sprintu 5
 
-**Kdy:** 25. 11. 2026, online (standup s PO) · **Kdo:** Jan Černý (product owner), Martin Bartoň, Eliška Hřebíčková, Adéla Mitrová, Veronika Seyfriedová · **Sprint 5:** 24. 11. – 7. 12. 2026, předposlední sprint
+**Kdy:** 25. 11. 2026 · **Sprint 5:** 24. 11. – 7. 12. 2026, předposlední sprint
 
 ## Cíl sprintu 5
 
