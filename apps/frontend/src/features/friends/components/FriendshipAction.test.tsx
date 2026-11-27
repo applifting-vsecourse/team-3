@@ -109,6 +109,8 @@ describe("FriendshipAction (Figma B-07 · Stavy tlačítka přátelství, #307)"
       ),
     ).toBeInTheDocument()
     await userEvent.click(within(dialog).getByRole("button", { name: "Zpět" }))
+    // back on the button the menu came from, not lost on <body> (review #429)
+    await waitFor(() => expect(screen.getByRole("button", { name: "Přátelé" })).toHaveFocus())
     expect(api.delete).not.toHaveBeenCalled()
 
     await userEvent.click(screen.getByRole("button", { name: "Přátelé" }))

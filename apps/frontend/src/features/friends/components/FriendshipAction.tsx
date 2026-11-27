@@ -1,4 +1,4 @@
-import { useState, type ComponentProps } from "react"
+import { useRef, useState, type ComponentProps } from "react"
 import { Link } from "@tanstack/react-router"
 import { Check, ChevronDown, Info, Loader2, UserCheck, UserMinus, UserPlus, X } from "lucide-react"
 import { toast } from "sonner"
@@ -41,8 +41,8 @@ const showError = (error: Error) => toast.error(error.message)
 
 /**
  * The one block under a profile's name by the viewer's relation (Figma B-07 · Stavy tlačítka
- * přátelství, #307), laid out like the group's button (A-08): a notice and a button. One request
- * per pair: when they already ask me, „Přidat do přátel“ isn't offered, „Přijmout žádost“ is. A
+ * přátelství, #307): a request's notice with its buttons, and between friends one quiet
+ * „Přátelé ▾“ with removing in its menu (PO 26. 11., #428). One request per pair: when they already ask me, „Přidat do přátel“ isn't offered, „Přijmout žádost“ is. A
  * rejection is silent; removing a friend asks first (B-07h).
  */
 export function FriendshipAction({
@@ -171,7 +171,10 @@ export function FriendshipAction({
   )
 }
 
-/** „Odebrat z přátel“, confirmed first (Figma B-07h), so a stray tap doesn't drop a friend. */
+/**
+ * „Přátelé ▾“ and in its menu „Odebrat z přátel“, confirmed first (Figma B-07h), so a stray tap
+ * doesn't drop a friend.
+ */
 function RemoveFriendButton({
   name,
   isPending,
@@ -182,6 +185,9 @@ function RemoveFriendButton({
   onConfirm: () => void
 }) {
   const [isOpen, setIsOpen] = useState(false)
+  // the dialog opens from the menu, whose item is gone by then: back to „Přátelé ▾“ on close,
+  // not to <body>, so a keyboard or screen reader user keeps their place (review #429)
+  const trigger = useRef<HTMLButtonElement>(null)
   // PO 26. 11. („Jste přátelé a Odebrat z přátel takhle fakt není moc pěkné“): one quiet
   // button that says the state, removing tucked in its menu, still confirmed in the dialog
   return (
@@ -192,6 +198,7 @@ function RemoveFriendButton({
       <DropdownMenu>
         <DropdownMenuTrigger asChild>
           <Button
+            ref={trigger}
             variant="outline"
             size="lg"
             className="h-11 w-full"
@@ -212,7 +219,12 @@ function RemoveFriendButton({
           </DropdownMenuItem>
         </DropdownMenuContent>
       </DropdownMenu>
-      <DialogContent>
+      <DialogContent
+        onCloseAutoFocus={(event) => {
+          event.preventDefault()
+          trigger.current?.focus()
+        }}
+      >
         <DialogHeader>
           <DialogTitle>Odebrat z přátel?</DialogTitle>
           <DialogDescription>
