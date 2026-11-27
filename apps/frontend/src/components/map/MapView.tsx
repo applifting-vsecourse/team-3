@@ -19,6 +19,7 @@ import { cn } from "@/lib/utils"
 
 import { CLUSTER_SIZE, clusterHtml, PIN_BOX, pinHtml, type PinVariant } from "./mapPin"
 import { PinClusters } from "./pinClusters"
+import { StopZoomOnUnmount } from "./StopZoomOnUnmount"
 import { createUserMoveTracker } from "./userMoveTracker"
 
 export type MapPinData = {
@@ -147,6 +148,8 @@ export function MapView({
       >
         <AttributionControl position="bottomright" />
         {hasZoomControl && !isStatic ? <ZoomControl position="bottomright" /> : null}
+        {/* leaving the page mid-zoom must not throw (Leaflet 1.9) */}
+        <StopZoomOnUnmount />
         <TileLayer
           attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
           url="https://tile.openstreetmap.org/{z}/{x}/{y}.png"
