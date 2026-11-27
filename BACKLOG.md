@@ -1,6 +1,6 @@
 # HobbyHub – Backlog pro agenta (MVP)
 
-Zdroj: `HobbyHub_User_Stories_MVP.md` (US-01 až US-19 odvozené z Feature breakdownu v3.4 po FB1 s PO, US-20 až US-22 z planningu sprintu 4) a technické features z epicu _Technický základ_ (F-59 až F-67). Backlog rozkládá user stories na úkoly velikosti jednoho pull requestu, seřazené tak, aby agent mohl brát jeden po druhém shora.
+Zdroj: `HobbyHub_User_Stories_MVP.md` (US-01 až US-19 odvozené z Feature breakdownu v3.4 po FB1 s PO, US-20 až US-22 z planningu sprintu 4, US-23 až US-28 z planningu sprintu 5) a technické features z epicu _Technický základ_ (F-59 až F-67). Backlog rozkládá user stories na úkoly velikosti jednoho pull requestu, seřazené tak, aby agent mohl brát jeden po druhém shora.
 
 ---
 
@@ -8,7 +8,7 @@ Zdroj: `HobbyHub_User_Stories_MVP.md` (US-01 až US-19 odvozené z Feature break
 
 1. **Ber úkoly v pořadí.** Úkol začni, jen když jsou hotové všechny úkoly v řádku _Závisí na_.
 2. **Jeden úkol = jeden PR.** Název PR: `B-0XX: <název úkolu>`. Do popisu dej odkaz na US.
-3. **Před prací přečti** `CLAUDE.md` a `DESIGN.md`. DESIGN.md je závazný (tokeny, žádné vnořené karty, tři stavy seznamu).
+3. **Před prací přečti** `AGENTS.md` a `DESIGN.md`. DESIGN.md je závazný (tokeny, žádné vnořené karty, tři stavy seznamu).
 4. **Kopíruj vzor feature akcí (`event`, #38):** Prisma model → seed → repository → service → controller s DTO → zod schéma na FE → TanStack Query → stránka. Backend v `apps/backend/src/modules/<feature>/`, frontend v `apps/frontend/src/features/<feature>/`.
 5. **UI ovládací prvky jen z kitu** (`pnpm dlx shadcn@latest add <name>`), bez stínů na kartách a inputech.
 6. **Validace vždy na FE i BE.** Oprávnění kontroluj na backendu (organizátor smí jen svou akci, správce jen svou skupinu, admin jen role `admin`).
@@ -78,10 +78,11 @@ Zdroj: `HobbyHub_User_Stories_MVP.md` (US-01 až US-19 odvozené z Feature break
 | B-062                          | Administrace – přístup a fronta nahlášení                     | US-19               | FS     | M    | B-061               |
 | B-063                          | Zásahy superadmina a jejich historie                          | US-19               | FS     | M    | B-062               |
 | **Fáze 7 – Monetizace**        |                                                               |                     |        |      |                     |
-| B-070                          | Simulovaná platba a potvrzení adminem                         | US-14, US-15        | FS     | M    | B-062               |
-| B-071                          | Předplatné organizátora                                       | US-14               | FS     | M    | B-070               |
-| B-072                          | Evidence docházky                                             | US-14               | FS     | M    | B-071, B-034        |
-| B-073                          | Topování akce                                                 | US-15               | FS     | M    | B-070, B-025        |
+| B-070                          | Tarify a simulovaná platba kartou                             | US-14               | FS     | –    | –                   |
+| B-071                          | Paywall placených funkcí                                      | US-14               | FS     | –    | B-070               |
+| B-072                          | Evidence docházky (odloženo)                                  | –                   | FS     | M    | B-071, B-034        |
+| B-073                          | Topování akce                                                 | US-15               | FS     | M    | B-071, B-025        |
+| B-074                          | Propagace akce                                                | US-15               | FS     | –    | B-071               |
 | **Fáze 8 – Dokončení**         |                                                               |                     |        |      |                     |
 | B-080                          | Export dat a smazání účtu                                     | US-05               | FS     | M    | B-060, B-055        |
 | B-081                          | Právní stránky a souhlasy                                     | F-65                | FE     | S    | B-010               |
@@ -89,6 +90,14 @@ Zdroj: `HobbyHub_User_Stories_MVP.md` (US-01 až US-19 odvozené z Feature break
 | B-083                          | Smoke test klíčových scénářů                                  | F-61                | FS     | M    | B-073               |
 | B-084                          | Monitoring, logy a zálohy                                     | F-62, F-63          | BE     | S    | –                   |
 | B-085                          | Odstranění vzorové quack feature                              | –                   | FS     | S    | B-024               |
+| **Fáze 9 – Objevování a lidé** |                                                               |                     |        |      |                     |
+| B-090                          | Oblíbené akce                                                 | US-23               | FS     | –    | –                   |
+| B-091                          | Podobné akce na detailu akce                                  | US-24               | FS     | –    | –                   |
+| B-092                          | Najdi parťáka (swipe)                                         | US-25               | FS     | –    | –                   |
+| B-093                          | Přezdívka a celé jméno                                        | US-26               | FS     | –    | –                   |
+| B-094                          | Pozvánka do aplikace od kamaráda                              | US-27               | FS     | –    | –                   |
+| B-095                          | Pozvánka do skupiny odkazem                                   | US-28               | FS     | –    | –                   |
+| B-096                          | Skupiny podle místa                                           | US-16               | FS     | –    | –                   |
 
 Staging a CI/CD (F-59, F-60) už v repu jsou (`.github/workflows/ci.yml`, `deploy.yml`). Pokud agent změní build, nesmí je rozbít.
 
@@ -335,7 +344,7 @@ Staging a CI/CD (F-59, F-60) už v repu jsou (`.github/workflows/ci.yml`, `deplo
 Prisma model `Event`:
 
 - `title`, `description?`, `activityId`, `startsAt`, `endsAt?`, `lat`, `lng`, `address`, `localityId`
-- `minParticipants`, `maxParticipants`, `price?` (Kč, celé číslo), `level?` (začátečník / pokročilý / všichni), `equipment?`
+- `minParticipants`, `maxParticipants?` (prázdné = bez omezení, PO 26. 11., #424), `price?` (Kč, celé číslo), `level?` (začátečník / pokročilý / všichni), `equipment?`
 - `approvalMode` (`open` výchozí / `approval`), `visibility` (`public` / `private` / `members`)
 - `organizerUserId` (zakladatel), `groupId?` (akce skupiny, B-055)
 - `status` (`published` / `cancelled` / `hidden` / `deleted`), `cancelReason?`, `cancelledAt?`
@@ -354,7 +363,7 @@ Doménová logika (čistá funkce + testy): `approvedCount`, `missingToMin = max
 `US-11` · BE · M · závisí na: B-020, B-011
 
 - `POST /api/events` za `VerifiedUserGuard`. Organizátor = přihlášený uživatel (ze session, ne z těla požadavku).
-- Validace DTO: povinné název, aktivita, místo, začátek, min, max, způsob přihlašování; `min ≥ 1`, `max ≥ min`, `startsAt` v budoucnosti.
+- Validace DTO: povinné název, aktivita, místo, začátek, min, způsob přihlašování; max je nepovinné (#424); `min ≥ 1`, vyplněné `max ≥ min`, `startsAt` v budoucnosti.
 - Počet aktivních akcí není omezený.
 - Odpověď obsahuje `shareUrl` (absolutní URL detailu na FE).
 
@@ -830,6 +839,8 @@ Doménová logika (čistá funkce + testy): `approvedCount`, `missingToMin = max
 
 `US-10` · FS · S · závisí na: B-060, B-052
 
+> Sprint 5 (#67).
+
 - Model `Report`: `targetType` (`user` / `event` / `group` / `rating` / `participant_rating`), `targetId`, `reason` (`spam` / `fraud` / `inappropriate` / `other`), `comment?`, `reporterId`, `status` (`open` / `rejected` / `resolved`).
 - `POST /api/reports` jen přihlášený. Nahlášení samo nic neskryje. Nahlášený se nedozví, kdo ho nahlásil (`reporterId` nikdy nejde ven mimo admin API).
 - FE: „Nahlásit“ (menu ⋯) u akce, profilu, skupiny a hodnocení, dialog s důvodem.
@@ -840,6 +851,8 @@ Doménová logika (čistá funkce + testy): `approvedCount`, `missingToMin = max
 ### B-062 Administrace – přístup a fronta nahlášení
 
 `US-19` · FS · M · závisí na: B-061
+
+> Sprint 5 (#71, #353).
 
 - `AdminGuard` (role `admin`) na všech `/api/admin/*`.
 - `GET /api/admin/reports` – seskupené podle cíle: typ, důvody, komentáře, počet nahlášení, odkaz na obsah.
@@ -856,6 +869,8 @@ Doménová logika (čistá funkce + testy): `approvedCount`, `missingToMin = max
 `US-19` · FS · M · závisí na: B-062
 
 > Sprint 4 (PO 10. 11., P2): první nástřel bez fronty nahlášení (B-062 mimo scope). Z B-062 se vezme jen `AdminGuard`; admin upraví nebo deaktivuje jakoukoli akci přímo z jejího detailu. Deaktivace není zrušení: akci skryje (`status = hidden`, zmizí z výpisu, mapy i úvodní stránky, detail řekne, že akce není dostupná – API 404, B-026 a jde vrátit, zrušení (B-028) posílá e-mail účastníkům a vrátit nejde. Deaktivace se zapíše do historie (`ModerationAction`, `hide_event`); pro úpravu akce superadminem typ zásahu zatím chybí. Blokace uživatelů je volitelný bonus; zbytek B-063 až s B-062.
+>
+> Sprint 5: sekce Správa v menu a blokace uživatele (#440), vyřízení nahlášení (#71).
 
 - Nahlášení zamítnout, nebo schválit se zásahem a povinným důvodem:
   - **zablokovat uživatele** → nepřihlásí se, jeho nadcházející akce se zruší s e-mailem přihlášeným
@@ -871,60 +886,57 @@ Doménová logika (čistá funkce + testy): `approvedCount`, `missingToMin = max
 
 # Fáze 7 – Monetizace
 
-### B-070 Simulovaná platba a potvrzení adminem
+> Planning sprintu 5 (25. 11.): monetizace podle #354 místo původního předplatného organizátora a platby potvrzované adminem. Evidence docházky je odložená. Velikost a závislosti nových úkolů doplní tým.
 
-`US-14, US-15` · FS · M · závisí na: B-062
+### B-070 Tarify a simulovaná platba kartou
 
-- Model `Payment`: `userId`, `type` (`subscription` / `promotion`), `eventId?`, `amount` (Kč), `status` (`pending` / `confirmed` / `rejected`), `confirmedBy?`, `confirmedAt?`.
-- Tok bez platební brány: obrazovka platby (souhrn, částka, „Zaplatit“) → potvrzovací obrazovka „Čeká na potvrzení“ → admin v `/admin/platby` potvrdí → nastaví se „zaplaceno“.
-- Platbu nikdy neodemyká klient, jen admin potvrzení na backendu.
+`US-14` · FS · závisí na: – · #354
 
-**Mimo rozsah:** skutečná platební brána, faktury.
+- [návrh] Stránka tarifů s výčtem, co který tarif odemyká.
+- Platba je simulovaná: formulář na číslo karty, platnost a CVC (nic se neukládá) a animace, že platba proběhla; pak se funkce odemkne.
+- Odemčení hlídá backend, testy.
+- [návrh] Volba měsíčního nebo ročního tarifu; do kdy platí, je vidět v Můj profil. Po „zaplacení“ přijde potvrzovací e-mail. K tarifům se dostanu ze zamčené funkce a z úvodní stránky.
 
----
-
-### B-071 Předplatné organizátora
-
-`US-14` · FS · M · závisí na: B-070
-
-- Model `Subscription`: `userId`, `validUntil`. Potvrzení platby `subscription` (149 Kč) prodlouží platnost o měsíc.
-- Stránka `/predplatne`: výhody (evidence docházky), cena 149 Kč měsíčně, stav a platnost.
-- Předplatné správce skupiny platí i pro akce jeho skupiny (`hasAttendanceAccess(user, event)`).
-
-**Hotovo, když:**
-
-- [ ] Testy `hasAttendanceAccess` pro vlastní akci, akci skupiny a prošlé předplatné.
+**Mimo rozsah:** skutečná platební brána.
 
 ---
 
-### B-072 Evidence docházky
+### B-071 Paywall placených funkcí
 
-`US-14` · FS · M · závisí na: B-071, B-034
+`US-14` · FS · závisí na: B-070 · #354
 
-- Ve správě akce záložka **Docházka**: bez předplatného zamčená s odkazem na `/predplatne`.
-- S předplatným: od začátku akce do 7 dnů po ní odškrtávání „Přišel“ u schválených (`attendedAt`). Ovládání pohodlné na mobilu i tabletu.
-- U žadatele na moje další akce zobraz „Na vaše akce přišel X×“.
-- Po vypršení předplatného se docházka zamkne, uložená data zůstanou.
+- Za paywall navrhujeme (planning sprintu 5): zakládání privátních akcí ve skupinách (= „jen pro členy“, #70), hledání parťáka (B-092), propagaci akce (B-074) a topování akce (B-073).
+- Zamčená funkce ukáže, který tarif ji odemkne, s odkazem na tarify.
+- Paywall platí jen pro nově založené: akce jen pro členy, které skupiny založily dřív, zůstanou.
 
-**Hotovo, když:**
+---
 
-- [ ] Testy časového okna a zamčení po vypršení.
+### B-072 Evidence docházky (odloženo)
 
-**Mimo rozsah:** QR kód (po MVP).
+Ve sprintu 5 se nedělá a zatím ani není placená funkce (#68, #82).
 
 ---
 
 ### B-073 Topování akce
 
-`US-15` · FS · M · závisí na: B-070, B-025
+`US-15` · FS · M · závisí na: B-071, B-025 · #69
 
-- Ve správě akce „Topovat akci“ za 50 Kč → platba `promotion` → po potvrzení `promotedUntil = startsAt`.
-- Topovaná akce: nahoře ve výpisu (v rámci filtrů), odlišená na mapě, štítek „Topováno“ v tlumeném stylu (ne jako reklama, ne `primary`).
+- Topování (vyšší pozice v seznamu) je za paywallem (B-071).
+- Topovaná akce: nahoře ve výpisu (v rámci filtrů), odlišená na mapě, štítek „Topováno“ v tlumeném stylu (ne jako reklama, ne `primary`). Topovaná akce je vždy označená, placené zvýhodnění neskrýváme (#354).
 - Topování končí začátkem nebo zrušením akce.
+- E-mail organizátorovi 48 a 24 h před akcí, kolik lidí chybí do minima, nabízí Sdílet / Topovat / Zrušit (#405).
 
 **Hotovo, když:**
 
 - [ ] Test řazení: topovaná akce je první, po začátku/zrušení se neprojevuje.
+
+---
+
+### B-074 Propagace akce
+
+`US-15` · FS · závisí na: B-071 · #104
+
+- Propagace akce = zobrazení relevantním uživatelům (PO 16. 11.), za paywallem (B-071). Jiná služba než topování ve výpisu (F-78). Kritéria doplní #104.
 
 ---
 
@@ -933,6 +945,8 @@ Doménová logika (čistá funkce + testy): `approvedCount`, `missingToMin = max
 ### B-080 Export dat a smazání účtu
 
 `US-05` · FS · M · závisí na: B-060, B-055
+
+> Odloženo (tým 25. 11.): ve sprintu 5 se nedělá.
 
 - `GET /api/me/export` – JSON s profilem, účastmi, pořádanými akcemi, členstvími a hodnoceními.
 - `DELETE /api/me` (s potvrzením heslem): nadcházející pořádané akce se zruší, jméno u proběhlých akcí a hodnocení se anonymizuje („Smazaný uživatel“), přihlášení se znemožní. Poslední správce skupiny musí předat správu, jinak se skupina deaktivuje.
@@ -953,19 +967,19 @@ Doménová logika (čistá funkce + testy): `approvedCount`, `missingToMin = max
 
 ### B-082 Ukázková data pro demo
 
-`F-64` · BE · M · závisí na: B-073, B-063
+`F-64` · BE · M · závisí na: B-073, B-063 · sprint 5: #460
 
 - Navazuje na testovací data ze sprintu 2 (#47: akce, skupiny a účasti v Praze podle kategorií B-002, termíny relativní k okamžiku seedu). Doplní:
-- Seed „demo“ režim: cca 30 uživatelů, 8 skupin (Praha + 2 menší města), 60 akcí v příštích 4 týdnech v různých stavech (plno, chybí lidé, se schvalováním, zrušená, topovaná), proběhlé akce s hodnoceními, jeden uživatel s předplatným, otevřená nahlášení a čekající platba pro admina.
+- Seed „demo“ režim: cca 30 uživatelů, 8 skupin (Praha + 2 menší města), 60 akcí v příštích 4 týdnech v různých stavech (plno, chybí lidé, se schvalováním, zrušená, topovaná), proběhlé akce s hodnoceními a otevřená nahlášení. Data pro sprint 5 upřesní #460.
 - Demo účty (návštěvník-uživatel, organizátor, správce skupiny, admin) do README.
 
 ---
 
 ### B-083 Smoke test klíčových scénářů
 
-`F-61` · FS · M · závisí na: B-073
+`F-61` · FS · M · závisí na: B-073 · sprint 6 (#50)
 
-- Integrační testy API (supertest nad testovací DB) pro: registrace → ověření → založení akce → přihláška → schválení → plná kapacita → zrušení; simulovaná platba → potvrzení adminem → odemčení docházky.
+- Integrační testy API (supertest nad testovací DB) pro: registrace → ověření → založení akce → přihláška → schválení → plná kapacita → zrušení; simulovaná platba → odemčení placené funkce (B-070).
 - Přidat do CI.
 
 ---
@@ -992,6 +1006,59 @@ Doménová logika (čistá funkce + testy): `approvedCount`, `missingToMin = max
 
 ---
 
+# Fáze 9 – Objevování a lidé
+
+Planning sprintu 5 (25. 11.). Zadání a akceptační kritéria jsou v issues; tady je jen shrnutí. Velikost a závislosti doplní tým.
+
+### B-090 Oblíbené akce
+
+`US-23` · FS · #80
+
+- Na kartě a detailu akce jde akci přidat do oblíbených a odebrat (jen přihlášený). Není to přihláška.
+- Oblíbené akce najdu v Moje (nadcházející; proběhlé a zrušené jsou odlišené).
+- [návrh] O změně nebo zrušení oblíbené akce dostanu upozornění (#86).
+
+### B-091 Podobné akce na detailu akce
+
+`US-24` · FS · #351
+
+- Detail akce má sekci „Podobné akce“: nadcházející akce stejné aktivity, [návrh] doplněné akcemi ze stejné kategorie, seřazené podle vzdálenosti od místa akce; [návrh] nejvýš 4.
+- Bez aktuální akce, zrušených a proběhlých akcí; akce jen pro členy jen členům skupiny. Když žádná podobná akce není, sekce se neukáže.
+
+### B-092 Najdi parťáka (swipe)
+
+`US-25` · FS · #84, #347
+
+- Lidé v dosahu s podobnými aktivitami, procházení swipem ve stylu Tinderu (planning sprintu 5). Pokrývá i návrhy přátel (#347).
+- [návrh] Při výběru počítat i se společně navštívenými akcemi.
+- Za paywallem (B-071).
+
+### B-093 Přezdívka a celé jméno
+
+`US-26` · FS · #346
+
+- Jméno, příjmení a přezdívka. Přezdívku vidí všichni; celé jméno jen organizátor akce, na kterou se uživatel přihlásil, správce skupiny, ve které je, a přátelé.
+
+### B-094 Pozvánka do aplikace od kamaráda
+
+`US-27` · FS · #406
+
+- [návrh] Vlastní odkaz s pozvánkou; při registraci „{jméno} tě zve na HobbyHub“, v onboardingu volba přidat zvoucího do přátel. Kritéria jsou v #406.
+
+### B-095 Pozvánka do skupiny odkazem
+
+`US-28` · FS · #352
+
+- Odkaz s pozvánkou do skupiny; kdo přijde přes pozvánku od správce, nemusí čekat na schválení.
+
+### B-096 Skupiny podle místa
+
+`US-16` · FS · #81
+
+- U skupin filtry a rychlé filtry jako u akcí (nabíráme / volné místo) a orientace podle místa, případně s mapou (PO 16. 11.). [návrh] Na mapě a ve filtru okolí je skupina podle své lokality (obce) a je vidět, kde se konají její nadcházející akce. Návrh ve Figmě (#458).
+
+---
+
 ## Otevřené otázky a výchozí volby
 
 Dokud tým nebo PO nerozhodne jinak, agent použije výchozí volbu.
@@ -1006,7 +1073,7 @@ Dokud tým nebo PO nerozhodne jinak, agent použije výchozí volbu.
 | Q6  | Ukázková data – dodá PO reálné skupiny ze sondy? (F-64)                           | Tým vymyslí realistická data                                                                                                                                                                                                                               | PO           |
 | Q7  | Zálohy – jak dlouho držet a kdo odpovídá po předání (F-63)                        | 7 denních záloh                                                                                                                                                                                                                                            | PO           |
 | Q8  | Brand – logo, barvy, referenční aplikace (F-67)                                   | Podle design systému z nástřelu designu                                                                                                                                                                                                                    | PO / tým     |
-| Q9  | Filtr Obsazenost: Volná místa / Chybí lidé (návrh týmu 20. 10., rozšířen 23. 10.) | PO 10. 11.: v této podobě hledajícímu nedává smysl. Tým 14. 11. (#305): přepínač „Jen s volným místem“, výchozí vypnutý; „Chybí lidé“ jen v rychlém výběru „Tady chybíš“ a v sekci „Tady chybíš“ na úvodní stránce. PO uvidí hotové na refinementu 16. 11. | Tým / PO     |
+| Q9  | Filtr Obsazenost: Volná místa / Chybí lidé (návrh týmu 20. 10., rozšířen 23. 10.) | PO 10. 11.: v této podobě hledajícímu nedává smysl. Tým 14. 11. (#305): přepínač „Jen s volným místem“, výchozí vypnutý; „Chybí lidé“ jen v rychlém výběru „Tady chybíš“ a v sekci „Tady chybíš“ na úvodní stránce. PO viděl na Sprint Review 4, uzavřeno. | Rozhodnuto   |
 | Q10 | Výchozí pohled /akce na mobilu                                                    | Mapa přes celou obrazovku, seznam ve vysouvacím panelu                                                                                                                                                                                                     | PO           |
 | Q11 | Zrušení, nebo smazání akce                                                        | Jen zrušení se štítkem „Zrušeno“, akce se nemaže; zrušení nejde vrátit (PO 10. 11.)                                                                                                                                                                        | PO           |
 | Q12 | Organizátor jako účastník vlastní akce                                            | Není automaticky, může se přihlásit; jeho přihláška se neschvaluje a počítá se do kapacity                                                                                                                                                                 | PO           |
@@ -1015,6 +1082,6 @@ Dokud tým nebo PO nerozhodne jinak, agent použije výchozí volbu.
 
 ## Mimo MVP (agent nedělá)
 
-Chat a soukromé zprávy, QR docházka, poloha zařízení (GPS), náhradníci, oblíbené akce, opakované akce, doporučení, kalendářní pohled, přidání do Google Kalendáře, párování (swipe), akce z vnějších zdrojů, promování akce, reklamy, prémium pro uživatele, mapa skupin.
+Chat a soukromé zprávy, QR docházka, evidence docházky (B-072, odložená), poloha zařízení (GPS), náhradníci, opakované akce, doporučení podle navštívených akcí (#72), kalendářní pohled, přidání do Google Kalendáře, akce z vnějších zdrojů, reklamy, prémium pro uživatele.
 
-Upozornění v aplikaci (centrum upozornění B-044, #86) a přátelé (B-017) se do scope dostaly na planningu sprintu 4 (PO 10. 11., `docs/zapis-planning-sprint4.md`).
+Upozornění v aplikaci (centrum upozornění B-044, #86) a přátelé (B-017) se do scope dostaly na planningu sprintu 4 (PO 10. 11., `docs/zapis-planning-sprint4.md`). Oblíbené a podobné akce, Najdi parťáka (swipe), skupiny na mapě, tarify s paywallem, topování a propagace akce na planningu sprintu 5 (25. 11., `docs/zapis-planning-sprint5.md`, Fáze 7 a 9).
