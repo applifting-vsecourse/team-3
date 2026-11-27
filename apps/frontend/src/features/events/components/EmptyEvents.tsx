@@ -218,9 +218,11 @@ export function EmptyEvents({
         {widen}
         {/* the closed mobile list shows the block down to its last button, unless the nearest
             events come first */}
+        {/* outline for a signed-in user: the band has the page's main „Založit akci“ (#420),
+            one primary per screen (review #421); a visitor's way in through sign-up */}
         <Button
           asChild
-          variant={widen ? "outline" : "default"}
+          variant={widen || !isVisitor ? "outline" : "default"}
           className="h-11"
           data-peek-end={hasNearest ? undefined : ""}
         >

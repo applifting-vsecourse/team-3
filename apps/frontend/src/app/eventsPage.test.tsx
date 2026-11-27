@@ -1,6 +1,6 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query"
 import { createMemoryHistory, createRouter, RouterProvider } from "@tanstack/react-router"
-import { act, render, screen } from "@testing-library/react"
+import { act, render, screen, within } from "@testing-library/react"
 import userEvent from "@testing-library/user-event"
 import { Map as LeafletMap } from "leaflet"
 import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "vitest"
@@ -24,7 +24,11 @@ const json = (body: unknown) =>
 async function renderEvents(
   url: string,
   events: unknown[] = [],
-  { occupied = [], localities = [] }: { occupied?: unknown[]; localities?: unknown[] } = {},
+  {
+    occupied = [],
+    localities = [],
+    user = null,
+  }: { occupied?: unknown[]; localities?: unknown[]; user?: Record<string, unknown> | null } = {},
 ) {
   vi.stubGlobal(
     "fetch",
@@ -38,7 +42,7 @@ async function renderEvents(
     }),
   )
   const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } })
-  queryClient.setQueryData(authKeys.session(), null)
+  queryClient.setQueryData(authKeys.session(), user ? { user } : null)
   const app = createRouter({
     ...router.options,
     context: { queryClient },
@@ -290,5 +294,39 @@ describe("/akce: „Hledat v této oblasti“ after the map is moved", () => {
     const button = await renderAndMoveMap()
 
     expect(button.style.top).toBe("")
+  })
+})
+
+// PO 26. 11. (#420): a signed-in user founds an event from the list's band
+describe("/akce: „Založit akci“ in the band", () => {
+  // the band's row: the title and, beside it, the page's action
+  const bandRow = async () =>
+    (await screen.findByRole("heading", { level: 1 })).closest("div")!.parentElement!
+
+  afterEach(() => {
+    vi.unstubAllGlobals()
+  })
+
+  it("a signed-in user has it, leading to the form", async () => {
+    await renderEvents("/akce", [], {
+      user: {
+        id: "u1",
+        email: "petra@example.com",
+        name: "Petra Nováková",
+        emailVerified: true,
+        ageConfirmedAt: "2026-01-01T00:00:00.000Z",
+      },
+    })
+
+    expect(within(await bandRow()).getByRole("link", { name: "Založit akci" })).toHaveAttribute(
+      "href",
+      "/akce/nova",
+    )
+  })
+
+  it("a visitor doesn't", async () => {
+    await renderEvents("/akce")
+
+    expect(within(await bandRow()).queryByRole("link", { name: "Založit akci" })).toBeNull()
   })
 })

@@ -41,7 +41,11 @@ type PageBandProps = {
   eyebrow?: ReactNode
   /** Before the title where a section page has the logo mark, e.g. the avatar on /profil (#178). */
   leading?: ReactNode
-  /** The page's one main action, beside the title on desktop (Založit akci, Založit skupinu). */
+  /**
+   * The page's one main action, beside the title on desktop (Založit akci, Založit skupinu); a
+   * page whose phone layout has no room for a floating button keeps it in the band there too
+   * (/akce, #420).
+   */
   action?: ReactNode
   /** Tabs on the band's bottom edge (BandTabs), or what follows the title (the „Koná se“ stamp). */
   children?: ReactNode
@@ -122,8 +126,9 @@ export function PageBand({
             {title}
           </h1>
         </div>
-        {/* beside the title on desktop; on a phone the page's button floats above the
-              bottom navigation (DESIGN.md › Založit akci) */}
+        {/* beside the title; on a phone most pages float their button above the bottom
+              navigation instead and pass none here, /akce keeps it in the band (DESIGN.md ›
+              Založit akci) */}
         {action ? <div className="shrink-0">{action}</div> : null}
       </div>
       {description ? (
