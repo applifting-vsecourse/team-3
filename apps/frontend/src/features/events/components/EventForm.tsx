@@ -50,6 +50,7 @@ import { useEventLocation } from "@/features/events/hooks/useEventLocation"
 import { usePragueToday } from "@/features/events/hooks/usePragueToday"
 import { CLOCK_TIME_ERROR, normalizeClockTime } from "@/features/events/lib/clockTime"
 import { dateToDay, dayToDate } from "@/features/events/lib/dateRange"
+import { nextDayEndHint } from "@/features/events/lib/endHint"
 import { formatDay } from "@/features/events/lib/formatEvent"
 import { eventTimes, toPragueWallTime } from "@/features/events/lib/pragueTime"
 
@@ -58,7 +59,8 @@ const count = (name: string) =>
     .string()
     .trim()
     .min(1, `Vyplň ${name}`)
-    .regex(/^\d+$/, "Zadej celé číslo")
+    // −1 is a whole number: it gets „musí být aspoň 1“ below, not „Zadej celé číslo“ (QA-14)
+    .regex(/^-?\d+$/, "Zadej celé číslo")
     .refine(
       (value) => Number(value) >= 1,
       `${name[0]!.toUpperCase()}${name.slice(1)} musí být aspoň 1`,
@@ -225,6 +227,8 @@ type EventFormProps = {
   hasOrganizerChoice?: boolean
   /** Prefilled values, e.g. when editing (#41). */
   initialValues?: Partial<EventInput>
+  /** Where the map starts before a locality is picked, e.g. a guess from the IP (QA-16, review #496). */
+  initialMapCenter?: { lat: number; lng: number }
   /** The image the event already has (#77), when editing. */
   initialImageSrc?: string | null
   isSubmitting: boolean
@@ -245,6 +249,7 @@ export function EventForm({
   group,
   hasOrganizerChoice = false,
   initialValues,
+  initialMapCenter,
   initialImageSrc,
   isSubmitting,
   errorMessage,
@@ -308,10 +313,16 @@ export function EventForm({
 
   const localityId = useWatch({ control: form.control, name: "localityId" })
   const place = useWatch({ control: form.control, name: "place" })
+  const [watchedDay, watchedStart, watchedEnd] = useWatch({
+    control: form.control,
+    name: ["day", "start", "end"],
+  })
+  const endHint = nextDayEndHint(watchedDay, watchedStart, watchedEnd)
   const [didChangeLocality, setDidChangeLocality] = useState(false)
   const [isPickingLocality, setIsPickingLocality] = useState(false)
   const selectedLocality = catalog.localities.find((l) => l.id === localityId)
   const mapCenter = selectedLocality ??
+    initialMapCenter ??
     // before a locality is picked: the biggest city, as the picker lists it first
     catalog.localities.find((l) => l.slug === PRAHA_SLUG) ??
     catalog.localities[0] ?? { lat: 50.0755, lng: 14.4378 }
@@ -573,7 +584,7 @@ export function EventForm({
                         }}
                       />
                     </FormControl>
-                    <FormDescription>Nepovinné</FormDescription>
+                    <FormDescription>{endHint ?? "Nepovinné"}</FormDescription>
                     <FormMessage />
                   </FormItem>
                 )}

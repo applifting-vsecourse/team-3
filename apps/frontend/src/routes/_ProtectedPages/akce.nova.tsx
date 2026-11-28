@@ -4,6 +4,7 @@ import { ROUTES } from "@/app/routes"
 import { PageBand } from "@/components/PageBand/PageBand"
 import { Seo } from "@/components/Seo"
 import { useCatalog } from "@/hooks/useCatalog"
+import { useLocality } from "@/hooks/useLocality"
 import { FORM, PAGE } from "@/lib/pageLayout"
 import { cn } from "@/lib/utils"
 
@@ -27,7 +28,13 @@ function NewEventPage() {
   const navigate = useNavigate()
   const { catalog, queries } = useCatalog()
   const createEvent = useCreateEvent()
-  const { user } = useSession()
+  // the locality the lists show, picked on /akce or the profile's home: the form starts there (QA-16);
+  // a guess from the IP is often off (review #496), so it only centres the map. Never written to
+  // the profile
+  const { user, isPending } = useSession()
+  const shown = useLocality(undefined, isPending ? undefined : (user?.id ?? null))
+  const shownLocality = catalog?.localities.find(({ slug }) => slug === shown.slug)
+  const startLocality = shown.source === "ip" ? undefined : shownLocality
 
   return (
     <>
@@ -46,9 +53,12 @@ function NewEventPage() {
               groupId={null}
             />
           ) : null}
-          {catalog ? (
+          {/* the form takes its starting values once: it waits for the locality to be known */}
+          {catalog && shown.slug !== undefined ? (
             <EventForm
               catalog={catalog}
+              initialValues={startLocality ? { localityId: startLocality.id } : undefined}
+              initialMapCenter={shownLocality}
               isSubmitting={createEvent.isPending}
               errorMessage={createEvent.error?.message}
               onSubmit={(input, image) =>
