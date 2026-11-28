@@ -13,30 +13,20 @@ const setup = (): {
   // the transaction's client is the same mock: what runs inside is checked on it
   prisma.$transaction.mockImplementation(((run: (db: unknown) => unknown) =>
     Promise.resolve(run(prisma))) as never);
-  prisma.friendship.count.mockResolvedValue(0);
-  prisma.notification.count.mockResolvedValue(0);
+  prisma.friendRequestLog.count.mockResolvedValue(0);
   prisma.friendship.createMany.mockResolvedValue({ count: 1 });
   prisma.friendship.updateMany.mockResolvedValue({ count: 1 });
   return { prisma, repository: new FriendRequestLimitRepository(prisma) };
 };
 
 describe('FriendRequestLimitRepository (#84)', () => {
-  it('counts rows and request notifications since the moment; the higher wins (a cancel doesn’t reset the day)', async () => {
+  it('counts the user’s own log of sent requests since the moment (a cancel deletes the row and its notification, not the log)', async () => {
     const { prisma, repository } = setup();
-    prisma.friendship.count.mockResolvedValue(2);
-    prisma.notification.count.mockResolvedValue(5);
+    prisma.friendRequestLog.count.mockResolvedValue(5);
 
     await expect(repository.sentSince('a', since)).resolves.toBe(5);
-    expect(prisma.friendship.count).toHaveBeenCalledWith({
+    expect(prisma.friendRequestLog.count).toHaveBeenCalledWith({
       where: { requesterId: 'a', createdAt: { gte: since } },
-    });
-    expect(prisma.notification.count).toHaveBeenCalledWith({
-      where: {
-        type: 'friend_request',
-        targetType: 'user',
-        targetId: 'a',
-        createdAt: { gte: since },
-      },
     });
   });
 
@@ -47,7 +37,7 @@ describe('FriendRequestLimitRepository (#84)', () => {
       order.push('lock');
       return Promise.resolve([{ locked: 1 }]);
     }) as never);
-    prisma.friendship.count.mockImplementation((() => {
+    prisma.friendRequestLog.count.mockImplementation((() => {
       order.push('count');
       return Promise.resolve(0);
     }) as never);
@@ -55,11 +45,18 @@ describe('FriendRequestLimitRepository (#84)', () => {
       order.push('write');
       return Promise.resolve({ count: 1 });
     }) as never);
+    prisma.friendRequestLog.create.mockImplementation((() => {
+      order.push('log');
+      return Promise.resolve({});
+    }) as never);
 
     await expect(
       repository.limited('a', 'b', 'create', since, now),
     ).resolves.toBe('written');
-    expect(order).toEqual(['lock', 'count', 'write']);
+    expect(order).toEqual(['lock', 'count', 'write', 'log']);
+    expect(prisma.friendRequestLog.create).toHaveBeenCalledWith({
+      data: { requesterId: 'a', createdAt: now },
+    });
     expect(prisma.friendship.createMany).toHaveBeenCalledWith({
       data: [{ requesterId: 'a', addresseeId: 'b', pairKey: 'a:b' }],
       skipDuplicates: true,
@@ -68,12 +65,13 @@ describe('FriendRequestLimitRepository (#84)', () => {
 
   it('at 20 today nothing is written', async () => {
     const { prisma, repository } = setup();
-    prisma.friendship.count.mockResolvedValue(20);
+    prisma.friendRequestLog.count.mockResolvedValue(20);
 
     await expect(
       repository.limited('a', 'b', 'create', since, now),
     ).resolves.toBe('limit');
     expect(prisma.friendship.createMany).not.toHaveBeenCalled();
+    expect(prisma.friendRequestLog.create).not.toHaveBeenCalled();
   });
 
   it('a pair that got a row meanwhile is reported as unchanged', async () => {
@@ -83,6 +81,7 @@ describe('FriendRequestLimitRepository (#84)', () => {
     await expect(
       repository.limited('a', 'b', 'create', since, now),
     ).resolves.toBe('unchanged');
+    expect(prisma.friendRequestLog.create).not.toHaveBeenCalled();
   });
 
   it('a request sent again turns the rejected row round and counts too', async () => {
@@ -106,6 +105,9 @@ describe('FriendRequestLimitRepository (#84)', () => {
         createdAt: now,
       },
     });
+    expect(prisma.friendRequestLog.create).toHaveBeenCalledWith({
+      data: { requesterId: 'b', createdAt: now },
+    });
   });
 
   it('two requests at once at 19: the lock lets one through, the other hits the limit', async () => {
@@ -123,11 +125,11 @@ describe('FriendRequestLimitRepository (#84)', () => {
       );
       return result;
     }) as never);
-    prisma.friendship.count.mockImplementation((() =>
+    prisma.friendRequestLog.count.mockImplementation((() =>
       Promise.resolve(rows)) as never);
-    prisma.friendship.createMany.mockImplementation((() => {
+    prisma.friendRequestLog.create.mockImplementation((() => {
       rows += 1;
-      return Promise.resolve({ count: 1 });
+      return Promise.resolve({});
     }) as never);
 
     const results = await Promise.all([

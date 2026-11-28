@@ -12,6 +12,7 @@ import { ProfileRepository } from '@/modules/profile/repositories/profile.reposi
 import { nameProblem, trimName } from '@/shared/auth/domain/name-policy';
 import {
   BadRequestException,
+  ConflictException,
   ForbiddenException,
   HttpException,
   HttpStatus,
@@ -45,6 +46,12 @@ export class ProfileService {
         message: 'Tvůj účet je zablokovaný.',
       });
     const data: Prisma.UserUpdateInput = {};
+    let expected:
+      | {
+          homeLocalityChangeDay: string | null;
+          homeLocalityChangeCount: number;
+        }
+      | undefined;
     if (input.name !== undefined) {
       const problem = nameProblem(input.name);
       if (problem)
@@ -74,6 +81,10 @@ export class ProfileService {
         );
       data.homeLocalityChangeDay = change.next.day;
       data.homeLocalityChangeCount = change.next.count;
+      expected = {
+        homeLocalityChangeDay: row.homeLocalityChangeDay,
+        homeLocalityChangeCount: row.homeLocalityChangeCount,
+      };
     }
     if (input.partnerDiscoverable !== undefined) {
       data.partnerDiscoverable = input.partnerDiscoverable;
@@ -82,7 +93,16 @@ export class ProfileService {
     if (Object.keys(data).length === 0)
       throw new BadRequestException('Vyber aspoň jeden údaj ke změně.');
     data.updatedAt = new Date();
-    return selfProfile(await this.repository.save(userId, data));
+    const saved = expected
+      ? await this.repository.save(userId, data, expected)
+      : await this.repository.save(userId, data);
+    // another change of home got there first: the limit is counted again on the next try
+    if (!saved)
+      throw new ConflictException({
+        code: 'HOME_LOCALITY_CHANGED_MEANWHILE',
+        message: 'Domovské místo se mezitím změnilo. Zkus to prosím znovu.',
+      });
+    return selfProfile(saved);
   }
 
   async finishOnboarding(

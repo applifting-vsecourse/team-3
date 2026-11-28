@@ -8,26 +8,39 @@ import { inSentence } from "@/lib/inSentence"
 export type Occupancy = {
   approvedCount: number
   minParticipants: number
-  maxParticipants: number
+  /** Null: no maximum (PO 26. 11.), the event never fills up. */
+  maxParticipants: number | null
   /**
    * The capacity as the API counts it (the backend's `computeCapacity`).
    * The status badge reads the same fields, so the words never disagree
    * with the badge next to them.
    */
   missingToMin: number
-  freeSpots: number
+  /** Null without a maximum. */
+  freeSpots: number | null
   isFull: boolean
 }
 
-/** „5 z 12“ — approved participants of the maximum. */
+/** „5 z 12“ — approved participants of the maximum; without a maximum „5 lidí“. */
 export const occupancyCount = ({
   approvedCount,
   maxParticipants,
 }: Pick<Occupancy, "approvedCount" | "maxParticipants">): string =>
-  `${approvedCount} z ${maxParticipants}`
+  maxParticipants === null ? peopleLabel(approvedCount) : `${approvedCount} z ${maxParticipants}`
 
-/** „1 volné místo“, „3 volná místa“, „8 volných míst“ — the status badge's form (Figma Capacity bar › Free). */
-export function freeSpotsLabel(count: number): string {
+/** „1 člověk“, „3 lidi“, „5 lidí“ — gender-neutral (DESIGN.md › Voice). */
+export function peopleLabel(count: number): string {
+  if (count === 1) return "1 člověk"
+  if (count >= 2 && count <= 4) return `${count} lidi`
+  return `${count} lidí`
+}
+
+/**
+ * „1 volné místo“, „3 volná místa“, „8 volných míst“ — the status badge's form (Figma Capacity
+ * bar › Free); „Volná místa“ without a maximum (null).
+ */
+export function freeSpotsLabel(count: number | null): string {
+  if (count === null) return "Volná místa"
   if (count === 1) return "1 volné místo"
   if (count >= 2 && count <= 4) return `${count} volná místa`
   return `${count} volných míst`

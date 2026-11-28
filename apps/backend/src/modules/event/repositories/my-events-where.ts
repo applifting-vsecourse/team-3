@@ -6,6 +6,16 @@ import {
 } from '@/modules/event/domain/event-over';
 import { NO_NEW_REQUEST_STATUSES } from '@/modules/event/domain/participation';
 
+/** The events the user runs: created by them, or of a group they are an active admin of (B-055). */
+const organizedByWhere = (userId: string): Prisma.EventWhereInput[] => [
+  { organizerUserId: userId },
+  {
+    group: {
+      members: { some: { userId, role: 'admin', status: 'active' } },
+    },
+  },
+];
+
 /**
  * Prisma `where` for a tab of „Moje akce“ (B-035). A pure function so the
  * sorting into tabs can be tested without a database (CI has none).
@@ -22,7 +32,8 @@ import { NO_NEW_REQUEST_STATUSES } from '@/modules/event/domain/participation';
  *   lists of #182).
  * - `past` (Proběhlé, #367): the events that are over (`eventOverWhere`,
  *   #272) where the user had an approved place – the same history the profile
- *   showed until #367. A request never approved isn't history.
+ *   showed until #367 – or that they ran (PO 26. 11.). A request never
+ *   approved isn't history.
  * `attending` and `organizing` list the events that are not over yet (#272),
  * also one going on right now: joining or leaving it is no longer possible
  * (EVENT_STARTED), but it is still where the user goes; past ones are `past`.
@@ -40,7 +51,14 @@ export const buildMyEventsWhere = (
     return {
       AND: [
         { status: { in: ['published', 'cancelled'] }, ...eventOverWhere(now) },
-        { participations: { some: { userId, status: 'approved' } } },
+        {
+          OR: [
+            { participations: { some: { userId, status: 'approved' } } },
+            // PO 26. 11.: an event I ran without joining it left Pořádám once over and
+            // showed nowhere; it is my history too, as in Pořádám
+            ...organizedByWhere(userId),
+          ],
+        },
       ],
     };
   }
@@ -76,18 +94,7 @@ export const buildMyEventsWhere = (
               some: { userId, status: { in: ['approved', 'pending'] } },
             },
           }
-        : {
-            OR: [
-              { organizerUserId: userId },
-              {
-                group: {
-                  members: {
-                    some: { userId, role: 'admin', status: 'active' },
-                  },
-                },
-              },
-            ],
-          },
+        : { OR: organizedByWhere(userId) },
     ],
   };
 };

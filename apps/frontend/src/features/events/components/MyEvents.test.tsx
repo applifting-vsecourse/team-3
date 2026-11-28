@@ -367,7 +367,6 @@ describe("PastEvents (Figma C-06, #367)", () => {
       "u-jakub",
       "2026-10-24T10:00:00.000Z",
     ],
-    ["the organizer's own event", { approvedCount: 5 }, "u1", "2026-10-24T10:00:00.000Z"],
     [
       "a cancelled event",
       { approvedCount: 5, status: "cancelled" as const },
@@ -386,6 +385,23 @@ describe("PastEvents (Figma C-06, #367)", () => {
 
     expect(await screen.findByRole("link", { name: "Florbal" })).toBeInTheDocument()
     expect(screen.queryByRole("link", { name: /Ohodnotit/ })).not.toBeInTheDocument()
+  })
+
+  // PO 26. 11.: the organizer's own event is in Proběhlé too; they rate its participants
+  it("the organizer's own event offers „Ohodnotit účastníky“, not the participant's rating", async () => {
+    get.mockReturnValue(asJson([aMyEvent({ title: "Florbal", approvedCount: 5 })]))
+
+    await renderWithQuery(
+      <PastEvents
+        viewerId="u1"
+        now={new Date("2026-10-24T10:00:00.000Z")}
+      />,
+    )
+
+    expect(
+      await screen.findByRole("link", { name: "Ohodnotit účastníky akce Florbal" }),
+    ).toHaveAttribute("href", expect.stringContaining("/hodnoceni-ucastniku"))
+    expect(screen.queryByRole("link", { name: "Ohodnotit akci Florbal" })).not.toBeInTheDocument()
   })
 
   // review #368: the rating page would refuse it (RATING_DELETED), so the card doesn't offer it
@@ -420,7 +436,9 @@ describe("PastEvents (Figma C-06, #367)", () => {
     await renderWithQuery(<PastEvents viewerId="u-jakub" />)
 
     expect(
-      await screen.findByText("Tady uvidíš proběhlé akce, na které máš schválenou účast."),
+      await screen.findByText(
+        "Tady uvidíš proběhlé akce, na kterých máš místo nebo které pořádáš.",
+      ),
     ).toBeInTheDocument()
     expect(screen.queryByRole("region")).not.toBeInTheDocument()
   })
@@ -434,7 +452,9 @@ describe("PastEvents (Figma C-06, #367)", () => {
     expect(await screen.findByText("Akce se nepodařilo načíst")).toBeInTheDocument()
     await userEvent.click(screen.getByRole("button", { name: "Zkusit znovu" }))
     expect(
-      await screen.findByText("Tady uvidíš proběhlé akce, na které máš schválenou účast."),
+      await screen.findByText(
+        "Tady uvidíš proběhlé akce, na kterých máš místo nebo které pořádáš.",
+      ),
     ).toBeInTheDocument()
   })
 })

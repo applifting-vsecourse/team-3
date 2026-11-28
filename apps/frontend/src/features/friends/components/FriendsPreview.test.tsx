@@ -1,5 +1,6 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query"
-import { screen, within } from "@testing-library/react"
+import { screen, waitFor, within } from "@testing-library/react"
+import userEvent from "@testing-library/user-event"
 import { beforeEach, describe, expect, it, vi } from "vitest"
 
 import { renderWithRouter } from "@/test/renderWithRouter"
@@ -7,8 +8,9 @@ import { renderWithRouter } from "@/test/renderWithRouter"
 import type { FriendLists } from "@/features/friends/api/friendsSchemas"
 import { FriendsPreview } from "@/features/friends/components/FriendsPreview"
 
-const { api } = vi.hoisted(() => ({ api: { get: vi.fn() } }))
+const { api } = vi.hoisted(() => ({ api: { get: vi.fn(), post: vi.fn() } }))
 vi.mock("@/lib/api-client", () => ({ api }))
+vi.mock("sonner", () => ({ toast: { success: vi.fn(), error: vi.fn() } }))
 
 const person = (n: number) => ({ id: `p${n}`, name: `Člověk ${n}`, interests: [] })
 const request = (n: number) => ({
@@ -22,11 +24,14 @@ const lists = (changes: Partial<FriendLists> = {}): FriendLists => ({
   ...changes,
 })
 
-const show = (data: FriendLists) => {
+const show = (data: FriendLists, onRequestDecided?: () => Promise<unknown>) => {
   api.get.mockReturnValue({ json: () => Promise.resolve(JSON.parse(JSON.stringify(data))) })
   return renderWithRouter(
     <QueryClientProvider client={new QueryClient()}>
-      <FriendsPreview viewerId="jakub" />
+      <FriendsPreview
+        viewerId="jakub"
+        onRequestDecided={onRequestDecided}
+      />
     </QueryClientProvider>,
   )
 }
@@ -115,5 +120,16 @@ describe("„Lidé, které znám“ on Můj profil (Figma B-05f, #307)", () => {
     await screen.findByRole("group", { name: "Přátelé (3)" })
     expect(friendLinks()).toHaveLength(3)
     expect(screen.queryByRole("link", { name: /Všichni přátelé/ })).not.toBeInTheDocument()
+  })
+
+  it("a request decided here lets the route refresh the bell too (#430)", async () => {
+    api.post.mockReturnValue({ json: () => Promise.resolve({ state: "friends" }) })
+    const onRequestDecided = vi.fn().mockResolvedValue(undefined)
+    await show(lists({ incoming: [request(7)] }), onRequestDecided)
+
+    const requests = await screen.findByRole("group", { name: "Žádosti o přátelství (1)" })
+    await userEvent.click(within(requests).getByRole("button", { name: "Přijmout" }))
+    await waitFor(() => expect(onRequestDecided).toHaveBeenCalled())
+    expect(api.post).toHaveBeenCalledWith("friends/p7")
   })
 })

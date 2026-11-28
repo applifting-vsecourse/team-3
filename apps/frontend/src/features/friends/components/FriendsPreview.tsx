@@ -22,7 +22,14 @@ const FRIENDS_SHOWN = 6
  * the first friends by name — and the way to the whole list on /profil/pratele, shown only when
  * there is more to see there.
  */
-export function FriendsPreview({ viewerId }: { viewerId: string }) {
+export function FriendsPreview({
+  viewerId,
+  onRequestDecided,
+}: {
+  viewerId: string
+  /** a decided request takes its upozornění along (#430): the route refreshes the bell */
+  onRequestDecided?: () => Promise<unknown>
+}) {
   const query = useQuery(friendListsQueryOptions(viewerId))
   const headingId = useId()
   const lists = query.data
@@ -58,6 +65,7 @@ export function FriendsPreview({ viewerId }: { viewerId: string }) {
                     key={request.person.id}
                     request={request}
                     direction="incoming"
+                    onDecided={onRequestDecided}
                   />
                 ))}
               </ul>
