@@ -224,3 +224,16 @@ describe("light mode only", () => {
     expect(html).not.toMatch(/prefers-color-scheme/i)
   })
 })
+
+// #447, review #471: the bounce is turned off for a trackpad or a mouse (a Mac, also in a narrow
+// window), never by width — a tablet's touch keeps pulling down to refresh
+describe("overscroll on desktop (#447)", () => {
+  it("is off under the fine-pointer query, not under a width", () => {
+    const rule =
+      /@media\s*\(hover:\s*hover\)\s*and\s*\(pointer:\s*fine\)\s*\{\s*html\s*\{\s*overscroll-behavior-y:\s*none;/
+    expect(css).toMatch(rule)
+    expect(css).not.toMatch(
+      /@media\s*\(min-width:\s*768px\)\s*\{\s*html\s*\{\s*overscroll-behavior-y/,
+    )
+  })
+})
