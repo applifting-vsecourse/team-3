@@ -33,6 +33,7 @@ const place = (locality: Locality): OnboardingCommand => ({ type: "pick-place", 
 function follow(...commands: OnboardingCommand[]) {
   return commands.reduce(moveOnboarding, startOnboarding())
 }
+/** Three picks; the third opens the decision by itself. */
 function withThree() {
   return follow(place(prague), take("hike"), take("hockey"), take("chess"))
 }
@@ -74,14 +75,14 @@ describe("onboarding transitions", () => {
     expect(result.locality).toBe(district)
   })
 
-  it("allows confirmation with one to three interests and only opens it on request", () => {
+  it("opens the decision by itself at the third pick and on request with one or two", () => {
     const empty = follow(place(prague))
     const first = moveOnboarding(empty, take("hike"))
     const second = moveOnboarding(first, take("hockey"))
     const third = moveOnboarding(second, take("chess"))
     expect(moveOnboarding(empty, { type: "review" })).toBe(empty)
     expect([first, second, third].map(reviewOnboarding)).toEqual([true, true, true])
-    expect([first, second, third].map((state) => state.overlay)).toEqual([null, null, null])
+    expect([first, second, third].map((state) => state.overlay)).toEqual([null, null, "decision"])
     expect(third.interestIds).toHaveLength(INTEREST_GOAL)
     expect(moveOnboarding(first, { type: "review" }).overlay).toBe("decision")
   })
@@ -93,7 +94,7 @@ describe("onboarding transitions", () => {
   })
 
   it("rejects toggles and category changes while the decision owns focus", () => {
-    const state = moveOnboarding(withThree(), { type: "review" })
+    const state = withThree()
     expect(moveOnboarding(state, take("tennis"))).toBe(state)
     expect(moveOnboarding(state, take("hike"))).toBe(state)
     expect(moveOnboarding(state, { type: "browse", categoryId: "running" })).toBe(state)
@@ -101,7 +102,7 @@ describe("onboarding transitions", () => {
   })
 
   it("dismisses the decision while keeping three selections and lets the user reopen it", () => {
-    const original = moveOnboarding(withThree(), { type: "review" })
+    const original = withThree()
     const dismissed = moveOnboarding(original, { type: "dismiss" })
     expect(dismissed.stage).toBe("interests")
     expect(dismissed.overlay).toBeNull()
@@ -116,7 +117,7 @@ describe("onboarding transitions", () => {
     expect(removed.interestIds).toEqual(["hike", "chess"])
     expect(removed.overlay).toBeNull()
     expect(result.interestIds).toEqual(["hike", "chess", "tennis"])
-    expect(moveOnboarding(result, { type: "review" }).overlay).toBe("decision")
+    expect(result.overlay).toBe("decision")
   })
 
   it("caps the selection while the closed decision can be reopened", () => {
@@ -124,12 +125,13 @@ describe("onboarding transitions", () => {
     expect(moveOnboarding(dismissed, take("tennis"))).toBe(dismissed)
   })
 
-  it.each<OnboardingFlow>([startOnboarding(), follow(place(prague), take("hike")), withThree()])(
-    "backs out of exit confirmation without mutating the draft in $stage",
-    (state) => {
-      const exiting = moveOnboarding(state, { type: "exit" })
-      expect(exiting.overlay).toBe("exit")
-      expect(moveOnboarding(exiting, { type: "back" })).toEqual(state)
-    },
-  )
+  it.each<OnboardingFlow>([
+    startOnboarding(),
+    follow(place(prague), take("hike")),
+    moveOnboarding(withThree(), { type: "dismiss" }),
+  ])("backs out of exit confirmation without mutating the draft in $stage", (state) => {
+    const exiting = moveOnboarding(state, { type: "exit" })
+    expect(exiting.overlay).toBe("exit")
+    expect(moveOnboarding(exiting, { type: "back" })).toEqual(state)
+  })
 })
