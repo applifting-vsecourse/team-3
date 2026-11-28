@@ -65,12 +65,22 @@ export function RateParticipantsPage({ eventId, viewerId, onSaved }: RatePartici
   const detail = useEventDetail(eventId, viewerId)
   const query = useQuery(participantRatingsQueryOptions(eventId, viewerId))
   const event = detail.event
-  const back = {
-    to: ROUTES.manageEvent,
-    params: { eventId },
-    fallbackLabel: "Správa akce",
-    label: "Správa akce",
-  } as const
+  // someone who doesn't organize it (often from a link, without history) goes back to the
+  // event: its management would only stop them again (review #504)
+  const back =
+    apiErrorCode(query.error) === "NOT_ORGANIZER"
+      ? ({
+          to: ROUTES.eventDetail,
+          params: { eventId },
+          fallbackLabel: "Akce",
+          label: "Akce",
+        } as const)
+      : ({
+          to: ROUTES.manageEvent,
+          params: { eventId },
+          fallbackLabel: "Správa akce",
+          label: "Správa akce",
+        } as const)
 
   return (
     <>
