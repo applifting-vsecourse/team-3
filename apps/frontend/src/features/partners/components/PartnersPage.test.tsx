@@ -22,7 +22,7 @@ describe("/partaci (#84)", () => {
           radiusKm: 25,
           missing: [],
           hidden: false,
-          requestsLeft: 20,
+          limit: { left: 20, perDay: 20, resetsAt: "2026-11-28T23:00:00.000Z", plan: "free" },
         }),
     })
     const onRadiusChange = vi.fn()

@@ -22,17 +22,24 @@ const partner = (id: string, name: string, changes: Partial<Partner> = {}): Part
   sharedInterests: [{ id: "volejbal", name: "Volejbal", slug: "volejbal" }],
   otherInterests: [{ id: "beh", name: "Běh", slug: "beh" }],
   hasRequestedMe: false,
+  mutualFriendsCount: null,
   ...changes,
 })
 const TOMAS = partner("tomas", "Tomáš Novák")
 const PETRA = partner("petra", "Petra Malá", { distanceBandKm: 2 })
+const limit = (left: number): PartnerPage["limit"] => ({
+  left,
+  perDay: 20,
+  resetsAt: "2026-11-28T23:00:00.000Z",
+  plan: "free",
+})
 const page = (changes: Partial<PartnerPage> = {}): PartnerPage => ({
   items: [TOMAS, PETRA],
   nextCursor: null,
   radiusKm: 10,
   missing: [],
   hidden: false,
-  requestsLeft: 20,
+  limit: limit(20),
   ...changes,
 })
 const asJson = (body: unknown) => ({ json: () => Promise.resolve(body) })
@@ -45,7 +52,7 @@ const show = async (data: PartnerPage | PartnerPage[] = page(), onWiden = vi.fn(
   )
   api.post.mockImplementation((path: string) =>
     path.endsWith("/request")
-      ? asJson({ state: "outgoing", requestsLeft: 19 })
+      ? asJson({ state: "outgoing", limit: limit(19) })
       : { json: () => Promise.resolve(undefined) },
   )
   api.delete.mockReturnValue({ json: () => Promise.resolve(undefined) })
@@ -98,6 +105,20 @@ describe("Najdi parťáka: the deck (#84)", () => {
     await waitFor(() => expect(topName()).toHaveTextContent("Petra Malá"))
     expect(skip).toHaveFocus()
     expect(status()).toHaveTextContent("Přeskočeno. Další: Petra Malá, do 2 km, 1 společný zájem.")
+  })
+
+  it("the live region reads the next one's mutual friends, never who (#473)", async () => {
+    const user = userEvent.setup()
+    await show(page({ items: [TOMAS, { ...PETRA, mutualFriendsCount: 3 }] }))
+
+    await user.click(screen.getByRole("button", { name: "Teď ne" }))
+
+    await waitFor(() =>
+      expect(status()).toHaveTextContent(
+        "Přeskočeno. Další: Petra Malá, do 2 km, 1 společný zájem, 3 společní přátelé.",
+      ),
+    )
+    expect(within(screen.getByRole("article")).getByText("3 společní přátelé")).toBeInTheDocument()
   })
 
   it("Vrátit brings back the last skip and forgets it on the server", async () => {
@@ -223,7 +244,7 @@ describe("Najdi parťáka: the deck (#84)", () => {
   it("their request waiting for me: Přidat is the match, with the way to a common event", async () => {
     const user = userEvent.setup()
     await show(page({ items: [partner("eva", "Eva Horáková", { hasRequestedMe: true })] }))
-    api.post.mockReturnValue(asJson({ state: "friends", requestsLeft: 20 }))
+    api.post.mockReturnValue(asJson({ state: "friends", limit: limit(20) }))
 
     expect(screen.getByText("Posílá ti žádost")).toBeInTheDocument()
     await user.click(screen.getByRole("button", { name: "Přidat" }))
@@ -265,11 +286,11 @@ describe("Najdi parťáka: the deck (#84)", () => {
 
   it("counts down today's additions from five and stops Přidat at zero, Teď ne still works", async () => {
     const user = userEvent.setup()
-    await show(page({ requestsLeft: 1 }))
+    await show(page({ limit: limit(1) }))
     expect(screen.getByText("Dnes ještě 1 přidání.")).toBeInTheDocument()
     api.post.mockImplementation((path: string) =>
       path.endsWith("/request")
-        ? asJson({ state: "outgoing", requestsLeft: 0 })
+        ? asJson({ state: "outgoing", limit: limit(0) })
         : { json: () => Promise.resolve(undefined) },
     )
 
@@ -280,10 +301,33 @@ describe("Najdi parťáka: the deck (#84)", () => {
     expect(add).toHaveFocus()
     await user.click(add)
     expect(api.post).toHaveBeenCalledTimes(1)
-    expect(
-      screen.getByText("Na dnešek máš přidáno dost. Další lidi můžeš přidat zítra."),
-    ).toBeInTheDocument()
+    // the reason is the button's description (#473); without the paid plan no word of plans
+    expect(add).toHaveAccessibleDescription(
+      "Na dnešek máš přidáno dost. Další lidi můžeš přidat zítra od 0:00.",
+    )
+    expect(screen.queryByText(/tarif/i)).not.toBeInTheDocument()
+    expect(screen.queryByRole("link", { name: "Zobrazit tarify" })).not.toBeInTheDocument()
     expect(screen.getByRole("button", { name: "Teď ne" })).toBeEnabled()
+    await user.click(screen.getByRole("button", { name: "Teď ne" }))
+    expect(topName()).toHaveTextContent("Petra Malá")
+  })
+
+  it("at zero their waiting request can still be accepted: incoming requests aren't behind the limit (#473)", async () => {
+    const user = userEvent.setup()
+    await show(
+      page({
+        items: [partner("eva", "Eva Horáková", { hasRequestedMe: true })],
+        limit: limit(0),
+      }),
+    )
+    api.post.mockReturnValue(asJson({ state: "friends", limit: limit(0) }))
+
+    const add = screen.getByRole("button", { name: "Přidat" })
+    expect(add).toHaveAttribute("aria-disabled", "false")
+    expect(add).not.toHaveAccessibleDescription()
+    await user.click(add)
+
+    await waitFor(() => expect(api.post).toHaveBeenCalledWith("partners/eva/request"))
   })
 
   it("loads the next page before the cards run out", async () => {

@@ -38,4 +38,6 @@ export const ROUTES = {
   // linked from the sign-up's consents (#153)
   terms: "/podminky",
   privacy: "/ochrana-osobnich-udaju",
+  // TODO(B-070): the plans page doesn't exist yet; linked only with VITE_PREMIUM_ENABLED (#473)
+  plans: "/tarify",
 } as const

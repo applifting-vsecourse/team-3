@@ -103,17 +103,36 @@ export function sharedInterestsLabel(count: number): string {
   return `${count} ${plural(count, "společný zájem", "společné zájmy", "společných zájmů")}`
 }
 
+/**
+ * „3 společní přátelé“, „5 společných přátel“ (#473): the 2–4 form only for exactly 2, 3 and 4,
+ * genitive plural otherwise (21, 22, 25 alike). The API never sends less than two.
+ */
+export function mutualFriendsLabel(count: number): string {
+  return `${count} ${count >= 2 && count <= 4 ? "společní přátelé" : "společných přátel"}`
+}
+
 /** „Dnes ještě 5 přidání.“ — only from five down, never at zero (then the button explains). */
 export function requestsLeftLabel(left: number): string | undefined {
   return left > 0 && left <= REQUESTS_LEFT_SHOWN ? `Dnes ještě ${left} přidání.` : undefined
 }
 
-export const DAILY_LIMIT_REACHED = "Na dnešek máš přidáno dost. Další lidi můžeš přidat zítra."
+/** Under the buttons at zero (#473): true about when, no countdown, no false urgency. */
+export const DAILY_LIMIT_REACHED =
+  "Na dnešek máš přidáno dost. Další lidi můžeš přidat zítra od 0:00."
+/** Only with the paid plan on (#473, B-071). */
+export const PLUS_LIMIT_HINT = "S tarifem Plus jich přidáš až 50 denně."
 
-/** Who comes next, for the live region: name, distance, what we share. */
+/** Who comes next, for the live region: name, distance, what we share, mutual friends. */
 const nextOne = (next: Partner | undefined) =>
   next
-    ? ` Další: ${next.name}, ${distanceLabel(next.distanceBandKm)}, ${sharedInterestsLabel(next.sharedInterests.length)}.`
+    ? ` Další: ${[
+        next.name,
+        distanceLabel(next.distanceBandKm),
+        sharedInterestsLabel(next.sharedInterests.length),
+        ...((next.mutualFriendsCount ?? 0) >= 2
+          ? [mutualFriendsLabel(next.mutualFriendsCount ?? 0)]
+          : []),
+      ].join(", ")}.`
     : " Další lidi v okolí teď nejsou."
 
 /**

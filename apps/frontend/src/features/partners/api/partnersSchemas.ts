@@ -18,8 +18,21 @@ export const partnerSchema = z.object({
   otherInterests: z.array(activitySchema),
   /** „Posílá ti žádost“: „Přidat“ is then the match. */
   hasRequestedMe: z.boolean(),
+  /** „3 společní přátelé“: only how many, null below two (#473). Never who. */
+  mutualFriendsCount: z.number().int().nonnegative().nullable(),
 })
 export type Partner = z.infer<typeof partnerSchema>
+
+/** Today's limit of new friendship requests (#84, #473); the plan raises it, never removes it. */
+export const requestLimitSchema = z.object({
+  /** „Přidat“ left today. */
+  left: z.number().int().nonnegative(),
+  perDay: z.number().int().positive(),
+  /** The next Prague midnight, when `left` is `perDay` again. */
+  resetsAt: z.string().datetime({ offset: true }),
+  plan: z.enum(["free", "plus"]),
+})
+export type RequestLimit = z.infer<typeof requestLimitSchema>
 
 /** GET /api/partners/suggestions: one page of the deck, who already asks me first. */
 export const partnerPageSchema = z.object({
@@ -31,14 +44,13 @@ export const partnerPageSchema = z.object({
   missing: z.array(z.enum(["onboarding", "locality", "interests"])),
   /** „Ukazovat mě v Najdi parťáka“ is off: who isn't seen sees nobody either. */
   hidden: z.boolean(),
-  /** „Přidat“ left today. */
-  requestsLeft: z.number().int().nonnegative(),
+  limit: requestLimitSchema,
 })
 export type PartnerPage = z.infer<typeof partnerPageSchema>
 
 /** POST /api/partners/:userId/request: `friends` = Je to shoda!, `outgoing` = the request waits. */
 export const partnerRequestSchema = z.object({
   state: z.enum(["none", "outgoing", "incoming", "friends", "self"]),
-  requestsLeft: z.number().int().nonnegative(),
+  limit: requestLimitSchema,
 })
 export type PartnerRequestResult = z.infer<typeof partnerRequestSchema>
