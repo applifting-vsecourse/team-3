@@ -107,6 +107,9 @@ const pick = async (field: string, search: string, query: string) => {
   await userEvent.keyboard("{Enter}")
 }
 
+/** PO 26. 11. (#303): a known locality is a line under the address, not a field. */
+const shownLocality = () => screen.getByText("Lokalita pro vyhledávání:").parentElement
+
 /** The address service (Photon) answering with these places. */
 const answerAddresses = (...features: object[]) => {
   const fetchMock = vi.fn(() =>
@@ -340,7 +343,7 @@ describe("EventForm", () => {
       await userEvent.click(centerButton())
       await screen.findByText(/Adresu se nepodařilo určit/)
       expect(addressField()).toHaveValue(address)
-      expect(screen.getByRole("combobox", { name: "Lokalita *" })).toHaveTextContent("Louny")
+      expect(shownLocality()).toHaveTextContent("Louny")
     },
   )
 
@@ -359,6 +362,7 @@ describe("EventForm", () => {
         maxParticipants: 4,
       },
     })
+    await userEvent.click(screen.getByRole("button", { name: /^Změnit lokalitu/ }))
     await pick("Lokalita *", "Hledat lokalitu", "Ústí nad Orlicí")
     expect(addressField()).toHaveValue("Vlastní místo")
     const moveToLocality = screen.getByRole("button", { name: "Přesunout do středu lokality" })
@@ -381,8 +385,19 @@ describe("EventForm", () => {
     })
   })
 
+  // review #417 (PO 26. 11.): a new event has no second field before the address
+  it("a new event: the locality is one line until there is an address, the field on request", async () => {
+    renderForm()
+
+    expect(screen.getByText("Lokalita pro vyhledávání se doplní podle adresy.")).toBeInTheDocument()
+    expect(screen.queryByRole("combobox", { name: "Lokalita *" })).not.toBeInTheDocument()
+    await userEvent.click(screen.getByRole("button", { name: "Vybrat ručně" }))
+    expect(screen.getByRole("combobox", { name: "Lokalita *" })).toBeInTheDocument()
+  })
+
   it("choosing a locality alone does not satisfy the required map point", async () => {
     renderForm()
+    await userEvent.click(screen.getByRole("button", { name: "Vybrat ručně" }))
     await pick("Lokalita *", "Hledat lokalitu", "Louny")
     await submit()
     expect(await screen.findByText("Vyber místo na mapě")).toBeInTheDocument()
@@ -738,7 +753,9 @@ describe("EventForm", () => {
     expect(screen.getByRole("combobox", { name: "Aktivita *" })).toHaveTextContent(
       "Pohyb a tanec › Atletika",
     )
+    await userEvent.click(screen.getByRole("button", { name: "Vybrat ručně" }))
     await pick("Lokalita *", "Hledat lokalitu", "usti nad orl")
+    // picked by hand, the field stays to change it again
     expect(screen.getByRole("combobox", { name: "Lokalita *" })).toHaveTextContent(
       "Ústí nad Orlicí",
     )
@@ -875,7 +892,7 @@ describe("EventForm", () => {
       renderForm({ initialValues: { localityId: "l-usti-nad-orlici" } })
       await userEvent.type(addressField(), "Bílinská")
       await userEvent.click(await screen.findByRole("option", { name: /Bílinská.*Praha 9/ }))
-      expect(screen.getByRole("combobox", { name: "Lokalita *" })).toHaveTextContent("Praha 9")
+      expect(shownLocality()).toHaveTextContent("Praha 9")
     })
 
     it("an address in another town of the catalog sets that town (Ústí nad Orlicí)", async () => {
@@ -902,6 +919,10 @@ describe("EventForm", () => {
 
       await userEvent.type(addressField(), "Lázeňská 1330")
       await userEvent.click(await screen.findByRole("option", { name: /Lázeňská 1330/ }))
+      expect(shownLocality()).toHaveTextContent("Ústí nad Orlicí")
+      // PO 26. 11. (#303): the address set it, nothing to pick a second time
+      expect(screen.queryByRole("combobox", { name: "Lokalita *" })).not.toBeInTheDocument()
+      await userEvent.click(screen.getByRole("button", { name: "Změnit lokalitu Ústí nad Orlicí" }))
       expect(screen.getByRole("combobox", { name: "Lokalita *" })).toHaveTextContent(
         "Ústí nad Orlicí",
       )

@@ -294,6 +294,7 @@ export function EventForm({
   const localityId = useWatch({ control: form.control, name: "localityId" })
   const place = useWatch({ control: form.control, name: "place" })
   const [didChangeLocality, setDidChangeLocality] = useState(false)
+  const [isPickingLocality, setIsPickingLocality] = useState(false)
   const selectedLocality = catalog.localities.find((l) => l.id === localityId)
   const mapCenter = selectedLocality ??
     // before a locality is picked: the biggest city, as the picker lists it first
@@ -770,26 +771,55 @@ export function EventForm({
 
             <FormField
               control={form.control}
-              name="localityId"
+              name="address"
               render={({ field }) => (
                 <FormItem className="order-3 md:order-none">
-                  <FormLabel>Lokalita *</FormLabel>
+                  <FormLabel>Adresa *</FormLabel>
                   <FormControl>
-                    <LocalityCombobox
-                      localities={catalog.localities}
-                      ref={field.ref}
-                      value={field.value}
+                    <AddressCombobox
+                      placeholder="např. Herna Karlín, Křižíkova 52, Praha 8"
+                      autoComplete="off"
+                      className="h-11"
+                      {...field}
                       onChange={(value) => {
-                        location.cancelLookup()
-                        setDidChangeLocality(true)
-                        field.onChange(value)
+                        location.typeAddress(value)
                       }}
-                      onBlur={field.onBlur}
+                      near={place ?? mapCenter}
+                      onPick={(suggestion) => {
+                        setDidChangeLocality(false)
+                        location.pickAddress(suggestion)
+                      }}
                     />
                   </FormControl>
-                  <FormDescription>
-                    Obec nebo městská část, podle které se dá akce najít.
-                  </FormDescription>
+                  <FormDescription role="status">{location.notice}</FormDescription>
+                  {location.pendingAddress ? (
+                    <div
+                      className="flex flex-col gap-2 border-l border-border pl-3"
+                      role="group"
+                      aria-label="Změna adresy podle špendlíku"
+                    >
+                      <p className="text-sm font-medium">Použít adresu podle špendlíku?</p>
+                      <p className="text-sm text-muted-foreground">{location.pendingAddress}</p>
+                      <div className="flex flex-wrap gap-2">
+                        <Button
+                          type="button"
+                          variant="outline"
+                          size="sm"
+                          onClick={location.acceptAddress}
+                        >
+                          Použít adresu
+                        </Button>
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="sm"
+                          onClick={location.keepAddress}
+                        >
+                          Ponechat moji
+                        </Button>
+                      </div>
+                    </div>
+                  ) : null}
                   <FormMessage />
                 </FormItem>
               )}
@@ -850,60 +880,75 @@ export function EventForm({
               )}
             />
 
+            {/* PO 26. 11. (#303): the address is entered once and the locality follows from it
+                (and from the pin); picking it by hand is the way out when it can't be found —
+                the field shows only then, or after „Změnit“ / „Vybrat ručně“ */}
             <FormField
               control={form.control}
-              name="address"
-              render={({ field }) => (
-                <FormItem className="order-5 md:order-none">
-                  <FormLabel>Adresa *</FormLabel>
-                  <FormControl>
-                    <AddressCombobox
-                      placeholder="např. Herna Karlín, Křižíkova 52, Praha 8"
-                      autoComplete="off"
-                      className="h-11"
-                      {...field}
-                      onChange={(value) => {
-                        location.typeAddress(value)
-                      }}
-                      near={place ?? mapCenter}
-                      onPick={(suggestion) => {
-                        setDidChangeLocality(false)
-                        location.pickAddress(suggestion)
-                      }}
-                    />
-                  </FormControl>
-                  <FormDescription role="status">{location.notice}</FormDescription>
-                  {location.pendingAddress ? (
-                    <div
-                      className="flex flex-col gap-2 border-l border-border pl-3"
-                      role="group"
-                      aria-label="Změna adresy podle špendlíku"
-                    >
-                      <p className="text-sm font-medium">Použít adresu podle špendlíku?</p>
-                      <p className="text-sm text-muted-foreground">{location.pendingAddress}</p>
-                      <div className="flex flex-wrap gap-2">
-                        <Button
-                          type="button"
-                          variant="outline"
-                          size="sm"
-                          onClick={location.acceptAddress}
-                        >
-                          Použít adresu
-                        </Button>
-                        <Button
-                          type="button"
-                          variant="ghost"
-                          size="sm"
-                          onClick={location.keepAddress}
-                        >
-                          Ponechat moji
-                        </Button>
-                      </div>
-                    </div>
-                  ) : null}
-                  <FormMessage />
-                </FormItem>
-              )}
+              name="localityId"
+              render={({ field }) =>
+                selectedLocality && !isPickingLocality ? (
+                  <FormItem className="order-5 md:order-none">
+                    <p className="flex flex-wrap items-center gap-x-2 text-sm">
+                      <span className="text-muted-foreground">Lokalita pro vyhledávání:</span>
+                      <span className="font-semibold">{selectedLocality.name}</span>
+                      <Button
+                        type="button"
+                        variant="link"
+                        size="sm"
+                        className="h-10 px-1"
+                        aria-label={`Změnit lokalitu ${selectedLocality.name}`}
+                        onClick={() => setIsPickingLocality(true)}
+                      >
+                        Změnit
+                      </Button>
+                    </p>
+                    <FormDescription>Doplní se podle adresy a místa na mapě.</FormDescription>
+                  </FormItem>
+                ) : !place && !isPickingLocality ? (
+                  // no address or pin yet: one line, not a second field to fill in before the
+                  // address (review #417, PO 26. 11.: „lokalitu brát automaticky z adresy“)
+                  <FormItem className="order-5 md:order-none">
+                    <p className="flex flex-wrap items-center gap-x-2 text-sm">
+                      <span className="text-muted-foreground">
+                        Lokalita pro vyhledávání se doplní podle adresy.
+                      </span>
+                      <Button
+                        type="button"
+                        variant="link"
+                        size="sm"
+                        className="h-10 px-1"
+                        onClick={() => setIsPickingLocality(true)}
+                      >
+                        Vybrat ručně
+                      </Button>
+                    </p>
+                    <FormMessage />
+                  </FormItem>
+                ) : (
+                  <FormItem className="order-5 md:order-none">
+                    <FormLabel>Lokalita *</FormLabel>
+                    <FormControl>
+                      <LocalityCombobox
+                        localities={catalog.localities}
+                        ref={field.ref}
+                        value={field.value}
+                        onChange={(value) => {
+                          location.cancelLookup()
+                          setDidChangeLocality(true)
+                          field.onChange(value)
+                        }}
+                        onBlur={field.onBlur}
+                      />
+                    </FormControl>
+                    <FormDescription>
+                      Obec nebo městská část, podle které se dá akce najít. Doplní se sama podle
+                      adresy, tady ji můžeš změnit.
+                    </FormDescription>
+                    <FormMessage />
+                  </FormItem>
+                )
+              }
             />
           </div>
         </div>
