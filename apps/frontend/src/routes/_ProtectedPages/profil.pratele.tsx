@@ -1,8 +1,10 @@
+import { useQueryClient } from "@tanstack/react-query"
 import { createFileRoute } from "@tanstack/react-router"
 
 import { useSession } from "@/features/auth/hooks/useSession"
 import { FriendsPage } from "@/features/friends/components/FriendsPage"
 import { friendsSearchSchema } from "@/features/friends/lib/friends"
+import { notificationKeys } from "@/features/notifications/api/notificationsQueryOptions"
 import { ProfileLoading } from "@/features/profile/components/ProfileState"
 
 export const Route = createFileRoute("/_ProtectedPages/profil/pratele")({
@@ -15,6 +17,7 @@ function FriendsRoute() {
   const { tab } = Route.useSearch()
   const navigate = Route.useNavigate()
   const { user } = useSession()
+  const queryClient = useQueryClient()
   // the protected layout lets only a signed-in user in; the session is cached by then
   return user ? (
     <FriendsPage
@@ -23,6 +26,8 @@ function FriendsRoute() {
       urlTab={tab}
       // replace: switching chips shouldn't fill the back button, as in Moje
       onTabChange={(next) => void navigate({ search: { tab: next }, replace: true })}
+      // a decided request takes its upozornění along (#430): the bell counts it no longer
+      onRequestDecided={() => queryClient.invalidateQueries({ queryKey: notificationKeys.all() })}
     />
   ) : (
     <ProfileLoading />

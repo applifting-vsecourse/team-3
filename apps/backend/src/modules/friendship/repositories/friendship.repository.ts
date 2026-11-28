@@ -73,30 +73,36 @@ export class FriendshipRepository {
 
   /** The viewer accepts the other's waiting request. */
   async accept(viewerId: string, otherId: string, now: Date): Promise<boolean> {
-    const { count } = await this.prisma.friendship.updateMany({
-      where: {
-        pairKey: friendshipPairKey(viewerId, otherId),
-        requesterId: otherId,
-        addresseeId: viewerId,
-        status: 'pending',
-      },
-      data: { status: 'accepted', acceptedAt: now },
+    return this.prisma.$transaction(async (tx) => {
+      const { count } = await tx.friendship.updateMany({
+        where: {
+          pairKey: friendshipPairKey(viewerId, otherId),
+          requesterId: otherId,
+          addresseeId: viewerId,
+          status: 'pending',
+        },
+        data: { status: 'accepted', acceptedAt: now },
+      });
+      if (count === 1) await dropRequestNotice(tx, viewerId, otherId);
+      return count === 1;
     });
-    return count === 1;
   }
 
   /** The viewer quietly rejects the other's waiting request. */
   async reject(viewerId: string, otherId: string): Promise<boolean> {
-    const { count } = await this.prisma.friendship.updateMany({
-      where: {
-        pairKey: friendshipPairKey(viewerId, otherId),
-        requesterId: otherId,
-        addresseeId: viewerId,
-        status: 'pending',
-      },
-      data: { status: 'rejected' },
+    return this.prisma.$transaction(async (tx) => {
+      const { count } = await tx.friendship.updateMany({
+        where: {
+          pairKey: friendshipPairKey(viewerId, otherId),
+          requesterId: otherId,
+          addresseeId: viewerId,
+          status: 'pending',
+        },
+        data: { status: 'rejected' },
+      });
+      if (count === 1) await dropRequestNotice(tx, viewerId, otherId);
+      return count === 1;
     });
-    return count === 1;
   }
 
   /** The one who rejected asks themselves: the row turns round, a new request from the viewer. */
@@ -125,15 +131,21 @@ export class FriendshipRepository {
     otherId: string,
     action: 'cancel' | 'unfriend',
   ): Promise<boolean> {
-    const { count } = await this.prisma.friendship.deleteMany({
-      where: {
-        pairKey: friendshipPairKey(viewerId, otherId),
-        ...(action === 'cancel'
-          ? { requesterId: viewerId, status: { in: ['pending', 'rejected'] } }
-          : { status: 'accepted' }),
-      },
+    return this.prisma.$transaction(async (tx) => {
+      const { count } = await tx.friendship.deleteMany({
+        where: {
+          pairKey: friendshipPairKey(viewerId, otherId),
+          ...(action === 'cancel'
+            ? { requesterId: viewerId, status: { in: ['pending', 'rejected'] } }
+            : { status: 'accepted' }),
+        },
+      });
+      // a cancelled request leaves nothing for the other to decide
+      if (count === 1 && action === 'cancel') {
+        await dropRequestNotice(tx, otherId, viewerId);
+      }
+      return count === 1;
     });
-    return count === 1;
   }
 
   list(userId: string): Promise<FriendshipRecord[]> {
@@ -149,4 +161,24 @@ export class FriendshipRepository {
       },
     });
   }
+}
+
+/**
+ * PO 26. 11.: „Jakub poslal žádost o přátelství, ale v žádostech ho nevidím.“ Once a request is
+ * decided or cancelled, its upozornění „… ti posílá žádost o přátelství“ would lead to an empty
+ * list, so it goes away with it (the acceptance sends its own) — in the same transaction as the
+ * change, so neither stays without the other (review #431).
+ */
+async function dropRequestNotice(
+  tx: Prisma.TransactionClient,
+  addresseeId: string,
+  requesterId: string,
+): Promise<void> {
+  await tx.notification.deleteMany({
+    where: {
+      userId: addresseeId,
+      type: 'friend_request',
+      targetId: requesterId,
+    },
+  });
 }

@@ -59,7 +59,7 @@ describe('UpdateEventDto', () => {
     expect(invalid({ title: '  ' })).toEqual(['title']);
   });
 
-  it('null is a 400 for fields that must have a value; the description may be cleared', () => {
+  it('null is a 400 for fields that must have a value; the description and the maximum may be cleared', () => {
     expect(
       invalid({
         title: null,
@@ -67,17 +67,17 @@ describe('UpdateEventDto', () => {
         address: null,
         startsAt: null,
         minParticipants: null,
-        maxParticipants: null,
       }).sort(),
     ).toEqual([
       'address',
       'localityId',
-      'maxParticipants',
       'minParticipants',
       'startsAt',
       'title',
     ]);
     expect(invalid({ description: null })).toEqual([]);
+    // PO 26. 11.: null removes the maximum
+    expect(invalid({ maxParticipants: null })).toEqual([]);
   });
 
   it('the place moves with both coordinates or not at all', () => {
