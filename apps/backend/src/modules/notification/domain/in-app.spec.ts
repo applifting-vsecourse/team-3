@@ -279,6 +279,32 @@ describe('composeFriendInApp (#307)', () => {
         .email.preview,
     ).toBe(inApp.text);
   });
+
+  it.each([
+    [true, 'Petr Malý je nově na HobbyHubu díky tvé pozvánce. Jste přátelé.'],
+    [false, 'Petr Malý je nově na HobbyHubu díky tvé pozvánce.'],
+  ])(
+    'joining through the invite (befriended: %p) names who joined (#406)',
+    (befriended, text) => {
+      const notification = {
+        type: 'friend-invite-joined',
+        fromId: 'u7',
+        toId: 'u1',
+        befriended,
+      } as const;
+      const inApp = composeFriendInApp(notification, petr);
+      expect(inApp).toEqual({
+        type: 'friend_invite_joined',
+        targetType: 'user',
+        targetId: 'u7',
+        text,
+      });
+      expect(
+        composeFriendMessage(notification, petr, 'https://hobbyhub.example/')
+          .email.preview,
+      ).toBe(text);
+    },
+  );
 });
 
 describe('notificationPath', () => {
@@ -297,6 +323,7 @@ describe('notificationPath', () => {
     ['group_announcement', '/skupiny/e1'],
     ['friend_request', '/profil/pratele?tab=zadosti'],
     ['friend_accepted', '/uzivatele/e1'],
+    ['friend_invite_joined', '/uzivatele/e1'],
   ])('%s leads to %s', (type, path) => {
     expect(notificationPath(type, 'e1')).toBe(path);
   });

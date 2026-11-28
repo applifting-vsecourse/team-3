@@ -14,8 +14,10 @@ import { useSession } from "@/features/auth/hooks/useSession"
 import { safeRedirect } from "@/features/auth/lib/redirect"
 import { eventKeys } from "@/features/events/api/eventsQueryOptions"
 import { OnboardingEventPreview } from "@/features/events/components/OnboardingEventPreview"
+import { useOnboardingInvite } from "@/features/invites/hooks/useOnboardingInvite"
 import {
   OnboardingWizard,
+  type OnboardingNext,
   type OnboardingResult,
 } from "@/features/onboarding/components/OnboardingWizard"
 import { profileKeys } from "@/features/profile/api/profileQueryOptions"
@@ -42,13 +44,17 @@ function OnboardingPage() {
   const { from } = Route.useSearch()
   const { queryClient } = Route.useRouteContext()
   const navigate = Route.useNavigate()
+  // #406: „{jméno} tě sem zve“ once the wizard is saved, only with a valid invite
+  const invite = useOnboardingInvite(user?.id ?? "", from)
   if (!user) return null
   const viewerId = user.id
 
   const finish = async (
     { onboardingCompletedAt, localitySlug, hasInterests }: OnboardingResult,
     hasSubmittedPreferences: boolean,
+    next: OnboardingNext,
   ) => {
+    await invite.offer()
     const current = queryClient.getQueryData<Session>(authKeys.session())
     if (current?.user.id !== viewerId) return
     queryClient.setQueryData<Session>(authKeys.session(), () => ({
@@ -58,7 +64,10 @@ function OnboardingPage() {
     void queryClient.invalidateQueries({ queryKey: profileKeys.self(viewerId) })
     void queryClient.invalidateQueries({ queryKey: eventKeys.lists() })
 
-    if (hasSubmittedPreferences && localitySlug && hasInterests) {
+    if (hasSubmittedPreferences && next === "partners") {
+      // „Nebo se podívej, kdo z okolí má stejné koníčky“ (#84)
+      await navigate({ to: ROUTES.partners, replace: true })
+    } else if (hasSubmittedPreferences && localitySlug && hasInterests) {
       await navigate({
         to: ROUTES.events,
         search: { lokalita: localitySlug, vyber: "podle-zajmu" },
@@ -70,17 +79,20 @@ function OnboardingPage() {
   }
 
   return (
-    <OnboardingWizard
-      key={viewerId}
-      viewerId={viewerId}
-      renderEventPreview={(locality, categoryId) => (
-        <OnboardingEventPreview
-          key={categoryId}
-          locality={locality}
-          categoryId={categoryId}
-        />
-      )}
-      onFinish={finish}
-    />
+    <>
+      <OnboardingWizard
+        key={viewerId}
+        viewerId={viewerId}
+        renderEventPreview={(locality, categoryId) => (
+          <OnboardingEventPreview
+            key={categoryId}
+            locality={locality}
+            categoryId={categoryId}
+          />
+        )}
+        onFinish={finish}
+      />
+      {invite.step}
+    </>
   )
 }

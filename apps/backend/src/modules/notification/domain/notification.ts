@@ -103,7 +103,17 @@ export type Notification =
   /** Somebody asks to be friends (#307, #86); a request sent again too. */
   | { type: 'friend-request'; fromId: string; toId: string }
   /** The one asked accepted: `fromId` accepted the request of `toId`. */
-  | { type: 'friend-accepted'; fromId: string; toId: string };
+  | { type: 'friend-accepted'; fromId: string; toId: string }
+  /**
+   * `fromId` signed up through the invite link of `toId` (#406), told once; `befriended`
+   * when they also took „Přidat do přátel“ in the onboarding.
+   */
+  | {
+      type: 'friend-invite-joined';
+      fromId: string;
+      toId: string;
+      befriended: boolean;
+    };
 
 /** What a group's admins and applicants hear about requests to join it (#86). */
 export type GroupRequestNotification = Extract<
@@ -114,10 +124,12 @@ export type GroupRequestNotification = Extract<
 /** What the e-mails about a request to join a group need to know of the group. */
 export type NotifiedGroup = { id: string; name: string };
 
-/** What friends hear about each other (#307, #86). */
+/** What friends hear about each other (#307, #86), and the inviter of a new user (#406). */
 export type FriendNotification = Extract<
   Notification,
-  { type: 'friend-request' } | { type: 'friend-accepted' }
+  | { type: 'friend-request' }
+  | { type: 'friend-accepted' }
+  | { type: 'friend-invite-joined' }
 >;
 
 /**

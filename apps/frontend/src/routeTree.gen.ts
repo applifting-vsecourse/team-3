@@ -20,9 +20,11 @@ import { Route as PodminkyRouteImport } from './routes/podminky'
 import { Route as ResetPasswordRouteImport } from './routes/reset-password'
 import { Route as SignupRouteImport } from './routes/signup'
 import { Route as ZapomenuteHesloRouteImport } from './routes/zapomenute-heslo'
+import { Route as ProtectedPagesPartaciRouteImport } from './routes/_ProtectedPages/partaci'
 import { Route as ProtectedPagesUpozorneniRouteImport } from './routes/_ProtectedPages/upozorneni'
 import { Route as ProtectedPagesVitejRouteImport } from './routes/_ProtectedPages/vitej'
 import { Route as AkceEventIdRouteImport } from './routes/akce_.$eventId'
+import { Route as PozvankaCodeRouteImport } from './routes/pozvanka.$code'
 import { Route as SkupinyIndexRouteImport } from './routes/skupiny.index'
 import { Route as SkupinyGroupIdRouteImport } from './routes/skupiny.$groupId'
 import { Route as UzivateleUserIdRouteImport } from './routes/uzivatele.$userId'
@@ -96,6 +98,11 @@ const ZapomenuteHesloRoute = ZapomenuteHesloRouteImport.update({
   path: '/zapomenute-heslo',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ProtectedPagesPartaciRoute = ProtectedPagesPartaciRouteImport.update({
+  id: '/partaci',
+  path: '/partaci',
+  getParentRoute: () => ProtectedPagesRoute,
+} as any)
 const ProtectedPagesUpozorneniRoute =
   ProtectedPagesUpozorneniRouteImport.update({
     id: '/upozorneni',
@@ -110,6 +117,11 @@ const ProtectedPagesVitejRoute = ProtectedPagesVitejRouteImport.update({
 const AkceEventIdRoute = AkceEventIdRouteImport.update({
   id: '/akce_/$eventId',
   path: '/akce/$eventId',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const PozvankaCodeRoute = PozvankaCodeRouteImport.update({
+  id: '/pozvanka/$code',
+  path: '/pozvanka/$code',
   getParentRoute: () => rootRouteImport,
 } as any)
 const SkupinyIndexRoute = SkupinyIndexRouteImport.update({
@@ -226,9 +238,11 @@ export interface FileRoutesByFullPath {
   '/reset-password': typeof ResetPasswordRoute
   '/signup': typeof SignupRoute
   '/zapomenute-heslo': typeof ZapomenuteHesloRoute
+  '/partaci': typeof ProtectedPagesPartaciRoute
   '/upozorneni': typeof ProtectedPagesUpozorneniRoute
   '/vitej': typeof ProtectedPagesVitejRoute
   '/akce/$eventId': typeof AkceEventIdRoute
+  '/pozvanka/$code': typeof PozvankaCodeRoute
   '/skupiny/$groupId': typeof SkupinyGroupIdRoute
   '/uzivatele/$userId': typeof UzivateleUserIdRoute
   '/skupiny/': typeof SkupinyIndexRoute
@@ -259,9 +273,11 @@ export interface FileRoutesByTo {
   '/reset-password': typeof ResetPasswordRoute
   '/signup': typeof SignupRoute
   '/zapomenute-heslo': typeof ZapomenuteHesloRoute
+  '/partaci': typeof ProtectedPagesPartaciRoute
   '/upozorneni': typeof ProtectedPagesUpozorneniRoute
   '/vitej': typeof ProtectedPagesVitejRoute
   '/akce/$eventId': typeof AkceEventIdRoute
+  '/pozvanka/$code': typeof PozvankaCodeRoute
   '/skupiny/$groupId': typeof SkupinyGroupIdRoute
   '/uzivatele/$userId': typeof UzivateleUserIdRoute
   '/skupiny': typeof SkupinyIndexRoute
@@ -294,9 +310,11 @@ export interface FileRoutesById {
   '/reset-password': typeof ResetPasswordRoute
   '/signup': typeof SignupRoute
   '/zapomenute-heslo': typeof ZapomenuteHesloRoute
+  '/_ProtectedPages/partaci': typeof ProtectedPagesPartaciRoute
   '/_ProtectedPages/upozorneni': typeof ProtectedPagesUpozorneniRoute
   '/_ProtectedPages/vitej': typeof ProtectedPagesVitejRoute
   '/akce_/$eventId': typeof AkceEventIdRoute
+  '/pozvanka/$code': typeof PozvankaCodeRoute
   '/skupiny/$groupId': typeof SkupinyGroupIdRoute
   '/uzivatele/$userId': typeof UzivateleUserIdRoute
   '/skupiny/': typeof SkupinyIndexRoute
@@ -329,9 +347,11 @@ export interface FileRouteTypes {
     | '/reset-password'
     | '/signup'
     | '/zapomenute-heslo'
+    | '/partaci'
     | '/upozorneni'
     | '/vitej'
     | '/akce/$eventId'
+    | '/pozvanka/$code'
     | '/skupiny/$groupId'
     | '/uzivatele/$userId'
     | '/skupiny/'
@@ -362,9 +382,11 @@ export interface FileRouteTypes {
     | '/reset-password'
     | '/signup'
     | '/zapomenute-heslo'
+    | '/partaci'
     | '/upozorneni'
     | '/vitej'
     | '/akce/$eventId'
+    | '/pozvanka/$code'
     | '/skupiny/$groupId'
     | '/uzivatele/$userId'
     | '/skupiny'
@@ -396,9 +418,11 @@ export interface FileRouteTypes {
     | '/reset-password'
     | '/signup'
     | '/zapomenute-heslo'
+    | '/_ProtectedPages/partaci'
     | '/_ProtectedPages/upozorneni'
     | '/_ProtectedPages/vitej'
     | '/akce_/$eventId'
+    | '/pozvanka/$code'
     | '/skupiny/$groupId'
     | '/uzivatele/$userId'
     | '/skupiny/'
@@ -432,6 +456,7 @@ export interface RootRouteChildren {
   SignupRoute: typeof SignupRoute
   ZapomenuteHesloRoute: typeof ZapomenuteHesloRoute
   AkceEventIdRoute: typeof AkceEventIdRoute
+  PozvankaCodeRoute: typeof PozvankaCodeRoute
   SkupinyGroupIdRoute: typeof SkupinyGroupIdRoute
   UzivateleUserIdRoute: typeof UzivateleUserIdRoute
   SkupinyIndexRoute: typeof SkupinyIndexRoute
@@ -516,6 +541,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ZapomenuteHesloRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/_ProtectedPages/partaci': {
+      id: '/_ProtectedPages/partaci'
+      path: '/partaci'
+      fullPath: '/partaci'
+      preLoaderRoute: typeof ProtectedPagesPartaciRouteImport
+      parentRoute: typeof ProtectedPagesRoute
+    }
     '/_ProtectedPages/upozorneni': {
       id: '/_ProtectedPages/upozorneni'
       path: '/upozorneni'
@@ -535,6 +567,13 @@ declare module '@tanstack/react-router' {
       path: '/akce/$eventId'
       fullPath: '/akce/$eventId'
       preLoaderRoute: typeof AkceEventIdRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/pozvanka/$code': {
+      id: '/pozvanka/$code'
+      path: '/pozvanka/$code'
+      fullPath: '/pozvanka/$code'
+      preLoaderRoute: typeof PozvankaCodeRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/skupiny/': {
@@ -667,6 +706,7 @@ declare module '@tanstack/react-router' {
 }
 
 interface ProtectedPagesRouteChildren {
+  ProtectedPagesPartaciRoute: typeof ProtectedPagesPartaciRoute
   ProtectedPagesUpozorneniRoute: typeof ProtectedPagesUpozorneniRoute
   ProtectedPagesVitejRoute: typeof ProtectedPagesVitejRoute
   ProtectedPagesAkceNovaRoute: typeof ProtectedPagesAkceNovaRoute
@@ -687,6 +727,7 @@ interface ProtectedPagesRouteChildren {
 }
 
 const ProtectedPagesRouteChildren: ProtectedPagesRouteChildren = {
+  ProtectedPagesPartaciRoute: ProtectedPagesPartaciRoute,
   ProtectedPagesUpozorneniRoute: ProtectedPagesUpozorneniRoute,
   ProtectedPagesVitejRoute: ProtectedPagesVitejRoute,
   ProtectedPagesAkceNovaRoute: ProtectedPagesAkceNovaRoute,
@@ -728,6 +769,7 @@ const rootRouteChildren: RootRouteChildren = {
   SignupRoute: SignupRoute,
   ZapomenuteHesloRoute: ZapomenuteHesloRoute,
   AkceEventIdRoute: AkceEventIdRoute,
+  PozvankaCodeRoute: PozvankaCodeRoute,
   SkupinyGroupIdRoute: SkupinyGroupIdRoute,
   UzivateleUserIdRoute: UzivateleUserIdRoute,
   SkupinyIndexRoute: SkupinyIndexRoute,

@@ -12,6 +12,8 @@ type DecisionProps = {
   isSaving: boolean
   error?: string
   onSave: () => void
+  /** Saves the same way, then opens Najdi parťáka instead of the events (#84). */
+  onSaveForPartners?: () => void
   onClose: () => void
   onRestoreFocus: () => void
 }
@@ -22,6 +24,7 @@ export function OnboardingDecision({
   isSaving,
   error,
   onSave,
+  onSaveForPartners,
   onClose,
   onRestoreFocus,
 }: DecisionProps) {
@@ -131,6 +134,18 @@ export function OnboardingDecision({
               Zpět k výběru
             </Button>
           </div>
+          {onSaveForPartners ? (
+            // #84: the second way on, under the buttons' row (#408)
+            <Button
+              type="button"
+              variant="link"
+              className="block min-h-11 px-0 text-left whitespace-normal"
+              disabled={isSaving}
+              onClick={onSaveForPartners}
+            >
+              Nebo se podívej, kdo z okolí má stejné koníčky
+            </Button>
+          ) : null}
         </div>
       </DialogContent>
     </Dialog>

@@ -18,6 +18,7 @@ const profile: SelfProfile = {
   email: "jana@example.com",
   emailVerified: true,
   hasPassword: true,
+  partnerDiscoverable: true,
   homeLocality: { id: "p7", slug: "praha-7", name: "Praha 7", parentId: null, lat: 50, lng: 14 },
   interests: [{ id: "running", name: "Běh" }],
 }

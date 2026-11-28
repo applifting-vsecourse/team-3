@@ -1,4 +1,4 @@
-import { whatChanged } from './messages';
+import { inviteJoinedText, whatChanged } from './messages';
 import {
   EventNotification,
   FriendNotification,
@@ -27,7 +27,8 @@ export type InAppType =
   | 'group_request_approved'
   | 'group_request_rejected'
   | 'friend_request'
-  | 'friend_accepted';
+  | 'friend_accepted'
+  | 'friend_invite_joined';
 
 export type InAppTargetType = 'event' | 'group' | 'user';
 
@@ -141,26 +142,34 @@ export const composeGroupRequestInApp = (
 };
 
 /**
- * Friends (#307): a request names who asks, an acceptance who accepted;
- * both point at that person (`friend_request` leads to the requests).
+ * Friends (#307): a request names who asks, an acceptance who accepted, an
+ * invite (#406) who joined through it; all point at that person
+ * (`friend_request` leads to the requests).
  */
 export const composeFriendInApp = (
   notification: FriendNotification,
   person: { id: string; name: string },
 ): InAppMessage =>
-  notification.type === 'friend-request'
+  notification.type === 'friend-invite-joined'
     ? {
-        type: 'friend_request',
+        type: 'friend_invite_joined',
         targetType: 'user',
         targetId: person.id,
-        text: `${person.name} ti posílá žádost o přátelství.`,
+        text: inviteJoinedText(person.name, notification.befriended),
       }
-    : {
-        type: 'friend_accepted',
-        targetType: 'user',
-        targetId: person.id,
-        text: `${person.name} a ty jste teď přátelé.`,
-      };
+    : notification.type === 'friend-request'
+      ? {
+          type: 'friend_request',
+          targetType: 'user',
+          targetId: person.id,
+          text: `${person.name} ti posílá žádost o přátelství.`,
+        }
+      : {
+          type: 'friend_accepted',
+          targetType: 'user',
+          targetId: person.id,
+          text: `${person.name} a ty jste teď přátelé.`,
+        };
 
 /**
  * Where a click on the upozornění leads, in the frontend. The organizer's
@@ -189,6 +198,7 @@ export const notificationPath = (type: InAppType, targetId: string): string => {
     case 'friend_request':
       return '/profil/pratele?tab=zadosti';
     case 'friend_accepted':
+    case 'friend_invite_joined':
       return `/uzivatele/${id}`;
   }
 };

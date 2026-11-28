@@ -7,6 +7,9 @@ export const ownerRow = (): ProfileRow => ({
   emailVerified: true,
   blockedAt: null,
   deletedAt: null,
+  partnerDiscoverable: true,
+  homeLocalityChangeDay: null,
+  homeLocalityChangeCount: 0,
   homeLocality: null,
   interests: [],
   accounts: [{ id: 'credential' }],
@@ -36,6 +39,7 @@ describe('private profile projection (#178)', () => {
       homeLocality: null,
       interests: [],
       hasPassword: true,
+      partnerDiscoverable: true,
     });
     expect(JSON.stringify(profile)).not.toMatch(
       /test-only|blockedReason|accessToken/,

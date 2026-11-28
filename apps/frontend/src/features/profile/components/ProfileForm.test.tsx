@@ -42,6 +42,7 @@ const profile: SelfProfile = {
   email: "jana@example.com",
   emailVerified: true,
   hasPassword: true,
+  partnerDiscoverable: true,
   homeLocality: locality,
   interests: [{ id: "running", name: "Běh" }],
 }
@@ -82,7 +83,19 @@ describe("profile editing (#178)", () => {
     await user.click(screen.getByRole("button", { name: "Vymazat lokalitu" }))
     await user.click(screen.getByRole("button", { name: "Odebrat zájem Běh" }))
     await user.click(screen.getByRole("button", { name: "Uložit změny" }))
-    expect(save).toHaveBeenCalledWith({ name: "Jana Nová", homeLocalityId: null, interestIds: [] })
+    expect(save).toHaveBeenCalledWith({
+      name: "Jana Nová",
+      homeLocalityId: null,
+      interestIds: [],
+      partnerDiscoverable: true,
+    })
+  })
+  it("switches off „Ukazovat mě v Najdi parťáka“ (#84)", async () => {
+    const user = userEvent.setup()
+    show()
+    await user.click(screen.getByRole("checkbox", { name: "Ukazovat mě v Najdi parťáka" }))
+    await user.click(screen.getByRole("button", { name: "Uložit změny" }))
+    expect(save).toHaveBeenCalledWith(expect.objectContaining({ partnerDiscoverable: false }))
   })
   it("does not duplicate a selected activity", async () => {
     const user = userEvent.setup()
@@ -93,6 +106,7 @@ describe("profile editing (#178)", () => {
       name: "Jana Nová",
       homeLocalityId: "prague",
       interestIds: ["running"],
+      partnerDiscoverable: true,
     })
   })
   it("explains an invalid name before sending any update", async () => {
@@ -107,6 +121,11 @@ describe("profile editing (#178)", () => {
   it.each([
     ["INVALID_NAME", "Jméno", "Do jména nepatří znak „#“."],
     ["UNKNOWN_LOCALITY", "Domovská lokalita", "Vyber domovskou lokalitu ze seznamu."],
+    [
+      "HOME_LOCALITY_CHANGE_LIMIT",
+      "Domovská lokalita",
+      "Domovské místo jde změnit nejvýš třikrát za den. Zkus to zítra.",
+    ],
   ])("shows the API's %s at the field it is about", async (code, label, message) => {
     const refusal = new HTTPError(
       new Response(null, { status: 400 }),

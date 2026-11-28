@@ -17,6 +17,7 @@ const profile: SelfProfile = {
   email: "jana@example.com",
   emailVerified: true,
   hasPassword: true,
+  partnerDiscoverable: true,
   homeLocality: null,
   interests: [],
 }

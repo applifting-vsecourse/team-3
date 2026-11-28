@@ -59,7 +59,8 @@ export class ProfileController {
   @UseGuards(WriteThrottlerGuard)
   @ApiResponse({ status: 200, type: SelfProfileResponseDto })
   @ApiOperation({
-    summary: 'Update my name, home locality and interests (#178)',
+    summary:
+      'Update my name, home locality, interests (#178) and „Ukazovat mě v Najdi parťáka“ (#84)',
   })
   update(
     @User() user: Identity,

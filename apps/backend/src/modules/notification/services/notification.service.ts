@@ -56,6 +56,7 @@ const aboutOf = (notification: Notification): string => {
       return `skupina ${notification.groupId}, žadatel ${notification.userId}`;
     case 'friend-request':
     case 'friend-accepted':
+    case 'friend-invite-joined':
       return `uživatel ${notification.fromId} → ${notification.toId}`;
     default:
       return `akce ${notification.eventId}`;
@@ -130,7 +131,8 @@ export class NotificationService {
           : notification.type === 'event-message'
             ? await this.prepareEventMessage(notification.messageId)
             : notification.type === 'friend-request' ||
-                notification.type === 'friend-accepted'
+                notification.type === 'friend-accepted' ||
+                notification.type === 'friend-invite-joined'
               ? await this.prepareFriendNotification(notification)
               : notification.type === 'group-join-request' ||
                   notification.type === 'group-request-decided'

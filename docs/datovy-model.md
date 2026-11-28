@@ -21,6 +21,8 @@ Schéma vzniklo v rámci #47 (testovací data), protože bez něj nešla data na
 | `EventMessage`      | `event_message`      | Zpráva organizátora účastníkům (limit 10 za den)                                                                         | B-042               | ne       |
 | `GroupAnnouncement` | `group_announcement` | Oznámení správce členům skupiny (limit 10 za den na skupinu)                                                             | #194                | ne       |
 | `Friendship`        | `friendship`         | Přátelství: jedna žádost na dvojici lidí a její stav (viz [Přátelé](#přátelé-307))                                       | B-017, #307         | ne       |
+| `PartnerSkip`       | `partner_skip`       | „Teď ne“ v Najdi parťáka: koho jsem přeskočil (viz [Najdi parťáka](#najdi-parťáka-84))                                   | #84                 | ne       |
+| `FriendRequestLog`  | `friend_request_log` | Kdy kdo poslal žádost o přátelství, pro denní limit (viz [Najdi parťáka](#najdi-parťáka-84))                             | #84                 | ne       |
 | `Notification`      | `notification`       | Upozornění v centru (zvonek), nepřečtené mají `readAt` prázdné (viz [Upozornění](#upozornění-86))                        | B-044, #86          | ne       |
 | `NotificationLog`   | `notification_log`   | Záznam o odeslaném plánovaném e-mailu, aby nepřišel dvakrát                                                              | B-043               | ne       |
 | `Rating`            | `rating`             | Hodnocení akce a organizátora od účastníka                                                                               | B-060               | ne       |
@@ -56,6 +58,9 @@ erDiagram
         profile_visibility photoVisibility
         profile_visibility bioVisibility
         profile_visibility pastEventsVisibility
+        boolean partnerDiscoverable "Najdi parťáka (#84)"
+        string homeLocalityChangeDay "den poslední změny domova (#84)"
+        int homeLocalityChangeCount "změny domova ten den, nejvýš 3"
         datetime ageConfirmedAt
         datetime termsAcceptedAt
         datetime blockedAt
@@ -93,6 +98,10 @@ erDiagram
 ### Přátelé (#307)
 
 `Friendship` drží jednu žádost na dvojici lidí, bez ohledu na to, kdo žádal: `requesterId`, `addresseeId`, `status` (`pending` / `accepted` / `rejected`), `acceptedAt`. Dvojici hlídá databáze: `pairKey` jsou obě ID seřazená a spojená dvojtečkou, s unikátním indexem (spolehlivější než unikátní index nad `LEAST`/`GREATEST`, který Prisma ve schématu neumí zapsat). `rejected` je tiché odmítnutí: odesílatel dál vidí odeslanou žádost a může ji zrušit, pak jde poslat znovu. Účet se maže jen nastavením `deletedAt`, takže záznam zůstane; smazané a zablokované účty se v seznamech přátel nezobrazují (kaskáda `onDelete: Cascade` platí jen pro skutečné smazání řádku). Pravidla a API v [`modules/friendship/README.md`](../apps/backend/src/modules/friendship/README.md).
+
+### Najdi parťáka (#84)
+
+`PartnerSkip` je jedno „Teď ne“: `skipperId` přeskočil `skippedId`, jeden řádek na směr dvojice (unikátní `(skipperId, skippedId)`), `createdAt` je poslední přeskočení. Člověk se mi 90 dní neukáže, na žádném zařízení; „Vrátit“ řádek smaže. Druhý se o přeskočení nikdy nedozví. „Přidat“ je žádost o přátelství (`Friendship`), vlastní tabulku nemá. `User.partnerDiscoverable` („Ukazovat mě v Najdi parťáka“, výchozí `false`, zapne ho tlačítko „Ukázat mě“) vypne, že se nabízím ostatním, a zároveň tím sám nikoho nevidím. `homeLocalityChangeDay` a `homeLocalityChangeCount` omezují změnu domovské lokality na tři za pražský den, aby se z pásem vzdálenosti nedala přesouváním domova dopočítat poloha. Denní limit 20 nových žádostí o přátelství je v modulu friendship a počítá se z `FriendRequestLog` (jen kdo a kdy odeslal), protože zrušená žádost smaže řádek `Friendship` i své upozornění. Pravidla a API v [`modules/partner/README.md`](../apps/backend/src/modules/partner/README.md).
 
 ### Upozornění (#86)
 

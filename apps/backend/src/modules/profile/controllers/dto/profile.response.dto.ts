@@ -26,6 +26,10 @@ export class SelfProfileResponseDto implements SelfProfile {
   homeLocality!: SelfProfile['homeLocality'];
   @ApiProperty({ type: [NamedProfileEntityDto] })
   interests!: SelfProfile['interests'];
+  @ApiProperty({
+    description: 'Ukazovat mě v Najdi parťáka (#84), on by default',
+  })
+  partnerDiscoverable!: boolean;
 }
 class ProfileRatingResponseDto implements ProfileRating {
   @ApiProperty() id!: string;

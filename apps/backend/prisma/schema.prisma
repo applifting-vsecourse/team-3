@@ -248,23 +248,39 @@ model User {
   displayUsername String? @db.VarChar(50)
 
   // Profil (B-003, B-013)
-  bio            String?        @db.VarChar(500)
-  homeLocalityId String?
-  homeLocality   Locality?      @relation(fields: [homeLocalityId], references: [id], onDelete: SetNull)
-  interests      UserInterest[]
+  bio                     String?        @db.VarChar(500)
+  homeLocalityId          String?
+  homeLocality            Locality?      @relation(fields: [homeLocalityId], references: [id], onDelete: SetNull)
+  // Změny domovské lokality za pražský den (#84): nejvýš 3, aby se z pásem
+  // vzdálenosti v Najdi parťáka nedala přesouváním domova dopočítat poloha
+  homeLocalityChangeDay   String?        @db.VarChar(10)
+  homeLocalityChangeCount Int            @default(0)
+  interests               UserInterest[]
 
   // Viditelnost údajů v profilu (B-014)
   photoVisibility      ProfileVisibility @default(everyone)
   bioVisibility        ProfileVisibility @default(everyone)
   pastEventsVisibility ProfileVisibility @default(everyone)
+  // „Ukazovat mě v Najdi parťáka“ (#84): vypnuté = nikomu se nenabízím. Výchozí
+  // vypnuté: cizím lidem se ukáže jen ten, kdo to sám zapne (GDPR čl. 25)
+  partnerDiscoverable  Boolean           @default(false)
 
   // Souhlasy (B-016), blokace superadminem (B-063), smazání účtu (B-080)
-  ageConfirmedAt  DateTime?
-  termsAcceptedAt DateTime?
+  ageConfirmedAt        DateTime?
+  termsAcceptedAt       DateTime?
   onboardingCompletedAt DateTime?
-  blockedAt       DateTime?
-  blockedReason   String?   @db.Text
-  deletedAt       DateTime?
+  blockedAt             DateTime?
+  blockedReason         String?   @db.Text
+  deletedAt             DateTime?
+
+  // Pozvánka od kamaráda (#406): náhodný kód osobního odkazu /pozvanka/:code (128 bitů
+  // z CSPRNG, bez osobních údajů), vzniká při prvním GET /api/invites/me, jde vyměnit.
+  // invitedBy: kdo nového uživatele pozval (jen počet pro zvoucího a denní limit 20)
+  inviteCode      String?   @unique @db.VarChar(32)
+  invitedById     String?
+  invitedBy       User?     @relation("UserInvitedBy", fields: [invitedById], references: [id], onDelete: SetNull)
+  invitedAt       DateTime?
+  invitedUsers    User[]    @relation("UserInvitedBy")
 
   organizedEvents        Event[]             @relation("EventOrganizer")
   participations         Participation[]
@@ -282,10 +298,14 @@ model User {
   notificationLogs       NotificationLog[]
   sentFriendRequests     Friendship[]        @relation("FriendshipRequester")
   receivedFriendRequests Friendship[]        @relation("FriendshipAddressee")
+  partnerSkipsMade       PartnerSkip[]       @relation("PartnerSkipper")
+  partnerSkipsReceived   PartnerSkip[]       @relation("PartnerSkipped")
+  friendRequestsLogged   FriendRequestLog[]
   notifications          Notification[]
 
   @@unique([email])
   @@unique([username])
+  @@index([invitedById, invitedAt])
   @@map("user")
 }
 
@@ -738,6 +758,41 @@ model Friendship {
 }
 
 // ---------------------------------------------------------------------------
+// Najdi parťáka (#84)
+// ---------------------------------------------------------------------------
+
+/// Odeslané žádosti o přátelství pro denní limit (#84). Vlastní záznam, protože
+/// zrušená žádost smaže řádek přátelství i své upozornění (#430): limit se
+/// zrušením a novým odesláním obejít nedá. Kdo komu, se nepamatuje, jen kdy.
+model FriendRequestLog {
+  id          String   @id @default(cuid())
+  requesterId String
+  requester   User     @relation(fields: [requesterId], references: [id], onDelete: Cascade)
+  createdAt   DateTime @default(now())
+
+  @@index([requesterId, createdAt])
+  @@map("friend_request_log")
+}
+
+/// „Teď ne“ v Najdi parťáka: koho `skipper` přeskočil, aby se mu ten člověk
+/// 90 dní neukázal, ani na jiném zařízení (`createdAt` = poslední přeskočení,
+/// „Vrátit“ řádek smaže). Jeden řádek na směr dvojice; ten druhý se o
+/// přeskočení nikdy nedozví. „Přidat“ je žádost o přátelství
+/// (`Friendship`), vlastní řádek nemá.
+model PartnerSkip {
+  id        String   @id @default(cuid())
+  skipperId String
+  skipper   User     @relation("PartnerSkipper", fields: [skipperId], references: [id], onDelete: Cascade)
+  skippedId String
+  skipped   User     @relation("PartnerSkipped", fields: [skippedId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now())
+
+  @@unique([skipperId, skippedId])
+  @@index([skippedId])
+  @@map("partner_skip")
+}
+
+// ---------------------------------------------------------------------------
 // Upozornění v aplikaci (B-044, #86)
 // ---------------------------------------------------------------------------
 
@@ -758,6 +813,7 @@ enum NotificationType {
   group_request_rejected
   friend_request
   friend_accepted
+  friend_invite_joined
 
   @@map("notification_type")
 }
