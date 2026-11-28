@@ -1,3 +1,4 @@
+import type { ReactNode } from "react"
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query"
 import { screen, waitFor, within } from "@testing-library/react"
 import userEvent from "@testing-library/user-event"
@@ -34,7 +35,12 @@ const asJson = (body: unknown) => ({
   json: () => Promise.resolve(JSON.parse(JSON.stringify(body))),
 })
 
-const show = (data: FriendLists, urlTab?: FriendsTab, onTabChange = vi.fn()) => {
+const show = (
+  data: FriendLists,
+  urlTab?: FriendsTab,
+  onTabChange = vi.fn(),
+  emptyFriendsActions?: ReactNode,
+) => {
   api.get.mockReturnValue(asJson(data))
   return renderWithRouter(
     <QueryClientProvider
@@ -44,6 +50,7 @@ const show = (data: FriendLists, urlTab?: FriendsTab, onTabChange = vi.fn()) => 
         viewerId="jakub"
         urlTab={urlTab}
         onTabChange={onTabChange}
+        emptyFriendsActions={emptyFriendsActions}
       />
     </QueryClientProvider>,
   )
@@ -109,13 +116,39 @@ describe("/profil/pratele (Figma B-09, #307)", () => {
     ).toBeInTheDocument()
   })
 
-  it("nobody yet: one sentence and no search", async () => {
-    await show(lists({ friends: [] }))
+  it("nobody yet: the sentence, the ways to friends the route passes in and the warning, no search (#474)", async () => {
+    await show(
+      lists({ friends: [] }),
+      undefined,
+      vi.fn(),
+      <>
+        <a href="/partaci">Najdi parťáka</a>
+        <button type="button">Poslat pozvánku</button>
+      </>,
+    )
 
     expect(
-      await screen.findByText("Zatím tu nikoho nemáš. Přátele si přidáš na jejich profilu."),
+      await screen.findByText("Zatím tu nikoho nemáš. Najdi parťáky z okolí, nebo pozvi kamaráda."),
     ).toBeInTheDocument()
+    expect(screen.getByRole("link", { name: "Najdi parťáka" })).toBeInTheDocument()
+    expect(screen.getByRole("button", { name: "Poslat pozvánku" })).toBeInTheDocument()
+    expect(
+      screen.getByText(
+        "Přátelé vidí, na které akce jdeš, tak odkaz posílej jen lidem, které znáš.",
+      ),
+    ).toHaveClass("text-caption", "text-muted-foreground")
     expect(screen.queryByRole("searchbox")).not.toBeInTheDocument()
+  })
+
+  it("a search finding nobody has no way to new friends, only the sentence (#474)", async () => {
+    await show(lists(), undefined, vi.fn(), <button type="button">Poslat pozvánku</button>)
+
+    await userEvent.type(await screen.findByRole("searchbox"), "Radek")
+
+    expect(
+      screen.getByText("Nikoho takového mezi přáteli nemáš. Přátele si přidáš na jejich profilu."),
+    ).toBeInTheDocument()
+    expect(screen.queryByRole("button", { name: "Poslat pozvánku" })).not.toBeInTheDocument()
   })
 
   it("Žádosti: waiting for me with Odmítnout / Přijmout, mine with Zrušit žádost", async () => {
