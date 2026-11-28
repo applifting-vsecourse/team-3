@@ -186,6 +186,7 @@ const anUpcomingEvent = (id: string, title: string): PublicUpcomingEvent => ({
   group: null,
   minParticipants: 6,
   maxParticipants: 12,
+  approvalMode: "open",
   approvedCount: 5,
   missingToMin: 1,
   freeSpots: 7,

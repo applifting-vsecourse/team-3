@@ -3,6 +3,7 @@ import { describe, expect, it } from "vitest"
 import {
   areaPhrase,
   isoDay,
+  missingNowAction,
   missingNowLabel,
   missingNowSentence,
   startsIn,
@@ -56,13 +57,31 @@ describe("the panel's words", () => {
     expect(missingNowLabel(3)).toBe("Teď chybí 3")
   })
 
+  const open = { approvalMode: "open" } as const
+
   it("the sentence has the numbers; nobody yet is said so", () => {
-    expect(missingNowSentence({ approvedCount: 5, maxParticipants: 10, missingToMin: 1 })).toBe(
-      "5 z 10 už jde, do minima chybí 1. Přijď a akce se koná.",
-    )
-    expect(missingNowSentence({ approvedCount: 0, maxParticipants: 8, missingToMin: 3 })).toBe(
-      "Zatím nikdo nejde, do minima chybí 3.",
-    )
+    expect(
+      missingNowSentence({ ...open, approvedCount: 5, maxParticipants: 10, missingToMin: 1 }),
+    ).toBe("5 z 10 už jde, do minima chybí 1. Přijď a akce se koná.")
+    expect(
+      missingNowSentence({ ...open, approvedCount: 0, maxParticipants: 8, missingToMin: 3 }),
+    ).toBe("Zatím nikdo nejde, do minima chybí 3.")
+  })
+})
+
+// QA-06: a request the organizer approves is no promise the visitor alone keeps
+describe("an event where the organizer approves", () => {
+  it("the sentence and the button ask, they don't promise", () => {
+    expect(
+      missingNowSentence({
+        approvalMode: "approval",
+        approvedCount: 5,
+        maxParticipants: 12,
+        missingToMin: 1,
+      }),
+    ).toBe("5 z 12 už jde, do minima chybí 1. Když tě organizátor schválí, akce se koná.")
+    expect(missingNowAction("approval")).toBe("Požádat o účast")
+    expect(missingNowAction("open")).toBe("Doplnit partu")
   })
 })
 

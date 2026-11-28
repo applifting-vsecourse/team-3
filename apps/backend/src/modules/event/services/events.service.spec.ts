@@ -56,6 +56,7 @@ const anEvent = (id: string, approvedCount: number): PublicEvent => ({
   group: null,
   minParticipants: 3,
   maxParticipants: 6,
+  approvalMode: 'open',
   capacity: computeCapacity(
     { minParticipants: 3, maxParticipants: 6 },
     approvedCount,

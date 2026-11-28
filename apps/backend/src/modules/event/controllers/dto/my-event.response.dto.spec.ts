@@ -22,6 +22,7 @@ const anEvent = (overrides: Partial<MyEvent> = {}): MyEvent => ({
   group: null,
   minParticipants: 3,
   maxParticipants: 6,
+  approvalMode: 'open',
   capacity: { approvedCount: 5, missingToMin: 0, freeSpots: 1, isFull: false },
   isPromoted: false,
   imageKey: null,

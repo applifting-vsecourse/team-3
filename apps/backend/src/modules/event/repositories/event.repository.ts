@@ -124,6 +124,7 @@ export const toPublicEvent = (
   group: event.group,
   minParticipants: event.minParticipants,
   maxParticipants: event.maxParticipants,
+  approvalMode: event.approvalMode,
   capacity: computeCapacity(event, event._count.participations),
   isPromoted: event.promotedUntil !== null && event.promotedUntil > now,
   imageKey: event.imageKey,

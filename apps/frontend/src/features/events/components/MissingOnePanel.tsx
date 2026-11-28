@@ -14,7 +14,12 @@ import { cn } from "@/lib/utils"
 
 import type { PublicEvent } from "@/features/events/api/eventSchemas"
 import { eventDateParts, formatEventStart, placeName } from "@/features/events/lib/formatEvent"
-import { missingNowLabel, missingNowSentence, startsIn } from "@/features/events/lib/homeCopy"
+import {
+  missingNowAction,
+  missingNowLabel,
+  missingNowSentence,
+  startsIn,
+} from "@/features/events/lib/homeCopy"
 
 /** The panel's surface in the band (Figma Panel/Teď chybí jeden): a card with the `on-hero-muted` edge. */
 const PANEL =
@@ -121,7 +126,7 @@ export function MissingOnePanel({ event, now }: { event: PublicEvent; now: Date 
             tabIndex={-1}
             aria-hidden
           >
-            Doplnit partu
+            {missingNowAction(event.approvalMode)}
           </Link>
         </Button>
       </div>

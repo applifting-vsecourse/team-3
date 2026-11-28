@@ -59,6 +59,7 @@ const anEvent = (
   group: null,
   minParticipants: 4,
   maxParticipants: 10,
+  approvalMode: 'open',
   capacity: computeCapacity(
     { minParticipants: 4, maxParticipants: 10 },
     approved,
