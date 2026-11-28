@@ -23,6 +23,7 @@ import {
   ApiTags,
 } from '@nestjs/swagger';
 import {
+  PartnerHomeResponseDto,
   PartnerRequestResponseDto,
   PartnerSuggestionsQueryDto,
   PartnerSuggestionsResponseDto,
@@ -73,6 +74,54 @@ export class PartnersController {
       query.radiusKm ?? DEFAULT_PARTNER_RADIUS_KM,
       query.cursor,
     );
+  }
+
+  @Get('home')
+  @UseGuards(VerifiedUserGuard)
+  @ApiOperation({
+    summary:
+      'Parťáci v okolí on the landing page: the first 3 of the deck, or isShown false (frequency cap on the server, #474)',
+  })
+  @ApiResponse({ status: 200, type: PartnerHomeResponseDto })
+  @ApiResponse(AUTH_ERRORS[0])
+  @ApiResponse(AUTH_ERRORS[1])
+  @ApiResponse({
+    status: 404,
+    description: 'USER_NOT_FOUND: my account is gone',
+  })
+  home(@User() user: Identity): Promise<PartnerHomeResponseDto> {
+    return this.partners.homePreview(user.id);
+  }
+
+  @Post('home/hide')
+  @HttpCode(204)
+  @UseGuards(VerifiedUserGuard, WriteThrottlerGuard)
+  @ApiOperation({
+    summary:
+      'Skrýt: Parťáci v okolí stay off the landing page for 30 days, on any device (#474)',
+  })
+  @ApiResponse({
+    status: 204,
+    description: 'Hidden (again: the 30 days start anew)',
+  })
+  @ApiResponse(AUTH_ERRORS[0])
+  @ApiResponse(AUTH_ERRORS[1])
+  async hideHome(@User() user: Identity): Promise<void> {
+    await this.partners.hideHome(user.id);
+  }
+
+  @Post('visit')
+  @HttpCode(204)
+  @UseGuards(VerifiedUserGuard, WriteThrottlerGuard)
+  @ApiOperation({
+    summary:
+      '/partaci opened: Parťáci v okolí stay off the landing page for 7 days (#474)',
+  })
+  @ApiResponse({ status: 204, description: 'Recorded' })
+  @ApiResponse(AUTH_ERRORS[0])
+  @ApiResponse(AUTH_ERRORS[1])
+  async visit(@User() user: Identity): Promise<void> {
+    await this.partners.recordVisit(user.id);
   }
 
   @Post(':userId/request')

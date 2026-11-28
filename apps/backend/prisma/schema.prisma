@@ -263,6 +263,10 @@ model User {
   pastEventsVisibility ProfileVisibility @default(everyone)
   // „Ukazovat mě v Najdi parťáka“ (#84): vypnuté = nikomu se nenabízím
   partnerDiscoverable  Boolean           @default(true)
+  // „Parťáci v okolí“ na úvodní stránce (#474): frekvenční strop na serveru, ne v prohlížeči.
+  // Návštěva /partaci blok schová na 7 dní, „Skrýt“ na 30 dní
+  partnersVisitedAt       DateTime?
+  partnersHomeHiddenUntil DateTime?
 
   // Souhlasy (B-016), blokace superadminem (B-063), smazání účtu (B-080)
   ageConfirmedAt  DateTime?

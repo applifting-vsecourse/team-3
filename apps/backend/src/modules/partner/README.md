@@ -25,6 +25,20 @@ Uživatel je vždy ze session, `:userId` je ten druhý. Všechny endpointy včet
 - `POST /api/partners/:userId/skip` je „Teď ne“. Uloží `PartnerSkip` (jeden řádek na směr dvojice, opakované přeskočení posune `createdAt`), odpoví `204`. Druhý se o přeskočení nikdy nedozví.
 - `DELETE /api/partners/:userId/skip` je „Vrátit“ a přeskočení smaže, `204` i tehdy, když nebylo co mazat. Aplikace vrací jen poslední „Teď ne“. „Přidat“ se nevrací: žádost už odešla s upozorněním a ruší se na profilu („Zrušit žádost“).
 
+## Parťáci v okolí na úvodní stránce (#474)
+
+Přihlášený uživatel vidí na úvodní stránce za „Pro tebe“ blok s prvními třemi lidmi z balíčku (okruh 10 km) jako řádky. Pravidla jsou čisté funkce v [`domain/partner-home.ts`](domain/partner-home.ts) a o tom, jestli se blok ukáže, rozhoduje API (`isShown`), ne frontend.
+
+- **Kdy:** profil je úplný (`missing` prázdné), „Ukazovat mě“ je zapnuté a v balíčku jsou aspoň 3 lidé (`PARTNER_HOME_SIZE`). Jinak blok vůbec není, prázdný stav na úvodní stránce by byl sekce kvůli sekci (DESIGN.md › Layout).
+- **Frekvenční strop na serveru** (`User.partnersVisitedAt`, `User.partnersHomeHiddenUntil`), ne v localStorage, aby platil na všech zařízeních: po návštěvě `/partaci` se blok 7 dní neukáže (`PARTNER_HOME_AFTER_VISIT_DAYS`), „Skrýt“ ho schová na 30 dní (`PARTNER_HOME_HIDE_DAYS`). S 10 a víc přáteli (`PARTNER_HOME_MAX_FRIENDS`) se neukáže vůbec, počítají se přijatá přátelství s účtem, který není zablokovaný ani smazaný. Strop se kontroluje dřív, než se balíček sestaví.
+- Bez upozornění, e-mailů a odznaků: EDPB 03/2022 považuje opakované výzvy („overloading“) za klamavý design.
+
+API (všechno s `VerifiedUserGuard`, zápisy i s `WriteThrottlerGuard`):
+
+- `GET /api/partners/home` vrací `{ isShown, items }`, `items` jsou karty jako v balíčku, nejvýš 3, a prázdné, když `isShown` je `false`.
+- `POST /api/partners/home/hide` je „Skrýt“, `204`. Opakované skrytí počítá 30 dní znovu.
+- `POST /api/partners/visit` zapíše návštěvu `/partaci` (frontend ho volá při otevření stránky), `204`.
+
 ## Proč takhle
 
 - Tlačítka i swipe: WCAG 2.5.1 a 2.5.7 chtějí ke každému gestu ovládání jedním ukazatelem.

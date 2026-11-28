@@ -94,4 +94,60 @@ describe('PartnerRepository (#84)', () => {
       }),
     );
   });
+
+  it('the home cap reads the visit, Skrýt and the friends that still have an account (#474)', async () => {
+    const { prisma, repository } = setup();
+    const visitedAt = new Date('2026-11-20T10:00:00.000Z');
+    prisma.user.findFirst.mockResolvedValue({
+      partnersVisitedAt: visitedAt,
+      partnersHomeHiddenUntil: null,
+    } as never);
+    prisma.friendship.count.mockResolvedValue(4);
+
+    await expect(repository.homeState('me')).resolves.toEqual({
+      visitedAt,
+      hiddenUntil: null,
+      friendsCount: 4,
+    });
+    expect(prisma.user.findFirst).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: { id: 'me', deletedAt: null, blockedAt: null },
+      }),
+    );
+    const available = { deletedAt: null, blockedAt: null };
+    expect(prisma.friendship.count).toHaveBeenCalledWith({
+      where: {
+        status: 'accepted',
+        OR: [
+          { requesterId: 'me', addressee: available },
+          { addresseeId: 'me', requester: available },
+        ],
+      },
+    });
+  });
+
+  it('a gone account has no home cap', async () => {
+    const { prisma, repository } = setup();
+    prisma.user.findFirst.mockResolvedValue(null);
+
+    await expect(repository.homeState('me')).resolves.toBeNull();
+    expect(prisma.friendship.count).not.toHaveBeenCalled();
+  });
+
+  it('a visit to /partaci and Skrýt are stored on the user, not in the browser (#474)', async () => {
+    const { prisma, repository } = setup();
+    const until = new Date('2026-12-28T10:00:00.000Z');
+
+    await repository.recordVisit('me', now);
+    await repository.hideHome('me', until);
+
+    expect(prisma.user.update).toHaveBeenCalledWith({
+      where: { id: 'me' },
+      data: { partnersVisitedAt: now },
+    });
+    expect(prisma.user.update).toHaveBeenCalledWith({
+      where: { id: 'me' },
+      data: { partnersHomeHiddenUntil: until },
+    });
+  });
 });
