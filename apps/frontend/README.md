@@ -40,6 +40,8 @@ Copy [`./.env.example`](./.env.example) to `./.env` (or let `pnpm dev` do it for
 
 Any variable defined in `.env.local` has priority over `.env`.
 
+`VITE_PUBLIC_URL` is the app's own origin: Vite puts it into `index.html` for the absolute `og:image` of link previews (#475). Without it, the build uses `http://localhost:3050`; `deploy.yml` sets it to the staging URL.
+
 Any custom ENV variable that should be accessible in frontend needs an `VITE_` prefix (this is for security).
 
 More about [ENV variables in Vite documentation](https://vitejs.dev/guide/env-and-mode)

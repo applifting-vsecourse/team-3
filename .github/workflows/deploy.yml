@@ -60,6 +60,7 @@ jobs:
           build-args: |
             VITE_API_URL=${{ steps.slug.outputs.url }}/api
             VITE_BETTER_AUTH_URL=${{ steps.slug.outputs.url }}
+            VITE_PUBLIC_URL=${{ steps.slug.outputs.url }}
           # latest is what Coolify pulls; the commit tag names the exact build to inspect or roll back to.
           tags: |
             ${{ env.REGISTRY }}/${{ steps.slug.outputs.slug }}-frontend:latest

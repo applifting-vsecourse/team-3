@@ -11,7 +11,8 @@
 #
 # BACKEND_URL / FRONTEND_URL are the only URLs you set: the backend reads them
 # directly (CORS, trusted origins, password-reset links) and the frontend's
-# VITE_* build args are derived from BACKEND_URL below.
+# VITE_* build args are derived from BACKEND_URL (VITE_PUBLIC_URL from
+# FRONTEND_URL) below.
 
 services:
   db:
@@ -58,6 +59,8 @@ services:
         # The backend mounts all REST routes under /api.
         VITE_API_URL: ${BACKEND_URL:-http://localhost:4050}/api
         VITE_BETTER_AUTH_URL: ${BACKEND_URL:-http://localhost:4050}
+        # the app's own origin, for the link previews' absolute og:image (#475)
+        VITE_PUBLIC_URL: ${FRONTEND_URL:-http://localhost:3050}
     restart: unless-stopped
     depends_on:
       - backend

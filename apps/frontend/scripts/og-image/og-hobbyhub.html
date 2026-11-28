@@ -1,0 +1,140 @@
+<!doctype html>
+<!--
+  The link-preview picture public/og-hobbyhub.png (1200 × 630, #475), rendered by render.sh.
+  Brand only, no people: the band (`hero`), the logo mark on the band (cream dots, lime ring)
+  and the wordmark. Fonts from the app's own @fontsource packages, nothing from the internet.
+-->
+<html lang="cs">
+  <head>
+    <meta charset="utf-8" />
+    <!-- the app's own fonts (@fontsource, as in main.tsx) -->
+    <link
+      rel="stylesheet"
+      href="../../node_modules/@fontsource-variable/bricolage-grotesque/wght.css"
+    />
+    <link
+      rel="stylesheet"
+      href="../../node_modules/@fontsource-variable/geist/wght.css"
+    />
+    <style>
+      html,
+      body {
+        margin: 0;
+        width: 1200px;
+        height: 630px;
+        overflow: hidden;
+        background: #0f3626; /* hero */
+      }
+      .motif {
+        position: absolute;
+        /* from the corner, never under the text */
+        right: -70px;
+        bottom: -110px;
+        width: 300px;
+        height: 300px;
+      }
+      .content {
+        position: absolute;
+        inset: 0;
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        padding-left: 96px;
+        gap: 28px;
+      }
+      .logo {
+        display: flex;
+        align-items: center;
+        gap: 36px;
+        color: #f6f3ea; /* on-hero */
+        font-family: "Bricolage Grotesque Variable", sans-serif;
+        font-weight: 700;
+        font-size: 150px;
+        line-height: 1;
+        letter-spacing: -0.02em;
+      }
+      .tagline {
+        margin: 0;
+        color: #bccbc0; /* on-hero-muted */
+        font-family: "Geist Variable", sans-serif;
+        font-size: 40px;
+        line-height: 1.2;
+      }
+    </style>
+  </head>
+  <body>
+    <!-- the big motif in hero-pattern, as on the section bands -->
+    <svg
+      class="motif"
+      viewBox="0 0 28 28"
+      aria-hidden="true"
+    >
+      <circle
+        cx="7"
+        cy="7"
+        r="5"
+        fill="#1f4c37"
+      />
+      <circle
+        cx="21"
+        cy="7"
+        r="5"
+        fill="#1f4c37"
+      />
+      <circle
+        cx="7"
+        cy="21"
+        r="5"
+        fill="#1f4c37"
+      />
+      <circle
+        cx="21"
+        cy="21"
+        r="3.9"
+        fill="none"
+        stroke="#1f4c37"
+        stroke-width="2.2"
+      />
+    </svg>
+    <div class="content">
+      <div class="logo">
+        <!-- LogoMark isOnHero: cream dots, lime ring (components/Logo) -->
+        <svg
+          width="150"
+          height="150"
+          viewBox="0 0 28 28"
+          aria-hidden="true"
+        >
+          <circle
+            cx="7"
+            cy="7"
+            r="5"
+            fill="#f6f3ea"
+          />
+          <circle
+            cx="21"
+            cy="7"
+            r="5"
+            fill="#f6f3ea"
+          />
+          <circle
+            cx="7"
+            cy="21"
+            r="5"
+            fill="#f6f3ea"
+          />
+          <circle
+            cx="21"
+            cy="21"
+            r="3.9"
+            fill="none"
+            stroke="#b9f53c"
+            stroke-width="2.2"
+          />
+        </svg>
+        HobbyHub
+      </div>
+      <p class="tagline">Akce a parťáci na koníčky ve tvém okolí</p>
+    </div>
+  </body>
+</html>

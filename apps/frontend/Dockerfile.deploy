@@ -17,8 +17,11 @@ COPY apps/frontend ./apps/frontend
 
 ARG VITE_API_URL
 ARG VITE_BETTER_AUTH_URL
+# the app's own origin: the absolute og:image of link previews (index.html, #475)
+ARG VITE_PUBLIC_URL
 ENV VITE_API_URL=$VITE_API_URL
 ENV VITE_BETTER_AUTH_URL=$VITE_BETTER_AUTH_URL
+ENV VITE_PUBLIC_URL=$VITE_PUBLIC_URL
 
 RUN pnpm --filter frontend build
 
