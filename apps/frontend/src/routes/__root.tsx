@@ -5,6 +5,7 @@ import "@/styles/global.css"
 
 import { ROUTES } from "@/app/routes"
 import { BottomNav } from "@/components/BottomNav/BottomNav"
+import { useToastClearance } from "@/components/Toast/useToastClearance"
 import { Toaster } from "@/components/ui/sonner"
 
 import { needsOnboarding } from "@/features/auth/api/authSessionQueryOptions"
@@ -20,6 +21,8 @@ export const Route = createRootRouteWithContext<{
 })
 
 function RootComponent() {
+  // a phone's toasts stay above the page's own bottom action, measured (review #443)
+  useToastClearance()
   const { user, isPending } = useSession()
   const signInFrom = useAuthLinkFrom()
   const location = useLocation()
@@ -56,9 +59,17 @@ function RootComponent() {
       {/* what the link in the verification e-mail did, over any page (#155) */}
       <EmailVerifiedDialog />
       <AgeConfirmationDialog />
+      {/* PO 26. 11. („Pohrajte si s toast notifikacemi, obsahují butony a jsou ve zvláštních
+          místech“): one calm place for every toast, as most apps keep them — bottom right on
+          desktop, bottom on a phone just above the bottom navigation (64 px + a gap), never
+          over the header; app colours, not the bright fills of richColors; no buttons in them.
+          A phone page with its own action at the bottom lifts them over it (--toast-bottom) */}
       <Toaster
-        richColors
-        position="top-right"
+        position="bottom-right"
+        // Sonner's mobileOffset holds only up to 600 px, the bottom navigation up to 767 px:
+        // the bottom comes from CSS for both (--toast-offset, global.css), review #443
+        offset={{ bottom: "var(--toast-offset)", right: 24 }}
+        mobileOffset={{ bottom: "var(--toast-bottom)", left: 16, right: 16 }}
       />
     </>
   )

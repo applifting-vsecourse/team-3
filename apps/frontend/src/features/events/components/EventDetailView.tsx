@@ -347,7 +347,10 @@ export function EventDetailView({
         {organizer}
         {/* Figma: Lišta s akcí — above the bottom navigation, it stays while
             scrolling; empty (a cancelled event for a visitor) it isn't drawn */}
-        <div className="sticky bottom-16 -mx-4 border-t border-border bg-background px-4 py-3 empty:hidden">
+        <div
+          data-toast-clear
+          className="sticky bottom-16 -mx-4 border-t border-border bg-background px-4 py-3 empty:hidden"
+        >
           {participation}
         </div>
       </article>

@@ -125,7 +125,10 @@ export function GroupProfile({
         {events}
         {action ? (
           // Figma: Lišta s akcí — above the bottom navigation
-          <div className="sticky bottom-16 -mx-4 border-t border-border bg-background px-4 py-3">
+          <div
+            data-toast-clear
+            className="sticky bottom-16 -mx-4 border-t border-border bg-background px-4 py-3"
+          >
             {action}
           </div>
         ) : null}
