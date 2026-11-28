@@ -287,7 +287,10 @@ function EventsPage() {
             asChild
             {...(hasActiveTrigger ? {} : { "aria-labelledby": undefined, "aria-label": title })}
           >
-            <div className="relative flex flex-1 flex-col overflow-hidden md:min-h-0 md:basis-0">
+            {/* clip, not hidden: a hidden overflow is still a scroll box, and focus moving to the
+                pulled-up list's handle scrolled it by the sheet's 32 px tail, half under the
+                tabs went the filters (QA-08) */}
+            <div className="relative flex flex-1 flex-col overflow-clip md:min-h-0 md:basis-0">
               <div
                 // on a phone it floats over the map's top: „Hledat v této oblasti“ goes under it
                 ref={overlayRef}
