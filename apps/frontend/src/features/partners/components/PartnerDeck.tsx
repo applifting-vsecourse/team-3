@@ -560,7 +560,12 @@ export function PartnerDeck({
 
       {/* the row stays while loading and after the last card: „Vrátit“ can still bring one back */}
       {query.isError && !current ? null : (
-        <div className="flex flex-col gap-2 bg-background max-md:sticky max-md:bottom-16 max-md:py-3">
+        // data-toast-clear: on a phone a toast sits above this bar, never over „Přidat“ — the button
+        // to try again after „Žádost se nepodařilo odeslat“ (DESIGN.md › Toast, review #472)
+        <div
+          data-toast-clear
+          className="flex flex-col gap-2 bg-background max-md:sticky max-md:bottom-16 max-md:py-3"
+        >
           <div className="grid grid-cols-[1fr_auto_1fr] gap-3">
             <Button
               type="button"

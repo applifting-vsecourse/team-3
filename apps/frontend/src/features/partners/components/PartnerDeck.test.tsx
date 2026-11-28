@@ -131,6 +131,17 @@ describe("Najdi parťáka: the deck (#84)", () => {
     expect(topName()).toHaveTextContent("Petra Malá")
   })
 
+  // review #472: a failed request's toast would cover „Přidat“, the button to try again
+  it("the action bar keeps toasts above it (data-toast-clear)", async () => {
+    await show()
+
+    const add = await screen.findByRole("button", { name: "Přidat" })
+    expect(add.closest("[data-toast-clear]")).not.toBeNull()
+    expect(
+      screen.getByRole("button", { name: /Teď ne/ }).closest("[data-toast-clear]"),
+    ).not.toBeNull()
+  })
+
   it("the arrow keys do the same while focus is in the deck", async () => {
     const user = userEvent.setup()
     await show()
