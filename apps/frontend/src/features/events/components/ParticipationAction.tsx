@@ -4,6 +4,7 @@ import { Info, Loader2 } from "lucide-react"
 
 import { ROUTES } from "@/app/routes"
 import { RequestDialog } from "@/components/RequestDialog/RequestDialog"
+import { StatusBadge } from "@/components/StatusBadge/StatusBadge"
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 import { Button } from "@/components/ui/button"
 import {
@@ -31,6 +32,9 @@ import { canRateEvent } from "@/features/events/lib/rating"
 // Signed in means verified (#236): an unverified e-mail can't sign in, and an
 // old session gets the API's 403 EMAIL_NOT_VERIFIED as the error message.
 export type Viewer = { id: string }
+
+/** Where a joined user sees what the organizer changes. */
+const changesLine = "Změny akce uvidíš tady a v Mých akcích."
 
 type ParticipationActionProps = {
   event: EventDetail
@@ -60,7 +64,7 @@ type ParticipationActionProps = {
 
 /**
  * The one action of the event detail (B-032, Figma A-05 · Stavy): „Přijdu“
- * → „Máš místo“ + „Odhlásit se“, „Plno“ with similar events nearby, the
+ * → „Máš místo“ right after joining, later „Jdu“ (#422), + „Odhlásit se“, „Plno“ with similar events nearby, the
  * sign-in for a visitor, and for the organizer „Spravovat akci“ with „Přijdu“
  * beside it. An event with approval takes a request instead (A-05a, #53),
  * confirmed in a dialog with an optional message for the organizer (#175); a
@@ -268,8 +272,9 @@ function JoinControl({
     shouldFocusNewState.current = false
     newState.current?.focus()
   }, [event.myParticipation])
-  // „Díky tobě se akce koná…“ only when this sign-up reached the minimum (DESIGN.md › Máš
-  // místo); known only here, at the moment of joining — a reload just says „Máš místo“
+  // „Máš místo“ (and „Díky tobě se akce koná…“ when this sign-up reached the minimum,
+  // DESIGN.md › Máš místo) only at the moment of joining, known only here — a reload or a
+  // later visit says „Jdu“ (PO 26. 11., #422)
   const [hasJustJoined, setHasJustJoined] = useState(false)
   const [hasReachedMinimum, setHasReachedMinimum] = useState(false)
   // The page's cache shows the place before `onJoin` resolves (React Query's onSuccess), so
@@ -307,17 +312,26 @@ function JoinControl({
             tabIndex={-1}
             className="rounded-lg outline-offset-4"
           >
-            <HasPlace
-              line={
-                isThanks
-                  ? happeningThanks(event)
-                  : // the organizer makes the changes, nobody needs to tell them
-                    isOrganizer
-                    ? undefined
-                    : "Změny akce uvidíš tady a v Mých akcích."
-              }
-              isFillAnimated={hasJustJoined}
-            />
+            {/* PO 26. 11.: „Máš místo“ is the moment of joining, a flash — coming back to the
+                event later shows the plain state, „Jdu“, not the block again */}
+            {hasJustJoined ? (
+              <HasPlace
+                line={
+                  isThanks
+                    ? happeningThanks(event)
+                    : // the organizer makes the changes, nobody needs to tell them
+                      isOrganizer
+                      ? undefined
+                      : changesLine
+                }
+                isFillAnimated
+              />
+            ) : (
+              <p className="flex flex-wrap items-center gap-x-2 gap-y-1 text-sm">
+                <StatusBadge status={{ kind: "going" }} />
+                {isOrganizer ? null : <span className="text-muted-foreground">{changesLine}</span>}
+              </p>
+            )}
           </div>
           <ConfirmButton
             label="Odhlásit se"
@@ -454,7 +468,7 @@ function FullButton() {
 }
 
 type ConfirmButtonProps = {
-  /** Figma A-05 · Stavy: „Odhlásit se“ ghost under „Máš místo“, „Stáhnout žádost“ outline. */
+  /** Figma A-05 · Stavy: „Odhlásit se“ ghost under „Máš místo“ / „Jdu“, „Stáhnout žádost“ outline. */
   variant?: "ghost" | "outline"
   label: string
   title: string
