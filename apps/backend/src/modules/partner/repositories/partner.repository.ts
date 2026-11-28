@@ -1,5 +1,6 @@
 import { PrismaService } from '@/core/prisma/prisma.service';
 import type { Prisma } from '@/generated/prisma/client';
+import type { PartnerHomeState } from '@/modules/partner/domain/partner-home';
 import type { PartnerCandidateRecord } from '@/modules/partner/domain/partner-suggestions';
 import type { LatLng } from '@/shared/geo/distance';
 import { Injectable } from '@nestjs/common';
@@ -87,6 +88,50 @@ export class PartnerRepository {
   async unskip(skipperId: string, skippedId: string): Promise<void> {
     await this.prisma.partnerSkip.deleteMany({
       where: { skipperId, skippedId },
+    });
+  }
+
+  /**
+   * The frequency cap of „Parťáci v okolí“ (#474): the last visit to /partaci, „Skrýt“ and how
+   * many friends — accepted, the other account neither blocked nor deleted, as the friend list
+   * shows them. Null for an account that is gone.
+   */
+  async homeState(viewerId: string): Promise<PartnerHomeState | null> {
+    const user = await this.prisma.user.findFirst({
+      where: { id: viewerId, deletedAt: null, blockedAt: null },
+      select: { partnersVisitedAt: true, partnersHomeHiddenUntil: true },
+    });
+    if (!user) return null;
+    const available = { deletedAt: null, blockedAt: null };
+    const friendsCount = await this.prisma.friendship.count({
+      where: {
+        status: 'accepted',
+        OR: [
+          { requesterId: viewerId, addressee: available },
+          { addresseeId: viewerId, requester: available },
+        ],
+      },
+    });
+    return {
+      visitedAt: user.partnersVisitedAt,
+      hiddenUntil: user.partnersHomeHiddenUntil,
+      friendsCount,
+    };
+  }
+
+  /** A visit to /partaci: the landing page's block stays away for the next 7 days. */
+  async recordVisit(viewerId: string, now: Date): Promise<void> {
+    await this.prisma.user.update({
+      where: { id: viewerId },
+      data: { partnersVisitedAt: now },
+    });
+  }
+
+  /** „Skrýt“ on the landing page: the block stays away until then. */
+  async hideHome(viewerId: string, until: Date): Promise<void> {
+    await this.prisma.user.update({
+      where: { id: viewerId },
+      data: { partnersHomeHiddenUntil: until },
     });
   }
 }

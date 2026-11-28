@@ -59,6 +59,8 @@ erDiagram
         profile_visibility bioVisibility
         profile_visibility pastEventsVisibility
         boolean partnerDiscoverable "Najdi parťáka (#84)"
+        datetime partnersVisitedAt "poslední návštěva /partaci (#474)"
+        datetime partnersHomeHiddenUntil "Skrýt Parťáky v okolí do (#474)"
         string homeLocalityChangeDay "den poslední změny domova (#84)"
         int homeLocalityChangeCount "změny domova ten den, nejvýš 3"
         datetime ageConfirmedAt
@@ -101,7 +103,7 @@ erDiagram
 
 ### Najdi parťáka (#84)
 
-`PartnerSkip` je jedno „Teď ne“: `skipperId` přeskočil `skippedId`, jeden řádek na směr dvojice (unikátní `(skipperId, skippedId)`), `createdAt` je poslední přeskočení. Člověk se mi 90 dní neukáže, na žádném zařízení; „Vrátit“ řádek smaže. Druhý se o přeskočení nikdy nedozví. „Přidat“ je žádost o přátelství (`Friendship`), vlastní tabulku nemá. `User.partnerDiscoverable` („Ukazovat mě v Najdi parťáka“, výchozí `false`, zapne ho tlačítko „Ukázat mě“) vypne, že se nabízím ostatním, a zároveň tím sám nikoho nevidím. `homeLocalityChangeDay` a `homeLocalityChangeCount` omezují změnu domovské lokality na tři za pražský den, aby se z pásem vzdálenosti nedala přesouváním domova dopočítat poloha. Denní limit 20 nových žádostí o přátelství je v modulu friendship a počítá se z `FriendRequestLog` (jen kdo a kdy odeslal), protože zrušená žádost smaže řádek `Friendship` i své upozornění. Pravidla a API v [`modules/partner/README.md`](../apps/backend/src/modules/partner/README.md).
+`PartnerSkip` je jedno „Teď ne“: `skipperId` přeskočil `skippedId`, jeden řádek na směr dvojice (unikátní `(skipperId, skippedId)`), `createdAt` je poslední přeskočení. Člověk se mi 90 dní neukáže, na žádném zařízení; „Vrátit“ řádek smaže. Druhý se o přeskočení nikdy nedozví. „Přidat“ je žádost o přátelství (`Friendship`), vlastní tabulku nemá. `User.partnerDiscoverable` („Ukazovat mě v Najdi parťáka“, výchozí `false`, zapne ho tlačítko „Ukázat mě“) vypne, že se nabízím ostatním, a zároveň tím sám nikoho nevidím. `homeLocalityChangeDay` a `homeLocalityChangeCount` omezují změnu domovské lokality na tři za pražský den, aby se z pásem vzdálenosti nedala přesouváním domova dopočítat poloha. `partnersVisitedAt` a `partnersHomeHiddenUntil` jsou frekvenční strop bloku „Parťáci v okolí“ na úvodní stránce (#474): po návštěvě `/partaci` se 7 dní neukáže, po „Skrýt“ 30 dní. Je na serveru, takže platí na všech zařízeních. Denní limit 20 nových žádostí o přátelství je v modulu friendship a počítá se z `FriendRequestLog` (jen kdo a kdy odeslal), protože zrušená žádost smaže řádek `Friendship` i své upozornění. Pravidla a API v [`modules/partner/README.md`](../apps/backend/src/modules/partner/README.md).
 
 ### Upozornění (#86)
 

@@ -8,6 +8,7 @@ import { useLocality } from "@/hooks/useLocality"
 import { useSession } from "@/features/auth/hooks/useSession"
 import { LandingView, pageLocalitySlug } from "@/features/events/components/LandingView"
 import { RecruitingGroups } from "@/features/groups/components/RecruitingGroups"
+import { PartnersNearby } from "@/features/partners/components/PartnersNearby"
 
 /**
  * `?lokalita=praha-3`: the sections for that locality (#182). Without it the visitor's default
@@ -57,6 +58,7 @@ function LandingPage() {
             dropUrlLocality()
           },
         }}
+        partnersSection={user ? <PartnersNearby viewerId={user.id} /> : null}
         renderGroups={(groups, groupsLokalita) => (
           <RecruitingGroups
             groups={groups}

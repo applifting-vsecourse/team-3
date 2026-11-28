@@ -34,6 +34,11 @@ const setup = (): {
   repository.viewer.mockResolvedValue(viewer());
   repository.candidates.mockResolvedValue([]);
   repository.isAvailable.mockResolvedValue(true);
+  repository.homeState.mockResolvedValue({
+    visitedAt: null,
+    hiddenUntil: null,
+    friendsCount: 0,
+  });
   const friendships = mock<FriendshipService>();
   friendships.request.mockResolvedValue('outgoing');
   friendships.requestsLeft.mockResolvedValue(20);
@@ -224,5 +229,89 @@ describe('PartnerService.skip and unskip („Teď ne“, „Vrátit“, #84)', (
     await service.unskip('me', 'other');
 
     expect(repository.unskip).toHaveBeenCalledWith('me', 'other');
+  });
+});
+
+describe('PartnerService home preview („Parťáci v okolí“, #474)', () => {
+  const DAY = 24 * 60 * 60 * 1000;
+
+  it('shows the first three of the 10 km deck', async () => {
+    const { repository, service } = setup();
+    repository.candidates.mockResolvedValue(
+      ['p1', 'p2', 'p3', 'p4'].map(candidate),
+    );
+
+    const preview = await service.homePreview('me', now);
+
+    expect(preview.isShown).toBe(true);
+    expect(preview.items.map(({ id }) => id)).toEqual(['p1', 'p2', 'p3']);
+  });
+
+  it('with two people nearby it isn’t shown', async () => {
+    const { repository, service } = setup();
+    repository.candidates.mockResolvedValue(['p1', 'p2'].map(candidate));
+
+    await expect(service.homePreview('me', now)).resolves.toEqual({
+      isShown: false,
+      items: [],
+    });
+  });
+
+  it('a profile without a locality, or hidden from the deck, gets no block', async () => {
+    const { repository, service } = setup();
+    repository.viewer.mockResolvedValue(viewer({ home: null }));
+    await expect(service.homePreview('me', now)).resolves.toMatchObject({
+      isShown: false,
+    });
+    repository.viewer.mockResolvedValue(viewer({ isDiscoverable: false }));
+    await expect(service.homePreview('me', now)).resolves.toMatchObject({
+      isShown: false,
+    });
+  });
+
+  it('within 7 days of a visit, under Skrýt or with 10 friends: not shown and no deck is built', async () => {
+    const { repository, service } = setup();
+    for (const state of [
+      {
+        visitedAt: new Date(now.getTime() - 3 * DAY),
+        hiddenUntil: null,
+        friendsCount: 0,
+      },
+      {
+        visitedAt: null,
+        hiddenUntil: new Date(now.getTime() + DAY),
+        friendsCount: 0,
+      },
+      { visitedAt: null, hiddenUntil: null, friendsCount: 10 },
+    ]) {
+      repository.homeState.mockResolvedValue(state);
+      await expect(service.homePreview('me', now)).resolves.toEqual({
+        isShown: false,
+        items: [],
+      });
+    }
+    expect(repository.viewer).not.toHaveBeenCalled();
+  });
+
+  it('a gone account gets USER_NOT_FOUND', async () => {
+    const { repository, service } = setup();
+    repository.homeState.mockResolvedValue(null);
+
+    await expect(code(service.homePreview('me', now))).resolves.toBe(
+      'USER_NOT_FOUND',
+    );
+  });
+
+  it('a visit is stored now, Skrýt for 30 days', async () => {
+    const { repository, service } = setup();
+
+    await service.recordVisit('me', now);
+    await service.hideHome('me', now);
+
+    expect(repository.recordVisit).toHaveBeenCalledWith('me', now);
+    expect(repository.hideHome).toHaveBeenCalledWith(
+      'me',
+      new Date(now.getTime() + 30 * DAY),
+    );
   });
 });

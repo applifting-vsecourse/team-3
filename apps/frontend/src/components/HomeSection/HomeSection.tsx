@@ -41,6 +41,8 @@ type HomeSectionProps = {
   /** „Zobrazit všechny →“ — /akce with the closest filter. */
   more: MoreLinkProps
   children: ReactNode
+  /** A quiet action after everything, the phone's link too — „Skrýt“ under „Parťáci v okolí“. */
+  footer?: ReactNode
   className?: string
 }
 
@@ -48,7 +50,14 @@ type HomeSectionProps = {
  * A section of the landing page (Figma A-01, A-01d; DESIGN.md › Type): the heading with its line and the link
  * to the whole list — on desktop beside them, on a phone under the cards.
  */
-export function HomeSection({ heading, description, more, children, className }: HomeSectionProps) {
+export function HomeSection({
+  heading,
+  description,
+  more,
+  children,
+  footer,
+  className,
+}: HomeSectionProps) {
   const headingId = useId()
   return (
     <section
@@ -73,6 +82,7 @@ export function HomeSection({ heading, description, more, children, className }:
         {...more}
         className="md:hidden"
       />
+      {footer}
     </section>
   )
 }

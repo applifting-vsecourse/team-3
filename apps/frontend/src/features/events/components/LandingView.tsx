@@ -69,6 +69,11 @@ type LandingViewProps = {
    * (the route passes it in). `lokalita` is the locality its „Všechny skupiny“ opens.
    */
   renderGroups?: (groups: unknown[], lokalita: string) => ReactNode
+  /**
+   * „Parťáci v okolí“ (#474), signed in only, after „Pro tebe“ and before the groups: the
+   * partners feature's section, passed in by the route. It decides itself whether it is there.
+   */
+  partnersSection?: ReactNode
   /** For the dates in the sections' lines; now by default. */
   now?: Date
   /**
@@ -103,6 +108,7 @@ export function LandingView({
   viewerId,
   localitySlug,
   renderGroups,
+  partnersSection,
   now = new Date(),
   localityControl,
 }: LandingViewProps) {
@@ -201,6 +207,7 @@ export function LandingView({
               localities={localities}
               now={now}
               renderGroups={renderGroups}
+              partnersSection={partnersSection}
             />
           ) : homeQuery.isError ? (
             isVisitor ? (
@@ -249,7 +256,9 @@ function Sections({
   localities,
   now,
   renderGroups,
-}: SectionsContext & Pick<LandingViewProps, "renderGroups"> & { isVisitor: boolean }) {
+  partnersSection,
+}: SectionsContext &
+  Pick<LandingViewProps, "renderGroups" | "partnersSection"> & { isVisitor: boolean }) {
   const copy = sectionCopy({ home, localities, now })
   const groups = home.sections.find(
     (section): section is HomeGroupsSection => section.key === "groups",
@@ -290,7 +299,10 @@ function Sections({
           {section("wellRated")}
         </>
       ) : (
-        <PickedForYou picks={picks} />
+        <>
+          <PickedForYou picks={picks} />
+          {partnersSection}
+        </>
       )}
       {groups?.groups.length && renderGroups ? renderGroups(groups.groups, lokalita) : null}
     </>

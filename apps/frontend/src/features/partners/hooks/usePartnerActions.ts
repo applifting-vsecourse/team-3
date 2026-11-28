@@ -1,3 +1,4 @@
+import { useEffect } from "react"
 import { useMutation, useQueryClient } from "@tanstack/react-query"
 
 import { api } from "@/lib/api-client"
@@ -51,5 +52,35 @@ export function useShowMe(onSettled?: () => Promise<unknown>) {
     },
     onSuccess: () => queryClient.invalidateQueries({ queryKey: partnersKeys.all() }),
     onSettled: () => onSettled?.(),
+  })
+}
+
+/**
+ * /partaci opened (#474): the server remembers the visit, and „Parťáci v okolí“ stay off the
+ * landing page for 7 days on every device. Once per opening of the page.
+ */
+export function useRecordPartnersVisit(viewerId: string | undefined) {
+  const queryClient = useQueryClient()
+  const { mutate } = useMutation({
+    mutationFn: async (_viewerId: string) => {
+      await api.post("partners/visit")
+    },
+    onSuccess: (_, id) => queryClient.invalidateQueries({ queryKey: partnersKeys.home(id) }),
+  })
+  useEffect(() => {
+    // the session is there by then (protected layout); once per user and opening of the page
+    if (viewerId) mutate(viewerId)
+  }, [mutate, viewerId])
+}
+
+/** „Skrýt“ on the landing page (#474): 30 days without the block, on every device. */
+export function useHidePartnersHome(viewerId: string) {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: async () => {
+      await api.post("partners/home/hide")
+    },
+    onSuccess: () =>
+      queryClient.setQueryData(partnersKeys.home(viewerId), { isShown: false, items: [] }),
   })
 }

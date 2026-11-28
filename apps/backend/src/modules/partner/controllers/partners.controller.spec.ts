@@ -22,9 +22,10 @@ const user = { id: 'me' } as never;
 describe('PartnersController (#84)', () => {
   it('reading the deck needs a verified, unblocked account', () => {
     expect(guardsOf('suggestions')).toEqual([VerifiedUserGuard]);
+    expect(guardsOf('home')).toEqual([VerifiedUserGuard]);
   });
 
-  it.each(['request', 'skip', 'unskip'] as const)(
+  it.each(['request', 'skip', 'unskip', 'hideHome', 'visit'] as const)(
     '%s needs a verified, unblocked account and is a limited write',
     (handler) => {
       expect(guardsOf(handler)).toEqual([
@@ -61,5 +62,18 @@ describe('PartnersController (#84)', () => {
     expect(error.getResponse()).toMatchObject({
       code: 'FRIEND_REQUEST_DAILY_LIMIT',
     });
+  });
+
+  it('the home preview, Skrýt and the visit are the session’s user’s (#474)', async () => {
+    const partners = mock<PartnerService>();
+    const controller = new PartnersController(partners);
+
+    await controller.home(user);
+    await controller.hideHome(user);
+    await controller.visit(user);
+
+    expect(partners.homePreview).toHaveBeenCalledWith('me');
+    expect(partners.hideHome).toHaveBeenCalledWith('me');
+    expect(partners.recordVisit).toHaveBeenCalledWith('me');
   });
 });

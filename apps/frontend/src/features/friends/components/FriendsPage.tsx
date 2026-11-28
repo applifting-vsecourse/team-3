@@ -20,23 +20,31 @@ import { FriendRequestRow, FriendRow, ROWS } from "@/features/friends/components
 import { initialFriendsTab, matchesName, type FriendsTab } from "@/features/friends/lib/friends"
 
 export const NO_ONE_YET = "Zatím tu nikoho nemáš. Přátele si přidáš na jejich profilu."
+/** The page's empty friends (#474): the way on is under it, Najdi parťáka and the invite. */
+export const NO_FRIENDS_YET = "Zatím tu nikoho nemáš. Najdi parťáky z okolí, nebo pozvi kamaráda."
+export const INVITE_WARNING =
+  "Přátelé vidí, na které akce jdeš, tak odkaz posílej jen lidem, které znáš."
 
 /**
  * /profil/pratele „Lidé, které znám“ (Figma B-09, B-09a, B-09b and desktops, #307): the chips
  * Přátelé · n / Žádosti · n (the requests waiting for me), each in the URL. Without `?tab` the
  * page picks once (`initialFriendsTab`), so a request answered here doesn't move the user. The
  * friends by name with a search that filters in the browser; the rows lead to the profiles,
- * where a friend is removed.
+ * where a friend is removed. With no friends yet the ways to some (#474): Najdi parťáka and
+ * the invite, both from other features, so the route passes them in (`emptyFriendsActions`).
  */
 export function FriendsPage({
   viewerId,
   urlTab,
   onTabChange,
+  emptyFriendsActions,
   onRequestDecided,
 }: {
   viewerId: string
   urlTab: FriendsTab | undefined
   onTabChange: (tab: FriendsTab) => void
+  /** The buttons under the empty friends: „Najdi parťáka“ (or „Doplnit profil“), „Poslat pozvánku“. */
+  emptyFriendsActions?: ReactNode
   /** After a request is accepted, rejected or cancelled: the route refreshes the bell (#430). */
   onRequestDecided?: () => Promise<unknown>
 }) {
@@ -83,7 +91,10 @@ export function FriendsPage({
               </ChipTabsItem>
             </ChipTabs>
             <TabsContent value="pratele">
-              <Friends friends={lists.friends} />
+              <Friends
+                friends={lists.friends}
+                emptyActions={emptyFriendsActions}
+              />
             </TabsContent>
             <TabsContent value="zadosti">
               <Requests
@@ -98,9 +109,15 @@ export function FriendsPage({
   )
 }
 
-function Friends({ friends }: { friends: FriendLists["friends"] }) {
+function Friends({
+  friends,
+  emptyActions,
+}: {
+  friends: FriendLists["friends"]
+  emptyActions?: ReactNode
+}) {
   const [text, setText] = useState("")
-  if (friends.length === 0) return <Empty>{NO_ONE_YET}</Empty>
+  if (friends.length === 0) return <NoFriends actions={emptyActions} />
   const found = friends.filter((person) => matchesName(person, text))
   return (
     <div className="flex flex-col gap-4">
@@ -197,6 +214,25 @@ function RequestSection({ title, children }: { title: string; children: ReactNod
       </h2>
       <ul className={ROWS}>{children}</ul>
     </section>
+  )
+}
+
+/**
+ * No friends yet (#474, NN/g: an empty state says what will be here and leads to the task): a
+ * block on the page, not a card, with the ways to find some. The warning from the profile's
+ * invite goes along, as the link lets whoever opens it see where one goes.
+ */
+function NoFriends({ actions }: { actions?: ReactNode }) {
+  return (
+    <div className="flex flex-col items-start gap-3">
+      <p className="text-body">{NO_FRIENDS_YET}</p>
+      {actions ? (
+        <>
+          <div className="flex flex-wrap gap-3">{actions}</div>
+          <p className="text-caption text-muted-foreground">{INVITE_WARNING}</p>
+        </>
+      ) : null}
+    </div>
   )
 }
 

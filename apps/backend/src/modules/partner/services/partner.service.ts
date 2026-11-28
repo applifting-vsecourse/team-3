@@ -1,7 +1,15 @@
 import type { FriendshipState } from '@/modules/friendship/domain/friendship';
 import { FriendshipService } from '@/modules/friendship/services/friendship.service';
 import {
+  isPartnerHomeDue,
+  NOT_SHOWN,
+  partnerHomeHiddenUntil,
+  partnerHomePreview,
+  type PartnerHomePreview,
+} from '@/modules/partner/domain/partner-home';
+import {
   decodePartnerCursor,
+  DEFAULT_PARTNER_RADIUS_KM,
   partnerCandidatesWhere,
   partnerPage,
   rankPartners,
@@ -89,6 +97,37 @@ export class PartnerService {
       hidden: false,
       requestsLeft,
     };
+  }
+
+  /**
+   * „Parťáci v okolí“ on the landing page (#474): the first three of the default deck, or
+   * `isShown: false`. The cap is checked first, so a user who just visited /partaci or pressed
+   * „Skrýt“ costs no deck at all.
+   */
+  async homePreview(
+    viewerId: string,
+    now: Date = new Date(),
+  ): Promise<PartnerHomePreview> {
+    const state = await this.repository.homeState(viewerId);
+    if (!state) throw userNotFound();
+    if (!isPartnerHomeDue(state, now)) return NOT_SHOWN;
+    const deck = await this.suggestions(
+      viewerId,
+      DEFAULT_PARTNER_RADIUS_KM,
+      undefined,
+      now,
+    );
+    return partnerHomePreview(deck, state, now);
+  }
+
+  /** /partaci opened: the landing page's block stays away for 7 days. */
+  async recordVisit(viewerId: string, now: Date = new Date()): Promise<void> {
+    await this.repository.recordVisit(viewerId, now);
+  }
+
+  /** „Skrýt“ on the landing page: the block stays away for 30 days. */
+  async hideHome(viewerId: string, now: Date = new Date()): Promise<void> {
+    await this.repository.hideHome(viewerId, partnerHomeHiddenUntil(now));
   }
 
   /**

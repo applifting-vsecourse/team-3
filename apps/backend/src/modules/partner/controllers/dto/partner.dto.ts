@@ -2,6 +2,13 @@ import { FRIENDSHIP_STATES } from '@/modules/friendship/controllers/dto/friendsh
 import type { FriendshipState } from '@/modules/friendship/domain/friendship';
 import { FRIEND_REQUESTS_PER_DAY } from '@/modules/friendship/domain/request-limit';
 import {
+  PARTNER_HOME_AFTER_VISIT_DAYS,
+  PARTNER_HOME_HIDE_DAYS,
+  PARTNER_HOME_MAX_FRIENDS,
+  PARTNER_HOME_SIZE,
+  type PartnerHomePreview,
+} from '@/modules/partner/domain/partner-home';
+import {
   DEFAULT_PARTNER_RADIUS_KM,
   PARTNER_DISTANCE_BANDS_KM,
   PARTNER_PAGE_SIZE,
@@ -121,4 +128,17 @@ export class PartnerRequestResponseDto implements PartnerRequestResult {
   })
   state!: FriendshipState;
   @ApiProperty({ minimum: 0 }) requestsLeft!: number;
+}
+
+/** GET /api/partners/home: „Parťáci v okolí“ on the landing page (#474), decided here. */
+export class PartnerHomeResponseDto implements PartnerHomePreview {
+  @ApiProperty({
+    description: `Whether the landing page shows the block: the profile complete (missing empty), Ukazovat mě on, at least ${PARTNER_HOME_SIZE} people, no visit to /partaci in the last ${PARTNER_HOME_AFTER_VISIT_DAYS} days, no Skrýt in the last ${PARTNER_HOME_HIDE_DAYS} days and fewer than ${PARTNER_HOME_MAX_FRIENDS} friends`,
+  })
+  isShown!: boolean;
+  @ApiProperty({
+    type: [PartnerSuggestionDto],
+    description: `The first ${PARTNER_HOME_SIZE} of the deck at 10 km, as its cards; empty when isShown is false`,
+  })
+  items!: PartnerSuggestion[];
 }
