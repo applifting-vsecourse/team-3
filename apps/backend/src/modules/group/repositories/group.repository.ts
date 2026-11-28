@@ -328,20 +328,17 @@ export class GroupRepository {
    * stay as they are, in the group's history. Upcoming events the superadmin
    * deactivated are cancelled too (#308, review #380): restoring one later
    * would publish an event of an inactive group, and a cancelled event can't
-   * be restored (409 EVENT_NOT_HIDDEN). Returns the events it cancelled, so
-   * their people hear of it as of any cancel (#463).
+   * be restored (409 EVENT_NOT_HIDDEN). Returns the published events it
+   * cancelled, so their people hear of it as of any cancel (#463).
    */
   async deactivateGroup(id: string, at: Date): Promise<string[]> {
     return this.prisma.$transaction(async (tx) => {
-      const upcoming: Prisma.EventWhereInput = {
-        groupId: id,
-        status: { in: ['published', 'hidden'] },
-        startsAt: { gt: at },
-      };
-      const cancelled = await tx.event.findMany({
-        where: upcoming,
-        select: { id: true },
-      });
+      const upcoming = { groupId: id, startsAt: { gt: at } };
+      const cancel = {
+        status: 'cancelled',
+        cancelReason: GROUP_INACTIVE_CANCEL_REASON,
+        cancelledAt: at,
+      } as const;
       await tx.group.update({
         where: { id },
         data: { status: 'inactive', deactivatedAt: at },
@@ -349,13 +346,17 @@ export class GroupRepository {
       await tx.groupMember.deleteMany({
         where: { groupId: id, status: 'pending' },
       });
+      // one statement reads and writes, so an event the organizer cancelled
+      // meanwhile is neither written nor reported twice (review #505)
+      const cancelled = await tx.event.updateManyAndReturn({
+        where: { ...upcoming, status: 'published' },
+        data: cancel,
+        select: { id: true },
+      });
+      // hidden by the superadmin: its page is the admin's only, nobody to tell
       await tx.event.updateMany({
-        where: { ...upcoming, id: { in: cancelled.map((event) => event.id) } },
-        data: {
-          status: 'cancelled',
-          cancelReason: GROUP_INACTIVE_CANCEL_REASON,
-          cancelledAt: at,
-        },
+        where: { ...upcoming, status: 'hidden' },
+        data: cancel,
       });
       return cancelled.map((event) => event.id);
     });

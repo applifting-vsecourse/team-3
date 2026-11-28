@@ -4,7 +4,7 @@ import { GroupRepository } from './group.repository';
 
 describe('GroupRepository', () => {
   describe('deactivateGroup (B-051, B-055)', () => {
-    it("cancels the group's upcoming events with the reason, the deactivated ones too (#308); past ones stay; returns them (#463)", async () => {
+    it("cancels the group's upcoming events with the reason, the deactivated ones too (#308); past ones stay; returns the published ones (#463)", async () => {
       const prisma = mockDeep<PrismaService>();
       const at = new Date('2026-11-07T10:00:00.000Z');
       let inTransaction = false;
@@ -20,46 +20,44 @@ describe('GroupRepository', () => {
           inTransaction = false;
         }
       }) as never);
-      prisma.event.findMany.mockResolvedValue([
-        { id: 'e1' },
-        { id: 'e2' },
-      ] as never);
-      prisma.event.updateMany.mockImplementation((() => {
-        if (inTransaction) written.push('events');
-        return Promise.resolve({ count: 2 });
-      }) as never);
       prisma.group.update.mockImplementation((() => {
         if (inTransaction) written.push('group');
         return Promise.resolve({});
+      }) as never);
+      prisma.event.updateManyAndReturn.mockImplementation((() => {
+        if (inTransaction) written.push('published');
+        return Promise.resolve([{ id: 'e1' }, { id: 'e2' }]);
+      }) as never);
+      prisma.event.updateMany.mockImplementation((() => {
+        if (inTransaction) written.push('hidden');
+        return Promise.resolve({ count: 1 });
       }) as never);
 
       await expect(
         new GroupRepository(prisma).deactivateGroup('g1', at),
       ).resolves.toEqual(['e1', 'e2']);
 
-      const upcoming = {
-        groupId: 'g1',
-        status: { in: ['published', 'hidden'] },
-        startsAt: { gt: at },
+      const data = {
+        status: 'cancelled',
+        cancelReason: 'Skupina už není aktivní',
+        cancelledAt: at,
       };
-      expect(prisma.event.findMany).toHaveBeenCalledWith({
-        where: upcoming,
+      // read and written in one statement: one cancelled meanwhile isn't reported (review #505)
+      expect(prisma.event.updateManyAndReturn).toHaveBeenCalledWith({
+        where: { groupId: 'g1', startsAt: { gt: at }, status: 'published' },
+        data,
         select: { id: true },
       });
-      // exactly the events it reports, nothing that turned up in between
+      // hidden by the superadmin: cancelled too, nobody told (only the admin sees its page)
       expect(prisma.event.updateMany).toHaveBeenCalledWith({
-        where: { ...upcoming, id: { in: ['e1', 'e2'] } },
-        data: {
-          status: 'cancelled',
-          cancelReason: 'Skupina už není aktivní',
-          cancelledAt: at,
-        },
+        where: { groupId: 'g1', startsAt: { gt: at }, status: 'hidden' },
+        data,
       });
       expect(prisma.group.update).toHaveBeenCalledWith({
         where: { id: 'g1' },
         data: { status: 'inactive', deactivatedAt: at },
       });
-      expect(written).toEqual(['group', 'events']);
+      expect(written).toEqual(['group', 'published', 'hidden']);
     });
   });
 
