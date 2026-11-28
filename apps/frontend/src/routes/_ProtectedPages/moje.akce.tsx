@@ -6,6 +6,7 @@ import { Tabs, TabsContent } from "@/components/ui/tabs"
 import { MyPage } from "@/routes/_ProtectedPages/-moje/MyPage"
 
 import { useSession } from "@/features/auth/hooks/useSession"
+import { RATING_WINDOW_DAYS } from "@/features/events/api/ratingSchemas"
 import {
   AttendingEvents,
   MyEventsLoading,
@@ -31,6 +32,10 @@ export const Route = createFileRoute("/_ProtectedPages/moje/akce")({
 })
 
 const TABS: readonly MyEventsTabName[] = ["prihlasen", "poradam", "probehle"]
+
+/** The band's line on Proběhlé: what the tab holds and what to do there – for a participant
+ * (the event) and an organizer (the participants, #436) alike. */
+const PAST_LINE = `Akce, které už proběhly. Hodnotit můžeš do ${RATING_WINDOW_DAYS} dnů od konce.`
 
 /**
  * Moje › Akce (Figma C-01, C-02, C-06 and their desktops; B-035, #44, #304, #367): the chips
@@ -65,8 +70,11 @@ function MyEventsPage() {
           ? organizingLine(organizing.events)
           : tab === "prihlasen"
             ? attendingLine(attending.events, new Date())
-            : // keeps the line's height while the chip is picked
-              " "
+            : tab === "probehle"
+              ? // PO 26. 11.: under „Moje“ there is always a line, Proběhlé too
+                PAST_LINE
+              : // keeps the line's height while the chip is picked
+                " "
       }
       create={{ label: "Založit akci", to: ROUTES.newEvent }}
     >

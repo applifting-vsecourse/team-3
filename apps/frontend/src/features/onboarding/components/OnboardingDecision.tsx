@@ -112,23 +112,25 @@ export function OnboardingDecision({
               {error}
             </p>
           ) : null}
-          <Button
-            type="button"
-            className="min-h-11 whitespace-normal"
-            disabled={isSaving}
-            onClick={onSave}
-          >
-            {isSaving ? "Ukládám…" : "Uložit a ukázat akce"} <ArrowRight aria-hidden />
-          </Button>
-          <Button
-            type="button"
-            variant="link"
-            className="min-h-11 px-0"
-            disabled={isSaving}
-            onClick={onClose}
-          >
-            Zpět k výběru
-          </Button>
+          <div className="flex flex-col gap-2 sm:flex-row sm:flex-wrap sm:items-center sm:gap-3">
+            <Button
+              type="button"
+              className="min-h-11 whitespace-normal"
+              disabled={isSaving}
+              onClick={onSave}
+            >
+              {isSaving ? "Ukládám…" : "Uložit a ukázat akce"} <ArrowRight aria-hidden />
+            </Button>
+            <Button
+              type="button"
+              variant="link"
+              className="min-h-11 px-0"
+              disabled={isSaving}
+              onClick={onClose}
+            >
+              Zpět k výběru
+            </Button>
+          </div>
         </div>
       </DialogContent>
     </Dialog>
