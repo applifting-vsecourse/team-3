@@ -1,6 +1,7 @@
 import type { ComponentProps } from "react"
 
 import { TabsList, TabsTrigger } from "@/components/ui/tabs"
+import { edgeFadeClass, useEdgeFade } from "@/lib/useEdgeFade"
 import { cn } from "@/lib/utils"
 
 /**
@@ -13,8 +14,11 @@ import { cn } from "@/lib/utils"
  * scroll sideways — pass your own `-mx-*`/`px-*` in `className`, as PickedForYou does.
  */
 export function BandTabs({ className, ...props }: ComponentProps<typeof TabsList>) {
+  // the edge with more tabs behind it fades (QA-18)
+  const [stripRef, fade] = useEdgeFade<HTMLDivElement>()
   return (
     <TabsList
+      ref={stripRef}
       variant="line"
       className={cn(
         // The kit's height is h-9 behind a variant, which a plain h-auto doesn't replace
@@ -27,6 +31,7 @@ export function BandTabs({ className, ...props }: ComponentProps<typeof TabsList
         // sideways only, without a visible scrollbar (like the filter chips).
         "-mx-4 h-auto w-auto max-w-none [scrollbar-width:none] justify-start gap-6 overflow-x-auto overflow-y-hidden rounded-none p-0 px-4 md:-mx-10 md:gap-7 md:px-10 [&::-webkit-scrollbar]:hidden",
         className,
+        fade && edgeFadeClass[fade],
       )}
       {...props}
     />

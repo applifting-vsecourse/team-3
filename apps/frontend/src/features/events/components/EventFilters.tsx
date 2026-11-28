@@ -11,6 +11,7 @@ import { Button } from "@/components/ui/button"
 import type { ActivitySelection } from "@/lib/catalog/activitySelection"
 import type { ActivityCategory, Locality } from "@/lib/catalog/catalogSchemas"
 import { toActivitySearch, toActivitySelection } from "@/lib/catalog/catalogSearch"
+import { edgeFadeClass, useEdgeFade } from "@/lib/useEdgeFade"
 import { cn } from "@/lib/utils"
 
 import { DateFilter } from "@/features/events/components/DateFilter"
@@ -52,11 +53,19 @@ export function EventFilters({
   searchControl,
   className,
 }: EventFiltersProps) {
+  // the chips scroll sideways on a phone: the edge with more behind it fades (QA-18)
+  const [stripRef, fade] = useEdgeFade<HTMLDivElement>()
   return (
     <div
+      ref={stripRef}
       role="group"
       aria-label="Filtry"
-      className={cn("flex items-center gap-2", isFloating && "*:shadow-md", className)}
+      className={cn(
+        "flex items-center gap-2",
+        isFloating && "*:shadow-md",
+        className,
+        fade && edgeFadeClass[fade],
+      )}
     >
       {/* until the default locality is known, no name: never „Celé Česko“ for a moment */}
       {catalog && search.lokalita !== undefined ? (
@@ -101,7 +110,8 @@ export function EventFilters({
         </Button>
       ) : null}
       {searchControl ? (
-        <div className="ml-auto hidden w-72 shrink-0 md:block">{searchControl}</div>
+        // narrower before it wraps under the chips, never cut off at the edge (QA-07)
+        <div className="ml-auto hidden max-w-72 min-w-56 flex-1 md:block">{searchControl}</div>
       ) : null}
     </div>
   )
