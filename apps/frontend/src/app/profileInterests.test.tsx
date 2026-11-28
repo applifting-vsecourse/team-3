@@ -17,7 +17,9 @@ vi.mock("@/features/profile/hooks/useProfileMutations", () => ({
 }))
 
 const locality = { id: "prague", slug: "praha", name: "Praha", parentId: null, lat: 50, lng: 14 }
-const profile: SelfProfile = {
+// through `unknown`: Najdi parťáka (#472) adds a required `partnerDiscoverable` to the profile, and
+// the fixture must type-check before and after it, whichever of the two is merged first
+const profile = {
   id: "owner",
   name: "Jana Nová",
   email: "jana@example.com",
@@ -25,7 +27,8 @@ const profile: SelfProfile = {
   hasPassword: true,
   homeLocality: locality,
   interests: [],
-}
+  partnerDiscoverable: true,
+} as unknown as SelfProfile
 
 describe("/profil/upravit › Zájmy (#418)", () => {
   it("Enter in the activity search searches, it doesn't save the profile (review #419)", async () => {
