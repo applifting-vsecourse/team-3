@@ -186,10 +186,6 @@ export const VENUE_COORDINATES: Record<string, { lat: number; lng: number }> = {
     lat: 50.09836,
     lng: 14.41192,
   },
-  'Sportovní centrum Vodova, Vodova 108, Brno': {
-    lat: 49.22762,
-    lng: 16.58404,
-  },
   'Sportovní hala Dukla, Liberec': { lat: 50.78932, lng: 15.06164 },
   'Sportovní hala KV Arena, Karlovy Vary': { lat: 50.2246, lng: 12.84455 },
   'Sportovní hala Klíše, Ústí nad Labem': { lat: 50.66527, lng: 14.01285 },
@@ -211,7 +207,7 @@ export const VENUE_COORDINATES: Record<string, { lat: number; lng: number }> = {
     lat: 49.60248,
     lng: 17.2498,
   },
-  'Sportovní hala Vodova, Brno': { lat: 49.22693, lng: 16.58477 },
+  'Sportovní hala Vodova, Vodova 108, Brno': { lat: 49.22762, lng: 16.58404 },
   'Sportovní hala, Dašická, Pardubice': { lat: 50.03628, lng: 15.7909 },
   'Sportovní hala, Varenská, Ostrava': { lat: 49.83563, lng: 18.27411 },
   'Stříbrný rybník, parkoviště, Hradec Králové': {

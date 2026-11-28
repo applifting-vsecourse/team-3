@@ -298,7 +298,7 @@ export const groupRecipes: GroupRecipe[] = [
   },
   {
     groupKey: 'kg-volejbal-brno',
-    address: 'Sportovní hala Vodova, Brno',
+    address: 'Sportovní hala Vodova, Vodova 108, Brno',
     titles: [
       'Brněnský volejbal – otevřená hra',
       'Brněnský volejbal jen pro členy – nácvik útoku',

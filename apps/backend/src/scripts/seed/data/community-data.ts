@@ -1368,7 +1368,7 @@ const handWrittenEventPlans: CommunityEventPlan[] = [
       'Hrajeme šest na šest, na každé straně aspoň dvě ženy. Pro mírně pokročilé, kteří zvládnou příjem a nahrávku. Hala 110 Kč na osobu.',
     activitySlug: 'volejbal',
     localitySlug: 'brno',
-    address: 'Sportovní centrum Vodova, Vodova 108, Brno',
+    address: 'Sportovní hala Vodova, Vodova 108, Brno',
     days: 2,
     time: '19:00',
     durationMinutes: 120,
