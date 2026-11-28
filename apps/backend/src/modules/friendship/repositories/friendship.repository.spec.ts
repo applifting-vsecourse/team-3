@@ -15,6 +15,10 @@ const setup = (): {
   repository: FriendshipRepository;
 } => {
   const prisma = mockDeep<PrismaService>();
+  // the transaction runs on the same mock, so the calls inside it are seen as usual
+  prisma.$transaction.mockImplementation(((
+    run: (tx: Prisma.TransactionClient) => Promise<unknown>,
+  ) => run(prisma)) as never);
   return { prisma, repository: new FriendshipRepository(prisma) };
 };
 
@@ -85,6 +89,10 @@ describe('FriendshipRepository (#307)', () => {
       },
       data: { status: 'accepted', acceptedAt: now },
     });
+    // PO 26. 11.: the request's upozornění goes with it
+    expect(prisma.notification.deleteMany).toHaveBeenCalledWith({
+      where: { userId: B, type: 'friend_request', targetId: A },
+    });
   });
 
   it('reports a request decided meanwhile as nothing changed', async () => {
@@ -101,6 +109,30 @@ describe('FriendshipRepository (#307)', () => {
       },
       data: { status: 'rejected' },
     });
+    expect(prisma.notification.deleteMany).not.toHaveBeenCalled();
+  });
+
+  it('a rejected request takes its upozornění with it', async () => {
+    const { prisma, repository } = setup();
+    prisma.friendship.updateMany.mockResolvedValue({ count: 1 });
+
+    await expect(repository.reject(B, A)).resolves.toBe(true);
+    expect(prisma.notification.deleteMany).toHaveBeenCalledWith({
+      where: { userId: B, type: 'friend_request', targetId: A },
+    });
+  });
+
+  it('a cancelled request takes its upozornění with it; unfriending leaves the others', async () => {
+    const { prisma, repository } = setup();
+    prisma.friendship.deleteMany.mockResolvedValue({ count: 1 });
+
+    await repository.remove(A, B, 'cancel');
+    expect(prisma.notification.deleteMany).toHaveBeenCalledWith({
+      where: { userId: B, type: 'friend_request', targetId: A },
+    });
+    prisma.notification.deleteMany.mockClear();
+    await repository.remove(A, B, 'unfriend');
+    expect(prisma.notification.deleteMany).not.toHaveBeenCalled();
   });
 
   it('a request sent again turns the rejected row round and starts anew', async () => {

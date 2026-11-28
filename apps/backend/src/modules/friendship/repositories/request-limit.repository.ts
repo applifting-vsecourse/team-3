@@ -20,29 +20,18 @@ export class FriendRequestLimitRepository {
   constructor(private readonly prisma: PrismaService) {}
 
   /**
-   * Requests the user sent since the moment. A cancelled request deletes its row but not the
-   * notification it sent, so both are counted and the higher wins: cancelling and asking again
-   * doesn't reset the day, and the request just written counts even before its notification.
+   * Requests the user sent since the moment, from their own log: cancelling a request deletes
+   * its row and its notification (#430), the log stays, so cancelling and asking again doesn't
+   * reset the day.
    */
-  async sentSince(
+  sentSince(
     userId: string,
     since: Date,
     db: Db = this.prisma,
   ): Promise<number> {
-    const [rows, notified] = await Promise.all([
-      db.friendship.count({
-        where: { requesterId: userId, createdAt: { gte: since } },
-      }),
-      db.notification.count({
-        where: {
-          type: 'friend_request',
-          targetType: 'user',
-          targetId: userId,
-          createdAt: { gte: since },
-        },
-      }),
-    ]);
-    return Math.max(rows, notified);
+    return db.friendRequestLog.count({
+      where: { requesterId: userId, createdAt: { gte: since } },
+    });
   }
 
   /** A new request or one sent again, if today's limit allows it. */
@@ -66,7 +55,11 @@ export class FriendRequestLimitRepository {
         action === 'create'
           ? await this.create(db, requesterId, addresseeId)
           : await this.resend(db, requesterId, addresseeId, now);
-      return isWritten ? 'written' : 'unchanged';
+      if (!isWritten) return 'unchanged';
+      await db.friendRequestLog.create({
+        data: { requesterId, createdAt: now },
+      });
+      return 'written';
     });
   }
 

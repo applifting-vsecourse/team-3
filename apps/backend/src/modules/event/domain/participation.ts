@@ -18,7 +18,8 @@ export type JoinState = {
   eventStatus: 'published' | 'cancelled' | 'hidden' | 'deleted';
   startsAt: Date;
   approvalMode: 'open' | 'approval';
-  maxParticipants: number;
+  /** Null: no maximum, never full. */
+  maxParticipants: number | null;
   isOrganizer: boolean;
   /**
    * A members-only event and the user, not its organizer, has no active
@@ -84,7 +85,10 @@ export function decideJoin(state: JoinState, now: Date): JoinDecision {
   }
   // a request takes no place, but a full event takes none either (B-031):
   // the organizer couldn't approve it, and waiting lists are not in the MVP
-  if (state.approvedCount >= state.maxParticipants) {
+  if (
+    state.maxParticipants !== null &&
+    state.approvedCount >= state.maxParticipants
+  ) {
     return { ok: false, refusal: 'EVENT_FULL' };
   }
   const status =
@@ -110,7 +114,8 @@ export function decideLeave(
 export type RequestsState = {
   eventStatus: JoinState['eventStatus'];
   startsAt: Date;
-  maxParticipants: number;
+  /** Null: no maximum, never full. */
+  maxParticipants: number | null;
   approvedCount: number;
   /** The participation of each user whose request is decided; null for none. */
   requestStatuses: (ParticipationStatus | null)[];
@@ -137,6 +142,7 @@ export function decideRequests(
   }
   if (
     decision === 'approve' &&
+    state.maxParticipants !== null &&
     state.approvedCount + state.requestStatuses.length > state.maxParticipants
   ) {
     return { ok: false, refusal: 'EVENT_FULL' };

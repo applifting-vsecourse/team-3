@@ -17,6 +17,9 @@ type CapacityBarProps = Occupancy & {
   className?: string
 }
 
+/** How far the fill of an event without a maximum goes at most: never the whole bar. */
+const NO_MAX_FILL_CAP = 90
+
 const percent = (part: number, whole: number) =>
   whole > 0 ? Math.min(100, Math.max(0, (part / whole) * 100)) : 0
 
@@ -34,7 +37,15 @@ export function CapacityBar({
   const state = occupancyState(occupancy)
   const isFull = state === "full"
   const isCompact = variant === "compact"
-  const minPct = percent(minParticipants, maxParticipants)
+  // without a maximum (PO 26. 11., #424) the minimum always sits at two thirds, however many
+  // come (review #425: sized by those coming, it slid left), and the fill stops short of the
+  // end, at 90 %: there is no „full“ without a maximum
+  const whole = maxParticipants ?? minParticipants * 1.5
+  const minPct = percent(minParticipants, whole)
+  const fillPct =
+    maxParticipants === null
+      ? Math.min(NO_MAX_FILL_CAP, percent(approvedCount, whole))
+      : percent(approvedCount, whole)
 
   const track = (
     // the 1 px outline sits outside the track (a ring), so it never covers the hatch
@@ -53,7 +64,7 @@ export function CapacityBar({
           // not confirmed yet: below the minimum hatched, from exactly the minimum solid
           isFull ? "bg-full" : state === "missing" ? "capacity-hatch" : "bg-capacity-fill",
         )}
-        style={{ width: `${isFull ? 100 : percent(approvedCount, maxParticipants)}%` }}
+        style={{ width: `${isFull ? 100 : fillPct}%` }}
       />
     </div>
   )

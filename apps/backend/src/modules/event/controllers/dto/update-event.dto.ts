@@ -116,12 +116,16 @@ export class UpdateEventDto {
   @Max(EVENT_MAX_PARTICIPANTS)
   minParticipants?: number;
 
-  @ApiPropertyOptional({ minimum: 1 })
-  @IsOptionalNotNull()
+  @ApiPropertyOptional({
+    minimum: 1,
+    nullable: true,
+    description: 'null removes the maximum: no limit (PO 26. 11.)',
+  })
+  @IsOptional()
   @IsInt()
   @Min(1)
   @Max(EVENT_MAX_PARTICIPANTS)
-  maxParticipants?: number;
+  maxParticipants?: number | null;
 
   @ApiPropertyOptional({
     description:

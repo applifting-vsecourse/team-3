@@ -211,7 +211,16 @@ describe('ProfileService (#178)', () => {
         homeLocalityChangeDay: '2026-11-23',
         homeLocalityChangeCount: 1,
       }),
+      // written only while the counter is still the one read (two requests at once)
+      { homeLocalityChangeDay: null, homeLocalityChangeCount: 0 },
     );
+  });
+  it('a change of home that lost the race to another one is refused, not counted past the limit (#84)', async () => {
+    repository.save.mockResolvedValue(null);
+    const error = await service
+      .update('owner', { homeLocalityId: 'brno' })
+      .catch((caught: unknown) => caught);
+    expect((error as { getStatus: () => number }).getStatus()).toBe(409);
   });
   it('refuses a fourth new home the same day, so the distance bands can’t be probed (#84)', async () => {
     const now = new Date('2026-11-23T10:00:00.000Z');

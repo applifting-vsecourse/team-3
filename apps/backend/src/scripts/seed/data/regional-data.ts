@@ -89,7 +89,10 @@ const VENUES: Record<
       name: 'Brněnská přehrada a hrad Veveří',
       address: 'Přístaviště Bystrc, Brno',
     },
-    hala: { name: 'hala Vodova', address: 'Sportovní hala Vodova, Brno' },
+    hala: {
+      name: 'hala Vodova',
+      address: 'Sportovní hala Vodova, Vodova 108, Brno',
+    },
     hriste: { name: 'Kraví hora', address: 'Hřiště Kraví hora, Brno' },
     bazen: { name: 'Kraví hora', address: 'Bazény Kraví hora, Brno' },
     studio: { name: 'Veveří', address: 'Jógové studio, Veveří, Brno' },
