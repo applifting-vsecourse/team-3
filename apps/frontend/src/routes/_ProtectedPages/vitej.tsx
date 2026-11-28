@@ -14,6 +14,7 @@ import { useSession } from "@/features/auth/hooks/useSession"
 import { safeRedirect } from "@/features/auth/lib/redirect"
 import { eventKeys } from "@/features/events/api/eventsQueryOptions"
 import { OnboardingEventPreview } from "@/features/events/components/OnboardingEventPreview"
+import { useOnboardingInvite } from "@/features/invites/hooks/useOnboardingInvite"
 import {
   OnboardingWizard,
   type OnboardingNext,
@@ -43,6 +44,8 @@ function OnboardingPage() {
   const { from } = Route.useSearch()
   const { queryClient } = Route.useRouteContext()
   const navigate = Route.useNavigate()
+  // #406: „{jméno} tě sem zve“ once the wizard is saved, only with a valid invite
+  const invite = useOnboardingInvite(user?.id ?? "", from)
   if (!user) return null
   const viewerId = user.id
 
@@ -51,6 +54,7 @@ function OnboardingPage() {
     hasSubmittedPreferences: boolean,
     next: OnboardingNext,
   ) => {
+    await invite.offer()
     const current = queryClient.getQueryData<Session>(authKeys.session())
     if (current?.user.id !== viewerId) return
     queryClient.setQueryData<Session>(authKeys.session(), () => ({
@@ -75,17 +79,20 @@ function OnboardingPage() {
   }
 
   return (
-    <OnboardingWizard
-      key={viewerId}
-      viewerId={viewerId}
-      renderEventPreview={(locality, categoryId) => (
-        <OnboardingEventPreview
-          key={categoryId}
-          locality={locality}
-          categoryId={categoryId}
-        />
-      )}
-      onFinish={finish}
-    />
+    <>
+      <OnboardingWizard
+        key={viewerId}
+        viewerId={viewerId}
+        renderEventPreview={(locality, categoryId) => (
+          <OnboardingEventPreview
+            key={categoryId}
+            locality={locality}
+            categoryId={categoryId}
+          />
+        )}
+        onFinish={finish}
+      />
+      {invite.step}
+    </>
   )
 }

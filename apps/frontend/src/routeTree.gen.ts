@@ -24,6 +24,7 @@ import { Route as ProtectedPagesPartaciRouteImport } from './routes/_ProtectedPa
 import { Route as ProtectedPagesUpozorneniRouteImport } from './routes/_ProtectedPages/upozorneni'
 import { Route as ProtectedPagesVitejRouteImport } from './routes/_ProtectedPages/vitej'
 import { Route as AkceEventIdRouteImport } from './routes/akce_.$eventId'
+import { Route as PozvankaCodeRouteImport } from './routes/pozvanka.$code'
 import { Route as SkupinyIndexRouteImport } from './routes/skupiny.index'
 import { Route as SkupinyGroupIdRouteImport } from './routes/skupiny.$groupId'
 import { Route as UzivateleUserIdRouteImport } from './routes/uzivatele.$userId'
@@ -116,6 +117,11 @@ const ProtectedPagesVitejRoute = ProtectedPagesVitejRouteImport.update({
 const AkceEventIdRoute = AkceEventIdRouteImport.update({
   id: '/akce_/$eventId',
   path: '/akce/$eventId',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const PozvankaCodeRoute = PozvankaCodeRouteImport.update({
+  id: '/pozvanka/$code',
+  path: '/pozvanka/$code',
   getParentRoute: () => rootRouteImport,
 } as any)
 const SkupinyIndexRoute = SkupinyIndexRouteImport.update({
@@ -236,6 +242,7 @@ export interface FileRoutesByFullPath {
   '/upozorneni': typeof ProtectedPagesUpozorneniRoute
   '/vitej': typeof ProtectedPagesVitejRoute
   '/akce/$eventId': typeof AkceEventIdRoute
+  '/pozvanka/$code': typeof PozvankaCodeRoute
   '/skupiny/$groupId': typeof SkupinyGroupIdRoute
   '/uzivatele/$userId': typeof UzivateleUserIdRoute
   '/skupiny/': typeof SkupinyIndexRoute
@@ -270,6 +277,7 @@ export interface FileRoutesByTo {
   '/upozorneni': typeof ProtectedPagesUpozorneniRoute
   '/vitej': typeof ProtectedPagesVitejRoute
   '/akce/$eventId': typeof AkceEventIdRoute
+  '/pozvanka/$code': typeof PozvankaCodeRoute
   '/skupiny/$groupId': typeof SkupinyGroupIdRoute
   '/uzivatele/$userId': typeof UzivateleUserIdRoute
   '/skupiny': typeof SkupinyIndexRoute
@@ -306,6 +314,7 @@ export interface FileRoutesById {
   '/_ProtectedPages/upozorneni': typeof ProtectedPagesUpozorneniRoute
   '/_ProtectedPages/vitej': typeof ProtectedPagesVitejRoute
   '/akce_/$eventId': typeof AkceEventIdRoute
+  '/pozvanka/$code': typeof PozvankaCodeRoute
   '/skupiny/$groupId': typeof SkupinyGroupIdRoute
   '/uzivatele/$userId': typeof UzivateleUserIdRoute
   '/skupiny/': typeof SkupinyIndexRoute
@@ -342,6 +351,7 @@ export interface FileRouteTypes {
     | '/upozorneni'
     | '/vitej'
     | '/akce/$eventId'
+    | '/pozvanka/$code'
     | '/skupiny/$groupId'
     | '/uzivatele/$userId'
     | '/skupiny/'
@@ -376,6 +386,7 @@ export interface FileRouteTypes {
     | '/upozorneni'
     | '/vitej'
     | '/akce/$eventId'
+    | '/pozvanka/$code'
     | '/skupiny/$groupId'
     | '/uzivatele/$userId'
     | '/skupiny'
@@ -411,6 +422,7 @@ export interface FileRouteTypes {
     | '/_ProtectedPages/upozorneni'
     | '/_ProtectedPages/vitej'
     | '/akce_/$eventId'
+    | '/pozvanka/$code'
     | '/skupiny/$groupId'
     | '/uzivatele/$userId'
     | '/skupiny/'
@@ -444,6 +456,7 @@ export interface RootRouteChildren {
   SignupRoute: typeof SignupRoute
   ZapomenuteHesloRoute: typeof ZapomenuteHesloRoute
   AkceEventIdRoute: typeof AkceEventIdRoute
+  PozvankaCodeRoute: typeof PozvankaCodeRoute
   SkupinyGroupIdRoute: typeof SkupinyGroupIdRoute
   UzivateleUserIdRoute: typeof UzivateleUserIdRoute
   SkupinyIndexRoute: typeof SkupinyIndexRoute
@@ -554,6 +567,13 @@ declare module '@tanstack/react-router' {
       path: '/akce/$eventId'
       fullPath: '/akce/$eventId'
       preLoaderRoute: typeof AkceEventIdRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/pozvanka/$code': {
+      id: '/pozvanka/$code'
+      path: '/pozvanka/$code'
+      fullPath: '/pozvanka/$code'
+      preLoaderRoute: typeof PozvankaCodeRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/skupiny/': {
@@ -749,6 +769,7 @@ const rootRouteChildren: RootRouteChildren = {
   SignupRoute: SignupRoute,
   ZapomenuteHesloRoute: ZapomenuteHesloRoute,
   AkceEventIdRoute: AkceEventIdRoute,
+  PozvankaCodeRoute: PozvankaCodeRoute,
   SkupinyGroupIdRoute: SkupinyGroupIdRoute,
   UzivateleUserIdRoute: UzivateleUserIdRoute,
   SkupinyIndexRoute: SkupinyIndexRoute,
