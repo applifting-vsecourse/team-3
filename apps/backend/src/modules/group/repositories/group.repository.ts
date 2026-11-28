@@ -328,30 +328,37 @@ export class GroupRepository {
    * stay as they are, in the group's history. Upcoming events the superadmin
    * deactivated are cancelled too (#308, review #380): restoring one later
    * would publish an event of an inactive group, and a cancelled event can't
-   * be restored (409 EVENT_NOT_HIDDEN).
+   * be restored (409 EVENT_NOT_HIDDEN). Returns the events it cancelled, so
+   * their people hear of it as of any cancel (#463).
    */
-  async deactivateGroup(id: string, at: Date): Promise<void> {
-    await this.prisma.$transaction([
-      this.prisma.group.update({
+  async deactivateGroup(id: string, at: Date): Promise<string[]> {
+    return this.prisma.$transaction(async (tx) => {
+      const upcoming: Prisma.EventWhereInput = {
+        groupId: id,
+        status: { in: ['published', 'hidden'] },
+        startsAt: { gt: at },
+      };
+      const cancelled = await tx.event.findMany({
+        where: upcoming,
+        select: { id: true },
+      });
+      await tx.group.update({
         where: { id },
         data: { status: 'inactive', deactivatedAt: at },
-      }),
-      this.prisma.groupMember.deleteMany({
+      });
+      await tx.groupMember.deleteMany({
         where: { groupId: id, status: 'pending' },
-      }),
-      this.prisma.event.updateMany({
-        where: {
-          groupId: id,
-          status: { in: ['published', 'hidden'] },
-          startsAt: { gt: at },
-        },
+      });
+      await tx.event.updateMany({
+        where: { ...upcoming, id: { in: cancelled.map((event) => event.id) } },
         data: {
           status: 'cancelled',
           cancelReason: GROUP_INACTIVE_CANCEL_REASON,
           cancelledAt: at,
         },
-      }),
-    ]);
+      });
+      return cancelled.map((event) => event.id);
+    });
   }
 
   /**

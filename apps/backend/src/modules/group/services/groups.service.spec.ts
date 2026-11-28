@@ -50,6 +50,7 @@ const setup = (): {
   repository.createMembership.mockResolvedValue(true);
   repository.approveRequest.mockResolvedValue(true);
   repository.rejectRequest.mockResolvedValue(true);
+  repository.deactivateGroup.mockResolvedValue([]);
   const notifications = mock<NotificationService>();
   return {
     repository,
@@ -534,6 +535,26 @@ describe('GroupsService', () => {
         'g1',
         expect.any(Date),
       );
+    });
+
+    // #463: a cancel by deactivation is a cancel: its people hear of it
+    it("tells the people of each event it cancelled, as the organizer's cancel does", async () => {
+      const { repository, service, notifications } = setup();
+      repository.findGroupById.mockResolvedValue(aGroup('g1'));
+      repository.isActiveAdmin.mockResolvedValue(true);
+      repository.deactivateGroup.mockResolvedValue(['e1', 'e2']);
+
+      await service.deactivateGroup('g1', 'u-petra');
+
+      expect(notifications.notify).toHaveBeenCalledTimes(2);
+      expect(notifications.notify).toHaveBeenCalledWith({
+        type: 'event-cancelled',
+        eventId: 'e1',
+      });
+      expect(notifications.notify).toHaveBeenCalledWith({
+        type: 'event-cancelled',
+        eventId: 'e2',
+      });
     });
 
     it('anyone else gets 403 and nothing is written', async () => {

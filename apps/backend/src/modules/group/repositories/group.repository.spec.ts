@@ -4,18 +4,51 @@ import { GroupRepository } from './group.repository';
 
 describe('GroupRepository', () => {
   describe('deactivateGroup (B-051, B-055)', () => {
-    it("cancels the group's upcoming events with the reason, the deactivated ones too (#308); past ones stay", async () => {
+    it("cancels the group's upcoming events with the reason, the deactivated ones too (#308); past ones stay; returns them (#463)", async () => {
       const prisma = mockDeep<PrismaService>();
       const at = new Date('2026-11-07T10:00:00.000Z');
+      let inTransaction = false;
+      const written: string[] = [];
+      // the transaction client is the same mock
+      prisma.$transaction.mockImplementation((async (
+        run: (tx: PrismaService) => Promise<unknown>,
+      ) => {
+        inTransaction = true;
+        try {
+          return await run(prisma);
+        } finally {
+          inTransaction = false;
+        }
+      }) as never);
+      prisma.event.findMany.mockResolvedValue([
+        { id: 'e1' },
+        { id: 'e2' },
+      ] as never);
+      prisma.event.updateMany.mockImplementation((() => {
+        if (inTransaction) written.push('events');
+        return Promise.resolve({ count: 2 });
+      }) as never);
+      prisma.group.update.mockImplementation((() => {
+        if (inTransaction) written.push('group');
+        return Promise.resolve({});
+      }) as never);
 
-      await new GroupRepository(prisma).deactivateGroup('g1', at);
+      await expect(
+        new GroupRepository(prisma).deactivateGroup('g1', at),
+      ).resolves.toEqual(['e1', 'e2']);
 
+      const upcoming = {
+        groupId: 'g1',
+        status: { in: ['published', 'hidden'] },
+        startsAt: { gt: at },
+      };
+      expect(prisma.event.findMany).toHaveBeenCalledWith({
+        where: upcoming,
+        select: { id: true },
+      });
+      // exactly the events it reports, nothing that turned up in between
       expect(prisma.event.updateMany).toHaveBeenCalledWith({
-        where: {
-          groupId: 'g1',
-          status: { in: ['published', 'hidden'] },
-          startsAt: { gt: at },
-        },
+        where: { ...upcoming, id: { in: ['e1', 'e2'] } },
         data: {
           status: 'cancelled',
           cancelReason: 'Skupina už není aktivní',
@@ -26,7 +59,7 @@ describe('GroupRepository', () => {
         where: { id: 'g1' },
         data: { status: 'inactive', deactivatedAt: at },
       });
-      expect(prisma.$transaction).toHaveBeenCalledTimes(1);
+      expect(written).toEqual(['group', 'events']);
     });
   });
 

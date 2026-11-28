@@ -299,7 +299,8 @@ export class GroupsService {
    * out of the list, nobody joins and its waiting requests are removed,
    * since nobody will decide them. Its upcoming events are cancelled with
    * the reason „Skupina už není aktivní“ (B-055); past ones and the members
-   * stay as history. It is final.
+   * stay as history. It is final. The people of each cancelled event hear of
+   * it as of any cancel, upozornění and e-mail with the reason (#463).
    */
   async deactivateGroup(groupId: string, userId: string): Promise<void> {
     await this.getActiveGroup(groupId);
@@ -308,7 +309,14 @@ export class GroupsService {
       userId,
       'Skupinu může deaktivovat jen její správce',
     );
-    await this.groupRepository.deactivateGroup(groupId, new Date());
+    const cancelled = await this.groupRepository.deactivateGroup(
+      groupId,
+      new Date(),
+    );
+    // after the write, as the organizer's cancel (#177): only what really changed
+    for (const eventId of cancelled) {
+      this.notifications.notify({ type: 'event-cancelled', eventId });
+    }
   }
 
   /**
