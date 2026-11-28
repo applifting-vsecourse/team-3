@@ -108,7 +108,8 @@ export function spreadSamePlace<T extends { id: string; lat: number; lng: number
     if (group.length < 2) continue
     const sorted = [...group].sort((a, b) => a.id.localeCompare(b.id))
     sorted.forEach((pin, index) => {
-      const angle = (2 * Math.PI * index) / sorted.length
+      // from the east: two events stand side by side, not one above the other (review #494)
+      const angle = Math.PI / 2 + (2 * Math.PI * index) / sorted.length
       moved.set(pin.id, {
         ...pin,
         lat: pin.lat + SAME_PLACE_SPREAD * Math.cos(angle),

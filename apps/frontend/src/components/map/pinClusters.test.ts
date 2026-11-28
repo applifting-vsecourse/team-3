@@ -73,7 +73,11 @@ describe("spreadSamePlace", () => {
   it("puts events at one place side by side, a few metres apart, in a stable order", () => {
     const spread = spreadSamePlace([at("b", 49.2185, 16.592), at("a", 49.2185, 16.592)])
     const [b, a] = spread
+    if (!a || !b) throw new Error("two pins expected")
     expect(a).not.toEqual(b)
+    // side by side: same latitude, east and west of the place
+    expect(a.lat).toBeCloseTo(b.lat, 8)
+    expect(Math.sign(a.lng - 16.592)).toBe(-Math.sign(b.lng - 16.592))
     // within about 20 m of the place
     for (const pin of spread) {
       expect(Math.abs(pin.lat - 49.2185)).toBeLessThan(0.0002)
