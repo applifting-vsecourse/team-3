@@ -42,3 +42,13 @@ export const partnerRequestSchema = z.object({
   requestsLeft: z.number().int().nonnegative(),
 })
 export type PartnerRequestResult = z.infer<typeof partnerRequestSchema>
+
+/**
+ * GET /api/partners/home: „Parťáci v okolí“ on the landing page (#474). The API decides whether
+ * it shows (profile complete, visible, 3 people, the frequency cap); `items` are empty otherwise.
+ */
+export const partnerHomeSchema = z.object({
+  isShown: z.boolean(),
+  items: z.array(partnerSchema),
+})
+export type PartnerHome = z.infer<typeof partnerHomeSchema>

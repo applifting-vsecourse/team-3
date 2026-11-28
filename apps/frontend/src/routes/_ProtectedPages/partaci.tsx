@@ -3,6 +3,7 @@ import { createFileRoute } from "@tanstack/react-router"
 import { useSession } from "@/features/auth/hooks/useSession"
 import { friendsKeys } from "@/features/friends/api/friendsQueryOptions"
 import { PartnersPage } from "@/features/partners/components/PartnersPage"
+import { useRecordPartnersVisit } from "@/features/partners/hooks/usePartnerActions"
 import { partnersSearchSchema, radiusFromSearch } from "@/features/partners/lib/partnersSearch"
 import { profileKeys } from "@/features/profile/api/profileQueryOptions"
 import { ProfileLoading } from "@/features/profile/components/ProfileState"
@@ -18,6 +19,8 @@ function PartnersRoute() {
   const navigate = Route.useNavigate()
   const { queryClient } = Route.useRouteContext()
   const { user } = useSession()
+  // the visit is kept on the server: „Parťáci v okolí“ stay off the landing page for 7 days (#474)
+  useRecordPartnersVisit(user?.id)
   // the protected layout lets only a signed-in user in; the session is cached by then
   return user ? (
     <PartnersPage

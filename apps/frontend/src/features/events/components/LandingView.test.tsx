@@ -136,6 +136,7 @@ const renderLanding = ({
         localitySlug={localitySlug}
         localityControl={localityControl}
         renderGroups={(groups) => <p>{groups.length} skupin z API</p>}
+        partnersSection={<p>Parťáci z partners</p>}
         // Sunday 8. 11. 2026, so „Tento víkend“ is just today
         now={new Date("2026-11-08T10:00:00.000Z")}
       />
@@ -227,6 +228,13 @@ describe("LandingView", () => {
       expect(await screen.findByText("1 skupin z API")).toBeInTheDocument()
     })
 
+    it("a visitor has no „Parťáci v okolí“ (#474)", async () => {
+      await renderLanding()
+
+      await screen.findByText("1 skupin z API")
+      expect(screen.queryByText("Parťáci z partners")).not.toBeInTheDocument()
+    })
+
     it("without a locality lets the API decide; with ?lokalita= asks for its id", async () => {
       await renderLanding()
       await screen.findByRole("heading", { name: "Tady chybíš" })
@@ -274,6 +282,24 @@ describe("LandingView", () => {
       expect(screen.queryByRole("heading", { name: "Jak to funguje" })).not.toBeInTheDocument()
       expect(screen.queryByRole("link", { name: "Zaregistrovat se" })).not.toBeInTheDocument()
       expect(screen.getByRole("link", { name: "Moje akce" })).toHaveAttribute("href", "/moje/akce")
+    })
+
+    it("„Parťáci v okolí“ come after „Pro tebe“ and before the groups (#474)", async () => {
+      home = {
+        ...signedInHome,
+        sections: [...signedInHome.sections, { key: "groups", groups: [group] }],
+      }
+      await renderLanding({ session: "signedIn" })
+
+      const picks = await screen.findByRole("heading", { name: "Pro tebe" })
+      const partners = screen.getByText("Parťáci z partners")
+      const groups = screen.getByText("1 skupin z API")
+      expect(
+        picks.compareDocumentPosition(partners) & Node.DOCUMENT_POSITION_FOLLOWING,
+      ).toBeTruthy()
+      expect(
+        partners.compareDocumentPosition(groups) & Node.DOCUMENT_POSITION_FOLLOWING,
+      ).toBeTruthy()
     })
 
     it("a tab shows its own events", async () => {
