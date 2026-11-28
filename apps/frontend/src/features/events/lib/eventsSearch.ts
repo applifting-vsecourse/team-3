@@ -60,11 +60,16 @@ export const PICK_LABELS: Record<QuickPick, string> = {
  * rules as the landing page's sections, so a tab of one name explains why its list differs.
  */
 export const PICK_DESCRIPTIONS: Record<QuickPick, string> = {
-  "tady-chybis": "Chybí jim lidi do minima. Akce, na které už jdeš, tu nejsou.",
+  "tady-chybis": "Chybí jim lidi do minima.",
   "tento-vikend": "Jen akce o nejbližším víkendu.",
   "podle-zajmu": "Aktivity z tvého profilu a z akcí, na které chodíš.",
   "kousek-od-tebe": "Nejbližší ke středu lokality.",
   "od-hodnocenych": "Pořádají je lidi a skupiny s průměrem aspoň 4,5 z nejméně 3 hodnocení.",
+}
+
+/** Only a signed-in viewer goes to events: this pick leaves those out (PICK_FLAGS › notJoined). */
+export const PICK_DESCRIPTION_SIGNED_IN: Partial<Record<QuickPick, string>> = {
+  "tady-chybis": "Akce, na které už jdeš, tu nejsou.",
 }
 
 /** ?razeni= (#57, Figma A-02j); without it soonest first, or nearest first with okolí. */

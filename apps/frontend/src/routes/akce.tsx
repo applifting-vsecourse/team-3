@@ -33,6 +33,7 @@ import {
   isAllEvents,
   localityCenter,
   PAST_TERM,
+  PICK_DESCRIPTION_SIGNED_IN,
   PICK_DESCRIPTIONS,
   PICK_LABELS,
   pickPatch,
@@ -268,7 +269,13 @@ function EventsPage() {
                       " "
             }${
               // what the pick adds, so „Tady chybíš“ here and on the landing page read the same (QA-01)
-              urlSearch.vyber && hasActiveTrigger ? ` ${PICK_DESCRIPTIONS[urlSearch.vyber]}` : ""
+              urlSearch.vyber && hasActiveTrigger
+                ? ` ${PICK_DESCRIPTIONS[urlSearch.vyber]}${
+                    session.user && PICK_DESCRIPTION_SIGNED_IN[urlSearch.vyber]
+                      ? ` ${PICK_DESCRIPTION_SIGNED_IN[urlSearch.vyber]}`
+                      : ""
+                  }`
+                : ""
             }`}
           >
             <BandTabs>
