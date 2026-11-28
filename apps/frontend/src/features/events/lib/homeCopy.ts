@@ -58,7 +58,7 @@ export const missingNowLabel = (missingToMin: number): string =>
  */
 export function missingNowSentence(event: {
   approvedCount: number
-  maxParticipants: number
+  maxParticipants: number | null
   missingToMin: number
 }): string {
   const who = event.approvedCount === 0 ? "Zatím nikdo nejde" : `${occupancyCount(event)} už jde`
