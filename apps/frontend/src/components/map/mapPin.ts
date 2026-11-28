@@ -17,13 +17,16 @@ export type PinVariant = "default" | "highlighted" | "full" | "past"
 const PIN = { width: 32, height: 40 }
 
 /**
- * The marker's box: the pin centred in a 40 × 40 target (DESIGN.md › Accessibility),
- * its tip on the bottom edge, so the anchor is the bottom centre.
+ * The marker's box: the pin centred in 40 × 40, its tip on the bottom edge, so the anchor is the
+ * bottom centre. Since QA-03 only the pin's painted shape (~25 × 37 px, above WCAG 2.5.8's 24 px)
+ * takes a tap: the box's transparent corners covered the pin beside it.
  */
 export const PIN_BOX = { width: 40, height: 40 }
 
+// Only the pin's own shape takes a tap: the transparent corners of its 40 × 40 box covered the
+// pin beside it, and a tap opened the wrong event (QA-03). The box and the svg let taps through.
 const pinSvg = (viewBox: string, paths: string) =>
-  `<svg width="${PIN.width}" height="${PIN.height}" viewBox="${viewBox}" fill="none" aria-hidden="true">${paths}</svg>`
+  `<svg width="${PIN.width}" height="${PIN.height}" viewBox="${viewBox}" fill="none" aria-hidden="true" class="pointer-events-none">${paths.replaceAll("<path ", '<path pointer-events="visiblePainted" ')}</svg>`
 
 const darkPin = (body: string) =>
   pinSvg(
@@ -78,8 +81,8 @@ export function pinHtml(variant: PinVariant, label?: string, { isSelected = fals
   const svg = isSelected
     ? `<span class="block origin-bottom" style="transform:scale(${SELECTED_SCALE});filter:${SELECTED_OUTLINE}">${SVG[variant]}</span>`
     : SVG[variant]
-  // the pin stands on the bottom centre of its 40 × 40 target
-  return `<span class="relative flex items-end justify-center" style="width:${PIN_BOX.width}px;height:${PIN_BOX.height}px">${tip}${svg}</span>`
+  // the pin stands on the bottom centre of its 40 × 40 box
+  return `<span class="pointer-events-none relative flex items-end justify-center" style="width:${PIN_BOX.width}px;height:${PIN_BOX.height}px">${tip}${svg}</span>`
 }
 
 /** Figma: Map cluster — 44 px, the count on `foreground`, a `background` edge. */
