@@ -2,6 +2,7 @@ import { useId, useState, type ReactNode } from "react"
 import { Link } from "@tanstack/react-router"
 
 import { ROUTES } from "@/app/routes"
+import { StarsShown } from "@/components/RatingStars/StarsShown"
 import { Button } from "@/components/ui/button"
 import { ratingSummaryLabel } from "@/lib/ratingSummary"
 
@@ -129,8 +130,9 @@ function RatingList({ title, ratings, summary }: RatingGroup & { title: string }
               key={rating.id}
               className="flex flex-col gap-1 py-3 first:pt-0"
             >
-              <p className="text-sm">
-                <strong>{rating.stars} z 5</strong> · {rating.author.name}
+              <p className="flex items-center gap-2 text-sm">
+                <StarsShown stars={rating.stars} />
+                <span>{rating.author.name}</span>
               </p>
               {rating.comment ? (
                 <p className="text-sm whitespace-pre-wrap">{rating.comment}</p>
