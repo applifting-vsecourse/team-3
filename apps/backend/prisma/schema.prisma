@@ -749,6 +749,8 @@ enum NotificationType {
   participant_left
   request_approved
   request_rejected
+  /// #465: akce začala dřív, než organizátor žádost vyřídil
+  request_expired
   event_changed
   event_cancelled
   event_message

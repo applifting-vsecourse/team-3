@@ -10,20 +10,20 @@ this.notifications.notify({ type: 'event-cancelled', eventId });
 
 ## Kdo co dostane
 
-| Druh (`type`)           | Příjemci                                                  | Vyvolá ho                                                          |
-| ----------------------- | --------------------------------------------------------- | ------------------------------------------------------------------ |
-| `request-decided`       | žadatelé, kterým organizátor žádost schválil/zamítl       | `EventsService.decideRequests`                                     |
-| `event-changed`         | schválení a čekající účastníci, ne organizátor            | `EventsService.updateEvent` (jen když se změnil termín nebo místo) |
-| `event-cancelled`       | schválení a čekající účastníci, ne organizátor; s důvodem | `EventsService.cancelEvent`                                        |
-| `request-received`      | organizátor; se zprávou žadatele (#175)                   | `EventsService.join` (žádost čeká na schválení)                    |
-| `participant-joined` | organizátor: v centru vždy, e-mailem jen když si u akce zapnul `emailOnJoin` (při založení i v úpravě) | `EventsService.join` (místo hned, akce bez schvalování, #86) |
-| `participant-left`      | organizátor                                               | `EventsService.leave` (odhlásil se schválený účastník); `GroupsService.leave` po odchodu ze skupiny, za každou akci jen pro členy, kde měl schválené místo (#266) |
-| `group-announcement`    | všichni aktivní členové skupiny, správci i autor          | `GroupsService.sendAnnouncement` (#194)                            |
-| `event-message`         | schválení účastníci, ne organizátor                       | `EventsService.sendMessage` (#176)                                 |
-| `group-join-request`    | aktivní správci skupiny, ne žadatel; se zprávou žadatele  | `GroupsService.join` (žádost do uzavřené skupiny, #86)             |
-| `group-request-decided` | žadatel, kterému správce žádost o vstup schválil/zamítl   | `GroupsService.approveRequest`, `rejectRequest` (#86)              |
-| `friend-request`        | ten, koho žádám o přátelství (i při opakované žádosti)    | `FriendshipService.request` (#307, #86)                            |
-| `friend-accepted`       | ten, kdo o přátelství požádal                             | `FriendshipService.request` (přijetí, #307, #86)                   |
+| Druh (`type`)           | Příjemci                                                                                               | Vyvolá ho                                                                                                                                                         |
+| ----------------------- | ------------------------------------------------------------------------------------------------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `request-decided`       | žadatelé, kterým organizátor žádost schválil/zamítl                                                    | `EventsService.decideRequests`                                                                                                                                    |
+| `event-changed`         | schválení a čekající účastníci, ne organizátor                                                         | `EventsService.updateEvent` (jen když se změnil termín nebo místo)                                                                                                |
+| `event-cancelled`       | schválení a čekající účastníci, ne organizátor; s důvodem                                              | `EventsService.cancelEvent`                                                                                                                                       |
+| `request-received`      | organizátor; se zprávou žadatele (#175)                                                                | `EventsService.join` (žádost čeká na schválení)                                                                                                                   |
+| `participant-joined`    | organizátor: v centru vždy, e-mailem jen když si u akce zapnul `emailOnJoin` (při založení i v úpravě) | `EventsService.join` (místo hned, akce bez schvalování, #86)                                                                                                      |
+| `participant-left`      | organizátor                                                                                            | `EventsService.leave` (odhlásil se schválený účastník); `GroupsService.leave` po odchodu ze skupiny, za každou akci jen pro členy, kde měl schválené místo (#266) |
+| `group-announcement`    | všichni aktivní členové skupiny, správci i autor                                                       | `GroupsService.sendAnnouncement` (#194)                                                                                                                           |
+| `event-message`         | schválení účastníci, ne organizátor                                                                    | `EventsService.sendMessage` (#176)                                                                                                                                |
+| `group-join-request`    | aktivní správci skupiny, ne žadatel; se zprávou žadatele                                               | `GroupsService.join` (žádost do uzavřené skupiny, #86)                                                                                                            |
+| `group-request-decided` | žadatel, kterému správce žádost o vstup schválil/zamítl                                                | `GroupsService.approveRequest`, `rejectRequest` (#86)                                                                                                             |
+| `friend-request`        | ten, koho žádám o přátelství (i při opakované žádosti)                                                 | `FriendshipService.request` (#307, #86)                                                                                                                           |
+| `friend-accepted`       | ten, kdo o přátelství požádal                                                                          | `FriendshipService.request` (přijetí, #307, #86)                                                                                                                  |
 
 Oznámení skupiny není o akci: e-mail má předmět „{skupina}: {předmět}“, nadpis a text jsou slova správce (odstavce podle prázdných řádků) a tlačítko „Stránka skupiny“ (Figma E-01, typ 8).
 
@@ -80,11 +80,11 @@ Testy pokrývají příjemce a výběr denní dávky s pevným časem, obě změ
 
 `EventReminderService` běží stejným plánovačem jako výzva k hodnocení (každých 15 minut a jednou po startu) a používá stejný `NotificationLog`, rezervace a nejvýš tři pokusy (`repositories/notification-log.ts`, sdílené s výzvou k hodnocení). Kdo co dostane, rozhoduje čistá funkce `eventReminders` v `domain/event-reminder.ts`:
 
-| Druh (`type` v logu)            | Příjemce                                         | Kdy                         | Podmínka                                      |
-| ------------------------------- | ------------------------------------------------ | --------------------------- | --------------------------------------------- |
-| `event-reminder-participant`    | schválení účastníci, ne organizátor              | 24 až 20 h před `startsAt`  | –                                             |
-| `event-reminder-organizer-48h`  | zakladatel akce (`organizerUserId`, i u skupiny) | 48 až 44 h před `startsAt`  | schválených je méně než `minParticipants`     |
-| `event-reminder-organizer-24h`  | zakladatel akce                                  | 24 až 20 h před `startsAt`  | schválených je méně než `minParticipants`     |
+| Druh (`type` v logu)           | Příjemce                                         | Kdy                        | Podmínka                                  |
+| ------------------------------ | ------------------------------------------------ | -------------------------- | ----------------------------------------- |
+| `event-reminder-participant`   | schválení účastníci, ne organizátor              | 24 až 20 h před `startsAt` | –                                         |
+| `event-reminder-organizer-48h` | zakladatel akce (`organizerUserId`, i u skupiny) | 48 až 44 h před `startsAt` | schválených je méně než `minParticipants` |
+| `event-reminder-organizer-24h` | zakladatel akce                                  | 24 až 20 h před `startsAt` | schválených je méně než `minParticipants` |
 
 E-mail je splatný od své chvíle (24 nebo 48 h před začátkem) ještě 4 hodiny: to pokryje interval plánovače, opakování po chybě a krátký výpadek, ale připomínka nepřijde o půl dne později. Akce založená nebo přesunutá až po okně připomínku nedostane. Po nasazení dostanou připomínku akce, jejichž okno právě běží; starší okna se nedohánějí.
 

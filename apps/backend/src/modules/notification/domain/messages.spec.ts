@@ -65,6 +65,30 @@ describe('composeMessage', () => {
     });
   });
 
+  // #465: the event started before the organizer decided; nobody to blame, a way on
+  it('a request left undecided at the start says it can no longer be decided and leads to other events', () => {
+    const message = composeMessage(
+      {
+        type: 'request-decided',
+        eventId: 'e1',
+        userIds: ['u2'],
+        outcome: 'expired',
+      },
+      context({ person: null }),
+    );
+
+    expect(message.subject).toBe(
+      'Žádost o účast už vyřídit nejde: Deskovky ve středu',
+    );
+    expect(message.email.paragraphs[0]).toBe(
+      'Akce „Deskovky ve středu“ začala dřív, než organizátor tvou žádost vyřídil. Schválit ani zamítnout ji už nejde.',
+    );
+    expect(message.email.action).toEqual({
+      label: 'Najít jinou akci',
+      url: 'https://hobbyhub.example/akce',
+    });
+  });
+
   it('a rejected request says so without blaming anyone and points to the event', () => {
     const message = composeMessage(
       {

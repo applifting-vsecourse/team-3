@@ -79,6 +79,16 @@ describe('composeEventInApp', () => {
       'Tvoje žádost o účast na akci „Deskovky ve středu“ nebyla přijata.',
     ],
     [
+      {
+        type: 'request-decided',
+        eventId: 'e1',
+        userIds: ['u2'],
+        outcome: 'expired',
+      },
+      'request_expired',
+      'Akce „Deskovky ve středu“ začala dřív, než organizátor tvou žádost vyřídil.',
+    ],
+    [
       { type: 'event-changed', eventId: 'e1', change: { when, place: null } },
       'event_changed',
       'U akce „Deskovky ve středu“ se změnil termín.',

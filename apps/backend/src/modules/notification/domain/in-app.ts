@@ -19,6 +19,7 @@ export type InAppType =
   | 'participant_left'
   | 'request_approved'
   | 'request_rejected'
+  | 'request_expired'
   | 'event_changed'
   | 'event_cancelled'
   | 'event_message'
@@ -76,10 +77,15 @@ export const composeEventInApp = (
             'request_approved',
             `Tvoje žádost o účast na akci ${title} byla schválena.`,
           )
-        : about(
-            'request_rejected',
-            `Tvoje žádost o účast na akci ${title} nebyla přijata.`,
-          );
+        : notification.outcome === 'expired'
+          ? about(
+              'request_expired',
+              `Akce ${title} začala dřív, než organizátor tvou žádost vyřídil.`,
+            )
+          : about(
+              'request_rejected',
+              `Tvoje žádost o účast na akci ${title} nebyla přijata.`,
+            );
     case 'event-changed':
       return about(
         'event_changed',
@@ -176,6 +182,7 @@ export const notificationPath = (type: InAppType, targetId: string): string => {
       return `/akce/${id}/sprava`;
     case 'request_approved':
     case 'request_rejected':
+    case 'request_expired':
     case 'event_changed':
     case 'event_cancelled':
     case 'event_message':
