@@ -74,8 +74,30 @@ Používá stejné podmínky jako hodnocení (#66): publikovaná, skončená akc
 
 Transport a zápis do databáze nemají společnou transakci: pád po přijetí zprávy SMTP/Resend, ale před uložením `sentAt`, může po vypršení rezervace vést k duplicitě. Totéž platí při nejednoznačné chybě transportu nebo při odesílání delším než hodinu. Evidence brání opakování již potvrzených odeslání; neslibuje přesně jedno doručení do schránky. Logy obsahují pouze interní ID, ne e-mailové adresy ani chybové zprávy poskytovatele.
 
-Testy pokrývají příjemce a výběr denní dávky s pevným časem, obě změny času, půlnoc a lhůtu hodnocení, zrušení během dávky, selhání transportu/databáze, souběh běhů a obnovu po restartu. Připomínky den před akcí a upozornění na chybějící lidi zůstávají mimo scope sprintu 4.
+Testy pokrývají příjemce a výběr denní dávky s pevným časem, obě změny času, půlnoc a lhůtu hodnocení, zrušení během dávky, selhání transportu/databáze, souběh běhů a obnovu po restartu. Připomínky před akcí popisuje další sekce.
+
+## Připomínky před akcí (#405, B-043)
+
+`EventReminderService` běží stejným plánovačem jako výzva k hodnocení (každých 15 minut a jednou po startu) a používá stejný `NotificationLog`, rezervace a nejvýš tři pokusy (`repositories/notification-log.ts`, sdílené s výzvou k hodnocení). Kdo co dostane, rozhoduje čistá funkce `eventReminders` v `domain/event-reminder.ts`:
+
+| Druh (`type` v logu)            | Příjemce                                         | Kdy                         | Podmínka                                      |
+| ------------------------------- | ------------------------------------------------ | --------------------------- | --------------------------------------------- |
+| `event-reminder-participant`    | schválení účastníci, ne organizátor              | 24 až 20 h před `startsAt`  | –                                             |
+| `event-reminder-organizer-48h`  | zakladatel akce (`organizerUserId`, i u skupiny) | 48 až 44 h před `startsAt`  | schválených je méně než `minParticipants`     |
+| `event-reminder-organizer-24h`  | zakladatel akce                                  | 24 až 20 h před `startsAt`  | schválených je méně než `minParticipants`     |
+
+E-mail je splatný od své chvíle (24 nebo 48 h před začátkem) ještě 4 hodiny: to pokryje interval plánovače, opakování po chybě a krátký výpadek, ale připomínka nepřijde o půl dne později. Akce založená nebo přesunutá až po okně připomínku nedostane. Po nasazení dostanou připomínku akce, jejichž okno právě běží; starší okna se nedohánějí.
+
+- **Účastník:** předmět „Zítra: {akce}“ (podle pražského kalendáře, u akce brzy po půlnoci „Dnes: …“), termín, místo a tlačítko „Zobrazit akci“ na detail akce. Organizátor přihlášený na vlastní akci dostane jen přehled.
+- **Organizátor:** „Do minima chybí 1 člověk / 2 lidé / 5 lidí“, obsazenost „2 z minima 4“, tlačítko „Sdílet odkaz“ na detail akce (tam je sdílení a odkaz jde zkopírovat i z e-mailu) a odkaz „Zrušit akci“ na správu akce. Při naplněném minimu nepřijde. „Topovat akci“ (B-073, #69) zatím neexistuje: odkaz na správu akce se přidá jen s `TOPPING_ENABLED=true` (výchozí `false`).
+- Maximum se nepoužívá (může být nepovinné, #425). Obsazenost počítá všechny schválené účasti jako `computeCapacity`.
+- Jen publikované akce, které ještě nezačaly; zrušené, skryté a smazané nic nedostanou. Zablokovaným, smazaným a uživatelům s neověřeným e-mailem se nepíše (do minima se ale počítají). Nastavení e-mailů ani odhlášení z nich aplikace zatím nemá.
+- Klíč v logu je `event-reminder:<druh>:<eventId>:<userId>:<startsAt>`: každý e-mail odejde jednou i přes restarty a víc instancí, ale přesunutá akce připomene nový termín. Po rezervaci se akce načte znovu; zrušení, přesun, naplnění minima nebo zablokování během dávky e-mail zastaví.
+
+Omezení evidence (žádná společná transakce s transportem) platí stejně jako u výzvy k hodnocení. Do centra upozornění se připomínky nezapisují, jsou jen e-mailem.
+
+Otevřené otázky: má organizátor dostat i připomínku účastníka, když je přihlášený na vlastní akci? Má připomínka účastníkovi zmínit, že do minima ještě chybí lidé? Kam přesně má vést „Topovat“, až #69 vznikne?
 
 ## Omezení okamžitých upozornění
 
-Okamžitá upozornění přes `NotificationService.notify` běží v paměti procesu: e-mail, který čeká při pádu nebo restartu backendu, se nedoručí a nezkouší se znovu. Evidence a opakování popsané výše se týkají výzvy k hodnocení; nejsou obecnou frontou pro všechny e-maily.
+Okamžitá upozornění přes `NotificationService.notify` běží v paměti procesu: e-mail, který čeká při pádu nebo restartu backendu, se nedoručí a nezkouší se znovu. Evidence a opakování popsané výše se týkají výzvy k hodnocení a připomínek před akcí; nejsou obecnou frontou pro všechny e-maily.

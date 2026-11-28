@@ -1,4 +1,3 @@
-import { randomUUID } from 'node:crypto';
 import { PrismaService } from '@/core/prisma/prisma.service';
 import { Prisma } from '@/generated/prisma/client';
 import { eventOverWhere } from '@/modules/event/domain/event-over';
@@ -13,6 +12,12 @@ import {
   ratingInvitationEarliest,
   ratingInvitationKey,
 } from '@/modules/notification/domain/rating-invitation';
+import {
+  claimLog,
+  findUnavailableLogKeys,
+  markLogSent,
+  releaseLog,
+} from '@/modules/notification/repositories/notification-log';
 import { Injectable } from '@nestjs/common';
 
 const recipientSelect = {
@@ -21,8 +26,6 @@ const recipientSelect = {
   blockedAt: true,
   deletedAt: true,
 } as const;
-
-const MAX_RATING_INVITATION_ATTEMPTS = 3;
 
 /** Coarse SQL bounds, then the shared rating rules make the final decision.
  * Includes missed batches and late/no-end events while rating is still open. */
@@ -104,67 +107,34 @@ export class RatingInvitationRepository {
     });
   }
 
-  async findUnavailableKeys(eventId: string, now: Date): Promise<Set<string>> {
-    const logs = await this.prisma.notificationLog.findMany({
-      where: {
-        eventId,
-        OR: [
-          { sentAt: { not: null } },
-          { attempts: { gte: MAX_RATING_INVITATION_ATTEMPTS } },
-          { lockedUntil: { gt: now } },
-        ],
-      },
-      select: { key: true },
-    });
-    return new Set(logs.map(({ key }) => key));
+  findUnavailableKeys(eventId: string, now: Date): Promise<Set<string>> {
+    return findUnavailableLogKeys(this.prisma, eventId, now);
   }
 
-  /** A unique key plus an atomic conditional UPDATE arbitrates between workers.
-   * Failed sends can retry; a crashed worker's claim expires after one hour. */
-  async claim(
+  /** Shared send log (`notification-log.ts`): one worker per key, at most
+   * three attempts, a crashed worker's claim expires after one hour. */
+  claim(
     eventId: string,
     invitation: RatingInvitation,
     now: Date,
   ): Promise<string | null> {
-    const key = ratingInvitationKey(eventId, invitation);
-    await this.prisma.notificationLog.createMany({
-      data: {
-        key,
+    return claimLog(
+      this.prisma,
+      {
+        key: ratingInvitationKey(eventId, invitation),
         type: `rating-invitation-${invitation.role}`,
         eventId,
         userId: invitation.userId,
       },
-      skipDuplicates: true,
-    });
-    const claimToken = randomUUID();
-    const { count } = await this.prisma.notificationLog.updateMany({
-      where: {
-        key,
-        sentAt: null,
-        attempts: { lt: MAX_RATING_INVITATION_ATTEMPTS },
-        OR: [{ lockedUntil: null }, { lockedUntil: { lte: now } }],
-      },
-      data: {
-        claimToken,
-        lockedUntil: new Date(now.getTime() + 3600_000),
-        attempts: { increment: 1 },
-      },
-    });
-    return count === 1 ? claimToken : null;
+      now,
+    );
   }
 
-  async markSent(key: string, claimToken: string, now: Date): Promise<void> {
-    const { count } = await this.prisma.notificationLog.updateMany({
-      where: { key, claimToken, sentAt: null },
-      data: { sentAt: now, claimToken: null, lockedUntil: null },
-    });
-    if (count !== 1) throw new Error('Rating invitation claim lost');
+  markSent(key: string, claimToken: string, now: Date): Promise<void> {
+    return markLogSent(this.prisma, key, claimToken, now);
   }
 
-  async release(key: string, claimToken: string): Promise<void> {
-    await this.prisma.notificationLog.updateMany({
-      where: { key, claimToken, sentAt: null },
-      data: { claimToken: null, lockedUntil: null },
-    });
+  release(key: string, claimToken: string): Promise<void> {
+    return releaseLog(this.prisma, key, claimToken);
   }
 }
