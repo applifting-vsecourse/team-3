@@ -17,6 +17,7 @@ import { Button } from "@/components/ui/button"
 import { cn } from "@/lib/utils"
 
 import { PIN_BOX, pinHtml } from "./mapPin"
+import { StopZoomOnUnmount } from "./StopZoomOnUnmount"
 
 export type LatLng = { lat: number; lng: number }
 
@@ -104,6 +105,8 @@ export function LocationPicker({
             attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
             url="https://tile.openstreetmap.org/{z}/{x}/{y}.png"
           />
+          {/* leaving the page mid-zoom must not throw (Leaflet 1.9) */}
+          <StopZoomOnUnmount />
           <PickOnClick onPick={(point) => pick(point, "map")} />
           <MarkFocusTarget />
           <FollowCenter
