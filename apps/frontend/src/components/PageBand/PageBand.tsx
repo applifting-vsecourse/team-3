@@ -41,7 +41,11 @@ type PageBandProps = {
   eyebrow?: ReactNode
   /** Before the title where a section page has the logo mark, e.g. the avatar on /profil (#178). */
   leading?: ReactNode
-  /** The page's one main action, beside the title on desktop (Založit akci, Založit skupinu). */
+  /**
+   * The page's one main action, beside the title on desktop (Založit akci, Založit skupinu); a
+   * page whose phone layout has no room for a floating button keeps it in the band there too
+   * (/akce, #420).
+   */
   action?: ReactNode
   /** Tabs on the band's bottom edge (BandTabs), or what follows the title (the „Koná se“ stamp). */
   children?: ReactNode
@@ -122,8 +126,9 @@ export function PageBand({
             {title}
           </h1>
         </div>
-        {/* beside the title on desktop; on a phone the page's button floats above the
-              bottom navigation (DESIGN.md › Založit akci) */}
+        {/* beside the title; on a phone most pages float their button above the bottom
+              navigation instead and pass none here, /akce keeps it in the band (DESIGN.md ›
+              Založit akci) */}
         {action ? <div className="shrink-0">{action}</div> : null}
       </div>
       {description ? (
@@ -164,7 +169,12 @@ export function PageBand({
         isPlainOnMobile && "max-md:border-b-0",
       )}
     >
-      {isSection || isDetail ? <LogoMotif isAboveTabs={hasTabs && isMotifAboveTabs} /> : null}
+      {isSection || isDetail ? (
+        <LogoMotif
+          isAboveTabs={hasTabs && isMotifAboveTabs}
+          hasAction={action != null}
+        />
+      ) : null}
       {/* a phone has the corner motif on the landing page too (Figma A-01 › Motiv loga (návrh 16)) */}
       {/* the landing page keeps it until its big motif shows (lg), the detail until md (review #263) */}
       {isDetail || isHero ? <CornerMotif isUntilLg={isHero} /> : null}
@@ -342,7 +352,18 @@ function CornerMotif({
  * the title, the line and the tabs as in Figma — narrower, the ring would run under the text.
  * Decoration — hidden from assistive tech.
  */
-function LogoMotif({ isAboveTabs = false }: { isAboveTabs?: boolean }) {
+function LogoMotif({
+  isAboveTabs = false,
+  hasAction = false,
+}: {
+  isAboveTabs?: boolean
+  /** The band has its action on the right (/akce, #420). */
+  hasAction?: boolean
+}) {
+  // lifted above the tabs the ring would run under the action beside the title (review #421):
+  // it moves left by the button's width and a gap, so it ends before „Založit akci“ (only the
+  // faint dots may reach the line under the title, as on the landing page)
+  const isClearingAction = isAboveTabs && hasAction
   return (
     <div
       aria-hidden="true"
@@ -358,7 +379,7 @@ function LogoMotif({ isAboveTabs = false }: { isAboveTabs?: boolean }) {
         viewBox="0 -298 744 484"
         width={744}
         height={484}
-        className="absolute right-4 bottom-0"
+        className={cn("absolute bottom-0", isClearingAction ? "right-46" : "right-4")}
       >
         <circle
           cx="180"
