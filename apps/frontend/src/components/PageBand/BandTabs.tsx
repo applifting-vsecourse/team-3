@@ -29,7 +29,8 @@ export function BandTabs({ className, ...props }: ComponentProps<typeof TabsList
         // so a tab scrolled past the start is cut by the screen, not mid-band at the content's
         // edge (#298); from xl the page is narrower than the screen and the tabs fit. It scrolls
         // sideways only, without a visible scrollbar (like the filter chips).
-        "-mx-4 h-auto w-auto max-w-none [scrollbar-width:none] justify-start gap-6 overflow-x-auto overflow-y-hidden rounded-none p-0 px-4 md:-mx-10 md:gap-7 md:px-10 [&::-webkit-scrollbar]:hidden",
+        // scroll-px-8: a tab reached by Tab stops clear of the edge fade (useEdgeFade)
+        "-mx-4 h-auto w-auto max-w-none scroll-px-8 [scrollbar-width:none] justify-start gap-6 overflow-x-auto overflow-y-hidden rounded-none p-0 px-4 md:-mx-10 md:gap-7 md:px-10 [&::-webkit-scrollbar]:hidden",
         className,
         fade && edgeFadeClass[fade],
       )}

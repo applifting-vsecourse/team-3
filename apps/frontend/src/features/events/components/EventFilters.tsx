@@ -61,7 +61,8 @@ export function EventFilters({
       role="group"
       aria-label="Filtry"
       className={cn(
-        "flex items-center gap-2",
+        // scroll-px-8: a chip reached by Tab stops clear of the 2 rem fade, its focus ring whole
+        "flex scroll-px-8 items-center gap-2",
         isFloating && "*:shadow-md",
         className,
         fade && edgeFadeClass[fade],
