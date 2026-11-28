@@ -66,9 +66,20 @@ export function RateEventPage({ eventId, viewerId, onSaved }: RateEventPageProps
 
   return (
     <>
-      <Seo title="Ohodnotit akci" />
+      <Seo title={data?.rating ? "Upravit hodnocení" : "Ohodnotit akci"} />
       <PageBand
-        title="Ohodnoť akci"
+        // #369: an earlier rating is changed, not given again (Figma C-03e)
+        title={
+          data?.rating ? (
+            // #369 (Figma C-03e, C-03ed): the phone's bar says „Upravit“, the desktop band „Uprav“
+            <>
+              <span className="md:hidden">Upravit hodnocení</span>
+              <span className="hidden md:inline">Uprav hodnocení</span>
+            </>
+          ) : (
+            "Ohodnoť akci"
+          )
+        }
         // Figma C-03d: „Volejbal na Letné · Po 19. 10. · Sportovní areál Letná, Praha 7 · …“
         description={
           data

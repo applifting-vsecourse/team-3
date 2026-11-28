@@ -113,7 +113,7 @@ describe("public profile", () => {
     expect(
       screen.getByText("Jako účastník ★ 4,5 (2 hodnocení) · Jako organizátor ★ 3,5 (1 hodnocení)"),
     ).toBeInTheDocument()
-    expect(screen.getByLabelText("5 z 5 hvězdiček")).toBeInTheDocument()
+    expect(screen.getByRole("img", { name: "5 z 5 hvězd" })).toBeInTheDocument()
     expect(screen.getByText("<script>untrusted()</script>")).toBeInTheDocument()
     expect(document.querySelector("script")).toBeNull()
     expect(screen.getByRole("link", { name: "Petr" })).toHaveAttribute("href", "/uzivatele/host")

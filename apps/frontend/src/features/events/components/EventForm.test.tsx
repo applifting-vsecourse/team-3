@@ -680,6 +680,27 @@ describe("EventForm", () => {
     })
   })
 
+  // QA-14: −1 is a whole number; „Zadej celé číslo“ told nothing about what is allowed
+  it("a negative count says what is allowed, a decimal that it must be whole", async () => {
+    renderForm()
+
+    await userEvent.type(screen.getByLabelText("Minimum"), "-1")
+    await userEvent.type(screen.getByLabelText("Maximum"), "1.5")
+    await submit()
+    expect(await screen.findByText("Minimum musí být aspoň 1")).toBeInTheDocument()
+    expect(screen.getByText("Zadej celé číslo")).toBeInTheDocument()
+  })
+
+  // QA-11: an end before the start is the next day, and the form says so
+  it("an end before the start: „Končí následující den“ under Konec", async () => {
+    renderForm()
+
+    await userEvent.type(screen.getByLabelText("Začátek *"), "23:00")
+    await userEvent.type(screen.getByLabelText("Konec"), "01:00")
+    expect(await screen.findByText(/^Končí následující den/)).toBeInTheDocument()
+    expect(screen.queryByText("Nepovinné")).not.toBeInTheDocument()
+  })
+
   it("min 0, max below min and a date in the past can't be saved", async () => {
     const { onSubmit } = renderForm({
       initialValues: { startsAt: new Date(Date.now() - 86_400_000).toISOString() },
