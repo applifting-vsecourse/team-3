@@ -271,6 +271,7 @@ export function EventDetailView({
         isWaitingForApproval={event.myParticipation === "pending"}
         viewerId={viewerId}
         isClosed={isCancelled || isOver}
+        isOver={isOver && !isCancelled}
       />
     )
 

@@ -18,6 +18,8 @@ type EventParticipantsProps = {
   viewerId?: string | null
   /** Over (or cancelled): nobody can join any more, so no promise of the names (#370). */
   isClosed?: boolean
+  /** Over: who came, in the past tense, without the maximum nobody can fill any more (QA-13). */
+  isOver?: boolean
 }
 
 /**
@@ -32,6 +34,7 @@ export function EventParticipants({
   isWaitingForApproval = false,
   viewerId,
   isClosed = false,
+  isOver = false,
 }: EventParticipantsProps) {
   const people = participants
     ? [
@@ -47,7 +50,9 @@ export function EventParticipants({
       {/* Figma A-05 has „Přihlášení (4)“, which on a page with „Přihlásit se“
           reads as signing in; „Kdo jde“ matches the viewer's „Jdu“ */}
       <h2 className="type-card-heading">
-        Kdo jde · {occupancyCount({ approvedCount, maxParticipants })}
+        {isOver
+          ? `Kdo byl · ${approvedCount}`
+          : `Kdo jde · ${occupancyCount({ approvedCount, maxParticipants })}`}
       </h2>
       {/* nobody yet, whoever looks: no names to promise (review #269) */}
       {approvedCount === 0 ? (
