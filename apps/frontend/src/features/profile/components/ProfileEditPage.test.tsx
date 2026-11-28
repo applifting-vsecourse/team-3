@@ -42,6 +42,8 @@ describe("/profil/upravit (#178, Figma B-06)", () => {
           onSaved={() => Promise.resolve()}
           // the auth feature's AccountForms, whose texts AccountForms.test.tsx checks
           accountContent={(account) => <p>Účet pro {account.email}</p>}
+          // the onboarding's InterestPicker, which has its own tests
+          interestChoice={() => <p>Výběr zájmů</p>}
         />
       </QueryClientProvider>,
     )

@@ -10,13 +10,15 @@ import { cn } from "@/lib/utils"
 import { profileQueryOptions } from "@/features/profile/api/profileQueryOptions"
 import type { SelfProfile } from "@/features/profile/api/profileSchemas"
 
-import { ProfileForm } from "./ProfileForm"
+import { ProfileForm, type InterestChoice } from "./ProfileForm"
 import { ProfileError, ProfileLoading } from "./ProfileState"
 
 type ProfileEditPageProps = {
   viewerId: string
   /** Účet: the password and e-mail forms of the auth feature (the route puts them in). */
   accountContent: (profile: SelfProfile) => ReactNode
+  /** Zájmy: the onboarding's picker by category (the route puts it in, PO 26. 11.). */
+  interestChoice: (choice: InterestChoice) => ReactNode
   /** After saving: what else shows the name or interests refreshes. */
   onSaved: () => Promise<void>
 }
@@ -25,7 +27,12 @@ type ProfileEditPageProps = {
  * /profil/upravit (Figma B-06, B-06d): Údaje and Účet side by side on desktop,
  * one under the other on a phone, under the band with the way back to the profile.
  */
-export function ProfileEditPage({ viewerId, accountContent, onSaved }: ProfileEditPageProps) {
+export function ProfileEditPage({
+  viewerId,
+  accountContent,
+  interestChoice,
+  onSaved,
+}: ProfileEditPageProps) {
   const query = useQuery(profileQueryOptions(viewerId))
   return (
     <>
@@ -48,6 +55,7 @@ export function ProfileEditPage({ viewerId, accountContent, onSaved }: ProfileEd
               <ProfileForm
                 profile={query.data}
                 onSaved={onSaved}
+                interestChoice={interestChoice}
               />
             </Column>
             <Column title="Účet">{accountContent(query.data)}</Column>

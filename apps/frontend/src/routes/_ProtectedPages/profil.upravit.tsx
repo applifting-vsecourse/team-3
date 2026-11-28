@@ -7,6 +7,7 @@ import { AccountForms } from "@/features/auth/components/AccountForms"
 import { useSession } from "@/features/auth/hooks/useSession"
 import { eventKeys } from "@/features/events/api/eventsQueryOptions"
 import { groupKeys } from "@/features/groups/api/groupsQueryOptions"
+import { InterestBrowser } from "@/features/onboarding/components/InterestPicker"
 import { ProfileEditPage } from "@/features/profile/components/ProfileEditPage"
 import { ProfileLoading } from "@/features/profile/components/ProfileState"
 
@@ -32,6 +33,7 @@ function EditProfileRoute() {
       viewerId={user.id}
       onSaved={refreshRelated}
       accountContent={(profile) => <AccountForms profile={profile} />}
+      interestChoice={(choice) => <InterestBrowser {...choice} />}
     />
   ) : (
     <ProfileLoading />

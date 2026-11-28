@@ -14,17 +14,7 @@ const save = vi.hoisted(() => vi.fn())
 vi.mock("@/features/profile/hooks/useProfileMutations", () => ({
   useSaveProfile: () => ({ mutateAsync: save, isPending: false, isSuccess: false, error: null }),
 }))
-// Catalog selection itself has component tests; these stand in for its picked IDs.
-vi.mock("@/components/CatalogCombobox/ActivityCombobox", () => ({
-  ActivityCombobox: ({ onChange }: { onChange: (id: string) => void }) => (
-    <button
-      type="button"
-      onClick={() => onChange("running")}
-    >
-      Vybrat běh
-    </button>
-  ),
-}))
+// Catalog selection itself has component tests; this stands in for its picked ID.
 vi.mock("@/components/CatalogCombobox/LocalityCombobox", () => ({
   LocalityCombobox: ({ onChange }: { onChange: (id: string) => void }) => (
     <button
@@ -45,7 +35,7 @@ const profile: SelfProfile = {
   homeLocality: locality,
   interests: [{ id: "running", name: "Běh" }],
 }
-function show() {
+function show(shown: SelfProfile = profile) {
   const client = new QueryClient({ defaultOptions: { queries: { retry: false } } })
   client.setQueryData(catalogKeys.activities(), [
     {
@@ -59,7 +49,23 @@ function show() {
   client.setQueryData(catalogKeys.localities(), [locality])
   return render(
     <QueryClientProvider client={client}>
-      <ProfileForm profile={profile} />
+      <ProfileForm
+        profile={shown}
+        interestChoice={({ categories, selected, onToggle }) =>
+          categories
+            .flatMap((category) => category.activities)
+            .map((activity) => (
+              <button
+                key={activity.id}
+                type="button"
+                aria-pressed={selected.includes(activity.id)}
+                onClick={() => onToggle(activity)}
+              >
+                {activity.name}
+              </button>
+            ))
+        }
+      />
     </QueryClientProvider>,
   )
 }
@@ -84,10 +90,14 @@ describe("profile editing (#178)", () => {
     await user.click(screen.getByRole("button", { name: "Uložit změny" }))
     expect(save).toHaveBeenCalledWith({ name: "Jana Nová", homeLocalityId: null, interestIds: [] })
   })
-  it("does not duplicate a selected activity", async () => {
+  // PO 26. 11.: the onboarding's picker by category (the route's; InterestPicker has its tests)
+  it("picks and unpicks interests in the picker it is given", async () => {
     const user = userEvent.setup()
     show()
-    await user.click(screen.getByRole("button", { name: "Vybrat běh" }))
+    await user.click(screen.getByRole("button", { name: "Odebrat zájem Běh" }))
+    const running = screen.getByRole("button", { name: /Běh/, pressed: false })
+    await user.click(running)
+    expect(screen.getByRole("button", { name: /Běh/, pressed: true })).toBeInTheDocument()
     await user.click(screen.getByRole("button", { name: "Uložit změny" }))
     expect(save).toHaveBeenCalledWith({
       name: "Jana Nová",
@@ -95,6 +105,19 @@ describe("profile editing (#178)", () => {
       interestIds: ["running"],
     })
   })
+  it("says why a 51st interest can't be picked", () => {
+    show({
+      ...profile,
+      interests: Array.from({ length: 50 }, (_, index) => ({ id: `a${index}`, name: `A${index}` })),
+    })
+    expect(screen.getByRole("status")).toHaveTextContent("Víc než 50 zájmů vybrat nejde.")
+  })
+
+  it("no limit note while there is room", () => {
+    show()
+    expect(screen.queryByText(/Víc než 50 zájmů/)).not.toBeInTheDocument()
+  })
+
   it("explains an invalid name before sending any update", async () => {
     const user = userEvent.setup()
     show()

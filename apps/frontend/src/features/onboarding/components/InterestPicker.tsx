@@ -18,6 +18,8 @@ type InterestPickerProps = {
   categoryId: string
   selected: string[]
   isDisabled?: boolean
+  /** h2 on the onboarding's page; h3 where the picker sits under a section's h2 (the profile). */
+  headingLevel?: 2 | 3
   onBrowse: (id: string) => void
   onToggle: (activity: Activity, target: HTMLButtonElement) => void
   renderEventPreview?: (categoryId: string) => ReactNode
@@ -28,10 +30,12 @@ export function InterestPicker({
   categoryId,
   selected,
   isDisabled,
+  headingLevel = 2,
   onBrowse,
   onToggle,
   renderEventPreview,
 }: InterestPickerProps) {
+  const Heading = headingLevel === 3 ? "h3" : "h2"
   const [query, setQuery] = useState("")
   const [isShowingAll, setIsShowingAll] = useState(false)
   const [isCategoryMenuOpen, setCategoryMenuOpen] = useState(false)
@@ -71,7 +75,9 @@ export function InterestPicker({
   }
 
   return (
-    <div className="space-y-5">
+    // @container: the cards' columns follow the picker's own width, not the screen's — in the
+    // profile it is half a column (review #419)
+    <div className="@container space-y-5">
       <div className="relative">
         <Label
           htmlFor="onboarding-activity-search"
@@ -90,6 +96,10 @@ export function InterestPicker({
           placeholder="Najdi třeba volejbal, deskovky nebo běh"
           value={query}
           onChange={(event) => setQuery(event.target.value)}
+          // it searches as one types; inside a form (the profile) Enter would send it (#419)
+          onKeyDown={(event) => {
+            if (event.key === "Enter") event.preventDefault()
+          }}
           className="h-12 rounded-xl bg-card pl-12 text-base"
         />
       </div>
@@ -146,7 +156,7 @@ export function InterestPicker({
             </>
           ) : (
             <>
-              <h2 className="font-semibold">Prozkoumej okruhy</h2>
+              <Heading className="font-semibold">Prozkoumej okruhy</Heading>
               <Button
                 type="button"
                 variant="link"
@@ -181,7 +191,7 @@ export function InterestPicker({
                   Všechny aktivity
                 </Button>
               ) : null}
-              <div className="grid grid-cols-2 gap-3 p-1 sm:grid-cols-3 xl:grid-cols-4">
+              <div className="grid grid-cols-2 gap-3 p-1 @lg:grid-cols-3 @3xl:grid-cols-4">
                 {categories.map((category, index) => (
                   <OnboardingCard
                     key={category.id}
@@ -226,12 +236,12 @@ export function InterestPicker({
               />
             </>
           ) : null}
-          <h2
+          <Heading
             id="onboarding-results-heading"
             className="type-card-heading"
           >
             {isSearching ? "Výsledky hledání" : (active?.name ?? "Aktivity napříč okruhy")}
-          </h2>
+          </Heading>
           {isSearching || active || isShowingAll ? (
             <span
               role="status"
@@ -254,7 +264,7 @@ export function InterestPicker({
         {choices.length > 0 ? (
           <div
             key={isSearching ? "cards-search" : `cards-${categoryId}`}
-            className="grid grid-cols-2 gap-3 p-1 sm:grid-cols-3 xl:grid-cols-4"
+            className="grid grid-cols-2 gap-3 p-1 @lg:grid-cols-3 @3xl:grid-cols-4"
           >
             {choices.map(({ activity, category }, index) => (
               <OnboardingCard
@@ -281,5 +291,34 @@ export function InterestPicker({
         )}
       </section>
     </div>
+  )
+}
+
+/**
+ * The same picker holding its own browsing, for /profil/upravit (PO 26. 11.: „stejný výběr
+ * aktivit podle kategorií a podkategorií“ as in the onboarding). The route puts it in.
+ */
+export function InterestBrowser({
+  categories,
+  selected,
+  isDisabled,
+  onToggle,
+}: {
+  categories: ActivityCategory[]
+  selected: string[]
+  isDisabled?: boolean
+  onToggle: (activity: Activity) => void
+}) {
+  const [categoryId, setCategoryId] = useState("")
+  return (
+    <InterestPicker
+      categories={categories}
+      categoryId={categoryId}
+      selected={selected}
+      isDisabled={isDisabled}
+      headingLevel={3}
+      onBrowse={setCategoryId}
+      onToggle={(activity) => onToggle(activity)}
+    />
   )
 }
