@@ -1,3 +1,4 @@
+import type { ReactNode } from "react"
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query"
 import { render, screen, within } from "@testing-library/react"
 import userEvent from "@testing-library/user-event"
@@ -26,7 +27,10 @@ const messages = [
   },
 ]
 
-const renderSection = ({ isOrganizer = false } = {}) =>
+const renderSection = ({
+  isOrganizer = false,
+  writeAction,
+}: { isOrganizer?: boolean; writeAction?: ReactNode } = {}) =>
   render(
     <QueryClientProvider
       client={new QueryClient({ defaultOptions: { queries: { retry: false } } })}
@@ -35,6 +39,7 @@ const renderSection = ({ isOrganizer = false } = {}) =>
         eventId="e08"
         viewerId="u-jakub"
         isOrganizer={isOrganizer}
+        writeAction={writeAction}
       />
     </QueryClientProvider>,
   )
@@ -52,7 +57,7 @@ describe("EventMessages (#176)", () => {
     const section = await screen.findByRole("region", { name: "Zprávy od organizátora (2)" })
     const [latest, older] = within(section).getAllByRole("listitem")
     expect(within(latest!).getByText("pá 23. 10. v 16:20")).toBeInTheDocument()
-    expect(within(latest!).getByText(/Petr Holub ·/)).toBeInTheDocument()
+    expect(within(latest!).getByText("Petr Holub")).toBeInTheDocument()
     expect(
       within(latest!).getByRole("heading", { name: "Hrajeme v malé tělocvičně" }),
     ).toBeInTheDocument()
@@ -79,6 +84,21 @@ describe("EventMessages (#176)", () => {
     renderSection({ isOrganizer: true })
 
     expect(await screen.findByText(/přes „Napsat účastníkům“ ve správě akce/)).toBeInTheDocument()
+  })
+
+  // PO 26. 11.: a message stands out as a message, not as a description; writing from the detail
+  it("each message is a message block, and the organizer writes from beside the heading", async () => {
+    renderSection({
+      isOrganizer: true,
+      writeAction: <button type="button">Napsat účastníkům</button>,
+    })
+
+    const section = await screen.findByRole("region", { name: "Zprávy od organizátora (2)" })
+    expect(within(section).getAllByRole("listitem")[0]).toHaveClass(
+      "bg-secondary",
+      "border-tile-border",
+    )
+    expect(within(section).getByRole("button", { name: "Napsat účastníkům" })).toBeInTheDocument()
   })
 
   it("the heading counts all of them, not only the latest 50 in the list", async () => {

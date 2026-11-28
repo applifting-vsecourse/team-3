@@ -107,8 +107,13 @@ export class PublicEventResponseDto {
   @ApiProperty({ example: 3 })
   minParticipants!: number;
 
-  @ApiProperty({ example: 6 })
-  maxParticipants!: number;
+  @ApiProperty({
+    type: Number,
+    example: 6,
+    nullable: true,
+    description: 'null: no maximum',
+  })
+  maxParticipants!: number | null;
 
   @ApiProperty({
     enum: ['open', 'approval'],
@@ -122,8 +127,13 @@ export class PublicEventResponseDto {
   @ApiProperty({ example: 1, description: 'People still needed to reach min' })
   missingToMin!: number;
 
-  @ApiProperty({ example: 4 })
-  freeSpots!: number;
+  @ApiProperty({
+    type: Number,
+    example: 4,
+    nullable: true,
+    description: 'null: no maximum, never full',
+  })
+  freeSpots!: number | null;
 
   @ApiProperty()
   isFull!: boolean;

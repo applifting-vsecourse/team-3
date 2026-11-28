@@ -66,7 +66,7 @@ export type PublicEvent = {
   /** Set for a group's event (B-055); the group is then shown as the organizer. */
   group: { id: string; name: string } | null;
   minParticipants: number;
-  maxParticipants: number;
+  maxParticipants: number | null;
   /** `approval`: a request the organizer approves; the landing page asks, not promises (QA-06). */
   approvalMode: 'open' | 'approval';
   capacity: Capacity;
@@ -193,7 +193,7 @@ export type NewEvent = {
   startsAt: Date;
   endsAt: Date | null;
   minParticipants: number;
-  maxParticipants: number;
+  maxParticipants: number | null;
   approvalMode: 'open' | 'approval';
   /** An e-mail to the organizer for each sign-up to an open event (#86). */
   emailOnJoin: boolean;

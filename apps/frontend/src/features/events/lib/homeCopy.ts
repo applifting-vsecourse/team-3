@@ -59,7 +59,7 @@ export const missingNowLabel = (missingToMin: number): string =>
  */
 export function missingNowSentence(event: {
   approvedCount: number
-  maxParticipants: number
+  maxParticipants: number | null
   missingToMin: number
   approvalMode: "open" | "approval"
 }): string {
