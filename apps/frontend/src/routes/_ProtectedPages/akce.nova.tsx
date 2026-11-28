@@ -4,9 +4,11 @@ import { ROUTES } from "@/app/routes"
 import { PageBand } from "@/components/PageBand/PageBand"
 import { Seo } from "@/components/Seo"
 import { useCatalog } from "@/hooks/useCatalog"
+import { useLocality } from "@/hooks/useLocality"
 import { FORM, PAGE } from "@/lib/pageLayout"
 import { cn } from "@/lib/utils"
 
+import { useSession } from "@/features/auth/hooks/useSession"
 import { announcePublished } from "@/features/events/components/announcePublished"
 import { EventForm } from "@/features/events/components/EventForm"
 import { useCreateEvent } from "@/features/events/hooks/useCreateEvent"
@@ -25,6 +27,11 @@ function NewEventPage() {
   const navigate = useNavigate()
   const { catalog, queries } = useCatalog()
   const createEvent = useCreateEvent()
+  // the locality the lists show (picked on /akce, else the profile's home, else a guess): the
+  // form starts there and its map with it, not in Praha (QA-16); never written to the profile
+  const { user, isPending } = useSession()
+  const shown = useLocality(undefined, isPending ? undefined : (user?.id ?? null))
+  const startLocality = catalog?.localities.find(({ slug }) => slug === shown.slug)
 
   return (
     <>
@@ -37,9 +44,11 @@ function NewEventPage() {
       />
       <div className={cn(PAGE, "gap-4")}>
         <div className={FORM}>
-          {catalog ? (
+          {/* the form takes its starting values once: it waits for the locality to be known */}
+          {catalog && shown.slug !== undefined ? (
             <EventForm
               catalog={catalog}
+              initialValues={startLocality ? { localityId: startLocality.id } : undefined}
               isSubmitting={createEvent.isPending}
               errorMessage={createEvent.error?.message}
               onSubmit={(input, image) =>
