@@ -3,7 +3,7 @@ import { cn } from "@/lib/utils"
 
 export type CapacityStatus =
   | { kind: "missing"; missing: number }
-  | { kind: "free"; freeSpots: number }
+  | { kind: "free"; freeSpots: number | null }
   | { kind: "full" }
   | { kind: "cancelled" }
   // a past event on its group's page (Figma A-08e)

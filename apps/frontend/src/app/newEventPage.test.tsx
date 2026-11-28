@@ -70,8 +70,8 @@ describe("/akce/nova", () => {
     await renderNewEvent()
 
     expect(await screen.findByRole("heading", { name: "Nová akce" })).toBeInTheDocument()
-    const field = await screen.findByRole("combobox", { name: /Lokalita/ })
-    expect(field).toHaveTextContent("Brno")
+    // #417: a filled-in locality is a line with „Změnit“, not a field
+    expect(await screen.findByRole("button", { name: "Změnit lokalitu Brno" })).toBeInTheDocument()
   })
 
   // review #496: a guess from the IP is often off and would stay with the event unnoticed
@@ -79,6 +79,9 @@ describe("/akce/nova", () => {
     await renderNewEvent({ locality: localities[1], source: "ip" })
 
     expect(await screen.findByRole("heading", { name: "Nová akce" })).toBeInTheDocument()
-    expect(await screen.findByRole("combobox", { name: /Lokalita/ })).not.toHaveTextContent("Brno")
+    expect(
+      await screen.findByText("Lokalita pro vyhledávání se doplní podle adresy."),
+    ).toBeInTheDocument()
+    expect(screen.queryByRole("button", { name: /Změnit lokalitu/ })).not.toBeInTheDocument()
   })
 })

@@ -1,6 +1,6 @@
 import { useQuery } from "@tanstack/react-query"
 import { createFileRoute, Link } from "@tanstack/react-router"
-import { Pencil } from "lucide-react"
+import { Pencil, Plus } from "lucide-react"
 import { toast } from "sonner"
 
 import { ROUTES } from "@/app/routes"
@@ -181,6 +181,21 @@ function ManageGroupPage() {
                   className="h-11 w-full md:w-auto"
                 />
               ) : null}
+              {/* PO 26. 11.: „V detailu skupiny nejde založit akce“ — from the management too */}
+              <Button
+                asChild
+                variant="outline"
+                size="lg"
+                className="h-11 w-full md:w-auto"
+              >
+                <Link
+                  to="/skupiny/$groupId/akce/nova"
+                  params={{ groupId }}
+                >
+                  <Plus />
+                  Založit akci skupiny
+                </Link>
+              </Button>
               <EditButton
                 groupId={groupId}
                 className="w-full md:w-auto"

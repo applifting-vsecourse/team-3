@@ -106,7 +106,8 @@ const buildSchema = (approvedCount: number) =>
       /** Optional; earlier than the start means the next day. */
       end: clockTime(),
       minParticipants: count("minimum"),
-      maxParticipants: count("maximum"),
+      /** Optional (PO 26. 11.): empty means no maximum. */
+      maxParticipants: z.union([z.literal(""), count("maximum")]),
       approvalMode: z.enum(["open", "approval"]),
       /** #86: an e-mail for each sign-up; only for an open event. */
       emailOnJoin: z.boolean(),
@@ -143,14 +144,22 @@ const buildSchema = (approvedCount: number) =>
         path: ["end"],
       },
     )
-    .refine((values) => Number(values.maxParticipants) >= Number(values.minParticipants), {
-      message: "Maximum nesmí být menší než minimum",
-      path: ["maxParticipants"],
-    })
-    .refine((values) => Number(values.maxParticipants) >= approvedCount, {
-      message: `Maximum nejde snížit pod počet přihlášených (${approvedCount})`,
-      path: ["maxParticipants"],
-    })
+    .refine(
+      (values) =>
+        values.maxParticipants === "" ||
+        Number(values.maxParticipants) >= Number(values.minParticipants),
+      {
+        message: "Maximum nesmí být menší než minimum",
+        path: ["maxParticipants"],
+      },
+    )
+    .refine(
+      (values) => values.maxParticipants === "" || Number(values.maxParticipants) >= approvedCount,
+      {
+        message: `Maximum nejde snížit pod počet přihlášených (${approvedCount})`,
+        path: ["maxParticipants"],
+      },
+    )
 
 type FormValues = z.input<ReturnType<typeof buildSchema>>
 
@@ -211,6 +220,11 @@ type EventFormProps = {
    * activity is the group's and locked, and the admin picks who sees it.
    */
   group?: { id: string; name: string }
+  /**
+   * The page shows „Pořádá: Já / skupina“ above the form (#438): the form's own „Pořádá“ row
+   * would say it twice (review #439).
+   */
+  hasOrganizerChoice?: boolean
   /** Prefilled values, e.g. when editing (#41). */
   initialValues?: Partial<EventInput>
   /** Where the map starts before a locality is picked, e.g. a guess from the IP (QA-16, review #496). */
@@ -233,6 +247,7 @@ export function EventForm({
   mode = "create",
   approvedCount = 0,
   group,
+  hasOrganizerChoice = false,
   initialValues,
   initialMapCenter,
   initialImageSrc,
@@ -304,6 +319,7 @@ export function EventForm({
   })
   const endHint = nextDayEndHint(watchedDay, watchedStart, watchedEnd)
   const [didChangeLocality, setDidChangeLocality] = useState(false)
+  const [isPickingLocality, setIsPickingLocality] = useState(false)
   const selectedLocality = catalog.localities.find((l) => l.id === localityId)
   const mapCenter = selectedLocality ??
     initialMapCenter ??
@@ -358,7 +374,9 @@ export function EventForm({
               startsAt: startsAt.toISOString(),
               endsAt: endsAt?.toISOString() ?? null,
               minParticipants: Number(values.minParticipants),
-              maxParticipants: Number(values.maxParticipants),
+              // empty: no maximum; null also removes one when editing
+              maxParticipants:
+                values.maxParticipants === "" ? null : Number(values.maxParticipants),
               approvalMode: values.approvalMode,
               // an event with approval e-mails every request anyway (#177)
               ...(canSetEmailOnJoin
@@ -371,7 +389,7 @@ export function EventForm({
         })}
         className="flex flex-col gap-6"
       >
-        {group ? (
+        {group && !hasOrganizerChoice ? (
           // Figma D-01g: „Pořádá“ — the group is the organizer shown at the event
           <div className="flex items-center gap-3">
             <span className="flex size-10 shrink-0 items-center justify-center rounded-lg border border-tile-border bg-secondary text-secondary-foreground">
@@ -618,7 +636,7 @@ export function EventForm({
                           inputMode="numeric"
                           min={1}
                           max={EVENT_MAX_PARTICIPANTS}
-                          placeholder="např. 8"
+                          placeholder="bez omezení"
                           className="h-11"
                           {...field}
                         />
@@ -630,8 +648,8 @@ export function EventForm({
               </div>
               <p className="text-sm text-muted-foreground">
                 {isEdit
-                  ? `Maximum nejde snížit pod počet přihlášených (${approvedCount}).`
-                  : "U akce se ukáže „Chybí ještě X“. Po naplnění maxima se přihlašování zavře. Organizátor se do počtu počítá, jen když se na akci sám přihlásí."}
+                  ? `Maximum nejde snížit pod počet přihlášených (${approvedCount}). Bez maxima se může přihlásit kdokoli.`
+                  : "U akce se ukáže „Chybí ještě X“. Maximum je nepovinné: po jeho naplnění se přihlašování zavře, bez něj se může přihlásit kdokoli. Organizátor se do počtu počítá, jen když se na akci sám přihlásí."}
               </p>
             </div>
 
@@ -781,26 +799,55 @@ export function EventForm({
 
             <FormField
               control={form.control}
-              name="localityId"
+              name="address"
               render={({ field }) => (
                 <FormItem className="order-3 md:order-none">
-                  <FormLabel>Lokalita *</FormLabel>
+                  <FormLabel>Adresa *</FormLabel>
                   <FormControl>
-                    <LocalityCombobox
-                      localities={catalog.localities}
-                      ref={field.ref}
-                      value={field.value}
+                    <AddressCombobox
+                      placeholder="např. Herna Karlín, Křižíkova 52, Praha 8"
+                      autoComplete="off"
+                      className="h-11"
+                      {...field}
                       onChange={(value) => {
-                        location.cancelLookup()
-                        setDidChangeLocality(true)
-                        field.onChange(value)
+                        location.typeAddress(value)
                       }}
-                      onBlur={field.onBlur}
+                      near={place ?? mapCenter}
+                      onPick={(suggestion) => {
+                        setDidChangeLocality(false)
+                        location.pickAddress(suggestion)
+                      }}
                     />
                   </FormControl>
-                  <FormDescription>
-                    Obec nebo městská část, podle které se dá akce najít.
-                  </FormDescription>
+                  <FormDescription role="status">{location.notice}</FormDescription>
+                  {location.pendingAddress ? (
+                    <div
+                      className="flex flex-col gap-2 border-l border-border pl-3"
+                      role="group"
+                      aria-label="Změna adresy podle špendlíku"
+                    >
+                      <p className="text-sm font-medium">Použít adresu podle špendlíku?</p>
+                      <p className="text-sm text-muted-foreground">{location.pendingAddress}</p>
+                      <div className="flex flex-wrap gap-2">
+                        <Button
+                          type="button"
+                          variant="outline"
+                          size="sm"
+                          onClick={location.acceptAddress}
+                        >
+                          Použít adresu
+                        </Button>
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="sm"
+                          onClick={location.keepAddress}
+                        >
+                          Ponechat moji
+                        </Button>
+                      </div>
+                    </div>
+                  ) : null}
                   <FormMessage />
                 </FormItem>
               )}
@@ -861,60 +908,75 @@ export function EventForm({
               )}
             />
 
+            {/* PO 26. 11. (#303): the address is entered once and the locality follows from it
+                (and from the pin); picking it by hand is the way out when it can't be found —
+                the field shows only then, or after „Změnit“ / „Vybrat ručně“ */}
             <FormField
               control={form.control}
-              name="address"
-              render={({ field }) => (
-                <FormItem className="order-5 md:order-none">
-                  <FormLabel>Adresa *</FormLabel>
-                  <FormControl>
-                    <AddressCombobox
-                      placeholder="např. Herna Karlín, Křižíkova 52, Praha 8"
-                      autoComplete="off"
-                      className="h-11"
-                      {...field}
-                      onChange={(value) => {
-                        location.typeAddress(value)
-                      }}
-                      near={place ?? mapCenter}
-                      onPick={(suggestion) => {
-                        setDidChangeLocality(false)
-                        location.pickAddress(suggestion)
-                      }}
-                    />
-                  </FormControl>
-                  <FormDescription role="status">{location.notice}</FormDescription>
-                  {location.pendingAddress ? (
-                    <div
-                      className="flex flex-col gap-2 border-l border-border pl-3"
-                      role="group"
-                      aria-label="Změna adresy podle špendlíku"
-                    >
-                      <p className="text-sm font-medium">Použít adresu podle špendlíku?</p>
-                      <p className="text-sm text-muted-foreground">{location.pendingAddress}</p>
-                      <div className="flex flex-wrap gap-2">
-                        <Button
-                          type="button"
-                          variant="outline"
-                          size="sm"
-                          onClick={location.acceptAddress}
-                        >
-                          Použít adresu
-                        </Button>
-                        <Button
-                          type="button"
-                          variant="ghost"
-                          size="sm"
-                          onClick={location.keepAddress}
-                        >
-                          Ponechat moji
-                        </Button>
-                      </div>
-                    </div>
-                  ) : null}
-                  <FormMessage />
-                </FormItem>
-              )}
+              name="localityId"
+              render={({ field }) =>
+                selectedLocality && !isPickingLocality ? (
+                  <FormItem className="order-5 md:order-none">
+                    <p className="flex flex-wrap items-center gap-x-2 text-sm">
+                      <span className="text-muted-foreground">Lokalita pro vyhledávání:</span>
+                      <span className="font-semibold">{selectedLocality.name}</span>
+                      <Button
+                        type="button"
+                        variant="link"
+                        size="sm"
+                        className="h-10 px-1"
+                        aria-label={`Změnit lokalitu ${selectedLocality.name}`}
+                        onClick={() => setIsPickingLocality(true)}
+                      >
+                        Změnit
+                      </Button>
+                    </p>
+                    <FormDescription>Doplní se podle adresy a místa na mapě.</FormDescription>
+                  </FormItem>
+                ) : !place && !isPickingLocality ? (
+                  // no address or pin yet: one line, not a second field to fill in before the
+                  // address (review #417, PO 26. 11.: „lokalitu brát automaticky z adresy“)
+                  <FormItem className="order-5 md:order-none">
+                    <p className="flex flex-wrap items-center gap-x-2 text-sm">
+                      <span className="text-muted-foreground">
+                        Lokalita pro vyhledávání se doplní podle adresy.
+                      </span>
+                      <Button
+                        type="button"
+                        variant="link"
+                        size="sm"
+                        className="h-10 px-1"
+                        onClick={() => setIsPickingLocality(true)}
+                      >
+                        Vybrat ručně
+                      </Button>
+                    </p>
+                    <FormMessage />
+                  </FormItem>
+                ) : (
+                  <FormItem className="order-5 md:order-none">
+                    <FormLabel>Lokalita *</FormLabel>
+                    <FormControl>
+                      <LocalityCombobox
+                        localities={catalog.localities}
+                        ref={field.ref}
+                        value={field.value}
+                        onChange={(value) => {
+                          location.cancelLookup()
+                          setDidChangeLocality(true)
+                          field.onChange(value)
+                        }}
+                        onBlur={field.onBlur}
+                      />
+                    </FormControl>
+                    <FormDescription>
+                      Obec nebo městská část, podle které se dá akce najít. Doplní se sama podle
+                      adresy, tady ji můžeš změnit.
+                    </FormDescription>
+                    <FormMessage />
+                  </FormItem>
+                )
+              }
             />
           </div>
         </div>

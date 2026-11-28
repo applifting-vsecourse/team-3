@@ -87,6 +87,12 @@ describe('decideJoin', () => {
     });
   });
 
+  it('without a maximum the event never refuses EVENT_FULL (PO 26. 11.)', () => {
+    expect(
+      decideJoin(state({ maxParticipants: null, approvedCount: 500 }), now),
+    ).toEqual({ ok: true, status: 'approved' });
+  });
+
   it('with approval, a participant waits for the organizer (pending, #53)', () => {
     expect(decideJoin(state({ approvalMode: 'approval' }), now)).toEqual({
       ok: true,
@@ -158,6 +164,20 @@ describe('decideRequests (#53)', () => {
     approvedCount: 4,
     requestStatuses: ['pending'],
     ...overrides,
+  });
+
+  it('without a maximum any number of requests can be approved (PO 26. 11.)', () => {
+    expect(
+      decideRequests(
+        requests({
+          maxParticipants: null,
+          approvedCount: 50,
+          requestStatuses: ['pending', 'pending'],
+        }),
+        'approve',
+        now,
+      ),
+    ).toEqual({ ok: true });
   });
 
   it('the organizer approves or rejects a waiting request', () => {

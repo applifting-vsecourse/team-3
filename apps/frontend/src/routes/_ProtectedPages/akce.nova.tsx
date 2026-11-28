@@ -13,6 +13,7 @@ import { announcePublished } from "@/features/events/components/announcePublishe
 import { EventForm } from "@/features/events/components/EventForm"
 import { useCreateEvent } from "@/features/events/hooks/useCreateEvent"
 import { CatalogState } from "@/features/groups/components/CatalogState"
+import { EventOrganizerChoice } from "@/features/groups/components/EventOrganizerChoice"
 
 export const Route = createFileRoute("/_ProtectedPages/akce/nova")({
   component: NewEventPage,
@@ -46,6 +47,12 @@ function NewEventPage() {
       />
       <div className={cn(PAGE, "gap-4")}>
         <div className={FORM}>
+          {user ? (
+            <EventOrganizerChoice
+              viewerId={user.id}
+              groupId={null}
+            />
+          ) : null}
           {/* the form takes its starting values once: it waits for the locality to be known */}
           {catalog && shown.slug !== undefined ? (
             <EventForm

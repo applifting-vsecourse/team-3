@@ -34,7 +34,12 @@ const asJson = (body: unknown) => ({
   json: () => Promise.resolve(JSON.parse(JSON.stringify(body))),
 })
 
-const show = (data: FriendLists, urlTab?: FriendsTab, onTabChange = vi.fn()) => {
+const show = (
+  data: FriendLists,
+  urlTab?: FriendsTab,
+  onTabChange = vi.fn(),
+  onRequestDecided?: () => Promise<unknown>,
+) => {
   api.get.mockReturnValue(asJson(data))
   return renderWithRouter(
     <QueryClientProvider
@@ -44,6 +49,7 @@ const show = (data: FriendLists, urlTab?: FriendsTab, onTabChange = vi.fn()) => 
         viewerId="jakub"
         urlTab={urlTab}
         onTabChange={onTabChange}
+        onRequestDecided={onRequestDecided}
       />
     </QueryClientProvider>,
   )
@@ -148,6 +154,28 @@ describe("/profil/pratele (Figma B-09, #307)", () => {
     expect(within(outgoing).getByText("Žádost odeslána 16. 11.")).toBeInTheDocument()
     await userEvent.click(within(outgoing).getByRole("button", { name: "Zrušit žádost" }))
     await waitFor(() => expect(api.delete).toHaveBeenCalledWith("friends/simona"))
+  })
+
+  it("a decided request lets the route refresh the bell, its upozornění is gone (#430)", async () => {
+    api.patch.mockReturnValue(asJson({ state: "none" }))
+    const onRequestDecided = vi.fn().mockResolvedValue(undefined)
+    await show(
+      lists({
+        incoming: [
+          {
+            person: person("tomas", "Tomáš Dvořák"),
+            requestedAt: new Date("2026-11-17T10:00:00Z"),
+          },
+        ],
+      }),
+      "zadosti",
+      vi.fn(),
+      onRequestDecided,
+    )
+
+    const incoming = await screen.findByRole("region", { name: "Příchozí (1)" })
+    await userEvent.click(within(incoming).getByRole("button", { name: "Odmítnout" }))
+    await waitFor(() => expect(onRequestDecided).toHaveBeenCalled())
   })
 
   it("a failed load offers to try again", async () => {
