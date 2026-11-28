@@ -19,7 +19,8 @@ const { api } = vi.hoisted(() => ({
 vi.mock("@/lib/api-client", () => ({ api }))
 vi.mock("sonner", () => ({ toast: { success: vi.fn(), error: vi.fn() } }))
 
-const partner = (id: string, name: string, changes: Partial<Partner> = {}): Partner => ({
+// no `: Partner`: the rows don't read mutualFriendsCount (#473), the fixture fits with it or without it
+const partner = (id: string, name: string, changes: Partial<Partner> = {}) => ({
   id,
   name,
   distanceBandKm: 5,
