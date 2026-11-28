@@ -51,11 +51,12 @@ export function PickedForYou({ picks }: { picks: QuickPick[] }) {
             <BandTabs
               aria-label="Rychlé výběry"
               // the strip starts at the mark (its gap is the strip's padding) and a tab scrolled
-              // past it fades out there instead of being cut beside the mark (#298); on a phone it
+              // past it fades out there (BandTabs' edge fade) instead of being cut beside the mark
+              // (#298); on a phone it
               // still runs to the screen's right edge. From md as wide as its tabs, but it may
               // shrink (flex-initial, not flex-none) and scroll: between 768 and 900 px the six
               // picks don't fit and a strip that couldn't shrink widened the page (#370)
-              className="-ms-3 min-w-0 flex-1 border-b border-input fade-start ps-3 md:-ms-3 md:me-auto md:flex-initial md:ps-3 md:pe-1"
+              className="-ms-3 min-w-0 flex-1 border-b border-input ps-3 md:-ms-3 md:me-auto md:flex-initial md:ps-3 md:pe-1"
             >
               {picks.map((pick) => (
                 <BandTabsItem

@@ -321,10 +321,9 @@ function EventsPage() {
                   localityDefault={localityDefault(shownLocality, clearLocality, pickLocality)}
                   isFloating={!isDesktop && !isListExpanded}
                   searchControl={isDesktop ? searchField() : undefined}
-                  // Chips scroll sideways on narrow screens without a visible scrollbar
-                  // (Figma A-02); a desktop scrollbar would also make the bar taller
-                  // and cover the top of the pulled-up list.
-                  className="[scrollbar-width:none] overflow-x-auto px-4 py-3 md:px-10 [&::-webkit-scrollbar]:hidden"
+                  // Chips scroll sideways on a phone without a visible scrollbar (Figma A-02);
+                  // on desktop they wrap instead, so nothing is cut off at ~1150 px (QA-07)
+                  className="[scrollbar-width:none] overflow-x-auto px-4 py-3 md:flex-wrap md:overflow-visible md:px-10 [&::-webkit-scrollbar]:hidden"
                 />
               </div>
 
