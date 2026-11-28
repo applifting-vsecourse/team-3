@@ -208,6 +208,21 @@ describe("EmptyEvents", () => {
     expect(screen.queryByRole("button", { name: "Zrušit ostatní filtry" })).not.toBeInTheDocument()
   })
 
+  // review #483: with another filter on too, a typo is still what to drop first — „Zrušit ostatní
+  // filtry“ would keep it and end at an empty list again; the other filters stay (#482)
+  it("a search with another filter: „Zrušit hledání“ comes first and keeps the filter", async () => {
+    everywhere = 0
+    const { onSearchChange } = await renderEmpty({
+      lokalita: "bruntal",
+      q: "florbl",
+      kategorie: "hry",
+    })
+
+    await userEvent.click(await screen.findByRole("button", { name: "Zrušit hledání" }))
+    expect(onSearchChange).toHaveBeenCalledWith({ q: undefined })
+    expect(screen.queryByRole("button", { name: "Zrušit ostatní filtry" })).not.toBeInTheDocument()
+  })
+
   it("Celé Česko with nothing else to drop: only „Založit akci“, nothing extra fetched", async () => {
     await renderEmpty({ lokalita: "cele-cesko" })
 
