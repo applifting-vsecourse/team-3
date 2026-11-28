@@ -66,7 +66,7 @@ export type PublicEvent = {
   /** Set for a group's event (B-055); the group is then shown as the organizer. */
   group: { id: string; name: string } | null;
   minParticipants: number;
-  maxParticipants: number;
+  maxParticipants: number | null;
   capacity: Capacity;
   isPromoted: boolean;
   /** The organizer's own image (#77), served at `/api/images/:key`; null = the activity's photo. */
@@ -191,7 +191,7 @@ export type NewEvent = {
   startsAt: Date;
   endsAt: Date | null;
   minParticipants: number;
-  maxParticipants: number;
+  maxParticipants: number | null;
   approvalMode: 'open' | 'approval';
   /** An e-mail to the organizer for each sign-up to an open event (#86). */
   emailOnJoin: boolean;

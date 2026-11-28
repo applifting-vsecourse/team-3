@@ -41,6 +41,7 @@ import {
   pickSearch,
   toMapArea,
   toOblast,
+  withPickFilters,
   withPicksOkoli,
   type EventsSearch,
   type QuickPick,
@@ -79,7 +80,10 @@ function EventsPage() {
   )
   // the filters as shown: the visitor's default locality (#55) when the URL has none, and the
   // okolí a quick pick turns on by itself, which the URL leaves out (#328)
-  const search = withPicksOkoli({ ...urlSearch, lokalita: shownLocality.slug }, now)
+  const search = withPicksOkoli(
+    withPickFilters({ ...urlSearch, lokalita: shownLocality.slug }, now),
+    now,
+  )
   const { events, catalog, isPending, error, retry } = useEvents(search, {
     // nothing for all of Czechia first while the default locality loads
     isEnabled: shownLocality.slug !== undefined,
@@ -298,7 +302,10 @@ function EventsPage() {
             asChild
             {...(hasActiveTrigger ? {} : { "aria-labelledby": undefined, "aria-label": title })}
           >
-            <div className="relative flex flex-1 flex-col overflow-hidden md:min-h-0 md:basis-0">
+            {/* clip, not hidden: a hidden overflow is still a scroll box, and focus moving to the
+                pulled-up list's handle scrolled it by the sheet's 32 px tail, half under the
+                tabs went the filters (QA-08) */}
+            <div className="relative flex flex-1 flex-col overflow-clip md:min-h-0 md:basis-0">
               <div
                 // on a phone it floats over the map's top: „Hledat v této oblasti“ goes under it
                 ref={overlayRef}
@@ -325,10 +332,9 @@ function EventsPage() {
                   localityDefault={localityDefault(shownLocality, clearLocality, pickLocality)}
                   isFloating={!isDesktop && !isListExpanded}
                   searchControl={isDesktop ? searchField() : undefined}
-                  // Chips scroll sideways on narrow screens without a visible scrollbar
-                  // (Figma A-02); a desktop scrollbar would also make the bar taller
-                  // and cover the top of the pulled-up list.
-                  className="[scrollbar-width:none] overflow-x-auto px-4 py-3 md:px-10 [&::-webkit-scrollbar]:hidden"
+                  // Chips scroll sideways on a phone without a visible scrollbar (Figma A-02);
+                  // on desktop they wrap instead, so nothing is cut off at ~1150 px (QA-07)
+                  className="[scrollbar-width:none] overflow-x-auto px-4 py-3 md:flex-wrap md:overflow-visible md:px-10 [&::-webkit-scrollbar]:hidden"
                 />
               </div>
 
