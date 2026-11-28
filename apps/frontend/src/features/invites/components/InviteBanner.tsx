@@ -14,7 +14,8 @@ export function InviteBanner({ code }: { code: string | null }) {
   if (!code || !inviter.data) return null
   const { name, interests } = inviter.data
   return (
-    <div className="flex gap-3 rounded-xl border border-tile-border bg-secondary p-4 text-secondary-foreground">
+    // mb-6: the form's first label sat right under it (QA 28. 11.), the gap the form's fields have
+    <div className="mb-6 flex gap-3 rounded-xl border border-tile-border bg-secondary p-4 text-secondary-foreground">
       <PersonAvatar
         name={name}
         className="size-10"
