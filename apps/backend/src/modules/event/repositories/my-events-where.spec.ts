@@ -48,11 +48,24 @@ describe('buildMyEventsWhere', () => {
     });
   });
 
-  it('past: events that are over where the user had an approved place, cancelled ones too (#367)', () => {
+  it('past: events that are over where the user had an approved place or that they ran, cancelled ones too (#367, PO 26. 11.)', () => {
     expect(buildMyEventsWhere('past', 'u1', now)).toEqual({
       AND: [
         { status: { in: ['published', 'cancelled'] }, ...eventOverWhere(now) },
-        { participations: { some: { userId: 'u1', status: 'approved' } } },
+        {
+          OR: [
+            { participations: { some: { userId: 'u1', status: 'approved' } } },
+            // an organizer without a place no longer loses the event once it is over
+            { organizerUserId: 'u1' },
+            {
+              group: {
+                members: {
+                  some: { userId: 'u1', role: 'admin', status: 'active' },
+                },
+              },
+            },
+          ],
+        },
       ],
     });
   });
