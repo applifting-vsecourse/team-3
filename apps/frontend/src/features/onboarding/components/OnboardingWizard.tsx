@@ -23,6 +23,7 @@ import { cn } from "@/lib/utils"
 
 import { resolveActivities } from "@/features/onboarding/lib/activityScenes"
 import {
+  fillsSelection,
   INTEREST_GOAL,
   moveOnboarding,
   reviewOnboarding,
@@ -146,9 +147,16 @@ export function OnboardingWizard({
     if (finish.isPending || flow.overlay) return
     const index = flow.interestIds.length
     if (!flow.interestIds.includes(activity.id) && index < INTEREST_GOAL && target) {
-      const slot =
-        dialogContent.current?.querySelector<HTMLElement>(`[data-interest-slot="${index}"]`) ?? null
-      setFlight(photoFlight(activity.id, activity.slug, target, slot))
+      if (fillsSelection(flow, activity.id)) {
+        // The third pick opens the confirmation; focus returns to the card when it closes.
+        restore.current = target
+        setFlight(undefined)
+      } else {
+        const slot =
+          dialogContent.current?.querySelector<HTMLElement>(`[data-interest-slot="${index}"]`) ??
+          null
+        setFlight(photoFlight(activity.id, activity.slug, target, slot))
+      }
     }
     dispatch({ type: "toggle", interestId: activity.id })
   }

@@ -24,6 +24,25 @@ describe("occupancyCount", () => {
     expect(occupancyCount(occupancy(12, 6, 20))).toBe("12 z 20")
     expect(occupancyCount(occupancy(0, 2, 5))).toBe("0 z 5")
   })
+
+  // PO 26. 11.: the maximum is optional
+  it("without a maximum says how many people, gender-neutral", () => {
+    expect([1, 3, 5].map((n) => occupancyCount(occupancy(n, 2, null)))).toEqual([
+      "1 člověk",
+      "3 lidi",
+      "5 lidí",
+    ])
+  })
+})
+
+describe("without a maximum (PO 26. 11.)", () => {
+  it("is never full: free places without a number once the minimum is there", () => {
+    expect(occupancyState(occupancy(40, 4, null))).toBe("free")
+    expect(occupancyStatus(occupancy(40, 4, null))).toBe("Volná místa")
+    expect(occupancyStatus(occupancy(2, 4, null))).toBe("Chybí ještě 2")
+    expect(occupancyBesideBadge(occupancy(5, 4, null))).toBe("5 lidí · min. 4")
+    expect(occupancyInBand(occupancy(5, 4, null))).toBe("5 lidí, minimum je naplněné")
+  })
 })
 
 describe("freeSpotsLabel", () => {
@@ -36,6 +55,7 @@ describe("freeSpotsLabel", () => {
       "5 volných míst",
       "17 volných míst",
     ])
+    expect(freeSpotsLabel(null)).toBe("Volná místa")
   })
 })
 

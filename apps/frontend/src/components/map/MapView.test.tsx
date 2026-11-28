@@ -269,6 +269,19 @@ describe("pinHtml", () => {
     expect(PIN_BOX).toEqual({ width: 40, height: 40 })
   })
 
+  // QA-03: the transparent corners of a 40 × 40 box covered the pin beside it
+  it("takes taps on the pin's shape only, not on its box", () => {
+    for (const variant of ["default", "highlighted", "full", "past"] as const) {
+      const box = document.createElement("div")
+      box.innerHTML = pinHtml(variant)
+      expect(box.firstElementChild).toHaveClass("pointer-events-none")
+      expect(box.querySelector("svg")).toHaveClass("pointer-events-none")
+      for (const path of box.querySelectorAll("path")) {
+        expect(path).toHaveAttribute("pointer-events", "visiblePainted")
+      }
+    }
+  })
+
   it("grows a selected pin and keeps its tip on the place", () => {
     const html = pinHtml("default", "Deskovky", { isSelected: true })
     expect(html).toContain("scale(1.3)")
