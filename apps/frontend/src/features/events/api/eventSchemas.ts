@@ -26,7 +26,6 @@ export const publicEventSchema = z.object({
   maxParticipants: z.number(),
   // `approval`: a request the organizer approves; the landing page asks instead of promising (QA-06)
   approvalMode: z.enum(["open", "approval"]),
-  // `approval`: a request the organizer approves; the landing page asks instead of promising (QA-06)
   approvedCount: z.number(),
   missingToMin: z.number(),
   freeSpots: z.number(),
