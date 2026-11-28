@@ -130,7 +130,7 @@ export class EventsController {
         startsAt: new Date(body.startsAt),
         endsAt: body.endsAt ? new Date(body.endsAt) : null,
         minParticipants: body.minParticipants,
-        maxParticipants: body.maxParticipants,
+        maxParticipants: body.maxParticipants ?? null,
         approvalMode: body.approvalMode,
         emailOnJoin: body.emailOnJoin ?? false,
         groupId: body.groupId ?? null,

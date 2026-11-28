@@ -16,7 +16,7 @@ export type UpdateState = {
   startsAt: Date;
   endsAt: Date | null;
   minParticipants: number;
-  maxParticipants: number;
+  maxParticipants: number | null;
   approvedCount: number;
 };
 

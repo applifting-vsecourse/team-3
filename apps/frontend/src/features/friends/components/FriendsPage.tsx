@@ -32,10 +32,13 @@ export function FriendsPage({
   viewerId,
   urlTab,
   onTabChange,
+  onRequestDecided,
 }: {
   viewerId: string
   urlTab: FriendsTab | undefined
   onTabChange: (tab: FriendsTab) => void
+  /** After a request is accepted, rejected or cancelled: the route refreshes the bell (#430). */
+  onRequestDecided?: () => Promise<unknown>
 }) {
   const query = useQuery(friendListsQueryOptions(viewerId))
   const lists = query.data
@@ -83,7 +86,10 @@ export function FriendsPage({
               <Friends friends={lists.friends} />
             </TabsContent>
             <TabsContent value="zadosti">
-              <Requests lists={lists} />
+              <Requests
+                lists={lists}
+                onDecided={onRequestDecided}
+              />
             </TabsContent>
           </Tabs>
         )}
@@ -136,7 +142,13 @@ function Friends({ friends }: { friends: FriendLists["friends"] }) {
   )
 }
 
-function Requests({ lists }: { lists: FriendLists }) {
+function Requests({
+  lists,
+  onDecided,
+}: {
+  lists: FriendLists
+  onDecided?: () => Promise<unknown>
+}) {
   if (lists.incoming.length + lists.outgoing.length === 0) {
     return <Empty>Žádné žádosti o přátelství.</Empty>
   }
@@ -149,6 +161,7 @@ function Requests({ lists }: { lists: FriendLists }) {
               key={request.person.id}
               request={request}
               direction="incoming"
+              onDecided={onDecided}
             />
           ))}
         </RequestSection>
@@ -160,6 +173,7 @@ function Requests({ lists }: { lists: FriendLists }) {
               key={request.person.id}
               request={request}
               direction="outgoing"
+              onDecided={onDecided}
             />
           ))}
         </RequestSection>
