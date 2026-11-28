@@ -374,9 +374,9 @@ function sectionCopy({
       description: `Těmhle akcím ${area} ještě chybí lidi do minima.`,
       label: "Tady chybíš",
       pickDescription: `akce ${area}, kterým chybí lidi do minima. Akce, na které už jdeš, tu nejsou. Akce z panelu nahoře se tu neopakuje.`,
-      // the section's events: missing people, in its locality and okolí (#321). Not the quick pick
-      // „Tady chybíš“, which adds +10 km, one's interests and leaves out one's events (#305);
-      // the filter no longer offers „chybi“, but the chip names it („Chybí lidé“)
+      // the section's events: missing people, in its locality and okolí (#321), as the quick pick
+      // „Tady chybíš“ on /akce (QA-01); the filter no longer offers „chybi“, but the chip names it
+      // („Chybí lidé“)
       more: events("missing", { obsazenost: "chybi" }),
     },
     weekend: {
@@ -417,9 +417,9 @@ function sectionCopy({
     },
     wellRated: {
       heading: { before: "Od dobře ", keyword: "hodnocených", after: " organizátorů" },
-      description: "Pořádají je lidi a skupiny s průměrem aspoň 4,5",
+      description: "Pořádají je lidi a skupiny s průměrem aspoň 4,5 z nejméně 3 hodnocení",
       label: "Od dobře hodnocených",
-      pickDescription: `pořádají je lidi a skupiny s průměrem aspoň 4,5 ${area}.`,
+      pickDescription: `pořádají je lidi a skupiny s průměrem aspoň 4,5 z nejméně 3 hodnocení, ${area}.`,
       more: events("wellRated"),
     },
   }

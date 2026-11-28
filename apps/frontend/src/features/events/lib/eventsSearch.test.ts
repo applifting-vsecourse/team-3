@@ -393,10 +393,9 @@ describe("quick picks (#250)", () => {
   })
 
   it("asks for the personal parts of a pick", () => {
-    expect(toEventFilters({ vyber: "tady-chybis" }, catalog)).toMatchObject({
-      interests: true,
-      notJoined: true,
-    })
+    expect(toEventFilters({ vyber: "tady-chybis" }, catalog)).toMatchObject({ notJoined: true })
+    // as on the landing page (QA-01): one's interests are „Podle tvých zájmů“, not this tab
+    expect(toEventFilters({ vyber: "tady-chybis" }, catalog).interests).toBeUndefined()
     expect(toEventFilters({ vyber: "od-hodnocenych" }, catalog)).toMatchObject({ wellRated: true })
     expect(toEventFilters({ vyber: "tento-vikend" }, catalog).interests).toBeUndefined()
   })
