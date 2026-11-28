@@ -18,7 +18,7 @@ import { Button } from "@/components/ui/button"
 import { cn } from "@/lib/utils"
 
 import { CLUSTER_SIZE, clusterHtml, PIN_BOX, pinHtml, type PinVariant } from "./mapPin"
-import { PinClusters } from "./pinClusters"
+import { PinClusters, spreadSamePlace } from "./pinClusters"
 import { createUserMoveTracker } from "./userMoveTracker"
 
 export type MapPinData = {
@@ -226,8 +226,10 @@ type PinsProps = {
  * stand on their own, so their label shows and a hovered card never hides
  * inside a cluster.
  */
-function Pins({ pins, highlightedId, selectedId, onPinClick, isClustered }: PinsProps) {
+function Pins({ pins: placed, highlightedId, selectedId, onPinClick, isClustered }: PinsProps) {
   const map = useMap()
+  // events at one place side by side, so none hides under another (QA-03)
+  const pins = useMemo(() => spreadSamePlace(placed), [placed])
   const [zoom, setZoom] = useState(() => map.getZoom())
   useMapEvents({ zoomend: () => setZoom(map.getZoom()) })
 
@@ -296,7 +298,8 @@ function Pin({ pin, isHighlighted, isSelected, onClick }: PinProps) {
       html: pinHtml(pin.variant, isHighlighted || isSelected ? pin.label : undefined, {
         isSelected,
       }),
-      className: "",
+      // Leaflet makes the whole box take taps; only the pin's shape does (mapPin.ts, QA-03)
+      className: "pointer-events-none!",
       iconSize: [width, height],
       // the tip of the pin sits on the place
       iconAnchor: [width / 2, height],

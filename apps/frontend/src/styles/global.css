@@ -186,13 +186,6 @@
   --accent-foreground: var(--on-hero);
 }
 
-/* A sideways strip whose start sits beside something (the logo mark before „Pro tebe“): a tab
-   scrolled past the start fades out over the strip's start padding instead of being cut off
-   beside it (#298). A mask, not a colour — it works on any surface. */
-@utility fade-start {
-  mask-image: linear-gradient(to right, transparent, black calc(var(--spacing) * 3));
-}
-
 /* DESIGN.md › Type: Figma text styles, mobile first and the desktop size from md up. The display
    ones carry their face and weight, so one class sets the whole style. type- rather than text-,
    or tailwind-merge would take them for a colour and drop them next to text-*. */
@@ -356,5 +349,22 @@
      dots and the shown password run right up to it (#298). */
   input::-ms-reveal {
     @apply ms-3;
+  }
+}
+
+/* Where toasts sit (PO 26. 11.), apart from the colour tokens above (tokens.test.ts reads those):
+   on a phone above the bottom navigation, and above a page's own bottom action too (the
+   detail's „Přijdu“ bar, the floating „Založit“), never over it. --toast-offset is the desktop
+   offset's bottom, which Sonner uses past 600 px: above the navigation while it shows. */
+:root {
+  /* the default; useToastClearance measures what the page marked data-toast-clear */
+  --toast-bottom: 80px;
+  --toast-offset: var(--toast-bottom);
+}
+
+/* from md the bottom navigation is gone: the desktop corner */
+@media (min-width: 768px) {
+  :root {
+    --toast-offset: 24px;
   }
 }

@@ -52,13 +52,18 @@ describe('CreateEventDto', () => {
         'lat',
         'lng',
         'localityId',
-        'maxParticipants',
         'minParticipants',
         'startsAt',
         'title',
       ].sort(),
     );
     expect(invalid({ ...valid, title: '   ' })).toEqual(['title']);
+  });
+
+  // PO 26. 11.: the maximum is optional
+  it('without a maximum, or with null, the event is valid', () => {
+    expect(invalid({ ...valid, maxParticipants: undefined })).toEqual([]);
+    expect(invalid({ ...valid, maxParticipants: null })).toEqual([]);
   });
 
   it('min 0 is invalid; the minimum is at least 1', () => {

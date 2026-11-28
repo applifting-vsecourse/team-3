@@ -93,7 +93,7 @@ export function EventDetailView({
 
   if (isNotFound) {
     return (
-      <StatePage>
+      <StatePage isDesktop={isDesktop}>
         <EventNotFound />
       </StatePage>
     )
@@ -101,7 +101,7 @@ export function EventDetailView({
 
   if (error) {
     return (
-      <StatePage>
+      <StatePage isDesktop={isDesktop}>
         <h1 className="sr-only">Detail akce</h1>
         <Alert variant="destructive">
           <AlertTitle>Akci se nepodařilo načíst</AlertTitle>
@@ -126,7 +126,7 @@ export function EventDetailView({
 
   if (isLoading || !event) {
     return (
-      <StatePage>
+      <StatePage isDesktop={isDesktop}>
         <EventDetailSkeleton isDesktop={isDesktop} />
       </StatePage>
     )
@@ -271,6 +271,8 @@ export function EventDetailView({
         isWaitingForApproval={event.myParticipation === "pending"}
         viewerId={viewerId}
         isClosed={isCancelled || isOver}
+        // a cancelled event never took place: no „Kdo byl“, it keeps who had signed up
+        isOver={isOver && !isCancelled}
       />
     )
 
@@ -345,7 +347,10 @@ export function EventDetailView({
         {organizer}
         {/* Figma: Lišta s akcí — above the bottom navigation, it stays while
             scrolling; empty (a cancelled event for a visitor) it isn't drawn */}
-        <div className="sticky bottom-16 -mx-4 border-t border-border bg-background px-4 py-3 empty:hidden">
+        <div
+          data-toast-clear
+          className="sticky bottom-16 -mx-4 border-t border-border bg-background px-4 py-3 empty:hidden"
+        >
           {participation}
         </div>
       </article>
@@ -353,13 +358,26 @@ export function EventDetailView({
   )
 }
 
-/** Loading, an error or „not found“: the page's column with the way back, before there is a band. */
-function StatePage({ children }: { children: ReactNode }) {
+/**
+ * Loading, an error or „not found“: the page's column with the way back, before there is a band.
+ * On a phone the way back is the bar the detail will have (PO 26. 11., #447): the header doesn't
+ * show first and then give way to it (the Header steps aside for a SubBar), nor when it fails
+ * (review #448).
+ */
+function StatePage({ isDesktop, children }: { isDesktop: boolean; children: ReactNode }) {
   return (
-    <div className={cn(PAGE, "gap-4")}>
-      <BackLink {...EVENTS_BACK} />
-      {children}
-    </div>
+    <>
+      {isDesktop ? null : (
+        <SubBar
+          back={EVENTS_BACK}
+          label="Detail akce"
+        />
+      )}
+      <div className={cn(PAGE, "gap-4")}>
+        {isDesktop ? <BackLink {...EVENTS_BACK} /> : null}
+        {children}
+      </div>
+    </>
   )
 }
 
