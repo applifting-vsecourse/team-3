@@ -24,6 +24,8 @@ export const publicEventSchema = z.object({
   group: z.object({ id: z.string(), name: z.string() }).nullable(),
   minParticipants: z.number(),
   maxParticipants: z.number().nullable(),
+  // `approval`: a request the organizer approves; the landing page asks instead of promising (QA-06)
+  approvalMode: z.enum(["open", "approval"]),
   approvedCount: z.number(),
   missingToMin: z.number(),
   freeSpots: z.number().nullable(),
@@ -50,7 +52,6 @@ export type EventParticipant = z.infer<typeof eventParticipantSchema>
 /** GET /api/events/:id */
 export const eventDetailSchema = publicEventSchema.extend({
   description: z.string().nullable(),
-  approvalMode: z.enum(["open", "approval"]),
   /** The organizer's e-mail for each sign-up (#86): only for who manages the event, else null. */
   emailOnJoin: z.boolean().nullish(),
   /** `private`: through its link only; `members`: only the group's members (B-055). */

@@ -51,6 +51,7 @@ const anEvent = (id: string, spec: EventSpec = {}): PublicEvent => {
     group: spec.groupId ? { id: spec.groupId, name: 'Parta' } : null,
     minParticipants: min,
     maxParticipants: max,
+    approvalMode: 'open',
     // at the minimum by default, so it misses nobody
     capacity: computeCapacity(
       { minParticipants: min, maxParticipants: max },

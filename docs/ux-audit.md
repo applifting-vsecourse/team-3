@@ -95,6 +95,7 @@ Pravidla: tykání, bez rodu (aplikace pohlaví nezná – ani „organizátorka
 | Úvod – nadpis (přihlášený)          | Tady se na tebe čeká. (bez jména – 5. pád neumíme a 1. pád zní divně)                                                 |
 | Úvod – podnadpis                    | Volejbal, deskovky, běh… Najdi akci ve svém okolí, nebo založ vlastní a lidi se přidají.                              |
 | Úvod – panel „Teď chybí jeden“      | 5 z 10 už jde, do minima chybí 1. Přijď a hraje se. · Doplnit partu                                                   |
+| Úvod – panel, akce se schvalováním  | 5 z 10 už jde, do minima chybí 1. Když tě organizátor schválí, akce se koná. · Poslat žádost                          |
 | Úvod – panel bez akcí               | Všechny akce v okolí mají svoje minimum. Mrkni, kde jsou ještě volná místa.                                           |
 | Úvod – sekce skupin                 | Tyhle skupiny rozšiřují partu · Pravidelně se potkávají a hledají nové členy                                          |
 | Úvod – výzva dole                   | Nic pro tebe? Založ vlastní akci a lidi se přidají.                                                                   |

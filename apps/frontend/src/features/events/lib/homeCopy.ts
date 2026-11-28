@@ -54,17 +54,28 @@ export const missingNowLabel = (missingToMin: number): string =>
 
 /**
  * The panel's sentence with numbers (Figma A-01: „5 z 10 už jde, do minima chybí 1. Přijď
- * a hraje se.“). „Hraje se“ is the sample's sport; any event „se koná“.
+ * a hraje se.“). „Hraje se“ is the sample's sport; any event „se koná“. Where the organizer
+ * approves, coming is a request: no promise the visitor alone can't keep (QA-06).
  */
 export function missingNowSentence(event: {
   approvedCount: number
   maxParticipants: number | null
   missingToMin: number
+  approvalMode: "open" | "approval"
 }): string {
   const who = event.approvedCount === 0 ? "Zatím nikdo nejde" : `${occupancyCount(event)} už jde`
-  const last = event.missingToMin === 1 ? " Přijď a akce se koná." : ""
+  const last =
+    event.missingToMin !== 1
+      ? ""
+      : event.approvalMode === "approval"
+        ? " Když tě organizátor schválí, akce se koná."
+        : " Přijď a akce se koná."
   return `${who}, do minima chybí ${event.missingToMin}.${last}`
 }
+
+/** The panel's button: „Doplnit partu“ to an open event, a request where the organizer approves. */
+export const missingNowAction = (approvalMode: "open" | "approval"): string =>
+  approvalMode === "approval" ? "Poslat žádost" : "Doplnit partu"
 
 /**
  * Where the sections are from, inside a sentence. The catalog has no locative („v okolí

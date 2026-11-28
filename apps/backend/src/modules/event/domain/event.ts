@@ -67,6 +67,8 @@ export type PublicEvent = {
   group: { id: string; name: string } | null;
   minParticipants: number;
   maxParticipants: number | null;
+  /** `approval`: a request the organizer approves; the landing page asks, not promises (QA-06). */
+  approvalMode: 'open' | 'approval';
   capacity: Capacity;
   isPromoted: boolean;
   /** The organizer's own image (#77), served at `/api/images/:key`; null = the activity's photo. */

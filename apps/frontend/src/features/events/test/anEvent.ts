@@ -22,6 +22,7 @@ export const anEvent = (overrides: Partial<PublicEvent> = {}): PublicEvent => ({
   group: null,
   minParticipants: 4,
   maxParticipants: 12,
+  approvalMode: "open",
   approvedCount: 4,
   missingToMin: 0,
   freeSpots: 8,

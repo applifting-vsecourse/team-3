@@ -28,6 +28,7 @@ const event = (
   group: null,
   minParticipants: 3,
   maxParticipants: 6,
+  approvalMode: 'open',
   capacity: computeCapacity({ minParticipants: 3, maxParticipants: 6 }, 1),
   isPromoted: false,
   imageKey: null,

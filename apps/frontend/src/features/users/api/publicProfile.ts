@@ -32,6 +32,7 @@ const upcomingEventSchema = z.object({
   group: person.nullable(),
   minParticipants: z.number(),
   maxParticipants: z.number().nullable(),
+  approvalMode: z.enum(["open", "approval"]),
   approvedCount: z.number(),
   missingToMin: z.number(),
   freeSpots: z.number().nullable(),

@@ -115,6 +115,12 @@ export class PublicEventResponseDto {
   })
   maxParticipants!: number | null;
 
+  @ApiProperty({
+    enum: ['open', 'approval'],
+    description: '`approval`: joining is a request the organizer approves',
+  })
+  approvalMode!: 'open' | 'approval';
+
   @ApiProperty({ example: 2, description: 'Approved participations' })
   approvedCount!: number;
 
@@ -191,6 +197,7 @@ export class PublicEventResponseDto {
       group: event.group,
       minParticipants: event.minParticipants,
       maxParticipants: event.maxParticipants,
+      approvalMode: event.approvalMode,
       approvedCount: event.capacity.approvedCount,
       missingToMin: event.capacity.missingToMin,
       freeSpots: event.capacity.freeSpots,
