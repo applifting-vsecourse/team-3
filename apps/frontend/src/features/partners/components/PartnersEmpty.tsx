@@ -112,7 +112,8 @@ export function PartnersError({ onRetry }: { onRetry: () => void }) {
 }
 
 /**
- * „Ukazovat mě v Najdi parťáka“ is off (#84): as Bumble's Snooze, who isn't seen sees nobody
+ * „Ukazovat mě v Najdi parťáka“ is off (#84), as it is until one turns it on (privacy by default,
+ * GDPR art. 25). As Bumble’s Snooze, who isn’t seen sees nobody
  * either. One sentence and the way back on, here, without a detour to the profile.
  */
 export function PartnersHidden({
@@ -128,7 +129,8 @@ export function PartnersHidden({
     <div className="flex w-full max-w-100 flex-col items-start gap-4 rounded-2xl border border-card-border bg-card p-6">
       <h2 className="type-card-heading">Teď tě v Najdi parťáka nikdo nevidí.</h2>
       <p className="text-sm text-muted-foreground">
-        Když se ukážeš, uvidíš i ty lidi z okolí. Vypnout to jde kdykoli v úpravě profilu.
+        Lidi z okolí se stejnými koníčky uvidíš, až se ukážeš i ty. Uvidí tvoje jméno, zájmy a
+        přibližnou vzdálenost, nic víc. Vypnout to jde kdykoli v úpravě profilu.
       </p>
       {error ? (
         <p

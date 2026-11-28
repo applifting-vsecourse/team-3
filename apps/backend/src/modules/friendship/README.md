@@ -30,7 +30,7 @@ Na veřejném profilu (`GET /api/users/:id`, modul `user`) je `friendship` a pro
 
 ## Denní limit (#84)
 
-Nových žádostí je nejvýš 20 za pražský den (`FRIEND_REQUESTS_PER_DAY` v [`domain/request-limit.ts`](domain/request-limit.ts)). Platí to pro novou žádost i pro znovu poslanou, přijetí cizí žádosti limit nemá. Hlídá to jedno místo, `FriendshipService.request`, takže `POST /api/friends/:userId` i „Přidat“ v Najdi parťáka odpoví stejně: `429 FRIEND_REQUEST_DAILY_LIMIT`. Počítají se řádky `Friendship`, kde jsem žadatel, i upozornění `friend_request`, která žádosti poslaly, a platí vyšší číslo. Zrušená žádost tak limit neobnoví. Počet a zápis běží v jedné transakci pod `pg_advisory_xact_lock(hashtext(žadatel))` (`FriendRequestLimitRepository`), takže dvě souběžné žádosti limit nepřekročí.
+Nových žádostí je nejvýš 20 za pražský den (`FRIEND_REQUESTS_PER_DAY` v [`domain/request-limit.ts`](domain/request-limit.ts)). Platí to pro novou žádost i pro znovu poslanou, přijetí cizí žádosti limit nemá. Hlídá to jedno místo, `FriendshipService.request`, takže `POST /api/friends/:userId` i „Přidat“ v Najdi parťáka odpoví stejně: `429 FRIEND_REQUEST_DAILY_LIMIT`. Počítá se vlastní záznam odeslaných žádostí `FriendRequestLog` (jen kdo a kdy). Zrušená žádost smaže řádek `Friendship` i své upozornění (#430), záznam zůstane, takže zrušit a poslat znovu limit neobnoví. Počet a zápis běží v jedné transakci pod `pg_advisory_xact_lock(hashtext(žadatel))` (`FriendRequestLimitRepository`), takže dvě souběžné žádosti limit nepřekročí.
 
 ## Upozornění
 
