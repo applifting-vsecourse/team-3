@@ -22,8 +22,10 @@ const PIN = { width: 32, height: 40 }
  */
 export const PIN_BOX = { width: 40, height: 40 }
 
+// Only the pin's own shape takes a tap: the transparent corners of its 40 × 40 box covered the
+// pin beside it, and a tap opened the wrong event (QA-03). The box and the svg let taps through.
 const pinSvg = (viewBox: string, paths: string) =>
-  `<svg width="${PIN.width}" height="${PIN.height}" viewBox="${viewBox}" fill="none" aria-hidden="true">${paths}</svg>`
+  `<svg width="${PIN.width}" height="${PIN.height}" viewBox="${viewBox}" fill="none" aria-hidden="true" class="pointer-events-none">${paths.replaceAll("<path ", '<path pointer-events="visiblePainted" ')}</svg>`
 
 const darkPin = (body: string) =>
   pinSvg(
@@ -79,7 +81,7 @@ export function pinHtml(variant: PinVariant, label?: string, { isSelected = fals
     ? `<span class="block origin-bottom" style="transform:scale(${SELECTED_SCALE});filter:${SELECTED_OUTLINE}">${SVG[variant]}</span>`
     : SVG[variant]
   // the pin stands on the bottom centre of its 40 × 40 target
-  return `<span class="relative flex items-end justify-center" style="width:${PIN_BOX.width}px;height:${PIN_BOX.height}px">${tip}${svg}</span>`
+  return `<span class="pointer-events-none relative flex items-end justify-center" style="width:${PIN_BOX.width}px;height:${PIN_BOX.height}px">${tip}${svg}</span>`
 }
 
 /** Figma: Map cluster — 44 px, the count on `foreground`, a `background` edge. */

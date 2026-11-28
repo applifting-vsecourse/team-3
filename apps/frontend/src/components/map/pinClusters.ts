@@ -86,3 +86,36 @@ export class PinClusters {
     }
   }
 }
+
+// About 15 m: at the closest zoom (17, ~1 m per px) pins this far apart stand side by side.
+const SAME_PLACE_SPREAD = 0.00014
+
+/**
+ * Events at one place (the same hall, QA-02, QA-03) would stand on one point: no zoom splits a
+ * cluster of them and the top pin hides the rest. They go round a small circle instead, in a
+ * stable order, so each one can be tapped; a place with one event keeps its point.
+ */
+export function spreadSamePlace<T extends { id: string; lat: number; lng: number }>(
+  pins: T[],
+): T[] {
+  const places = new Map<string, T[]>()
+  for (const pin of pins) {
+    const key = `${pin.lat.toFixed(5)},${pin.lng.toFixed(5)}`
+    places.set(key, [...(places.get(key) ?? []), pin])
+  }
+  const moved = new Map<string, T>()
+  for (const group of places.values()) {
+    if (group.length < 2) continue
+    const sorted = [...group].sort((a, b) => a.id.localeCompare(b.id))
+    sorted.forEach((pin, index) => {
+      const angle = (2 * Math.PI * index) / sorted.length
+      moved.set(pin.id, {
+        ...pin,
+        lat: pin.lat + SAME_PLACE_SPREAD * Math.cos(angle),
+        // a degree of longitude is shorter away from the equator
+        lng: pin.lng + (SAME_PLACE_SPREAD * Math.sin(angle)) / Math.cos((pin.lat * Math.PI) / 180),
+      })
+    })
+  }
+  return pins.map((pin) => moved.get(pin.id) ?? pin)
+}
