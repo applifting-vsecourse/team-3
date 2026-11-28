@@ -16,11 +16,14 @@ import { EventActions } from "@/features/events/components/EventActions"
 import { EventDetailView, EVENTS_BACK } from "@/features/events/components/EventDetailView"
 import { EventMessages } from "@/features/events/components/EventMessages"
 import { ParticipationAction } from "@/features/events/components/ParticipationAction"
+import { SendEventMessageButton } from "@/features/events/components/SendEventMessageButton"
 import { useCancelEvent } from "@/features/events/hooks/useCancelEvent"
 import { useEventDetail } from "@/features/events/hooks/useEventDetail"
 import { useHideEvent, useUnhideEvent } from "@/features/events/hooks/useModerateEvent"
 import { useJoinEvent, useLeaveEvent } from "@/features/events/hooks/useParticipation"
 import { useRefreshExpiredSession } from "@/features/events/hooks/useRefreshExpiredSession"
+import { canWriteToParticipants, messageRecipientCount } from "@/features/events/lib/eventMessages"
+import { isEventOver } from "@/features/events/lib/formatEvent"
 import { isOutsideGroup } from "@/features/events/lib/outsideGroup"
 import { groupQueryOptions } from "@/features/groups/api/groupsQueryOptions"
 import { GroupOrganizer } from "@/features/groups/components/GroupOrganizer"
@@ -105,6 +108,19 @@ function EventDetailPage() {
                   eventId={eventId}
                   viewerId={viewerId}
                   isOrganizer={event.organizer.id === viewerId}
+                  // PO 26. 11.: writing from the detail too, not only from the management
+                  writeAction={
+                    canWriteToParticipants(event, viewerId) && !isEventOver(event, new Date()) ? (
+                      <SendEventMessageButton
+                        eventId={eventId}
+                        viewerId={viewerId}
+                        recipientCount={messageRecipientCount(
+                          event.participants,
+                          event.organizer.id,
+                        )}
+                      />
+                    ) : undefined
+                  }
                 />
               ) : null
             }

@@ -7,10 +7,12 @@ import { useCatalog } from "@/hooks/useCatalog"
 import { FORM, PAGE } from "@/lib/pageLayout"
 import { cn } from "@/lib/utils"
 
+import { useSession } from "@/features/auth/hooks/useSession"
 import { announcePublished } from "@/features/events/components/announcePublished"
 import { EventForm } from "@/features/events/components/EventForm"
 import { useCreateEvent } from "@/features/events/hooks/useCreateEvent"
 import { CatalogState } from "@/features/groups/components/CatalogState"
+import { EventOrganizerChoice } from "@/features/groups/components/EventOrganizerChoice"
 
 export const Route = createFileRoute("/_ProtectedPages/akce/nova")({
   component: NewEventPage,
@@ -25,6 +27,7 @@ function NewEventPage() {
   const navigate = useNavigate()
   const { catalog, queries } = useCatalog()
   const createEvent = useCreateEvent()
+  const { user } = useSession()
 
   return (
     <>
@@ -37,6 +40,12 @@ function NewEventPage() {
       />
       <div className={cn(PAGE, "gap-4")}>
         <div className={FORM}>
+          {user ? (
+            <EventOrganizerChoice
+              viewerId={user.id}
+              groupId={null}
+            />
+          ) : null}
           {catalog ? (
             <EventForm
               catalog={catalog}

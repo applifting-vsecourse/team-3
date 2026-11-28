@@ -1,6 +1,6 @@
-import { useId } from "react"
+import { useId, type ReactNode } from "react"
 import { useQuery } from "@tanstack/react-query"
-import { RefreshCw } from "lucide-react"
+import { MessageSquare, RefreshCw } from "lucide-react"
 
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 import { Button } from "@/components/ui/button"
@@ -15,6 +15,11 @@ type EventMessagesProps = {
   viewerId: string
   /** The organizer writes the messages, so the empty state tells them where. */
   isOrganizer?: boolean
+  /**
+   * „Napsat účastníkům“ beside the heading for the organizer (PO 26. 11.: the button was in
+   * the management only, not on the detail); the page builds it.
+   */
+  writeAction?: ReactNode
 }
 
 /**
@@ -23,7 +28,12 @@ type EventMessagesProps = {
  * as it came by e-mail — who and when, the subject and the text as written.
  * Only for those who see „Kdo jde“; the API decides (#174).
  */
-export function EventMessages({ eventId, viewerId, isOrganizer = false }: EventMessagesProps) {
+export function EventMessages({
+  eventId,
+  viewerId,
+  isOrganizer = false,
+  writeAction,
+}: EventMessagesProps) {
   const headingId = useId()
   const query = useQuery(eventMessagesQueryOptions(eventId, viewerId))
   const messages = query.data?.messages
@@ -35,12 +45,15 @@ export function EventMessages({ eventId, viewerId, isOrganizer = false }: EventM
       aria-labelledby={headingId}
       className="flex flex-col gap-3"
     >
-      <h2
-        id={headingId}
-        className="type-card-heading"
-      >
-        {total ? `Zprávy od organizátora (${total})` : "Zprávy od organizátora"}
-      </h2>
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <h2
+          id={headingId}
+          className="type-card-heading"
+        >
+          {total ? `Zprávy od organizátora (${total})` : "Zprávy od organizátora"}
+        </h2>
+        {writeAction}
+      </div>
       {query.error ? (
         <Alert variant="destructive">
           <AlertTitle>Zprávy se nepodařilo načíst</AlertTitle>
@@ -69,25 +82,38 @@ export function EventMessages({ eventId, viewerId, isOrganizer = false }: EventM
       ) : messages.length === 0 ? (
         <p className="text-muted-foreground">
           {isOrganizer
-            ? "Zatím tu žádná zpráva není. Účastníkům napíšeš přes „Napsat účastníkům“ ve správě akce."
+            ? writeAction
+              ? "Zatím tu žádná zpráva není. Účastníkům napíšeš přes „Napsat účastníkům“."
+              : "Zatím tu žádná zpráva není. Účastníkům napíšeš přes „Napsat účastníkům“ ve správě akce."
             : "Zatím tu žádná zpráva není. Až organizátor něco napíše, uvidíš to tady a přijde ti to e-mailem."}
         </p>
       ) : (
-        <ul className="flex flex-col">
+        // PO 26. 11.: „Zpráva od organizátora je mdlá a vypadá spíš jako popis akce. Měla by být
+        // výrazná a vypadat jako zpráva.“ Each is a message block: secondary with its
+        // tile-border (as „Máš místo“, DESIGN.md › Colour), the sender with an icon first
+        <ul className="flex flex-col gap-3">
           {messages.map((message) => (
             <li
               key={message.id}
-              // Figma: each message starts with a hairline
-              className="flex flex-col gap-1 border-t border-border py-3"
+              data-slot="event-message"
+              className="flex gap-3 rounded-2xl border border-tile-border bg-secondary p-4 text-secondary-foreground"
             >
-              <p className="text-sm text-muted-foreground">
-                {message.sender.name} ·{" "}
-                <time dateTime={message.createdAt.toISOString()}>
-                  {formatMessageTime(message.createdAt)}
-                </time>
-              </p>
-              <h3 className="text-sm font-semibold">{message.subject}</h3>
-              <p className="text-body whitespace-pre-line">{message.body}</p>
+              <span
+                aria-hidden
+                className="flex size-9 shrink-0 items-center justify-center rounded-full border border-tile-border bg-background"
+              >
+                <MessageSquare className="size-4" />
+              </span>
+              <div className="flex min-w-0 flex-col gap-1">
+                <p className="text-sm">
+                  <span className="font-semibold">{message.sender.name}</span> ·{" "}
+                  <time dateTime={message.createdAt.toISOString()}>
+                    {formatMessageTime(message.createdAt)}
+                  </time>
+                </p>
+                <h3 className="text-base font-semibold">{message.subject}</h3>
+                <p className="text-body break-words whitespace-pre-line">{message.body}</p>
+              </div>
             </li>
           ))}
         </ul>

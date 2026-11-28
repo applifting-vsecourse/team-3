@@ -176,6 +176,17 @@ const volejbal = {
   pendingRequests: 1,
 }
 
+// PO 26. 11.: „Vždy je pod slovem Moje nějaký vysvětlující text. Pod Moje nic není.“
+describe("Moje › Akce › Proběhlé: the band's line", () => {
+  it("says what the tab holds and until when to rate", async () => {
+    await renderMy("/moje/akce?tab=probehle", { attending: [], organizing: [] })
+
+    expect(
+      await screen.findByText("Akce, které už proběhly. Hodnotit můžeš do 14 dnů od konce."),
+    ).toBeInTheDocument()
+  })
+})
+
 describe("Moje: Akce and Skupiny (#304)", () => {
   it("the band has both tabs with what they hold; an event in Přihlášen and Pořádám counts once", async () => {
     await renderMy("/moje/akce", {

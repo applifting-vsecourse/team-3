@@ -387,7 +387,8 @@ model Event {
   localityId      String
   locality        Locality        @relation(fields: [localityId], references: [id], onDelete: Restrict)
   minParticipants Int
-  maxParticipants Int
+  /// Bez maxima (null) = bez omezení počtu (PO 26. 11.)
+  maxParticipants Int?
   /// Kč, celé číslo
   price           Int?
   level           EventLevel?

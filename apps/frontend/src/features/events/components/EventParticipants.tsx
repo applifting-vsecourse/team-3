@@ -9,7 +9,7 @@ import type { EventDetail } from "@/features/events/api/eventSchemas"
 type EventParticipantsProps = {
   approvedCount: number
   /** „Kdo jde · 4 z 5“ — approved of the maximum, as everywhere else (#189). */
-  maxParticipants: number
+  maxParticipants: number | null
   /** Who gets them is the backend's `canSeeParticipants`; without them only the count shows. */
   participants: EventDetail["participants"]
   /** The viewer's request waits: the names come once the organizer approves it (Figma A-05). */
