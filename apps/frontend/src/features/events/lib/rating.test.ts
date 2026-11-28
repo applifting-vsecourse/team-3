@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest"
 
-import { canRateEvent, canRateParticipants, ratingDeadline } from "./rating"
+import { canRateEvent, canRateParticipants, ratingDeadline, ratingOpensPhrase } from "./rating"
 
 // the same cases as the API's rating-window.spec.ts, so the button and the API agree
 describe("ratingDeadline (B-060, #66)", () => {
@@ -98,5 +98,25 @@ describe("canRateParticipants (#66)", () => {
     ["an event not over yet", { endsAt: new Date("2026-11-02T20:00:00.000Z") }],
   ])("not for %s", (_who, overrides) => {
     expect(canRateParticipants({ ...event, ...overrides }, "u-petra", dayAfter)).toBe(false)
+  })
+})
+
+describe("ratingOpensPhrase (PO 26. 11., #434)", () => {
+  it("names the end in Prague time, in a sentence's form", () => {
+    // 19:30 in Prague, winter time
+    expect(ratingOpensPhrase({ endsAt: new Date("2026-10-30T18:30:00.000Z") })).toBe(
+      "po skončení, od pá 30. 10. v 19:30",
+    )
+  })
+
+  it("an end at midnight is that night's day, also over the change of time", () => {
+    // 25. 10. 2026 the clocks go back: 23:00 UTC is midnight in Prague on 26. 10.
+    expect(ratingOpensPhrase({ endsAt: new Date("2026-10-25T23:00:00.000Z") })).toBe(
+      "po skončení, od po 26. 10. v 0:00",
+    )
+  })
+
+  it("without an end: after the event's day", () => {
+    expect(ratingOpensPhrase({ endsAt: null })).toBe("po skončení dne akce")
   })
 })

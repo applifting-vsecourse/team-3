@@ -26,7 +26,7 @@ import {
   formatRequestEventStart,
   isEventOver,
 } from "@/features/events/lib/formatEvent"
-import { canRateEvent } from "@/features/events/lib/rating"
+import { canRateEvent, canRateParticipants, ratingOpensPhrase } from "@/features/events/lib/rating"
 
 // Signed in means verified (#236): an unverified e-mail can't sign in, and an
 // old session gets the API's 403 EMAIL_NOT_VERIFIED as the error message.
@@ -92,8 +92,12 @@ export function ParticipationAction({
     // who had a place rates the event and its organizer (Figma C-03, #66) – by the API's own
     // rules, so the button never leads to a page that refuses (review #315): not after the window
     const canRate = canRateEvent(event, viewer?.id ?? null, now)
+    // PO 26. 11.: the organizer rates the participants from the detail too, as a participant
+    // rates the event here — not only from the management
+    const canRateOthers = canRateParticipants(event, viewer?.id ?? null, now)
     return (
       <Row>
+        {canRateOthers ? <RateParticipantsLink eventId={event.id} /> : null}
         {manage}
         {canRate ? <RateLink eventId={event.id} /> : null}
         <Alert variant="neutral">
@@ -116,13 +120,20 @@ export function ParticipationAction({
     )
   }
   if (event.startsAt <= now) {
+    // PO 26. 11.: while it is on, say when and how the rating comes — for who will rate
+    const willBeRated = event.missingToMin === 0
+    const opens = ratingOpensPhrase(event)
     return (
       <Row>
         {manage}
         <Note>
-          {event.myParticipation === "approved"
-            ? "Akce už začala. Máš na ní místo."
-            : "Akce už začala."}
+          {isOrganizer && willBeRated
+            ? `Akce právě probíhá. Účastníky ohodnotíš tady na detailu ${opens}.`
+            : event.myParticipation === "approved"
+              ? willBeRated
+                ? `Akce právě probíhá a máš na ní místo. Ohodnotit ji půjde tady na detailu ${opens}.`
+                : "Akce už začala. Máš na ní místo."
+              : "Akce už začala."}
         </Note>
       </Row>
     )
@@ -555,6 +566,23 @@ function RateLink({ eventId }: { eventId: string }) {
         params={{ eventId }}
       >
         Ohodnotit akci
+      </Link>
+    </Button>
+  )
+}
+
+/** The organizer's way to rate the participants, from the detail (D-05, PO 26. 11.). */
+function RateParticipantsLink({ eventId }: { eventId: string }) {
+  return (
+    <Button
+      asChild
+      size="lg"
+    >
+      <Link
+        to={ROUTES.rateParticipants}
+        params={{ eventId }}
+      >
+        Ohodnotit účastníky
       </Link>
     </Button>
   )

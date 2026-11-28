@@ -5,6 +5,7 @@ import { RATING_WINDOW_DAYS } from "@/features/events/api/ratingSchemas"
 import {
   endOfPragueDay,
   formatEventDay,
+  formatRequestEventStart,
   isEventOver,
   placeName,
 } from "@/features/events/lib/formatEvent"
@@ -101,4 +102,16 @@ export function ratingBandLine(event: BandEvent): string {
     `${placeName(event.address)}, ${event.locality.name}`,
     inSentence(gatheredLabel(event.approvedCount)),
   ].join(" · ")
+}
+
+/**
+ * When rating opens, said while the event is going on (PO 26. 11.: „Koukám na akci, která již
+ * probíhá. Kdy můžu přidávat hodnocení a jak?“): at its end, or after its day without one —
+ * when `isEventOver` turns true. „po skončení, od pá 23. 10. v 19:30“ (the sentence form, as in
+ * the request dialogs, review #435) / „po skončení dne akce“.
+ */
+export function ratingOpensPhrase(event: { endsAt: Date | null }): string {
+  return event.endsAt
+    ? `po skončení, od ${formatRequestEventStart(event.endsAt)}`
+    : "po skončení dne akce"
 }
