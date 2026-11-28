@@ -151,11 +151,35 @@ describe('community data', () => {
     expect(names.filter((name, i) => names.indexOf(name) !== i)).toEqual([]);
   });
 
-  it('places every event near its town', () => {
+  // a venue from OpenStreetMap may lie out of the centre (Přístaviště Bystrc), never out of town
+  it('places every event in its town (within about 15 km)', () => {
     for (const event of communityEvents) {
       const town = coordinates.get(event.localitySlug)!;
-      expect(Math.abs(event.lat - town.lat)).toBeLessThan(0.02);
-      expect(Math.abs(event.lng - town.lng)).toBeLessThan(0.03);
+      expect(Math.abs(event.lat - town.lat)).toBeLessThan(0.14);
+      expect(Math.abs(event.lng - town.lng)).toBeLessThan(0.2);
+    }
+  });
+
+  // QA-02: „Volejbal“ and „Florbal – hala Vodova“ had their pins in different parts of Brno
+  it('gives every event at one address one point', () => {
+    const points = new Map<string, string>();
+    for (const event of communityEvents) {
+      const point = `${event.lat},${event.lng}`;
+      const key = `${event.localitySlug} ${event.address}`;
+      if (!points.has(key)) points.set(key, point);
+      if (event.key === 'k-pingpong-uo') continue; // its own published coordinates
+      expect([key, point]).toEqual([key, points.get(key)]);
+    }
+  });
+
+  it('puts the Vodova hall where it is, in Královo Pole (QA-02)', () => {
+    const vodova = communityEvents.filter(({ address }) =>
+      address.startsWith('Sportovní hala Vodova'),
+    );
+    expect(vodova.length).toBeGreaterThan(1);
+    for (const event of vodova) {
+      expect(event.lat).toBeCloseTo(49.22, 1);
+      expect(event.lng).toBeCloseTo(16.59, 1);
     }
   });
 
