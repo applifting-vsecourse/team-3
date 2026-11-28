@@ -16,6 +16,10 @@
   --color-primary: var(--primary);
   --color-primary-foreground: var(--primary-foreground);
   --color-primary-edge: var(--primary-edge);
+  --color-button-primary: var(--button-primary);
+  --color-button-primary-foreground: var(--button-primary-foreground);
+  --color-button-primary-edge: var(--button-primary-edge);
+  --color-button-primary-hover: var(--button-primary-hover);
   --color-secondary: var(--secondary);
   --color-secondary-foreground: var(--secondary-foreground);
   --color-tile-border: var(--tile-border);
@@ -109,6 +113,12 @@
   --primary-foreground: #14201a;
   /* lime on cream or white is about 1.1:1, so lime on a light surface carries this outline */
   --primary-edge: var(--secondary-foreground);
+  /* PO 26. 11. („svítivě zelená tlačítka na bílém pozadí“): the primary button is dark green on
+     light surfaces, lime only on the dark band (the on-hero utility switches these) */
+  --button-primary: var(--hero);
+  --button-primary-foreground: var(--on-hero);
+  --button-primary-edge: var(--hero);
+  --button-primary-hover: var(--hero-pattern);
   --secondary: #e3f3cb;
   --secondary-foreground: #265212;
   --tile-border: #6f8a5a;
@@ -184,6 +194,13 @@
   --ring: var(--on-hero);
   --accent: var(--hero-pattern);
   --accent-foreground: var(--on-hero);
+  /* on the band the primary button is the brand's lime: it has the contrast there */
+  --button-primary: var(--primary);
+  --button-primary-foreground: var(--primary-foreground);
+  /* the dark edge stays: a band's floating button (a phone's „Založit skupinu“) lies over the
+     page, where lime alone is 1.1:1 */
+  --button-primary-edge: var(--primary-edge);
+  --button-primary-hover: color-mix(in srgb, var(--primary) 90%, var(--hero));
 }
 
 /* DESIGN.md › Type: Figma text styles, mobile first and the desktop size from md up. The display

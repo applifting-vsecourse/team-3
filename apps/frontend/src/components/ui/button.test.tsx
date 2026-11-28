@@ -6,9 +6,15 @@ import { Button } from "./button"
 describe("Button", () => {
   // DESIGN.md › Colour, #298: lime on cream or white is about 1.1:1, so the primary button
   // carries the primary-edge outline (Figma Button/Primary) — it vanished on the page without it
-  it("the primary (lime) button carries its primary-edge outline", () => {
+  // PO 26. 11.: dark green on light surfaces, lime on the band — the tokens switch (on-hero)
+  it("the primary button takes its colours from the button-primary tokens", () => {
     render(<Button>Přihlásit se na akci</Button>)
 
-    expect(screen.getByRole("button")).toHaveClass("border", "border-primary-edge", "bg-primary")
+    expect(screen.getByRole("button")).toHaveClass(
+      "border",
+      "border-button-primary-edge",
+      "bg-button-primary",
+      "text-button-primary-foreground",
+    )
   })
 })

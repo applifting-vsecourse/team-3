@@ -19,7 +19,7 @@ export function InterestTray({
 }) {
   return (
     <div className="relative mx-auto grid w-full max-w-6xl gap-2 px-3 pt-2 pb-[max(0.75rem,env(safe-area-inset-bottom))] sm:px-5">
-      <div className="grid min-w-0 gap-2 rounded-2xl border border-hero-pattern bg-hero px-3 py-2 text-on-hero sm:grid-cols-[1fr_auto] sm:items-center sm:gap-4 sm:px-4">
+      <div className="grid min-w-0 gap-2 rounded-2xl border border-hero-pattern on-hero px-3 py-2 sm:grid-cols-[1fr_auto] sm:items-center sm:gap-4 sm:px-4">
         <div className="flex min-w-0 items-center gap-3 sm:gap-4">
           <div className="shrink-0">
             <p className="text-sm font-semibold">Tvůj výběr</p>

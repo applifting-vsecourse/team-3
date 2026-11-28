@@ -56,7 +56,8 @@ const TEXT_PAIRS: [string, string][] = [
   ["muted-foreground", "background"],
   ["muted-foreground", "card"],
   ["muted-foreground", "muted"], // „Plno“ badge
-  ["primary-foreground", "primary"], // „Chybí“ badge, primary buttons
+  ["primary-foreground", "primary"], // „Chybí“ badge, primary buttons on the band
+  ["button-primary-foreground", "button-primary"], // primary buttons on light surfaces (PO 26. 11.)
   ["secondary-foreground", "secondary"], // „Volná místa“, activity tile
   ["background", "foreground"], // selected chip, pin label
   ["destructive", "card"], // error alert
@@ -85,6 +86,8 @@ const EDGE_PAIRS: [string, string][] = [
   ["tile-border", "background"],
   ["primary-edge", "card"], // lime on a light surface
   ["primary-edge", "background"],
+  ["button-primary-edge", "card"], // the dark green primary button on a light surface (PO 26. 11.)
+  ["button-primary-edge", "background"],
   ["capacity-fill", "capacity-track"], // solid fill once the minimum is reached
   ["full", "card"], // full bar covers the whole track
   ["hero", "background"], // bottom edge of the band, „Jak to funguje“, „Nic pro tebe?“
