@@ -2,6 +2,7 @@ import { PrismaService } from '@/core/prisma/prisma.service';
 import { Prisma } from '@/generated/prisma/client';
 import { mockDeep, type DeepMockProxy } from 'jest-mock-extended';
 import {
+  activeFriendsOfWhere,
   FriendshipRepository,
   userFriendshipsWhere,
 } from './friendship.repository';
@@ -187,5 +188,72 @@ describe('FriendshipRepository (#307)', () => {
       },
       data: { status: 'accepted', acceptedAt: now },
     });
+  });
+});
+
+describe('FriendshipRepository.mutualFriendships (#473)', () => {
+  it('my friends count only accepted either way and active: a blocked, deleted or unverified friend doesn’t', () => {
+    expect(activeFriendsOfWhere(A)).toEqual({
+      emailVerified: true,
+      blockedAt: null,
+      deletedAt: null,
+      OR: [
+        {
+          sentFriendRequests: { some: { addresseeId: A, status: 'accepted' } },
+        },
+        {
+          receivedFriendRequests: {
+            some: { requesterId: A, status: 'accepted' },
+          },
+        },
+      ],
+    });
+  });
+
+  it('loads only ids: my active friends, then their accepted friendships with the others', async () => {
+    const { prisma, repository } = setup();
+    prisma.user.findMany.mockResolvedValue([
+      { id: 'f1' },
+      { id: 'f2' },
+    ] as never);
+    prisma.friendship.findMany.mockResolvedValue([
+      { requesterId: 'f1', addresseeId: 'p' },
+    ] as never);
+
+    await expect(repository.mutualFriendships(A, ['p', 'q'])).resolves.toEqual({
+      myFriendIds: ['f1', 'f2'],
+      pairs: [{ requesterId: 'f1', addresseeId: 'p' }],
+    });
+    expect(prisma.user.findMany).toHaveBeenCalledWith({
+      where: activeFriendsOfWhere(A),
+      select: { id: true },
+    });
+    expect(prisma.friendship.findMany).toHaveBeenCalledWith({
+      where: {
+        status: 'accepted',
+        OR: [
+          {
+            requesterId: { in: ['f1', 'f2'] },
+            addresseeId: { in: ['p', 'q'] },
+          },
+          {
+            requesterId: { in: ['p', 'q'] },
+            addresseeId: { in: ['f1', 'f2'] },
+          },
+        ],
+      },
+      select: { requesterId: true, addresseeId: true },
+    });
+  });
+
+  it('without friends or people to compare, no friendships are read', async () => {
+    const { prisma, repository } = setup();
+    prisma.user.findMany.mockResolvedValue([]);
+
+    await repository.mutualFriendships(A, ['p']);
+    await repository.mutualFriendships(A, []);
+
+    expect(prisma.user.findMany).toHaveBeenCalledTimes(1);
+    expect(prisma.friendship.findMany).not.toHaveBeenCalled();
   });
 });

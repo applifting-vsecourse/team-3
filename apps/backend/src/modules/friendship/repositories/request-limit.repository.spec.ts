@@ -76,6 +76,20 @@ describe('FriendRequestLimitRepository (#84)', () => {
     expect(prisma.friendship.createMany).not.toHaveBeenCalled();
   });
 
+  it('the plan’s limit (#473): at 20 a Plus account may still ask, at 50 not', async () => {
+    const { prisma, repository } = setup();
+    prisma.friendship.count.mockResolvedValue(20);
+    prisma.friendship.createMany.mockResolvedValue({ count: 1 });
+
+    await expect(
+      repository.limited('a', 'b', 'create', since, now, 'plus'),
+    ).resolves.toBe('written');
+    prisma.friendship.count.mockResolvedValue(50);
+    await expect(
+      repository.limited('a', 'c', 'create', since, now, 'plus'),
+    ).resolves.toBe('limit');
+  });
+
   it('a pair that got a row meanwhile is reported as unchanged', async () => {
     const { prisma, repository } = setup();
     prisma.friendship.createMany.mockResolvedValue({ count: 0 });

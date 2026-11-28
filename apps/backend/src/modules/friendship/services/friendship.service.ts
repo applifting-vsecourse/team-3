@@ -1,4 +1,8 @@
-import { startOfPragueDayOf } from '@/modules/event/domain/prague-day';
+import {
+  pragueDayOf,
+  startOfNextPragueDay,
+  startOfPragueDayOf,
+} from '@/modules/event/domain/prague-day';
 import {
   friendLists,
   type FriendLists,
@@ -11,7 +15,15 @@ import {
   type FriendshipRefusal,
   type FriendshipState,
 } from '@/modules/friendship/domain/friendship';
-import { friendRequestsLeft } from '@/modules/friendship/domain/request-limit';
+import {
+  countMutualFriends,
+  shownMutualFriends,
+} from '@/modules/friendship/domain/mutual-friends';
+import {
+  DEFAULT_REQUEST_PLAN,
+  friendRequestLimit,
+  type FriendRequestLimit,
+} from '@/modules/friendship/domain/request-limit';
 import { FriendshipRepository } from '@/modules/friendship/repositories/friendship.repository';
 import { FriendRequestLimitRepository } from '@/modules/friendship/repositories/request-limit.repository';
 import { NotificationService } from '@/modules/notification/services/notification.service';
@@ -132,13 +144,35 @@ export class FriendshipService {
     return this.state(viewerId, otherId);
   }
 
-  /** „Dnes ještě 5 přidání“: new requests left today (#84). */
-  async requestsLeft(
+  /**
+   * „Dnes ještě 5 přidání“: where today's limit stands (#84) — left, of how many, until the
+   * next Prague midnight, on which plan (#473; everybody's `free` until B-071).
+   */
+  async requestLimit(
     viewerId: string,
     now: Date = new Date(),
-  ): Promise<number> {
-    return friendRequestsLeft(
+  ): Promise<FriendRequestLimit> {
+    return friendRequestLimit(
       await this.limits.sentSince(viewerId, startOfPragueDayOf(now)),
+      DEFAULT_REQUEST_PLAN,
+      startOfNextPragueDay(pragueDayOf(now)),
+    );
+  }
+
+  /**
+   * Společní přátelé (#473) for each of `otherIds`: how many, null below two — never who.
+   */
+  async mutualFriendsCounts(
+    viewerId: string,
+    otherIds: readonly string[],
+  ): Promise<Map<string, number | null>> {
+    const { myFriendIds, pairs } = await this.repository.mutualFriendships(
+      viewerId,
+      otherIds,
+    );
+    const counts = countMutualFriends(myFriendIds, pairs, otherIds);
+    return new Map(
+      [...counts].map(([id, count]) => [id, shownMutualFriends(count)]),
     );
   }
 

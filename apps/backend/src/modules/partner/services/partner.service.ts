@@ -1,10 +1,12 @@
 import type { FriendshipState } from '@/modules/friendship/domain/friendship';
+import type { FriendRequestLimit } from '@/modules/friendship/domain/request-limit';
 import { FriendshipService } from '@/modules/friendship/services/friendship.service';
 import {
   decodePartnerCursor,
   partnerCandidatesWhere,
   partnerPage,
   rankPartners,
+  withMutualFriends,
   type PartnerPage,
   type PartnerRadiusKm,
 } from '@/modules/partner/domain/partner-suggestions';
@@ -27,14 +29,14 @@ export type PartnerSuggestions = PartnerPage & {
    * anyone either (reciprocal), so the deck is empty until it is on again.
    */
   hidden: boolean;
-  /** „Dnes ještě 5 přidání“: new friendship requests left today. */
-  requestsLeft: number;
+  /** „Dnes ještě 5 přidání“: today's limit of new friendship requests (#473). */
+  limit: FriendRequestLimit;
 };
 
 export type PartnerRequestResult = {
   /** `friends` = it was a match; `outgoing` = the request waits for them. */
   state: FriendshipState;
-  requestsLeft: number;
+  limit: FriendRequestLimit;
 };
 
 /**
@@ -66,13 +68,13 @@ export class PartnerService {
     }
     const viewer = await this.repository.viewer(viewerId);
     if (!viewer) throw userNotFound();
-    const requestsLeft = await this.friendships.requestsLeft(viewerId, now);
+    const limit = await this.friendships.requestLimit(viewerId, now);
     const { home, interestIds } = viewer;
     const missing: PartnerSetupGap[] = [];
     if (!viewer.hasOnboarded) missing.push('onboarding');
     if (!home) missing.push('locality');
     if (interestIds.length === 0) missing.push('interests');
-    const empty = { items: [], nextCursor: null, radiusKm, requestsLeft };
+    const empty = { items: [], nextCursor: null, radiusKm, limit };
     if (!home || missing.length > 0) {
       return { ...empty, missing, hidden: !viewer.isDiscoverable };
     }
@@ -82,12 +84,21 @@ export class PartnerService {
       partnerCandidatesWhere(viewerId, { home, interestIds }, radiusKm, now),
     );
     const ranked = rankPartners({ home, interestIds }, candidates, radiusKm);
+    const page = partnerPage(ranked, after);
+    // counted for the page's cards only: the order never depends on it (#473)
+    const mutual = await this.friendships.mutualFriendsCounts(
+      viewerId,
+      page.items.map(({ id }) => id),
+    );
     return {
-      ...partnerPage(ranked, after),
+      items: page.items.map((partner) =>
+        withMutualFriends(partner, mutual.get(partner.id) ?? null),
+      ),
+      nextCursor: page.nextCursor,
       radiusKm,
       missing,
       hidden: false,
-      requestsLeft,
+      limit,
     };
   }
 
@@ -103,7 +114,7 @@ export class PartnerService {
     const state = await this.friendships.request(viewerId, otherId, now);
     return {
       state,
-      requestsLeft: await this.friendships.requestsLeft(viewerId, now),
+      limit: await this.friendships.requestLimit(viewerId, now),
     };
   }
 

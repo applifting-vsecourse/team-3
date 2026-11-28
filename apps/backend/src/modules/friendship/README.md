@@ -28,9 +28,13 @@ Každá změna odpoví `{ state }`, vztahem k druhému po akci, pro tlačítko n
 
 Na veřejném profilu (`GET /api/users/:id`, modul `user`) je `friendship` a pro přítele „Kam jde“, viz [`../user/README.md`](../user/README.md).
 
+## Společní přátelé (#473)
+
+`FriendshipService.mutualFriendsCounts` řekne pro každého z daných lidí, kolik mých přátel je i jeho přítel. Počítá jen přátelství `accepted` na obou stranách a jen moje aktivní přátele (ověřený e-mail, ne zablokovaný ani smazaný, jako `GET /api/friends`). Pod 2 vrací `null` (`MUTUAL_FRIENDS_SHOWN_FROM` v [`domain/mutual-friends.ts`](domain/mutual-friends.ts)), protože počet 1 by prozradil konkrétní přátelství. Jména nikdy neopouštějí repozitář, ten vrací jen id.
+
 ## Denní limit (#84)
 
-Nových žádostí je nejvýš 20 za pražský den (`FRIEND_REQUESTS_PER_DAY` v [`domain/request-limit.ts`](domain/request-limit.ts)). Platí to pro novou žádost i pro znovu poslanou, přijetí cizí žádosti limit nemá. Hlídá to jedno místo, `FriendRequestLimitRepository.limited`, přes které jde `FriendshipService.request` i „Přidat do přátel“ z pozvánky, když z něj vznikne obyčejná žádost (#406, `InviteService.accept`; přátelství rovnou z pozvánky limit nemá). `POST /api/friends/:userId`, „Přidat“ v Najdi parťáka i pozvánka tak odpoví stejně: `429 FRIEND_REQUEST_DAILY_LIMIT`. Počítají se řádky `Friendship`, kde jsem žadatel, i upozornění `friend_request`, která žádosti poslaly, a platí vyšší číslo. Zrušená žádost tak limit neobnoví. Počet a zápis běží v jedné transakci pod `pg_advisory_xact_lock(hashtext(žadatel))` (`FriendRequestLimitRepository`), takže dvě souběžné žádosti limit nepřekročí.
+Nových žádostí je nejvýš 20 za pražský den. Číslo dává jedna čistá funkce `dailyRequestLimit(plan)` v [`domain/request-limit.ts`](domain/request-limit.ts) (#473): `free` 20, `plus` 50. Placený tarif limit jen zvýší, nikdy ho nezruší, a dokud není B-071 (`PREMIUM_ENABLED=false`), má každý `free`. API vrací stav jako `limit: { left, perDay, resetsAt, plan }`, kde `resetsAt` je příští pražská půlnoc (ISO). Platí to pro novou žádost i pro znovu poslanou, přijetí cizí žádosti limit nemá. Hlídá to jedno místo, `FriendRequestLimitRepository.limited`, přes které jde `FriendshipService.request` i „Přidat do přátel“ z pozvánky, když z něj vznikne obyčejná žádost (#406, `InviteService.accept`; přátelství rovnou z pozvánky limit nemá). `POST /api/friends/:userId`, „Přidat“ v Najdi parťáka i pozvánka tak odpoví stejně: `429 FRIEND_REQUEST_DAILY_LIMIT`. Počítají se řádky `Friendship`, kde jsem žadatel, i upozornění `friend_request`, která žádosti poslaly, a platí vyšší číslo. Zrušená žádost tak limit neobnoví. Počet a zápis běží v jedné transakci pod `pg_advisory_xact_lock(hashtext(žadatel))` (`FriendRequestLimitRepository`), takže dvě souběžné žádosti limit nepřekročí.
 
 ## Upozornění
 

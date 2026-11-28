@@ -146,4 +146,11 @@ export class Config {
   @IsOptional()
   @IsIn(['', 'true', 'false'])
   readonly pwnedPasswordsCheck?: string;
+
+  // The paid plan (#473, B-071): off until the simulated payment (B-070) exists. While off,
+  // everybody's daily limit is the free one and nothing in the app mentions plans; the
+  // frontend has its own VITE_PREMIUM_ENABLED for the „Zobrazit tarify“ link.
+  @Env('PREMIUM_ENABLED', { expose: true, defaultValue: false })
+  @IsBoolean()
+  readonly premiumEnabled!: boolean;
 }

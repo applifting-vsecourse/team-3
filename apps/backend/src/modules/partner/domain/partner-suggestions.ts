@@ -57,7 +57,23 @@ export type PartnerSuggestion = {
   otherInterests: PartnerActivity[];
   /** „Posílá ti žádost“: „Přidat“ accepts it, and that is the match. */
   hasRequestedMe: boolean;
+  /**
+   * „3 společní přátelé“ (#473): only how many, never who; null below two, so a 1 never tells
+   * whom someone is friends with. Not a sort key: the cursor would have to carry it.
+   */
+  mutualFriendsCount: number | null;
 };
+
+/** A card as the ranking builds it; the page's cards get their mutual friends afterwards. */
+export type RankedPartner = Omit<PartnerSuggestion, 'mutualFriendsCount'>;
+
+/** A ranked card with its mutual friends, as the API gives it. */
+export function withMutualFriends(
+  partner: RankedPartner,
+  mutualFriendsCount: number | null,
+): PartnerSuggestion {
+  return { ...partner, mutualFriendsCount };
+}
 
 /**
  * Who may show up for the viewer, as a Prisma `where`. Only people who can be met: verified,
@@ -130,7 +146,7 @@ type PartnerSortKey = {
   distanceBandKm: number;
 };
 
-const sortKey = (partner: PartnerSuggestion): PartnerSortKey => ({
+const sortKey = (partner: RankedPartner): PartnerSortKey => ({
   id: partner.id,
   hasRequestedMe: partner.hasRequestedMe,
   sharedCount: partner.sharedInterests.length,
@@ -146,9 +162,9 @@ export function rankPartners(
   viewer: PartnerViewer,
   candidates: readonly PartnerCandidateRecord[],
   radiusKm: number,
-): PartnerSuggestion[] {
+): RankedPartner[] {
   const liked = new Set(viewer.interestIds);
-  const ranked: PartnerSuggestion[] = [];
+  const ranked: RankedPartner[] = [];
   for (const candidate of candidates) {
     if (!candidate.homeLocality) continue;
     // the cut-off is the band, never the exact distance: what crosses the radius is exactly what
@@ -177,7 +193,7 @@ export function rankPartners(
  * viewer skipped or liked meanwhile drop out of the deck, and an offset would then jump over as
  * many others; the place in the order doesn't move.
  */
-export function encodePartnerCursor(partner: PartnerSuggestion): string {
+export function encodePartnerCursor(partner: RankedPartner): string {
   const key = sortKey(partner);
   return Buffer.from(
     JSON.stringify([
@@ -217,18 +233,18 @@ export function decodePartnerCursor(value: string): PartnerSortKey | undefined {
   }
 }
 
-export type PartnerPage = {
-  items: PartnerSuggestion[];
+export type PartnerPage<T extends RankedPartner = PartnerSuggestion> = {
+  items: T[];
   /** Null when the deck is through: nobody else within the radius. */
   nextCursor: string | null;
 };
 
 /** One page of the ranked deck after the cursor. */
-export function partnerPage(
-  ranked: readonly PartnerSuggestion[],
+export function partnerPage<T extends RankedPartner>(
+  ranked: readonly T[],
   after: PartnerSortKey | undefined,
   size: number = PARTNER_PAGE_SIZE,
-): PartnerPage {
+): PartnerPage<T> {
   const rest = after
     ? ranked.filter((partner) => comparePartners(sortKey(partner), after) > 0)
     : ranked;

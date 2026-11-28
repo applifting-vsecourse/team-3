@@ -6,6 +6,7 @@ import {
   partnerPage,
   rankPartners,
   skipsSince,
+  withMutualFriends,
   type PartnerCandidateRecord,
   type PartnerViewer,
 } from './partner-suggestions';
@@ -261,5 +262,16 @@ describe('partner cursor (#84)', () => {
     Buffer.from('[1,1,2,""]').toString('base64url'),
   ])('refuses anything it did not give out (%s)', (value) => {
     expect(decodePartnerCursor(value)).toBeUndefined();
+  });
+});
+
+describe('withMutualFriends (#473)', () => {
+  it('adds only the count to the card, never who', () => {
+    const [card] = rankPartners(viewer, [person('p1')], 25);
+    const withCount = withMutualFriends(card, 3);
+    expect(withCount).toEqual({ ...card, mutualFriendsCount: 3 });
+    expect(withMutualFriends(card, null).mutualFriendsCount).toBeNull();
+    // the count isn't a sort key: the cursor stays the same
+    expect(encodePartnerCursor(withCount)).toBe(encodePartnerCursor(card));
   });
 });
