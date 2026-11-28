@@ -248,29 +248,30 @@ model User {
   displayUsername String? @db.VarChar(50)
 
   // Profil (B-003, B-013)
-  bio            String?        @db.VarChar(500)
-  homeLocalityId String?
-  homeLocality   Locality?      @relation(fields: [homeLocalityId], references: [id], onDelete: SetNull)
+  bio                     String?        @db.VarChar(500)
+  homeLocalityId          String?
+  homeLocality            Locality?      @relation(fields: [homeLocalityId], references: [id], onDelete: SetNull)
   // Změny domovské lokality za pražský den (#84): nejvýš 3, aby se z pásem
   // vzdálenosti v Najdi parťáka nedala přesouváním domova dopočítat poloha
-  homeLocalityChangeDay   String? @db.VarChar(10)
-  homeLocalityChangeCount Int     @default(0)
-  interests      UserInterest[]
+  homeLocalityChangeDay   String?        @db.VarChar(10)
+  homeLocalityChangeCount Int            @default(0)
+  interests               UserInterest[]
 
   // Viditelnost údajů v profilu (B-014)
   photoVisibility      ProfileVisibility @default(everyone)
   bioVisibility        ProfileVisibility @default(everyone)
   pastEventsVisibility ProfileVisibility @default(everyone)
-  // „Ukazovat mě v Najdi parťáka“ (#84): vypnuté = nikomu se nenabízím
-  partnerDiscoverable  Boolean           @default(true)
+  // „Ukazovat mě v Najdi parťáka“ (#84): vypnuté = nikomu se nenabízím. Výchozí
+  // vypnuté: cizím lidem se ukáže jen ten, kdo to sám zapne (GDPR čl. 25)
+  partnerDiscoverable  Boolean           @default(false)
 
   // Souhlasy (B-016), blokace superadminem (B-063), smazání účtu (B-080)
-  ageConfirmedAt  DateTime?
-  termsAcceptedAt DateTime?
+  ageConfirmedAt        DateTime?
+  termsAcceptedAt       DateTime?
   onboardingCompletedAt DateTime?
-  blockedAt       DateTime?
-  blockedReason   String?   @db.Text
-  deletedAt       DateTime?
+  blockedAt             DateTime?
+  blockedReason         String?   @db.Text
+  deletedAt             DateTime?
 
   // Pozvánka od kamaráda (#406): náhodný kód osobního odkazu /pozvanka/:code (128 bitů
   // z CSPRNG, bez osobních údajů), vzniká při prvním GET /api/invites/me, jde vyměnit.
@@ -299,6 +300,7 @@ model User {
   receivedFriendRequests Friendship[]        @relation("FriendshipAddressee")
   partnerSkipsMade       PartnerSkip[]       @relation("PartnerSkipper")
   partnerSkipsReceived   PartnerSkip[]       @relation("PartnerSkipped")
+  friendRequestsLogged   FriendRequestLog[]
   notifications          Notification[]
 
   @@unique([email])
@@ -758,6 +760,19 @@ model Friendship {
 // ---------------------------------------------------------------------------
 // Najdi parťáka (#84)
 // ---------------------------------------------------------------------------
+
+/// Odeslané žádosti o přátelství pro denní limit (#84). Vlastní záznam, protože
+/// zrušená žádost smaže řádek přátelství i své upozornění (#430): limit se
+/// zrušením a novým odesláním obejít nedá. Kdo komu, se nepamatuje, jen kdy.
+model FriendRequestLog {
+  id          String   @id @default(cuid())
+  requesterId String
+  requester   User     @relation(fields: [requesterId], references: [id], onDelete: Cascade)
+  createdAt   DateTime @default(now())
+
+  @@index([requesterId, createdAt])
+  @@map("friend_request_log")
+}
 
 /// „Teď ne“ v Najdi parťáka: koho `skipper` přeskočil, aby se mu ten člověk
 /// 90 dní neukázal, ani na jiném zařízení (`createdAt` = poslední přeskočení,

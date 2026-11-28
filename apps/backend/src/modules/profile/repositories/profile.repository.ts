@@ -27,12 +27,35 @@ export class ProfileRepository {
     });
   }
 
-  save(userId: string, data: Prisma.UserUpdateInput): Promise<ProfileRow> {
-    return this.prisma.user.update({
-      where: { id: userId, deletedAt: null, blockedAt: null },
-      data,
-      select: profileSelect,
-    });
+  /**
+   * `expected`: the home-change counter as read before (#84). The write happens only while it
+   * still holds (compare-and-set), so two requests at once can't both pass the daily limit;
+   * null when another one got there first.
+   */
+  async save(
+    userId: string,
+    data: Prisma.UserUpdateInput,
+    expected?: Pick<
+      Prisma.UserWhereInput,
+      'homeLocalityChangeDay' | 'homeLocalityChangeCount'
+    >,
+  ): Promise<ProfileRow | null> {
+    try {
+      return await this.prisma.user.update({
+        where: { id: userId, deletedAt: null, blockedAt: null, ...expected },
+        data,
+        select: profileSelect,
+      });
+    } catch (error) {
+      if (
+        expected &&
+        error instanceof Prisma.PrismaClientKnownRequestError &&
+        error.code === 'P2025'
+      ) {
+        return null;
+      }
+      throw error;
+    }
   }
 
   async finishOnboarding(

@@ -1,4 +1,5 @@
 import { PrismaService } from '@/core/prisma/prisma.service';
+import { Prisma } from '@/generated/prisma/client';
 import { PROFILE_OVERVIEW_TAKE } from '@/modules/profile/domain/profile';
 import { mockDeep } from 'jest-mock-extended';
 import { ProfileRepository } from './profile.repository';
@@ -111,5 +112,42 @@ describe('private profile queries (#178)', () => {
     expect(result).toMatchObject({
       participantSummary: { average: 4.5, count: 6 },
     });
+  });
+});
+
+describe('saving a new home (#84)', () => {
+  const prisma = mockDeep<PrismaService>();
+  const repository = new ProfileRepository(prisma);
+  const expected = {
+    homeLocalityChangeDay: '2026-11-23',
+    homeLocalityChangeCount: 2,
+  };
+  beforeEach(() => jest.clearAllMocks());
+
+  it('writes only while the change counter is still the one read', async () => {
+    prisma.user.update.mockResolvedValue({} as never);
+    await repository.save('owner', { homeLocalityChangeCount: 3 }, expected);
+    expect(prisma.user.update).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: {
+          id: 'owner',
+          deletedAt: null,
+          blockedAt: null,
+          ...expected,
+        },
+      }),
+    );
+  });
+
+  it('another change got there first: null, nothing written past the limit', async () => {
+    prisma.user.update.mockRejectedValue(
+      new Prisma.PrismaClientKnownRequestError('not found', {
+        code: 'P2025',
+        clientVersion: 'test',
+      }),
+    );
+    await expect(
+      repository.save('owner', { homeLocalityChangeCount: 3 }, expected),
+    ).resolves.toBeNull();
   });
 });
