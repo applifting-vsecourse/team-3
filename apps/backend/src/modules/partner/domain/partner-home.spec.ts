@@ -10,14 +10,18 @@ const now = new Date('2026-11-28T12:00:00.000Z');
 const DAY = 24 * 60 * 60 * 1000;
 const daysAgo = (days: number): Date => new Date(now.getTime() - days * DAY);
 
-const person = (id: string): PartnerSuggestion => ({
-  id,
-  name: id,
-  distanceBandKm: 5,
-  sharedInterests: [{ id: 'a', name: 'Volejbal', slug: 'volejbal' }],
-  otherInterests: [],
-  hasRequestedMe: false,
-});
+// through `unknown`: #473 adds a required `mutualFriendsCount`, and the fixture must type-check
+// before and after it, whichever of the two is merged first
+const person = (id: string): PartnerSuggestion =>
+  ({
+    id,
+    name: id,
+    distanceBandKm: 5,
+    sharedInterests: [{ id: 'a', name: 'Volejbal', slug: 'volejbal' }],
+    otherInterests: [],
+    hasRequestedMe: false,
+    mutualFriendsCount: null,
+  }) as unknown as PartnerSuggestion;
 
 const fresh: PartnerHomeState = {
   visitedAt: null,
