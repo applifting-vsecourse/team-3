@@ -1,6 +1,6 @@
 import type { ReactNode } from "react"
 import { Link } from "@tanstack/react-router"
-import { Ban, EyeOff, RefreshCw } from "lucide-react"
+import { Ban, ExternalLink, EyeOff, RefreshCw } from "lucide-react"
 
 import { ROUTES } from "@/app/routes"
 import { ActivityPhoto } from "@/components/ActivityPhoto/ActivityPhoto"
@@ -8,6 +8,7 @@ import { BackLink, type BackLinkProps } from "@/components/BackLink/BackLink"
 import { CapacityBar } from "@/components/CapacityBar/CapacityBar"
 import { DateTile } from "@/components/DateTile/DateTile"
 import { HappeningStamp } from "@/components/HappeningStamp/HappeningStamp"
+import { mapAppLinks } from "@/components/map/mapAppLinks"
 import { MapView } from "@/components/map/MapView"
 import { BandActivity } from "@/components/PageBand/BandActivity"
 import { PageBand } from "@/components/PageBand/PageBand"
@@ -214,22 +215,48 @@ export function EventDetailView({
     </Alert>
   ) : null
   const facts = <EventFacts event={event} />
+  // #373 (PO 26. 11.): a map to look around in, not a picture — the page still scrolls over
+  // it — and the way to a map app for directions
   const map = (
-    <div className="h-40 overflow-hidden rounded-lg border border-input">
-      <MapView
-        isStatic
-        label="Místo akce na mapě"
-        center={{ lat: event.lat, lng: event.lng }}
-        pins={[
-          {
-            // the pin says the state as on the list's map: lime while people are missing
-            // (Figma A-05d); a cancelled event no longer misses anyone
-            ...toPin(event),
-            ...(isCancelled ? { variant: "default" as const } : {}),
-            label: placeName(event.address),
-          },
-        ]}
-      />
+    <div className="flex flex-col gap-2">
+      <div className="h-56 overflow-hidden rounded-lg border border-input">
+        <MapView
+          isScrollSafe
+          label="Místo akce na mapě"
+          center={{ lat: event.lat, lng: event.lng }}
+          pins={[
+            {
+              // the pin says the state as on the list's map: lime while people are missing
+              // (Figma A-05d); a cancelled event no longer misses anyone
+              ...toPin(event),
+              ...(isCancelled ? { variant: "default" as const } : {}),
+              label: placeName(event.address),
+            },
+          ]}
+        />
+      </div>
+      <p className="hidden text-sm text-muted-foreground pointer-coarse:block">
+        Mapou pohneš dvěma prsty.
+      </p>
+      <p className="flex flex-wrap items-center gap-x-3 gap-y-1 text-sm">
+        <span className="text-muted-foreground">Otevřít v mapách:</span>
+        {mapAppLinks(event).map((app) => (
+          <a
+            key={app.label}
+            href={app.href}
+            target="_blank"
+            rel="noreferrer"
+            className="inline-flex items-center gap-1 underline underline-offset-4"
+          >
+            {app.label}
+            <ExternalLink
+              aria-hidden
+              className="size-3.5"
+            />
+            <span className="sr-only"> (otevře se v novém okně)</span>
+          </a>
+        ))}
+      </p>
     </div>
   )
   const organizer = (
@@ -449,7 +476,8 @@ function EventDetailSkeleton({ isDesktop }: { isDesktop: boolean }) {
       <Skeleton className="h-2 w-full rounded-full" />
       <Skeleton className="h-10 w-2/3" />
       <Skeleton className="h-10 w-full" />
-      <Skeleton className="h-40 rounded-lg" />
+      {/* the map is 224 px (#373) */}
+      <Skeleton className="h-56 rounded-lg" />
     </div>
   )
   return (

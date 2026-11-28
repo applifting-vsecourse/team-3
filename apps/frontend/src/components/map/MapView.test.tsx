@@ -336,3 +336,72 @@ describe("AreaSearchButton", () => {
     expect(button.style.top).toBe("")
   })
 })
+
+// #373: the detail's map can be explored, the page still scrolls over it
+describe("MapView isScrollSafe", () => {
+  const pin = [{ id: "a", lat: 50.09, lng: 14.45, variant: "default" as const, label: "Deskovky" }]
+  // the Leaflet maps made here, to ask their handlers
+  const made: LeafletMap[] = []
+  beforeAll(() => {
+    LeafletMap.addInitHook(function (this: LeafletMap) {
+      made.push(this)
+    })
+  })
+  beforeEach(() => {
+    made.length = 0
+  })
+  const pointer = (isCoarse: boolean) =>
+    vi.stubGlobal(
+      "matchMedia",
+      (query: string) =>
+        ({ matches: isCoarse && query === "(pointer: coarse)", media: query }) as MediaQueryList,
+    )
+
+  afterEach(() => {
+    vi.unstubAllGlobals()
+  })
+
+  it("is dragged by a mouse and zoomed by its buttons", () => {
+    pointer(false)
+    const { container } = render(
+      <MapView
+        center={praha}
+        pins={pin}
+        isScrollSafe
+      />,
+    )
+
+    expect(container.querySelector(".leaflet-container")).toHaveClass("leaflet-grab")
+    // the wheel scrolls the page; zoom is the buttons', named in Czech
+    const map = made.at(-1)!
+    expect(map.scrollWheelZoom.enabled()).toBe(false)
+    expect(map.dragging.enabled()).toBe(true)
+    expect(container.querySelector(".leaflet-control-zoom-in")).toHaveAttribute(
+      "aria-label",
+      "Přiblížit",
+    )
+    expect(container.querySelector(".leaflet-control-zoom-out")).toHaveAttribute(
+      "aria-label",
+      "Oddálit",
+    )
+  })
+
+  it("leaves one finger to the page on a touch screen", () => {
+    pointer(true)
+    const { container } = render(
+      <MapView
+        center={praha}
+        pins={pin}
+        isScrollSafe
+      />,
+    )
+
+    expect(container.querySelector(".leaflet-container")).not.toHaveClass("leaflet-grab")
+    // one finger scrolls the page, two move and pinch the map
+    const map = made.at(-1)!
+    expect(map.dragging.enabled()).toBe(false)
+    expect(map.touchZoom.enabled()).toBe(true)
+    expect(map.scrollWheelZoom.enabled()).toBe(false)
+    expect(container.querySelector(".leaflet-control-zoom-in")).toBeInTheDocument()
+  })
+})
