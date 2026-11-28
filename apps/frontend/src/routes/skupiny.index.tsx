@@ -106,6 +106,7 @@ function GroupsPage() {
       // the page's primary, beside the title like „Založit akci“ in Moje (A-07d)
       size="lg"
       // mobile: floats above the bottom navigation (Figma A-07)
+      data-toast-clear
       className="fixed right-4 bottom-20 z-30 h-11 shadow-md md:static md:shadow-none"
     >
       <Link to="/skupiny/nova">

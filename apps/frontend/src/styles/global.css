@@ -351,3 +351,20 @@
     @apply ms-3;
   }
 }
+
+/* Where toasts sit (PO 26. 11.), apart from the colour tokens above (tokens.test.ts reads those):
+   on a phone above the bottom navigation, and above a page's own bottom action too (the
+   detail's „Přijdu“ bar, the floating „Založit“), never over it. --toast-offset is the desktop
+   offset's bottom, which Sonner uses past 600 px: above the navigation while it shows. */
+:root {
+  /* the default; useToastClearance measures what the page marked data-toast-clear */
+  --toast-bottom: 80px;
+  --toast-offset: var(--toast-bottom);
+}
+
+/* from md the bottom navigation is gone: the desktop corner */
+@media (min-width: 768px) {
+  :root {
+    --toast-offset: 24px;
+  }
+}

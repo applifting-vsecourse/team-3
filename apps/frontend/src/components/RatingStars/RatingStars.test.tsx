@@ -52,6 +52,25 @@ describe("RatingStars (Figma Hodnocení/Hvězdičky)", () => {
     )
   })
 
+  // #369: a lighter preview under the mouse, full black only for the pick
+  it("pointing at a star previews up to it, lighter than a pick; leaving restores the pick", async () => {
+    const user = userEvent.setup()
+    render(<Labelled initial={1} />)
+    const icons = () => screen.getAllByRole("radio").map((radio) => radio.querySelector("svg"))
+
+    await user.hover(screen.getByRole("radio", { name: "4 z 5 hvězd" }))
+    expect(
+      icons()
+        .slice(0, 4)
+        .every((icon) => icon?.classList.contains("fill-control-border")),
+    ).toBe(true)
+    expect(icons()[4]).toHaveClass("fill-none")
+
+    await user.unhover(screen.getByRole("radiogroup"))
+    expect(icons()[0]).toHaveClass("fill-foreground")
+    expect(icons()[1]).toHaveClass("fill-none")
+  })
+
   it("arrows move between the stars and Space picks one, as in any radio group", async () => {
     const user = userEvent.setup()
     render(<Labelled initial={2} />)

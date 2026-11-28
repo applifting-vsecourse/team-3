@@ -5,6 +5,7 @@ import { ROUTES } from "@/app/routes"
 import { ActivityTag } from "@/components/ActivityTag/ActivityTag"
 import { PageBand } from "@/components/PageBand/PageBand"
 import { PersonRow } from "@/components/PersonRow/PersonRow"
+import { StarsShown } from "@/components/RatingStars/StarsShown"
 import { Button } from "@/components/ui/button"
 import { PAGE } from "@/lib/pageLayout"
 import { formatAverage, ratingSummaryLabel } from "@/lib/ratingSummary"
@@ -148,15 +149,9 @@ export function PublicProfileView({
                     ) : (
                       <p className="text-sm text-muted-foreground">Organizátor</p>
                     )}
-                    <p
-                      className="text-sm"
-                      aria-label={`${rating.stars} z 5 hvězdiček`}
-                    >
-                      <span aria-hidden="true">
-                        {"★".repeat(rating.stars)}
-                        {"☆".repeat(5 - rating.stars)}
-                      </span>
-                      <span className="ml-2 text-muted-foreground">{date(rating.createdAt)}</span>
+                    <p className="flex items-center gap-2 text-sm">
+                      <StarsShown stars={rating.stars} />
+                      <span className="text-muted-foreground">{date(rating.createdAt)}</span>
                     </p>
                     {rating.comment ? (
                       <p className="break-words whitespace-pre-line">{rating.comment}</p>
