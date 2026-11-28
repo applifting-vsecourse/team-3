@@ -20,6 +20,8 @@ export const IN_APP_TYPES: InAppType[] = [
   'group_request_rejected',
   'friend_request',
   'friend_accepted',
+  'event_rated',
+  'participant_rated',
 ];
 
 class NotificationItemDto implements CentreItem {

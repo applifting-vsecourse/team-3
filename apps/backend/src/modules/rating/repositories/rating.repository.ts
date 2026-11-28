@@ -113,6 +113,8 @@ export class RatingRepository {
         rating: EventRating;
         state: EventRatingState;
         event: RatedEvent;
+        /** The rater's first rating of the event, not a change (PO 26. 11.: the upozornění). */
+        isNew: boolean;
       }
     | { ok: false; refusal: EventRatingRefusal }
     | null
@@ -129,7 +131,13 @@ export class RatingRepository {
         update: input,
         select: ratingSelect,
       });
-      return { ok: true, rating, state: snapshot.state, event: snapshot.event };
+      return {
+        ok: true,
+        rating,
+        state: snapshot.state,
+        event: snapshot.event,
+        isNew: snapshot.rating === null,
+      };
     });
   }
 
@@ -235,7 +243,12 @@ export class RatingRepository {
           participantId?: string;
         },
   ): Promise<
-    | { ok: true; snapshot: ParticipantRatingsSnapshot }
+    | {
+        ok: true;
+        snapshot: ParticipantRatingsSnapshot;
+        /** Who got their first rating of this event now (PO 26. 11.: the upozornění). */
+        newlyRatedIds: string[];
+      }
     | { ok: false; refusal: ParticipantRatingRefusal; participantId?: string }
     | null
   > {
@@ -288,9 +301,11 @@ export class RatingRepository {
         SET "stars" = EXCLUDED."stars",
             "comment" = EXCLUDED."comment",
             "updatedAt" = now()`;
+      const rated = new Set(ratings.map((r) => r.participantId));
       return {
         ok: true,
         snapshot: { event, participants: await readParticipants(tx, eventId) },
+        newlyRatedIds: ids.filter((id) => !rated.has(id)),
       };
     });
   }

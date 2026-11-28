@@ -4,6 +4,7 @@ import {
   composeEventMessageInApp,
   composeFriendInApp,
   composeGroupRequestInApp,
+  composeRatingInApp,
   InAppType,
   notificationPath,
 } from './in-app';
@@ -281,6 +282,36 @@ describe('composeFriendInApp (#307)', () => {
   });
 });
 
+// PO 26. 11.: „Když mě někdo ohodnotil, nepřišla mi k tomu notifikace.“
+describe('composeRatingInApp', () => {
+  const rated = { id: 'e1', title: 'Florbal' };
+
+  it('the organizer hears the event got a rating, without who gave it', () => {
+    expect(
+      composeRatingInApp({ type: 'event-rated', eventId: 'e1' }, rated),
+    ).toEqual({
+      type: 'event_rated',
+      targetType: 'event',
+      targetId: 'e1',
+      text: 'Tvoje akce „Florbal“ má nové hodnocení.',
+    });
+  });
+
+  it('a participant hears the organizer rated them', () => {
+    expect(
+      composeRatingInApp(
+        { type: 'participant-rated', eventId: 'e1', participantIds: ['u1'] },
+        rated,
+      ),
+    ).toEqual({
+      type: 'participant_rated',
+      targetType: 'event',
+      targetId: 'e1',
+      text: 'Máš nové hodnocení od organizátora akce „Florbal“.',
+    });
+  });
+});
+
 describe('notificationPath', () => {
   it.each<[InAppType, string]>([
     ['request_received', '/akce/e1/sprava'],
@@ -297,6 +328,8 @@ describe('notificationPath', () => {
     ['group_announcement', '/skupiny/e1'],
     ['friend_request', '/profil/pratele?tab=zadosti'],
     ['friend_accepted', '/uzivatele/e1'],
+    ['event_rated', '/akce/e1/sprava'],
+    ['participant_rated', '/profil'],
   ])('%s leads to %s', (type, path) => {
     expect(notificationPath(type, 'e1')).toBe(path);
   });

@@ -607,6 +607,48 @@ describe('NotificationService.deliver: the centre (#86)', () => {
     );
   });
 
+  // PO 26. 11.: a new rating, in the centre only
+  it('a new rating of the event tells its organizer in the centre, by no e-mail', async () => {
+    const { repository, email, service } = setup();
+    repository.findEvent.mockResolvedValue(event);
+    repository.findRecipients.mockResolvedValue([jana]);
+
+    await service.deliver({ type: 'event-rated', eventId: event.id });
+
+    expect(repository.findRecipients).toHaveBeenCalledWith([event.organizerId]);
+    expect(repository.createInApp).toHaveBeenCalledWith(
+      [jana.id],
+      expect.objectContaining({ type: 'event_rated', targetId: event.id }),
+    );
+    expect(email.sendEmail).not.toHaveBeenCalled();
+  });
+
+  it('the rated participants hear of it', async () => {
+    const { repository, service } = setup();
+    repository.findEvent.mockResolvedValue(event);
+    repository.findRecipients.mockResolvedValue([jana]);
+
+    await service.deliver({
+      type: 'participant-rated',
+      eventId: event.id,
+      participantIds: [jana.id],
+    });
+    expect(repository.findRecipients).toHaveBeenCalledWith([jana.id]);
+    expect(repository.createInApp).toHaveBeenCalledWith(
+      [jana.id],
+      expect.objectContaining({ type: 'participant_rated' }),
+    );
+  });
+
+  it('a rating of an event that is gone tells nobody', async () => {
+    const { repository, service } = setup();
+    repository.findEvent.mockResolvedValue(null);
+
+    await service.deliver({ type: 'event-rated', eventId: 'gone' });
+
+    expect(repository.createInApp).not.toHaveBeenCalled();
+  });
+
   it('a friend who can’t be written to (blocked, deleted) gets nothing', async () => {
     const { repository, email, service } = setup();
     repository.findRecipients.mockResolvedValue([]);

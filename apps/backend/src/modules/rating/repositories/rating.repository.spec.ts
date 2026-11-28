@@ -163,6 +163,8 @@ describe('RatingRepository (#66)', () => {
         }),
         // and what the page shows of the event, from the same read
         event: ratedEvent,
+        // no rating before: a new one, the organizer hears of it (PO 26. 11.)
+        isNew: true,
       });
       expect(prisma.$executeRaw).toHaveBeenCalled();
       expect(decide).toHaveBeenCalledWith(

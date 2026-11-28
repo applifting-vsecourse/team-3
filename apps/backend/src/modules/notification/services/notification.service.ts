@@ -7,6 +7,7 @@ import {
   composeEventMessageInApp,
   composeFriendInApp,
   composeGroupRequestInApp,
+  composeRatingInApp,
   InAppMessage,
 } from '@/modules/notification/domain/in-app';
 import {
@@ -23,6 +24,7 @@ import {
   GroupRequestNotification,
   Notification,
   NotifiedEvent,
+  RatingNotification,
   Recipient,
 } from '@/modules/notification/domain/notification';
 import { NotificationRepository } from '@/modules/notification/repositories/notification.repository';
@@ -38,7 +40,8 @@ type Audience = { recipients: Recipient[]; person: { name: string } | null };
  */
 type Prepared = {
   recipients: Recipient[];
-  message: ComposedMessage;
+  /** Null for an upozornění without an e-mail (a rating). */
+  message: ComposedMessage | null;
   inApp: InAppMessage;
   inAppRecipientIds: string[];
 };
@@ -135,13 +138,16 @@ export class NotificationService {
               : notification.type === 'group-join-request' ||
                   notification.type === 'group-request-decided'
                 ? await this.prepareGroupRequest(notification)
-                : await this.prepareEventNotification(notification);
+                : notification.type === 'event-rated' ||
+                    notification.type === 'participant-rated'
+                  ? await this.prepareRating(notification)
+                  : await this.prepareEventNotification(notification);
       if (!prepared) return;
       // the centre first: it doesn't wait for the mail provider
       await this.store(notification, prepared);
-      if (prepared.recipients.length === 0) return;
-
       const { recipients, message } = prepared;
+      if (recipients.length === 0 || !message) return;
+
       const html = await renderEmail(EventNotificationEmail, message.email);
       // one by one: the mail provider's rate limit counts, and nobody waits
       for (const recipient of recipients) {
@@ -284,6 +290,29 @@ export class NotificationService {
         this.config.frontendUrl,
       ),
       inApp: composeFriendInApp(notification, person),
+      inAppRecipientIds: recipients.map(({ id }) => id),
+    };
+  }
+
+  /**
+   * A new rating (PO 26. 11.): the organizer of the rated event, or the rated participants,
+   * hear of it in the centre; no e-mail. Null when the event is gone or nobody can be told.
+   */
+  private async prepareRating(
+    notification: RatingNotification,
+  ): Promise<Prepared | null> {
+    const event = await this.repository.findEvent(notification.eventId);
+    if (!event) return null;
+    const recipients = await this.repository.findRecipients(
+      notification.type === 'event-rated'
+        ? [event.organizerId]
+        : notification.participantIds,
+    );
+    if (recipients.length === 0) return null;
+    return {
+      recipients: [],
+      message: null,
+      inApp: composeRatingInApp(notification, event),
       inAppRecipientIds: recipients.map(({ id }) => id),
     };
   }

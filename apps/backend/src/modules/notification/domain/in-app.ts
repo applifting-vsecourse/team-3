@@ -7,6 +7,7 @@ import {
   NotifiedEvent,
   NotifiedEventMessage,
   NotifiedGroup,
+  RatingNotification,
 } from './notification';
 
 /**
@@ -27,7 +28,9 @@ export type InAppType =
   | 'group_request_approved'
   | 'group_request_rejected'
   | 'friend_request'
-  | 'friend_accepted';
+  | 'friend_accepted'
+  | 'event_rated'
+  | 'participant_rated';
 
 export type InAppTargetType = 'event' | 'group' | 'user';
 
@@ -163,6 +166,29 @@ export const composeFriendInApp = (
       };
 
 /**
+ * A new rating (PO 26. 11.: „Když mě někdo ohodnotil, nepřišla mi k tomu notifikace.“): the
+ * organizer hears their event got one, a participant that the organizer rated them. Without
+ * the author's name – the rating is about the event, and the words stay gender-neutral.
+ */
+export const composeRatingInApp = (
+  notification: RatingNotification,
+  event: { id: string; title: string },
+): InAppMessage =>
+  notification.type === 'event-rated'
+    ? {
+        type: 'event_rated',
+        targetType: 'event',
+        targetId: event.id,
+        text: `Tvoje akce ${quoted(event.title)} má nové hodnocení.`,
+      }
+    : {
+        type: 'participant_rated',
+        targetType: 'event',
+        targetId: event.id,
+        text: `Máš nové hodnocení od organizátora akce ${quoted(event.title)}.`,
+      };
+
+/**
  * Where a click on the upozornění leads, in the frontend. The organizer's
  * kinds lead to the event's management, where the request or the list is;
  * a group admin's to the group's; friends to the requests or the friend.
@@ -190,5 +216,9 @@ export const notificationPath = (type: InAppType, targetId: string): string => {
       return '/profil/pratele?tab=zadosti';
     case 'friend_accepted':
       return `/uzivatele/${id}`;
+    case 'event_rated':
+      return `/akce/${id}/sprava`;
+    case 'participant_rated':
+      return '/profil';
   }
 };

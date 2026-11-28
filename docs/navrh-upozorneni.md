@@ -6,7 +6,7 @@ Planning sprintu 4 (`zapis-planning-sprint4.md`): notifikační centrum v aplika
 
 ## Jak upozornění funguje
 
-- **Jedna událost, dva kanály.** Upozornění v centru i e-mail vznikají ze stejné události (`NotificationService.notify`). Text v centru je první řádek e-mailu (náhled), aby si uživatel obojí spojil.
+- **Jedna událost, dva kanály.** Upozornění v centru i e-mail vznikají ze stejné události (`NotificationService.notify`); výjimkou je nové hodnocení, to jde jen do centra (#432). Text v centru je první řádek e-mailu (náhled), aby si uživatel obojí spojil.
 - **Krátká zpráva:** kdo, co a u které akce nebo skupiny. Čas („teď“, „před 5 min“, „před 2 h“, „včera“, „pá 20. 11.“) ukazuje centrum pod zprávou.
 - **Klepnutí vede na detail** (správa akce, detail akce, stránka nebo správa skupiny, žádosti o přátelství, profil) a upozornění označí jako přečtené, i když ho uživatel otevře v nové záložce. „Označit vše jako přečtené“ přečte všechna najednou. Samotné otevření centra nic neoznačí.
 - **Autor události upozornění nedostane.** Organizátor, který akci zrušil, se o zrušení nedozví; správce, který napsal oznámení, ho do centra nedostane (e-mail ano, jako dosud).
@@ -34,10 +34,10 @@ Planning sprintu 4 (`zapis-planning-sprint4.md`): notifikační centrum v aplika
 | Oznámení správce (#194)                | aktivní členové kromě autora | `Nové oznámení ve skupině „{skupina}“: {předmět}`                                         | stránka skupiny      | {skupina}: {předmět}                                             |
 | Žádost o přátelství (i opakovaná)      | ten, koho žádám              | `{jméno} ti posílá žádost o přátelství.`                                                  | žádosti o přátelství | Žádost o přátelství: {jméno}                                     |
 | Přijetí přátelství                     | ten, kdo žádal               | `{jméno} a ty jste teď přátelé.`                                                          | profil {jméno}       | Jste přátelé: {jméno}                                            |
-| Nové hodnocení akce (#432)             | organizátor                  | `Tvoje akce {akce} má nové hodnocení.`                                                    | správa akce          | – (jen v centru)                                                 |
-| Nové hodnocení od organizátora (#432)  | hodnocený účastník           | `Máš nové hodnocení od organizátora akce {akce}.`                                         | profil               | – (jen v centru)                                                 |
+| Nové hodnocení akce (#432)             | organizátor                  | `Tvoje akce „{akce}“ má nové hodnocení.`                                                  | správa akce          | – (jen v centru)                                                 |
+| Nové hodnocení od organizátora (#432)  | hodnocený účastník           | `Máš nové hodnocení od organizátora akce „{akce}“.`                                       | profil               | – (jen v centru)                                                 |
 
-Výsledek žádosti o vstup do skupiny v zadání #86 není, je to protějšek schválení a zamítnutí přihlášky na akci. Odmítnutí a odebrání z přátel zůstávají tichá (#307). U hodnocení (#432, platí po merge PR #433) přijde upozornění jen k prvnímu hodnocení, ne k jeho úpravě, a e-mail k němu nechodí.
+Výsledek žádosti o vstup do skupiny v zadání #86 není, je to protějšek schválení a zamítnutí přihlášky na akci. Odmítnutí a odebrání z přátel zůstávají tichá (#307). U hodnocení (#432) přijde upozornění jen k prvnímu hodnocení, ne k jeho úpravě, a e-mail k němu nechodí.
 
 **Mimo #86:** upozornění na novou akci skupiny (#362), na obdržené hodnocení řeší #432 (v tabulce výše). Plánované e-maily (výzva k hodnocení #65) chodí jen e-mailem, do centra nepatří. Odebrání účastníka organizátorem (`removed`) neoznamuje ani e-mail. Podle zadání mimo rozsah: push notifikace, obecné nastavení upozornění, akce v okolí (#74).
 

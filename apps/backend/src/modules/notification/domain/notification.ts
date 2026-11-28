@@ -103,7 +103,11 @@ export type Notification =
   /** Somebody asks to be friends (#307, #86); a request sent again too. */
   | { type: 'friend-request'; fromId: string; toId: string }
   /** The one asked accepted: `fromId` accepted the request of `toId`. */
-  | { type: 'friend-accepted'; fromId: string; toId: string };
+  | { type: 'friend-accepted'; fromId: string; toId: string }
+  /** The organizer hears their event got a new rating (PO 26. 11.). */
+  | { type: 'event-rated'; eventId: string }
+  /** The participants hear the organizer rated them for the first time (PO 26. 11.). */
+  | { type: 'participant-rated'; eventId: string; participantIds: string[] };
 
 /** What a group's admins and applicants hear about requests to join it (#86). */
 export type GroupRequestNotification = Extract<
@@ -113,6 +117,12 @@ export type GroupRequestNotification = Extract<
 
 /** What the e-mails about a request to join a group need to know of the group. */
 export type NotifiedGroup = { id: string; name: string };
+
+/** Ratings (PO 26. 11.): in the centre only, no e-mail. */
+export type RatingNotification = Extract<
+  Notification,
+  { type: 'event-rated' } | { type: 'participant-rated' }
+>;
 
 /** What friends hear about each other (#307, #86). */
 export type FriendNotification = Extract<
@@ -131,6 +141,7 @@ export type EventNotification = Exclude<
   | { type: 'event-message' }
   | GroupRequestNotification
   | FriendNotification
+  | RatingNotification
 >;
 
 export type NotificationType = Notification['type'];
