@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest"
 
 import type { MapPinData } from "./MapView"
-import { PinClusters } from "./pinClusters"
+import { PinClusters, spreadSamePlace } from "./pinClusters"
 
 const pin = (id: string, lat: number, lng: number, variant: MapPinData["variant"] = "default") => ({
   id,
@@ -63,5 +63,31 @@ describe("PinClusters", () => {
       east: 14.441,
       north: 50.102,
     })
+  })
+})
+
+// QA-03: two events in one hall stood on one point; no zoom split them and one hid the other
+describe("spreadSamePlace", () => {
+  const at = (id: string, lat: number, lng: number) => ({ id, lat, lng })
+
+  it("puts events at one place side by side, a few metres apart, in a stable order", () => {
+    const spread = spreadSamePlace([at("b", 49.2185, 16.592), at("a", 49.2185, 16.592)])
+    const [b, a] = spread
+    if (!a || !b) throw new Error("two pins expected")
+    expect(a).not.toEqual(b)
+    // side by side: same latitude, east and west of the place
+    expect(a.lat).toBeCloseTo(b.lat, 8)
+    expect(Math.sign(a.lng - 16.592)).toBe(-Math.sign(b.lng - 16.592))
+    // within about 20 m of the place
+    for (const pin of spread) {
+      expect(Math.abs(pin.lat - 49.2185)).toBeLessThan(0.0002)
+      expect(Math.abs(pin.lng - 16.592)).toBeLessThan(0.0003)
+    }
+    expect(spreadSamePlace([at("a", 49.2185, 16.592), at("b", 49.2185, 16.592)])).toEqual([a, b])
+  })
+
+  it("leaves a place with one event, and the order of the list, as they are", () => {
+    const pins = [at("a", 50, 14), at("b", 50.01, 14)]
+    expect(spreadSamePlace(pins)).toEqual(pins)
   })
 })

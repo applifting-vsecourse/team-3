@@ -166,7 +166,7 @@ export const composeMessage = (
             termin,
             {
               label: 'Přihlášených',
-              value: `${event.approvedCount} z ${event.maxParticipants}`,
+              value: approvedOfMax(event),
             },
           ],
           quote: null,
@@ -189,7 +189,7 @@ export const composeMessage = (
             termin,
             {
               label: 'Přihlášených',
-              value: `${event.approvedCount} z ${event.maxParticipants}`,
+              value: approvedOfMax(event),
             },
           ],
           quote: null,
@@ -423,3 +423,13 @@ export const composeGroupRequestMessage = (
         },
       };
 };
+
+/** „5 z 12“, or just „5“ without a maximum (PO 26. 11.). */
+function approvedOfMax(event: {
+  approvedCount: number;
+  maxParticipants: number | null;
+}): string {
+  return event.maxParticipants === null
+    ? String(event.approvedCount)
+    : `${event.approvedCount} z ${event.maxParticipants}`;
+}

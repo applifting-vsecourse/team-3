@@ -153,4 +153,10 @@ export class Config {
   @Env('PREMIUM_ENABLED', { expose: true, defaultValue: false })
   @IsBoolean()
   readonly premiumEnabled!: boolean;
+
+  // Topping an event (B-073, #69) doesn't exist yet. Once it does, "true"
+  // adds „Topovat akci“ to the organizer's overview before an event (#405).
+  @Env('TOPPING_ENABLED', { expose: true, defaultValue: false })
+  @IsBoolean()
+  readonly toppingEnabled!: boolean;
 }

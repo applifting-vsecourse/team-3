@@ -205,6 +205,19 @@ describe("EventDetailView", () => {
     expect(screen.queryByText(/Jména uvidíš/)).not.toBeInTheDocument()
   })
 
+  // QA-13: „Kdo jde · 4 z 8“ under „Proběhlo“ spoke of the past in the future
+  it("over: „Kdo byl“ with the count, without the maximum", async () => {
+    await renderWithRouter(
+      <EventDetailView
+        event={anEventDetail({ approvedCount: 4, missingToMin: 0, participants: null })}
+        now={afterEnd}
+      />,
+    )
+
+    expect(screen.getByRole("heading", { name: "Kdo byl · 4" })).toBeInTheDocument()
+    expect(screen.queryByRole("heading", { name: /Kdo jde/ })).not.toBeInTheDocument()
+  })
+
   it("over with nobody signed up: no „zatím“ (#370)", async () => {
     await renderWithRouter(
       <EventDetailView

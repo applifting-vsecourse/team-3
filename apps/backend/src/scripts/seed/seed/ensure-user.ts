@@ -92,6 +92,8 @@ export async function ensureUser(
       ageConfirmedAt: seededAt,
       termsAcceptedAt: seededAt,
       onboardingCompletedAt: seededAt,
+      // Najdi parťáka je jinak opt-in (#84): smyšlené demo účty se ukazují, ať je balíček v demu plný
+      partnerDiscoverable: true,
     },
   });
 

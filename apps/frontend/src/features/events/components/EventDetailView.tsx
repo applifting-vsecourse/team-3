@@ -271,6 +271,8 @@ export function EventDetailView({
         isWaitingForApproval={event.myParticipation === "pending"}
         viewerId={viewerId}
         isClosed={isCancelled || isOver}
+        // a cancelled event never took place: no „Kdo byl“, it keeps who had signed up
+        isOver={isOver && !isCancelled}
       />
     )
 

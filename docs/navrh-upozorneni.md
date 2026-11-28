@@ -9,6 +9,7 @@ Planning sprintu 4 (`zapis-planning-sprint4.md`): notifikační centrum v aplika
 - **Jedna událost, dva kanály.** Upozornění v centru i e-mail vznikají ze stejné události (`NotificationService.notify`). Text v centru je první řádek e-mailu (náhled), aby si uživatel obojí spojil.
 - **Krátká zpráva:** kdo, co a u které akce nebo skupiny. Čas („teď“, „před 5 min“, „před 2 h“, „včera“, „pá 20. 11.“) ukazuje centrum pod zprávou.
 - **Klepnutí vede na detail** (správa akce, detail akce, stránka nebo správa skupiny, žádosti o přátelství, profil) a upozornění označí jako přečtené, i když ho uživatel otevře v nové záložce. „Označit vše jako přečtené“ přečte všechna najednou. Samotné otevření centra nic neoznačí.
+- **Upozornění na žádost o přátelství zmizí**, jakmile se žádost přijme, odmítne nebo zruší (PO 26. 11., #430): jinak by vedlo na prázdný seznam žádostí. Ostatní upozornění zůstávají, jen přečtená / nepřečtená.
 - **Autor události upozornění nedostane.** Organizátor, který akci zrušil, se o zrušení nedozví; správce, který napsal oznámení, ho do centra nedostane (e-mail ano, jako dosud).
 - **Texty se neliší podle pohlaví** (stejně jako e-maily v #177): „už na akci nejde“, ne „se odhlásil/a“.
 - **Vidí je jen adresát.** API vrací jen upozornění přihlášeného uživatele, cizí upozornění nejde přečíst ani označit (404), nepřihlášený dostane 401.

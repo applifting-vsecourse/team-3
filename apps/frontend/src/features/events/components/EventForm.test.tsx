@@ -107,6 +107,9 @@ const pick = async (field: string, search: string, query: string) => {
   await userEvent.keyboard("{Enter}")
 }
 
+/** PO 26. 11. (#303): a known locality is a line under the address, not a field. */
+const shownLocality = () => screen.getByText("Lokalita pro vyhledávání:").parentElement
+
 /** The address service (Photon) answering with these places. */
 const answerAddresses = (...features: object[]) => {
   const fetchMock = vi.fn(() =>
@@ -340,7 +343,7 @@ describe("EventForm", () => {
       await userEvent.click(centerButton())
       await screen.findByText(/Adresu se nepodařilo určit/)
       expect(addressField()).toHaveValue(address)
-      expect(screen.getByRole("combobox", { name: "Lokalita *" })).toHaveTextContent("Louny")
+      expect(shownLocality()).toHaveTextContent("Louny")
     },
   )
 
@@ -359,6 +362,7 @@ describe("EventForm", () => {
         maxParticipants: 4,
       },
     })
+    await userEvent.click(screen.getByRole("button", { name: /^Změnit lokalitu/ }))
     await pick("Lokalita *", "Hledat lokalitu", "Ústí nad Orlicí")
     expect(addressField()).toHaveValue("Vlastní místo")
     const moveToLocality = screen.getByRole("button", { name: "Přesunout do středu lokality" })
@@ -381,8 +385,19 @@ describe("EventForm", () => {
     })
   })
 
+  // review #417 (PO 26. 11.): a new event has no second field before the address
+  it("a new event: the locality is one line until there is an address, the field on request", async () => {
+    renderForm()
+
+    expect(screen.getByText("Lokalita pro vyhledávání se doplní podle adresy.")).toBeInTheDocument()
+    expect(screen.queryByRole("combobox", { name: "Lokalita *" })).not.toBeInTheDocument()
+    await userEvent.click(screen.getByRole("button", { name: "Vybrat ručně" }))
+    expect(screen.getByRole("combobox", { name: "Lokalita *" })).toBeInTheDocument()
+  })
+
   it("choosing a locality alone does not satisfy the required map point", async () => {
     renderForm()
+    await userEvent.click(screen.getByRole("button", { name: "Vybrat ručně" }))
     await pick("Lokalita *", "Hledat lokalitu", "Louny")
     await submit()
     expect(await screen.findByText("Vyber místo na mapě")).toBeInTheDocument()
@@ -450,10 +465,11 @@ describe("EventForm", () => {
       "Akce potřebuje datum",
       "Vyplň začátek",
       "Vyplň minimum",
-      "Vyplň maximum",
     ]) {
       expect(await screen.findByText(message)).toBeInTheDocument()
     }
+    // PO 26. 11.: the maximum is optional
+    expect(screen.queryByText("Vyplň maximum")).not.toBeInTheDocument()
     expect(onSubmit).not.toHaveBeenCalled()
   })
 
@@ -664,6 +680,27 @@ describe("EventForm", () => {
     })
   })
 
+  // QA-14: −1 is a whole number; „Zadej celé číslo“ told nothing about what is allowed
+  it("a negative count says what is allowed, a decimal that it must be whole", async () => {
+    renderForm()
+
+    await userEvent.type(screen.getByLabelText("Minimum"), "-1")
+    await userEvent.type(screen.getByLabelText("Maximum"), "1.5")
+    await submit()
+    expect(await screen.findByText("Minimum musí být aspoň 1")).toBeInTheDocument()
+    expect(screen.getByText("Zadej celé číslo")).toBeInTheDocument()
+  })
+
+  // QA-11: an end before the start is the next day, and the form says so
+  it("an end before the start: „Končí následující den“ under Konec", async () => {
+    renderForm()
+
+    await userEvent.type(screen.getByLabelText("Začátek *"), "23:00")
+    await userEvent.type(screen.getByLabelText("Konec"), "01:00")
+    expect(await screen.findByText(/^Končí následující den/)).toBeInTheDocument()
+    expect(screen.queryByText("Nepovinné")).not.toBeInTheDocument()
+  })
+
   it("min 0, max below min and a date in the past can't be saved", async () => {
     const { onSubmit } = renderForm({
       initialValues: { startsAt: new Date(Date.now() - 86_400_000).toISOString() },
@@ -683,6 +720,26 @@ describe("EventForm", () => {
     expect(await screen.findByText("Maximum nesmí být menší než minimum")).toBeInTheDocument()
     expect(screen.getByText("Termín musí být v budoucnosti")).toBeInTheDocument()
     expect(onSubmit).not.toHaveBeenCalled()
+  })
+
+  it("an empty maximum is sent as no maximum (PO 26. 11.)", async () => {
+    const { onSubmit } = renderForm({
+      initialValues: {
+        activityId: "a-deskove-hry",
+        localityId: "l-praha-8",
+        startsAt: new Date(Date.now() + 3 * 86_400_000).toISOString(),
+      },
+    })
+
+    await userEvent.type(screen.getByLabelText("Název akce *"), "Grilovačka")
+    await userEvent.click(screen.getByRole("button", { name: "Umístit špendlík do středu mapy" }))
+    await userEvent.type(screen.getByLabelText("Adresa *"), "Stromovka")
+    await userEvent.type(screen.getByLabelText("Minimum"), "3")
+    expect(screen.getByLabelText("Maximum")).toHaveAttribute("placeholder", "bez omezení")
+    await submit()
+
+    expect(onSubmit).toHaveBeenCalledOnce()
+    expect(onSubmit.mock.calls[0]![0]).toMatchObject({ minParticipants: 3, maxParticipants: null })
   })
 
   it("sends the event: numbers, the place from the map, the start and the end as instants", async () => {
@@ -738,7 +795,9 @@ describe("EventForm", () => {
     expect(screen.getByRole("combobox", { name: "Aktivita *" })).toHaveTextContent(
       "Pohyb a tanec › Atletika",
     )
+    await userEvent.click(screen.getByRole("button", { name: "Vybrat ručně" }))
     await pick("Lokalita *", "Hledat lokalitu", "usti nad orl")
+    // picked by hand, the field stays to change it again
     expect(screen.getByRole("combobox", { name: "Lokalita *" })).toHaveTextContent(
       "Ústí nad Orlicí",
     )
@@ -875,7 +934,7 @@ describe("EventForm", () => {
       renderForm({ initialValues: { localityId: "l-usti-nad-orlici" } })
       await userEvent.type(addressField(), "Bílinská")
       await userEvent.click(await screen.findByRole("option", { name: /Bílinská.*Praha 9/ }))
-      expect(screen.getByRole("combobox", { name: "Lokalita *" })).toHaveTextContent("Praha 9")
+      expect(shownLocality()).toHaveTextContent("Praha 9")
     })
 
     it("an address in another town of the catalog sets that town (Ústí nad Orlicí)", async () => {
@@ -902,6 +961,10 @@ describe("EventForm", () => {
 
       await userEvent.type(addressField(), "Lázeňská 1330")
       await userEvent.click(await screen.findByRole("option", { name: /Lázeňská 1330/ }))
+      expect(shownLocality()).toHaveTextContent("Ústí nad Orlicí")
+      // PO 26. 11. (#303): the address set it, nothing to pick a second time
+      expect(screen.queryByRole("combobox", { name: "Lokalita *" })).not.toBeInTheDocument()
+      await userEvent.click(screen.getByRole("button", { name: "Změnit lokalitu Ústí nad Orlicí" }))
       expect(screen.getByRole("combobox", { name: "Lokalita *" })).toHaveTextContent(
         "Ústí nad Orlicí",
       )

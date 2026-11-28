@@ -1,7 +1,7 @@
 -- AlterTable
 ALTER TABLE "user" ADD COLUMN     "homeLocalityChangeCount" INTEGER NOT NULL DEFAULT 0,
 ADD COLUMN     "homeLocalityChangeDay" VARCHAR(10),
-ADD COLUMN     "partnerDiscoverable" BOOLEAN NOT NULL DEFAULT true;
+ADD COLUMN     "partnerDiscoverable" BOOLEAN NOT NULL DEFAULT false;
 
 -- CreateTable
 CREATE TABLE "partner_skip" (
@@ -24,3 +24,18 @@ ALTER TABLE "partner_skip" ADD CONSTRAINT "partner_skip_skipperId_fkey" FOREIGN 
 
 -- AddForeignKey
 ALTER TABLE "partner_skip" ADD CONSTRAINT "partner_skip_skippedId_fkey" FOREIGN KEY ("skippedId") REFERENCES "user"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+
+-- CreateTable
+CREATE TABLE "friend_request_log" (
+    "id" TEXT NOT NULL,
+    "requesterId" TEXT NOT NULL,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+
+    CONSTRAINT "friend_request_log_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateIndex
+CREATE INDEX "friend_request_log_requesterId_createdAt_idx" ON "friend_request_log"("requesterId", "createdAt");
+
+-- AddForeignKey
+ALTER TABLE "friend_request_log" ADD CONSTRAINT "friend_request_log_requesterId_fkey" FOREIGN KEY ("requesterId") REFERENCES "user"("id") ON DELETE CASCADE ON UPDATE CASCADE;

@@ -11,7 +11,7 @@ export type NotifiedEvent = {
   /** Why the organizer cancelled it; null when it isn't cancelled. */
   cancelReason: string | null;
   approvedCount: number;
-  maxParticipants: number;
+  maxParticipants: number | null;
   organizerId: string;
   /** The organizer wants an e-mail for each sign-up to the open event (#86). */
   emailOnJoin: boolean;
