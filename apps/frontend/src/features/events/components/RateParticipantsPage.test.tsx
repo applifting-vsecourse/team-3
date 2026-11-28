@@ -579,6 +579,9 @@ describe("/akce/:id/hodnoceni for the organizer (Figma D-05, #66)", () => {
 
     expect(await screen.findByText("Účastníky hodnotí jen organizátor akce")).toBeInTheDocument()
     expect(screen.queryByRole("button", { name: "Zkusit znovu" })).not.toBeInTheDocument()
+    // the title once, then the way on — not the API's message saying the same again
+    expect(screen.queryByText("Účastníky hodnotí jen organizátor akce.")).not.toBeInTheDocument()
+    expect(screen.getByRole("link", { name: "Zpět na akci" })).toHaveAttribute("href", "/akce/e1")
   })
 
   it("„Zkusit znovu“ reads again only what failed (review #322)", async () => {
