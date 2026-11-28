@@ -502,6 +502,10 @@ describe("withPickFilters", () => {
   it("keeps what the URL has, and leaves a search without a pick as it is", () => {
     const search = { vyber: "tady-chybis", obsazenost: "volna" } as const
     expect(withPickFilters(search, now)).toBe(search)
+    // an invalid ?obsazenost= parses to undefined: still filled in (review)
+    expect(withPickFilters({ vyber: "tady-chybis", obsazenost: undefined }, now).obsazenost).toBe(
+      "chybi",
+    )
     const plain = { lokalita: "brno" }
     expect(withPickFilters(plain, now)).toBe(plain)
   })

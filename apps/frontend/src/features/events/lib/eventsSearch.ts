@@ -214,7 +214,8 @@ export function withPickFilters(search: EventsSearch, now: Date): EventsSearch {
   const missing = Object.entries(pickPreset(search.vyber, undefined, now)).filter(
     ([key]) => key !== "okoli" && search[key as keyof EventsSearch] === undefined,
   )
-  return missing.length ? { ...Object.fromEntries(missing), ...search } : search
+  // the filled ones last: a key the URL has as undefined (an invalid value) must not wipe them
+  return missing.length ? { ...search, ...Object.fromEntries(missing) } : search
 }
 
 /**
