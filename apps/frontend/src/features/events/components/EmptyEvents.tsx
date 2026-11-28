@@ -179,7 +179,9 @@ export function EmptyEvents({
                 ? "Žádná proběhlá akce neodpovídá filtrům:"
                 : "Žádná nadcházející akce neodpovídá filtrům:"}
             </p>
-            <p className="text-sm font-semibold">{activeFiltersLabel(search, catalog)}</p>
+            <p className="text-sm font-semibold break-words">
+              {activeFiltersLabel(search, catalog)}
+            </p>
           </>
         )}
       </div>
