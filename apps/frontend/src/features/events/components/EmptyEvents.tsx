@@ -51,6 +51,8 @@ export function activeFiltersLabel(search: EventsSearch, catalog: Catalog | unde
     ? selectionLabel(toActivitySelection(search), catalog.categories)
     : undefined
   return [
+    // the searched text is a filter too, and the narrowest one (QA-12)
+    search.q !== undefined && `„${search.q}“`,
     locality,
     // a quick pick narrows the list by its own rules too (interests, well rated, review #321)
     search.vyber && PICK_LABELS[search.vyber],
@@ -136,6 +138,14 @@ export function EmptyEvents({
       >
         {`${showEventsLabel(widenedCount)} ${where}`}
       </Button>
+    ) : !isCounting && search.q !== undefined ? (
+      // the searched text first: it is what the visitor typed last (QA-12)
+      <Button
+        className="h-11"
+        onClick={() => onSearchChange({ q: undefined })}
+      >
+        Zrušit hledání
+      </Button>
     ) : !isCounting && hasOtherFilters(search) ? (
       <Button
         className="h-11"
@@ -169,7 +179,9 @@ export function EmptyEvents({
                 ? "Žádná proběhlá akce neodpovídá filtrům:"
                 : "Žádná nadcházející akce neodpovídá filtrům:"}
             </p>
-            <p className="text-sm font-semibold">{activeFiltersLabel(search, catalog)}</p>
+            <p className="text-sm font-semibold break-words">
+              {activeFiltersLabel(search, catalog)}
+            </p>
           </>
         )}
       </div>
