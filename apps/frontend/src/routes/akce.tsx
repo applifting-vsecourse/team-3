@@ -39,6 +39,7 @@ import {
   pickSearch,
   toMapArea,
   toOblast,
+  withPickFilters,
   withPicksOkoli,
   type EventsSearch,
   type QuickPick,
@@ -77,7 +78,10 @@ function EventsPage() {
   )
   // the filters as shown: the visitor's default locality (#55) when the URL has none, and the
   // okolí a quick pick turns on by itself, which the URL leaves out (#328)
-  const search = withPicksOkoli({ ...urlSearch, lokalita: shownLocality.slug }, now)
+  const search = withPicksOkoli(
+    withPickFilters({ ...urlSearch, lokalita: shownLocality.slug }, now),
+    now,
+  )
   const { events, catalog, isPending, error, retry } = useEvents(search, {
     // nothing for all of Czechia first while the default locality loads
     isEnabled: shownLocality.slug !== undefined,
