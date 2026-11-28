@@ -11,6 +11,7 @@ import { redirectFrom } from "@/features/auth/lib/redirect"
 import { EventCard } from "@/features/events/components/EventCard"
 import { PastEventCard } from "@/features/events/components/PastEventCard"
 import { FriendshipAction } from "@/features/friends/components/FriendshipAction"
+import { notificationKeys } from "@/features/notifications/api/notificationsQueryOptions"
 import { publicProfileQueryOptions, publicUserKeys } from "@/features/users/api/publicProfile"
 import { PublicProfileView } from "@/features/users/components/PublicProfileView"
 
@@ -58,7 +59,11 @@ function PublicUserPage() {
                 signInFrom={redirectFrom(location)}
                 // the state and Kam jde change with the friendship
                 onChanged={() =>
-                  queryClient.invalidateQueries({ queryKey: publicUserKeys.person(userId) })
+                  Promise.all([
+                    queryClient.invalidateQueries({ queryKey: publicUserKeys.person(userId) }),
+                    // a decided request takes its upozornění along (#430)
+                    queryClient.invalidateQueries({ queryKey: notificationKeys.all() }),
+                  ])
                 }
               />
             ) : null

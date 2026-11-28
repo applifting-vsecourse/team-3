@@ -23,10 +23,10 @@ export const publicEventSchema = z.object({
   organizer: z.object({ id: z.string(), name: z.string() }),
   group: z.object({ id: z.string(), name: z.string() }).nullable(),
   minParticipants: z.number(),
-  maxParticipants: z.number(),
+  maxParticipants: z.number().nullable(),
   approvedCount: z.number(),
   missingToMin: z.number(),
-  freeSpots: z.number(),
+  freeSpots: z.number().nullable(),
   isFull: z.boolean(),
   isPromoted: z.boolean(),
   // the start of the description for the map preview (#56); null without one
@@ -178,7 +178,8 @@ export type EventInput = {
   /** Optional (B-021); null clears it when editing. */
   endsAt: string | null
   minParticipants: number
-  maxParticipants: number
+  /** Null: no maximum (PO 26. 11.); when editing it removes the one there was. */
+  maxParticipants: number | null
   approvalMode: "open" | "approval"
   /** An e-mail to the organizer for each sign-up to an open event (#86); off by default. */
   emailOnJoin?: boolean
