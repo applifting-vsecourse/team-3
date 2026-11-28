@@ -2,6 +2,7 @@ import { readdirSync } from 'node:fs';
 import { join } from 'node:path';
 import { LocalityThrottlerGuard } from '@/modules/catalog/controllers/locality-throttler.guard';
 import { EventsController } from '@/modules/event/controllers/events.controller';
+import { InvitesController } from '@/modules/friendship/controllers/invites.controller';
 import { GroupsController } from '@/modules/group/controllers/groups.controller';
 import { HomeController } from '@/modules/home/controllers/home.controller';
 import { OptionalUserGuard } from '@/shared/auth/guards/optional-user.guard';
@@ -179,6 +180,10 @@ describe('rate limits on the API', () => {
     ]);
     expect(guardsOf(GroupsController, 'detail')).toEqual([
       OptionalUserGuard,
+      PublicReadThrottlerGuard,
+    ]);
+    // the invite's link preview names the inviter, for crawlers (#475)
+    expect(guardsOf(InvitesController, 'preview')).toEqual([
       PublicReadThrottlerGuard,
     ]);
   });

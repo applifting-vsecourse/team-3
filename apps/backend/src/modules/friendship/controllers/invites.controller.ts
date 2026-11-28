@@ -2,11 +2,15 @@ import { InviteService } from '@/modules/friendship/services/invite.service';
 import { User } from '@/shared/auth/decorators/user.decorator';
 import { Identity } from '@/shared/auth/domain/identity';
 import { VerifiedUserGuard } from '@/shared/auth/guards/verified-user.guard';
-import { WriteThrottlerGuard } from '@/shared/rate-limit/rate-limit.guards';
+import {
+  PublicReadThrottlerGuard,
+  WriteThrottlerGuard,
+} from '@/shared/rate-limit/rate-limit.guards';
 import {
   Body,
   Controller,
   Get,
+  Header,
   HttpCode,
   Param,
   Post,
@@ -17,6 +21,7 @@ import {
 import {
   ApiCookieAuth,
   ApiOperation,
+  ApiProduces,
   ApiResponse,
   ApiTags,
 } from '@nestjs/swagger';
@@ -78,6 +83,25 @@ export class InvitesController {
   })
   regenerate(@User() user: Identity): Promise<MyInviteResponseDto> {
     return this.invites.regenerate(user.id);
+  }
+
+  @Get(':code/preview')
+  // crawlers of Meta and Apple come from many IPs and ask again per share: the generous
+  // public-read limit (600 a minute per IP), not the lookup's 60 in 10 minutes
+  @UseGuards(PublicReadThrottlerGuard)
+  @Header('Content-Type', 'text/html; charset=utf-8')
+  @Header('Cache-Control', 'public, max-age=3600')
+  @ApiOperation({
+    summary:
+      'Link preview of an invite for WhatsApp, Messenger, iMessage… (Open Graph HTML, #475)',
+    description:
+      'nginx sends link-preview crawlers of /pozvanka/:code here. Only the inviter’s first name; any code that leads to no one gets the generic title, also 200. A person is sent on to /pozvanka/:code by a meta refresh.',
+  })
+  @ApiProduces('text/html')
+  @ApiResponse({ status: 200, description: 'The preview page' })
+  @ApiResponse({ status: 429, description: 'Too many requests from one IP' })
+  preview(@Param('code') code: string): Promise<string> {
+    return this.invites.preview(code);
   }
 
   @Get(':code')

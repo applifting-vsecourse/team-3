@@ -34,7 +34,10 @@ const setup = (): {
     invites,
     friendships,
     notifications,
-    { frontendUrl: 'https://hobbyhub.test' } as Config,
+    {
+      frontendUrl: 'https://hobbyhub.test',
+      backendUrl: 'https://hobbyhub.test',
+    } as Config,
     limits,
   );
   service.random = (size): Uint8Array => new Uint8Array(size).fill(1);
@@ -115,6 +118,31 @@ describe('InviteService.inviter (#406)', () => {
     const { invites, service } = setup();
     invites.findInviter.mockResolvedValue(null);
     await expect(code(service.inviter(CODE))).resolves.toBe('INVITE_NOT_FOUND');
+  });
+});
+
+describe('InviteService.preview (link preview, #475)', () => {
+  it('the inviter’s first name only', async () => {
+    const { service } = setup();
+    const html = await service.preview(CODE);
+    expect(html).toContain('content="Tomáš tě zve na HobbyHub"');
+    expect(html).not.toContain('Novák');
+  });
+
+  it('no such code, a blocked or deleted inviter: the generic title, no error', async () => {
+    const { invites, service } = setup();
+    invites.findInviter.mockResolvedValue(null);
+    const html = await service.preview(CODE);
+    expect(html).toContain('content="Pozvánka na HobbyHub"');
+    expect(html).toContain(`url=https://hobbyhub.test/pozvanka/${CODE}`);
+  });
+
+  it('a malformed code: the generic title without a query', async () => {
+    const { invites, service } = setup();
+    await expect(service.preview('nope')).resolves.toContain(
+      'content="Pozvánka na HobbyHub"',
+    );
+    expect(invites.findInviter).not.toHaveBeenCalled();
   });
 });
 

@@ -13,6 +13,7 @@ import {
   inviteCodeOf,
   inviteLimitSince,
 } from '@/modules/friendship/domain/invite';
+import { invitePreviewHtml } from '@/modules/friendship/domain/invite-preview';
 import { FriendshipRepository } from '@/modules/friendship/repositories/friendship.repository';
 import {
   InviteRepository,
@@ -92,6 +93,23 @@ export class InviteService {
     const inviter = await this.invites.findInviter(code);
     if (!inviter) throw inviteNotFound();
     return inviter;
+  }
+
+  /**
+   * The link preview's page for crawlers (#475): „{křestní jméno} tě zve na HobbyHub“, or the
+   * generic title for any code that leads to no one, so it never answers differently from the
+   * public lookup.
+   */
+  async preview(code: string): Promise<string> {
+    const inviter = INVITE_CODE_PATTERN.test(code)
+      ? await this.invites.findInviter(code)
+      : null;
+    return invitePreviewHtml({
+      code,
+      inviterName: inviter?.name ?? null,
+      frontendUrl: this.config.frontendUrl,
+      backendUrl: this.config.backendUrl,
+    });
   }
 
   /**
