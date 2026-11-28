@@ -112,20 +112,38 @@ export const composeMessage = (
               action: { label: 'Zobrazit akci', url: page },
             },
           }
-        : {
-            subject: `Žádost o účast nebyla přijata: ${event.title}`,
-            email: {
-              preview: `Tvoje žádost o účast na akci ${title} nebyla přijata.`,
-              heading: 'Žádost nebyla přijata',
-              paragraphs: [
-                `Tvoje žádost o účast na akci ${title} nebyla přijata.`,
-                'Na jiné akce se přihlásit můžeš.',
-              ],
-              details: [],
-              quote: null,
-              action: { label: 'Zobrazit akci', url: page },
-            },
-          };
+        : notification.outcome === 'expired'
+          ? {
+              subject: `Žádost o účast už vyřídit nejde: ${event.title}`,
+              email: {
+                preview: `Akce ${title} začala dřív, než organizátor tvou žádost vyřídil.`,
+                heading: 'Žádost zůstala nevyřízená',
+                paragraphs: [
+                  `Akce ${title} začala dřív, než organizátor tvou žádost vyřídil. Schválit ani zamítnout ji už nejde.`,
+                  'Na jiné akce se přihlásit můžeš.',
+                ],
+                details: [],
+                quote: null,
+                action: {
+                  label: 'Najít jinou akci',
+                  url: new URL('/akce', frontendUrl).toString(),
+                },
+              },
+            }
+          : {
+              subject: `Žádost o účast nebyla přijata: ${event.title}`,
+              email: {
+                preview: `Tvoje žádost o účast na akci ${title} nebyla přijata.`,
+                heading: 'Žádost nebyla přijata',
+                paragraphs: [
+                  `Tvoje žádost o účast na akci ${title} nebyla přijata.`,
+                  'Na jiné akce se přihlásit můžeš.',
+                ],
+                details: [],
+                quote: null,
+                action: { label: 'Zobrazit akci', url: page },
+              },
+            };
     case 'event-changed':
       return {
         subject: `Změna u akce: ${event.title}`,

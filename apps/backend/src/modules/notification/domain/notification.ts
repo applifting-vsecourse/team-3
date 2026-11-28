@@ -66,12 +66,15 @@ export type Notification =
       /** What the applicant wrote with the request (#175). */
       message: string | null;
     }
-  /** The applicants hear whether their requests were approved or rejected. */
+  /**
+   * The applicants hear whether their requests were approved or rejected — or
+   * that the event started before the organizer decided them (#465).
+   */
   | {
       type: 'request-decided';
       eventId: string;
       userIds: string[];
-      outcome: 'approved' | 'rejected';
+      outcome: 'approved' | 'rejected' | 'expired';
     }
   /** Everyone with a place or a request hears the time or the place changed. */
   | { type: 'event-changed'; eventId: string; change: EventChange }

@@ -11,6 +11,7 @@ export const IN_APP_TYPES: InAppType[] = [
   'participant_left',
   'request_approved',
   'request_rejected',
+  'request_expired',
   'event_changed',
   'event_cancelled',
   'event_message',
