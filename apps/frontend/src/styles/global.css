@@ -332,9 +332,11 @@
   }
   /* PO 26. 11. (#447, video): on a Mac, Chrome bounces the page past its end (the trackpad's
      elastic overscroll) and afterwards the sticky header disappeared for a few seconds while the
-     page stood still. Desktop pages don't bounce: no overscroll there. Phones keep it — pulling
-     down to refresh is the bounce. To be confirmed on a Mac (nobody in the team has one). */
-  @media (min-width: 768px) {
+     page stood still. With a trackpad or a mouse the page doesn't bounce: no overscroll there.
+     Touch keeps it — pulling down to refresh is the bounce, on a tablet too; and a narrow Mac
+     window is still a Mac (review #471: the pointer, not the width, as FINE_POINTER_QUERY in
+     useMediaQuery.ts). To be confirmed on a Mac (nobody in the team has one). */
+  @media (hover: hover) and (pointer: fine) {
     html {
       overscroll-behavior-y: none;
     }
