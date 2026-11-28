@@ -213,6 +213,8 @@ type EventFormProps = {
   group?: { id: string; name: string }
   /** Prefilled values, e.g. when editing (#41). */
   initialValues?: Partial<EventInput>
+  /** Where the map starts before a locality is picked, e.g. a guess from the IP (QA-16, review #496). */
+  initialMapCenter?: { lat: number; lng: number }
   /** The image the event already has (#77), when editing. */
   initialImageSrc?: string | null
   isSubmitting: boolean
@@ -232,6 +234,7 @@ export function EventForm({
   approvedCount = 0,
   group,
   initialValues,
+  initialMapCenter,
   initialImageSrc,
   isSubmitting,
   errorMessage,
@@ -303,6 +306,7 @@ export function EventForm({
   const [didChangeLocality, setDidChangeLocality] = useState(false)
   const selectedLocality = catalog.localities.find((l) => l.id === localityId)
   const mapCenter = selectedLocality ??
+    initialMapCenter ??
     // before a locality is picked: the biggest city, as the picker lists it first
     catalog.localities.find((l) => l.slug === PRAHA_SLUG) ??
     catalog.localities[0] ?? { lat: 50.0755, lng: 14.4378 }

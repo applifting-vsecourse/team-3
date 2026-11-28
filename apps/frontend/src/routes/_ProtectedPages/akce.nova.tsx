@@ -27,11 +27,13 @@ function NewEventPage() {
   const navigate = useNavigate()
   const { catalog, queries } = useCatalog()
   const createEvent = useCreateEvent()
-  // the locality the lists show (picked on /akce, else the profile's home, else a guess): the
-  // form starts there and its map with it, not in Praha (QA-16); never written to the profile
+  // the locality the lists show, picked on /akce or the profile's home: the form starts there (QA-16);
+  // a guess from the IP is often off (review #496), so it only centres the map. Never written to
+  // the profile
   const { user, isPending } = useSession()
   const shown = useLocality(undefined, isPending ? undefined : (user?.id ?? null))
-  const startLocality = catalog?.localities.find(({ slug }) => slug === shown.slug)
+  const shownLocality = catalog?.localities.find(({ slug }) => slug === shown.slug)
+  const startLocality = shown.source === "ip" ? undefined : shownLocality
 
   return (
     <>
@@ -49,6 +51,7 @@ function NewEventPage() {
             <EventForm
               catalog={catalog}
               initialValues={startLocality ? { localityId: startLocality.id } : undefined}
+              initialMapCenter={shownLocality}
               isSubmitting={createEvent.isPending}
               errorMessage={createEvent.error?.message}
               onSubmit={(input, image) =>

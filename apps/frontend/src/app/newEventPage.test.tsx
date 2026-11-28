@@ -25,12 +25,13 @@ const json = (body: unknown) =>
   new Response(JSON.stringify(body), { headers: { "content-type": "application/json" } })
 
 /** /akce/nova for a signed-in user; the catalog has Praha and Brno. */
-async function renderNewEvent() {
+async function renderNewEvent(defaultLocality: unknown = { locality: null, source: "none" }) {
   vi.stubGlobal(
     "fetch",
     vi.fn((input: RequestInfo | URL) => {
       const href = input instanceof Request ? input.url : String(input)
       if (/\/localities(\?|$)/.test(href)) return Promise.resolve(json(localities))
+      if (href.includes("geo/locality")) return Promise.resolve(json(defaultLocality))
       return Promise.resolve(json([]))
     }),
   )
@@ -71,5 +72,13 @@ describe("/akce/nova", () => {
     expect(await screen.findByRole("heading", { name: "Nová akce" })).toBeInTheDocument()
     const field = await screen.findByRole("combobox", { name: /Lokalita/ })
     expect(field).toHaveTextContent("Brno")
+  })
+
+  // review #496: a guess from the IP is often off and would stay with the event unnoticed
+  it("a guess from the IP only centres the map: the locality stays to be filled", async () => {
+    await renderNewEvent({ locality: localities[1], source: "ip" })
+
+    expect(await screen.findByRole("heading", { name: "Nová akce" })).toBeInTheDocument()
+    expect(await screen.findByRole("combobox", { name: /Lokalita/ })).not.toHaveTextContent("Brno")
   })
 })
