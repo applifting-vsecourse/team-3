@@ -1,13 +1,18 @@
 import { useId, type ReactNode } from "react"
 import { Link } from "@tanstack/react-router"
-import { Check } from "lucide-react"
+import { Check, UsersRound } from "lucide-react"
 
 import { ROUTES } from "@/app/routes"
 import { activityPhoto } from "@/assets/activity-photos"
 import { PersonAvatar } from "@/components/PersonAvatar/PersonAvatar"
 
 import type { Partner } from "@/features/partners/api/partnersSchemas"
-import { cardPhotoSlug, CHIPS_SHOWN, distanceLabel } from "@/features/partners/lib/partnerDeck"
+import {
+  cardPhotoSlug,
+  CHIPS_SHOWN,
+  distanceLabel,
+  mutualFriendsLabel,
+} from "@/features/partners/lib/partnerDeck"
 
 /**
  * One person in the deck (#84, brief › Obsah karty): a card in a list, so a border and no
@@ -81,6 +86,16 @@ export function PartnerCard({
         <p className="text-sm text-on-hero-muted">{distanceLabel(partner.distanceBandKm)}</p>
       </div>
       <div className="flex flex-col gap-3 p-5">
+        {/* only how many, never who; the API sends null below two (#473) */}
+        {partner.mutualFriendsCount !== null && partner.mutualFriendsCount >= 2 ? (
+          <p className="flex items-center gap-2 text-sm">
+            <UsersRound
+              aria-hidden
+              className="size-4 shrink-0"
+            />
+            {mutualFriendsLabel(partner.mutualFriendsCount)}
+          </p>
+        ) : null}
         <ChipGroup title="Oba vás baví">
           {shared.map((chip) => (
             <li

@@ -1,3 +1,4 @@
+import type { FriendRequestLimit } from '@/modules/friendship/domain/request-limit';
 import { FriendshipService } from '@/modules/friendship/services/friendship.service';
 import {
   decodePartnerCursor,
@@ -25,6 +26,13 @@ const viewer = (
   ...changes,
 });
 
+const limit = (left: number): FriendRequestLimit => ({
+  left,
+  perDay: 20,
+  resetsAt: '2026-11-23T23:00:00.000Z',
+  plan: 'free',
+});
+
 const setup = (): {
   repository: MockProxy<PartnerRepository>;
   friendships: MockProxy<FriendshipService>;
@@ -36,7 +44,8 @@ const setup = (): {
   repository.isAvailable.mockResolvedValue(true);
   const friendships = mock<FriendshipService>();
   friendships.request.mockResolvedValue('outgoing');
-  friendships.requestsLeft.mockResolvedValue(20);
+  friendships.requestLimit.mockResolvedValue(limit(20));
+  friendships.mutualFriendsCounts.mockResolvedValue(new Map());
   return {
     repository,
     friendships,
@@ -75,7 +84,7 @@ describe('PartnerService.suggestions (#84)', () => {
       radiusKm: 10,
       missing: [],
       hidden: false,
-      requestsLeft: 20,
+      limit: limit(20),
     });
     expect(decodePartnerCursor(first.nextCursor ?? '')?.id).toBe('p19');
     expect(repository.candidates.mock.calls[0][0]).toBe('me');
@@ -99,14 +108,38 @@ describe('PartnerService.suggestions (#84)', () => {
     expect(second.nextCursor).toBeNull();
   });
 
-  it('says what is left of today’s requests, from the friendship module', async () => {
+  it('says where today’s limit stands, from the friendship module (#473)', async () => {
     const { friendships, service } = setup();
-    friendships.requestsLeft.mockResolvedValue(5);
+    friendships.requestLimit.mockResolvedValue(limit(5));
 
     const page = await service.suggestions('me', 10, undefined, now);
 
-    expect(page.requestsLeft).toBe(5);
-    expect(friendships.requestsLeft).toHaveBeenCalledWith('me', now);
+    expect(page.limit).toEqual(limit(5));
+    expect(friendships.requestLimit).toHaveBeenCalledWith('me', now);
+  });
+
+  it('gives the page’s cards their mutual friends, null where the module says so (#473)', async () => {
+    const { repository, friendships, service } = setup();
+    repository.candidates.mockResolvedValue([candidate('p1'), candidate('p2')]);
+    friendships.mutualFriendsCounts.mockResolvedValue(
+      new Map([
+        ['p1', 3],
+        ['p2', null],
+      ]),
+    );
+
+    const page = await service.suggestions('me', 10, undefined, now);
+
+    expect(friendships.mutualFriendsCounts).toHaveBeenCalledWith('me', [
+      'p1',
+      'p2',
+    ]);
+    expect(
+      page.items.map(({ id, mutualFriendsCount }) => [id, mutualFriendsCount]),
+    ).toEqual([
+      ['p1', 3],
+      ['p2', null],
+    ]);
   });
 
   it('without a finished onboarding, a home locality or interests says what is missing and suggests nobody', async () => {
@@ -157,11 +190,11 @@ describe('PartnerService.suggestions (#84)', () => {
 describe('PartnerService.request („Přidat“, #84)', () => {
   it('is the friendship request (with its notification) and says what is left of today', async () => {
     const { friendships, service } = setup();
-    friendships.requestsLeft.mockResolvedValue(15);
+    friendships.requestLimit.mockResolvedValue(limit(15));
 
     await expect(service.request('me', 'other', now)).resolves.toEqual({
       state: 'outgoing',
-      requestsLeft: 15,
+      limit: limit(15),
     });
     expect(friendships.request).toHaveBeenCalledWith('me', 'other', now);
   });

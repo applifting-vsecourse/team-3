@@ -5,6 +5,7 @@ import {
   friendshipPairKey,
   type FriendshipRow,
 } from '@/modules/friendship/domain/friendship';
+import type { AcceptedPair } from '@/modules/friendship/domain/mutual-friends';
 import { Injectable } from '@nestjs/common';
 
 const personSelect = {
@@ -23,6 +24,25 @@ export const userFriendshipsWhere = (
   userId: string,
 ): Prisma.FriendshipWhereInput => ({
   OR: [{ requesterId: userId }, { addresseeId: userId }],
+});
+
+/** My accepted friends whose accounts are active: verified, not blocked, not deleted. */
+export const activeFriendsOfWhere = (
+  userId: string,
+): Prisma.UserWhereInput => ({
+  emailVerified: true,
+  blockedAt: null,
+  deletedAt: null,
+  OR: [
+    {
+      sentFriendRequests: { some: { addresseeId: userId, status: 'accepted' } },
+    },
+    {
+      receivedFriendRequests: {
+        some: { requesterId: userId, status: 'accepted' },
+      },
+    },
+  ],
 });
 
 const isUniqueViolation = (error: unknown): boolean =>
@@ -204,6 +224,36 @@ export class FriendshipRepository {
         addressee: { select: personSelect },
       },
     });
+  }
+
+  /**
+   * Společní přátelé (#473): my friends that count — accepted either way, the friend verified
+   * and neither blocked nor deleted, as `GET /api/friends` lists them — and their accepted
+   * friendships with `otherIds`. Only ids leave here, never names.
+   */
+  async mutualFriendships(
+    viewerId: string,
+    otherIds: readonly string[],
+  ): Promise<{ myFriendIds: string[]; pairs: AcceptedPair[] }> {
+    if (otherIds.length === 0) return { myFriendIds: [], pairs: [] };
+    const friends = await this.prisma.user.findMany({
+      where: activeFriendsOfWhere(viewerId),
+      select: { id: true },
+    });
+    const myFriendIds = friends.map(({ id }) => id);
+    if (myFriendIds.length === 0) return { myFriendIds, pairs: [] };
+    const others = [...otherIds];
+    const pairs = await this.prisma.friendship.findMany({
+      where: {
+        status: 'accepted',
+        OR: [
+          { requesterId: { in: myFriendIds }, addresseeId: { in: others } },
+          { requesterId: { in: others }, addresseeId: { in: myFriendIds } },
+        ],
+      },
+      select: { requesterId: true, addresseeId: true },
+    });
+    return { myFriendIds, pairs };
   }
 }
 

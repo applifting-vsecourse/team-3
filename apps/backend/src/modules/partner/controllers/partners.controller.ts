@@ -80,7 +80,7 @@ export class PartnersController {
   @UseGuards(VerifiedUserGuard, WriteThrottlerGuard)
   @ApiOperation({
     summary:
-      'Přidat: a friendship request with its notification (#307, #86), or accepting theirs = a match; 20 new requests a day (#84)',
+      'Přidat: a friendship request with its notification (#307, #86), or accepting theirs = a match; a daily limit of new requests by plan, free 20 (#84, #473)',
   })
   @ApiResponse({ status: 200, type: PartnerRequestResponseDto })
   @ApiResponse({ status: 400, description: 'SELF' })

@@ -1,6 +1,13 @@
 import { FRIENDSHIP_STATES } from '@/modules/friendship/controllers/dto/friendship.dto';
 import type { FriendshipState } from '@/modules/friendship/domain/friendship';
-import { FRIEND_REQUESTS_PER_DAY } from '@/modules/friendship/domain/request-limit';
+import { MUTUAL_FRIENDS_SHOWN_FROM } from '@/modules/friendship/domain/mutual-friends';
+import {
+  dailyRequestLimit,
+  MAX_DAILY_REQUEST_LIMIT,
+  REQUEST_PLANS,
+  type FriendRequestLimit,
+  type RequestPlan,
+} from '@/modules/friendship/domain/request-limit';
 import {
   DEFAULT_PARTNER_RADIUS_KM,
   PARTNER_DISTANCE_BANDS_KM,
@@ -76,6 +83,41 @@ class PartnerSuggestionDto implements PartnerSuggestion {
       'Posílá ti žádost: their friendship request waits for me, so Přidat is a match',
   })
   hasRequestedMe!: boolean;
+  @ApiProperty({
+    type: Number,
+    nullable: true,
+    minimum: MUTUAL_FRIENDS_SHOWN_FROM,
+    example: 3,
+    description: `Společní přátelé: how many of my friends (accepted, active accounts) are their friends too — never who. Null below ${MUTUAL_FRIENDS_SHOWN_FROM}, so a count of 1 never gives a friendship away (#473). Not a sort key.`,
+  })
+  mutualFriendsCount!: number | null;
+}
+
+/** Today's limit of new friendship requests (#84, #473). */
+class FriendRequestLimitDto implements FriendRequestLimit {
+  @ApiProperty({
+    minimum: 0,
+    maximum: MAX_DAILY_REQUEST_LIMIT,
+    description: 'Přidat left today; accepting a request is always possible',
+  })
+  left!: number;
+  @ApiProperty({
+    example: dailyRequestLimit('free'),
+    description: `New requests a day on the plan (free ${dailyRequestLimit('free')}, plus ${dailyRequestLimit('plus')})`,
+  })
+  perDay!: number;
+  @ApiProperty({
+    format: 'date-time',
+    example: '2026-11-28T23:00:00.000Z',
+    description: 'The next Prague midnight, when left is perDay again',
+  })
+  resetsAt!: string;
+  @ApiProperty({
+    enum: REQUEST_PLANS,
+    description:
+      'The plan the limit comes from; free for everybody until the paid plan (B-071)',
+  })
+  plan!: RequestPlan;
 }
 
 /** One page of the deck (#84): who already asks me first, then the best fit. */
@@ -104,12 +146,8 @@ export class PartnerSuggestionsResponseDto implements PartnerSuggestions {
       'Ukazovat mě v Najdi parťáka is off: who isn’t seen sees nobody either (as Bumble’s Snooze), so items are empty',
   })
   hidden!: boolean;
-  @ApiProperty({
-    minimum: 0,
-    maximum: FRIEND_REQUESTS_PER_DAY,
-    description: `Přidat left today (${FRIEND_REQUESTS_PER_DAY} a day from Prague midnight); accepting a request is always possible`,
-  })
-  requestsLeft!: number;
+  @ApiProperty({ type: FriendRequestLimitDto })
+  limit!: FriendRequestLimit;
 }
 
 /** POST /api/partners/:userId/request: the friendship after „Přidat“. */
@@ -120,5 +158,9 @@ export class PartnerRequestResponseDto implements PartnerRequestResult {
       'friends = Je to shoda! (their request waited for me); outgoing = my request waits for them',
   })
   state!: FriendshipState;
-  @ApiProperty({ minimum: 0 }) requestsLeft!: number;
+  @ApiProperty({
+    type: FriendRequestLimitDto,
+    description: 'Today’s limit after this request',
+  })
+  limit!: FriendRequestLimit;
 }

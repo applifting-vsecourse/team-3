@@ -20,6 +20,7 @@ import { cn } from "@/lib/utils"
 
 import { partnerDeckQueryOptions } from "@/features/partners/api/partnersQueryOptions"
 import type { Partner, PartnerRadius } from "@/features/partners/api/partnersSchemas"
+import { DailyLimitReached } from "@/features/partners/components/DailyLimitReached"
 import {
   usePartnerRequest,
   usePartnerSkip,
@@ -28,7 +29,6 @@ import {
 } from "@/features/partners/hooks/usePartnerActions"
 import {
   announce,
-  DAILY_LIMIT_REACHED,
   deckQueue,
   emptyDeck,
   moveDeck,
@@ -172,7 +172,7 @@ export function PartnerDeck({
   const queue = deckQueue(items, state)
   const current = queue[0]
   const left =
-    answered && answered.after === firstPage ? answered.left : (firstPage?.requestsLeft ?? 0)
+    answered && answered.after === firstPage ? answered.left : (firstPage?.limit.left ?? 0)
   const canRequest = Boolean(current) && (left > 0 || current?.hasRequestedMe === true)
 
   // the next page while five cards are left, so nobody waits between cards
@@ -300,7 +300,7 @@ export function PartnerDeck({
     } else {
       request.mutate(partner.id, {
         onSuccess: (result) => {
-          setAnswered({ left: result.requestsLeft, after: firstPage })
+          setAnswered({ left: result.limit.left, after: firstPage })
           if (result.state === "friends") {
             buzz([20, 40, 20])
             setMessage(announce("match", partner, after))
@@ -596,12 +596,7 @@ export function PartnerDeck({
             </Button>
           </div>
           {current && !canRequest ? (
-            <p
-              id={`${headingId}-limit`}
-              className="text-caption text-muted-foreground"
-            >
-              {DAILY_LIMIT_REACHED}
-            </p>
+            <DailyLimitReached id={`${headingId}-limit`} />
           ) : requestsLeftLabel(left) ? (
             <p className="text-caption text-muted-foreground">{requestsLeftLabel(left)}</p>
           ) : null}

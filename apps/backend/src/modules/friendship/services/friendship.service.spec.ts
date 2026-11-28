@@ -135,12 +135,44 @@ describe('FriendshipService.request („Přidat do přátel“, #307)', () => {
     expect(limits.limited).not.toHaveBeenCalled();
   });
 
-  it('says how many new requests are left today', async () => {
+  it('says where today’s limit stands: left, of how many, until the next Prague midnight (#473)', async () => {
     const { limits, service } = setup();
     limits.sentSince.mockResolvedValue(15);
 
-    await expect(service.requestsLeft(A, now)).resolves.toBe(5);
+    await expect(service.requestLimit(A, now)).resolves.toEqual({
+      left: 5,
+      perDay: 20,
+      resetsAt: '2026-11-19T23:00:00.000Z',
+      plan: 'free',
+    });
     expect(limits.sentSince).toHaveBeenCalledWith(A, pragueMidnight);
+  });
+
+  it('mutual friends: how many per person, null below two (#473)', async () => {
+    const { repository, service } = setup();
+    repository.mutualFriendships.mockResolvedValue({
+      myFriendIds: ['f1', 'f2'],
+      pairs: [
+        { requesterId: 'f1', addresseeId: 'p' },
+        { requesterId: 'f2', addresseeId: 'p' },
+        { requesterId: 'q', addresseeId: 'f1' },
+      ],
+    });
+
+    await expect(
+      service.mutualFriendsCounts(A, ['p', 'q', 'r']),
+    ).resolves.toEqual(
+      new Map([
+        ['p', 2],
+        ['q', null],
+        ['r', null],
+      ]),
+    );
+    expect(repository.mutualFriendships).toHaveBeenCalledWith(A, [
+      'p',
+      'q',
+      'r',
+    ]);
   });
 
   it('not myself', async () => {

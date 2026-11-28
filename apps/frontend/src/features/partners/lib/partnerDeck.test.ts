@@ -9,6 +9,7 @@ import {
   distanceLabel,
   emptyDeck,
   moveDeck,
+  mutualFriendsLabel,
   requestsLeftLabel,
   sharedInterestsLabel,
 } from "./partnerDeck"
@@ -20,6 +21,7 @@ const partner = (id: string, changes: Partial<Partner> = {}): Partner => ({
   sharedInterests: [{ id: "v", name: "Volejbal", slug: "volejbal" }],
   otherInterests: [],
   hasRequestedMe: false,
+  mutualFriendsCount: null,
   ...changes,
 })
 const [a, b, c] = [partner("a"), partner("b"), partner("c")]
@@ -125,5 +127,24 @@ describe("what a card and the deck say (#84)", () => {
     )
     expect(announce("undo", a, b)).toBe("Vráceno: Člověk a.")
     expect(announce("match", a, b)).toBe("Je to shoda: Člověk a.")
+  })
+
+  it("reads the next one's mutual friends in the live region (#473)", () => {
+    expect(announce("skip", a, partner("b", { mutualFriendsCount: 3 }))).toBe(
+      "Přeskočeno. Další: Člověk b, asi 5 km, 1 společný zájem, 3 společní přátelé.",
+    )
+  })
+})
+
+describe("mutualFriendsLabel (#473)", () => {
+  it.each([
+    [2, "2 společní přátelé"],
+    [4, "4 společní přátelé"],
+    [5, "5 společných přátel"],
+    [21, "21 společných přátel"],
+    [22, "22 společných přátel"],
+    [25, "25 společných přátel"],
+  ])("%i → %s", (count, label) => {
+    expect(mutualFriendsLabel(count)).toBe(label)
   })
 })

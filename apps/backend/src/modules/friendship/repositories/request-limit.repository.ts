@@ -1,7 +1,11 @@
 import { PrismaService } from '@/core/prisma/prisma.service';
 import type { Prisma } from '@/generated/prisma/client';
 import { friendshipPairKey } from '@/modules/friendship/domain/friendship';
-import { FRIEND_REQUESTS_PER_DAY } from '@/modules/friendship/domain/request-limit';
+import {
+  dailyRequestLimit,
+  DEFAULT_REQUEST_PLAN,
+  type RequestPlan,
+} from '@/modules/friendship/domain/request-limit';
 import { Injectable } from '@nestjs/common';
 
 type Db = Prisma.TransactionClient;
@@ -34,20 +38,21 @@ export class FriendRequestLimitRepository {
     });
   }
 
-  /** A new request or one sent again, if today's limit allows it. */
+  /** A new request or one sent again, if today's limit of the plan (#473) allows it. */
   limited(
     requesterId: string,
     addresseeId: string,
     action: 'create' | 'resend',
     since: Date,
     now: Date,
+    plan: RequestPlan = DEFAULT_REQUEST_PLAN,
   ): Promise<LimitedWrite> {
     return this.prisma.$transaction(async (db) => {
       // one requester at a time: held until the transaction ends
       await db.$queryRaw`SELECT 1 AS locked FROM pg_advisory_xact_lock(hashtext(${requesterId}))`;
       if (
         (await this.sentSince(requesterId, since, db)) >=
-        FRIEND_REQUESTS_PER_DAY
+        dailyRequestLimit(plan)
       ) {
         return 'limit';
       }
