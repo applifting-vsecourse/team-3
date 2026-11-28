@@ -16,6 +16,9 @@ import {
   demoUsers,
 } from './demo-data';
 import { toEventRow, toGroupRow } from './demo-rows';
+import { groupEvents } from './group-events-data';
+import { generatedPastEvents } from './past-data';
+import { VENUE_COORDINATES } from './venue-coordinates';
 
 // Kontroly komunitních dat: že jdou vložit do databáze (odkazy, unikátnost) a že
 // nerozbijí živé demo #47 (nikdo z komunity v demo akcích, pražské akce v prvních
@@ -151,23 +154,31 @@ describe('community data', () => {
     expect(names.filter((name, i) => names.indexOf(name) !== i)).toEqual([]);
   });
 
-  // a venue from OpenStreetMap may lie out of the centre (Přístaviště Bystrc), never out of town
-  it('places every event in its town (within about 15 km)', () => {
+  // a venue from OpenStreetMap may lie out of the centre (Přístaviště Bystrc), never out of town;
+  // the fallback point near the centre stays as tight as before
+  it('places every event in its town, the ones without a mapped venue near its centre', () => {
     for (const event of communityEvents) {
       const town = coordinates.get(event.localitySlug)!;
-      expect(Math.abs(event.lat - town.lat)).toBeLessThan(0.14);
-      expect(Math.abs(event.lng - town.lng)).toBeLessThan(0.2);
+      const isMapped = event.address in VENUE_COORDINATES;
+      expect(Math.abs(event.lat - town.lat)).toBeLessThan(
+        isMapped ? 0.14 : 0.02,
+      );
+      expect(Math.abs(event.lng - town.lng)).toBeLessThan(
+        isMapped ? 0.2 : 0.03,
+      );
     }
   });
 
-  // QA-02: „Volejbal“ and „Florbal – hala Vodova“ had their pins in different parts of Brno
+  // QA-02: „Volejbal“ and „Florbal – hala Vodova“ had their pins in different parts of Brno;
+  // the community, group and past events all take their point from venuePoint
   it('gives every event at one address one point', () => {
     const points = new Map<string, string>();
-    for (const event of communityEvents) {
+    const events = [...communityEvents, ...groupEvents, ...generatedPastEvents];
+    for (const event of events) {
+      if ('key' in event && event.key === 'k-pingpong-uo') continue; // its own published coordinates
       const point = `${event.lat},${event.lng}`;
       const key = `${event.localitySlug} ${event.address}`;
       if (!points.has(key)) points.set(key, point);
-      if (event.key === 'k-pingpong-uo') continue; // its own published coordinates
       expect([key, point]).toEqual([key, points.get(key)]);
     }
   });
