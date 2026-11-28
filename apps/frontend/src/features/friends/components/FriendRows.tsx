@@ -37,13 +37,16 @@ export function FriendRow({ person, className }: { person: FriendPerson; classNa
 export function FriendRequestRow({
   request,
   direction,
+  onDecided,
 }: {
   request: FriendRequest
   direction: "incoming" | "outgoing"
+  /** What else to refresh once it's decided: the bell, whose upozornění on it is gone (#430). */
+  onDecided?: () => Promise<unknown>
 }) {
-  const accept = useFriendshipChange("request")
-  const reject = useFriendshipChange("reject")
-  const cancel = useFriendshipChange("remove")
+  const accept = useFriendshipChange("request", onDecided)
+  const reject = useFriendshipChange("reject", onDecided)
+  const cancel = useFriendshipChange("remove", onDecided)
   const isPending = accept.isPending || reject.isPending || cancel.isPending
   const { person } = request
   const isIncoming = direction === "incoming"

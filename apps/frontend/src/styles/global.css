@@ -203,13 +203,6 @@
   --button-primary-hover: color-mix(in srgb, var(--primary) 90%, var(--hero));
 }
 
-/* A sideways strip whose start sits beside something (the logo mark before „Pro tebe“): a tab
-   scrolled past the start fades out over the strip's start padding instead of being cut off
-   beside it (#298). A mask, not a colour — it works on any surface. */
-@utility fade-start {
-  mask-image: linear-gradient(to right, transparent, black calc(var(--spacing) * 3));
-}
-
 /* DESIGN.md › Type: Figma text styles, mobile first and the desktop size from md up. The display
    ones carry their face and weight, so one class sets the whole style. type- rather than text-,
    or tailwind-merge would take them for a colour and drop them next to text-*. */

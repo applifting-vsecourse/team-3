@@ -154,12 +154,18 @@ export class CreateEventDto {
   @Max(EVENT_MAX_PARTICIPANTS)
   minParticipants!: number;
 
-  @ApiProperty({ minimum: 1, example: 8 })
+  @ApiPropertyOptional({
+    minimum: 1,
+    example: 8,
+    nullable: true,
+    description: 'Left out or null: no maximum (PO 26. 11.)',
+  })
+  @IsOptional()
   @IsInt()
   @Min(1)
   @Max(EVENT_MAX_PARTICIPANTS)
   @Validate(MaxNotBelowMin)
-  maxParticipants!: number;
+  maxParticipants?: number | null;
 
   @ApiProperty({
     enum: APPROVAL_MODES,

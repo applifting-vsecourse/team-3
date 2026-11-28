@@ -138,6 +138,9 @@ describe("/profil overview (#178, #367, Figma B-05)", () => {
     const asParticipant = await screen.findByRole("region", { name: "Jako účastník" })
     expect(within(asParticipant).getByText("★ 4,5 (6 hodnocení)")).toBeInTheDocument()
     expect(within(asParticipant).getByText("Spolehlivě dorazí.")).toBeInTheDocument()
+    // PO 26. 11.: stars, not „N z 5“ (here five full)
+    expect(within(asParticipant).getByRole("img", { name: "5 z 5 hvězd" })).toBeInTheDocument()
+    expect(within(asParticipant).queryByText(/z 5$/)).not.toBeInTheDocument()
     expect(within(asParticipant).getByRole("link", { name: "Florbal" })).toHaveAttribute(
       "href",
       "/akce/p1",
