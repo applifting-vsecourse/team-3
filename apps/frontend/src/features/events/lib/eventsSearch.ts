@@ -55,6 +55,18 @@ export const PICK_LABELS: Record<QuickPick, string> = {
   "od-hodnocenych": "Od dobře hodnocených",
 }
 
+/**
+ * What a pick shows, as the sentence under the band of /akce says it (QA-01, QA-17): the same
+ * rules as the landing page's sections, so a tab of one name explains why its list differs.
+ */
+export const PICK_DESCRIPTIONS: Record<QuickPick, string> = {
+  "tady-chybis": "Chybí jim lidi do minima. Akce, na které už jdeš, tu nejsou.",
+  "tento-vikend": "Jen akce o nejbližším víkendu.",
+  "podle-zajmu": "Aktivity z tvého profilu a z akcí, na které chodíš.",
+  "kousek-od-tebe": "Nejbližší ke středu lokality.",
+  "od-hodnocenych": "Pořádají je lidi a skupiny s průměrem aspoň 4,5 z nejméně 3 hodnocení.",
+}
+
 /** ?razeni= (#57, Figma A-02j); without it soonest first, or nearest first with okolí. */
 export const SORTS = ["termin", "vzdalenost"] as const
 export type Sort = (typeof SORTS)[number]
@@ -145,8 +157,10 @@ const PICK_FLAGS: Record<
   QuickPick,
   Partial<Record<"interests" | "wellRated" | "notJoined", true>>
 > = {
-  // Figma A-02d: chybí lidé + okolí + Moje zájmy, without events one already goes to
-  "tady-chybis": { interests: true, notJoined: true },
+  // chybí lidé + okolí, without events one already goes to: the same as „Tady chybíš“ on the
+  // landing page (QA-01). Figma A-02d added one's interests, so the two tabs of one name showed
+  // different events; the interests have their own pick, „Podle tvých zájmů“
+  "tady-chybis": { notJoined: true },
   "tento-vikend": {},
   "podle-zajmu": { interests: true },
   "kousek-od-tebe": {},

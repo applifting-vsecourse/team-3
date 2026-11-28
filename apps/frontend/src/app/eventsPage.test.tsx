@@ -192,6 +192,25 @@ describe("/akce: „Zrušit rychlý výběr“", () => {
   })
 })
 
+// QA-01, QA-17: a tab says what it adds, so „Tady chybíš“ here and on the landing page read
+// the same and „Od dobře hodnocených“ names its rule
+describe("/akce: the pick's sentence under the band", () => {
+  it("names what the active pick shows, and goes with it", async () => {
+    stubMatchMedia(true)
+    await renderEvents("/akce")
+    await userEvent.click(await screen.findByRole("tab", { name: /^Tady chybíš/ }))
+    expect(await screen.findByText(/Chybí jim lidi do minima\./)).toBeInTheDocument()
+
+    await userEvent.click(screen.getByRole("tab", { name: /^Od dobře hodnocených/ }))
+    expect(
+      await screen.findByText(/s průměrem aspoň 4,5 z nejméně 3 hodnocení\./),
+    ).toBeInTheDocument()
+
+    await userEvent.click(screen.getByRole("tab", { name: /^Všechny akce/ }))
+    expect(screen.queryByText(/Chybí jim lidi|z nejméně 3 hodnocení/)).not.toBeInTheDocument()
+  })
+})
+
 // #328: the okolí a pick turns on applies (the chip says so) but stays out of the URL, so the
 // URL tells it from one set by hand — +10 km included — which stays after the pick.
 describe("/akce: the okolí of „Tady chybíš“ (#328)", () => {

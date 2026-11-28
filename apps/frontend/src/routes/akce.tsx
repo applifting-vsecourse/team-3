@@ -33,6 +33,7 @@ import {
   isAllEvents,
   localityCenter,
   PAST_TERM,
+  PICK_DESCRIPTIONS,
   PICK_LABELS,
   pickPatch,
   PICKS,
@@ -255,7 +256,7 @@ function EventsPage() {
             variant="section"
             isMotifAboveTabs
             title={title}
-            description={
+            description={`${
               area
                 ? `${which} akce ve výřezu mapy${order}.`
                 : search.lokalita === ALL_LOCALITIES_SLUG
@@ -265,7 +266,10 @@ function EventsPage() {
                       `${which} akce v lokalitě ${locality.name}${order}.${shownLocality.source === "ip" ? " Lokalitu odhadujeme podle připojení." : ""}`
                     : // the line keeps its place until the catalog names the locality
                       " "
-            }
+            }${
+              // what the pick adds, so „Tady chybíš“ here and on the landing page read the same (QA-01)
+              urlSearch.vyber && hasActiveTrigger ? ` ${PICK_DESCRIPTIONS[urlSearch.vyber]}` : ""
+            }`}
           >
             <BandTabs>
               {tabs.map(({ pick, label }, index) => (
