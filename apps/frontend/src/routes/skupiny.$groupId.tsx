@@ -5,10 +5,12 @@ import { RefreshCw } from "lucide-react"
 import { AppHeader } from "@/app/AppHeader"
 import { ROUTES } from "@/app/routes"
 import { BackLink } from "@/components/BackLink/BackLink"
+import { SubBar } from "@/components/PageBand/SubBar"
 import { Seo } from "@/components/Seo"
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 import { Button } from "@/components/ui/button"
 import { Skeleton } from "@/components/ui/skeleton"
+import { DESKTOP_QUERY, useMediaQuery } from "@/hooks/useMediaQuery"
 import { HTTPError } from "@/lib/api-client"
 import { PAGE } from "@/lib/pageLayout"
 import { cn } from "@/lib/utils"
@@ -31,6 +33,7 @@ function GroupPage() {
   const user = session.user
   // undefined while the session loads; a failed check counts as a visitor
   const viewerId = session.isPending ? undefined : (user?.id ?? null)
+  const isDesktop = useMediaQuery(DESKTOP_QUERY)
   const groupQuery = useQuery(groupQueryOptions(groupId, viewerId))
   const location = useLocation()
   const group = groupQuery.data
@@ -67,27 +70,37 @@ function GroupPage() {
             }
           />
         ) : (
-          // before there is a band: the column with the way back
-          <div className={cn(PAGE, "gap-4")}>
-            <BackLink {...GROUPS_BACK} />
-            {groupQuery.error ? (
-              <GroupError
-                isNotFound={isNotFound}
-                onRetry={() => void groupQuery.refetch()}
+          // before there is a band: the column with the way back; while loading or when it fails
+          // a phone has the bar the group's page will have, so the header doesn't jump away
+          // (PO 26. 11., review #448)
+          <>
+            {isDesktop ? null : (
+              <SubBar
+                back={GROUPS_BACK}
+                label="Skupina"
               />
-            ) : (
-              <div
-                className="flex flex-col gap-6"
-                aria-busy
-                aria-label="Načítám skupinu"
-              >
-                <h1 className="sr-only">Skupina</h1>
-                <Skeleton className="size-16 rounded-lg" />
-                <Skeleton className="h-9 w-3/4" />
-                <Skeleton className="h-32 w-full" />
-              </div>
             )}
-          </div>
+            <div className={cn(PAGE, "gap-4")}>
+              {isDesktop ? <BackLink {...GROUPS_BACK} /> : null}
+              {groupQuery.error ? (
+                <GroupError
+                  isNotFound={isNotFound}
+                  onRetry={() => void groupQuery.refetch()}
+                />
+              ) : (
+                <div
+                  className="flex flex-col gap-6"
+                  aria-busy
+                  aria-label="Načítám skupinu"
+                >
+                  <h1 className="sr-only">Skupina</h1>
+                  <Skeleton className="size-16 rounded-lg" />
+                  <Skeleton className="h-9 w-3/4" />
+                  <Skeleton className="h-32 w-full" />
+                </div>
+              )}
+            </div>
+          </>
         )}
       </main>
     </>

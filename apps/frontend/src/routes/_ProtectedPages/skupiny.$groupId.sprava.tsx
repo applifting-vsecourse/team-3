@@ -60,6 +60,7 @@ function ManageGroupPage() {
   const isDesktop = useMediaQuery(DESKTOP_QUERY)
   const groupQuery = useQuery(groupQueryOptions(groupId, viewerId))
   const group = groupQuery.data
+  const isGroupPending = groupQuery.isPending
   const isAdmin =
     group?.viewerMembership?.role === "admin" && group.viewerMembership.status === "active"
   const openSavedGroup = useOpenSavedGroup()
@@ -86,6 +87,14 @@ function ManageGroupPage() {
   return (
     <>
       <Seo title="Správa skupiny" />
+      {/* PO 26. 11.: while loading a phone has the bar the page will have (no header jump) */}
+      {isGroupPending && !isDesktop && !isManaging ? (
+        <SubBar
+          back={back}
+          label="Správa skupiny"
+          isHeading
+        />
+      ) : null}
       {isManaging ? (
         isDesktop ? (
           <PageBand
@@ -105,7 +114,7 @@ function ManageGroupPage() {
         )
       ) : null}
       <div className={cn(PAGE, "gap-4")}>
-        {isManaging ? null : <BackLink {...back} />}
+        {isManaging || (isGroupPending && !isDesktop) ? null : <BackLink {...back} />}
         {group?.status === "inactive" ? (
           <InactiveGroupNotice />
         ) : group && !isAdmin ? (

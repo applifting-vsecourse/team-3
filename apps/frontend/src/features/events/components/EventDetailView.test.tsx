@@ -452,6 +452,32 @@ describe("EventDetailView", () => {
     expect(screen.getByRole("heading", { level: 1, name: "Detail akce" })).toBeInTheDocument()
   })
 
+  // PO 26. 11. (the top bar „hiding“): the phone's bar is there from the start, so the header
+  // doesn't show while loading and then jump away once the event is here
+  it.each([
+    [false, true],
+    [true, false],
+  ])("while loading, desktop %s: the phone's bar %s", async (isDesktop, hasBar) => {
+    stubDesktop(isDesktop)
+    const { container } = await renderWithRouter(<EventDetailView isLoading />)
+
+    expect(Boolean(container.querySelector("[data-slot=sub-bar]"))).toBe(hasBar)
+    vi.unstubAllGlobals()
+  })
+
+  // review #448: when it fails or isn't there, a phone keeps the bar too, not the header
+  it.each([
+    ["an error", { error: new Error("500") }],
+    ["„not found“", { isNotFound: true }],
+  ])("on a phone %s keeps the bar, one way back", async (_state, props) => {
+    stubDesktop(false)
+    const { container } = await renderWithRouter(<EventDetailView {...props} />)
+
+    expect(container.querySelector("[data-slot=sub-bar]")).toBeInTheDocument()
+    expect(screen.getAllByRole("link", { name: /Akce|Zpět/ })).toHaveLength(1)
+    vi.unstubAllGlobals()
+  })
+
   it("renders „not available“ with a way to the list (the 404 detection is in useEventDetail)", async () => {
     await renderWithRouter(<EventDetailView isNotFound />)
 
