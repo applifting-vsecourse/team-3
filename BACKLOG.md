@@ -687,10 +687,12 @@ Doménová logika (čistá funkce + testy): `approvedCount`, `missingToMin = max
 - **Připomínka účastníkům** den před akcí.
 - **Organizátorovi 48 a 24 h před akcí**, kolik lidí chybí do minima, s odkazy Sdílet / Topovat / Zrušit. Při naplněném minimu nepřijde.
 - **Výzva k hodnocení** (#65, sprint 4): denní dávka ve 21:00 v pražském čase, všem `approved` a zakladateli akce (odkaz na hodnocení z B-060). Účastníkům „Ohodnoť akci“, organizátorovi „Ohodnoť účastníky“ (E-01 typy 11 a 12). Akce skončené po večerní dávce nebo bez `endsAt` (konec pražského dne) přijdou na řadu další večer. Výzvy jen k akcím ukončeným od aktivace evidované migrací a za posledních 48 hodin. Neúspěšná odeslání se opakují nejvýše třikrát celkem na příjemce a akci, potvrzená odeslání se evidují v `NotificationLog`. Zrušené, skryté a smazané akce a akce pod minimem se neposílají; příjemci a omezení doručení v `modules/notification/README.md`. Připomínky před akcí a chybějící lidé jsou mimo sprint 4.
+- **Připomínky před akcí** (#405): účastníkům 24 až 20 h před začátkem, organizátorovi 48–44 a 24–20 h před začátkem jen pod minimem; stejný plánovač, `NotificationLog` a tři pokusy jako výzva k hodnocení. „Topovat“ jen s `TOPPING_ENABLED` (B-073 zatím není). Podrobnosti v `modules/notification/README.md`.
 
 **Hotovo, když:**
 
 - [x] Testy výběru příjemců výzvy k hodnocení s fixním „teď“ (fake timers), hranic večerní dávky a lhůty hodnocení, změny času, obnovy po výpadku a evidence odeslání (#65). Připomínky před akcí a chybějící lidé zůstávají na později.
+- [x] Testy oken připomínek a přehledu organizátora, naplněného minima, zrušených akcí, příjemců, jednorázového odeslání a opakování (#405).
 
 ---
 

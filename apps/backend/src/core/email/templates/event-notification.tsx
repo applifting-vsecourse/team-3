@@ -1,4 +1,4 @@
-import { Button, Heading, Section, Text } from 'react-email';
+import { Button, Heading, Link, Section, Text } from 'react-email';
 import * as React from 'react';
 import { EmailLayout } from './layout';
 
@@ -12,6 +12,8 @@ export interface EventNotificationEmailProps {
   quote: { label: string; text: string } | null;
   /** The button, and the same link as text for clients that block buttons. */
   action: { label: string; url: string };
+  /** Further destinations under the button, as plain links (#405: „Zrušit akci“). */
+  links?: { label: string; url: string }[];
 }
 
 /**
@@ -26,6 +28,7 @@ export const EventNotificationEmail = ({
   details,
   quote,
   action,
+  links = [],
 }: EventNotificationEmailProps): React.JSX.Element => (
   <EmailLayout preview={preview}>
     <Heading className="text-2xl font-bold text-[#14201a] m-0">
@@ -68,6 +71,13 @@ export const EventNotificationEmail = ({
         {action.label}
       </Button>
     </Section>
+    {links.map(({ label, url }) => (
+      <Text key={url + label} className="text-base leading-6 mt-0 mb-4">
+        <Link href={url} className="text-[#14201a] underline">
+          {label}
+        </Link>
+      </Text>
+    ))}
     <Text className="text-[#505e56] text-sm leading-5">
       Kdyby tlačítko nefungovalo, zkopíruj si do prohlížeče tento odkaz.
     </Text>
