@@ -8,6 +8,18 @@ import {
 const limits = { minParticipants: 4, maxParticipants: 12 };
 
 describe('computeCapacity', () => {
+  // PO 26. 11.: the maximum is optional
+  it('without a maximum: no free-spot count and never full', () => {
+    expect(
+      computeCapacity({ minParticipants: 4, maxParticipants: null }, 40),
+    ).toEqual({
+      approvedCount: 40,
+      missingToMin: 0,
+      freeSpots: null,
+      isFull: false,
+    });
+  });
+
   it('nobody approved: the whole minimum is missing, all places free', () => {
     expect(computeCapacity(limits, 0)).toEqual({
       approvedCount: 0,
@@ -111,6 +123,24 @@ describe('capacityChangeProblem', () => {
         maxParticipants: 6,
       }),
     ).toBeNull();
+  });
+
+  it('the maximum can be removed, and a minimum then has no maximum to be below', () => {
+    expect(
+      capacityChangeProblem(current, { maxParticipants: null }),
+    ).toBeNull();
+    expect(
+      capacityChangeProblem(
+        { ...current, maxParticipants: null },
+        { minParticipants: 30 },
+      ),
+    ).toBeNull();
+    expect(
+      capacityChangeProblem(
+        { ...current, maxParticipants: null },
+        { maxParticipants: 4 },
+      ),
+    ).toBe('Maximum nejde snížit pod počet přihlášených (5).');
   });
 
   it('no change to the limits is fine', () => {

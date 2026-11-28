@@ -3,18 +3,22 @@ export type Capacity = {
   approvedCount: number;
   /** How many people are still needed to reach the minimum; 0 once it is reached. */
   missingToMin: number;
-  /** Places left up to the maximum; never negative. */
-  freeSpots: number;
+  /** Places left up to the maximum; never negative. Null without a maximum (no limit). */
+  freeSpots: number | null;
   isFull: boolean;
 };
 
 export const computeCapacity = (
-  limits: { minParticipants: number; maxParticipants: number },
+  /** `maxParticipants` null: no maximum, the event never fills up (PO 26. 11.). */
+  limits: { minParticipants: number; maxParticipants: number | null },
   approvedCount: number,
 ): Capacity => {
   // max(0, …) also covers data where approvals overshoot the maximum
   // (e.g. the maximum was lowered after people joined).
-  const freeSpots = Math.max(0, limits.maxParticipants - approvedCount);
+  const freeSpots =
+    limits.maxParticipants === null
+      ? null
+      : Math.max(0, limits.maxParticipants - approvedCount);
   return {
     approvedCount,
     missingToMin: Math.max(0, limits.minParticipants - approvedCount),
@@ -45,12 +49,17 @@ export const capacityChangeProblem = (
   current: {
     approvedCount: number;
     minParticipants: number;
-    maxParticipants: number;
+    maxParticipants: number | null;
   },
-  changes: { minParticipants?: number; maxParticipants?: number },
+  /** `maxParticipants: null` removes the maximum; left out, it stays. */
+  changes: { minParticipants?: number; maxParticipants?: number | null },
 ): string | null => {
   const min = changes.minParticipants ?? current.minParticipants;
-  const max = changes.maxParticipants ?? current.maxParticipants;
+  const max =
+    changes.maxParticipants === undefined
+      ? current.maxParticipants
+      : changes.maxParticipants;
+  if (max === null) return null;
   if (max < min) return 'Maximum nesmí být menší než minimum.';
   if (max < current.approvedCount) {
     return `Maximum nejde snížit pod počet přihlášených (${current.approvedCount}).`;

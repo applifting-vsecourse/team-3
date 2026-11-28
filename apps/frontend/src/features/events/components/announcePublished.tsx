@@ -1,13 +1,9 @@
-import { Link } from "@tanstack/react-router"
 import { toast } from "sonner"
 
-import { ROUTES } from "@/app/routes"
-import { Button } from "@/components/ui/button"
-
 /**
- * After „Zveřejnit“ the page still opens the new event's detail (Figma D-01); the toast that
- * says so leads on to Moje akce › Pořádám, where the event is now and its requests will
- * wait (#188). A real link, so it opens in a new tab too; long enough to be reached.
+ * After „Zveřejnit“ the page still opens the new event's detail (Figma D-01); the toast says
+ * it is published and where it is now: Moje akce › Pořádám (#188). Text only, no button (PO
+ * 26. 11.: toasts with buttons); the detail says the same for its organizer (MyEventsNote).
  *
  * `imageError`: the event is published but its image (#77) didn't upload — a second toast
  * says why and where to add it.
@@ -18,23 +14,7 @@ export function announcePublished(imageError?: string | null): void {
       duration: 10_000,
     })
   }
-  const id = toast.success("Akce je zveřejněná.", {
-    duration: 10_000,
-    action: (
-      <Button
-        asChild
-        size="sm"
-        variant="outline"
-        className="ml-auto shrink-0"
-      >
-        <Link
-          to={ROUTES.myEvents}
-          search={{ tab: "poradam" }}
-          onClick={() => toast.dismiss(id)}
-        >
-          Moje akce › Pořádám
-        </Link>
-      </Button>
-    ),
+  toast.success("Akce je zveřejněná.", {
+    description: "Najdeš ji v Moje akce › Pořádám.",
   })
 }

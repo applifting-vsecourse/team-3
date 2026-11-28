@@ -61,6 +61,7 @@ export function MyPage({ section, description, create, children }: MyPageProps) 
               asChild
               size="lg"
               // mobile: floats above the bottom navigation
+              data-toast-clear
               className="fixed right-4 bottom-20 z-30 h-11 shadow-md md:static md:shadow-none"
             >
               <Link to={create.to}>

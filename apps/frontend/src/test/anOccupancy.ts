@@ -8,10 +8,11 @@ import type { Occupancy } from "@/lib/occupancy"
 export const anOccupancy = (
   approvedCount: number,
   minParticipants: number,
-  maxParticipants: number,
+  /** Null: no maximum (PO 26. 11.). */
+  maxParticipants: number | null,
   overrides: Partial<Occupancy> = {},
 ): Occupancy => {
-  const freeSpots = Math.max(0, maxParticipants - approvedCount)
+  const freeSpots = maxParticipants === null ? null : Math.max(0, maxParticipants - approvedCount)
   return {
     approvedCount,
     minParticipants,

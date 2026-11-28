@@ -114,6 +114,15 @@ function ManageEventPage() {
   return (
     <>
       <Seo title="Správa akce" />
+      {/* PO 26. 11.: while loading a phone has the bar the page will have, so the header
+          doesn't show first and then jump away */}
+      {isPending && !isDesktop && !isManaging ? (
+        <SubBar
+          back={back}
+          label="Správa akce"
+          isHeading
+        />
+      ) : null}
       {isManaging ? (
         isDesktop ? (
           <PageBand
@@ -149,7 +158,7 @@ function ManageEventPage() {
       ) : null}
       <div className={cn(PAGE, "gap-6")}>
         {/* until the event is here and theirs, the page is just its name */}
-        {isManaging ? null : (
+        {isManaging || (isPending && !isDesktop) ? null : (
           <>
             <BackLink {...back} />
             <h1 className="text-3xl font-semibold tracking-tight md:text-4xl">Správa akce</h1>
@@ -264,6 +273,18 @@ function ManageEventPage() {
               {/* Figma D-03d: Upravit, Sdílet odkaz, Zrušit (ghost) beside each other; a phone
                   shares from the bar and has Upravit and Zrušit side by side (D-03) */}
               <div className="grid grid-cols-2 gap-3 md:flex md:flex-wrap md:items-center">
+                {/* someone is coming, but sharing comes first: writing stays at hand (#371).
+                    First, as in Figma D-03: full width over Upravit and Zrušit on a phone, which
+                    stay side by side (#453), and Zrušit stays the last action; in the DOM too,
+                    so Tab goes the way the eye does */}
+                {viewerId && canWrite && nextStep?.action !== "write" && recipientCount ? (
+                  <SendEventMessageButton
+                    eventId={eventId}
+                    viewerId={viewerId}
+                    recipientCount={recipientCount}
+                    className="col-span-2 md:col-span-1"
+                  />
+                ) : null}
                 {canEdit ? (
                   <Button
                     asChild
@@ -279,15 +300,6 @@ function ManageEventPage() {
                       Upravit akci
                     </Link>
                   </Button>
-                ) : null}
-                {/* someone is coming, but sharing comes first: writing stays at hand (#371) */}
-                {viewerId && canWrite && nextStep?.action !== "write" && recipientCount ? (
-                  <SendEventMessageButton
-                    eventId={eventId}
-                    viewerId={viewerId}
-                    recipientCount={recipientCount}
-                    className="col-span-2 md:col-span-1"
-                  />
                 ) : null}
                 {canShareAside ? (
                   <ShareEventButton

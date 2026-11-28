@@ -1,3 +1,4 @@
+import { useState } from "react"
 import { Star } from "lucide-react"
 import { RadioGroup as RadioGroupPrimitive } from "radix-ui"
 
@@ -28,21 +29,36 @@ type RatingStarsProps = {
  * here, because the kit's `RadioGroupItem` draws its own dot and takes no star.
  */
 export function RatingStars({ value, onChange, isDisabled = false, ...aria }: RatingStarsProps) {
+  // #369 (PO 26. 11.: „černé hvězdičky, není jasné, jestli jsou vyplněné“): under the mouse a
+  // preview up to the star pointed at — outlined `foreground`, filled `control-border`, lighter
+  // than a choice; full black stays for what was picked. Mouse only: touch and the keyboard
+  // pick at once, and a screen reader hears the radio group as before.
+  const [preview, setPreview] = useState<number | null>(null)
   return (
     <RadioGroup
       value={value === null ? "" : String(value)}
-      onValueChange={(next) => onChange(Number(next))}
+      onValueChange={(next) => {
+        // the pick shows at once in full, not still as the preview under the mouse
+        setPreview(null)
+        onChange(Number(next))
+      }}
       disabled={isDisabled}
       orientation="horizontal"
       className="flex gap-1"
       {...aria}
+      onPointerLeave={() => setPreview(null)}
     >
       {STARS.map((stars) => {
-        const isFull = value !== null && stars <= value
+        const isPreviewed = preview !== null && stars <= preview
+        const isFull = preview === null && value !== null && stars <= value
         return (
           <RadioGroupPrimitive.Item
             key={stars}
             value={String(stars)}
+            data-preview={isPreviewed ? "" : undefined}
+            onPointerEnter={(pointer) => {
+              if (pointer.pointerType === "mouse" && !isDisabled) setPreview(stars)
+            }}
             aria-label={`${stars} z ${STARS.length} hvězd`}
             className="flex size-10 items-center justify-center rounded-lg outline-none focus-visible:ring-[3px] focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50"
           >
@@ -51,7 +67,11 @@ export function RatingStars({ value, onChange, isDisabled = false, ...aria }: Ra
               strokeWidth={1.5}
               className={cn(
                 "size-7",
-                isFull ? "fill-foreground text-foreground" : "fill-none text-control-border",
+                isPreviewed
+                  ? "fill-control-border text-foreground"
+                  : isFull
+                    ? "fill-foreground text-foreground"
+                    : "fill-none text-control-border",
               )}
             />
           </RadioGroupPrimitive.Item>

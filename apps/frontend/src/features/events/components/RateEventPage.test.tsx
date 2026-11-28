@@ -204,8 +204,18 @@ describe("/akce/:id/hodnoceni for a participant (Figma C-03, #66)", () => {
     expect(within(event).getByRole("radio", { name: "5 z 5 hvězd" })).toBeChecked()
     const comment = screen.getByLabelText("Komentář (nepovinné)")
     expect(comment).toHaveValue("Skvělá parta, příště zase.")
+    // #369: it says this changes the rating given before
+    // #369: „Upravit hodnocení“ in the phone's bar, „Uprav hodnocení“ in the desktop band
+    const heading = screen.getByRole("heading", { level: 1 })
+    expect(within(heading).getByText("Upravit hodnocení")).toHaveClass("md:hidden")
+    expect(within(heading).getByText("Uprav hodnocení")).toHaveClass("hidden", "md:inline")
+    // Figma C-03e: the day without the year, and that nothing changes before saving
+    expect(screen.getByText("Upravuješ své hodnocení z 20. 10.")).toBeInTheDocument()
+    expect(screen.getByText(/Změny platí až po „Uložit změny“/)).toBeInTheDocument()
 
     await user.clear(comment)
+    // an example while it is empty (Figma C-03n)
+    expect(comment).toHaveAttribute("placeholder", expect.stringMatching(/^např\. /))
     await user.click(screen.getByRole("button", { name: "Uložit změny" }))
 
     expect(api.put).toHaveBeenCalledWith("events/e1/rating", {

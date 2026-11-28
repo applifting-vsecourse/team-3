@@ -8,6 +8,7 @@ import {
 } from './demo-data';
 import { buildRegionalPlans } from './regional-data';
 import { stableHash } from './stable-hash';
+import { VENUE_COORDINATES } from './venue-coordinates';
 
 /**
  * Komunita HobbyHubu: 133 uživatelů po celém Česku, jejich akce a skupiny.
@@ -1367,7 +1368,7 @@ const handWrittenEventPlans: CommunityEventPlan[] = [
       'Hrajeme šest na šest, na každé straně aspoň dvě ženy. Pro mírně pokročilé, kteří zvládnou příjem a nahrávku. Hala 110 Kč na osobu.',
     activitySlug: 'volejbal',
     localitySlug: 'brno',
-    address: 'Sportovní centrum Vodova, Vodova 108, Brno',
+    address: 'Sportovní hala Vodova, Vodova 108, Brno',
     days: 2,
     time: '19:00',
     durationMinutes: 120,
@@ -3021,6 +3022,17 @@ export const nearTown = (
   };
 };
 
+/**
+ * Where a venue is (QA-02): its point from OpenStreetMap when the address was found there
+ * (venue-coordinates.ts), else a point near the town that depends on the address alone — so
+ * every event at one venue shares one pin, never one per event.
+ */
+export const venuePoint = (
+  address: string,
+  localitySlug: string,
+): { lat: number; lng: number } =>
+  VENUE_COORDINATES[address] ?? nearTown(localitySlug, address);
+
 const buildEvents = (plans: CommunityEventPlan[]): CommunityEvent[] => {
   // kdo má který den (dny od seedu) už akci – nikdo nemá dvě akce v jeden den
   const busy = new Map<string, Set<number>>();
@@ -3058,7 +3070,7 @@ const buildEvents = (plans: CommunityEventPlan[]): CommunityEvent[] => {
       durationMinutes: plan.durationMinutes,
       address: plan.address,
       localitySlug: plan.localitySlug,
-      ...(plan.venueCoordinates ?? nearTown(plan.localitySlug, plan.key)),
+      ...(plan.venueCoordinates ?? venuePoint(plan.address, plan.localitySlug)),
       minParticipants: plan.min,
       maxParticipants: plan.max,
       price: plan.price,
