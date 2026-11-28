@@ -75,7 +75,7 @@ export function missingNowSentence(event: {
 
 /** The panel's button: „Doplnit partu“ to an open event, a request where the organizer approves. */
 export const missingNowAction = (approvalMode: "open" | "approval"): string =>
-  approvalMode === "approval" ? "Požádat o účast" : "Doplnit partu"
+  approvalMode === "approval" ? "Poslat žádost" : "Doplnit partu"
 
 /**
  * Where the sections are from, inside a sentence. The catalog has no locative („v okolí

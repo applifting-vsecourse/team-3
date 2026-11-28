@@ -80,7 +80,7 @@ describe("an event where the organizer approves", () => {
         missingToMin: 1,
       }),
     ).toBe("5 z 12 už jde, do minima chybí 1. Když tě organizátor schválí, akce se koná.")
-    expect(missingNowAction("approval")).toBe("Požádat o účast")
+    expect(missingNowAction("approval")).toBe("Poslat žádost")
     expect(missingNowAction("open")).toBe("Doplnit partu")
   })
 })
