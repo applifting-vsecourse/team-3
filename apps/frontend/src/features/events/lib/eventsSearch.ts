@@ -204,6 +204,20 @@ export function withPicksOkoli(search: EventsSearch, now: Date): EventsSearch {
 }
 
 /**
+ * A pick typed or shared as `?vyber=` alone applies as its tab does: the filters it sets fill in
+ * where the URL has none, so the tab's count and the list agree. A pick whose filters were changed
+ * has no `vyber` any more (pickPatch), so this only completes a URL, never overrides it. Its okolí
+ * stays with withPicksOkoli, out of the URL (#328).
+ */
+export function withPickFilters(search: EventsSearch, now: Date): EventsSearch {
+  if (!search.vyber) return search
+  const missing = Object.entries(pickPreset(search.vyber, undefined, now)).filter(
+    ([key]) => key !== "okoli" && search[key as keyof EventsSearch] === undefined,
+  )
+  return missing.length ? { ...Object.fromEntries(missing), ...search } : search
+}
+
+/**
  * The URL a pick leads to: the locality and an okolí set by hand stay, the other filters give way
  * to the pick's. Without a pick „Všechny akce“. The pick's own okolí stays out (withPicksOkoli).
  */

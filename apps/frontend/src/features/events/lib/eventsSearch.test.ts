@@ -17,6 +17,7 @@ import {
   toEventFilters,
   toMapArea,
   toOblast,
+  withPickFilters,
   withPicksOkoli,
 } from "./eventsSearch"
 
@@ -481,5 +482,27 @@ describe("nearestFilters (#299)", () => {
     expect(
       nearestFilters({ lokalita: "praha-8", oblast: "14.3,50,14.6,50.15" }, catalog, 5),
     ).toBeUndefined()
+  })
+})
+
+// a shared or hand-typed ?vyber= alone: the tab said 3, the list showed all 25 (QA N1)
+describe("withPickFilters", () => {
+  const now = new Date("2026-11-25T10:00:00+01:00")
+
+  it("fills in what the pick sets where the URL has nothing, never its okolí", () => {
+    expect(withPickFilters({ vyber: "tady-chybis", lokalita: "brno" }, now)).toEqual({
+      vyber: "tady-chybis",
+      lokalita: "brno",
+      obsazenost: "chybi",
+    })
+    const weekend = withPickFilters({ vyber: "tento-vikend" }, now)
+    expect([weekend.od, weekend.do].every(Boolean)).toBe(true)
+  })
+
+  it("keeps what the URL has, and leaves a search without a pick as it is", () => {
+    const search = { vyber: "tady-chybis", obsazenost: "volna" } as const
+    expect(withPickFilters(search, now)).toBe(search)
+    const plain = { lokalita: "brno" }
+    expect(withPickFilters(plain, now)).toBe(plain)
   })
 })
